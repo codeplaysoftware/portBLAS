@@ -2,14 +2,13 @@
 cmake_minimum_required (VERSION 3.2.2)
 
 
-project(syBLAS)
+project(sycl-blas)
 
 enable_testing()
 
 message(STATUS "Path to the SYCL implementation ")
 
-
-set(SYBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
@@ -17,7 +16,14 @@ include(FindOpenCL)
 
 include(FindComputeCpp)
 
-include_directories(${SYBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
+message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+
+# We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
+set(COMPUTECPP_DEVICE_COMPILER_FLAGS 
+    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -Rsycl-serial-memop -sycl-compress-name")
+message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+
+include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
 
 add_subdirectory(tests)
 
