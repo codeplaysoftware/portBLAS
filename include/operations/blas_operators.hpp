@@ -83,6 +83,65 @@ struct IndVal {
     }                                                          \
   };
 
+/* strip_asp.
+ * When using ComputeCpp CE, the Device Compiler uses Address Spaces
+ * to deal with the different global memories.
+ * However, this causes problem with std type traits, which see the
+ * types with address space qualifiers as different from the C++ 
+ * standard types.
+ *
+ * This is strip_asp function servers as a workaround that removes
+ * the address space for various types.
+ */
+template<typename TypeWithAddressSpace>
+struct strip_asp {
+  typedef TypeWithAddressSpace type;
+};
+
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__COMPUTECPP__)
+#define GENERATE_STRIP_ASP(ENTRY_TYPE)\
+template<>\
+struct strip_asp<__attribute__((address_space(1))) ENTRY_TYPE>  {\
+  typedef ENTRY_TYPE type;\
+};\
+\
+template<>\
+struct strip_asp<__attribute__((address_space(2))) ENTRY_TYPE>  {\
+  typedef ENTRY_TYPE type;\
+};\
+\
+template<>\
+struct strip_asp<__attribute__((address_space(3))) ENTRY_TYPE>  {\
+  typedef ENTRY_TYPE type;\
+};
+
+GENERATE_STRIP_ASP(double)
+GENERATE_STRIP_ASP(float)
+#endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
+
+/** 
+ * syclblas_abs.
+ *
+ * SYCL 1.2 defines different functions for abs for floating point
+ * and integer numbers, following the OpenCL convention.
+ * To choose the appropriate one we use this template specialization
+ * that is enabled for floating point to use fabs, and abs for everything else.
+ */
+struct syclblas_abs {
+
+  template<typename Type>
+  static Type eval(const Type& val, 
+        typename std::enable_if<!std::is_floating_point<typename strip_asp<Type>::type>::value>::type* = 0) {
+    return cl::sycl::abs(val);
+  }
+
+  template<typename Type>
+  static Type eval(const Type& val,
+        typename std::enable_if<std::is_floating_point<typename strip_asp<Type>::type>::value>::type* = 0) {
+    return cl::sycl::fabs(val);
+  }
+};
+
 /*!
 @brief Macro for defining a ternary oeprator.
 @param name Name of the operator.
@@ -94,14 +153,14 @@ operator.
   struct name {                                                                \
     template <typename R>                                                      \
     static size_t eval(R& r, size_t ind1, size_t ind2) {                       \
-      return (std::abs(r.eval(ind1)) op std::abs(r.eval(ind2))) ? ind1 : ind2; \
+      return (syclblas_abs::eval(r.eval(ind1)) op syclblas_abs::eval(r.eval(ind2))) ? ind1 : ind2; \
     }                                                                          \
                                                                                \
     template <typename R1, typename R2>                                        \
     static R1 eval(R1& r1, size_t ind2, R2& r2) {                              \
-      return (std::abs(r2) op std::abs(r1.getVal()))                           \
+      return (syclblas_abs::eval(r2) op syclblas_abs::eval(r1.getVal()))                           \
                  ? R1(ind2, r2)                                                \
-                 : ((std::abs(r2) == std::abs(r1.getVal())) &&                 \
+                 : ((syclblas_abs::eval(r2) == syclblas_abs::eval(r1.getVal())) &&                 \
                     (ind2 op r1.getInd()))                                     \
                        ? R1(ind2, r2)                                          \
                        : r1;                                                   \
@@ -109,9 +168,9 @@ operator.
                                                                                \
     template <typename R>                                                      \
     static R eval(R r1, R r2) {                                                \
-      return (std::abs(r2.getVal()) op std::abs(r1.getVal()))                  \
+      return (syclblas_abs::eval(r2.getVal()) op syclblas_abs::eval(r1.getVal()))                  \
                  ? r2                                                          \
-                 : ((std::abs(r2.getVal()) == std::abs(r1.getVal())) &&        \
+                 : ((syclblas_abs::eval(r2.getVal()) == syclblas_abs::eval(r1.getVal())) &&        \
                     (r2.getInd() op r1.getInd()))                              \
                        ? r2                                                    \
                        : r1;                                                   \
@@ -152,7 +211,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(maxOp2_struct, const_val::min,
 SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
                                 ((l < r) ? l : r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
-                                (std::abs(l) + std::abs(r)))
+                                (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
 SYCLBLAS_DEFINE_TERNARY_OPERATOR(maxIndOp3_struct, const_val::min, > )
 SYCLBLAS_DEFINE_TERNARY_OPERATOR(minIndOp3_struct, const_val::max, < )
 
