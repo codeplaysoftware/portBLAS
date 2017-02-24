@@ -10,7 +10,7 @@ SYCL BLAS is a current work in progress research project from an ongoing
 collaboration with the *High Performance Computing & Architectures (HPCA) group*
 from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
-SYCL BLAS is written using modern C++. The current implementation uses C++14 
+SYCL BLAS is written using modern C++. The current implementation uses C++11 
 features but we aim to move to C++14 in the short term.
 See [Roadmap](Roadmap.md) for details on the current status and plans for
 the project.
@@ -164,8 +164,8 @@ Requirements
 
 SYCL-BLAS is designed to work with any SYCL 1.2 implementation. 
 We do not use any OpenCL interoperability, hence, the code is pure C++.
-The project is developed using (ComputeCpp CE Edition 0.1)[http://www.computecpp.com]
- using Ubuntu 14.04 on AMD GPUs.
+The project is developed using (ComputeCpp CE Edition 0.1.2)[http://www.computecpp.com]
+ using Ubuntu 14.04 on Intel OpenCL CPU and AMD GPU.
 In order to build the sources, GCC 4.8.4 or higher is required. 
 The build system is CMake version 3.2.2 or higher.
 We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
