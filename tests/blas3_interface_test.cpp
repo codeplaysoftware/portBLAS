@@ -198,7 +198,9 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
     auto reducOpV = make_addReducAssignNewOp2(bvR, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
-  //  m_C.printH ("MC");
+#ifdef VERBOSE
+  m_C.printH("MC");
+#endif  // VERBOSE
 
   // ANALYSIS OF THE RESULTS
   res = vR[0];
