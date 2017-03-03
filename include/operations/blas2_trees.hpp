@@ -280,6 +280,7 @@ AddPrdRowMatVctMultShm<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShm(
 /*! RedRowMatVct.
  * @brief CLASSICAL AXPY GEMV
  */
+// #define ORIGINAL_CODE 1
 template <class RHS1, class RHS2>
 struct RedRowMatVct {
   RHS1 r1;
@@ -291,6 +292,7 @@ struct RedRowMatVct {
   RedRowMatVct(RHS1& _r1, RHS2& _r2, size_t _warpSize)
       : r1(_r1), r2(_r2), warpSize(_warpSize){};
 
+#if ORIGINAL_CODE
   value_type eval(size_t i) {
     auto dim = r2.getSize();
     value_type v[warpSize];
@@ -307,7 +309,22 @@ struct RedRowMatVct {
     }
     return valWG;
   }
+#else
+  value_type eval(size_t i) {
+    auto dim = r2.getSize();
+    auto valWG = iniAddOp1_struct::eval(r2.eval(0));
+    for (size_t j = 0; j < dim; j++) {
+      valWG += r1.eval(i, j) * r2.eval(j);
+    }
+    return valWG;
+  }
+#endif // ORIGINAL_CODE
 
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+
+#if BLAS_EXPERIMENTAL
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
     size_t Pieces = 2;
@@ -365,6 +382,7 @@ struct RedRowMatVct {
 #endif  // BLAS_EXPERIMENTAL
     return val;
   }
+#endif  // BLAS_EXPERIMENTAL
 
 #if BLAS_EXPERIMENTAL
   value_type eval(cl::sycl::nd_item<1> ndItem) {
