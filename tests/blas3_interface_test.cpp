@@ -12,9 +12,17 @@ using namespace blas;
 
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-8
+// #define RANDOM_DATA   1
+#define EXECUTED_ON_GPU 1
 // #define SHOW_VALUES   1
 
-// #define RANDOM_DATA   1
+#ifdef EXECUTED_ON_GPU
+  #define DEFAULT_ACCESS false
+#else
+  #define DEFAULT_ACCESS true
+#endif
+
+// INITIAL MATRIZ VECTOR PRODUCT
 
 /*! TestingGEMM.
  * @brief Tests that GEMM works properly.
@@ -191,7 +199,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
     // EXECUTION OF THE ROUTINES
     size_t dimLA = dimM;
-    _gemm<SYCL>(ex, "Tr", "No", dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
+    _gemm<SYCL>(ex, ((accessDev)?"Tr":"No"), ((accessDev)?"No":"Tr"), dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
                 bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
                 bmC0(shftR, shftC), dimLC);
 
@@ -219,7 +227,8 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
 int main(int argc, char* argv[]) {
   //  using namespace SyclBlas;
-  bool accessDev = true;
+//  bool accessDev = true;
+  bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
   size_t returnVal = 0;
 
@@ -228,13 +237,15 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
@@ -242,7 +253,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 4) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     shftR = atoi(argv[2]);
@@ -250,11 +262,12 @@ int main(int argc, char* argv[]) {
   } else if (argc == 5) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
-    ;
+
     shftR = atoi(argv[3]);
     shftC = atoi(argv[4]);
   } else {
