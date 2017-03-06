@@ -12,7 +12,14 @@ using namespace blas;
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-8
 #define RANDOM_DATA 1
+#define EXECUTED_ON_GPU 1
 // #define SHOW_VALUES   1
+
+#ifdef EXECUTED_ON_GPU
+  #define DEFAULT_ACCESS false
+#else
+  #define DEFAULT_ACCESS true
+#endif
 
 // INITIAL MATRIZ VECTOR PRODUCT
 
@@ -354,7 +361,8 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
 int main(int argc, char* argv[]) {
   //  using namespace SyclBlas;
-  bool accessDev = true;
+//  bool accessDev = true;
+  bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
   size_t returnVal = 0;
 
@@ -363,13 +371,15 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
@@ -377,7 +387,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 4) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     shftR = atoi(argv[2]);
@@ -385,7 +396,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 5) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
