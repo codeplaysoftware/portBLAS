@@ -50,8 +50,10 @@ struct PrdRowMatColMat {
   PrdRowMatColMat(RHS1& _r1, RHS2& _r2) : r1(_r1), r2(_r2){};
 
   value_type eval(size_t k) {
-    auto dim1 = (r2.getAccess()) ? r2.getSizeR() : r2.getSizeC();
-    auto dim2 = (r2.getAccess()) ? r2.getSizeC() : r2.getSizeR();
+//    auto dim1 = (r2.getAccess()) ? r2.getSizeR() : r2.getSizeC();
+    auto dim1 = (r2.getAccessOpr()) ? r2.getSizeR() : r2.getSizeC();
+//    auto dim2 = (r2.getAccess()) ? r2.getSizeC() : r2.getSizeR();
+    auto dim2 = (r2.getAccessOpr()) ? r2.getSizeC() : r2.getSizeR();
     auto row = (r2.getAccess()) ? (k / dim2) : (k % dim2);
     auto col = (r2.getAccess()) ? (k % dim2) : (k / dim2);
 
@@ -67,8 +69,8 @@ struct PrdRowMatColMat {
   }
 
   size_t getSize() {
-    return (r1.getAccess() ? r1.getSizeR() : r1.getSizeC()) *
-           (r2.getAccess() ? r2.getSizeC() : r2.getSizeR());
+    return (r1.getAccessOpr() ? r1.getSizeR() : r1.getSizeC()) *
+           (r2.getAccessOpr() ? r2.getSizeC() : r2.getSizeR());
   }
 };
 

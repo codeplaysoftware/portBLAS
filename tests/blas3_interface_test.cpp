@@ -10,9 +10,11 @@
 using namespace cl::sycl;
 using namespace blas;
 
+// #define VERBOSE  1
+
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-8
-// #define RANDOM_DATA   1
+#define RANDOM_DATA   1
 #define EXECUTED_ON_GPU 1
 // #define SHOW_VALUES   1
 
@@ -49,6 +51,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   std::vector<double> vR(1);
 
   // INITIALIZING DATA
+  size_t vSeed, gap;
   double minV, maxV;
 #ifdef RANDOM_DATA
   vSeed = 1;
@@ -117,6 +120,11 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
                                                dimLC, 0);
   matrix_view<double, std::vector<double>> m_S(vS, accessDev, dimM, dimN, true,
                                                dimLC, 0);
+#ifdef VERBOSE
+  m_A.printH("MA");
+  m_B.printH("MB");
+  m_C.printH("MC");
+#endif
 
   // COMPUTING THE RESULTS
 
@@ -160,7 +168,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
         if (accessDev) {
           vS[dimN * i + j] += alpha * vA[dimM * k + i] * vB[dimN * k + j];
         } else {
-          vS[dimM * j + i] += alpha * vA[dimK * i + k] * vB[dimK * j + k];
+          vS[dimM * j + i] += alpha * vA[dimM * k + i] * vB[dimN * k + j];
         }
       }
       addC += (accessDev) ? vS[dimN * i + j] : vS[dimM * j + i];
@@ -198,7 +206,10 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
     BufferVectorView<double> bvR(bR);
 
     // EXECUTION OF THE ROUTINES
-    size_t dimLA = dimM;
+    // size_t dimLA = ((accessDev) ? dimK : dimM); // Original
+    size_t dimLA = dimM;  // for accessDev = true  then A^t
+    // size_t dimLB = ((accessDev) ? dimN : dimK);  // Original
+    size_t dimLB = dimN;  // for accessDev = false then B^t
     _gemm<SYCL>(ex, ((accessDev)?"Tr":"No"), ((accessDev)?"No":"Tr"), dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
                 bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
                 bmC0(shftR, shftC), dimLC);
