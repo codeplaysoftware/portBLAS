@@ -381,22 +381,22 @@ int main(int argc, char* argv[]) {
     std::for_each(std::begin(vY1), std::end(vY1), [&](double& elem) {
       elem = vZ1[i] + alpha1 * vX1[i]; sum1 += elem; i++;
     });
-    vS1[0] = sum1;
+//    vS1[0] = sum1;
     i = 0;
     std::for_each(std::begin(vY2), std::end(vY2), [&](double& elem) {
       elem = vZ2[i] + alpha2 * vX2[i]; sum2 += elem; i++;
     });
-    vS2[0] = sum2;
+//    vS2[0] = sum2;
     i = 0;
     std::for_each(std::begin(vY3), std::end(vY3), [&](double& elem) {
       elem = vZ3[i] + alpha3 * vX3[i]; sum3 += elem; i++;
     });
-    vS3[0] = sum3;
+//    vS3[0] = sum3;
     i = 0;
     std::for_each(std::begin(vY4), std::end(vY4), [&](double& elem) {
       elem = vZ4[i] + alpha4 * vX4[i]; sum4 += elem; i++;
     });
-    vS4[0] = sum4;
+//    vS4[0] = sum4;
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
     cl::sycl::queue q([=](cl::sycl::exception_list eL) {
@@ -448,6 +448,22 @@ int main(int argc, char* argv[]) {
       BufferVectorView<double> bvZ4(bZ4);
       BufferVectorView<double> bvS4(bS4);
 
+      // EXECUTION OF THE ROUTINES (FOR CLBLAS)
+      _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
+      _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
+      _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
+      _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
+
+      _one_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1);
+      _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
+      _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
+      _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
+
+      _one_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1);
+      _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2);
+      _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3);
+      _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4);
+
       // EXECUTION OF THE ROUTINES (SINGLE OPERATIONS)
       _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
       _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
@@ -498,7 +514,7 @@ int main(int argc, char* argv[]) {
     }
 
     // ANALYSIS OF THE RESULTS
-    for (i=1; i<4; i++) {
+    for (i=0; i<4; i++) {
       res = vS1[i]; 
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -511,7 +527,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    for (i=1; i<4; i++) {
+    for (i=0; i<4; i++) {
       res = vS2[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -525,7 +541,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    for (i=1; i<4; i++) {
+    for (i=0; i<4; i++) {
       res = vS3[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -538,7 +554,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    for (i=1; i<4; i++) {
+    for (i=0; i<4; i++) {
       res = vS4[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
