@@ -387,10 +387,11 @@ int main(int argc, char* argv[]) {
 
     // COMPUTING THE RESULTS
     int i;
-    double sum1 = 0.0, alpha1 = 1.1;
-    double sum2 = 0.0, alpha2 = 2.2;
-    double sum3 = 0.0, alpha3 = 3.3;
-    double sum4 = 0.0, alpha4 = 4.4;
+    double sum1 = 0.0f, alpha1 = 1.1f;
+    double sum2 = 0.0f, alpha2 = 2.2f;
+    double sum3 = 0.0f, alpha3 = 3.3f;
+    double sum4 = 0.0f, alpha4 = 4.4f;
+    double ONE = 1.0f;
     i = 0;
     std::for_each(std::begin(vY1), std::end(vY1), [&](double& elem) {
       elem = vZ1[i] + alpha1 * vX1[i]; sum1 += elem; i++;

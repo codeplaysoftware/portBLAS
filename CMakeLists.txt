@@ -16,6 +16,21 @@ include(FindOpenCL)
 
 include(FindComputeCpp)
 
+include(FindBLAS)
+
+if (DEFINED CLBLAS_ROOT)
+  message(STATUS "Help")
+  set(USE_CLBLAS ON)
+else()
+  set(USE_CLBLAS OFF)
+endif()
+
+if(USE_CLBLAS)
+  message(STATUS "Will enable comparison with clBLAS")
+  set(CLBLAS_LIBRARIES "${CLBLAS_ROOT}/lib64/libclBLAS.so")
+  set(CLBLAS_INCLUDE "${CLBLAS_ROOT}/include/")
+endif(USE_CLBLAS)
+
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
@@ -24,6 +39,11 @@ set(COMPUTECPP_DEVICE_COMPILER_FLAGS
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
+
+if (USE_CLBLAS)
+  include_directories(${CLBLAS_INCLUDE})
+endif()
+
 
 add_subdirectory(tests)
 
