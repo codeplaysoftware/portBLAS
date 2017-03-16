@@ -13,7 +13,7 @@ using namespace blas;
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 
-//#define SHOW_TIMES     1  // If it exists, the code prints the execution time
+#define SHOW_TIMES     1  // If it exists, the code prints the execution time
                           // The ... should be changed by the corresponding routine
 #define NUMBER_REPEATS 2  // Number of times the computations are made
                           // If it is greater than 1, the compile time is not considered
@@ -328,11 +328,11 @@ int main(int argc, char* argv[]) {
   if (returnVal == 0) {
 #ifdef SHOW_TIMES
     // VARIABLES FOR TIMING
-    double t_start, t_stop;
-    double t0_copy, t0_axpy, t0_add;
-    double t1_copy, t1_axpy, t1_add;
-    double t2_copy, t2_axpy, t2_add;
-    double t3_copy, t3_axpy, t3_add;
+    std::chrono::time_point<std::chrono::steady_clock> t_start, t_stop;
+    std::chrono::duration<double> t0_copy, t0_axpy, t0_add;
+    std::chrono::duration<double> t1_copy, t1_axpy, t1_add;
+    std::chrono::duration<double> t2_copy, t2_axpy, t2_add;
+    std::chrono::duration<double> t3_copy, t3_axpy, t3_add;
 #endif
 
     // CREATING DATA
@@ -466,149 +466,149 @@ int main(int argc, char* argv[]) {
       for (int i=0; i<NUMBER_REPEATS; i++) {
         // EXECUTION OF THE ROUTINES (FOR CLBLAS)
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
         _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
         _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
         _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t0_copy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now(); t0_copy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1);
         _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
         _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
         _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t0_axpy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t0_axpy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1);
         _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2);
         _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3);
         _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t0_add  = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t0_add  = t_stop - t_start ;
 #endif
 
         // EXECUTION OF THE ROUTINES (SINGLE OPERATIONS)
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
         _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
         _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
         _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t1_copy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t1_copy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1);
         _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
         _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
         _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t1_axpy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t1_axpy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _one_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+1);
         _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2+1);
         _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+1);
         _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4+1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t1_add  = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t1_add  = t_stop - t_start ;
 #endif
 
         // EXECUTION OF THE ROUTINES (DOUBLE OPERATIONS)
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _two_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1,
                                              bvZ2, 1, bvY2, 1);
         _two_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1,
                                              bvZ4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t2_copy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t2_copy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _two_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1,
                                              alpha2, bvX2, 1, bvY2, 1);
         _two_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1,
                                              alpha4, bvX4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t2_axpy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t2_axpy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _two_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+2,
                                             bvY2, 1, bvS2+2);
         _two_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+2,
                                             bvY4, 1, bvS4+2);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t2_add  = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t2_add  = t_stop - t_start ;
 #endif
 
         // EXECUTION OF THE ROUTINES (QUADUBLE OPERATIONS)
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now() ; 
 #endif
         _four_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1,
                                              bvZ2, 1, bvY2, 1,
                                              bvZ3, 1, bvY3, 1,
                                              bvZ4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t3_copy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now() ; t3_copy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now(); ; 
 #endif
         _four_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1,
                                              alpha2, bvX2, 1, bvY2, 1,
                                              alpha3, bvX3, 1, bvY3, 1,
                                              alpha4, bvX4, 1, bvY4, 1);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t3_axpy = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now()  ; t3_axpy = t_stop - t_start ;
 #endif
 
 #ifdef SHOW_TIMES
-        t_start = ... ; 
+        t_start = std::chrono::steady_clock::now()  ; 
 #endif
         _four_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+3,
                                             bvY2, 1, bvS2+3,
                                             bvY3, 1, bvS3+3,
                                             bvY4, 1, bvS4+3);
 #ifdef SHOW_TIMES
-        t_stop  = ... ; t3_add  = t_stop - t_start ;
+        t_stop  = std::chrono::steady_clock::now()  ; t3_add  = t_stop - t_start ;
 #endif
       }
     }
 #ifdef SHOW_TIMES
     // COMPUTATIONAL TIMES
-    std::cout <<   "t_copy --> (" << t0_copy << ", " << t1_copy 
-                          << ", " << t2_copy << ", " << t3_copy << ")" << std::endl; 
-    std::cout <<   "t_axpy --> (" << t0_axpy << ", " << t1_axpy 
-                          << ", " << t2_axpy << ", " << t3_axpy << ")" << std::endl; 
-    std::cout <<   "t_add  --> (" << t0_add  << ", " << t1_add  
-                          << ", " << t2_add  << ", " << t3_add  << ")" << std::endl; 
+    std::cout <<   "t_copy --> (" << t0_copy.count() << ", " << t1_copy.count()
+                          << ", " << t2_copy.count() << ", " << t3_copy.count() << ")" << std::endl; 
+    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ", " << t1_axpy.count() 
+                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << ")" << std::endl; 
+    std::cout <<   "t_add  --> (" << t0_add.count()  << ", " << t1_add.count()  
+                          << ", " << t2_add.count()  << ", " << t3_add.count()  << ")" << std::endl; 
 #endif
 
     // ANALYSIS OF THE RESULTS
