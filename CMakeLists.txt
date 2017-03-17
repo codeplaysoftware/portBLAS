@@ -35,7 +35,7 @@ message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
 set(COMPUTECPP_DEVICE_COMPILER_FLAGS 
-    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -Rsycl-serial-memop -sycl-compress-name")
+    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})

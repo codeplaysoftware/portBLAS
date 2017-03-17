@@ -128,9 +128,13 @@ else()
 endif()
 
 # Obtain the device compiler flags
-execute_process(COMMAND ${COMPUTECPP_INFO_TOOL} "--dump-device-compiler-flags"
-  OUTPUT_VARIABLE COMPUTECPP_DEVICE_COMPILER_FLAGS
-  RESULT_VARIABLE COMPUTECPP_INFO_TOOL_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+#execute_process(COMMAND ${COMPUTECPP_INFO_TOOL} "--dump-device-compiler-flags"
+#   OUTPUT_VARIABLE COMPUTECPP_DEVICE_COMPILER_FLAGS
+#  RESULT_VARIABLE COMPUTECPP_INFO_TOOL_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set(COMPUTECPP_DEVICE_COMPILER_FLAGS "-O2 -mllvm -inline-threshold=10000 -sycl -intelspirmetadata -emit-llvm")
+set(COMPUTECPP_INFO_TOOL_RESULT 0)
+
 if(NOT COMPUTECPP_INFO_TOOL_RESULT EQUAL "0")
   message(FATAL_ERROR "compute++ flags - Error obtaining compute++ flags!")
 else()

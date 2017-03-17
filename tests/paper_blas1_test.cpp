@@ -4,10 +4,15 @@
 #include <stdexcept>
 #include <vector>
 #include <operations/blas1_trees.hpp>
+
 #include <interface/blas1_interface_sycl.hpp>
+
 
 using namespace cl::sycl;
 using namespace blas;
+
+#define COMPUTECPP_EXPORT
+#include <SYCL/codeplay/apis.h>
 
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-6
@@ -17,6 +22,24 @@ using namespace blas;
                           // The ... should be changed by the corresponding routine
 #define NUMBER_REPEATS 2  // Number of times the computations are made
                           // If it is greater than 1, the compile time is not considered
+
+std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
+  /*
+  The localsize should be the size of the multiprocessor. 
+  nWG determines the number of reduction steps. 
+  Experimentally, we concluded that two steps were the best option in Kepler.
+  For these reasons, we fixed nWG = 2 * localsize.
+  In other GPUs, the conclusion could be different.
+  You can test two options:
+    * nWG = (N + localsize - 1) / localsize
+    * nWG = (N + 2 * localsize - 1) / (2 * localsize)
+  */
+  unsigned localSize = 64;
+  // unsigned nWg = (N + localSize - 1) / localSize;
+  // unsigned nWg = (N + 2 * localSize - 1) / (2 * localSize);
+  unsigned nWg = 2 * localSize;
+  return std::pair<unsigned, unsigned>(localSize, nWg);
+}
 
 
 // #########################
@@ -32,8 +55,9 @@ void _one_add(Executor<ExecutorType> ex, int _N,
   my_vx.printH("VX");
   my_rs.printH("VR");
 #endif
-  auto localSize = 256;
-  auto nWG = 512;
+  auto kernelPair = get_reduction_params(_N);
+  auto localSize = kernelPair.first;
+  auto nWG = kernelPair.second;
   auto assignOp =
   make_addAbsReducAssignNewOp2(my_rs, my_vx, localSize, localSize * nWG);
   ex.reduce(assignOp);
@@ -49,8 +73,9 @@ void _two_add(Executor<ExecutorType> ex, int _N,
               vector_view<T, ContainerT> _vx2, int _incx2,
               vector_view<T, ContainerT> _rs2) {
   // Common definitions
-  auto localSize = 256;
-  auto nWG = 512;
+  auto kernelPair = get_reduction_params(_N);
+  auto localSize = kernelPair.first;
+  auto nWG = kernelPair.second;
 
   // _rs1 = add(_vx1)
   auto my_vx1 = vector_view<T, ContainerT>(_vx1, _vx1.getDisp(), _incx1, _N);
@@ -84,8 +109,9 @@ void _four_add(Executor<ExecutorType> ex, int _N,
                vector_view<T, ContainerT> _vx4, int _incx4,
                vector_view<T, ContainerT> _rs4) {
   // Common definitions
-  auto localSize = 256;
-  auto nWG = 512;
+  auto kernelPair = get_reduction_params(_N);
+  auto localSize = kernelPair.first;
+  auto nWG = kernelPair.second;
   
   // _rs1 = add(_vx1)
   auto my_vx1 = vector_view<T, ContainerT>(_vx1, _vx1.getDisp(), _incx1, _N);
@@ -445,6 +471,7 @@ int main(int argc, char* argv[]) {
       buffer<double, 1> bY4(vY4.data(), range<1>{vY4.size()});
       buffer<double, 1> bZ4(vZ4.data(), range<1>{vZ4.size()});
       buffer<double, 1> bS4(vS4.data(), range<1>{vS4.size()});
+
       // BUILDING A SYCL VIEW OF THE BUFFERS
       BufferVectorView<double> bvX1(bX1);
       BufferVectorView<double> bvY1(bY1);
@@ -463,6 +490,41 @@ int main(int argc, char* argv[]) {
       BufferVectorView<double> bvZ4(bZ4);
       BufferVectorView<double> bvS4(bS4);
 
+      // Force update here to avoid including memory copies on the
+      // benchmark
+      q.submit([&](codeplay::handler& h) {
+        auto accX1 = bX1.get_access<access::mode::write>(h);
+        auto accX2 = bX2.get_access<access::mode::write>(h);
+        auto accX3 = bX3.get_access<access::mode::write>(h);
+        auto accX4 = bX4.get_access<access::mode::write>(h);
+
+        auto accY1 = bY1.get_access<access::mode::write>(h);
+        auto accY2 = bY2.get_access<access::mode::write>(h);
+        auto accY3 = bY3.get_access<access::mode::write>(h);
+        auto accY4 = bY4.get_access<access::mode::write>(h);
+
+        auto accZ1 = bZ1.get_access<access::mode::write>(h);
+        auto accZ2 = bZ2.get_access<access::mode::write>(h);
+        auto accZ3 = bZ3.get_access<access::mode::write>(h);
+        auto accZ4 = bZ4.get_access<access::mode::write>(h);
+
+        h.update_to_device(accX1);
+        h.update_to_device(accX2);
+        h.update_to_device(accX3);
+        h.update_to_device(accX4);
+
+        h.update_to_device(accY1);
+        h.update_to_device(accY2);
+        h.update_to_device(accY3);
+        h.update_to_device(accY4);
+
+        h.update_to_device(accZ1);
+        h.update_to_device(accZ2);
+        h.update_to_device(accZ3);
+        h.update_to_device(accZ4);
+      });
+      q.wait_and_throw();
+
       for (int i=0; i<NUMBER_REPEATS; i++) {
         // EXECUTION OF THE ROUTINES (FOR CLBLAS)
 #ifdef SHOW_TIMES
@@ -472,6 +534,7 @@ int main(int argc, char* argv[]) {
         _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
         _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
         _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now(); t0_copy = t_stop - t_start ;
 #endif
@@ -483,6 +546,7 @@ int main(int argc, char* argv[]) {
         _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
         _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
         _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_axpy = t_stop - t_start ;
 #endif
@@ -494,6 +558,7 @@ int main(int argc, char* argv[]) {
         _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2);
         _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3);
         _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_add  = t_stop - t_start ;
 #endif
@@ -506,6 +571,7 @@ int main(int argc, char* argv[]) {
         _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
         _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
         _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_copy = t_stop - t_start ;
 #endif
@@ -517,6 +583,7 @@ int main(int argc, char* argv[]) {
         _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
         _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
         _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_axpy = t_stop - t_start ;
 #endif
@@ -528,6 +595,7 @@ int main(int argc, char* argv[]) {
         _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2+1);
         _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+1);
         _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4+1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_add  = t_stop - t_start ;
 #endif
@@ -540,6 +608,7 @@ int main(int argc, char* argv[]) {
                                              bvZ2, 1, bvY2, 1);
         _two_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1,
                                              bvZ4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_copy = t_stop - t_start ;
 #endif
@@ -551,6 +620,7 @@ int main(int argc, char* argv[]) {
                                              alpha2, bvX2, 1, bvY2, 1);
         _two_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1,
                                              alpha4, bvX4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_axpy = t_stop - t_start ;
 #endif
@@ -562,6 +632,7 @@ int main(int argc, char* argv[]) {
                                             bvY2, 1, bvS2+2);
         _two_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+2,
                                             bvY4, 1, bvS4+2);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_add  = t_stop - t_start ;
 #endif
@@ -574,6 +645,7 @@ int main(int argc, char* argv[]) {
                                              bvZ2, 1, bvY2, 1,
                                              bvZ3, 1, bvY3, 1,
                                              bvZ4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t3_copy = t_stop - t_start ;
 #endif
@@ -585,6 +657,7 @@ int main(int argc, char* argv[]) {
                                              alpha2, bvX2, 1, bvY2, 1,
                                              alpha3, bvX3, 1, bvY3, 1,
                                              alpha4, bvX4, 1, bvY4, 1);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now()  ; t3_axpy = t_stop - t_start ;
 #endif
@@ -596,6 +669,7 @@ int main(int argc, char* argv[]) {
                                             bvY2, 1, bvS2+3,
                                             bvY3, 1, bvS3+3,
                                             bvY4, 1, bvS4+3);
+        q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now()  ; t3_add  = t_stop - t_start ;
 #endif
@@ -603,12 +677,12 @@ int main(int argc, char* argv[]) {
     }
 #ifdef SHOW_TIMES
     // COMPUTATIONAL TIMES
-    std::cout <<   "t_copy --> (" << t0_copy.count() << ", " << t1_copy.count()
-                          << ", " << t2_copy.count() << ", " << t3_copy.count() << ")" << std::endl; 
-    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ", " << t1_axpy.count() 
-                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << ")" << std::endl; 
-    std::cout <<   "t_add  --> (" << t0_add.count()  << ", " << t1_add.count()  
-                          << ", " << t2_add.count()  << ", " << t3_add.count()  << ")" << std::endl; 
+    std::cout <<   "t_copy , " << t0_copy.count() << ", " << t1_copy.count()
+                          << ", " << t2_copy.count() << ", " << t3_copy.count()  << std::endl; 
+    std::cout <<   "t_axpy , " << t0_axpy.count() << ", " << t1_axpy.count() 
+                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << std::endl; 
+    std::cout <<   "t_add  , " << t0_add.count()  << ", " << t1_add.count()  
+                          << ", " << t2_add.count()  << ", " << t3_add.count()  << std::endl; 
 #endif
 
     // ANALYSIS OF THE RESULTS

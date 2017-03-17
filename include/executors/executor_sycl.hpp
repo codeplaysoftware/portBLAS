@@ -234,11 +234,11 @@ class Executor<SYCL> {
   template <typename Tree>
   void execute(Tree t) {
     auto device = q_.get_device();
-    const auto localSize =
-        device.get_info<cl::sycl::info::device::max_work_group_size>();
+    const auto localSize = 128;
+//        device.get_info<cl::sycl::info::device::max_work_group_size>();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
-    auto globalSize = nWG * localSize;
+    auto globalSize = _N; // nWG * localSize;
 
     execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
   };

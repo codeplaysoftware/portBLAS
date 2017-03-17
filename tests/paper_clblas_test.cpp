@@ -567,16 +567,16 @@ int main(int argc, char* argv[]) {
 
 #ifdef SHOW_TIMES
     // COMPUTATIONAL TIMES
-    std::cout << "COMPUTATIONAL TIMES" << std::endl;
-    std::cout <<   "t_copy --> (" << t0_copy.count() << ")" << std::endl;
+    std::cout <<   "t_copy, " << t0_copy.count() << std::endl;
 //    std::cout <<   "t_copy --> (" << t0_copy.count() << ", " << t1_copy.count()
 //                          << ", " << t2_copy.count() << ", " << t3_copy.count() << ")" << std::endl; 
-    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ")" << std::endl;
+    std::cout <<   "t_axpy, " << t0_axpy.count() << std::endl;
 //    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ", " << t1_axpy.count() 
 //                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << ")" << std::endl; 
-    std::cout <<   "t_add  --> (" << t0_add.count()  << ")" << std::endl;
+    std::cout <<   "t_add, " << t0_add.count() << std::endl;
 //    std::cout <<   "t_add  --> (" << t0_add.count()  << ", " << t1_add.count()  
 //                          << ", " << t2_add.count()  << ", " << t3_add.count()  << ")" << std::endl; 
+//
 #endif
 
 
