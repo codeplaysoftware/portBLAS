@@ -96,6 +96,15 @@ int main(int argc, char* argv[]) {
     std::for_each(std::begin(vZ4), std::end(vZ4),
         [&](double& elem) { elem = minV + (double)(rand() % gap); });
 
+    std::for_each(std::begin(vS1), std::end(vS1),
+        [&](double& elem) { elem = 0.0; });
+    std::for_each(std::begin(vS2), std::end(vS2),
+        [&](double& elem) { elem = 1.0; });
+    std::for_each(std::begin(vS3), std::end(vS3),
+        [&](double& elem) { elem = 2.0; });
+    std::for_each(std::begin(vS4), std::end(vS4),
+        [&](double& elem) { elem = 3.0; });
+
     // COMPUTING THE RESULTS
     int i;
     double sum1 = 0.0, alpha1 = 1.1;
@@ -106,24 +115,34 @@ int main(int argc, char* argv[]) {
 
     i = 0;
     std::for_each(std::begin(vY1), std::end(vY1), [&](double& elem) {
-        elem = vZ1[i] + alpha1 * vX1[i]; sum1 += elem; i++;
+        elem = vZ1[i] + alpha1 * vX1[i]; sum1 += std::abs(elem); i++;
         });
     //    vS1[0] = sum1;
     i = 0;
     std::for_each(std::begin(vY2), std::end(vY2), [&](double& elem) {
-        elem = vZ2[i] + alpha2 * vX2[i]; sum2 += elem; i++;
+        elem = vZ2[i] + alpha2 * vX2[i]; sum2 += std::abs(elem); i++;
         });
     //    vS2[0] = sum2;
     i = 0;
     std::for_each(std::begin(vY3), std::end(vY3), [&](double& elem) {
-        elem = vZ3[i] + alpha3 * vX3[i]; sum3 += elem; i++;
+        elem = vZ3[i] + alpha3 * vX3[i]; sum3 += std::abs(elem); i++;
         });
     //    vS3[0] = sum3;
     i = 0;
     std::for_each(std::begin(vY4), std::end(vY4), [&](double& elem) {
-        elem = vZ4[i] + alpha4 * vX4[i]; sum4 += elem; i++;
+        elem = vZ4[i] + alpha4 * vX4[i]; sum4 += std::abs(elem); i++;
         });
     //    vS4[0] = sum4;
+
+#ifdef SHOW_VALUES
+    std::cout << "VECTORS BEFORE COMPUTATION" << std::endl;
+    for (int i = 0; i<sizeV; i++) {
+      std::cout << "Component = " << i << std::endl;
+      std::cout << "vX = (" << vX1[i] << ", " << vX2[i] << ", " << vX3[i] <<", " << vX4[i] << ")" << std::endl;
+      std::cout << "vY = (" << vY1[i] << ", " << vY2[i] << ", " << vY3[i] <<", " << vY4[i] << ")" << std::endl;
+      std::cout << "vZ = (" << vZ1[i] << ", " << vZ2[i] << ", " << vZ3[i] <<", " << vZ4[i] << ")" << std::endl;
+    }
+#endif
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
     cl::sycl::queue q([=](cl::sycl::exception_list eL) {
@@ -317,6 +336,7 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
+/* */
         // One axpy
         {
           cl_event events[4];
@@ -326,17 +346,17 @@ int main(int argc, char* argv[]) {
               bY1_cl, 0, 1, 
               1, &clQueue, 0, NULL, &events[0]);
           err |= clblasDaxpy( vX2.size(), 
-              alpha1, bX2_cl, 0, 1, 
+              alpha2, bX2_cl, 0, 1, 
               bY2_cl, 0, 1, 1, 
               &clQueue, 0, NULL, &events[1]);
 
           err |= clblasDaxpy( vX3.size(), 
-              alpha1, bX3_cl, 0, 1, 
+              alpha3, bX3_cl, 0, 1, 
               bY3_cl, 0, 1, 1, 
               &clQueue, 0, NULL, &events[2]);
 
           err |= clblasDaxpy( vX4.size(), 
-              alpha1, bX4_cl, 0, 1, 
+              alpha4, bX4_cl, 0, 1, 
               bY4_cl, 0, 1, 1, 
               &clQueue, 0, NULL, &events[3]);
 
@@ -346,6 +366,7 @@ int main(int argc, char* argv[]) {
             std::cout << " ERROR " << err << std::endl;
           }
         }
+/* */
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_axpy = t_stop - t_start ;
 #endif
@@ -357,25 +378,33 @@ int main(int argc, char* argv[]) {
         {
           cl_event events[4];
           err = clblasDasum( vY1.size(), 
-              bY1_cl, 0, 
-              bS1_cl, 0, 1, 
+//              bY1_cl, 0, 
+//              bS1_cl, 0, 1, 
+              bS1_cl, 0, 
+              bY1_cl, 0, 1, 
               scratch_cl,
               1, &clQueue, 0, NULL, &events[0]);
           err = clblasDasum( vY2.size(), 
-              bY2_cl, 0, 
-              bS2_cl, 0, 1, 
+//              bY2_cl, 0, 
+//              bS2_cl, 0, 1, 
+              bS2_cl, 0, 
+              bY2_cl, 0, 1, 
               scratch_cl,
-              1, &clQueue, 0, NULL, &events[0]);
+              1, &clQueue, 0, NULL, &events[1]);
           err = clblasDasum( vY3.size(), 
-              bY3_cl, 0, 
-              bS3_cl, 0, 1, 
+//              bY3_cl, 0, 
+//              bS3_cl, 0, 1, 
+              bS3_cl, 0, 
+              bY3_cl, 0, 1, 
               scratch_cl,
-              1, &clQueue, 0, NULL, &events[0]);
+              1, &clQueue, 0, NULL, &events[2]);
           err = clblasDasum( vY4.size(), 
-              bY4_cl, 0, 
-              bS4_cl, 0, 1, 
+//              bY4_cl, 0, 
+//              bS4_cl, 0, 1, 
+              bS4_cl, 0, 
+              bY4_cl, 0, 1, 
               scratch_cl,
-              1, &clQueue, 0, NULL, &events[0]);
+              1, &clQueue, 0, NULL, &events[3]);
 
           err |= clWaitForEvents(4, events);
 
@@ -517,7 +546,6 @@ int main(int argc, char* argv[]) {
       clReleaseMemObject(bZ2_cl);
       clReleaseMemObject(bZ3_cl);
       clReleaseMemObject(bZ4_cl);
-
       clReleaseMemObject(bS1_cl);
       clReleaseMemObject(bS2_cl);
       clReleaseMemObject(bS3_cl);
@@ -527,21 +555,35 @@ int main(int argc, char* argv[]) {
 
     }
 
+#ifdef SHOW_VALUES
+    std::cout << "VECTORS AFTER  COMPUTATION" << std::endl;
+    for (int i = 0; i<sizeV; i++) {
+      std::cout << "Component = " << i << std::endl;
+      std::cout << "vX = (" << vX1[i] << ", " << vX2[i] << ", " << vX3[i] <<", " << vX4[i] << ")" << std::endl;
+      std::cout << "vY = (" << vY1[i] << ", " << vY2[i] << ", " << vY3[i] <<", " << vY4[i] << ")" << std::endl;
+      std::cout << "vZ = (" << vZ1[i] << ", " << vZ2[i] << ", " << vZ3[i] <<", " << vZ4[i] << ")" << std::endl;
+    }
+#endif
+
 #ifdef SHOW_TIMES
     // COMPUTATIONAL TIMES
-    std::cout <<   "t_copy --> (" << t0_copy.count() << ", " << t1_copy.count()
-                          << ", " << t2_copy.count() << ", " << t3_copy.count() << ")" << std::endl; 
-    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ", " << t1_axpy.count() 
-                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << ")" << std::endl; 
-    std::cout <<   "t_add  --> (" << t0_add.count()  << ", " << t1_add.count()  
-                          << ", " << t2_add.count()  << ", " << t3_add.count()  << ")" << std::endl; 
+    std::cout << "COMPUTATIONAL TIMES" << std::endl;
+    std::cout <<   "t_copy --> (" << t0_copy.count() << ")" << std::endl;
+//    std::cout <<   "t_copy --> (" << t0_copy.count() << ", " << t1_copy.count()
+//                          << ", " << t2_copy.count() << ", " << t3_copy.count() << ")" << std::endl; 
+    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ")" << std::endl;
+//    std::cout <<   "t_axpy --> (" << t0_axpy.count() << ", " << t1_axpy.count() 
+//                          << ", " << t2_axpy.count() << ", " << t3_axpy.count() << ")" << std::endl; 
+    std::cout <<   "t_add  --> (" << t0_add.count()  << ")" << std::endl;
+//    std::cout <<   "t_add  --> (" << t0_add.count()  << ", " << t1_add.count()  
+//                          << ", " << t2_add.count()  << ", " << t3_add.count()  << ")" << std::endl; 
 #endif
 
 
     // ANALYSIS OF THE RESULTS
     double res;
 
-    for (i=0; i<4; i++) {
+    for (i=0; i<0; i++) {
       res = vS1[i]; 
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -554,7 +596,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    for (i=0; i<4; i++) {
+    for (i=0; i<0; i++) {
       res = vS2[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -568,7 +610,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    for (i=0; i<4; i++) {
+    for (i=0; i<0; i++) {
       res = vS3[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
@@ -581,7 +623,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    for (i=0; i<4; i++) {
+    for (i=0; i<0; i++) {
       res = vS4[i];
 #ifdef SHOW_VALUES
       std::cout << "VALUES!! --> res = " << res << " , i = " << i 
