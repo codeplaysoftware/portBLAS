@@ -244,6 +244,19 @@ class Executor<SYCL> {
   };
 
   /*!
+   * @brief Executes the tree without defining requiring shared memory.
+   */
+  template <typename Tree>
+  void execute(Tree t, size_t localSize) {
+    auto device = q_.get_device();
+    auto _N = t.getSize();
+    auto nWG = (_N + localSize - 1) / localSize;
+    auto globalSize = nWG * localSize;
+
+    execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
+  };
+
+  /*!
    * @brief Executes the tree with specific local, global and shared memory
    * values.
    */
