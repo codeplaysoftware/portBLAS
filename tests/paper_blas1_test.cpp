@@ -7,7 +7,6 @@
 
 #include <interface/blas1_interface_sycl.hpp>
 
-
 using namespace cl::sycl;
 using namespace blas;
 
@@ -17,11 +16,12 @@ using namespace blas;
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
-
 #define SHOW_TIMES     1  // If it exists, the code prints the execution time
                           // The ... should be changed by the corresponding routine
 #define NUMBER_REPEATS 2  // Number of times the computations are made
                           // If it is greater than 1, the compile time is not considered
+
+#define LOCALSIZE 4
 
 std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
   /*
@@ -34,7 +34,7 @@ std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
     * nWG = (N + localsize - 1) / localsize
     * nWG = (N + 2 * localsize - 1) / (2 * localsize)
   */
-  unsigned localSize = 64;
+  unsigned localSize = LOCALSIZE;
   // unsigned nWg = (N + localSize - 1) / localSize;
   // unsigned nWg = (N + 2 * localSize - 1) / (2 * localSize);
   unsigned nWg = 2 * localSize;
@@ -65,7 +65,6 @@ void _one_add(Executor<ExecutorType> ex, int _N,
   my_rs.printH("VR");
 #endif
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _two_add(Executor<ExecutorType> ex, int _N,
               vector_view<T, ContainerT> _vx1, int _incx1,
@@ -76,14 +75,12 @@ void _two_add(Executor<ExecutorType> ex, int _N,
   auto kernelPair = get_reduction_params(_N);
   auto localSize = kernelPair.first;
   auto nWG = kernelPair.second;
-
   // _rs1 = add(_vx1)
   auto my_vx1 = vector_view<T, ContainerT>(_vx1, _vx1.getDisp(), _incx1, _N);
   auto my_rs1 = vector_view<T, ContainerT>(_rs1, _rs1.getDisp(), 1, 1);
   auto assignOp1 =
       make_addAbsReducAssignNewOp2(my_rs1, my_vx1, localSize, localSize * nWG);
   ex.reduce(assignOp1);
-
   // _rs2 = add(_vx2)
   auto my_vx2 = vector_view<T, ContainerT>(_vx2, _vx2.getDisp(), _incx2, _N);
   auto my_rs2 = vector_view<T, ContainerT>(_rs2, _rs2.getDisp(), 1, 1);
@@ -93,11 +90,9 @@ void _two_add(Executor<ExecutorType> ex, int _N,
   
   // concatenate both operations
 //  auto doubleAssignOp = make_op<Join>(assignOp1, assignOp2);
-
   // execute concatenated operations
 //  ex.reduce(doubleAssignOp);
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _four_add(Executor<ExecutorType> ex, int _N,
                vector_view<T, ContainerT> _vx1, int _incx1,
@@ -140,7 +135,6 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   auto assignOp4 =
   make_addAbsReducAssignNewOp2(my_rs4, my_vx4, localSize, localSize * nWG);
   ex.reduce(assignOp4);
-
   // concatenate operations
 //  auto doubleAssignOp12 = make_op<Join>(assignOp1, assignOp2);
 //  auto doubleAssignOp34 = make_op<Join>(assignOp3, assignOp4);
@@ -149,7 +143,6 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   // execute concatenated operations
 //  ex.execute(quadAssignOp);
 }
-
 // #########################
 // #include <axpys.hpp>
 // #########################
@@ -167,12 +160,12 @@ void _one_axpy(Executor<ExecutorType> ex, int _N, T _alpha,
   auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, my_vx);
   auto addOp = make_op<BinaryOp, addOp2_struct>(my_vy, scalOp);
   auto assignOp = make_op<Assign>(my_vy, addOp);
-  ex.execute(assignOp);
+//  ex.execute(assignOp);
+  ex.execute(assignOp, LOCALSIZE);
 #ifdef VERBOSE
   my_vy.printH("VY");
 #endif
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _two_axpy(Executor<ExecutorType> ex, int _N,
                double _alpha1,
@@ -199,9 +192,9 @@ void _two_axpy(Executor<ExecutorType> ex, int _N,
   auto doubleAssignOp = make_op<Join>(assignOp1, assignOp2);
   
   // execute concatenated operations
-  ex.execute(doubleAssignOp);
+//  ex.execute(doubleAssignOp);
+  ex.execute(doubleAssignOp, LOCALSIZE);
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _four_axpy(Executor<ExecutorType> ex, int _N,
                  double _alpha1,
@@ -250,10 +243,9 @@ void _four_axpy(Executor<ExecutorType> ex, int _N,
   auto quadAssignOp = make_op<Join>(doubleAssignOp12, doubleAssignOp34);
   
   // execute concatenated operations
-  ex.execute(quadAssignOp);
+//  ex.execute(quadAssignOp);
+  ex.execute(quadAssignOp, LOCALSIZE);
 }
-
-
 // #########################
 // #include <copys.hpp>
 // #########################
@@ -268,13 +260,13 @@ void _one_copy(Executor<ExecutorType> ex, int _N,
   my_vy.printH("VY");
 #endif
   auto assignOp = make_op<Assign>(my_vy, my_vx);
-  ex.execute(assignOp);
+//  ex.execute(assignOp);
+  ex.execute(assignOp, LOCALSIZE);
 #ifdef VERBOSE
   my_vx.printH("VX");
   my_vy.printH("VY");
 #endif
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _two_copy(Executor<ExecutorType> ex, int _N,
                vector_view<T, ContainerT> _vx1, int _incx1,
@@ -295,9 +287,9 @@ void _two_copy(Executor<ExecutorType> ex, int _N,
   auto doubleAssignOp = make_op<Join>(assignOp1, assignOp2);
   
   // execute concatenated operations
-  ex.execute(doubleAssignOp);
+//  ex.execute(doubleAssignOp);
+  ex.execute(doubleAssignOp, LOCALSIZE);
 }
-
 template <typename ExecutorType, typename T, typename ContainerT>
 void _four_copy(Executor<ExecutorType> ex, int _N,
                vector_view<T, ContainerT> _vx1, int _incx1,
@@ -334,14 +326,12 @@ void _four_copy(Executor<ExecutorType> ex, int _N,
   auto quadAssignOp = make_op<Join>(doubleAssignOp12, doubleAssignOp34);
   
   // execute concatenated operations
-  ex.execute(quadAssignOp);
+//  ex.execute(quadAssignOp);
+  ex.execute(quadAssignOp, LOCALSIZE);
 }
-
 // #########################
-
 int main(int argc, char* argv[]) {
   size_t sizeV, returnVal = 0;
-
   if (argc == 1) {
     sizeV = DEF_SIZE_VECT;
   } else if (argc == 2) {
@@ -360,7 +350,6 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double> t2_copy, t2_axpy, t2_add;
     std::chrono::duration<double> t3_copy, t3_axpy, t3_add;
 #endif
-
     // CREATING DATA
     std::vector<double> vX1(sizeV);
     std::vector<double> vY1(sizeV);
@@ -378,11 +367,9 @@ int main(int argc, char* argv[]) {
     std::vector<double> vY4(sizeV);
     std::vector<double> vZ4(sizeV);
     std::vector<double> vS4(4);
-
     // INITIALIZING DATA
     size_t vSeed, gap;
     double minV, maxV;
-
     vSeed = 1;
     minV = -10.0;
     maxV = 10.0;
@@ -396,7 +383,6 @@ int main(int argc, char* argv[]) {
                   [&](double& elem) { elem = minV + (double)(rand() % gap); });
     std::for_each(std::begin(vX4), std::end(vX4),
                   [&](double& elem) { elem = minV + (double)(rand() % gap); });
-
     vSeed = 1;
     minV = -30.0;
     maxV = 10.0;
@@ -410,7 +396,6 @@ int main(int argc, char* argv[]) {
                   [&](double& elem) { elem = minV + (double)(rand() % gap); });
     std::for_each(std::begin(vZ4), std::end(vZ4),
                   [&](double& elem) { elem = minV + (double)(rand() % gap); });
-
     // COMPUTING THE RESULTS
     int i;
     double sum1 = 0.0f, alpha1 = 1.1f;
@@ -438,7 +423,6 @@ int main(int argc, char* argv[]) {
       elem = vZ4[i] + alpha4 * vX4[i]; sum4 += std::abs(elem); i++;
     });
 //    vS4[0] = sum4;
-
     // CREATING THE SYCL QUEUE AND EXECUTOR
     cl::sycl::queue q([=](cl::sycl::exception_list eL) {
       try {
@@ -452,7 +436,6 @@ int main(int argc, char* argv[]) {
       }
     });
     Executor<SYCL> ex(q);
-
     {
       // CREATION OF THE BUFFERS
       buffer<double, 1> bX1(vX1.data(), range<1>{vX1.size()});
@@ -525,6 +508,7 @@ int main(int argc, char* argv[]) {
       });
       q.wait_and_throw();
 
+
       for (int i=0; i<NUMBER_REPEATS; i++) {
         // EXECUTION OF THE ROUTINES (FOR CLBLAS)
 #ifdef SHOW_TIMES
@@ -538,7 +522,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now(); t0_copy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -550,7 +533,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_axpy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -562,7 +544,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_add  = t_stop - t_start ;
 #endif
-
         // EXECUTION OF THE ROUTINES (SINGLE OPERATIONS)
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
@@ -575,7 +556,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_copy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -587,7 +567,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_axpy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -599,7 +578,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_add  = t_stop - t_start ;
 #endif
-
         // EXECUTION OF THE ROUTINES (DOUBLE OPERATIONS)
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
@@ -612,7 +590,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_copy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -624,7 +601,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_axpy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
@@ -636,7 +612,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_add  = t_stop - t_start ;
 #endif
-
         // EXECUTION OF THE ROUTINES (QUADUBLE OPERATIONS)
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
@@ -649,7 +624,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t3_copy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now(); ; 
 #endif
@@ -661,7 +635,6 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now()  ; t3_axpy = t_stop - t_start ;
 #endif
-
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now()  ; 
 #endif
@@ -684,10 +657,8 @@ int main(int argc, char* argv[]) {
     std::cout <<   "t_add  , " << t0_add.count()  << ", " << t1_add.count()  
                           << ", " << t2_add.count()  << ", " << t3_add.count()  << std::endl; 
 #endif
-
     // ANALYSIS OF THE RESULTS
     double res;
-
     for (i=0; i<4; i++) {
       res = vS1[i]; 
 #ifdef SHOW_VALUES
@@ -700,7 +671,6 @@ int main(int argc, char* argv[]) {
         returnVal += 2 * i;
       }
     }
-
     for (i=0; i<4; i++) {
       res = vS2[i];
 #ifdef SHOW_VALUES
@@ -713,8 +683,6 @@ int main(int argc, char* argv[]) {
         returnVal += 20 * i;
       }
     }
-
-
     for (i=0; i<4; i++) {
       res = vS3[i];
 #ifdef SHOW_VALUES
@@ -727,7 +695,6 @@ int main(int argc, char* argv[]) {
         returnVal += 200 * i;
       }
     }
-
     for (i=0; i<4; i++) {
       res = vS4[i];
 #ifdef SHOW_VALUES
@@ -741,6 +708,5 @@ int main(int argc, char* argv[]) {
       }
     }
   }
-
   return returnVal;
 }
