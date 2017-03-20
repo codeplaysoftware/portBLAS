@@ -21,7 +21,7 @@ using namespace blas;
 #define NUMBER_REPEATS 2  // Number of times the computations are made
                           // If it is greater than 1, the compile time is not considered
 
-#define LOCALSIZE 4
+#define LOCALSIZE 64
 
 std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
   /*

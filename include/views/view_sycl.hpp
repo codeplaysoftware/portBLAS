@@ -80,12 +80,12 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
       auto nstrd = -strd_;
       auto quot = (disp_ + nstrd) / nstrd;  // ceiling
       size_ = quot;
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     } else {
       // Stride is zero, not valid!
       printf("std = 0 \n");
       throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     }
     if (originalSize < size_) size_ = originalSize;
     if (strd_ < 0) disp_ += (size_ - 1) * strd_;
@@ -212,7 +212,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     } else {
       ind -= strd_ * (size_ - i - 1);
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
 #ifdef VERBOSE
       // out of range access
@@ -220,7 +220,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
 #endif  //  VERBOSE
       throw std::invalid_argument("Out of range access");
     }
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
       auto hostPtr =
@@ -249,7 +249,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     } else {
       ind -= strd_ * (size_ - i - 1);
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
 #ifdef VERBOSE
       printf("(B) ind = %ld , size_data_ = %ld \n", ind, size_data_);
@@ -257,7 +257,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
       // out of range access
       throw std::invalid_argument("Out of range access");
     }
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
       auto hostPtr =
@@ -496,7 +496,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
     } else {
       ind += (sizeL_ * j) + i;
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
 #ifdef VERBOSE
       printf("(C) ind = %ld , size_data_ = %ld \n", ind, size_data_);
@@ -504,7 +504,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
       // out of range access
       throw std::invalid_argument("Out of range access");
     }
-#endif  // __SYCL_DEVICE__
+#endif  // __SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
       auto hostPtr =
@@ -531,7 +531,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
     } else {
       ind += (sizeL_ * j) + i;
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
 #ifdef VERBOSE
       printf("(D) ind = %ld , size_data_ = %ld \n", ind, size_data_);
@@ -539,7 +539,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
       // out of range access
       throw std::invalid_argument("Out of range access");
     }
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
       auto hostPtr =
@@ -632,14 +632,14 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
       auto nstrd = -strd;
       auto quot = (disp + nstrd) / nstrd;  // ceiling
       size_ = quot;
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     } else {
 // Stride is zero, not valid!
 #ifdef VERBOSE
       printf("std = 0 \n");
 #endif  // VERBOSE
       throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     }
     if (size < size_) size_ = size;
     if (strd_ < 0) disp_ += (size_ - 1) * strd_;
@@ -663,14 +663,14 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
       auto nstrd = -strd;
       auto quot = (disp + nstrd) / nstrd;  // ceiling
       size_ = quot;
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     } else {
 // Stride is zero, not valid!
 #ifdef VERBOSE
       printf("std = 0 \n");
 #endif  //  VERBOSE
       throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     }
     if (size < size_) size_ = size;
     if (strd_ < 0) disp_ += (size_ - 1) * strd_;
@@ -759,13 +759,13 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
     } else {
       ind -= strd_ * (size_ - i - 1);
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
       printf("(E) ind = %ld , size_data_ = %ld \n", ind, size_data_);
       // out of range access
       //      throw std::invalid_argument("Out of range access");
     }
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     return data_[ind];
   }
 
@@ -939,11 +939,11 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     } else {
       ind += (sizeL_ * j) + i;
     }
-#ifndef __SYCL_DEVICE__
+#ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
       printf("(G) ind = %ld , size_data_ = %ld \n", ind, size_data_);
     }
-#endif  //__SYCL_DEVICE__
+#endif  //__SYCL_DEVICE_ONLY__
     return data_[ind];
   }
 

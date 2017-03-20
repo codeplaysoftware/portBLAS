@@ -288,6 +288,7 @@ class Executor<SYCL> {
     auto lhs = t.l;
     auto rhs = t.r;
 
+    // Two accessors to local memory
     auto sharedSize = ((nWG < localSize) ? localSize : nWG);
     cont_type shMem1(sharedSize);
     auto opShMem1 = LHS_type(shMem1, 0, 1, sharedSize);
