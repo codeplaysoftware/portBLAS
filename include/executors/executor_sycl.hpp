@@ -238,7 +238,8 @@ class Executor<SYCL> {
 //        device.get_info<cl::sycl::info::device::max_work_group_size>();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
-    auto globalSize = _N; // nWG * localSize;
+//    auto globalSize = _N; // nWG * localSize;
+    auto globalSize = nWG * localSize;
 
     execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
   };

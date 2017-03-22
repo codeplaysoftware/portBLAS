@@ -725,7 +725,7 @@ int main(int argc, char* argv[]) {
                 << " , sum = " << sum1 << " , err = " << res - sum1 << std::endl;
 #endif  //  SHOW_VALUES
       if (std::abs((res - sum1) / res) > ERROR_ALLOWED) {
-        std::cout << "VALUES!! --> res = " << res << " , i = " << i 
+        std::cout << "ERROR!! --> res = " << res << " , i = " << i 
                   << " , sum = " << sum1 << " , err = " << res - sum1 << std::endl;
         returnVal += 2 * i;
       }
@@ -737,7 +737,7 @@ int main(int argc, char* argv[]) {
                 << " , sum = " << sum2 << " , err = " << res - sum2 << std::endl;
 #endif  //  SHOW_VALUES
       if (std::abs(( res - sum2) / res) > ERROR_ALLOWED) {
-        std::cout << "VALUES!! --> res = " << res << " , i = " << i 
+        std::cout << "ERROR!! --> res = " << res << " , i = " << i 
                   << " , sum = " << sum2 << " , err = " << res - sum2 << std::endl;
         returnVal += 20 * i;
       }
@@ -749,7 +749,7 @@ int main(int argc, char* argv[]) {
                 << " , sum = " << sum3 << " , err = " << res - sum3 << std::endl;
 #endif  //  SHOW_VALUES
       if (std::abs((res - sum3) / res) > ERROR_ALLOWED) {
-        std::cout << "VALUES!! --> res = " << res << " , i = " << i 
+        std::cout << "ERROR!! --> res = " << res << " , i = " << i 
                   << " , sum = " << sum3 << " , err = " << res - sum3 << std::endl;
         returnVal += 200 * i;
       }
@@ -761,7 +761,7 @@ int main(int argc, char* argv[]) {
                 << " , sum = " << sum4 << " , err = " << res - sum4 << std::endl;
 #endif  //  SHOW_VALUES
       if (std::abs((res - sum4) / res) > ERROR_ALLOWED) {
-        std::cout << "VALUES!! --> res = " << res << " , i = " << i 
+        std::cout << "ERROR!! --> res = " << res << " , i = " << i 
                   << " , sum = " << sum4 << " , err = " << res - sum4 << std::endl;
         returnVal += 2000 * i;
       }
