@@ -21,14 +21,18 @@ def plot_graph(per_exp, found_variants, output_file_name, platform_info, ylabel,
     for exp in per_exp:
       performance_bars_height[v].extend(
           [ float(val[1]) for val in per_exp[exp] if val[0] == v  ])
-
   width = 0.3
-  i = -1;
-  for v in performance_bars_height:
-    plt.bar(y_pos + ( (i + 0.5) * width), performance_bars_height[v], 
-              width, align='center', alpha=0.5, label = v,
-              color = model_color[i])
+  i = 0
+  for v in found_variants:
+    plt.plot(y_pos, performance_bars_height[v], color=model_color[i], markersize=20, label=v)
     i += 1
+
+  #i = -1;
+#  plt.plot(per_exp.keys(), performance_bars_height["ocl"], "r")
+# y_pos + ( (i + 0.5) * width), performance_bars_height[v], 
+#              width, align='center', alpha=0.5, label = v,
+#              color = model_color[i])
+#    i += 1
 
   plt.xticks(y_pos, per_exp.keys())
   plt.legend(loc="lower right")
@@ -157,6 +161,7 @@ if __name__ == '__main__':
   per_exp = {}
   found_variants = []
   platform_info = []
+  results_per_size_add = {}
 
   # Gathers the result
   if params.load:
@@ -167,18 +172,23 @@ if __name__ == '__main__':
   else:
     # Executes the benchmark
     platform_info = os.uname()
-    results = execution(variants, path, date_string)
-    print results
-    # Convert times into speedup over clBLAS
-    # [per_exp, found_variants] = gather_results(variants, results)
-    base_variant = "ocl";
-    [per_exp, found_variants, ylabel, subtitle] = gather_speedup(variants, results, base_variant)
+    sizes = [ 128 , 196, 256, 512, 718, 1200, 1024, 2048, 4096, 16386 ]
+    for size in sizes:
+      results = execution(variants, path, date_string, size)
+      print results
+      # Convert times into speedup over clBLAS
+      [per_exp, found_variants] = gather_results(variants, results)
+      results_per_size_add[size] = per_exp["t_add"]
+      # base_variant = "ocl";
+      #[per_exp, found_variants, ylabel, subtitle] = gather_speedup(variants, results, base_variant)
 
   if params.save and not params.load:
     with open(output_file_name_dump, 'w') as f:
       pickle.dump(per_exp, f)
       pickle.dump(found_variants, f)
       pickle.dump(platform_info, f)
+      pickle.dump(results_per_size_add, f)
 
+  print results_per_size_add
   # Plots the data
-  plot_graph(per_exp, found_variants, output_file_name_png, params.description, ylabel, subtitle)
+  plot_graph(results_per_size_add, found_variants, output_file_name_png, params.description, "Time", "Execution time")
