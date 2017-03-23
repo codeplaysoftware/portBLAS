@@ -207,7 +207,9 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   ScalarT& eval(size_t i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
     auto ind = disp_;
-    if (strd_ > 0) {
+    if (strd_ == 1) {
+      ind += i;
+    } else if (strd_ > 0) {
       ind += strd_ * i;
     } else {
       ind -= strd_ * (size_ - i - 1);
@@ -244,7 +246,9 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
    */
   ScalarT val(size_t i) {
     auto ind = disp_;
-    if (strd_ > 0) {
+    if (strd_ == 1) {
+      ind += i;
+    } else if (strd_ > 0) {
       ind += strd_ * i;
     } else {
       ind -= strd_ * (size_ - i - 1);
@@ -754,7 +758,9 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /**** EVALUATING ****/
   ScalarT& eval(size_t i) {
     auto ind = disp_;
-    if (strd_ > 0) {
+    if (strd_ == 1) {
+      ind += i;
+    } else if (strd_ > 0) {
       ind += strd_ * i;
     } else {
       ind -= strd_ * (size_ - i - 1);
