@@ -229,13 +229,27 @@ class Executor<SYCL> {
   Executor(cl::sycl::queue q) : q_{q} {};
 
   /*!
-   * @brief Executes the tree without defining requiring shared memory.
+   * @brief Executes the tree without defining required shared memory.
    */
   template <typename Tree>
   void execute(Tree t) {
     auto device = q_.get_device();
-    const auto localSize =
-        device.get_info<cl::sycl::info::device::max_work_group_size>();
+    const auto localSize = 128;
+//        device.get_info<cl::sycl::info::device::max_work_group_size>();
+    auto _N = t.getSize();
+    auto nWG = (_N + localSize - 1) / localSize;
+//    auto globalSize = _N; // nWG * localSize;
+    auto globalSize = nWG * localSize;
+
+    execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
+  };
+
+  /*!
+   * @brief Executes the tree fixing the localSize but without defining required shared memory.
+   */
+  template <typename Tree>
+  void execute(Tree t, size_t localSize) {
+    auto device = q_.get_device();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
@@ -275,11 +289,61 @@ class Executor<SYCL> {
     auto lhs = t.l;
     auto rhs = t.r;
 
+    // Two accessors to local memory
     auto sharedSize = ((nWG < localSize) ? localSize : nWG);
     cont_type shMem1(sharedSize);
     auto opShMem1 = LHS_type(shMem1, 0, 1, sharedSize);
     cont_type shMem2(sharedSize);
     auto opShMem2 = LHS_type(shMem2, 0, 1, sharedSize);
+
+    bool frst = true;
+    bool even = false;
+    do {
+      auto globalSize = nWG * localSize;
+      if (frst) {
+        // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
+        auto localTree = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
+                                    localSize, globalSize);
+        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
+                                                globalSize, sharedSize);
+      } else {
+        // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
+        auto localTree = blas::ReducAssignNewOp2<oper_type, LHS_type, LHS_type>(
+            ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
+            (even ? opShMem1 : opShMem2), localSize, globalSize);
+        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
+                                                globalSize, sharedSize);
+      }
+      _N = nWG;
+      nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
+      frst = false;
+      even = !even;
+    } while (_N > 1);
+  };
+
+  /*!
+   * @brief Applies a reduction to a tree, receiving a scratch buffer.
+   */
+  template <typename Tree, typename Scratch>
+  void reduce(Tree t, Scratch scr) {
+    using oper_type = typename blas::Evaluate<Tree>::oper_type;
+    using input_type = typename blas::Evaluate<Tree>::input_type;
+    using cont_type = typename blas::Evaluate<Tree>::cont_type;
+    using LHS_type = typename blas::Evaluate<Tree>::LHS_type;
+    auto _N = t.getSize();
+    auto localSize = t.blqS;
+    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
+    // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
+    // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
+    // ALL THE ELEMENTS ARE PROCESSED
+    auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
+    auto lhs = t.l;
+    auto rhs = t.r;
+
+    // Two accessors to local memory
+    auto sharedSize = ((nWG < localSize) ? localSize : nWG);
+    auto opShMem1 = LHS_type(scr, 0, 1, sharedSize);
+    auto opShMem2 = LHS_type(scr, sharedSize, 1, sharedSize);
 
     bool frst = true;
     bool even = false;

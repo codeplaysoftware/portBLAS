@@ -51,7 +51,7 @@ void _gemv(Executor<ExecutorType> ex, std::string _Trans, size_t _M, size_t _N,
   if ((_Trans[0] != 'n') && (_Trans[0] != 't') && (_Trans[0] != 'c') &&
       (_Trans[0] != 'N') && (_Trans[0] != 'T') && (_Trans[0] != 'C'))
     std::cout << "Erroneous parameter" << std::endl;
-  bool accessOpr = ((_Trans[0] == 'n') || (_Trans[0] == 'N'));
+  int accessOpr = ((_Trans[0] == 'n') || (_Trans[0] == 'N'));
   size_t M = _M;
   size_t N = _N;
   auto my_mA =
@@ -146,7 +146,7 @@ void _ger(Executor<ExecutorType> ex, size_t _M, size_t _N, T _alpha,
           vector_view<T, ContainerT> _vx, size_t _incx,
           vector_view<T, ContainerT> _vy, size_t _incy,
           matrix_view<T, ContainerT> _mA, size_t _lda) {
-  bool accessOpr = true;
+  int accessOpr = true;
   size_t M = _M;
   size_t N = _N;
   auto my_mA =

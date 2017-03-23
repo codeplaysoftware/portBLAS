@@ -262,7 +262,7 @@ struct ReducAssignNewOp2 {
   size_t grdS;  // grid  size
 
   ReducAssignNewOp2(LHS& _l, RHS& _r, size_t _blqS, size_t _grdS)
-      : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
+      : l(_l), r(_r), blqS(_blqS), grdS(_grdS){ };
 
   size_t getSize() { return r.getSize(); }
 
@@ -299,7 +299,9 @@ struct ReducAssignNewOp2 {
     value_type val = Operator::init(r);
     for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) {
       val = Operator::eval(val, r.eval(k));
-      val = ((k + blqS) < vecS) ? Operator::eval(val, r.eval(k + blqS)) : val;
+      if ((k + blqS < vecS)) {
+        val = Operator::eval(val, r.eval(k + blqS));
+      }
     }
 
     scratch[localid] = val;

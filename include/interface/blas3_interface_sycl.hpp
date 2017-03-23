@@ -31,6 +31,8 @@
 #include <stdexcept>
 #include <vector>
 
+// #define VERBOSE 1
+
 #include <executors/executor_sycl.hpp>
 #include <operations/blas3_trees.hpp>
 

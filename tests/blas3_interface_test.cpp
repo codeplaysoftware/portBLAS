@@ -10,11 +10,21 @@
 using namespace cl::sycl;
 using namespace blas;
 
+// #define VERBOSE  1
+
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-8
+#define RANDOM_DATA   1
+#define EXECUTED_ON_GPU 1
 // #define SHOW_VALUES   1
 
-// #define RANDOM_DATA   1
+#ifdef EXECUTED_ON_GPU
+  #define DEFAULT_ACCESS false
+#else
+  #define DEFAULT_ACCESS true
+#endif
+
+// INITIAL MATRIZ VECTOR PRODUCT
 
 /*! TestingGEMM.
  * @brief Tests that GEMM works properly.
@@ -41,6 +51,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   std::vector<double> vR(1);
 
   // INITIALIZING DATA
+  size_t vSeed, gap;
   double minV, maxV;
 #ifdef RANDOM_DATA
   vSeed = 1;
@@ -109,6 +120,11 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
                                                dimLC, 0);
   matrix_view<double, std::vector<double>> m_S(vS, accessDev, dimM, dimN, true,
                                                dimLC, 0);
+#ifdef VERBOSE
+  m_A.printH("MA");
+  m_B.printH("MB");
+  m_C.printH("MC");
+#endif
 
   // COMPUTING THE RESULTS
 
@@ -152,7 +168,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
         if (accessDev) {
           vS[dimN * i + j] += alpha * vA[dimM * k + i] * vB[dimN * k + j];
         } else {
-          vS[dimM * j + i] += alpha * vA[dimK * i + k] * vB[dimK * j + k];
+          vS[dimM * j + i] += alpha * vA[dimM * k + i] * vB[dimN * k + j];
         }
       }
       addC += (accessDev) ? vS[dimN * i + j] : vS[dimM * j + i];
@@ -190,15 +206,20 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
     BufferVectorView<double> bvR(bR);
 
     // EXECUTION OF THE ROUTINES
-    size_t dimLA = dimM;
-    _gemm<SYCL>(ex, "Tr", "No", dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
+    // size_t dimLA = ((accessDev) ? dimK : dimM); // Original
+    size_t dimLA = dimM;  // for accessDev = true  then A^t
+    // size_t dimLB = ((accessDev) ? dimN : dimK);  // Original
+    size_t dimLB = dimN;  // for accessDev = false then B^t
+    _gemm<SYCL>(ex, ((accessDev)?"Tr":"No"), ((accessDev)?"No":"Tr"), dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
                 bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
                 bmC0(shftR, shftC), dimLC);
 
     auto reducOpV = make_addReducAssignNewOp2(bvR, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
-  //  m_C.printH ("MC");
+#ifdef VERBOSE
+  m_C.printH("MC");
+#endif  // VERBOSE
 
   // ANALYSIS OF THE RESULTS
   res = vR[0];
@@ -217,7 +238,8 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
 int main(int argc, char* argv[]) {
   //  using namespace SyclBlas;
-  bool accessDev = true;
+//  bool accessDev = true;
+  bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
   size_t returnVal = 0;
 
@@ -226,13 +248,15 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
@@ -240,7 +264,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 4) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     shftR = atoi(argv[2]);
@@ -248,11 +273,12 @@ int main(int argc, char* argv[]) {
   } else if (argc == 5) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = false;
+//      accessDev = false;
+      accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
-    ;
+
     shftR = atoi(argv[3]);
     shftC = atoi(argv[4]);
   } else {
