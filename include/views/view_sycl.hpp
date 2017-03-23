@@ -278,7 +278,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   friend std::ostream& operator<<(std::ostream& stream, vector_view<X, Y> opvS);
 
   void printH(const char* name) {
-    bool frst = true;
+    int frst = 1;
     printf("%s = [ ", name);
     for (size_t i = 0; i < size_; i++) {
       if (frst) {
@@ -286,7 +286,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
       } else {
         printf(" , %f", val(i));
       }
-      frst = false;
+      frst = 0;
     }
     printf(" ]\n");
   }
@@ -307,10 +307,10 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   using ContainerT = bufferT<ScalarT>;
   // Information related to the data
   ContainerT& data_;
-  bool accessDev_;    // row-major or column-major value for the device/language
+  int accessDev_;    // row-major or column-major value for the device/language
   size_t size_data_;  // real size of the data
   // Information related to the operation
-  bool accessOpr_;  // row-major or column-major
+  int accessOpr_;  // row-major or column-major
   size_t sizeR_;    // number of rows
   size_t sizeC_;    // number of columns
   size_t sizeL_;    // size of the leading dimension
@@ -321,11 +321,11 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT& data, bool accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT& data, int accessDev, size_t sizeR, size_t sizeC)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -338,9 +338,9 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    */
   matrix_view(ContainerT& data, size_t sizeR, size_t sizeC)
       : data_(data),
-        accessDev_(false),
+        accessDev_(0),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -351,8 +351,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT& data, bool accessDev, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+  matrix_view(ContainerT& data, int accessDev, size_t sizeR, size_t sizeC,
+              int accessOpr, size_t sizeL, size_t disp)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -365,10 +365,10 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT& data, size_t sizeR, size_t sizeC, bool accessOpr,
+  matrix_view(ContainerT& data, size_t sizeR, size_t sizeC, int accessOpr,
               size_t sizeL, size_t disp)
       : data_(data),
-        accessDev_(false),
+        accessDev_(0),
         size_data_(data_.get_size()),
         accessOpr_(accessOpr),
         sizeR_(sizeR),
@@ -379,8 +379,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, bool accessDev,
-              size_t sizeR, size_t sizeC, bool accessOpr, size_t sizeL,
+  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev,
+              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
               size_t disp)
       : data_(opM.data_),
         accessDev_(accessDev),
@@ -395,7 +395,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    * @brief See matrix_view.
    */
   matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+              int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -433,17 +433,17 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  bool getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
   /*!
    * @brief See matrix_view.
    */
-  bool getAccessDev() { return accessDev_; }
+  int getAccessDev() { return accessDev_; }
 
   /*!
    * @brief See matrix_view.
    */
-  bool getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() { return accessOpr_; }
 
   /*!
    * @brief See matrix_view.
@@ -481,7 +481,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    */
   ScalarT& eval(size_t k) {  // -> decltype(data_[i]) {
     auto ind = disp_;
-    auto access = (!(accessDev_ ^ accessOpr_));
+    int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
     auto j = (access) ? (k % size) : (k / size);
@@ -561,13 +561,13 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   void printH(const char* name) {
     printf("%s = [ \n", name);
     for (size_t i = 0; i < ((accessOpr_) ? sizeR_ : sizeC_); i++) {
-      bool frst = true;
+      int frst = 1;
       for (size_t j = 0; j < ((accessOpr_) ? sizeC_ : sizeR_); j++) {
         if (frst)
           printf("%f", val(i, j));
         else
           printf(" , %f", val(i, j));
-        frst = false;
+        frst = 0;
       }
       printf(" ; \n");
     }
@@ -784,14 +784,14 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   friend std::ostream& operator<<(std::ostream& stream, vector_view<X, Y> opvS);
 
   void printH(const char* name) {
-    bool frst = true;
+    int frst = 1;
     printf("%s = [ ", name);
     for (size_t i = 0; i < size_; i++) {
       if (frst)
         printf("%f", eval(i));
       else
         printf(" , %f", eval(i));
-      frst = false;
+      frst = 0;
     }
     printf(" ]\n");
   }
@@ -805,10 +805,10 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   using ContainerT = accessorT<ScalarT>;
   // Information related to the data
   ContainerT data_;
-  bool accessDev_;    // row-major or column-major value for the device/language
+  int accessDev_;    // row-major or column-major value for the device/language
   size_t size_data_;  // real size of the data
   // Information related to the operation
-  bool accessOpr_;  // row-major or column-major
+  int accessOpr_;  // row-major or column-major
   size_t sizeR_;    // number of rows
   size_t sizeC_;    // number of columns
   size_t sizeL_;    // size of the leading dimension
@@ -818,11 +818,11 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   /**** CONSTRUCTORS ****/
 
-  matrix_view(ContainerT& data, bool accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT& data, int accessDev, size_t sizeR, size_t sizeC)
       : data_{data},
         accessDev_(accessDev),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -832,9 +832,9 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   matrix_view(ContainerT& data, size_t sizeR, size_t sizeC)
       : data_{data},
-        accessDev_(false),
+        accessDev_(0),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -842,8 +842,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
   }
 
-  matrix_view(ContainerT& data, bool accessDev, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+  matrix_view(ContainerT& data, int accessDev, size_t sizeR, size_t sizeC,
+              int accessOpr, size_t sizeL, size_t disp)
       : data_{data},
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -853,10 +853,10 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(ContainerT& data, size_t sizeR, size_t sizeC, bool accessOpr,
+  matrix_view(ContainerT& data, size_t sizeR, size_t sizeC, int accessOpr,
               size_t sizeL, size_t disp)
       : data_{data},
-        accessDev_(false),
+        accessDev_(0),
         size_data_(data_.get_size()),
         accessOpr_(accessOpr),
         sizeR_(sizeR),
@@ -864,8 +864,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, bool accessDev,
-              size_t sizeR, size_t sizeC, bool accessOpr, size_t sizeL,
+  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev,
+              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
               size_t disp)
       : data_{opM.data_},
         accessDev_(accessDev),
@@ -877,7 +877,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         disp_(disp) {}
 
   matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+              int accessOpr, size_t sizeL, size_t disp)
       : data_{opM.data_},
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -898,11 +898,11 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   size_t getSizeC() { return sizeC_; }
 
-  bool getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
-  bool getAccessDev() { return accessDev_; }
+  int getAccessDev() { return accessDev_; }
 
-  bool getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() { return accessOpr_; }
 
   long getDisp() { return disp_; }
 
@@ -929,7 +929,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   /**** EVALUATING ***/
   ScalarT& eval(size_t k) {
-    auto access = (!(accessDev_ ^ accessOpr_));
+    int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
     auto j = (access) ? (k % size) : (k / size);
@@ -939,8 +939,9 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   ScalarT& eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
     auto ind = disp_;
+    int accessMode = !(accessDev_ ^ accessOpr_);
 
-    if (!(accessDev_ ^ accessOpr_)) {
+    if (accessMode) {
       ind += (sizeL_ * i) + j;
     } else {
       ind += (sizeL_ * j) + i;
@@ -961,13 +962,13 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   void printH(const char* name) {
     printf("%s = [ \n", name);
     for (size_t i = 0; i < ((accessOpr_) ? sizeR_ : sizeC_); i++) {
-      bool frst = true;
+      int frst = 1;
       for (size_t j = 0; j < ((accessOpr_) ? sizeC_ : sizeR_); j++) {
         if (frst)
           printf("%f", eval(i, j));
         else
           printf(" , %f", eval(i, j));
-        frst = false;
+        frst = 0;
       }
       printf(" ; \n");
     }

@@ -361,7 +361,6 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
 int main(int argc, char* argv[]) {
   //  using namespace SyclBlas;
-//  bool accessDev = true;
   bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
   size_t returnVal = 0;
@@ -371,14 +370,12 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
       accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
       accessDev = ! DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);

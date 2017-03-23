@@ -212,14 +212,14 @@ struct vector_view {
   friend std::ostream& operator<<(std::ostream& stream, vector_view<X, Y> opvS);
 
   void printH(const char* name) {
-    bool frst = true;
+    int frst = 1;
     std::cout << name << " = [ ";
     for (size_t i = 0; i < size_; i++) {
       if (frst)
         std::cout << eval(i);
       else
         std::cout << " , " << eval(i);
-      frst = false;
+      frst = 0;
     }
     std::cout << " ]" << std::endl;
   }
@@ -234,9 +234,9 @@ template <class valueT, class containerT>
 struct matrix_view {
   // Information related to the data
   containerT& data_;
-  bool accessDev_;    // True for row-major, column-major otherwise
+  int accessDev_;    // True for row-major, column-major otherwise
   size_t size_data_;  // real size of the data
-  bool accessOpr_;    // Operation Access Mode (True: Normal, False: Transpose)
+  int accessOpr_;    // Operation Access Mode (True: Normal, False: Transpose)
   size_t sizeR_;      // number of rows
   size_t sizeC_;      // number of columns
   size_t sizeL_;      // size of the leading dimension
@@ -251,11 +251,11 @@ struct matrix_view {
    * @param sizeR Number of rows.
    * @param sizeC Number of columns.
    */
-  matrix_view(containerT& data, bool accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(containerT& data, int accessDev, size_t sizeR, size_t sizeC)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -271,9 +271,9 @@ struct matrix_view {
    */
   matrix_view(containerT& data, size_t sizeR, size_t sizeC)
       : data_(data),
-        accessDev_(true),
+        accessDev_(1),
         size_data_(data_.get_size()),
-        accessOpr_(true),
+        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
@@ -291,8 +291,8 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(containerT& data, bool accessDev, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+  matrix_view(containerT& data, int accessDev, size_t sizeR, size_t sizeC,
+              int accessOpr, size_t sizeL, size_t disp)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.size()),
@@ -311,10 +311,10 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(containerT& data, size_t sizeR, size_t sizeC, bool accessOpr,
+  matrix_view(containerT& data, size_t sizeR, size_t sizeC, int accessOpr,
               size_t sizeL, size_t disp)
       : data_(data),
-        accessDev_(true),
+        accessDev_(1),
         size_data_(data_.size()),
         accessOpr_(accessOpr),
         sizeR_(sizeR),
@@ -333,8 +333,8 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(matrix_view<valueT, containerT> opM, bool accessDev, size_t sizeR,
-              size_t sizeC, bool accessOpr, size_t sizeL, size_t disp)
+  matrix_view(matrix_view<valueT, containerT> opM, int accessDev, size_t sizeR,
+              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -354,7 +354,7 @@ struct matrix_view {
    * @param disp Displacement from the start.
    */
   matrix_view(matrix_view<valueT, containerT> opM, size_t sizeR, size_t sizeC,
-              bool accessOpr, size_t sizeL, size_t disp)
+              int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -409,18 +409,18 @@ struct matrix_view {
    * @brief Access mode for the view.
    * Combination of the device access vs the operation mode.
    */
-  bool getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
   /*! getAccessDev.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
-  bool getAccessDev() { return accessDev_; }
+  int getAccessDev() { return accessDev_; }
 
   /*! getAccessOpr.
    * @brief Returns the operation access mode
    * @return True: Normal access, False: Transpose
    */
-  bool getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() { return accessOpr_; }
 
   /*! getDisp.
    * @brief get displacement from the origin.
@@ -489,13 +489,13 @@ struct matrix_view {
   void printH(const char* name) {
     std::cout << name << " = [ " << std::endl;
     for (size_t i = 0; i < ((accessOpr_) ? sizeR_ : sizeC_); i++) {
-      bool frst = true;
+      int frst = 1;
       for (size_t j = 0; j < ((accessOpr_) ? sizeC_ : sizeR_); j++) {
         if (frst)
           std::cout << eval(i, j);
         else
           std::cout << " , " << eval(i, j);
-        frst = false;
+        frst = 0;
       }
       std::cout << " ;" << std::endl;
     }

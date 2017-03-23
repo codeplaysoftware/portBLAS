@@ -18,7 +18,7 @@ using namespace blas;
 // #define SHOW_VALUES   1
 #define SHOW_TIMES     1  // If it exists, the code prints the execution time
                           // The ... should be changed by the corresponding routine
-#define NUMBER_REPEATS 2  // Number of times the computations are made
+#define NUMBER_REPEATS 3  // Number of times the computations are made
                           // If it is greater than 1, the compile time is not considered
 
 #define LOCALSIZE 64
