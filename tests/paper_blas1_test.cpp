@@ -13,7 +13,8 @@ using namespace blas;
 #define COMPUTECPP_EXPORT
 #include <SYCL/codeplay/apis.h>
 
-#define DEF_SIZE_VECT 1200
+#define DEF_NUM_ELEM 1200
+#define DEF_STRIDE   1
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 #define SHOW_TIMES     1  // If it exists, the code prints the execution time
@@ -39,7 +40,11 @@ std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
   unsigned localSize = LOCALSIZE;
   // unsigned nWg = (N + localSize - 1) / localSize;
   // unsigned nWg = (N + 2 * localSize - 1) / (2 * localSize);
-  unsigned nWg = 2 * localSize;
+  // unsigned nWg = 2 * localSize;
+
+  // unsigned nWg = LOCAL_REDUCTIONS * localSize;
+  unsigned nWg = (N + LOCAL_REDUCTIONS * localSize - 1) / (LOCAL_REDUCTIONS * localSize);
+
   return std::pair<unsigned, unsigned>(localSize, nWg);
 }
 
@@ -368,17 +373,23 @@ void _four_copy(Executor<ExecutorType> ex, int _N,
 }
 // #########################
 int main(int argc, char* argv[]) {
-  size_t sizeV, returnVal = 0;
+  size_t numE, strd, sizeV, returnVal = 0;
   if (argc == 1) {
-    sizeV = DEF_SIZE_VECT;
+    numE = DEF_NUM_ELEM;
+    strd = DEF_STRIDE;
   } else if (argc == 2) {
-    sizeV = atoi(argv[1]);
+    numE = atoi(argv[1]);
+    strd = DEF_STRIDE;
+  } else if (argc == 3) {
+    numE = atoi(argv[1]);
+    strd = atoi(argv[2]);
   } else {
     std::cout << "ERROR!! --> Incorrect number of input parameters"
               << std::endl;
     returnVal = 1;
   }
   if (returnVal == 0) {
+    sizeV = numE * strd;
 #ifdef SHOW_TIMES
     // VARIABLES FOR TIMING
     std::chrono::time_point<std::chrono::steady_clock> t_start, t_stop;
@@ -446,22 +457,22 @@ int main(int argc, char* argv[]) {
     double ONE = 1.0f;
     i = 0;
     std::for_each(std::begin(vY1), std::end(vY1), [&](double& elem) {
-      elem = vZ1[i] + alpha1 * vX1[i]; sum1 += std::abs(elem); i++;
+      elem = vZ1[i] + alpha1 * vX1[i]; if ((i%strd) == 0) sum1 += std::abs(elem); i++;
     });
 //    vS1[0] = sum1;
     i = 0;
     std::for_each(std::begin(vY2), std::end(vY2), [&](double& elem) {
-      elem = vZ2[i] + alpha2 * vX2[i]; sum2 += std::abs(elem); i++;
+      elem = vZ2[i] + alpha2 * vX2[i]; if ((i%strd) == 0) sum2 += std::abs(elem); i++;
     });
 //    vS2[0] = sum2;
     i = 0;
     std::for_each(std::begin(vY3), std::end(vY3), [&](double& elem) {
-      elem = vZ3[i] + alpha3 * vX3[i]; sum3 += std::abs(elem); i++;
+      elem = vZ3[i] + alpha3 * vX3[i]; if ((i%strd) == 0) sum3 += std::abs(elem); i++;
     });
 //    vS3[0] = sum3;
     i = 0;
     std::for_each(std::begin(vY4), std::end(vY4), [&](double& elem) {
-      elem = vZ4[i] + alpha4 * vX4[i]; sum4 += std::abs(elem); i++;
+      elem = vZ4[i] + alpha4 * vX4[i]; if ((i%strd) == 0) sum4 += std::abs(elem); i++;
     });
 //    vS4[0] = sum4;
     // CREATING THE SYCL QUEUE AND EXECUTOR
@@ -573,10 +584,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
-        _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
-        _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
-        _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
+        _one_copy<SYCL>(ex, numE, bvZ1, strd, bvY1, strd);
+        _one_copy<SYCL>(ex, numE, bvZ2, strd, bvY2, strd);
+        _one_copy<SYCL>(ex, numE, bvZ3, strd, bvY3, strd);
+        _one_copy<SYCL>(ex, numE, bvZ4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now(); t0_copy = t_stop - t_start ;
@@ -584,10 +595,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1);
-        _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
-        _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
-        _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
+        _one_axpy<SYCL>(ex, numE, alpha1, bvX1, strd, bvY1, strd);
+        _one_axpy<SYCL>(ex, numE, alpha2, bvX2, strd, bvY2, strd);
+        _one_axpy<SYCL>(ex, numE, alpha3, bvX3, strd, bvY3, strd);
+        _one_axpy<SYCL>(ex, numE, alpha4, bvX4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_axpy = t_stop - t_start ;
@@ -595,10 +606,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1, bvR1);
-        _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2, bvR2);
-        _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3, bvR3);
-        _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4, bvR4);
+        _one_add<SYCL>(ex, numE, bvY1, strd, bvS1, bvR1);
+        _one_add<SYCL>(ex, numE, bvY2, strd, bvS2, bvR2);
+        _one_add<SYCL>(ex, numE, bvY3, strd, bvS3, bvR3);
+        _one_add<SYCL>(ex, numE, bvY4, strd, bvS4, bvR4);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t0_add  = t_stop - t_start ;
@@ -607,10 +618,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1);
-        _one_copy<SYCL>(ex, bX2.get_count(), bvZ2, 1, bvY2, 1);
-        _one_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1);
-        _one_copy<SYCL>(ex, bX4.get_count(), bvZ4, 1, bvY4, 1);
+        _one_copy<SYCL>(ex, numE, bvZ1, strd, bvY1, strd);
+        _one_copy<SYCL>(ex, numE, bvZ2, strd, bvY2, strd);
+        _one_copy<SYCL>(ex, numE, bvZ3, strd, bvY3, strd);
+        _one_copy<SYCL>(ex, numE, bvZ4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_copy = t_stop - t_start ;
@@ -618,10 +629,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1);
-        _one_axpy<SYCL>(ex, bX2.get_count(), alpha2, bvX2, 1, bvY2, 1);
-        _one_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1);
-        _one_axpy<SYCL>(ex, bX4.get_count(), alpha4, bvX4, 1, bvY4, 1);
+        _one_axpy<SYCL>(ex, numE, alpha1, bvX1, strd, bvY1, strd);
+        _one_axpy<SYCL>(ex, numE, alpha2, bvX2, strd, bvY2, strd);
+        _one_axpy<SYCL>(ex, numE, alpha3, bvX3, strd, bvY3, strd);
+        _one_axpy<SYCL>(ex, numE, alpha4, bvX4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_axpy = t_stop - t_start ;
@@ -629,10 +640,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _one_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+1, bvR1);
-        _one_add<SYCL>(ex, bY2.get_count(), bvY2, 1, bvS2+1, bvR2);
-        _one_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+1, bvR3);
-        _one_add<SYCL>(ex, bY4.get_count(), bvY4, 1, bvS4+1, bvR4);
+        _one_add<SYCL>(ex, numE, bvY1, strd, bvS1+1, bvR1);
+        _one_add<SYCL>(ex, numE, bvY2, strd, bvS2+1, bvR2);
+        _one_add<SYCL>(ex, numE, bvY3, strd, bvS3+1, bvR3);
+        _one_add<SYCL>(ex, numE, bvY4, strd, bvS4+1, bvR4);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t1_add  = t_stop - t_start ;
@@ -641,10 +652,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _two_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1,
-                                             bvZ2, 1, bvY2, 1);
-        _two_copy<SYCL>(ex, bX3.get_count(), bvZ3, 1, bvY3, 1,
-                                             bvZ4, 1, bvY4, 1);
+        _two_copy<SYCL>(ex, numE, bvZ1, strd, bvY1, strd,
+                                              bvZ2, strd, bvY2, strd);
+        _two_copy<SYCL>(ex, numE, bvZ3, strd, bvY3, strd,
+                                              bvZ4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_copy = t_stop - t_start ;
@@ -652,10 +663,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _two_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1,
-                                             alpha2, bvX2, 1, bvY2, 1);
-        _two_axpy<SYCL>(ex, bX3.get_count(), alpha3, bvX3, 1, bvY3, 1,
-                                             alpha4, bvX4, 1, bvY4, 1);
+        _two_axpy<SYCL>(ex, numE, alpha1, bvX1, strd, bvY1, strd,
+                                  alpha2, bvX2, strd, bvY2, strd);
+        _two_axpy<SYCL>(ex, numE, alpha3, bvX3, strd, bvY3, strd,
+                                  alpha4, bvX4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_axpy = t_stop - t_start ;
@@ -663,10 +674,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _two_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+2, bvR1,
-                                            bvY2, 1, bvS2+2, bvR2);
-        _two_add<SYCL>(ex, bY3.get_count(), bvY3, 1, bvS3+2, bvR3,
-                                            bvY4, 1, bvS4+2, bvR4);
+        _two_add<SYCL>(ex, numE, bvY1, strd, bvS1+2, bvR1,
+                                 bvY2, strd, bvS2+2, bvR2);
+        _two_add<SYCL>(ex, numE, bvY3, strd, bvS3+2, bvR3,
+                                 bvY4, strd, bvS4+2, bvR4);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t2_add  = t_stop - t_start ;
@@ -675,10 +686,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now() ; 
 #endif
-        _four_copy<SYCL>(ex, bX1.get_count(), bvZ1, 1, bvY1, 1,
-                                             bvZ2, 1, bvY2, 1,
-                                             bvZ3, 1, bvY3, 1,
-                                             bvZ4, 1, bvY4, 1);
+        _four_copy<SYCL>(ex, numE, bvZ1, strd, bvY1, strd,
+                                   bvZ2, strd, bvY2, strd,
+                                   bvZ3, strd, bvY3, strd,
+                                   bvZ4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now() ; t3_copy = t_stop - t_start ;
@@ -686,10 +697,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now(); ; 
 #endif
-        _four_axpy<SYCL>(ex, bX1.get_count(), alpha1, bvX1, 1, bvY1, 1,
-                                             alpha2, bvX2, 1, bvY2, 1,
-                                             alpha3, bvX3, 1, bvY3, 1,
-                                             alpha4, bvX4, 1, bvY4, 1);
+        _four_axpy<SYCL>(ex, numE, alpha1, bvX1, strd, bvY1, strd,
+                                   alpha2, bvX2, strd, bvY2, strd,
+                                   alpha3, bvX3, strd, bvY3, strd,
+                                   alpha4, bvX4, strd, bvY4, strd);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now()  ; t3_axpy = t_stop - t_start ;
@@ -697,10 +708,10 @@ int main(int argc, char* argv[]) {
 #ifdef SHOW_TIMES
         t_start = std::chrono::steady_clock::now()  ; 
 #endif
-        _four_add<SYCL>(ex, bY1.get_count(), bvY1, 1, bvS1+3, bvR1,
-                                            bvY2, 1, bvS2+3, bvR2,
-                                            bvY3, 1, bvS3+3, bvR3,
-                                            bvY4, 1, bvS4+3, bvR4);
+        _four_add<SYCL>(ex, numE, bvY1, strd, bvS1+3, bvR1,
+                                  bvY2, strd, bvS2+3, bvR2,
+                                  bvY3, strd, bvS3+3, bvR3,
+                                  bvY4, strd, bvS4+3, bvR4);
         q.wait();
 #ifdef SHOW_TIMES
         t_stop  = std::chrono::steady_clock::now()  ; t3_add  = t_stop - t_start ;

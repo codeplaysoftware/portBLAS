@@ -11,7 +11,8 @@
 using namespace cl::sycl;
 using namespace blas;
 
-#define DEF_SIZE_VECT 1200
+#define DEF_NUM_ELEM 1200
+#define DEF_STRIDE   1
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 
@@ -25,18 +26,23 @@ using namespace blas;
 // #########################
 
 int main(int argc, char* argv[]) {
-  size_t sizeV, returnVal = 0;
-
+  size_t numE, strd, sizeV, returnVal = 0;
   if (argc == 1) {
-    sizeV = DEF_SIZE_VECT;
+    numE = DEF_NUM_ELEM;
+    strd = DEF_STRIDE;
   } else if (argc == 2) {
-    sizeV = atoi(argv[1]);
+    numE = atoi(argv[1]);
+    strd = DEF_STRIDE;
+  } else if (argc == 3) {
+    numE = atoi(argv[1]);
+    strd = atoi(argv[2]);
   } else {
     std::cout << "ERROR!! --> Incorrect number of input parameters"
-      << std::endl;
+              << std::endl;
     returnVal = 1;
   }
   if (returnVal == 0) {
+    sizeV = numE * strd;
 #ifdef SHOW_TIMES
     // VARIABLES FOR TIMING
     std::chrono::time_point<std::chrono::steady_clock> t_start, t_stop;
@@ -115,22 +121,22 @@ int main(int argc, char* argv[]) {
 
     i = 0;
     std::for_each(std::begin(vY1), std::end(vY1), [&](double& elem) {
-        elem = vZ1[i] + alpha1 * vX1[i]; sum1 += std::abs(elem); i++;
+        elem = vZ1[i] + alpha1 * vX1[i]; if ((i%strd) == 0) sum1 += std::abs(elem); i++;
         });
     //    vS1[0] = sum1;
     i = 0;
     std::for_each(std::begin(vY2), std::end(vY2), [&](double& elem) {
-        elem = vZ2[i] + alpha2 * vX2[i]; sum2 += std::abs(elem); i++;
+        elem = vZ2[i] + alpha2 * vX2[i]; if ((i%strd) == 0) sum2 += std::abs(elem); i++;
         });
     //    vS2[0] = sum2;
     i = 0;
     std::for_each(std::begin(vY3), std::end(vY3), [&](double& elem) {
-        elem = vZ3[i] + alpha3 * vX3[i]; sum3 += std::abs(elem); i++;
+        elem = vZ3[i] + alpha3 * vX3[i]; if ((i%strd) == 0) sum3 += std::abs(elem); i++;
         });
     //    vS3[0] = sum3;
     i = 0;
     std::for_each(std::begin(vY4), std::end(vY4), [&](double& elem) {
-        elem = vZ4[i] + alpha4 * vX4[i]; sum4 += std::abs(elem); i++;
+        elem = vZ4[i] + alpha4 * vX4[i]; if ((i%strd) == 0) sum4 += std::abs(elem); i++;
         });
     //    vS4[0] = sum4;
 
@@ -306,21 +312,21 @@ int main(int argc, char* argv[]) {
         {
           cl_event events[4];
 
-          err = clblasDcopy( vY1.size(), 
-              bZ1_cl, 0, 1, 
-              bY1_cl, 0, 1,
+          err = clblasDcopy( numE, 
+              bZ1_cl, 0, strd, 
+              bY1_cl, 0, strd,
               1, &clQueue, 0, NULL, &events[0]);
-          err = clblasDcopy( vY2.size(), 
-              bZ2_cl, 0, 1, 
-              bY2_cl, 0, 1, 
+          err = clblasDcopy( numE, 
+              bZ2_cl, 0, strd, 
+              bY2_cl, 0, strd, 
               1, &clQueue, 0, NULL, &events[1]);
-          err = clblasDcopy( vY3.size(), 
-              bZ3_cl, 0, 1, 
-              bY3_cl, 0, 1, 
+          err = clblasDcopy( numE, 
+              bZ3_cl, 0, strd, 
+              bY3_cl, 0, strd, 
               1, &clQueue, 0, NULL, &events[2]);
-          err = clblasDcopy( vY4.size(), 
-              bZ4_cl, 0, 1, 
-              bY4_cl, 0, 1, 
+          err = clblasDcopy( numE, 
+              bZ4_cl, 0, strd, 
+              bY4_cl, 0, strd, 
               1, &clQueue, 0, NULL, &events[3]);
 
           err |= clWaitForEvents(4, events);
@@ -341,24 +347,22 @@ int main(int argc, char* argv[]) {
         {
           cl_event events[4];
 
-          err = clblasDaxpy( vX1.size(), 
-              alpha1, bX1_cl, 0, 1, 
-              bY1_cl, 0, 1, 
+          err = clblasDaxpy( numE, 
+              alpha1, bX1_cl, 0, strd, 
+              bY1_cl, 0, strd, 
               1, &clQueue, 0, NULL, &events[0]);
-          err |= clblasDaxpy( vX2.size(), 
-              alpha2, bX2_cl, 0, 1, 
-              bY2_cl, 0, 1, 1, 
-              &clQueue, 0, NULL, &events[1]);
-
-          err |= clblasDaxpy( vX3.size(), 
-              alpha3, bX3_cl, 0, 1, 
-              bY3_cl, 0, 1, 1, 
-              &clQueue, 0, NULL, &events[2]);
-
-          err |= clblasDaxpy( vX4.size(), 
-              alpha4, bX4_cl, 0, 1, 
-              bY4_cl, 0, 1, 1, 
-              &clQueue, 0, NULL, &events[3]);
+          err |= clblasDaxpy( numE, 
+              alpha2, bX2_cl, 0, strd, 
+              bY2_cl, 0, strd, 
+              1, &clQueue, 0, NULL, &events[1]);
+          err |= clblasDaxpy( numE, 
+              alpha3, bX3_cl, 0, strd, 
+              bY3_cl, 0, strd, 
+              1, &clQueue, 0, NULL, &events[2]);
+          err |= clblasDaxpy( numE, 
+              alpha4, bX4_cl, 0, strd, 
+              bY4_cl, 0, strd, 
+              1, &clQueue, 0, NULL, &events[3]);
 
           err |= clWaitForEvents(4, events);
 
@@ -377,32 +381,32 @@ int main(int argc, char* argv[]) {
         // One add
         {
           cl_event events[4];
-          err = clblasDasum( vY1.size(), 
+          err = clblasDasum( numE, 
 //              bY1_cl, 0, 
 //              bS1_cl, 0, 1, 
               bS1_cl, 0, 
-              bY1_cl, 0, 1, 
+              bY1_cl, 0, strd, 
               scratch_cl,
               1, &clQueue, 0, NULL, &events[0]);
-          err = clblasDasum( vY2.size(), 
+          err = clblasDasum( numE, 
 //              bY2_cl, 0, 
 //              bS2_cl, 0, 1, 
               bS2_cl, 0, 
-              bY2_cl, 0, 1, 
+              bY2_cl, 0, strd, 
               scratch_cl,
               1, &clQueue, 0, NULL, &events[1]);
-          err = clblasDasum( vY3.size(), 
+          err = clblasDasum( numE, 
 //              bY3_cl, 0, 
 //              bS3_cl, 0, 1, 
               bS3_cl, 0, 
-              bY3_cl, 0, 1, 
+              bY3_cl, 0, strd, 
               scratch_cl,
               1, &clQueue, 0, NULL, &events[2]);
-          err = clblasDasum( vY4.size(), 
+          err = clblasDasum( numE, 
 //              bY4_cl, 0, 
 //              bS4_cl, 0, 1, 
               bS4_cl, 0, 
-              bY4_cl, 0, 1, 
+              bY4_cl, 0, strd, 
               scratch_cl,
               1, &clQueue, 0, NULL, &events[3]);
 
