@@ -19,7 +19,6 @@ include(FindComputeCpp)
 include(FindBLAS)
 
 if (DEFINED CLBLAS_ROOT)
-  message(STATUS "Help")
   set(USE_CLBLAS ON)
 else()
   set(USE_CLBLAS OFF)
