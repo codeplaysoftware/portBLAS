@@ -66,6 +66,7 @@ mark_as_advanced(COMPUTECPP_64_BIT_CODE)
 
 # Find OpenCL package
 find_package(OpenCL REQUIRED)
+include_directories(${OpenCL_INCLUDE_DIR})
 
 # Find ComputeCpp packagee
 if(NOT COMPUTECPP_PACKAGE_ROOT_DIR)
