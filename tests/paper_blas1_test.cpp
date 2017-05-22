@@ -40,10 +40,10 @@ std::pair<unsigned, unsigned> get_reduction_params(size_t N) {
   unsigned localSize = LOCALSIZE;
   // unsigned nWg = (N + localSize - 1) / localSize;
   // unsigned nWg = (N + 2 * localSize - 1) / (2 * localSize);
-  // unsigned nWg = 2 * localSize;
+  unsigned nWg = 2 * localSize;
 
   // unsigned nWg = LOCAL_REDUCTIONS * localSize;
-  unsigned nWg = (N + LOCAL_REDUCTIONS * localSize - 1) / (LOCAL_REDUCTIONS * localSize);
+  // unsigned nWg = (N + LOCAL_REDUCTIONS * localSize - 1) / (LOCAL_REDUCTIONS * localSize);
 
   return std::pair<unsigned, unsigned>(localSize, nWg);
 }
