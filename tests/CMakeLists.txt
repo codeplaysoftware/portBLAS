@@ -20,10 +20,10 @@ foreach(testFile ${BLAS_TEST})
     if (BLAS_FOUND)
       target_link_libraries(${testName} PUBLIC ${BLAS_LIBRARIES})
     endif()
+    message(STATUS "Test File " ${testFile})
+    add_sycl_to_target(${testName} ${CMAKE_CURRENT_BINARY_DIR} ${testFile})
   endif()
 
-  message(STATUS "Test File " ${testFile})
-  add_sycl_to_target(${testName} ${CMAKE_CURRENT_BINARY_DIR} ${testFile})
   add_test(NAME ${testName} COMMAND ${testName})
 
 endforeach()
