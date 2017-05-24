@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include <vector>
 #include <operations/blas_constants.hpp>
+#include <CL/sycl.hpp>
 
 namespace blas {
 
@@ -87,7 +88,7 @@ struct IndVal {
  * When using ComputeCpp CE, the Device Compiler uses Address Spaces
  * to deal with the different global memories.
  * However, this causes problem with std type traits, which see the
- * types with address space qualifiers as different from the C++ 
+ * types with address space qualifiers as different from the C++
  * standard types.
  *
  * This is strip_asp function servers as a workaround that removes
@@ -119,7 +120,7 @@ GENERATE_STRIP_ASP(double)
 GENERATE_STRIP_ASP(float)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
-/** 
+/**
  * syclblas_abs.
  *
  * SYCL 1.2 defines different functions for abs for floating point
@@ -130,7 +131,7 @@ GENERATE_STRIP_ASP(float)
 struct syclblas_abs {
 
   template<typename Type>
-  static Type eval(const Type& val, 
+  static Type eval(const Type& val,
         typename std::enable_if<!std::is_floating_point<typename strip_asp<Type>::type>::value>::type* = 0) {
     return cl::sycl::abs(val);
   }
