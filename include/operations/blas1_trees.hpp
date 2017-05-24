@@ -26,13 +26,13 @@
 #ifndef BLAS1_TREES_HPP
 #define BLAS1_TREES_HPP
 
+#include <complex>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <complex>
 
-#include <views/view_sycl.hpp>
 #include <operations/blas_operators.hpp>
+#include <views/view_sycl.hpp>
 
 namespace blas {
 namespace internal {
@@ -261,7 +261,7 @@ struct ReducAssignNewOp2 {
   size_t grdS;  // grid  size
 
   ReducAssignNewOp2(LHS& _l, RHS& _r, size_t _blqS, size_t _grdS)
-      : l(_l), r(_r), blqS(_blqS), grdS(_grdS){ };
+      : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
 
   size_t getSize() { return r.getSize(); }
 

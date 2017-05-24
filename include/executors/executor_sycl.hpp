@@ -30,14 +30,14 @@
 
 #include <CL/sycl.hpp>
 
-#include <views/view_sycl.hpp>
+#include <executors/blas1_tree_executor.hpp>
+#include <executors/blas2_tree_executor.hpp>
+#include <executors/blas3_tree_executor.hpp>
 #include <executors/executor_base.hpp>
 #include <operations/blas1_trees.hpp>
 #include <operations/blas2_trees.hpp>
 #include <operations/blas3_trees.hpp>
-#include <executors/blas1_tree_executor.hpp>
-#include <executors/blas2_tree_executor.hpp>
-#include <executors/blas3_tree_executor.hpp>
+#include <views/view_sycl.hpp>
 
 namespace blas {
 
@@ -52,8 +52,8 @@ namespace blas {
  is not recommended.
  */
 namespace using_shared_mem {
-  static const int enabled=0;
-  static const int disabled=1;
+static const int enabled = 0;
+static const int disabled = 1;
 };
 
 /*!
@@ -112,7 +112,6 @@ struct shared_mem<valueT, using_shared_mem::disabled> {
   */
   shared_mem(size_t size, cl::sycl::handler &cgh) {}
 };
-
 
 /*!
 @brief Template struct defining the value type of shared memory if enabled.
@@ -194,14 +193,15 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
 @param scratch_ shared memory object (local accessor).
 @param evaluator_ Tree object.
 */
-template<int usingSharedMem, typename Evaluator, typename SharedMem,
-  typename value_type> struct ExecTreeFunctor {
+template <int usingSharedMem, typename Evaluator, typename SharedMem,
+          typename value_type>
+struct ExecTreeFunctor {
   SharedMem scratch;
   Evaluator evaluator;
-  ExecTreeFunctor(SharedMem scratch_, Evaluator evaluator_):scratch(scratch_),
-  evaluator(evaluator_){}
-  void operator()(cl::sycl::nd_item<1> i){
-    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch,i);
+  ExecTreeFunctor(SharedMem scratch_, Evaluator evaluator_)
+      : scratch(scratch_), evaluator(evaluator_) {}
+  void operator()(cl::sycl::nd_item<1> i) {
+    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch, i);
   }
 };
 /*! execute_tree.
@@ -231,8 +231,10 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
 
     cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
         cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for(gridConfiguration, ReductionFunctor<usingSharedMem,
-        decltype(nTree),decltype(scratch), value_type>(scratch, nTree));
+    h.parallel_for(
+        gridConfiguration,
+        ReductionFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
+                         value_type>(scratch, nTree));
   };
 
   q_.submit(cg1);
@@ -262,17 +264,18 @@ class Executor<SYCL> {
   void execute(Tree t) {
     auto device = q_.get_device();
     const auto localSize = 128;
-//        device.get_info<cl::sycl::info::device::max_work_group_size>();
+    //        device.get_info<cl::sycl::info::device::max_work_group_size>();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
-//    auto globalSize = _N; // nWG * localSize;
+    //    auto globalSize = _N; // nWG * localSize;
     auto globalSize = nWG * localSize;
 
     execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
   };
 
   /*!
-   * @brief Executes the tree fixing the localSize but without defining required shared memory.
+   * @brief Executes the tree fixing the localSize but without defining required
+   * shared memory.
    */
   template <typename Tree>
   void execute(Tree t, size_t localSize) {
