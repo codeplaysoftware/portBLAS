@@ -43,8 +43,14 @@ namespace blas {
 
 /*!using_shared_mem.
  * @brief Indicates whether if the kernel uses shared memory or not.
+ This is a work-around for the following enum class.
+ //enum class using_shared_mem { enabled, disabled };
+ When the member of enum class is used as a template parameters of the
+ kernel functor, our duplicator cannot capture those elements.
+ One way to solve it is to replace enum with namespace and replace each member
+ of enum with static if. the other way is changing the order of stub file which
+ is not recommended.
  */
-//enum class using_shared_mem { enabled, disabled };
 namespace using_shared_mem {
   static const int enabled=0;
   static const int disabled=1;
@@ -179,10 +185,28 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
   }
 };
 
-
+/*! execute_tree.
+@brief the functor for executing a tree in SYCL.
+@tparam int usingSharedMem  specifying whether shared memory is enabled.
+@tparam Evaluator Type of the tree.
+@tparam value_type type of elements in shared memory.
+@tparam SharedMem shared memory type (local accessor type).
+@param scratch_ shared memory object (local accessor).
+@param evaluator_ Tree object.
+*/
+template<int usingSharedMem, typename Evaluator, typename SharedMem,
+  typename value_type> struct ExecTreeFunctor {
+  SharedMem scratch;
+  Evaluator evaluator;
+  ExecTreeFunctor(SharedMem scratch_, Evaluator evaluator_):scratch(scratch_),
+  evaluator(evaluator_){}
+  void operator()(cl::sycl::nd_item<1> i){
+    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch,i);
+  }
+};
 /*! execute_tree.
 @brief Static function for executing a tree in SYCL.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
+@tparam int usingSharedMem specifying whether shared memory is enabled.
 @tparam Tree Type of the tree.
 @param q_ SYCL queue.
 @param t Tree object.
@@ -191,14 +215,6 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
 @param _shMem Size in elements of the shared memory (should be zero if
 usingSharedMem == false).
 */
-template<int usingSharedMem, typename Evaluator, typename SharedMem, typename value_type> struct ReductionFunctor{
-  SharedMem scratch;
-  Evaluator evaluator;
-  ReductionFunctor(SharedMem scratch_, Evaluator evaluator_):scratch(scratch_), evaluator(evaluator_){}
-  void operator()(cl::sycl::nd_item<1> i){
-    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch,i);
-  }
-};
 template <int usingSharedMem, typename Tree>
 static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
                          size_t _globalSize, size_t _shMem) {
@@ -215,8 +231,8 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
 
     cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
         cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    auto reductionFunctor = ReductionFunctor<usingSharedMem, decltype(nTree),decltype(scratch), value_type>(scratch, nTree);
-    h.parallel_for(gridConfiguration, reductionFunctor);
+    h.parallel_for(gridConfiguration, ReductionFunctor<usingSharedMem,
+        decltype(nTree),decltype(scratch), value_type>(scratch, nTree));
   };
 
   q_.submit(cg1);
