@@ -233,7 +233,7 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
         cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
     h.parallel_for(
         gridConfiguration,
-        ReductionFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
+        ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
                          value_type>(scratch, nTree));
   };
 

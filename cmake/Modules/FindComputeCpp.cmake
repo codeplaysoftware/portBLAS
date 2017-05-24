@@ -18,14 +18,14 @@
 #   limitations under the License.
 
 #########################
-#  FindComputeCpp.cmake  
+#  FindComputeCpp.cmake
 #########################
 #
 #  Tools for finding and building with ComputeCpp.
 #
-#  User must define COMPUTECPP_PACKAGE_ROOT_DIR pointing to the ComputeCpp 
+#  User must define COMPUTECPP_PACKAGE_ROOT_DIR pointing to the ComputeCpp
 #   installation.
-#  
+#
 #  Latest version of this file can be found at:
 #    https://github.com/codeplaysoftware/computecpp-sdk
 
@@ -159,7 +159,7 @@ else()
 endif()
 
 ####################
-#   __build_sycl   
+#   __build_sycl
 ####################
 #
 #  Adds a custom target for running compute++ and adding a dependency for the
@@ -173,7 +173,7 @@ endif()
 #       but located in different directories, are used for the same target.
 #
 function(__build_spir targetName sourceFile binaryDir fileCounter)
-  
+
   # Retrieve source file name.
   get_filename_component(sourceFileName ${sourceFile} NAME)
 
@@ -208,12 +208,13 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
             -o ${outputSyclFile}
             -c ${sourceFile}
     DEPENDS ${sourceFile}
+    IMPLICIT_DEPENDS CXX "${sourceFile}"
     WORKING_DIRECTORY ${binaryDir}
   COMMENT "Building ComputeCpp integration header file ${outputSyclFile}")
 
   # Name: (user-defined name)_(source file)_(counter for same source file name)_integration_header
   set(headerTargetName ${targetName}_${sourceFileName}_${fileCounter}_integration_header)
-  
+
   # Add a custom target for the generated integration header
   add_custom_target(${headerTargetName} DEPENDS ${outputSyclFile})
 
@@ -223,7 +224,7 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
   # Force inclusion of the integration header for the host compiler
   set(compileFlags -include ${outputSyclFile})
   target_compile_options(${targetName} PUBLIC ${compileFlags})
-  
+
   # Disable GCC dual ABI on GCC 5.1 and higher
   if(COMPUTECPP_DISABLE_GCC_DUAL_ABI)
     set_property(TARGET ${targetName} APPEND PROPERTY COMPILE_DEFINITIONS
