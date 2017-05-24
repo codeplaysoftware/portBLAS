@@ -198,7 +198,6 @@ struct ScalarOp {
   ScalarOp(SCL _scl, RHS& _r) : scl(_scl), r(_r){};
 
   size_t getSize() { return r.getSize(); }
-
   value_type eval(size_t i) {
     return Operator::eval(internal::get_scalar(scl), r.eval(i));
   }
@@ -285,7 +284,9 @@ struct ReducAssignNewOp2 {
     }
     return l.eval(i) = val;
   }
-
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
     size_t localid = ndItem.get_local(0);
@@ -392,7 +393,9 @@ struct ReducAssignNewOp3 {
     }
     return l.eval(i) = val;
   }
-
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
   template <typename sharedT>
   res_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
     size_t localid = ndItem.get_local(0);

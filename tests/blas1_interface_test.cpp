@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
       // EXECUTION OF THE ROUTINES
       _axpy<SYCL>(ex, bX.get_count(), alpha, bvX, 1, bvY, 1);
       _asum<SYCL>(ex, bY.get_count(), bvY, 1, bvR);
-      _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, bvS);
+      vS[0]=_dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1);
       _nrm2<SYCL>(ex, bY.get_count(), bvY, 1, bvT);
       _iamax<SYCL>(ex, bY.get_count(), bvY, 1, bvI);
       _rot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, _cos, _sin);

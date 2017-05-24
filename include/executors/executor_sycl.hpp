@@ -44,7 +44,11 @@ namespace blas {
 /*!using_shared_mem.
  * @brief Indicates whether if the kernel uses shared memory or not.
  */
-enum class using_shared_mem { enabled, disabled };
+//enum class using_shared_mem { enabled, disabled };
+namespace using_shared_mem {
+  static const int enabled=0;
+  static const int disabled=1;
+};
 
 /*!
 @brief Template alias for a local accessor.
@@ -62,7 +66,7 @@ accessor.
 @tparam valueT Value type of the local accessor.
 @tparam usingSharedMem Enum class specifying whether shared memory is enabled.
 */
-template <typename valueT, using_shared_mem usingSharedMem>
+template <typename valueT, int usingSharedMem>
 struct shared_mem {
   /*!
   @brief Constructor that creates a local accessor from a size and a SYCL
@@ -103,6 +107,7 @@ struct shared_mem<valueT, using_shared_mem::disabled> {
   shared_mem(size_t size, cl::sycl::handler &cgh) {}
 };
 
+
 /*!
 @brief Template struct defining the value type of shared memory if enabled.
 Non-specialised case for usingSharedMem == enabled, which defines the type as
@@ -110,7 +115,7 @@ the value type of the tree.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <using_shared_mem usingSharedMem, typename treeT>
+template <int usingSharedMem, typename treeT>
 struct shared_mem_type {
   using type = typename blas::Evaluate<treeT>::value_type;
 };
@@ -134,7 +139,7 @@ on the tree with the shared_memory as well as an index.
 @tparam treeT Type of the tree.
 @tparam sharedMemT Value type of the shared memory.
 */
-template <using_shared_mem usingSharedMem, typename treeT, typename sharedMemT>
+template <int usingSharedMem, typename treeT, typename sharedMemT>
 struct tree {
   /*!
   @brief Static function that calls eval on a tree, passing the shared_memory
@@ -174,6 +179,7 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
   }
 };
 
+
 /*! execute_tree.
 @brief Static function for executing a tree in SYCL.
 @tparam usingSharedMem Enum class specifying whether shared memory is enabled.
@@ -185,7 +191,15 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
 @param _shMem Size in elements of the shared memory (should be zero if
 usingSharedMem == false).
 */
-template <using_shared_mem usingSharedMem, typename Tree>
+template<int usingSharedMem, typename Evaluator, typename SharedMem, typename value_type> struct ReductionFunctor{
+  SharedMem scratch;
+  Evaluator evaluator;
+  ReductionFunctor(SharedMem scratch_, Evaluator evaluator_):scratch(scratch_), evaluator(evaluator_){}
+  void operator()(cl::sycl::nd_item<1> i){
+    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch,i);
+  }
+};
+template <int usingSharedMem, typename Tree>
 static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
                          size_t _globalSize, size_t _shMem) {
   using value_type = typename shared_mem_type<usingSharedMem, Tree>::type;
@@ -199,13 +213,10 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
 
     auto scratch = shared_mem<value_type, usingSharedMem>(shMem, h);
 
-    auto k1 = [=](cl::sycl::nd_item<1> i) mutable {
-      tree<usingSharedMem, decltype(nTree), value_type>::eval(nTree, scratch,
-                                                              i);
-    };
     cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
         cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for<decltype(nTree)>(gridConfiguration, k1);
+    auto reductionFunctor = ReductionFunctor<usingSharedMem, decltype(nTree),decltype(scratch), value_type>(scratch, nTree);
+    h.parallel_for(gridConfiguration, reductionFunctor);
   };
 
   q_.submit(cg1);
