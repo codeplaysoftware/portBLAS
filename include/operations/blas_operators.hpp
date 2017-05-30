@@ -238,8 +238,6 @@ struct minIndOp2_struct {
     return typename R::value_type(UINT_MAX,constant<typename R::value_type::value_type, const_val::max>::value);
   }
 };
-SYCLBLAS_DEFINE_TERNARY_OPERATOR(maxIndOp3_struct, const_val::min, > )
-SYCLBLAS_DEFINE_TERNARY_OPERATOR(minIndOp3_struct, const_val::max, < )
 
 /*!
 Undefine SYCLBLAS_DEIFNE_*_OPERATOR macros.

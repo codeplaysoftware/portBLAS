@@ -460,12 +460,6 @@ ReducAssignNewOp3<Operator, LHS, RHS> make_ReducAssignNewOp3(LHS& l, RHS& r,
   return ReducAssignNewOp3<Operator, LHS, RHS>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_maxIndReducAssignNewOp3(LHS& l, RHS& r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp3<maxIndOp3_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp3<maxIndOp3_struct>(l, r, blqS, grdS);
-}
-
 /*!
 @brief Template function for constructing operation nodes based on input
 tempalte and function arguments. Non-specialised case for N reference operands.

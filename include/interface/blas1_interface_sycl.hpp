@@ -338,36 +338,6 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
 }
 
 /**
- * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-
-  size_t localSize = 256, nWG = 512;
-  std::vector<IndVal<T>> valT1(nWG);
-  vector_view<IndVal<T>, std::vector<IndVal<T>>> val1(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_maxIndReducAssignNewOp3(val1, my_vx, localSize, nWG * localSize);
-  ex.execute(assignOp1);
-
-  std::vector<IndVal<T>> valT2(1);
-  auto val2 = vector_view<IndVal<T>, std::vector<IndVal<T>>>(valT1, 0, 1, 1);
-  auto assignOp2 = make_maxIndReducAssignNewOp2(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
-  return val1.eval(0).getInd();
-}
-
-/**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx  VectorView
  * @param _incx Increment in X axis
@@ -383,20 +353,33 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_vx.printH("VX");
 #endif  //  VERBOSE
   size_t localSize = 256, nWG = 512;
-  auto absOp = make_op<UnaryOp, syclblas_abs>(my_vx);
-  /* auto prdOp = make_op<UnaryOp, prdOp1_struct>(my_vx); */
   auto tupOp = TupleOp <vector_view<T,ContainerT>>(my_vx);
   std::vector<IndVal<T>> valT1(nWG);
   cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
   BufferVectorView<IndVal<T>> val1(bvalT1,0,1,nWG);
   /* vector_view<IndVal<T>,BufferVectorView<IndVal<T>>> val1(valT1, 0, 1, nWG); */
-  auto assignOp = make_maxIndReducAssignNewOp2(val1, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto assignOp1 = make_maxIndReducAssignNewOp2(val1, tupOp, localSize, localSize * nWG);
+  ex.reduce(assignOp1);
   auto assignOp2 = make_maxIndReducAssignNewOp2(my_rs, val1, localSize, nWG);
   ex.reduce(assignOp2);
 #ifdef VERBOSE
   std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
 #endif  //  VERBOSE
+}
+
+/**
+ * \brief ICAMAX finds the index of the first element having maximum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename ContainerT>
+size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
+              int _incx) {
+  std::vector<IndVal<T>> rsT(1);
+  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
+  BufferVectorView<IndVal<T>> rs(brsT,0,1,1);
+  _iamax(ex, _N, _vx, _incx, rs);
+  return rs.eval(0).getInd();
 }
 
 /**
