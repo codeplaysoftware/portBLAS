@@ -8,7 +8,7 @@
 using namespace cl::sycl;
 using namespace blas;
 
-#define DEF_SIZE_VECT 1280
+#define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 

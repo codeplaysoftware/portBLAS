@@ -27,10 +27,10 @@
 #define BLAS3_TREES_HPP
 
 #include <iostream>
-#include <operations/blas3_trees.hpp>
-#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
+#include <operations/blas3_trees.hpp>
+#include <operations/blas_operators.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
@@ -50,9 +50,7 @@ struct PrdRowMatColMat {
   PrdRowMatColMat(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
   value_type eval(size_t k) {
-    //    auto dim1 = (r2.getAccess()) ? r2.getSizeR() : r2.getSizeC();
     auto dim1 = (r2.getAccessOpr()) ? r2.getSizeR() : r2.getSizeC();
-    //    auto dim2 = (r2.getAccess()) ? r2.getSizeC() : r2.getSizeR();
     auto dim2 = (r2.getAccessOpr()) ? r2.getSizeC() : r2.getSizeR();
     auto row = (r2.getAccess()) ? (k / dim2) : (k % dim2);
     auto col = (r2.getAccess()) ? (k % dim2) : (k / dim2);

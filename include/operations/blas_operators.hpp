@@ -26,12 +26,13 @@
 #ifndef BLAS_OPERATORS_HPP
 #define BLAS_OPERATORS_HPP
 
-#include <CL/sycl.hpp>
 #include <climits>
 #include <iostream>
-#include <operations/blas_constants.hpp>
 #include <stdexcept>
 #include <vector>
+
+#include <CL/sycl.hpp>
+#include <operations/blas_constants.hpp>
 
 namespace blas {
 
@@ -41,8 +42,8 @@ namespace blas {
 template <typename ScalarT>
 struct IndVal {
   using value_type = ScalarT;
-  size_t ind = UINT_MAX;
-  value_type val = 0.;
+  size_t ind;
+  value_type val;
 
   IndVal(){};
   IndVal(size_t _ind, value_type _val) : ind(_ind), val(_val){};
@@ -221,7 +222,6 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
                                 ((l < r) ? l : r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
-
 struct maxIndOp2_struct {
   template <typename L, typename R>
   static R eval(const L &l, const R &r) {
