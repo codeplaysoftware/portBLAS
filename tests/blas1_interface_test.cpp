@@ -1,9 +1,10 @@
 #include <algorithm>
 #include <cstdlib>
-#include <interface/blas1_interface_sycl.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+
+#include <interface/blas1_interface_sycl.hpp>
 
 using namespace cl::sycl;
 using namespace blas;
@@ -13,7 +14,6 @@ using namespace blas;
 // #define SHOW_VALUES   1
 
 int main(int argc, char *argv[]) {
-  IndVal<double> ind;
   size_t sizeV, returnVal = 0;
   double res;
 
@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
     // CREATING DATA
     std::vector<double> vX(sizeV), vY(sizeV), vZ(sizeV), vR(1), vS(1), vT(1),
         vU(1);
-    std::vector<IndVal<double>> vI(1);
+    std::vector<IndVal<double>> vI;
+    /* vI.push_back(maxOp2_struct::init()); */
+    vI.push_back(IndVal<double>(std::numeric_limits<size_t>::max(), 0.));
 
     size_t vSeed, gap;
     double minV, maxV;
@@ -158,7 +160,7 @@ int main(int argc, char *argv[]) {
       returnVal += 8;
     }
 
-    ind = vI[0];
+    IndVal<double> ind = vI[0];
 #ifdef SHOW_VALUES
     std::cout << "VALUES!! --> resInd = " << ind.getInd()
               << ", resMax = " << ind.getVal() << " , ind = " << indMax

@@ -353,7 +353,9 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
 #endif  //  VERBOSE
   size_t localSize = 256, nWG = 512;
   auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG);
+  std::vector<IndVal<T>> valT1(nWG,
+                               IndVal<T>(std::numeric_limits<size_t>::max(),
+                                         std::numeric_limits<T>::min()));
   cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
   BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
   /* vector_view<IndVal<T>,BufferVectorView<IndVal<T>>> val1(valT1, 0, 1, nWG);

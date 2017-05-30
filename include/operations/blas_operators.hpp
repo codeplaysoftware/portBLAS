@@ -26,7 +26,6 @@
 #ifndef BLAS_OPERATORS_HPP
 #define BLAS_OPERATORS_HPP
 
-#include <climits>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -35,21 +34,6 @@
 #include <operations/blas_constants.hpp>
 
 namespace blas {
-
-/*!
-@brief Container for a scalar value and an index.
-*/
-template <typename ScalarT>
-struct IndVal {
-  using value_type = ScalarT;
-  size_t ind;
-  value_type val;
-
-  IndVal(){};
-  IndVal(size_t _ind, value_type _val) : ind(_ind), val(_val){};
-  size_t getInd() const { return ind; }
-  value_type getVal() const { return val; }
-};
 
 /*!
 @def Macro for defining a unary operator.
@@ -70,17 +54,17 @@ struct IndVal {
 @param inital Initial value used in the init function of the oeprator.
 @param expr Return expression of the eval function of the operator.
 */
-#define SYCLBLAS_DEFINE_BINARY_OPERATOR(name, initial, expr)   \
-  struct name {                                                \
-    template <typename L, typename R>                          \
-    static R eval(const L &l, const R &r) {                    \
-      return expr;                                             \
-    }                                                          \
-                                                               \
-    template <typename R>                                      \
-    static typename R::value_type init(const R &r) {           \
-      return constant<typename R::value_type, initial>::value; \
-    }                                                          \
+#define SYCLBLAS_DEFINE_BINARY_OPERATOR(name, initial, expr)          \
+  struct name {                                                       \
+    template <typename L, typename R>                                 \
+    static typename strip_asp<R>::type eval(const L &l, const R &r) { \
+      return expr;                                                    \
+    }                                                                 \
+                                                                      \
+    template <typename R>                                             \
+    static typename R::value_type init(const R &r) {                  \
+      return constant<typename R::value_type, initial>::value;        \
+    }                                                                 \
   };
 
 /* strip_asp.
@@ -222,33 +206,18 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
                                 ((l < r) ? l : r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
-struct maxIndOp2_struct {
-  template <typename L, typename R>
-  static R eval(const L &l, const R &r) {
-    typename strip_asp<R>::type r1 = r;
-    return (cl::sycl::fabs(l.getVal()) > cl::sycl::fabs(r1.getVal())) ? l : r1;
-  }
-  template <typename R>
-  static typename R::value_type init(const R &r) {
-    return typename R::value_type(
-        UINT_MAX,
-        constant<typename R::value_type::value_type, const_val::min>::value);
-  }
-};
-
-struct minIndOp2_struct {
-  template <typename L, typename R>
-  static R eval(const L &l, const R &r) {
-    typename strip_asp<R>::type r1 = r;
-    return (cl::sycl::fabs(l.getVal()) < cl::sycl::fabs(r1.getVal())) ? l : r1;
-  }
-  template <typename R>
-  static typename R::value_type init(const R &r) {
-    return typename R::value_type(
-        UINT_MAX,
-        constant<typename R::value_type::value_type, const_val::max>::value);
-  }
-};
+SYCLBLAS_DEFINE_BINARY_OPERATOR(
+    maxIndOp2_struct, const_val::imin,
+    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
+     syclblas_abs::eval(static_cast<typename strip_asp<R>::type>(r).getVal()))
+        ? static_cast<typename strip_asp<L>::type>(l)
+        : static_cast<typename strip_asp<R>::type>(r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(
+    minIndOp2_struct, const_val::imax,
+    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
+     syclblas_abs::eval(static_cast<typename strip_asp<R>::type>(r).getVal()))
+        ? static_cast<typename strip_asp<L>::type>(l)
+        : static_cast<typename strip_asp<R>::type>(r))
 
 /*!
 Undefine SYCLBLAS_DEIFNE_*_OPERATOR macros.

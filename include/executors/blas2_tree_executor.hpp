@@ -30,11 +30,11 @@
 
 #include <CL/sycl.hpp>
 
-#include <views/view_sycl.hpp>
 #include <executors/executor_base.hpp>
 #include <operations/blas1_trees.hpp>
 #include <operations/blas2_trees.hpp>
 #include <operations/blas3_trees.hpp>
+#include <views/view_sycl.hpp>
 
 namespace blas {
 
