@@ -204,27 +204,6 @@ struct Evaluate<ReducAssignNewOp2<Operator, LHS, RHS>> {
   }
 };
 
-/*! Evaluate<ReducAssignNewOp3<Operator, LHS, RHS>>
- * @brief See Evaluate.
- */
-template <typename Operator, typename LHS, typename RHS>
-struct Evaluate<ReducAssignNewOp3<Operator, LHS, RHS>> {
-  using value_type = typename LHS::value_type;
-  using oper_type = Operator;
-  using LHS_type = LHS;
-  using cont_type = typename LHS::ContainerT;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = ReducAssignNewOp3<Operator, LHS, RHS>;
-  using type = ReducAssignNewOp3<Operator, lhs_type, rhs_type>;
-
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(lhs, rhs, v.blqS, v.grdS);
-  }
-};
-
 /*! Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
  * @brief See Evaluate.
  */

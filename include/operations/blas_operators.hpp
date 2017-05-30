@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <CL/sycl.hpp>
+
 #include <operations/blas_constants.hpp>
 
 namespace blas {
@@ -130,59 +131,6 @@ struct syclblas_abs {
 };
 
 /*!
-@brief Macro for defining a ternary oeprator.
-@param name Name of the operator.
-@param initial Initial value used in the init functions of the operator.
-@param op Operator used in the return expression of the eval functions of the
-operator.
-*/
-#define SYCLBLAS_DEFINE_TERNARY_OPERATOR(name, initial, op)                   \
-  struct name {                                                               \
-    template <typename R>                                                     \
-    static size_t eval(R &r, size_t ind1, size_t ind2) {                      \
-      return (syclblas_abs::eval(r.eval(ind1))                                \
-                  op syclblas_abs::eval(r.eval(ind2)))                        \
-                 ? ind1                                                       \
-                 : ind2;                                                      \
-    }                                                                         \
-                                                                              \
-    template <typename R1, typename R2>                                       \
-    static R1 eval(R1 &r1, size_t ind2, R2 &r2) {                             \
-      return (syclblas_abs::eval(r2) op syclblas_abs::eval(r1.getVal()))      \
-                 ? R1(ind2, r2)                                               \
-                 : ((syclblas_abs::eval(r2) ==                                \
-                     syclblas_abs::eval(r1.getVal())) &&                      \
-                    (ind2 op r1.getInd()))                                    \
-                       ? R1(ind2, r2)                                         \
-                       : r1;                                                  \
-    }                                                                         \
-                                                                              \
-    template <typename R>                                                     \
-    static R eval(R r1, R r2) {                                               \
-      return (syclblas_abs::eval(r2.getVal())                                 \
-                  op syclblas_abs::eval(r1.getVal()))                         \
-                 ? r2                                                         \
-                 : ((syclblas_abs::eval(r2.getVal()) ==                       \
-                     syclblas_abs::eval(r1.getVal())) &&                      \
-                    (r2.getInd() op r1.getInd()))                             \
-                       ? r2                                                   \
-                       : r1;                                                  \
-    }                                                                         \
-                                                                              \
-    template <typename R>                                                     \
-    static IndVal<typename R::value_type::value_type> init(const R &r) {      \
-      return IndVal<typename R::value_type::value_type>(                      \
-          0, constant<typename R::value_type::value_type, initial>::value);   \
-    }                                                                         \
-                                                                              \
-    template <typename R1, typename R2>                                       \
-    static IndVal<typename R1::value_type> init(const R1 &r1, const R2 &r2) { \
-      return IndVal<typename R1::value_type>(                                 \
-          0, constant<typename R1::value_type, initial>::value);              \
-    }                                                                         \
-  };
-
-/*!
 Definitions of unary, bianry and ternary operators using the above macros.
 */
 SYCLBLAS_DEFINE_UNARY_OPERATOR(iniAddOp1_struct,
@@ -214,7 +162,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(
         : static_cast<typename strip_asp<R>::type>(r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
     minIndOp2_struct, const_val::imax,
-    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
+    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) <
      syclblas_abs::eval(static_cast<typename strip_asp<R>::type>(r).getVal()))
         ? static_cast<typename strip_asp<L>::type>(l)
         : static_cast<typename strip_asp<R>::type>(r))
@@ -224,7 +172,6 @@ Undefine SYCLBLAS_DEIFNE_*_OPERATOR macros.
 */
 #undef SYCLBLAS_DEFINE_UNARY_OPERATOR
 #undef SYCLBLAS_DEFINE_BINARY_OPERATOR
-#undef SYCLBLAS_DEFINE_TERNARY_OPERATOR
 
 }  // namespace blas
 

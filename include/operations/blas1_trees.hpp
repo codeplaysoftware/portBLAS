@@ -375,88 +375,10 @@ auto make_maxIndReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
   return make_ReducAssignNewOp2<maxIndOp2_struct>(l, r, blqS, grdS);
 }
 
-/*! ReducAssignNewOp3.
- * @brief Implements the reduction operation for assignments (in the form y = x)
- *  with y a scalar and x a TernaryOp.
- */
-template <typename Operator, class LHS, class RHS>
-struct ReducAssignNewOp3 {
-  using value_type = typename RHS::value_type;
-  using res_type = typename LHS::value_type;
-  LHS l;
-  RHS r;
-  size_t blqS;  // block  size
-  size_t grdS;  // grid  size
-
-  ReducAssignNewOp3(LHS &_l, RHS &_r, size_t _blqS, size_t _grdS)
-      : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
-
-  size_t getSize() { return r.getSize(); }
-
-  res_type eval(size_t i) {
-    size_t vecS = r.getSize();
-    size_t frs_thrd = 2 * blqS * i;
-    size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd + blqS);
-    // Reduction across the grid
-    res_type val = Operator::init(r, l);
-    for (size_t j = frs_thrd; j < lst_thrd; j++) {
-      res_type local_val = Operator::init(r, l);
-      for (size_t k = j; k < vecS; k += 2 * grdS) {
-        local_val = Operator::eval(local_val, k, r.eval(k));
-        local_val = ((k + blqS) < vecS) ? Operator::eval(local_val, (k + blqS),
-                                                         r.eval(k + blqS))
-                                        : local_val;
-      }
-      // Reduction inside the block
-      val = Operator::eval(val, local_val);
-    }
-    return l.eval(i) = val;
-  }
-  value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
-  }
-  template <typename sharedT>
-  res_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    size_t localid = ndItem.get_local(0);
-    size_t localSz = ndItem.get_local_range(0);
-    size_t groupid = ndItem.get_group(0);
-
-    size_t vecS = r.getSize();
-    size_t frs_thrd = 2 * groupid * localSz + localid;
-
-    // Reduction across the grid
-    res_type val = Operator::init(r, l);
-    for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) {
-      val = Operator::eval(val, k, r.eval(k));
-      val = ((k + blqS) < vecS)
-                ? Operator::eval(val, (k + blqS), r.eval(k + blqS))
-                : val;
-    }
-    scratch[localid] = val;
-    // This barrier is mandatory to be sure the data is on the shared memory
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
-    // Reduction inside the block
-    for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) {
-      if (localid < offset) {
-        scratch[localid] =
-            Operator::eval(scratch[localid], scratch[localid + offset]);
-      }
-      // This barrier is mandatory to be sure the data are on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
-    }
-    if (localid == 0) {
-      l.eval(groupid) = scratch[localid];
-    }
-    return l.eval(groupid);
-  }
-};
-
-template <typename Operator, typename LHS, typename RHS>
-ReducAssignNewOp3<Operator, LHS, RHS> make_ReducAssignNewOp3(LHS &l, RHS &r,
-                                                             size_t blqS,
-                                                             size_t grdS) {
-  return ReducAssignNewOp3<Operator, LHS, RHS>(l, r, blqS, grdS);
+template <typename LHS, typename RHS>
+auto make_minIndReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_ReducAssignNewOp2<minIndOp2_struct>(l, r, blqS, grdS)) {
+  return make_ReducAssignNewOp2<minIndOp2_struct>(l, r, blqS, grdS);
 }
 
 /*!

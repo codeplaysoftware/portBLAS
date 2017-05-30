@@ -27,11 +27,12 @@
 #define BLAS2_TREES_HPP
 
 #include <iostream>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
+
 #include <views/view_sycl.hpp>
+#include <operations/blas2_trees.hpp>
+#include <operations/blas_operators.hpp>
 
 namespace blas {
 

@@ -30,9 +30,10 @@ int main(int argc, char *argv[]) {
     // CREATING DATA
     std::vector<double> vX(sizeV), vY(sizeV), vZ(sizeV), vR(1), vS(1), vT(1),
         vU(1);
-    std::vector<IndVal<double>> vI;
+    std::vector<IndVal<double>>
+      vImax(1, IndVal<double>(std::numeric_limits<size_t>::max(), std::numeric_limits<double>::min())),
+      vImin(1, IndVal<double>(std::numeric_limits<size_t>::max(), std::numeric_limits<double>::max()));
     /* vI.push_back(maxOp2_struct::init()); */
-    vI.push_back(IndVal<double>(std::numeric_limits<size_t>::max(), 0.));
 
     size_t vSeed, gap;
     double minV, maxV;
@@ -55,9 +56,9 @@ int main(int argc, char *argv[]) {
                   [&](double &elem) { elem = minV + (double)(rand() % gap); });
 
     // COMPUTING THE RESULTS
-    size_t i = 0, indMax = 0;
+    size_t i = 0, indMax = 0, indMin = 0;
     double sum = 0.0, alpha = 1.1, dot = 0.0;
-    double nrmX = 0.0, nrmY = 0.0, max = 0.0;
+    double nrmX = 0.0, nrmY = 0.0, max = 0.0, min = 1e9;
     double diff = 0.0;
     double _cos, _sin, giv = 0.0;
     std::for_each(std::begin(vZ), std::end(vZ), [&](double &elem) {
@@ -67,8 +68,10 @@ int main(int argc, char *argv[]) {
       nrmX += vX[i] * vX[i];
       nrmY += elem * elem;
       if (std::abs(elem) >= std::abs(max)) {
-        max = elem;
-        indMax = i;
+        max=elem, indMax=i;
+      }
+      if (std::abs(elem) <= std::abs(min)) {
+        min=elem, indMin=i;
       }
       if (i == 0) {
         diff = elem - vX[i];
@@ -101,18 +104,23 @@ int main(int argc, char *argv[]) {
     Executor<SYCL> ex(q);
     {
       // CREATION OF THE BUFFERS
-      buffer<double, 1> bX(vX.data(), range<1>{vX.size()}),
+      buffer<double, 1>
+          bX(vX.data(), range<1>{vX.size()}),
           bY(vY.data(), range<1>{vY.size()}),
           bZ(vZ.data(), range<1>{vZ.size()}),
           bR(vR.data(), range<1>{vR.size()}),
           bS(vS.data(), range<1>{vS.size()}),
           bT(vT.data(), range<1>{vT.size()}),
           bU(vU.data(), range<1>{vU.size()});
-      buffer<IndVal<double>, 1> bI(vI.data(), range<1>{vI.size()});
+      buffer<IndVal<double>, 1>
+          bImax(vImax.data(), range<1>{vImax.size()}),
+          bImin(vImin.data(), range<1>{vImin.size()});
       // BUILDING A SYCL VIEW OF THE BUFFERS
-      BufferVectorView<double> bvX(bX), bvY(bY), bvZ(bZ), bvR(bR), bvS(bS),
-          bvT(bT), bvU(bU);
-      BufferVectorView<IndVal<double>> bvI(bI);
+      BufferVectorView<double>
+          bvX(bX), bvY(bY), bvZ(bZ), bvR(bR),
+          bvS(bS), bvT(bT), bvU(bU);
+      BufferVectorView<IndVal<double>>
+          bvImax(bImax), bvImin(bImin);
 
       // EXECUTION OF THE ROUTINES
       _axpy<SYCL>(ex, bX.get_count(), alpha, bvX, 1, bvY, 1);
@@ -120,7 +128,8 @@ int main(int argc, char *argv[]) {
       /* vS[0] = _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1); */
       _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, bvS);
       _nrm2<SYCL>(ex, bY.get_count(), bvY, 1, bvT);
-      _iamax<SYCL>(ex, bY.get_count(), bvY, 1, bvI);
+      _iamax<SYCL>(ex, bY.get_count(), bvY, 1, bvImax);
+      _iamin<SYCL>(ex, bY.get_count(), bvY, 1, bvImin);
       _rot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, _cos, _sin);
       _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, bvU);
       _swap<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1);
@@ -160,7 +169,7 @@ int main(int argc, char *argv[]) {
       returnVal += 8;
     }
 
-    IndVal<double> ind = vI[0];
+    IndVal<double> ind = vImax[0];
 #ifdef SHOW_VALUES
     std::cout << "VALUES!! --> resInd = " << ind.getInd()
               << ", resMax = " << ind.getVal() << " , ind = " << indMax
@@ -170,6 +179,19 @@ int main(int argc, char *argv[]) {
       std::cout << "ERROR!! --> resInd = " << ind.getInd()
                 << ", resMax = " << ind.getVal() << " , ind = " << indMax
                 << " , max = " << max << std::endl;
+      returnVal += 16;
+    }
+
+    ind = vImin[0];
+#ifdef SHOW_VALUES
+    std::cout << "VALUES!! --> resInd = " << ind.getInd()
+              << ", resmin = " << ind.getVal() << " , ind = " << indMin
+              << " , min = " << min << std::endl;
+#endif  //  SHOW_VALUES
+    if (ind.getInd() != indMin) {
+      std::cout << "ERROR!! --> resInd = " << ind.getInd()
+                << ", resmin = " << ind.getVal() << " , ind = " << indMin
+                << " , min = " << min << std::endl;
       returnVal += 16;
     }
 
