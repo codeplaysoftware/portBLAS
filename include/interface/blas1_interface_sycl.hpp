@@ -389,7 +389,7 @@ size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * Not implemented.
  */
 template <typename T>
-void _rotg(T& _alpha, T& _beta, T& _cos, T& _sin) {
+void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
   T abs_alpha = std::abs(_alpha);
   T abs_beta = std::abs(_beta);
   T roe = (abs_alpha > abs_beta) ? _alpha : _beta;

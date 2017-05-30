@@ -45,7 +45,7 @@ expression.
 */
 template <class valueT, class containerT>
 struct vector_view {
-  containerT& data_;
+  containerT &data_;
   size_t size_data_;
   size_t size_;
   size_t disp_;
@@ -80,7 +80,7 @@ struct vector_view {
   @param disp
   @param strd
   */
-  vector_view(containerT& data, size_t disp = 0, long strd = 1)
+  vector_view(containerT &data, size_t disp = 0, long strd = 1)
       : data_(data),
         size_data_(data_.size()),
         size_(data_.size()),
@@ -94,7 +94,7 @@ struct vector_view {
   @param strd
   @param size
   */
-  vector_view(containerT& data, size_t disp, long strd, size_t size)
+  vector_view(containerT &data, size_t disp, long strd, size_t size)
       : data_(data),
         size_data_(data_.size()),
         size_(0),
@@ -119,7 +119,7 @@ struct vector_view {
   /*!
    * @brief Returns a reference to the container
    */
-  containerT& getData() { return data_; }
+  containerT &getData() { return data_; }
 
   /*!
    * @brief Returns the displacement
@@ -194,7 +194,7 @@ struct vector_view {
   }
 
   /**** EVALUATING ****/
-  valueT& eval(size_t i) {
+  valueT &eval(size_t i) {
     auto ind = disp_;
     if (strd_ > 0) {
       ind += strd_ * i;
@@ -209,9 +209,9 @@ struct vector_view {
   }
 
   template <class X, class Y>
-  friend std::ostream& operator<<(std::ostream& stream, vector_view<X, Y> opvS);
+  friend std::ostream &operator<<(std::ostream &stream, vector_view<X, Y> opvS);
 
-  void printH(const char* name) {
+  void printH(const char *name) {
     int frst = 1;
     std::cout << name << " = [ ";
     for (size_t i = 0; i < size_; i++) {
@@ -233,7 +233,7 @@ struct vector_view {
 template <class valueT, class containerT>
 struct matrix_view {
   // Information related to the data
-  containerT& data_;
+  containerT &data_;
   int accessDev_;     // True for row-major, column-major otherwise
   size_t size_data_;  // real size of the data
   int accessOpr_;     // Operation Access Mode (True: Normal, False: Transpose)
@@ -251,7 +251,7 @@ struct matrix_view {
    * @param sizeR Number of rows.
    * @param sizeC Number of columns.
    */
-  matrix_view(containerT& data, int accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(containerT &data, int accessDev, size_t sizeR, size_t sizeC)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -269,7 +269,7 @@ struct matrix_view {
    * @param sizeR Number of rows.
    * @param sizeC Nummber of columns.
    */
-  matrix_view(containerT& data, size_t sizeR, size_t sizeC)
+  matrix_view(containerT &data, size_t sizeR, size_t sizeC)
       : data_(data),
         accessDev_(1),
         size_data_(data_.get_size()),
@@ -291,7 +291,7 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(containerT& data, int accessDev, size_t sizeR, size_t sizeC,
+  matrix_view(containerT &data, int accessDev, size_t sizeR, size_t sizeC,
               int accessOpr, size_t sizeL, size_t disp)
       : data_(data),
         accessDev_(accessDev),
@@ -311,7 +311,7 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(containerT& data, size_t sizeR, size_t sizeC, int accessOpr,
+  matrix_view(containerT &data, size_t sizeR, size_t sizeC, int accessOpr,
               size_t sizeL, size_t disp)
       : data_(data),
         accessDev_(1),
@@ -367,7 +367,7 @@ struct matrix_view {
   /*!
    * @brief Returns the container
    */
-  containerT& getData() { return data_; }
+  containerT &getData() { return data_; }
 
   /*!
    * @brief Returns the data size
@@ -456,7 +456,7 @@ struct matrix_view {
   /*! eval.
    * @brief Evaluation for the given linear value.
    */
-  valueT& eval(size_t k) {
+  valueT &eval(size_t k) {
     auto ind = disp_;
     auto access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
@@ -469,7 +469,7 @@ struct matrix_view {
   /*! eval.
    * @brief Evaluation for the pair of row/col.
    */
-  valueT& eval(size_t i, size_t j) {
+  valueT &eval(size_t i, size_t j) {
     auto ind = disp_;
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -486,7 +486,7 @@ struct matrix_view {
   /*! printH
    * @brief Display the contents of the matrix in stdout.
    */
-  void printH(const char* name) {
+  void printH(const char *name) {
     std::cout << name << " = [ " << std::endl;
     for (size_t i = 0; i < ((accessOpr_) ? sizeR_ : sizeC_); i++) {
       int frst = 1;

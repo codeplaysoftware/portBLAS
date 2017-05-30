@@ -12,7 +12,7 @@ using namespace blas;
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   IndVal<double> ind;
   size_t sizeV, returnVal = 0;
   double res;
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     gap = (size_t)(maxV - minV + 1);
     srand(vSeed);
     std::for_each(std::begin(vX), std::end(vX),
-                  [&](double& elem) { elem = minV + (double)(rand() % gap); });
+                  [&](double &elem) { elem = minV + (double)(rand() % gap); });
 
     vSeed = 1;
     minV = -30.0;
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     gap = (size_t)(maxV - minV + 1);
     srand(vSeed);
     std::for_each(std::begin(vY), std::end(vY),
-                  [&](double& elem) { elem = minV + (double)(rand() % gap); });
+                  [&](double &elem) { elem = minV + (double)(rand() % gap); });
 
     // COMPUTING THE RESULTS
     size_t i = 0, indMax = 0;
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     double nrmX = 0.0, nrmY = 0.0, max = 0.0;
     double diff = 0.0;
     double _cos, _sin, giv = 0.0;
-    std::for_each(std::begin(vZ), std::end(vZ), [&](double& elem) {
+    std::for_each(std::begin(vZ), std::end(vZ), [&](double &elem) {
       elem = vY[i] + alpha * vX[i];
       sum += std::abs(elem);
       dot += (elem * vX[i]);
@@ -87,10 +87,10 @@ int main(int argc, char* argv[]) {
     // CREATING THE SYCL QUEUE AND EXECUTOR
     cl::sycl::queue q([=](cl::sycl::exception_list eL) {
       try {
-        for (auto& e : eL) {
+        for (auto &e : eL) {
           std::rethrow_exception(e);
         }
-      } catch (cl::sycl::exception& e) {
+      } catch (cl::sycl::exception &e) {
         std::cout << " E " << e.what() << std::endl;
       } catch (...) {
         std::cout << " An exception " << std::endl;

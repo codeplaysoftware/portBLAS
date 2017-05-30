@@ -53,7 +53,7 @@ struct Evaluate<PrdRowMatColMat<RHS1, RHS2>> {
   using input_type = PrdRowMatColMat<RHS1, RHS2>;
   using type = PrdRowMatColMat<rhs1_type, rhs2_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler& h) {
+  static type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
     auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
     return type(rhs1, rhs2);

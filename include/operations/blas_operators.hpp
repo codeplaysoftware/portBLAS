@@ -72,12 +72,12 @@ struct IndVal {
 #define SYCLBLAS_DEFINE_BINARY_OPERATOR(name, initial, expr)   \
   struct name {                                                \
     template <typename L, typename R>                          \
-    static R eval(const L& l, const R& r) {                    \
+    static R eval(const L &l, const R &r) {                    \
       return expr;                                             \
     }                                                          \
                                                                \
     template <typename R>                                      \
-    static typename R::value_type init(const R& r) {           \
+    static typename R::value_type init(const R &r) {           \
       return constant<typename R::value_type, initial>::value; \
     }                                                          \
   };
@@ -130,16 +130,16 @@ GENERATE_STRIP_ASP(float)
  */
 struct syclblas_abs {
   template <typename Type>
-  static Type eval(const Type& val,
+  static Type eval(const Type &val,
                    typename std::enable_if<!std::is_floating_point<
-                       typename strip_asp<Type>::type>::value>::type* = 0) {
+                       typename strip_asp<Type>::type>::value>::type * = 0) {
     return cl::sycl::abs(val);
   }
 
   template <typename Type>
-  static Type eval(const Type& val,
+  static Type eval(const Type &val,
                    typename std::enable_if<std::is_floating_point<
-                       typename strip_asp<Type>::type>::value>::type* = 0) {
+                       typename strip_asp<Type>::type>::value>::type * = 0) {
     return cl::sycl::fabs(val);
   }
 };
@@ -154,7 +154,7 @@ operator.
 #define SYCLBLAS_DEFINE_TERNARY_OPERATOR(name, initial, op)                   \
   struct name {                                                               \
     template <typename R>                                                     \
-    static size_t eval(R& r, size_t ind1, size_t ind2) {                      \
+    static size_t eval(R &r, size_t ind1, size_t ind2) {                      \
       return (syclblas_abs::eval(r.eval(ind1))                                \
                   op syclblas_abs::eval(r.eval(ind2)))                        \
                  ? ind1                                                       \
@@ -162,7 +162,7 @@ operator.
     }                                                                         \
                                                                               \
     template <typename R1, typename R2>                                       \
-    static R1 eval(R1& r1, size_t ind2, R2& r2) {                             \
+    static R1 eval(R1 &r1, size_t ind2, R2 &r2) {                             \
       return (syclblas_abs::eval(r2) op syclblas_abs::eval(r1.getVal()))      \
                  ? R1(ind2, r2)                                               \
                  : ((syclblas_abs::eval(r2) ==                                \
@@ -185,13 +185,13 @@ operator.
     }                                                                         \
                                                                               \
     template <typename R>                                                     \
-    static IndVal<typename R::value_type::value_type> init(const R& r) {      \
+    static IndVal<typename R::value_type::value_type> init(const R &r) {      \
       return IndVal<typename R::value_type::value_type>(                      \
           0, constant<typename R::value_type::value_type, initial>::value);   \
     }                                                                         \
                                                                               \
     template <typename R1, typename R2>                                       \
-    static IndVal<typename R1::value_type> init(const R1& r1, const R2& r2) { \
+    static IndVal<typename R1::value_type> init(const R1 &r1, const R2 &r2) { \
       return IndVal<typename R1::value_type>(                                 \
           0, constant<typename R1::value_type, initial>::value);              \
     }                                                                         \
@@ -224,12 +224,12 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
 
 struct maxIndOp2_struct {
   template <typename L, typename R>
-  static R eval(const L& l, const R& r) {
+  static R eval(const L &l, const R &r) {
     typename strip_asp<R>::type r1 = r;
     return (cl::sycl::fabs(l.getVal()) > cl::sycl::fabs(r1.getVal())) ? l : r1;
   }
   template <typename R>
-  static typename R::value_type init(const R& r) {
+  static typename R::value_type init(const R &r) {
     return typename R::value_type(
         UINT_MAX,
         constant<typename R::value_type::value_type, const_val::min>::value);
@@ -238,12 +238,12 @@ struct maxIndOp2_struct {
 
 struct minIndOp2_struct {
   template <typename L, typename R>
-  static R eval(const L& l, const R& r) {
+  static R eval(const L &l, const R &r) {
     typename strip_asp<R>::type r1 = r;
     return (cl::sycl::fabs(l.getVal()) < cl::sycl::fabs(r1.getVal())) ? l : r1;
   }
   template <typename R>
-  static typename R::value_type init(const R& r) {
+  static typename R::value_type init(const R &r) {
     return typename R::value_type(
         UINT_MAX,
         constant<typename R::value_type::value_type, const_val::max>::value);

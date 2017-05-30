@@ -47,7 +47,7 @@ struct PrdRowMatColMat {
 
   using value_type = typename RHS2::value_type;
 
-  PrdRowMatColMat(RHS1& _r1, RHS2& _r2) : r1(_r1), r2(_r2){};
+  PrdRowMatColMat(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
   value_type eval(size_t k) {
     //    auto dim1 = (r2.getAccess()) ? r2.getSizeR() : r2.getSizeC();
@@ -75,7 +75,7 @@ struct PrdRowMatColMat {
 };
 
 template <class RHS1, class RHS2>
-PrdRowMatColMat<RHS1, RHS2> make_prdRowMatColMat(RHS1& r1, RHS2& r2) {
+PrdRowMatColMat<RHS1, RHS2> make_prdRowMatColMat(RHS1 &r1, RHS2 &r2) {
   return PrdRowMatColMat<RHS1, RHS2>(r1, r2);
 }
 
