@@ -27,6 +27,9 @@
 *.out
 *.app
 
+# Python
+*.pyc
+
 # Vim
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
@@ -83,3 +86,6 @@ local.properties
 # CMake generated files
 tools/computecpp_info/common_device_compiler_flags.h
 build/
+
+# Doxygen
+api_doc/

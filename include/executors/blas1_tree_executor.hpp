@@ -133,6 +133,22 @@ struct Evaluate<ScalarOp<Operator, SCL, RHS>> {
   }
 };
 
+/*! Evaluate<TupleOp<Operator, RHS>
+ * @brief See Evaluate.
+ */
+template <typename RHS>
+struct Evaluate<TupleOp<RHS>> {
+  using value_type = typename RHS::value_type;
+  using rhs_type = typename Evaluate<RHS>::type;
+  using input_type = TupleOp<RHS>;
+  using type = TupleOp<rhs_type>;
+
+  static type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
+    return type(rhs);
+  }
+};
+
 /*! Evaluate<UnaryOp<Operator, RHS>
  * @brief See Evaluate.
  */

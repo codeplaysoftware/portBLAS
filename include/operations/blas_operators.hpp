@@ -26,6 +26,7 @@
 #ifndef BLAS_OPERATORS_HPP
 #define BLAS_OPERATORS_HPP
 
+#include <climits>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -40,22 +41,19 @@ namespace blas {
 template <typename ScalarT>
 struct IndVal {
   using value_type = ScalarT;
-  size_t ind;
-  value_type val;
+  size_t ind = UINT_MAX;
+  value_type val = 0.;
 
   IndVal(){};
-
   IndVal(size_t _ind, value_type _val) : ind(_ind), val(_val){};
-
-  size_t getInd() { return ind; }
-
-  value_type getVal() { return val; }
+  size_t getInd() const { return ind; }
+  value_type getVal() const { return val; }
 };
 
 /*!
 @def Macro for defining a unary operator.
 @param name Name of the operator.
-@param expr Return expresion of the eval function of the oeprator.
+@param expr Return expression of the eval function of the oeprator.
 */
 #define SYCLBLAS_DEFINE_UNARY_OPERATOR(name, expr) \
   struct name {                                    \
@@ -116,6 +114,8 @@ struct strip_asp<__attribute__((address_space(3))) ENTRY_TYPE>  {\
   typedef ENTRY_TYPE type;\
 };
 
+GENERATE_STRIP_ASP(IndVal<double>)
+GENERATE_STRIP_ASP(IndVal<float>)
 GENERATE_STRIP_ASP(double)
 GENERATE_STRIP_ASP(float)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
@@ -202,6 +202,7 @@ SYCLBLAS_DEFINE_UNARY_OPERATOR(negOp1_struct, (-r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(
     sqtOp1_struct,
     (static_cast<double>(cl::sycl::sqrt(static_cast<double>(r)))))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(tupOp1_struct, r)
 SYCLBLAS_DEFINE_UNARY_OPERATOR(addOp1_struct, (r + r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(prdOp1_struct, (r * r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addOp2_struct, const_val::zero, (l + r))
@@ -213,6 +214,30 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
                                 ((l < r) ? l : r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
+
+struct maxIndOp2_struct {
+  template <typename L, typename R>
+  static R eval(const L &l, const R &r) {
+    typename strip_asp<R>::type r1=r;
+    return (cl::sycl::fabs(l.getVal()) > cl::sycl::fabs(r1.getVal())) ? l : r1;
+  }
+  template <typename R>
+  static typename R::value_type init(const R &r) {
+    return typename R::value_type(UINT_MAX,constant<typename R::value_type::value_type, const_val::min>::value);
+  }
+};
+
+struct minIndOp2_struct {
+  template <typename L, typename R>
+  static R eval(const L& l, const R& r) {
+    typename strip_asp<R>::type r1=r;
+    return (cl::sycl::fabs(l.getVal()) < cl::sycl::fabs(r1.getVal())) ? l : r1;
+  }
+  template <typename R>
+  static typename R::value_type init(const R &r) {
+    return typename R::value_type(UINT_MAX,constant<typename R::value_type::value_type, const_val::max>::value);
+  }
+};
 SYCLBLAS_DEFINE_TERNARY_OPERATOR(maxIndOp3_struct, const_val::min, > )
 SYCLBLAS_DEFINE_TERNARY_OPERATOR(minIndOp3_struct, const_val::max, < )
 

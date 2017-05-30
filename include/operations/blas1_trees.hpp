@@ -248,6 +248,25 @@ struct BinaryOp {
   }
 };
 
+/*! TupleOp.
+ * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
+ */
+template <typename RHS>
+struct TupleOp {
+  using value_type = IndVal<typename RHS::value_type>;
+  RHS r;
+
+  TupleOp(RHS &_r): r(_r) {}
+
+  size_t getSize() { return r.getSize(); }
+
+  value_type eval(size_t i) { return value_type(i, r.eval(i)); }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+};
+
 /*! ReducAssignNewOp2.
  * @brief Implements the reduction operation for assignments (in the form y = x)
  *  with y a scalar and x a BinaryOp.
@@ -275,9 +294,9 @@ struct ReducAssignNewOp2 {
       value_type local_val = Operator::init(r);
       for (size_t k = j; k < vecS; k += 2 * grdS) {
         local_val = Operator::eval(local_val, r.eval(k));
-        local_val = ((k + blqS) < vecS)
-                        ? Operator::eval(local_val, r.eval(k + blqS))
-                        : local_val;
+        if (k + blqS < vecS) {
+          local_val = Operator::eval(local_val, r.eval(k + blqS));
+        }
       }
       // Reduction inside the block
       val = Operator::eval(val, local_val);
@@ -325,6 +344,7 @@ struct ReducAssignNewOp2 {
   }
 };
 
+
 template <typename Operator, typename LHS, typename RHS>
 ReducAssignNewOp2<Operator, LHS, RHS> make_ReducAssignNewOp2(LHS& l, RHS& r,
                                                              size_t blqS,
@@ -352,8 +372,8 @@ auto make_addAbsReducAssignNewOp2(LHS& l, RHS& r, size_t blqS, size_t grdS)
 
 template <typename LHS, typename RHS>
 auto make_maxIndReducAssignNewOp2(LHS& l, RHS& r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<maxIndOp3_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<maxIndOp3_struct>(l, r, blqS, grdS);
+    -> decltype(make_ReducAssignNewOp2<maxIndOp2_struct>(l, r, blqS, grdS)) {
+  return make_ReducAssignNewOp2<maxIndOp2_struct>(l, r, blqS, grdS);
 }
 
 /*! ReducAssignNewOp3.

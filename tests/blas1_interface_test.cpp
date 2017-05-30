@@ -8,12 +8,13 @@
 using namespace cl::sycl;
 using namespace blas;
 
-#define DEF_SIZE_VECT 1200
+#define DEF_SIZE_VECT 1280
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 
 int main(int argc, char* argv[]) {
-  size_t ind, sizeV, returnVal = 0;
+  IndVal<double> ind;
+  size_t sizeV, returnVal = 0;
   double res;
 
   if (argc == 1) {
@@ -27,14 +28,11 @@ int main(int argc, char* argv[]) {
   }
   if (returnVal == 0) {
     // CREATING DATA
-    std::vector<double> vX(sizeV);
-    std::vector<double> vY(sizeV);
-    std::vector<double> vZ(sizeV);
-    std::vector<double> vR(1);
-    std::vector<double> vS(1);
-    std::vector<double> vT(1);
-    std::vector<double> vU(1);
-    std::vector<IndVal<double>> vI(1);
+    std::vector<double>
+      vX(sizeV), vY(sizeV), vZ(sizeV),
+      vR(1), vS(1), vT(1), vU(1);
+    std::vector<IndVal<double>>
+      vI(1);
 
     size_t vSeed, gap;
     double minV, maxV;
@@ -101,31 +99,30 @@ int main(int argc, char* argv[]) {
       }
     });
     Executor<SYCL> ex(q);
-
     {
       // CREATION OF THE BUFFERS
-      buffer<double, 1> bX(vX.data(), range<1>{vX.size()});
-      buffer<double, 1> bY(vY.data(), range<1>{vY.size()});
-      buffer<double, 1> bZ(vZ.data(), range<1>{vZ.size()});
-      buffer<double, 1> bR(vR.data(), range<1>{vR.size()});
-      buffer<double, 1> bS(vS.data(), range<1>{vS.size()});
-      buffer<double, 1> bT(vT.data(), range<1>{vT.size()});
-      buffer<double, 1> bU(vU.data(), range<1>{vU.size()});
-      buffer<IndVal<double>, 1> bI(vI.data(), range<1>{vI.size()});
+      buffer<double, 1>
+        bX(vX.data(), range<1>{vX.size()}),
+        bY(vY.data(), range<1>{vY.size()}),
+        bZ(vZ.data(), range<1>{vZ.size()}),
+        bR(vR.data(), range<1>{vR.size()}),
+        bS(vS.data(), range<1>{vS.size()}),
+        bT(vT.data(), range<1>{vT.size()}),
+        bU(vU.data(), range<1>{vU.size()});
+      buffer<IndVal<double>, 1>
+        bI(vI.data(), range<1>{vI.size()});
       // BUILDING A SYCL VIEW OF THE BUFFERS
-      BufferVectorView<double> bvX(bX);
-      BufferVectorView<double> bvY(bY);
-      BufferVectorView<double> bvZ(bZ);
-      BufferVectorView<double> bvR(bR);
-      BufferVectorView<double> bvS(bS);
-      BufferVectorView<double> bvT(bT);
-      BufferVectorView<double> bvU(bU);
-      BufferVectorView<IndVal<double>> bvI(bI);
+      BufferVectorView<double>
+        bvX(bX), bvY(bY), bvZ(bZ),
+        bvR(bR), bvS(bS), bvT(bT), bvU(bU);
+      BufferVectorView<IndVal<double>>
+        bvI(bI);
 
       // EXECUTION OF THE ROUTINES
       _axpy<SYCL>(ex, bX.get_count(), alpha, bvX, 1, bvY, 1);
       _asum<SYCL>(ex, bY.get_count(), bvY, 1, bvR);
-      vS[0] = _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1);
+      /* vS[0] = _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1); */
+      _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, bvS);
       _nrm2<SYCL>(ex, bY.get_count(), bvY, 1, bvT);
       _iamax<SYCL>(ex, bY.get_count(), bvY, 1, bvI);
       _rot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1, _cos, _sin);
@@ -167,13 +164,13 @@ int main(int argc, char* argv[]) {
       returnVal += 8;
     }
 
-    ind = vI[0].getInd();
+    ind = vI[0];
 #ifdef SHOW_VALUES
-    std::cout << "VALUES!! --> res = " << ind << " , ind = " << indMax
+    std::cout << "VALUES!! --> resInd = " << ind.getInd() << ", resMax = " << ind.getVal() << " , ind = " << indMax
               << " , max = " << max << std::endl;
 #endif  //  SHOW_VALUES
-    if (ind != indMax) {
-      std::cout << "ERROR!! --> res = " << ind << " , ind = " << indMax
+    if (ind.getInd() != indMax) {
+      std::cout << "ERROR!! --> resInd = " << ind.getInd() << ", resMax = " << ind.getVal() << " , ind = " << indMax
                 << " , max = " << max << std::endl;
       returnVal += 16;
     }
