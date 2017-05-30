@@ -342,23 +342,24 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType,
-         typename T, typename ContainerT,
-         typename I, typename ContainerI>
+template <typename ExecutorType, typename T, typename ContainerT, typename I,
+          typename ContainerI>
 void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
             int _incx, vector_view<I, ContainerI> _rs) {
   vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
-  vector_view<I, ContainerI>  my_rs(_rs, _rs.getDisp(), 1, 1);
+  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
   size_t localSize = 256, nWG = 512;
-  auto tupOp = TupleOp <vector_view<T,ContainerT>>(my_vx);
+  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
   std::vector<IndVal<T>> valT1(nWG);
   cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
-  BufferVectorView<IndVal<T>> val1(bvalT1,0,1,nWG);
-  /* vector_view<IndVal<T>,BufferVectorView<IndVal<T>>> val1(valT1, 0, 1, nWG); */
-  auto assignOp1 = make_maxIndReducAssignNewOp2(val1, tupOp, localSize, localSize * nWG);
+  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
+  /* vector_view<IndVal<T>,BufferVectorView<IndVal<T>>> val1(valT1, 0, 1, nWG);
+   */
+  auto assignOp1 =
+      make_maxIndReducAssignNewOp2(val1, tupOp, localSize, localSize * nWG);
   ex.reduce(assignOp1);
   auto assignOp2 = make_maxIndReducAssignNewOp2(my_rs, val1, localSize, nWG);
   ex.reduce(assignOp2);
@@ -377,7 +378,7 @@ size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
               int _incx) {
   std::vector<IndVal<T>> rsT(1);
   cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
-  BufferVectorView<IndVal<T>> rs(brsT,0,1,1);
+  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
   _iamax(ex, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }

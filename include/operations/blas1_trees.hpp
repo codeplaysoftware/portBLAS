@@ -256,7 +256,7 @@ struct TupleOp {
   using value_type = IndVal<typename RHS::value_type>;
   RHS r;
 
-  TupleOp(RHS &_r): r(_r) {}
+  TupleOp(RHS& _r) : r(_r) {}
 
   size_t getSize() { return r.getSize(); }
 
@@ -343,7 +343,6 @@ struct ReducAssignNewOp2 {
     return l.eval(groupid);
   }
 };
-
 
 template <typename Operator, typename LHS, typename RHS>
 ReducAssignNewOp2<Operator, LHS, RHS> make_ReducAssignNewOp2(LHS& l, RHS& r,

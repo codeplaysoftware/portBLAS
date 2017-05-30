@@ -28,11 +28,9 @@ int main(int argc, char* argv[]) {
   }
   if (returnVal == 0) {
     // CREATING DATA
-    std::vector<double>
-      vX(sizeV), vY(sizeV), vZ(sizeV),
-      vR(1), vS(1), vT(1), vU(1);
-    std::vector<IndVal<double>>
-      vI(1);
+    std::vector<double> vX(sizeV), vY(sizeV), vZ(sizeV), vR(1), vS(1), vT(1),
+        vU(1);
+    std::vector<IndVal<double>> vI(1);
 
     size_t vSeed, gap;
     double minV, maxV;
@@ -101,22 +99,18 @@ int main(int argc, char* argv[]) {
     Executor<SYCL> ex(q);
     {
       // CREATION OF THE BUFFERS
-      buffer<double, 1>
-        bX(vX.data(), range<1>{vX.size()}),
-        bY(vY.data(), range<1>{vY.size()}),
-        bZ(vZ.data(), range<1>{vZ.size()}),
-        bR(vR.data(), range<1>{vR.size()}),
-        bS(vS.data(), range<1>{vS.size()}),
-        bT(vT.data(), range<1>{vT.size()}),
-        bU(vU.data(), range<1>{vU.size()});
-      buffer<IndVal<double>, 1>
-        bI(vI.data(), range<1>{vI.size()});
+      buffer<double, 1> bX(vX.data(), range<1>{vX.size()}),
+          bY(vY.data(), range<1>{vY.size()}),
+          bZ(vZ.data(), range<1>{vZ.size()}),
+          bR(vR.data(), range<1>{vR.size()}),
+          bS(vS.data(), range<1>{vS.size()}),
+          bT(vT.data(), range<1>{vT.size()}),
+          bU(vU.data(), range<1>{vU.size()});
+      buffer<IndVal<double>, 1> bI(vI.data(), range<1>{vI.size()});
       // BUILDING A SYCL VIEW OF THE BUFFERS
-      BufferVectorView<double>
-        bvX(bX), bvY(bY), bvZ(bZ),
-        bvR(bR), bvS(bS), bvT(bT), bvU(bU);
-      BufferVectorView<IndVal<double>>
-        bvI(bI);
+      BufferVectorView<double> bvX(bX), bvY(bY), bvZ(bZ), bvR(bR), bvS(bS),
+          bvT(bT), bvU(bU);
+      BufferVectorView<IndVal<double>> bvI(bI);
 
       // EXECUTION OF THE ROUTINES
       _axpy<SYCL>(ex, bX.get_count(), alpha, bvX, 1, bvY, 1);
@@ -166,11 +160,13 @@ int main(int argc, char* argv[]) {
 
     ind = vI[0];
 #ifdef SHOW_VALUES
-    std::cout << "VALUES!! --> resInd = " << ind.getInd() << ", resMax = " << ind.getVal() << " , ind = " << indMax
+    std::cout << "VALUES!! --> resInd = " << ind.getInd()
+              << ", resMax = " << ind.getVal() << " , ind = " << indMax
               << " , max = " << max << std::endl;
 #endif  //  SHOW_VALUES
     if (ind.getInd() != indMax) {
-      std::cout << "ERROR!! --> resInd = " << ind.getInd() << ", resMax = " << ind.getVal() << " , ind = " << indMax
+      std::cout << "ERROR!! --> resInd = " << ind.getInd()
+                << ", resMax = " << ind.getVal() << " , ind = " << indMax
                 << " , max = " << max << std::endl;
       returnVal += 16;
     }

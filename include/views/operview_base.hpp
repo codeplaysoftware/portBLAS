@@ -234,9 +234,9 @@ template <class valueT, class containerT>
 struct matrix_view {
   // Information related to the data
   containerT& data_;
-  int accessDev_;    // True for row-major, column-major otherwise
+  int accessDev_;     // True for row-major, column-major otherwise
   size_t size_data_;  // real size of the data
-  int accessOpr_;    // Operation Access Mode (True: Normal, False: Transpose)
+  int accessOpr_;     // Operation Access Mode (True: Normal, False: Transpose)
   size_t sizeR_;      // number of rows
   size_t sizeC_;      // number of columns
   size_t sizeL_;      // size of the leading dimension

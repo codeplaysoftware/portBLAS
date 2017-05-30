@@ -307,14 +307,14 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   using ContainerT = bufferT<ScalarT>;
   // Information related to the data
   ContainerT& data_;
-  int accessDev_;    // row-major or column-major value for the device/language
+  int accessDev_;     // row-major or column-major value for the device/language
   size_t size_data_;  // real size of the data
   // Information related to the operation
   int accessOpr_;  // row-major or column-major
-  size_t sizeR_;    // number of rows
-  size_t sizeC_;    // number of columns
-  size_t sizeL_;    // size of the leading dimension
-  size_t disp_;     // displacementt od the first element
+  size_t sizeR_;   // number of rows
+  size_t sizeC_;   // number of columns
+  size_t sizeL_;   // size of the leading dimension
+  size_t disp_;    // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   using value_type = ScalarT;
 
@@ -379,9 +379,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev,
-              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
-              size_t disp)
+  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
+              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -805,14 +804,14 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   using ContainerT = accessorT<ScalarT>;
   // Information related to the data
   ContainerT data_;
-  int accessDev_;    // row-major or column-major value for the device/language
+  int accessDev_;     // row-major or column-major value for the device/language
   size_t size_data_;  // real size of the data
   // Information related to the operation
   int accessOpr_;  // row-major or column-major
-  size_t sizeR_;    // number of rows
-  size_t sizeC_;    // number of columns
-  size_t sizeL_;    // size of the leading dimension
-  size_t disp_;     // displacementt od the first element
+  size_t sizeR_;   // number of rows
+  size_t sizeC_;   // number of columns
+  size_t sizeL_;   // size of the leading dimension
+  size_t disp_;    // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   using value_type = ScalarT;
 
@@ -864,9 +863,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev,
-              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
-              size_t disp)
+  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
+              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_{opM.data_},
         accessDev_(accessDev),
         size_data_(opM.size_data_),

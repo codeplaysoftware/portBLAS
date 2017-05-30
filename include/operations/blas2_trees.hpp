@@ -27,11 +27,11 @@
 #define BLAS2_TREES_HPP
 
 #include <iostream>
+#include <operations/blas2_trees.hpp>
+#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
 #include <views/view_sycl.hpp>
-#include <operations/blas_operators.hpp>
-#include <operations/blas2_trees.hpp>
 
 namespace blas {
 
@@ -318,7 +318,7 @@ struct RedRowMatVct {
     }
     return valWG;
   }
-#endif // ORIGINAL_CODE
+#endif  // ORIGINAL_CODE
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
