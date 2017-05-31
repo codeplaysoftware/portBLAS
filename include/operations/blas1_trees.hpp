@@ -269,7 +269,7 @@ struct TupleOp {
 
 /*! AssignReduction.
  * @brief Implements the reduction operation for assignments (in the form y = x)
- *  with y a scalar and x a BinaryOp.
+ *  with y a scalar and x a subexpression tree.
  */
 template <typename Operator, class LHS, class RHS>
 struct AssignReduction {
