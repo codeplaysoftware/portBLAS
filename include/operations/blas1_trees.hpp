@@ -265,19 +265,19 @@ struct TupleOp {
   }
 };
 
-/*! ReducAssignNewOp2.
+/*! AssignReduction.
  * @brief Implements the reduction operation for assignments (in the form y = x)
  *  with y a scalar and x a BinaryOp.
  */
 template <typename Operator, class LHS, class RHS>
-struct ReducAssignNewOp2 {
+struct AssignReduction {
   using value_type = typename RHS::value_type;
   LHS l;
   RHS r;
   size_t blqS;  // block  size
   size_t grdS;  // grid  size
 
-  ReducAssignNewOp2(LHS &_l, RHS &_r, size_t _blqS, size_t _grdS)
+  AssignReduction(LHS &_l, RHS &_r, size_t _blqS, size_t _grdS)
       : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
 
   size_t getSize() { return r.getSize(); }
@@ -343,40 +343,40 @@ struct ReducAssignNewOp2 {
 };
 
 template <typename Operator, typename LHS, typename RHS>
-ReducAssignNewOp2<Operator, LHS, RHS> make_ReducAssignNewOp2(LHS &l, RHS &r,
+AssignReduction<Operator, LHS, RHS> make_AssignReduction(LHS &l, RHS &r,
                                                              size_t blqS,
                                                              size_t grdS) {
-  return ReducAssignNewOp2<Operator, LHS, RHS>(l, r, blqS, grdS);
+  return AssignReduction<Operator, LHS, RHS>(l, r, blqS, grdS);
 }
 
 template <typename LHS, typename RHS>
-auto make_addReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<addOp2_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<addOp2_struct>(l, r, blqS, grdS);
+auto make_addAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_AssignReduction<addOp2_struct>(l, r, blqS, grdS)) {
+  return make_AssignReduction<addOp2_struct>(l, r, blqS, grdS);
 }
 
 template <typename LHS, typename RHS>
-auto make_prdReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<prdOp2_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<prdOp2_struct>(l, r, blqS, grdS);
+auto make_prdAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_AssignReduction<prdOp2_struct>(l, r, blqS, grdS)) {
+  return make_AssignReduction<prdOp2_struct>(l, r, blqS, grdS);
 }
 
 template <typename LHS, typename RHS>
-auto make_addAbsReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<addAbsOp2_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<addAbsOp2_struct>(l, r, blqS, grdS);
+auto make_addAbsAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_AssignReduction<addAbsOp2_struct>(l, r, blqS, grdS)) {
+  return make_AssignReduction<addAbsOp2_struct>(l, r, blqS, grdS);
 }
 
 template <typename LHS, typename RHS>
-auto make_maxIndReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<maxIndOp2_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<maxIndOp2_struct>(l, r, blqS, grdS);
+auto make_maxIndAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_AssignReduction<maxIndOp2_struct>(l, r, blqS, grdS)) {
+  return make_AssignReduction<maxIndOp2_struct>(l, r, blqS, grdS);
 }
 
 template <typename LHS, typename RHS>
-auto make_minIndReducAssignNewOp2(LHS &l, RHS &r, size_t blqS, size_t grdS)
-    -> decltype(make_ReducAssignNewOp2<minIndOp2_struct>(l, r, blqS, grdS)) {
-  return make_ReducAssignNewOp2<minIndOp2_struct>(l, r, blqS, grdS);
+auto make_minIndAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+    -> decltype(make_AssignReduction<minIndOp2_struct>(l, r, blqS, grdS)) {
+  return make_AssignReduction<minIndOp2_struct>(l, r, blqS, grdS);
 }
 
 /*!

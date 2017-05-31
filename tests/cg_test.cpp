@@ -336,7 +336,7 @@ void _two_axpy_dotSng_Scal(Executor<ExecutorType> ex, int _N, double _alpha1,
   auto my_be = vector_view<T, ContainerT>(_be, _be.getDisp(), 1, 1);
   auto my_al = vector_view<T, ContainerT>(_al, _al.getDisp(), 1, 1);
   auto my_to = vector_view<T, ContainerT>(_to, _to.getDisp(), 1, 1);
-  auto assignOp3 = make_addReducAssignNewOp2(my_to, prodOp, blqS, blqS * nBlq);
+  auto assignOp3 = make_addAssignReduction(my_to, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp3);
 
   // Calculating: _al = _to / _be; _be = _to; _to = sqrt(_to);
@@ -368,7 +368,7 @@ void prdTrdSP2_dot_Scal(Executor<ExecutorType> ex, int _N,
 
   //  Calculating: _vx .* _vy
   auto prodOp = make_op<BinaryOp, prdOp2_struct>(my_vx, assignOp);
-  auto assignOp1 = make_addReducAssignNewOp2(my_rh, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(my_rh, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   //  Calculating: _rh = _be / _rh;
@@ -408,7 +408,7 @@ void prdTrdSP2_init_vectors_dotSng_Scal(
 
   // Calculating: _vd .* _vd
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(assignOp12);
-  auto assignOp1 = make_addReducAssignNewOp2(my_be, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(my_be, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   // Calculating: _to = sqrt(be)
@@ -619,7 +619,7 @@ void _two_axpy_dotSng_ScalF(
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(dobleAssignOp);
 
   // _to = reduction(_vy2 .* _vy2)
-  auto assignOp3 = make_addReducAssignNewOp2(_to, prodOp, blqS, blqS * nBlq);
+  auto assignOp3 = make_addAssignReduction(_to, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp3);
 
   //	_al = _to / _be; _be = _to; _to = sqrt(_to);
@@ -652,7 +652,7 @@ void prdTrdSP2_dot_ScalF(Executor<ExecutorType> ex, int _N,
   auto prodOp = make_op<BinaryOp, prdOp2_struct>(_vx, assignOp);
 
   // _rh = reduction( _vx .* _vy)
-  auto assignOp1 = make_addReducAssignNewOp2(_rh, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(_rh, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   //	_rh = _be / _rh; _al = -rh
@@ -683,7 +683,7 @@ void prdTrdSP2_init_vectors_dotSng_ScalF(
   // _vd .* _vd
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(assignOp12);
   // _be = reduction( _vd .* _vd)
-  auto assignOp1 = make_addReducAssignNewOp2(_be, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(_be, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(_be);

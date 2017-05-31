@@ -338,7 +338,7 @@ class Executor<SYCL> {
                                                 globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-        auto localTree = blas::ReducAssignNewOp2<oper_type, LHS_type, LHS_type>(
+        auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
         execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
@@ -387,7 +387,7 @@ class Executor<SYCL> {
                                                 globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-        auto localTree = blas::ReducAssignNewOp2<oper_type, LHS_type, LHS_type>(
+        auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
         execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
