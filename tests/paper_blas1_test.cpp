@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
-#include <operations/blas1_trees.hpp>
 #include <stdexcept>
 #include <vector>
 
+#include <operations/blas1_trees.hpp>
 #include <interface/blas1_interface_sycl.hpp>
 
 using namespace cl::sycl;
@@ -67,7 +67,7 @@ void _one_add(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   auto localSize = kernelPair.first;
   auto nWG = kernelPair.second;
   auto assignOp =
-      make_addAbsReducAssignNewOp2(my_rs, my_vx, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs, my_vx, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp, my_sc);
 #else
@@ -93,7 +93,7 @@ void _two_add(Executor<ExecutorType> ex, int _N,
   auto my_rs1 = vector_view<T, ContainerT>(_rs1, _rs1.getDisp(), 1, 1);
   auto my_sc1 = vector_view<T, ContainerT>(_sc1, _sc1.getDisp(), 1, 1);
   auto assignOp1 =
-      make_addAbsReducAssignNewOp2(my_rs1, my_vx1, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs1, my_vx1, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp1, my_sc1);
 #else
@@ -104,7 +104,7 @@ void _two_add(Executor<ExecutorType> ex, int _N,
   auto my_rs2 = vector_view<T, ContainerT>(_rs2, _rs2.getDisp(), 1, 1);
   auto my_sc2 = vector_view<T, ContainerT>(_sc2, _sc2.getDisp(), 1, 1);
   auto assignOp2 =
-      make_addAbsReducAssignNewOp2(my_rs2, my_vx2, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs2, my_vx2, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp2, my_sc2);
 #else
@@ -137,7 +137,7 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   auto my_rs1 = vector_view<T, ContainerT>(_rs1, _rs1.getDisp(), 1, 1);
   auto my_sc1 = vector_view<T, ContainerT>(_sc1, _sc1.getDisp(), 1, 1);
   auto assignOp1 =
-      make_addAbsReducAssignNewOp2(my_rs1, my_vx1, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs1, my_vx1, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp1, my_sc1);
 #else
@@ -149,7 +149,7 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   auto my_rs2 = vector_view<T, ContainerT>(_rs2, _rs2.getDisp(), 1, 1);
   auto my_sc2 = vector_view<T, ContainerT>(_sc2, _sc2.getDisp(), 2, 2);
   auto assignOp2 =
-      make_addAbsReducAssignNewOp2(my_rs2, my_vx2, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs2, my_vx2, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp2, my_sc2);
 #else
@@ -161,7 +161,7 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   auto my_rs3 = vector_view<T, ContainerT>(_rs3, _rs3.getDisp(), 1, 1);
   auto my_sc3 = vector_view<T, ContainerT>(_sc3, _sc3.getDisp(), 3, 3);
   auto assignOp3 =
-      make_addAbsReducAssignNewOp2(my_rs3, my_vx3, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs3, my_vx3, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp3, my_sc3);
 #else
@@ -173,7 +173,7 @@ void _four_add(Executor<ExecutorType> ex, int _N,
   auto my_rs4 = vector_view<T, ContainerT>(_rs4, _rs4.getDisp(), 1, 1);
   auto my_sc4 = vector_view<T, ContainerT>(_sc4, _sc4.getDisp(), 4, 4);
   auto assignOp4 =
-      make_addAbsReducAssignNewOp2(my_rs4, my_vx4, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs4, my_vx4, localSize, localSize * nWG);
 #ifdef REDUCE_SCRATCH
   ex.reduce(assignOp4, my_sc4);
 #else

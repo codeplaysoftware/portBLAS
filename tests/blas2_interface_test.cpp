@@ -58,15 +58,15 @@ void _gemv0(Executor<ExecutorType> ex, std::string _Trans, size_t _M, size_t _N,
       auto nWG = 128;
 #ifdef SYCL_CODE
       auto assignOp1 =
-          make_addReducAssignNewOp2(my_rs, prdOp1, localSize, localSize * nWG);
+          make_addAssignReduction(my_rs, prdOp1, localSize, localSize * nWG);
       ex.reduce(assignOp1);
 #else   // SYCL_CODE
       ContainerT valT1(nWG);
       auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
       auto assignOp11 =
-          make_addReducAssignNewOp2(val1, prdOp1, localSize, localSize * nWG);
+          make_addAssignReduction(val1, prdOp1, localSize, localSize * nWG);
       ex.execute(assignOp11);
-      auto assignOp1 = make_addReducAssignNewOp2(my_rs, val1, localSize, nWG);
+      auto assignOp1 = make_addAssignReduction(my_rs, val1, localSize, nWG);
       ex.execute(assignOp1);
 #endif  // SYCL_CODE
       auto prdOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, my_rs);
@@ -314,11 +314,11 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
     _ger<SYCL>(ex, dimR - shftR, dimC - shftC, 3.0, bvY0, 1, bvX0, 1,
                bmM0(shftR, shftC), dimL);
-    auto reducOpX = make_addReducAssignNewOp2(bvR, bvX0, 256, 512 * 256);
+    auto reducOpX = make_addAssignReduction(bvR, bvX0, 256, 512 * 256);
     ex.reduce(reducOpX);
-    auto reducOpY = make_addReducAssignNewOp2(bvS, bvY0, 256, 512 * 256);
+    auto reducOpY = make_addAssignReduction(bvS, bvY0, 256, 512 * 256);
     ex.reduce(reducOpY);
-    auto reducOpV = make_addReducAssignNewOp2(bvT, bvV0, 256, 512 * 256);
+    auto reducOpV = make_addAssignReduction(bvT, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
 

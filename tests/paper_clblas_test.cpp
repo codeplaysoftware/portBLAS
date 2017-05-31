@@ -1,11 +1,10 @@
 #include <algorithm>
 #include <cstdlib>
-#include <interface/blas1_interface_sycl.hpp>
 #include <iostream>
-#include <operations/blas1_trees.hpp>
 #include <stdexcept>
 #include <vector>
 
+#include <CL/sycl.hpp>
 #include <clBLAS.h>
 
 using namespace cl::sycl;
