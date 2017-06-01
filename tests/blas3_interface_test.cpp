@@ -215,7 +215,7 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
                 bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
                 bmC0(shftR, shftC), dimLC);
 
-    auto reducOpV = make_addReducAssignNewOp2(bvR, bvV0, 256, 512 * 256);
+    auto reducOpV = make_addAssignReduction(bvR, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
 #ifdef VERBOSE
