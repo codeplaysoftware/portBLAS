@@ -30,16 +30,18 @@ int main(int argc, char *argv[]) {
     // CREATING DATA
     std::vector<double> vX(sizeV), vY(sizeV), vZ(sizeV), vR(1), vS(1), vT(1),
         vU(1);
-    std::vector<IndVal<double>>
-      vImax(1, IndVal<double>(std::numeric_limits<size_t>::max(), std::numeric_limits<double>::min())),
-      vImin(1, IndVal<double>(std::numeric_limits<size_t>::max(), std::numeric_limits<double>::max()));
-    /* vI.push_back(maxOp2_struct::init()); */
+    std::vector<IndVal<double>> vImax(
+        1, IndVal<double>(std::numeric_limits<size_t>::max(),
+                          std::numeric_limits<double>::min())),
+        vImin(1, IndVal<double>(std::numeric_limits<size_t>::max(),
+                                std::numeric_limits<double>::max()));
 
     size_t vSeed, gap;
     double minV, maxV;
 
     // INITIALIZING DATA
-    vSeed = 1;
+    vSeed = time(NULL) / 10 * 10;
+
     minV = -10.0;
     maxV = 10.0;
     gap = (size_t)(maxV - minV + 1);
@@ -47,11 +49,9 @@ int main(int argc, char *argv[]) {
     std::for_each(std::begin(vX), std::end(vX),
                   [&](double &elem) { elem = minV + (double)(rand() % gap); });
 
-    vSeed = 1;
     minV = -30.0;
     maxV = 10.0;
     gap = (size_t)(maxV - minV + 1);
-    srand(vSeed);
     std::for_each(std::begin(vY), std::end(vY),
                   [&](double &elem) { elem = minV + (double)(rand() % gap); });
 
@@ -67,11 +67,11 @@ int main(int argc, char *argv[]) {
       dot += (elem * vX[i]);
       nrmX += vX[i] * vX[i];
       nrmY += elem * elem;
-      if (std::abs(elem) >= std::abs(max)) {
-        max=elem, indMax=i;
+      if (std::abs(elem) > std::abs(max)) {
+        max = elem, indMax = i;
       }
-      if (std::abs(elem) <= std::abs(min)) {
-        min=elem, indMin=i;
+      if (std::abs(elem) < std::abs(min)) {
+        min = elem, indMin = i;
       }
       if (i == 0) {
         diff = elem - vX[i];
@@ -104,23 +104,19 @@ int main(int argc, char *argv[]) {
     Executor<SYCL> ex(q);
     {
       // CREATION OF THE BUFFERS
-      buffer<double, 1>
-          bX(vX.data(), range<1>{vX.size()}),
+      buffer<double, 1> bX(vX.data(), range<1>{vX.size()}),
           bY(vY.data(), range<1>{vY.size()}),
           bZ(vZ.data(), range<1>{vZ.size()}),
           bR(vR.data(), range<1>{vR.size()}),
           bS(vS.data(), range<1>{vS.size()}),
           bT(vT.data(), range<1>{vT.size()}),
           bU(vU.data(), range<1>{vU.size()});
-      buffer<IndVal<double>, 1>
-          bImax(vImax.data(), range<1>{vImax.size()}),
+      buffer<IndVal<double>, 1> bImax(vImax.data(), range<1>{vImax.size()}),
           bImin(vImin.data(), range<1>{vImin.size()});
       // BUILDING A SYCL VIEW OF THE BUFFERS
-      BufferVectorView<double>
-          bvX(bX), bvY(bY), bvZ(bZ), bvR(bR),
-          bvS(bS), bvT(bT), bvU(bU);
-      BufferVectorView<IndVal<double>>
-          bvImax(bImax), bvImin(bImin);
+      BufferVectorView<double> bvX(bX), bvY(bY), bvZ(bZ), bvR(bR), bvS(bS),
+          bvT(bT), bvU(bU);
+      BufferVectorView<IndVal<double>> bvImax(bImax), bvImin(bImin);
 
       // EXECUTION OF THE ROUTINES
       _axpy<SYCL>(ex, bX.get_count(), alpha, bvX, 1, bvY, 1);
