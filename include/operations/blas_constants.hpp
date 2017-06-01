@@ -41,9 +41,10 @@
   struct constant<type, indicator> {                   \
     static const type value;                           \
   };                                                   \
-  const type constant<type, indicator>::value =        \
-      val;  // temporary work around for duplicator issue will be fixed int the
-            // next release
+  const type constant<type, indicator>::value = val;  // temporary work around
+                                                      // for duplicator issue
+                                                      // will be fixed int the
+                                                      // next release
 
 namespace blas {
 
@@ -56,11 +57,6 @@ struct IndVal {
   size_t ind;
   value_type val;
 
-  // NEEDED FOR VECTOR CONSTRUCTION
-  /* IndVal(): */
-  /*   ind(std::numeric_limits<size_t>::max()), */
-  /*   val(0) */
-  /* {}; */
   constexpr explicit IndVal(size_t _ind, value_type _val)
       : ind(_ind), val(_val){};
   size_t getInd() const { return ind; }

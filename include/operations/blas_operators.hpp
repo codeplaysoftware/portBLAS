@@ -156,16 +156,28 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
     maxIndOp2_struct, const_val::imin,
-    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
-     syclblas_abs::eval(static_cast<typename strip_asp<R>::type>(r).getVal()))
-        ? static_cast<typename strip_asp<L>::type>(l)
-        : static_cast<typename strip_asp<R>::type>(r))
+    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) <
+         syclblas_abs::eval(
+             static_cast<typename strip_asp<R>::type>(r).getVal()) ||
+     (syclblas_abs::eval(
+          static_cast<typename strip_asp<L>::type>(l).getVal()) ==
+          syclblas_abs::eval(
+              static_cast<typename strip_asp<R>::type>(r).getVal()) &&
+      l.getInd() > r.getInd()))
+        ? static_cast<typename strip_asp<R>::type>(r)
+        : static_cast<typename strip_asp<L>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
     minIndOp2_struct, const_val::imax,
-    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) <
-     syclblas_abs::eval(static_cast<typename strip_asp<R>::type>(r).getVal()))
-        ? static_cast<typename strip_asp<L>::type>(l)
-        : static_cast<typename strip_asp<R>::type>(r))
+    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
+         syclblas_abs::eval(
+             static_cast<typename strip_asp<R>::type>(r).getVal()) ||
+     (syclblas_abs::eval(
+          static_cast<typename strip_asp<L>::type>(l).getVal()) ==
+          syclblas_abs::eval(
+              static_cast<typename strip_asp<R>::type>(r).getVal()) &&
+      l.getInd() > r.getInd()))
+        ? static_cast<typename strip_asp<R>::type>(r)
+        : static_cast<typename strip_asp<L>::type>(l))
 
 /*!
 Undefine SYCLBLAS_DEIFNE_*_OPERATOR macros.
