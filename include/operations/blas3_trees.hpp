@@ -26,10 +26,10 @@
 #ifndef BLAS3_TREES_HPP
 #define BLAS3_TREES_HPP
 
-#include <operations/blas3_trees.hpp>
-#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
+
+#include <operations/blas_operators.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
