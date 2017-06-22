@@ -1,4 +1,4 @@
-SYCL BLAS Implementation [![Build Status](https://travis-ci.org/theoden8/sycl-blas.svg?branch=integration)](https://travis-ci.org/KhronosGroup/SyclParallelSTL)
+SYCL BLAS Implementation [![Build Status](https://travis-ci.org/theoden8/sycl-blas.svg?branch=integration)](https://travis-ci.org/theoden8/sycl-blas)
 =========================================
 
 
