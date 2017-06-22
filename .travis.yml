@@ -11,7 +11,7 @@ compiler:
 
 branches:
   only:
-    - integration
+    - master
 
 env:
   - IMPL=COMPUTECPP
