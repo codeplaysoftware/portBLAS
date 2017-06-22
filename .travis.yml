@@ -1,0 +1,49 @@
+language: cpp
+compiler: g++
+sudo: required
+dist: trusty
+os:
+  - linux
+
+compiler:
+  - gcc
+  - clang
+
+branches:
+  only:
+    - integration
+
+env:
+  - IMPL=COMPUTECPP
+
+matrix:
+  fast-finish: true
+
+addons:
+  apt:
+    sources:
+      - llvm-toolchain-precise
+      - ubuntu-toolchain-r-test
+      - source-line: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main'
+        key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+    packages:
+      - python-yaml
+      - gcc-5
+      - g++-5
+      - clang-3.9
+      - libc++-dev
+
+before_install:
+  - bash .travis/before_install.sh
+
+install:
+  - [ "$CXX" = "g++" ] && export CXX="g++-5" CC="gcc-5"
+  - [ "$CXX" = "clang++" ] && export CXX="clang++-3.9" CC="clang-3.9"
+  - [ "$IMPL" = "COMPUTECPP" ] && bash .travis/build_computecpp.sh
+
+script:
+  - mkdir build
+  - cd build
+  - cmake .. -DCOMPUTECPP_PACKAGE_ROOT_DIR=/tmp/ComputeCpp-CE-0.2.1-Linux/ -DCOMPUTECPP_DISABLE_GCC_DUAL_ABI=1 -DCMAKE_BUILD_TYPE=Release
+  - make
+  - COMPUTECPP_TARGET="host" tests/simple_axpy_test
