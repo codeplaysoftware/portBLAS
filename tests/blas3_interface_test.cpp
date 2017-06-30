@@ -1,11 +1,11 @@
-#include <cstdlib>
-#include <iostream>
-#include <stdexcept>
-#include <vector>
 #include <algorithm>
+#include <cstdlib>
 #include <interface/blas1_interface_sycl.hpp>
 #include <interface/blas2_interface_sycl.hpp>
 #include <interface/blas3_interface_sycl.hpp>
+#include <iostream>
+#include <stdexcept>
+#include <vector>
 
 using namespace cl::sycl;
 using namespace blas;
@@ -14,14 +14,14 @@ using namespace blas;
 
 #define DEF_SIZE_VECT 1200
 #define ERROR_ALLOWED 1.0E-8
-#define RANDOM_DATA   1
+#define RANDOM_DATA 1
 #define EXECUTED_ON_GPU 1
 // #define SHOW_VALUES   1
 
 #ifdef EXECUTED_ON_GPU
-  #define DEFAULT_ACCESS false
+#define DEFAULT_ACCESS false
 #else
-  #define DEFAULT_ACCESS true
+#define DEFAULT_ACCESS true
 #endif
 
 // INITIAL MATRIZ VECTOR PRODUCT
@@ -63,10 +63,10 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   minV = 1.00;
   maxV = 1.00;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vA), std::end(vA), [&](double& elem) {
+  std::for_each(std::begin(vA), std::end(vA), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -81,10 +81,10 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   minV = 1.00;
   maxV = 1.00;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vB), std::end(vB), [&](double& elem) {
+  std::for_each(std::begin(vB), std::end(vB), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -100,12 +100,12 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   maxV = 1.00;
 #endif  //  RANDOM_DATA
 
-  std::for_each(std::begin(vC), std::end(vC), [&](double& elem) {
+  std::for_each(std::begin(vC), std::end(vC), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
-#endif //  RANDOM_DATA
+#endif  //  RANDOM_DATA
   });
 
   // CREATING HOST STRUCTURES
@@ -142,8 +142,8 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
       else
         vS[dimM * j + i] = beta * vC[dimM * j + i];
       for (size_t k = shftC; k < dimK; k++) {
-        std::cout << "(" << i << "," << k << ")=" << dimM* k + i << std::endl;
-        std::cout << "(" << k << "," << j << ")=" << dimK* j + k << std::endl;
+        std::cout << "(" << i << "," << k << ")=" << dimM * k + i << std::endl;
+        std::cout << "(" << k << "," << j << ")=" << dimK * j + k << std::endl;
         if (accessDev) {
           vS[dimN * i + j] += alpha * vA[dimK * i + k] * vB[dimN * k + j];
         } else {
@@ -180,10 +180,10 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   // CREATING THE SYCL QUEUE AND EXECUTOR
   cl::sycl::queue q([=](cl::sycl::exception_list eL) {
     try {
-      for (auto& e : eL) {
+      for (auto &e : eL) {
         std::rethrow_exception(e);
       }
-    } catch (cl::sycl::exception& e) {
+    } catch (cl::sycl::exception &e) {
       std::cout << " E " << e.what() << std::endl;
     } catch (...) {
       std::cout << " An exception " << std::endl;
@@ -210,11 +210,12 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
     size_t dimLA = dimM;  // for accessDev = true  then A^t
     // size_t dimLB = ((accessDev) ? dimN : dimK);  // Original
     size_t dimLB = dimN;  // for accessDev = false then B^t
-    _gemm<SYCL>(ex, ((accessDev)?"Tr":"No"), ((accessDev)?"No":"Tr"), dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
+    _gemm<SYCL>(ex, ((accessDev) ? "Tr" : "No"), ((accessDev) ? "No" : "Tr"),
+                dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
                 bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
                 bmC0(shftR, shftC), dimLC);
 
-    auto reducOpV = make_addReducAssignNewOp2(bvR, bvV0, 256, 512 * 256);
+    auto reducOpV = make_addAssignReduction(bvR, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
 #ifdef VERBOSE
@@ -236,9 +237,9 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   return returnVal;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   //  using namespace SyclBlas;
-//  bool accessDev = true;
+  //  bool accessDev = true;
   bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
   size_t returnVal = 0;
@@ -248,15 +249,15 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
@@ -264,8 +265,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 4) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     shftR = atoi(argv[2]);
@@ -273,8 +274,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 5) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);

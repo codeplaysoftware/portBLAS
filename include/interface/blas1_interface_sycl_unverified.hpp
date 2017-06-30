@@ -39,7 +39,7 @@ namespace blas {
 // UNVERIFIED ROUTINE
 #ifdef BLAS_EXPERIMENTAL
 template <typename T>
-void _rotmg(T& _d1, T& _d2, T& _x1, T& _y1, VectorSYCL<T> _param) {
+void _rotmg(T &_d1, T &_d2, T &_x1, T &_y1, VectorSYCL<T> _param) {
   T flag, h11, h12, h21, h22;
   T p1, p2, q1, q2, temp, su;
   T gam = 4096, gamsq = 16777216, rgamsq = 5.9604645e-8;

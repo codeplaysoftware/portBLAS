@@ -1,10 +1,10 @@
+#include <algorithm>
 #include <cstdlib>
+#include <interface/blas1_interface_sycl.hpp>
+#include <interface/blas2_interface_sycl.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <algorithm>
-#include <interface/blas1_interface_sycl.hpp>
-#include <interface/blas2_interface_sycl.hpp>
 
 using namespace cl::sycl;
 using namespace blas;
@@ -16,9 +16,9 @@ using namespace blas;
 // #define SHOW_VALUES   1
 
 #ifdef EXECUTED_ON_GPU
-  #define DEFAULT_ACCESS false
+#define DEFAULT_ACCESS false
 #else
-  #define DEFAULT_ACCESS true
+#define DEFAULT_ACCESS true
 #endif
 
 // INITIAL MATRIZ VECTOR PRODUCT
@@ -58,15 +58,15 @@ void _gemv0(Executor<ExecutorType> ex, std::string _Trans, size_t _M, size_t _N,
       auto nWG = 128;
 #ifdef SYCL_CODE
       auto assignOp1 =
-          make_addReducAssignNewOp2(my_rs, prdOp1, localSize, localSize * nWG);
+          make_addAssignReduction(my_rs, prdOp1, localSize, localSize * nWG);
       ex.reduce(assignOp1);
 #else   // SYCL_CODE
       ContainerT valT1(nWG);
       auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
       auto assignOp11 =
-          make_addReducAssignNewOp2(val1, prdOp1, localSize, localSize * nWG);
+          make_addAssignReduction(val1, prdOp1, localSize, localSize * nWG);
       ex.execute(assignOp11);
-      auto assignOp1 = make_addReducAssignNewOp2(my_rs, val1, localSize, nWG);
+      auto assignOp1 = make_addAssignReduction(my_rs, val1, localSize, nWG);
       ex.execute(assignOp1);
 #endif  // SYCL_CODE
       auto prdOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, my_rs);
@@ -172,10 +172,10 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   minV = 1.00;
   maxV = 1.00;
 #endif  // RANDOM_DATA
-  std::for_each(std::begin(vM), std::end(vM), [&](double& elem) {
+  std::for_each(std::begin(vM), std::end(vM), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  // RANDOM_DATA
+#else   // RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  // RANDOM_DATA
 
@@ -187,16 +187,16 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   maxV = 10.0;
   gap = (size_t)(maxV - minV + 1);
   srand(vSeed);
-#else //RANDOM_DATA
+#else   // RANDOM_DATA
   minV = 1.00;
   maxV = 1.00;
-#endif //RANDOM_DATA
-  std::for_each(std::begin(vX), std::end(vX), [&](double& elem) {
+#endif  // RANDOM_DATA
+  std::for_each(std::begin(vX), std::end(vX), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else //RANDOM_DATA
+#else   // RANDOM_DATA
     elem = minV; minV += maxV;
-#endif //RANDOM_DATA
+#endif  // RANDOM_DATA
   });
 
 #ifdef RANDOM_DATA
@@ -205,16 +205,16 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   maxV = 10.0;
   gap = (size_t)(maxV - minV + 1);
   srand(vSeed);
-#else //RANDOM_DATA
+#else   // RANDOM_DATA
   minV = 1.00;
   maxV = 1.00;
-#endif //RANDOM_DATA
-  std::for_each(std::begin(vY), std::end(vY), [&](double& elem) {
+#endif  // RANDOM_DATA
+  std::for_each(std::begin(vY), std::end(vY), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else //RANDOM_DATA
+#else   // RANDOM_DATA
     elem = minV; minV += maxV;
-#endif //RANDOM_DATA
+#endif  // RANDOM_DATA
   });
 
   // CREATING HOST STRUCTURES
@@ -277,10 +277,10 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   // CREATING THE SYCL QUEUE AND EXECUTOR
   cl::sycl::queue q([=](cl::sycl::exception_list eL) {
     try {
-      for (auto& e : eL) {
+      for (auto &e : eL) {
         std::rethrow_exception(e);
       }
-    } catch (cl::sycl::exception& e) {
+    } catch (cl::sycl::exception &e) {
       std::cout << " E " << e.what() << std::endl;
     } catch (...) {
       std::cout << " An exception " << std::endl;
@@ -314,11 +314,11 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
     _ger<SYCL>(ex, dimR - shftR, dimC - shftC, 3.0, bvY0, 1, bvX0, 1,
                bmM0(shftR, shftC), dimL);
-    auto reducOpX = make_addReducAssignNewOp2(bvR, bvX0, 256, 512 * 256);
+    auto reducOpX = make_addAssignReduction(bvR, bvX0, 256, 512 * 256);
     ex.reduce(reducOpX);
-    auto reducOpY = make_addReducAssignNewOp2(bvS, bvY0, 256, 512 * 256);
+    auto reducOpY = make_addAssignReduction(bvS, bvY0, 256, 512 * 256);
     ex.reduce(reducOpY);
-    auto reducOpV = make_addReducAssignNewOp2(bvT, bvV0, 256, 512 * 256);
+    auto reducOpV = make_addAssignReduction(bvT, bvV0, 256, 512 * 256);
     ex.reduce(reducOpV);
   }
 
@@ -359,7 +359,7 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   return returnVal;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   //  using namespace SyclBlas;
   bool accessDev = DEFAULT_ACCESS;
   size_t sizeV = 0, divSz = 1, shftR = 0, shftC = 0;
@@ -370,13 +370,13 @@ int main(int argc, char* argv[]) {
   } else if (argc == 2) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = ! DEFAULT_ACCESS;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
   } else if (argc == 3) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-      accessDev = ! DEFAULT_ACCESS;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
@@ -384,8 +384,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 4) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     shftR = atoi(argv[2]);
@@ -393,8 +393,8 @@ int main(int argc, char* argv[]) {
   } else if (argc == 5) {
     if (atoi(argv[1]) < 0) {
       sizeV = -atoi(argv[1]);
-//      accessDev = false;
-      accessDev = ! DEFAULT_ACCESS;
+      //      accessDev = false;
+      accessDev = !DEFAULT_ACCESS;
     } else
       sizeV = atoi(argv[1]);
     divSz = atoi(argv[2]);
