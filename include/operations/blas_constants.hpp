@@ -39,10 +39,29 @@
 #define SYCLBLAS_DEFINE_CONSTANT(type, indicator, val) \
   template <>                                          \
   struct constant<type, indicator> {                   \
-    static constexpr type value = val;                 \
-  };
+    static const type value;                           \
+  };                                                   \
+  const type constant<type, indicator>::value = val;  // temporary work around
+                                                      // for duplicator issue
+                                                      // will be fixed int the
+                                                      // next release
 
 namespace blas {
+
+/*!
+@brief Container for a scalar value and an index.
+*/
+template <typename ScalarT>
+struct IndVal {
+  using value_type = ScalarT;
+  size_t ind;
+  value_type val;
+
+  constexpr explicit IndVal(size_t _ind, value_type _val)
+      : ind(_ind), val(_val){};
+  size_t getInd() const { return ind; }
+  value_type getVal() const { return val; }
+};
 
 /*!
 @brief Enum class used to indicate a constant value associated with a type.
@@ -54,7 +73,9 @@ enum class const_val : int {
   two = 3,
   m_two = 4,
   max = 5,
-  min = 6
+  min = 6,
+  imax = 7,
+  imin = 8
 };
 
 /*!
@@ -131,7 +152,12 @@ SYCLBLAS_DEFINE_CONSTANT(
     std::complex<double>, const_val::min,
     (std::complex<double>(std::numeric_limits<double>::min(),
                           std::numeric_limits<double>::min())))
-
+SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imax,
+                         (IndVal<double>(std::numeric_limits<size_t>::max(),
+                                         std::numeric_limits<double>::max())))
+SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imin,
+                         (IndVal<double>(std::numeric_limits<size_t>::max(),
+                                         std::numeric_limits<double>::min())))
 }  // namespace blas
 
 /*!

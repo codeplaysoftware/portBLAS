@@ -1,9 +1,9 @@
 #include <algorithm>
 #include <cstdlib>
+#include <interface/blas1_interface_sycl.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <interface/blas1_interface_sycl.hpp>
 
 using namespace cl::sycl;
 using namespace blas;
@@ -12,7 +12,7 @@ using namespace blas;
 #define ERROR_ALLOWED 1.0E-6
 // #define SHOW_VALUES   1
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   size_t sizeV, returnVal = 0;
 
   if (argc == 1) {
@@ -32,18 +32,18 @@ int main(int argc, char* argv[]) {
 
     // INITIALIZING DATA
     std::for_each(std::begin(vX), std::end(vX),
-                  [&](double& elem) { elem = 1.0; });
+                  [&](double &elem) { elem = 1.0; });
 
     std::for_each(std::begin(vY), std::end(vY),
-                  [&](double& elem) { elem = 1.0; });
+                  [&](double &elem) { elem = 1.0; });
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
     cl::sycl::queue q([=](cl::sycl::exception_list eL) {
       try {
-        for (auto& e : eL) {
+        for (auto &e : eL) {
           std::rethrow_exception(e);
         }
-      } catch (cl::sycl::exception& e) {
+      } catch (cl::sycl::exception &e) {
         std::cout << " E " << e.what() << std::endl;
       } catch (...) {
         std::cout << " An exception " << std::endl;

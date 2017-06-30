@@ -26,12 +26,12 @@
 #ifndef BLAS2_TREES_HPP
 #define BLAS2_TREES_HPP
 
-#include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <views/view_sycl.hpp>
-#include <operations/blas_operators.hpp>
+
 #include <operations/blas2_trees.hpp>
+#include <operations/blas_operators.hpp>
+#include <views/view_sycl.hpp>
 
 namespace blas {
 
@@ -48,7 +48,7 @@ struct PrdRowMatVct {
 
   using value_type = typename RHS2::value_type;
 
-  PrdRowMatVct(RHS1& _r1, RHS2& _r2) : r1(_r1), r2(_r2){};
+  PrdRowMatVct(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
   value_type eval(size_t i) {
     auto dim = r2.getSize();
@@ -67,7 +67,7 @@ struct PrdRowMatVct {
 };
 
 template <class RHS1, class RHS2>
-PrdRowMatVct<RHS1, RHS2> make_prdRowMatVct(RHS1& r1, RHS2& r2) {
+PrdRowMatVct<RHS1, RHS2> make_prdRowMatVct(RHS1 &r1, RHS2 &r2) {
   return PrdRowMatVct<RHS1, RHS2>(r1, r2);
 }
 
@@ -87,7 +87,7 @@ struct PrdRowMatVctMult {
   RHS3 r3;
   size_t nThr;
 
-  PrdRowMatVctMult(LHS& _l, value_type _scl, RHS1& _r1, RHS2& _r2, RHS3& _r3,
+  PrdRowMatVctMult(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, RHS3 &_r3,
                    size_t _nThr)
       : l(_l), scl(_scl), r1(_r1), r2(_r2), r3(_r3), nThr{_nThr} {};
 
@@ -148,7 +148,7 @@ struct PrdRowMatVctMult {
 
 template <class LHS, class RHS1, class RHS2, class RHS3>
 PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3> make_prdRowMatVctMult(
-    LHS& l, typename LHS::value_type scl, RHS1& r1, RHS2& r2, RHS3& r3,
+    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2, RHS3 &r3,
     size_t nThr) {
   return PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3>(l, scl, r1, r2, r3, nThr);
 }
@@ -168,7 +168,7 @@ struct PrdRowMatVctMultShm {
 
   using value_type = typename RHS2::value_type;
 
-  PrdRowMatVctMultShm(LHS& _l, RHS1& _r1, RHS2& _r2, size_t _nThr)
+  PrdRowMatVctMultShm(LHS &_l, RHS1 &_r1, RHS2 &_r2, size_t _nThr)
       : l(_l), r1(_r1), r2(_r2), nThr{_nThr} {};
 
   value_type eval(size_t i) {
@@ -232,8 +232,8 @@ struct PrdRowMatVctMultShm {
 };
 
 template <class LHS, class RHS1, class RHS2>
-PrdRowMatVctMultShm<LHS, RHS1, RHS2> make_prdRowMatVctMultShm(LHS& l, RHS1& r1,
-                                                              RHS2& r2,
+PrdRowMatVctMultShm<LHS, RHS1, RHS2> make_prdRowMatVctMultShm(LHS &l, RHS1 &r1,
+                                                              RHS2 &r2,
                                                               size_t nThr) {
   return PrdRowMatVctMultShm<LHS, RHS1, RHS2>(l, r1, r2, nThr);
 }
@@ -250,7 +250,7 @@ struct AddPrdRowMatVctMultShm {
   RHS1 r1;
   RHS2 r2;
 
-  AddPrdRowMatVctMultShm(LHS& _l, value_type _scl, RHS1& _r1, RHS2& _r2)
+  AddPrdRowMatVctMultShm(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2)
       : l(_l), scl(_scl), r1(_r1), r2(_r2){};
 
   value_type eval(size_t i) {
@@ -273,7 +273,7 @@ struct AddPrdRowMatVctMultShm {
 
 template <class LHS, class RHS1, class RHS2>
 AddPrdRowMatVctMultShm<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShm(
-    LHS& l, typename RHS1::value_type& scl, RHS1& r1, RHS2& r2) {
+    LHS &l, typename RHS1::value_type &scl, RHS1 &r1, RHS2 &r2) {
   return AddPrdRowMatVctMultShm<LHS, RHS1, RHS2>(l, scl, r1, r2);
 }
 
@@ -289,7 +289,7 @@ struct RedRowMatVct {
 
   using value_type = typename RHS2::value_type;
 
-  RedRowMatVct(RHS1& _r1, RHS2& _r2, size_t _warpSize)
+  RedRowMatVct(RHS1 &_r1, RHS2 &_r2, size_t _warpSize)
       : r1(_r1), r2(_r2), warpSize(_warpSize){};
 
 #if ORIGINAL_CODE
@@ -318,7 +318,7 @@ struct RedRowMatVct {
     }
     return valWG;
   }
-#endif // ORIGINAL_CODE
+#endif  // ORIGINAL_CODE
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -393,7 +393,7 @@ struct RedRowMatVct {
 };
 
 template <class RHS1, class RHS2>
-RedRowMatVct<RHS1, RHS2> make_redRowMatVct(RHS1& r1, RHS2& r2,
+RedRowMatVct<RHS1, RHS2> make_redRowMatVct(RHS1 &r1, RHS2 &r2,
                                            size_t warpSize) {
   return RedRowMatVct<RHS1, RHS2>(r1, r2, warpSize);
 }
@@ -409,7 +409,7 @@ struct ModifRank1 {
 
   using value_type = typename RHS2::value_type;
 
-  ModifRank1(RHS1& _r1, RHS2& _r2, RHS3& _r3) : r1(_r1), r2(_r2), r3(_r3){};
+  ModifRank1(RHS1 &_r1, RHS2 &_r2, RHS3 &_r3) : r1(_r1), r2(_r2), r3(_r3){};
 
   value_type eval(size_t i) {
     auto size = (r1.getAccess()) ? r1.getSizeC() : r1.getSizeR();
@@ -429,7 +429,7 @@ struct ModifRank1 {
 };
 
 template <class RHS1, class RHS2, class RHS3>
-ModifRank1<RHS1, RHS2, RHS3> make_modifRank1(RHS1& r1, RHS2& r2, RHS3& r3) {
+ModifRank1<RHS1, RHS2, RHS3> make_modifRank1(RHS1 &r1, RHS2 &r2, RHS3 &r3) {
   return ModifRank1<RHS1, RHS2, RHS3>(r1, r2, r3);
 }
 
