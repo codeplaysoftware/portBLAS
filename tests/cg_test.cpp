@@ -1,9 +1,9 @@
 #include <algorithm>
 #include <cstdlib>
+#include <interface/blas1_interface_sycl.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <interface/blas1_interface_sycl.hpp>
 
 using namespace cl::sycl;
 using namespace blas;
@@ -15,7 +15,7 @@ using namespace blas;
 #define RANDOM_DATA 1
 
 // This routine assures the symmetric matrix defined by td ans ts is SPD
-void trdSP(std::vector<double>& td, std::vector<double>& ts) {
+void trdSP(std::vector<double> &td, std::vector<double> &ts) {
   int size = td.size();
 
   for (int i = 0; i < size; i++) {
@@ -26,9 +26,9 @@ void trdSP(std::vector<double>& td, std::vector<double>& ts) {
 
 //
 template <typename ExecutorType, typename T, typename ContainerT>
-void prdTrdSP(Executor<ExecutorType> ex, vector_view<T, ContainerT>& td,
-              vector_view<T, ContainerT>& ts, vector_view<T, ContainerT>& x,
-              vector_view<T, ContainerT>& y) {
+void prdTrdSP(Executor<ExecutorType> ex, vector_view<T, ContainerT> &td,
+              vector_view<T, ContainerT> &ts, vector_view<T, ContainerT> &x,
+              vector_view<T, ContainerT> &y) {
   size_t size = x.getSize();
   auto my_td0 = vector_view<T, ContainerT>(td, 0, 1, size);
   auto my_ts = vector_view<T, ContainerT>(ts, 0, 1, size - 1);
@@ -74,11 +74,11 @@ struct TrdMatVctPrd {
 
   int getSize() { return r2.getSize(); }
 
-  TrdMatVctPrd(RHS1& _r1, RHS2& _r2) : r1(_r1), r2(_r2){};
+  TrdMatVctPrd(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 };
 
 template <class RHS1, class RHS2>
-TrdMatVctPrd<RHS1, RHS2> make_trdMatVctPrd(RHS1& r1, RHS2& r2) {
+TrdMatVctPrd<RHS1, RHS2> make_trdMatVctPrd(RHS1 &r1, RHS2 &r2) {
   return TrdMatVctPrd<RHS1, RHS2>(r1, r2);
 }
 
@@ -92,7 +92,7 @@ struct Evaluate<TrdMatVctPrd<RHS1, RHS2>> {
   using input_type = TrdMatVctPrd<RHS1, RHS2>;
   using type = TrdMatVctPrd<rhs1_type, rhs2_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler& h) {
+  static type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
     auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
     return type(rhs1, rhs2);
@@ -121,7 +121,7 @@ void CG_1(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
 
   minV = 1.00;
   maxV = 0.00;
-  std::for_each(std::begin(vX), std::end(vX), [&](double& elem) {
+  std::for_each(std::begin(vX), std::end(vX), [&](double &elem) {
     elem = minV;
     minV += maxV;
   });
@@ -136,10 +136,10 @@ void CG_1(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.15;
   maxV = 0.15;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTD), std::end(vTD), [&](double& elem) {
+  std::for_each(std::begin(vTD), std::end(vTD), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -154,10 +154,10 @@ void CG_1(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.10;
   maxV = 0.10;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTS), std::end(vTS), [&](double& elem) {
+  std::for_each(std::begin(vTS), std::end(vTS), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -336,7 +336,7 @@ void _two_axpy_dotSng_Scal(Executor<ExecutorType> ex, int _N, double _alpha1,
   auto my_be = vector_view<T, ContainerT>(_be, _be.getDisp(), 1, 1);
   auto my_al = vector_view<T, ContainerT>(_al, _al.getDisp(), 1, 1);
   auto my_to = vector_view<T, ContainerT>(_to, _to.getDisp(), 1, 1);
-  auto assignOp3 = make_addReducAssignNewOp2(my_to, prodOp, blqS, blqS * nBlq);
+  auto assignOp3 = make_addAssignReduction(my_to, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp3);
 
   // Calculating: _al = _to / _be; _be = _to; _to = sqrt(_to);
@@ -368,7 +368,7 @@ void prdTrdSP2_dot_Scal(Executor<ExecutorType> ex, int _N,
 
   //  Calculating: _vx .* _vy
   auto prodOp = make_op<BinaryOp, prdOp2_struct>(my_vx, assignOp);
-  auto assignOp1 = make_addReducAssignNewOp2(my_rh, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(my_rh, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   //  Calculating: _rh = _be / _rh;
@@ -408,7 +408,7 @@ void prdTrdSP2_init_vectors_dotSng_Scal(
 
   // Calculating: _vd .* _vd
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(assignOp12);
-  auto assignOp1 = make_addReducAssignNewOp2(my_be, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(my_be, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   // Calculating: _to = sqrt(be)
@@ -438,7 +438,7 @@ void CG_4(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
 
   minV = 1.00;
   maxV = 0.00;
-  std::for_each(std::begin(vX), std::end(vX), [&](double& elem) {
+  std::for_each(std::begin(vX), std::end(vX), [&](double &elem) {
     elem = minV;
     minV += maxV;
   });
@@ -453,10 +453,10 @@ void CG_4(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.15;
   maxV = 0.15;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTD), std::end(vTD), [&](double& elem) {
+  std::for_each(std::begin(vTD), std::end(vTD), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -471,10 +471,10 @@ void CG_4(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.10;
   maxV = 0.10;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTS), std::end(vTS), [&](double& elem) {
+  std::for_each(std::begin(vTS), std::end(vTS), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -535,12 +535,13 @@ void CG_4(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
 
     // Begin CG
 
-    prdTrdSP2_init_vectors_dotSng_Scal<SYCL>(
-        ex, dim,                        // z = A * x
-        bvTT + 0, 1, bvX + 0, 1, -1.0,  // r = b - z: d = r
-        bvB, 1, bvR, 1,                 // beta = r' * r
-        bvZ, 1, bvD, 1,                 // tol = sqrt(beta)
-        bvBe, bvTo, blqS, nBlq);
+    prdTrdSP2_init_vectors_dotSng_Scal<SYCL>(ex, dim,  // z = A * x
+                                             bvTT + 0, 1, bvX + 0, 1,
+                                             -1.0,  // r = b - z: d = r
+                                             bvB, 1, bvR, 1,  // beta = r' * r
+                                             bvZ, 1, bvD,
+                                             1,  // tol = sqrt(beta)
+                                             bvBe, bvTo, blqS, nBlq);
     {
       auto hostAccT =
           bTo.get_access<access::mode::read, access::target::host_buffer>();
@@ -618,7 +619,7 @@ void _two_axpy_dotSng_ScalF(
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(dobleAssignOp);
 
   // _to = reduction(_vy2 .* _vy2)
-  auto assignOp3 = make_addReducAssignNewOp2(_to, prodOp, blqS, blqS * nBlq);
+  auto assignOp3 = make_addAssignReduction(_to, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp3);
 
   //	_al = _to / _be; _be = _to; _to = sqrt(_to);
@@ -651,7 +652,7 @@ void prdTrdSP2_dot_ScalF(Executor<ExecutorType> ex, int _N,
   auto prodOp = make_op<BinaryOp, prdOp2_struct>(_vx, assignOp);
 
   // _rh = reduction( _vx .* _vy)
-  auto assignOp1 = make_addReducAssignNewOp2(_rh, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(_rh, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   //	_rh = _be / _rh; _al = -rh
@@ -682,7 +683,7 @@ void prdTrdSP2_init_vectors_dotSng_ScalF(
   // _vd .* _vd
   auto prodOp = make_op<UnaryOp, prdOp1_struct>(assignOp12);
   // _be = reduction( _vd .* _vd)
-  auto assignOp1 = make_addReducAssignNewOp2(_be, prodOp, blqS, blqS * nBlq);
+  auto assignOp1 = make_addAssignReduction(_be, prodOp, blqS, blqS * nBlq);
   ex.reduce(assignOp1);
 
   auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(_be);
@@ -711,7 +712,7 @@ void CG_5(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
 
   minV = 1.00;
   maxV = 0.00;
-  std::for_each(std::begin(vX), std::end(vX), [&](double& elem) {
+  std::for_each(std::begin(vX), std::end(vX), [&](double &elem) {
     elem = minV;
     minV += maxV;
   });
@@ -726,10 +727,10 @@ void CG_5(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.15;
   maxV = 0.15;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTD), std::end(vTD), [&](double& elem) {
+  std::for_each(std::begin(vTD), std::end(vTD), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -744,10 +745,10 @@ void CG_5(size_t dim, double thold, size_t maxItr, cl::sycl::queue q) {
   minV = 0.10;
   maxV = 0.10;
 #endif  //  RANDOM_DATA
-  std::for_each(std::begin(vTS), std::end(vTS), [&](double& elem) {
+  std::for_each(std::begin(vTS), std::end(vTS), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  //  RANDOM_DATA
+#else   //  RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  //  RANDOM_DATA
   });
@@ -875,7 +876,7 @@ void CG_6(int dim, double thold, size_t maxItr, size_t itrLoop,
 
   minV = 1.00;
   maxV = 0.00;
-  std::for_each(std::begin(vX), std::end(vX), [&](double& elem) {
+  std::for_each(std::begin(vX), std::end(vX), [&](double &elem) {
     elem = minV;
     minV += maxV;
   });
@@ -890,10 +891,10 @@ void CG_6(int dim, double thold, size_t maxItr, size_t itrLoop,
   minV = 0.15;
   maxV = 0.15;
 #endif  // RANDOM_DATA
-  std::for_each(std::begin(vTD), std::end(vTD), [&](double& elem) {
+  std::for_each(std::begin(vTD), std::end(vTD), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  // RANDOM_DATA
+#else   // RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  // RANDOM_DATA
   });
@@ -908,10 +909,10 @@ void CG_6(int dim, double thold, size_t maxItr, size_t itrLoop,
   minV = 0.10;
   maxV = 0.10;
 #endif  // RANDOM_DATA
-  std::for_each(std::begin(vTS), std::end(vTS), [&](double& elem) {
+  std::for_each(std::begin(vTS), std::end(vTS), [&](double &elem) {
 #ifdef RANDOM_DATA
     elem = minV + (double)(rand() % gap);
-#else  // RANDOM_DATA
+#else   // RANDOM_DATA
     elem = minV; minV += maxV;
 #endif  // RANDOM_DATA
   });
@@ -1014,7 +1015,7 @@ void CG_6(int dim, double thold, size_t maxItr, size_t itrLoop,
   }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   size_t sizeV;
 
   if (argc == 1) {
@@ -1030,10 +1031,10 @@ int main(int argc, char* argv[]) {
   // Definition of the queue and the executor
   cl::sycl::queue q([=](cl::sycl::exception_list eL) {
     try {
-      for (auto& e : eL) {
+      for (auto &e : eL) {
         std::rethrow_exception(e);
       }
-    } catch (cl::sycl::exception& e) {
+    } catch (cl::sycl::exception &e) {
       std::cout << " E " << e.what() << std::endl;
     } catch (...) {
       std::cout << " An exception " << std::endl;

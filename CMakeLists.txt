@@ -1,6 +1,4 @@
-
 cmake_minimum_required (VERSION 3.2.2)
-
 
 project(sycl-blas)
 
@@ -33,7 +31,7 @@ endif(USE_CLBLAS)
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS 
+set(COMPUTECPP_DEVICE_COMPILER_FLAGS
     "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 

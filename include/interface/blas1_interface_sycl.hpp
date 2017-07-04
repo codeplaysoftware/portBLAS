@@ -168,12 +168,12 @@ T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   ContainerT valT1(nWG);
   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
   auto assignOp1 =
-      make_addReducAssignNewOp2(val1, prdOp, localSize, nWG * localSize);
+      make_addAssignReduction(val1, prdOp, localSize, nWG * localSize);
   ex.execute(assignOp1);
 
   ContainerT valT2(1);
   auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addReducAssignNewOp2(val2, val1, localSize, nWG);
+  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
   ex.execute(assignOp2);
 
 #ifdef VERBOSE
@@ -207,7 +207,7 @@ void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   auto localSize = 256;
   auto nWG = 512;
   auto assignOp1 =
-      make_addReducAssignNewOp2(my_rs, prdOp, localSize, localSize * nWG);
+      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
   ex.reduce(assignOp1);
 #ifdef VERBOSE
   my_rs.printH("VR");
@@ -235,12 +235,12 @@ T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   ContainerT valT1(nWG);
   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
   auto assignOp1 =
-      make_addReducAssignNewOp2(val1, prdOp, localSize, localSize * nWG);
+      make_addAssignReduction(val1, prdOp, localSize, localSize * nWG);
   ex.execute(assignOp1);
 
   ContainerT valT2(1);
   auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addReducAssignNewOp2(val2, val1, localSize, nWG);
+  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
   ex.execute(assignOp2);
 #ifdef VERBOSE
   std::cout << "val = " << std::sqrt(val2.eval(0)) << std::endl;
@@ -268,7 +268,7 @@ void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   auto localSize = 256;
   auto nWG = 512;
   auto assignOp1 =
-      make_addReducAssignNewOp2(my_rs, prdOp, localSize, localSize * nWG);
+      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
   ex.reduce(assignOp1);
   auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(my_rs);
   auto assignOp2 = make_op<Assign>(my_rs, sqrtOp);
@@ -298,12 +298,12 @@ T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   ContainerT valT1(nWG);
   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
   auto assignOp1 =
-      make_addAbsReducAssignNewOp2(val1, my_vx, localSize, nWG * localSize);
+      make_addAbsAssignReduction(val1, my_vx, localSize, nWG * localSize);
   ex.execute(assignOp1);
 
   ContainerT valT2(1);
   auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAbsReducAssignNewOp2(val2, val1, localSize, nWG);
+  auto assignOp2 = make_addAbsAssignReduction(val2, val1, localSize, nWG);
   ex.execute(assignOp2);
 
 #ifdef VERBOSE
@@ -330,42 +330,11 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   auto localSize = 256;
   auto nWG = 512;
   auto assignOp =
-      make_addAbsReducAssignNewOp2(my_rs, my_vx, localSize, localSize * nWG);
+      make_addAbsAssignReduction(my_rs, my_vx, localSize, localSize * nWG);
   ex.reduce(assignOp);
 #ifdef VERBOSE
   my_rs.printH("VR");
 #endif  //  VERBOSE
-}
-
-/**
- * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-
-  auto localSize = 256;
-  auto nWG = 512;
-  std::vector<IndVal<T>> valT1(nWG);
-  auto val1 = vector_view<IndVal<T>, std::vector<IndVal<T>>>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_maxIndReducAssignNewOp3(val1, my_vx, localSize, nWG * localSize);
-  ex.execute(assignOp1);
-
-  std::vector<IndVal<T>> valT2(1);
-  auto val2 = vector_view<IndVal<T>, std::vector<IndVal<T>>>(valT1, 0, 1, 1);
-  auto assignOp2 = make_maxIndReducAssignNewOp2(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
-  return val1.eval(0).getInd();
 }
 
 /**
@@ -377,19 +346,87 @@ template <typename ExecutorType, typename T, typename ContainerT, typename I,
           typename ContainerI>
 void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
             int _incx, vector_view<I, ContainerI> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
+  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
+  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignOp =
-      make_maxIndReducAssignNewOp3(my_rs, my_vx, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  size_t localSize = 256, nWG = 512;
+  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
+  std::vector<IndVal<T>> valT1(nWG,
+                               IndVal<T>(std::numeric_limits<size_t>::max(),
+                                         std::numeric_limits<T>::min()));
+  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
+  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
+  auto assignOp1 =
+      make_maxIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
+  ex.reduce(assignOp1);
+  auto assignOp2 = make_maxIndAssignReduction(my_rs, val1, localSize, nWG);
+  ex.reduce(assignOp2);
 #ifdef VERBOSE
   std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
 #endif  //  VERBOSE
+}
+
+/**
+ * \brief ICAMAX finds the index of the first element having maximum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename ContainerT>
+size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
+              int _incx) {
+  std::vector<IndVal<T>> rsT(1);
+  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
+  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
+  _iamax(ex, _N, _vx, _incx, rs);
+  return rs.eval(0).getInd();
+}
+
+/**
+ * \brief IAMIN finds the index of the first element having minimum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename ContainerT, typename I,
+          typename ContainerI>
+void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
+            int _incx, vector_view<I, ContainerI> _rs) {
+  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
+  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
+#ifdef VERBOSE
+  my_vx.printH("VX");
+#endif  //  VERBOSE
+  size_t localSize = 256, nWG = 512;
+  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
+  std::vector<IndVal<T>> valT1(nWG,
+                               IndVal<T>(std::numeric_limits<size_t>::max(),
+                                         std::numeric_limits<T>::max()));
+  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
+  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
+  auto assignOp1 =
+      make_minIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
+  ex.reduce(assignOp1);
+  auto assignOp2 = make_minIndAssignReduction(my_rs, val1, localSize, nWG);
+  ex.reduce(assignOp2);
+#ifdef VERBOSE
+  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
+#endif  //  VERBOSE
+}
+
+/**
+ * \brief ICAMIN finds the index of the first element having minimum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename ContainerT>
+size_t _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
+              int _incx) {
+  std::vector<IndVal<T>> rsT(1);
+  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
+  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
+  _iamin(ex, _N, _vx, _incx, rs);
+  return rs.eval(0).getInd();
 }
 
 /**
@@ -398,7 +435,7 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * Not implemented.
  */
 template <typename T>
-void _rotg(T& _alpha, T& _beta, T& _cos, T& _sin) {
+void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
   T abs_alpha = std::abs(_alpha);
   T abs_beta = std::abs(_beta);
   T roe = (abs_alpha > abs_beta) ? _alpha : _beta;
