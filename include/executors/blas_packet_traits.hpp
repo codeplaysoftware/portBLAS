@@ -19,46 +19,47 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_trees.hpp
+ *  @filename blas_packet_traits.hpp
  *
  **************************************************************************/
 
-#ifndef BLAS3_TREE_EXPR_HPP_X30IEJA7
-#define BLAS3_TREE_EXPR_HPP_X30IEJA7
-
-#include <stdexcept>
-#include <vector>
-
-#include <operations/blas_operators.hpp>
-#include <views/view_sycl.hpp>
+#ifndef BLAS_PACKET_TRAITS_HPP_9LPTVQ25
+#define BLAS_PACKET_TRAITS_HPP_9LPTVQ25
 
 namespace blas {
 
-/*! PrdRowMatColMat.
- * @brief CLASSICAL DOT PRODUCT GEMM
- * Each thread computes a dot product
- * If the matrix is column-major the accesses are coalescent.
-*/
-template <class RHS1, class RHS2>
-struct PrdRowMatColMatExpr {
-  using value_type = typename RHS2::value_type;
-
-  RHS1 r1;
-  RHS2 r2;
-
-  PrdRowMatColMatExpr(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
-
-  size_t getSize() {
-    return (r1.getAccessOpr() ? r1.getSizeR() : r1.getSizeC()) *
-           (r2.getAccessOpr() ? r2.getSizeC() : r2.getSizeR());
-  }
+class SimpleDevice {
+  static void parallel_for_setup() {}
 };
 
-template <class RHS1, class RHS2>
-PrdRowMatColMatExpr<RHS1, RHS2> make_prdRowMatColMatExpr(RHS1 &r1, RHS2 &r2) {
-  return PrdRowMatColMatExpr<RHS1, RHS2>(r1, r2);
-}
+template <typename T, typename Device>
+struct default_packet_traits {
+  using packet_type = T;
+  enum {
+    Size = 1,
+    Supported = 1,
+    has_abs = 1,
+    has_sqrt = 1,
+    has_sin = 1,
+    has_cos = 1,
+    has_add = 1,
+    has_sub = 1,
+    has_mul = 1,
+    has_div = 1,
+    has_mad = 0,
+    has_dot = 0,
+    has_length = 0,
+    has_min = 1,
+    has_max = 1
+  };
+};
 
-}  // namespace blas
+template <typename T, typename Device>
+struct Packet_traits : default_packet_traits<T, Device> {};
 
-#endif  // BLAS3_TREES_HPP
+template <typename T, typename Device>
+using packet_type = typename Packet_traits<T, Device>::packet_type;
+
+}  // blas
+
+#endif

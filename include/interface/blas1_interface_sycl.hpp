@@ -58,10 +58,10 @@ void _axpy(Executor<ExecutorType> ex, int _N, T _alpha,
   my_vx.printH("VX");
   my_vy.printH("VY");
 #endif  //  VERBOSE
-  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, my_vx);
-  auto addOp = make_op<BinaryOp, addOp2_struct>(my_vy, scalOp);
-  auto assignOp = make_op<Assign>(my_vy, addOp);
-  ex.execute(assignOp);
+  auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
+  auto addExpr = make_expr<BinaryExpr, addOp2_struct>(my_vy, scalExpr);
+  auto assignExpr = make_expr<AssignExpr>(my_vy, addExpr);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   my_vy.printH("VY");
 #endif  //  VERBOSE
@@ -85,8 +85,8 @@ void _copy(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_vx.printH("VX");
   my_vy.printH("VY");
 #endif  //  VERBOSE
-  auto assignOp2 = make_op<Assign>(my_vy, my_vx);
-  ex.execute(assignOp2);
+  auto assignExpr = make_expr<AssignExpr>(my_vy, my_vx);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   my_vx.printH("VX");
   my_vy.printH("VY");
@@ -111,8 +111,8 @@ void _swap(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_vx.printH("VX");
   my_vy.printH("VY");
 #endif  //  VERBOSE
-  auto swapOp = make_op<DobleAssign>(my_vy, my_vx, my_vx, my_vy);
-  ex.execute(swapOp);
+  auto swapExpr = make_expr<DoubleAssignExpr>(my_vy, my_vx, my_vx, my_vy);
+  ex.execute(swapExpr);
 #ifdef VERBOSE
   my_vx.printH("VX");
   my_vy.printH("VY");
@@ -134,9 +134,9 @@ void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
   std::cout << "alpha = " << _alpha << std::endl;
   my_vx.printH("VX");
 #endif  //  VERBOSE
-  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, my_vx);
-  auto assignOp = make_op<Assign>(my_vx, scalOp);
-  ex.execute(assignOp);
+  auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
+  auto assignExpr = make_expr<AssignExpr>(my_vx, scalExpr);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
@@ -152,35 +152,37 @@ void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-       int _incx, vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-  auto prdOp = make_op<BinaryOp, prdOp2_struct>(my_vx, my_vy);
+/* template <typename ExecutorType, typename T, typename ContainerT> */
+/* T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, */
+/*        int _incx, vector_view<T, ContainerT> _vy, int _incy) { */
+/*   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N); */
+/*   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N); */
+/* #ifdef VERBOSE */
+/*   my_vx.printH("VX"); */
+/*   my_vy.printH("VY"); */
+/* #endif  //  VERBOSE */
+/*   auto prdOp = make_expr<BinaryOp, prdOp2_struct>(my_vx, my_vy); */
 
-  auto localSize = 256;
-  auto nWG = 512;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAssignReduction(val1, prdOp, localSize, nWG * localSize);
-  ex.execute(assignOp1);
+/*   auto localSize = 256; */
+/*   auto nWG = 512; */
+/*   ContainerT valT1(nWG); */
+/*   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG); */
+/*   auto assignExpr1 = */
+/*       make_addAssignReductionExpr(val1, prdOp, localSize, nWG * localSize);
+ */
+/*   ex.execute(assignExpr1); */
 
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
+/*   ContainerT valT2(1); */
+/*   auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1); */
+/*   auto assignExpr2 = make_addAssignReductionExpr(val2, val1, localSize, nWG);
+ */
+/*   ex.execute(assignExpr2); */
 
-#ifdef VERBOSE
-  std::cout << "val = " << val2.eval(0) << std::endl;
-#endif  //  VERBOSE
-  return val2.eval(0);
-}
+/* #ifdef VERBOSE */
+/*   std::cout << "val = " << val2.eval(0) << std::endl; */
+/* #endif  //  VERBOSE */
+/*   return val2.eval(0); */
+/* } */
 
 /**
  * \brief Compute the inner product of two vectors with extended precision
@@ -192,9 +194,7 @@ T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incy Increment in Y axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-          int _incx, vector_view<T, ContainerT> _vy, int _incy,
-          vector_view<T, ContainerT> _rs) {
+void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
@@ -203,12 +203,11 @@ void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_vy.printH("VY");
   my_rs.printH("VR");
 #endif  //  VERBOSE
-  auto prdOp = make_op<BinaryOp, prdOp2_struct>(my_vx, my_vy);
+  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
   auto localSize = 256;
   auto nWG = 512;
-  auto assignOp1 =
-      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
+  auto assignExpr = make_addAssignReduction(my_rs, prdExpr);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   my_rs.printH("VR");
 #endif  //  VERBOSE
@@ -222,30 +221,23 @@ void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-        int _incx) {
+T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
-  auto prdOp = make_op<UnaryOp, prdOp1_struct>(my_vx);
+  auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
 
   auto localSize = 256;
   auto nWG = 512;
   ContainerT valT1(nWG);
   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAssignReduction(val1, prdOp, localSize, localSize * nWG);
-  ex.execute(assignOp1);
-
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
+  auto assignExpr = make_addAssignReductionExpr(val1, prdExpr);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
-  std::cout << "val = " << std::sqrt(val2.eval(0)) << std::endl;
+  std::cout << "val = " << std::sqrt(val1.eval(0)) << std::endl;
 #endif  //  VERBOSE
-  return std::sqrt(val2.eval(0));
+  return std::sqrt(val1.eval(0));
 }
 
 /**
@@ -255,8 +247,7 @@ T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _rs) {
+void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
@@ -264,15 +255,14 @@ void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_rs.printH("VR");
 #endif  //  VERBOSE
 
-  auto prdOp = make_op<UnaryOp, prdOp1_struct>(my_vx);
+  auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
   auto localSize = 256;
   auto nWG = 512;
-  auto assignOp1 =
-      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(my_rs);
-  auto assignOp2 = make_op<Assign>(my_rs, sqrtOp);
-  ex.execute(assignOp2);
+  auto assignExpr = make_addAssignReductionExpr(my_rs, prdExpr, localSize, localSize * nWG);
+  ex.execute(assignExpr);
+  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(my_rs);
+  auto assignExpr2 = make_expr<AssignExpr>(my_rs, sqrtExpr);
+  ex.execute(assignExpr2);
 #ifdef VERBOSE
   my_rs.printH("VR");
 #endif  //  VERBOSE
@@ -286,8 +276,7 @@ void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-        int _incx) {
+T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
 #ifdef VERBOSE
   my_vx.printH("VX");
@@ -297,19 +286,12 @@ T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   auto nWG = 128;
   ContainerT valT1(nWG);
   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAbsAssignReduction(val1, my_vx, localSize, nWG * localSize);
-  ex.execute(assignOp1);
-
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAbsAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
-
+  auto assignExpr = make_addAbsAssignReductionExpr(val1, my_vx, localSize, nWG * localSize);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   std::cout << "val = " << val2.eval(0) << std::endl;
 #endif  //  VERBOSE
-  return val2.eval(0);
+  return val1.eval(0);
 }
 
 /**
@@ -319,8 +301,7 @@ T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _rs) {
+void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
@@ -329,9 +310,8 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
 #endif  //  VERBOSE
   auto localSize = 256;
   auto nWG = 512;
-  auto assignOp =
-      make_addAbsAssignReduction(my_rs, my_vx, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto assignExpr = make_addAbsAssignReductionExpr(my_rs, my_vx);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   my_rs.printH("VR");
 #endif  //  VERBOSE
@@ -342,27 +322,20 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-            int _incx, vector_view<I, ContainerI> _rs) {
-  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
-  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
+template <typename ExecutorType, typename T, typename ContainerT, typename I, typename ContainerI>
+void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
+  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
   size_t localSize = 256, nWG = 512;
-  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG,
-                               IndVal<T>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<T>::min()));
-  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
-  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_maxIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto assignOp2 = make_maxIndAssignReduction(my_rs, val1, localSize, nWG);
-  ex.reduce(assignOp2);
+  auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
+  std::vector<IndVal<T>> valT1(nWG, constant<IndVal<T>, const_val::imax>::value);
+  auto bvalT1 = cl::sycl::buffer<IndVal<T>, 1>(valT1.data(), cl::sycl::range<1>{nWG});
+  auto val1 = BufferVectorView<IndVal<T>>(bvalT1, 0, 1, nWG);
+  auto assignExpr = make_maxIndAssignReductionExpr(val1, tupExpr);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
 #endif  //  VERBOSE
@@ -374,11 +347,10 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
-  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
+size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
+  IndVal<T> rsT;
+  auto brsT = cl::sycl::buffer<IndVal<T>, 1>(&rsT, cl::sycl::range<1>{1});
+  auto rs = BufferVectorView<IndVal<T>>(brsT, 0, 1, 1);
   _iamax(ex, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
@@ -388,27 +360,20 @@ size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-            int _incx, vector_view<I, ContainerI> _rs) {
-  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
-  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
+template <typename ExecutorType, typename T, typename ContainerT, typename I, typename ContainerI>
+void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
+  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
 #ifdef VERBOSE
   my_vx.printH("VX");
 #endif  //  VERBOSE
   size_t localSize = 256, nWG = 512;
-  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG,
-                               IndVal<T>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<T>::max()));
-  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
-  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_minIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto assignOp2 = make_minIndAssignReduction(my_rs, val1, localSize, nWG);
-  ex.reduce(assignOp2);
+  auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
+  std::vector<IndVal<T>> valT1(nWG, constant<IndVal<T>, const_val::imin>::value);
+  auto bvalT1 = cl::sycl::buffer<IndVal<T>, 1>(valT1.data(), cl::sycl::range<1>{nWG});
+  auto val1 = BufferVectorView<IndVal<T>>(bvalT1, 0, 1, nWG);
+  auto assignExpr = make_minIndAssignReduction(val1, tupExpr, localSize, localSize * nWG);
+  ex.execute(assignExpr);
 #ifdef VERBOSE
   std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
 #endif  //  VERBOSE
@@ -420,11 +385,10 @@ void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _incx Increment in X axis
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
-  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
+size_t _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
+  IndVal<T> rsT;
+  auto brsT = cl::sycl::buffer<IndVal<T>, 1>(&rsT, cl::sycl::range<1>{1});
+  auto rs = BufferVectorView<IndVal<T>>(brsT, 0, 1, 1);
   _iamin(ex, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
@@ -472,9 +436,7 @@ void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
  * Not implemented.
  */
 template <typename ExecutorType, typename T, typename ContainerT>
-void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-          int _incx, vector_view<T, ContainerT> _vy, int _incy, T _cos,
-          T _sin) {
+void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, T _cos, T _sin) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
 #ifdef VERBOSE
@@ -482,14 +444,14 @@ void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
   my_vx.printH("VX");
   my_vy.printH("VY");
 #endif  //  VERBOSE
-  auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_cos, my_vx);
-  auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_sin, my_vy);
-  auto scalOp3 = make_op<ScalarOp, prdOp2_struct>(-_sin, my_vx);
-  auto scalOp4 = make_op<ScalarOp, prdOp2_struct>(_cos, my_vy);
-  auto addOp12 = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
-  auto addOp34 = make_op<BinaryOp, addOp2_struct>(scalOp3, scalOp4);
-  auto dobleAssignView = make_op<DobleAssign>(my_vx, my_vy, addOp12, addOp34);
-  ex.execute(dobleAssignView);
+  auto scalExpr1 = make_expr<ScalarExpr, prdOp2_struct>(_cos, my_vx);
+  auto scalExpr2 = make_expr<ScalarExpr, prdOp2_struct>(_sin, my_vy);
+  auto scalExpr3 = make_expr<ScalarExpr, prdOp2_struct>(-_sin, my_vx);
+  auto scalExpr4 = make_expr<ScalarExpr, prdOp2_struct>(_cos, my_vy);
+  auto addExpr12 = make_expr<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
+  auto addExpr34 = make_expr<BinaryExpr, addOp2_struct>(scalExpr3, scalExpr4);
+  auto doubleAssignExpr = make_expr<DoubleAssignExpr>(my_vx, my_vy, addExpr12, addExpr34);
+  ex.execute(doubleAssignExpr);
 #ifdef VERBOSE
   my_vx.printH("VX");
   my_vy.printH("VY");

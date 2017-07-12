@@ -30,137 +30,150 @@
 
 #include <CL/sycl.hpp>
 
+#include <evaluators/blas1_tree_evaluator.hpp>
+#include <evaluators/blas2_tree_evaluator.hpp>
+#include <evaluators/blas3_tree_evaluator.hpp>
 #include <executors/executor_base.hpp>
-#include <operations/blas1_trees.hpp>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas3_trees.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
 
-/** Evaluate.
+/** Converter.
  */
 template <typename Tree>
-struct Evaluate;
+struct Converter;
 
 /**** CLASSICAL DOT PRODUCT GEMV ****/
-/*! Evaluate<PrdRowMatVct>.
- * @brief See Evaluate.
+/*! Converter<PrdRowMatVct>.
+ * @brief See Converter.
  */
 template <typename RHS1, typename RHS2>
-struct Evaluate<PrdRowMatVct<RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using input_type = PrdRowMatVct<RHS1, RHS2>;
-  using type = PrdRowMatVct<rhs1_type, rhs2_type>;
+struct Converter<Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using input_type = Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, SYCLDevice>;
+  using type = Evaluator<PrdRowMatVctExpr<rhs1_type, rhs2_type>, SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return type(rhs1, rhs2);
   }
 };
 
-/*! Evaluate<PrdRowMatVctMult>.
- * @brief See Evaluate.
+/*! Converter<PrdRowMatVctMult>.
+ * @brief See Converter.
  */
 template <typename LHS, typename RHS1, typename RHS2, typename RHS3>
-struct Evaluate<PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3>> {
-  using value_type = typename RHS2::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using rhs3_type = typename Evaluate<RHS3>::type;
-  using cont_type = typename Evaluate<LHS>::cont_type;
-  using input_type = PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3>;
-  using type = PrdRowMatVctMult<lhs_type, rhs1_type, rhs2_type, rhs3_type>;
+struct Converter<
+    Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using rhs3_type = typename Converter<Evaluator<RHS3, SYCLDevice>>::type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
+  using input_type =
+      Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, SYCLDevice>;
+  using type =
+      Evaluator<PrdRowMatVctMultExpr<lhs_type, rhs1_type, rhs2_type, rhs3_type>,
+                SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    auto rhs3 = Evaluate<RHS3>::convert_to(v.r3, h);
+    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
+    auto rhs3 = Converter<Evaluator<RHS3, SYCLDevice>>::convert_to(v.r3, h);
     return type(lhs, v.scl, rhs1, rhs2, rhs3, v.nThr);
   }
 };
 
-/*! Evaluate<PrdRowMatVctMultShm>.
- * @brief See Evaluate.
+/*! Converter<PrdRowMatVctMultShm>.
+ * @brief See Converter.
  */
 template <typename LHS, typename RHS1, typename RHS2>
-struct Evaluate<PrdRowMatVctMultShm<LHS, RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using cont_type = typename Evaluate<LHS>::cont_type;
-  using input_type = PrdRowMatVctMultShm<LHS, RHS1, RHS2>;
-  using type = PrdRowMatVctMultShm<lhs_type, rhs1_type, rhs2_type>;
+struct Converter<
+    Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
+  using input_type =
+      Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, SYCLDevice>;
+  using type =
+      Evaluator<PrdRowMatVctMultShmExpr<lhs_type, rhs1_type, rhs2_type>,
+                SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
+    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return type(lhs, rhs1, rhs2, v.nThr);
   }
 };
 
-/*! Evaluate<AddPrdRowMatVctMultShm>.
- * @brief See Evaluate.
+/*! Converter<AddPrdRowMatVctMultShm>.
+ * @brief See Converter.
  */
 template <typename LHS, typename RHS1, typename RHS2>
-struct Evaluate<AddPrdRowMatVctMultShm<LHS, RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using cont_type = typename Evaluate<LHS>::cont_type;
-  using input_type = AddPrdRowMatVctMultShm<LHS, RHS1, RHS2>;
-  using type = AddPrdRowMatVctMultShm<lhs_type, rhs1_type, rhs2_type>;
+struct Converter<
+    Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
+  using input_type =
+      Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, SYCLDevice>;
+  using type =
+      Evaluator<AddPrdRowMatVctMultShmExpr<lhs_type, rhs1_type, rhs2_type>,
+                SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
+    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return type(lhs, v.scl, rhs1, rhs2);
   }
 };
 
-/*! Evaluate<RedRowMatVct>.
- * @brief See Evaluate.
+/*! Converter<RedRowMatVct>.
+ * @brief See Converter.
  */
 template <typename RHS1, typename RHS2>
-struct Evaluate<RedRowMatVct<RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using input_type = RedRowMatVct<RHS1, RHS2>;
-  using type = RedRowMatVct<rhs1_type, rhs2_type>;
+struct Converter<Evaluator<RedRowMatVctExpr<RHS1, RHS2>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using input_type = Evaluator<RedRowMatVctExpr<RHS1, RHS2>, SYCLDevice>;
+  using type = Evaluator<RedRowMatVctExpr<rhs1_type, rhs2_type>, SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return type(rhs1, rhs2, v.warpSize);
   }
 };
 
-/*! Evaluate<ModifRank1>
- * @brief See Evaluate.
+/*! Converter<ModifRank1>
+ * @brief See Converter.
  */
 template <typename RHS1, typename RHS2, typename RHS3>
-struct Evaluate<ModifRank1<RHS1, RHS2, RHS3>> {
-  using value_type = typename RHS2::value_type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using rhs3_type = typename Evaluate<RHS3>::type;
-  using input_type = ModifRank1<RHS1, RHS2, RHS3>;
-  using type = ModifRank1<rhs1_type, rhs2_type, rhs3_type>;
+struct Converter<Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using rhs3_type = typename Converter<Evaluator<RHS3, SYCLDevice>>::type;
+  using input_type = Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, SYCLDevice>;
+  using type =
+      Evaluator<ModifRank1Expr<rhs1_type, rhs2_type, rhs3_type>, SYCLDevice>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    auto rhs3 = Evaluate<RHS2>::convert_to(v.r3, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
+    auto rhs3 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r3, h);
     return type(rhs1, rhs2, rhs3);
   }
 };

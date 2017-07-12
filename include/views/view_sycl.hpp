@@ -28,6 +28,7 @@
 
 #include <CL/sycl.hpp>
 
+#include <executors/blas_packet_traits_sycl.hpp>
 #include <views/operview_base.hpp>
 
 namespace blas {
@@ -59,8 +60,9 @@ struct get_size_struct<bufferT<ScalarT>> {
  */
 template <typename ScalarT>
 struct vector_view<ScalarT, bufferT<ScalarT>> {
+  static constexpr bool supported = Packet_traits<ScalarT, SYCLDevice>::Supported;
   using ContainerT = bufferT<ScalarT>;
-  ContainerT &data_;
+  ContainerT data_;
   size_t size_data_;
   size_t size_;
   size_t disp_;
@@ -216,11 +218,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-#ifdef VERBOSE
-      // out of range access
-      printf("(A) ind = %ld , size_data_ = %ld \n", ind, size_data_);
-#endif  //  VERBOSE
-      throw std::invalid_argument("Out of range access");
+      throw std::out_of_range("invalid index");
     }
 #endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
@@ -241,6 +239,26 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     return eval(ndItem.get_global(0));
   }
 
+  /*! evalPacket.
+   */
+  packet_type<ScalarT, SYCLDevice> evalPacket(size_t i) {
+    size_t packet_size = Packet_traits<ScalarT, SYCLDevice>::Size;
+    if (strd_ != 1)
+      throw std::invalid_argument(
+          "vectorization is only supported for stride == 1");
+    size_t ind = disp_ + i * packet_size;
+    if (ind + packet_size >= size_data_)
+      throw std::out_of_range("invalid packet start index");
+    packet_type<ScalarT, SYCLDevice> retVec;
+    /* { */
+    /*   auto hostPtr = data_.template
+     * get_acceess<cl::sycl::access::mode::read_write,
+     * cl::sycl::access::target::host_buffer>(); */
+    /*   retVec.load(ind, hostPtr); */
+    /* } */
+    return retVec;
+  }
+
   /*! val.
    * @brief Allows printing information on the host.
    */
@@ -255,11 +273,8 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-#ifdef VERBOSE
-      printf("(B) ind = %ld , size_data_ = %ld \n", ind, size_data_);
-#endif  //  VERBOSE
       // out of range access
-      throw std::invalid_argument("Out of range access");
+      throw std::out_of_range("invalid index");
     }
 #endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
@@ -304,6 +319,8 @@ using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;
  */
 template <class ScalarT>
 struct matrix_view<ScalarT, bufferT<ScalarT>> {
+  constexpr static bool vectorizable =
+      Packet_traits<ScalarT, SYCLDevice>::Supported;
   using ContainerT = bufferT<ScalarT>;
   // Information related to the data
   ContainerT &data_;

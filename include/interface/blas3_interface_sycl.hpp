@@ -88,20 +88,21 @@ void _gemm(Executor<ExecutorType> ex, std::string _TransA, std::string _TransB,
     // IN WHICH, A IS ACCESSED BY ROWS AND B BY COLUMNS.
     // THUS, ALL THE THREADS COMPUTE A DOT PRODUCT MAKING
     // A COALESCENT ACCESS TO THE DATA
-    auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, my_mC);
+    auto scalExpr1 = make_op<ScalarExpr, prdOp2_struct>(_beta, my_mC);
 #ifdef BLAS_EXPERIMENTAL
-    auto assignOp = make_op<Assign>(my_mC, scalOp1);
-    ex.execute(assignOp);
+    auto assignExpr = make_op<Assign>(my_mC, scalExpr1);
+    ex.execute(assignExpr);
 #endif  // BLAS_EXPERIMENTAL
-    auto prdRowMatColMattOp = make_prdRowMatColMat(my_mA, my_mB);
+    auto prdRowMatColMattExpr = make_prdRowMatColMatExpr(my_mA, my_mB);
 #ifdef BLAS_EXPERIMENTAL
-    auto assignOp = make_op<Assign>(my_mC, prdRowMatColMattOp);
-    ex.execute(assignOp);
+    auto assignExpr = make_op<Assign>(my_mC, prdRowMatColMattExpr);
+    ex.execute(assignExpr);
 #endif  // BLAS_EXPERIMENTAL
-    auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, prdRowMatColMattOp);
-    auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
-    auto assignOp = make_op<Assign>(my_mC, addOp);
-    ex.execute(assignOp);
+    auto scalExpr2 =
+        make_op<ScalarExpr, prdOp2_struct>(_alpha, prdRowMatColMattExpr);
+    auto addExpr = make_op<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
+    auto assignExpr = make_op<Assign>(my_mC, addExpr);
+    ex.execute(assignExpr);
   } else {
     printf("A^t*B^t NO IMPLEMENTED\n");
   }

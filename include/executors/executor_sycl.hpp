@@ -30,13 +30,14 @@
 
 #include <CL/sycl.hpp>
 
+#include <evaluators/blas_tree_evaluator.hpp>
+#include <evaluators/blas1_tree_evaluator.hpp>
+#include <evaluators/blas2_tree_evaluator.hpp>
+#include <evaluators/blas3_tree_evaluator.hpp>
 #include <executors/blas1_tree_executor.hpp>
 #include <executors/blas2_tree_executor.hpp>
 #include <executors/blas3_tree_executor.hpp>
 #include <executors/executor_base.hpp>
-#include <operations/blas1_trees.hpp>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas3_trees.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
@@ -120,9 +121,9 @@ the value type of the tree.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <int usingSharedMem, typename treeT>
+template <int usingSharedMem, typename EvaluatorT>
 struct shared_mem_type {
-  using type = typename blas::Evaluate<treeT>::value_type;
+  using type = typename blas::Converter<EvaluatorT>::value_type;
 };
 
 /*!
@@ -131,8 +132,8 @@ Specialised case for usingSharedMem == disabled, which defines the type as void.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <typename treeT>
-struct shared_mem_type<using_shared_mem::disabled, treeT> {
+template <typename EvaluatorT>
+struct shared_mem_type<using_shared_mem::disabled, EvaluatorT> {
   using type = void;
 };
 
@@ -144,7 +145,7 @@ on the tree with the shared_memory as well as an index.
 @tparam treeT Type of the tree.
 @tparam sharedMemT Value type of the shared memory.
 */
-template <int usingSharedMem, typename treeT, typename sharedMemT>
+template <int usingSharedMem, typename EvaluatorT, typename sharedMemT>
 struct tree {
   /*!
   @brief Static function that calls eval on a tree, passing the shared_memory
@@ -153,7 +154,8 @@ struct tree {
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static void eval(treeT &tree, shared_mem<sharedMemT, usingSharedMem> scratch,
+  static void eval(EvaluatorT &tree,
+                   shared_mem<sharedMemT, usingSharedMem> scratch,
                    cl::sycl::nd_item<1> index) {
     tree.eval(scratch, index);
   }
@@ -167,15 +169,15 @@ the tree with the index only.
 @tparam treeT Type of the tree.
 @tparam sharedMemT Value type of the shared memory.
 */
-template <typename treeT, typename sharedMemT>
-struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
+template <typename EvaluatorT, typename sharedMemT>
+struct tree<using_shared_mem::disabled, EvaluatorT, sharedMemT> {
   /*!
   @brief Static function that calls eval on a tree, passing only the index.
   @param tree Tree object.
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static void eval(treeT &tree,
+  static void eval(EvaluatorT &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
     if ((index.get_global(0) < tree.getSize())) {
@@ -193,15 +195,14 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
 @param scratch_ shared memory object (local accessor).
 @param evaluator_ Tree object.
 */
-template <int usingSharedMem, typename Evaluator, typename SharedMem,
+template <int usingSharedMem, typename Tree, typename SharedMem,
           typename value_type>
 struct ExecTreeFunctor {
   SharedMem scratch;
-  Evaluator evaluator;
-  ExecTreeFunctor(SharedMem scratch_, Evaluator evaluator_)
-      : scratch(scratch_), evaluator(evaluator_) {}
+  Tree t;
+  ExecTreeFunctor(SharedMem scratch_, Tree t_) : scratch(scratch_), t(t_) {}
   void operator()(cl::sycl::nd_item<1> i) {
-    tree<usingSharedMem, Evaluator, value_type>::eval(evaluator, scratch, i);
+    tree<usingSharedMem, Tree, value_type>::eval(t, scratch, i);
   }
 };
 /*! execute_tree.
@@ -215,29 +216,27 @@ struct ExecTreeFunctor {
 @param _shMem Size in elements of the shared memory (should be zero if
 usingSharedMem == false).
 */
-template <int usingSharedMem, typename Tree>
-static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
-                         size_t _globalSize, size_t _shMem) {
-  using value_type = typename shared_mem_type<usingSharedMem, Tree>::type;
+template <int usingSharedMem, typename ExpressionT, typename Device>
+static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t _localSize, size_t _globalSize, size_t _shMem) {
+  using value_type = typename shared_mem_type<usingSharedMem, ExpressionT>::type;
 
   auto localSize = _localSize;
   auto globalSize = _globalSize;
   auto shMem = _shMem;
 
+  Evaluator<ExpressionT, Device> ev(expr);
+  ev.eval_subexpr_if_needed(NULL);
+
   auto cg1 = [=](cl::sycl::handler &h) mutable {
-    auto nTree = blas::make_accessor(t, h);
+    auto nTree = blas::make_accessor(ev, h);
 
     auto scratch = shared_mem<value_type, usingSharedMem>(shMem, h);
 
-    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-        cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for(
-        gridConfiguration,
-        ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
-                        value_type>(scratch, nTree));
+    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+    h.parallel_for(gridConfiguration, ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch), value_type>(scratch, nTree));
   };
 
-  q_.submit(cg1);
+  dev.sycl_queue().submit(cg1);
 }
 
 /*! Executor<SYCL>.
@@ -245,160 +244,56 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
  */
 template <>
 class Executor<SYCL> {
-  /*!
-   * @brief SYCL queue for execution of trees.
-   */
-  cl::sycl::queue q_;
+  SYCLDevice dev;
 
  public:
   /*!
    * @brief Constructs a SYCL executor using the given queue.
    * @param q A SYCL queue.
    */
-  Executor(cl::sycl::queue q) : q_{q} {};
+  Executor():
+    dev()
+  {}
 
   /*!
    * @brief Executes the tree without defining required shared memory.
    */
-  template <typename Tree>
-  void execute(Tree t) {
-    auto device = q_.get_device();
+  template <typename ExpressionT>
+  void execute(ExpressionT expr) {
     const auto localSize = 128;
-    //        device.get_info<cl::sycl::info::device::max_work_group_size>();
-    auto _N = t.getSize();
+    //        dev.sycl_device().get_info<cl::sycl::info::device::max_work_group_size>();
+    auto _N = expr.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     //    auto globalSize = _N; // nWG * localSize;
     auto globalSize = nWG * localSize;
 
-    execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
+    execute_tree<Device, using_shared_mem::disabled>(dev.sycl_queue(), expr, localSize, globalSize, 0);
   };
 
   /*!
    * @brief Executes the tree fixing the localSize but without defining required
    * shared memory.
    */
-  template <typename Tree>
-  void execute(Tree t, size_t localSize) {
-    auto device = q_.get_device();
-    auto _N = t.getSize();
+  template <typename ExpressionT>
+  void execute(ExpressionT expr, size_t localSize) {
+    auto _N = expr.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
+    execute_tree<Device, using_shared_mem::disabled>(dev.sycl_queue(), expr, localSize, globalSize, 0);
   };
 
   /*!
    * @brief Executes the tree with specific local, global and shared memory
    * values.
    */
-  template <typename Tree>
-  void execute(Tree t, size_t _localSize, size_t _globalSize, size_t _shMem) {
+  template <typename ExpressionT>
+  void execute(ExpressionT expr, size_t _localSize, size_t _globalSize, size_t _shMem) {
     auto localSize = _localSize;
     auto globalSize = _globalSize;
     auto shMem = _shMem;
-    execute_tree<using_shared_mem::enabled>(q_, t, localSize, globalSize,
-                                            shMem);
+    execute_tree<Device, using_shared_mem::enabled>(dev.sycl_queue(), expr, localSize, globalSize, shMem);
   }
-
-  /*!
-   * @brief Applies a reduction to a tree.
-   */
-  template <typename Tree>
-  void reduce(Tree t) {
-    using oper_type = typename blas::Evaluate<Tree>::oper_type;
-    using input_type = typename blas::Evaluate<Tree>::input_type;
-    using cont_type = typename blas::Evaluate<Tree>::cont_type;
-    using LHS_type = typename blas::Evaluate<Tree>::LHS_type;
-    auto _N = t.getSize();
-    auto localSize = t.blqS;
-    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
-    // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
-    // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
-    // ALL THE ELEMENTS ARE PROCESSED
-    auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
-    auto lhs = t.l;
-    auto rhs = t.r;
-
-    // Two accessors to local memory
-    auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-    cont_type shMem1(sharedSize);
-    auto opShMem1 = LHS_type(shMem1, 0, 1, sharedSize);
-    cont_type shMem2(sharedSize);
-    auto opShMem2 = LHS_type(shMem2, 0, 1, sharedSize);
-
-    bool frst = true;
-    bool even = false;
-    do {
-      auto globalSize = nWG * localSize;
-      if (frst) {
-        // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
-        auto localTree = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
-                                    localSize, globalSize);
-        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
-                                                globalSize, sharedSize);
-      } else {
-        // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-        auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
-            ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
-            (even ? opShMem1 : opShMem2), localSize, globalSize);
-        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
-                                                globalSize, sharedSize);
-      }
-      _N = nWG;
-      nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
-      frst = false;
-      even = !even;
-    } while (_N > 1);
-  };
-
-  /*!
-   * @brief Applies a reduction to a tree, receiving a scratch buffer.
-   */
-  template <typename Tree, typename Scratch>
-  void reduce(Tree t, Scratch scr) {
-    using oper_type = typename blas::Evaluate<Tree>::oper_type;
-    using input_type = typename blas::Evaluate<Tree>::input_type;
-    using cont_type = typename blas::Evaluate<Tree>::cont_type;
-    using LHS_type = typename blas::Evaluate<Tree>::LHS_type;
-    auto _N = t.getSize();
-    auto localSize = t.blqS;
-    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
-    // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
-    // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
-    // ALL THE ELEMENTS ARE PROCESSED
-    auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
-    auto lhs = t.l;
-    auto rhs = t.r;
-
-    // Two accessors to local memory
-    auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-    auto opShMem1 = LHS_type(scr, 0, 1, sharedSize);
-    auto opShMem2 = LHS_type(scr, sharedSize, 1, sharedSize);
-
-    bool frst = true;
-    bool even = false;
-    do {
-      auto globalSize = nWG * localSize;
-      if (frst) {
-        // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
-        auto localTree = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
-                                    localSize, globalSize);
-        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
-                                                globalSize, sharedSize);
-      } else {
-        // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-        auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
-            ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
-            (even ? opShMem1 : opShMem2), localSize, globalSize);
-        execute_tree<using_shared_mem::enabled>(q_, localTree, localSize,
-                                                globalSize, sharedSize);
-      }
-      _N = nWG;
-      nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
-      frst = false;
-      even = !even;
-    } while (_N > 1);
-  };
 };
 
 }  // namespace blas
