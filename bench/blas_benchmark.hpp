@@ -40,16 +40,17 @@
 template <typename ScalarT>
 ScalarT *new_data(size_t size, bool initialized = true) {
   ScalarT *v = new ScalarT[size];
-  if(initialized) {
-    for(size_t i = 0; i < size; ++i) {
+  if (initialized) {
+    for (size_t i = 0; i < size; ++i) {
       v[i] = 1e-3 * ((rand() % 2000) - 1000);
     }
   }
   return v;
 }
-#define release_data(ptr) delete[] ptr;
+#define release_data(ptr) delete[] (ptr);
 
-template <typename time_units_t_ = std::chrono::nanoseconds, typename ClockT = std::chrono::system_clock>
+template <typename time_units_t_ = std::chrono::nanoseconds,
+          typename ClockT = std::chrono::system_clock>
 struct benchmark {
   using time_units_t = time_units_t_;
 
@@ -114,14 +115,14 @@ struct benchmark {
     const unsigned step_size = (STEP_SIZE_PARAM);              \
     const unsigned max_elems = step_size * (NUM_STEPS);        \
     {
-#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                              \
-      for(size_t nelems = step_size; nelems < max_elems; nelems *= step_size) {  \
-        const std::string short_name = NAME;                                     \
-        auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
-        benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
-      }
+#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                          \
+  for (size_t nelems = step_size; nelems < max_elems; nelems *= step_size) { \
+    const std::string short_name = NAME;                                     \
+    auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
+    benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
+  }
 #define BENCHMARK_MAIN_END() \
-    }                        \
+  }                          \
   }
 
 #endif /* end of include guard: BLAS_BENCHMARK_HPP */
