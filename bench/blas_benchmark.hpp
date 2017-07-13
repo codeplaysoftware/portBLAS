@@ -1,5 +1,34 @@
-#ifndef BENCHMARK_HPP_IUNTMPES
-#define BENCHMARK_HPP_IUNTMPES
+/* Copyright (c) 2015 The Khronos Group Inc.
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and/or associated documentation files (the
+   "Materials"), to deal in the Materials without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Materials, and to
+   permit persons to whom the Materials are furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Materials.
+
+   MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
+   KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
+   SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
+    https://www.khronos.org/registry/
+
+  THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+// https://github.com/KhronosGroup/SyclParallelSTL/blob/master/benchmarks/benchmark.h
+
+#ifndef BLAS_BENCHMARK_HPP
+#define BLAS_BENCHMARK_HPP
 
 #include <chrono>
 #include <iomanip>
@@ -11,9 +40,8 @@
 template <typename ScalarT>
 ScalarT *new_data(size_t size, bool initialized = true) {
   ScalarT *v = new ScalarT[size];
-  if (initialized) {
-#pragma omp parallel for
-    for (size_t i = 0; i < size; ++i) {
+  if(initialized) {
+    for(size_t i = 0; i < size; ++i) {
       v[i] = 1e-3 * ((rand() % 2000) - 1000);
     }
   }
@@ -21,12 +49,7 @@ ScalarT *new_data(size_t size, bool initialized = true) {
 }
 #define release_data(ptr) delete[] ptr;
 
-struct benchmark_arguments {
-  benchmark_arguments(int argc, char **argv) {}
-};
-
-template <typename time_units_t_ = std::chrono::nanoseconds,
-          typename ClockT = std::chrono::system_clock>
+template <typename time_units_t_ = std::chrono::nanoseconds, typename ClockT = std::chrono::system_clock>
 struct benchmark {
   using time_units_t = time_units_t_;
 
@@ -91,14 +114,14 @@ struct benchmark {
     const unsigned step_size = (STEP_SIZE_PARAM);              \
     const unsigned max_elems = step_size * (NUM_STEPS);        \
     {
-#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                          \
-  for (size_t nelems = step_size; nelems < max_elems; nelems *= step_size) { \
-    const std::string short_name = NAME;                                     \
-    auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
-    benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
-  }
+#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                              \
+      for(size_t nelems = step_size; nelems < max_elems; nelems *= step_size) {  \
+        const std::string short_name = NAME;                                     \
+        auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
+        benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
+      }
 #define BENCHMARK_MAIN_END() \
-  }                          \
+    }                        \
   }
 
-#endif /* end of include guard: BENCHMARK_HPP_IUNTMPES */
+#endif /* end of include guard: BLAS_BENCHMARK_HPP */
