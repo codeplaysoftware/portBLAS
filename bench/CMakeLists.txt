@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.2)
-project(syclblas_benchmark)
 
 find_package(PkgConfig)
 
