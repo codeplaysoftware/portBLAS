@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef BLAS_PACKET_TRAITS_HPP_9LPTVQ25
-#define BLAS_PACKET_TRAITS_HPP_9LPTVQ25
+#ifndef BLAS_PACKET_TRAITS_HPP
+#define BLAS_PACKET_TRAITS_HPP
 
 namespace blas {
 

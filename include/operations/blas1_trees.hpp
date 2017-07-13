@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef BLAS1_TREE_EXPR_HPP_TEJQWMOC
-#define BLAS1_TREE_EXPR_HPP_TEJQWMOC
+#ifndef BLAS1_TREE_EXPR_HPP
+#define BLAS1_TREE_EXPR_HPP
 
 #include <stdexcept>
 #include <vector>
@@ -45,10 +45,9 @@ struct ReductionExpr {
   LHS l;
   RHS r;
 
-  ReductionExpr(LHS &_l, RHS &_r)
-      : l(_l), r(_r) {}
+  ReductionExpr(LHS &_l, RHS &_r) : l(_l), r(_r) {}
 
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 template <typename Functor, typename LHS, typename RHS>
@@ -88,7 +87,7 @@ auto make_minIndReductionExpr(LHS &l, RHS &r)
 
 /*!
 @brief Template function for constructing expression nodes based on input
-tempalte and function arguments. Non-specialised case for N reference
+template and function arguments. Non-specialised case for N reference
 subexpressions.
 @tparam expressionT Expression type of the expression node.
 @tparam subexprsTN Subexpression types of the oeration node.
@@ -102,7 +101,7 @@ expressionT<subexprsTN...> make_expr(subexprsTN &... subexprs) {
 
 /*!
 @brief Template function for constructing expression nodes based on input
-tempalte and function arguments. Specialised case for an operator and N
+template and function arguments. Specialised case for an operator and N
 reference subexpressions.
 @tparam expressionT Expression type of the expression node.
 @tparam exprT Expr type of the expression node.

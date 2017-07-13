@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef BLAS3_TREE_EXPR_HPP_X30IEJA7
-#define BLAS3_TREE_EXPR_HPP_X30IEJA7
+#ifndef BLAS3_TREE_EXPR_HPP
+#define BLAS3_TREE_EXPR_HPP
 
 #include <stdexcept>
 #include <vector>
@@ -48,7 +48,7 @@ struct PrdRowMatColMatExpr {
 
   PrdRowMatColMatExpr(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
-  size_t getSize() {
+  size_t getSize() const {
     return (r1.getAccessOpr() ? r1.getSizeR() : r1.getSizeC()) *
            (r2.getAccessOpr() ? r2.getSizeC() : r2.getSizeR());
   }

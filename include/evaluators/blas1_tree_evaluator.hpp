@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef BLAS1_TREE_EVALUATOR_HPP_CDFFQDGR
-#define BLAS1_TREE_EVALUATOR_HPP_CDFFQDGR
+#ifndef BLAS1_TREE_EVALUATOR_HPP
+#define BLAS1_TREE_EVALUATOR_HPP
 
 #include <stdexcept>
 #include <vector>
@@ -35,8 +35,6 @@
 #include <views/view_sycl.hpp>
 
 namespace blas {
-
-template <typename EvaluatorT, typename Device> void reduce(EvaluatorT ev, Device &dev);
 
 /*! Reduction.
  * @brief Implements the reduction operation for assignments (in the form y = x)
@@ -49,8 +47,7 @@ struct Evaluator<ReductionExpr<Functor, LHS, RHS>, SYCLDevice> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  auto &self = *this;
-  static constexpr bool supported = functor_traits<Functor, value_type, SYCLDevice>::supported && LHS::supported && RHS::supported;
+  /* static constexpr bool supported = functor_traits<Functor, value_type, SYCLDevice>::supported && LHS::supported && RHS::supported; */
 
   Evaluator<LHS, Device> l;
   Evaluator<RHS, Device> r;
@@ -58,29 +55,25 @@ struct Evaluator<ReductionExpr<Functor, LHS, RHS>, SYCLDevice> {
   size_t blqS = 256;
   size_t grdS = 512;
 
-  Evaluator(Expression &expr):
-    l(Evaluator<LHS, Device>(expr.l)),
-    r(Evaluator<RHS, Device>(expr.r))
-  {
+  Evaluator(Expression &expr)
+      : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {
     setBlocksize(256);
     setGridsize(512);
   }
 
-  size_t getSize() { return r.getSize(); }
-  cont_type data() { return l.data(); }
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return l.data(); }
 
-  void setBlocksize(size_t blocksize) {
-    blqS = blocksize;
-  }
+  void setBlocksize(size_t blocksize) { blqS = blocksize; }
 
-  void setGridsize(size_t gridsize) {
-    grdS = gridsize;
-  }
+  void setGridsize(size_t gridsize) { grdS = gridsize; }
+
+  void reduce(Device &dev);
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(NULL, dev);
     r.eval_subexpr_if_needed(NULL, dev);
-    reduce(self, dev)
+    reduce(dev);
     return true;
   }
 

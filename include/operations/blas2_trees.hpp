@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef BLAS2_TREE_EXPR_HPP_VE71NQCB
-#define BLAS2_TREE_EXPR_HPP_VE71NQCB
+#ifndef BLAS2_TREE_EXPR_HPP
+#define BLAS2_TREE_EXPR_HPP
 
 #include <stdexcept>
 #include <vector>
@@ -51,7 +51,7 @@ struct PrdRowMatVctExpr {
 
   PrdRowMatVctExpr(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
-  size_t getSize() { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSizeR(); }
 };
 
 template <class RHS1, class RHS2>
@@ -80,7 +80,7 @@ struct PrdRowMatVctMultExpr {
                        RHS3 &_r3, size_t _nThr)
       : l(_l), scl(_scl), r1(_r1), r2(_r2), r3(_r3), nThr{_nThr} {};
 
-  size_t getSize() { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSizeR(); }
 };
 
 template <class LHS, class RHS1, class RHS2, class RHS3>
@@ -108,7 +108,7 @@ struct PrdRowMatVctMultShmExpr {
   PrdRowMatVctMultShmExpr(LHS &_l, RHS1 &_r1, RHS2 &_r2, size_t _nThr)
       : l(_l), r1(_r1), r2(_r2), nThr{_nThr} {};
 
-  size_t getSize() { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSizeR(); }
 };
 
 template <class LHS, class RHS1, class RHS2>
@@ -132,7 +132,7 @@ struct AddPrdRowMatVctMultShmExpr {
   AddPrdRowMatVctMultShmExpr(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2)
       : l(_l), scl(_scl), r1(_r1), r2(_r2){};
 
-  size_t getSize() { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSizeR(); }
 };
 
 template <class LHS, class RHS1, class RHS2>
@@ -156,7 +156,7 @@ struct RedRowMatVctExpr {
   RedRowMatVctExpr(RHS1 &_r1, RHS2 &_r2, size_t _warpSize)
       : r1(_r1), r2(_r2), warpSize(_warpSize){};
 
-  size_t getSize() { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSizeR(); }
 };
 
 template <class RHS1, class RHS2>
@@ -178,7 +178,7 @@ struct ModifRank1Expr {
 
   ModifRank1Expr(RHS1 &_r1, RHS2 &_r2, RHS3 &_r3) : r1(_r1), r2(_r2), r3(_r3){};
 
-  size_t getSize() { return r1.getSize(); }
+  size_t getSize() const { return r1.getSize(); }
 };
 
 template <class RHS1, class RHS2, class RHS3>

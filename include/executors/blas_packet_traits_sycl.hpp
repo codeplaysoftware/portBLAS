@@ -26,7 +26,7 @@
 #ifndef BLAS_PACKET_TRAITS_SYCL_HPP
 #define BLAS_PACKET_TRAITS_SYCL_HPP
 
-#include <CL/sycl.hpp>
+#include <climits>
 
 #include <CL/sycl.hpp>
 #include <executors/blas_packet_traits.hpp>
@@ -37,15 +37,12 @@ class SYCLDevice {
   /*!
    * @brief SYCL queue for execution of trees.
    */
-  cl::sycl::device m_device;
-  /*!
-   * @brief SYCL device.
-   */
   cl::sycl::queue m_queue;
-public:
+
+ public:
   SYCLDevice():
     m_queue(cl::sycl::queue([&](cl::sycl::exception_list l) {
-      for(const auto& e : l) {
+      for(const auto &e : l) {
         try {
           if(e) {
             std::rethrow_exception(e);
@@ -54,25 +51,17 @@ public:
           std::cerr << e.what() << std::endl;
         }
       }
-    })),
-    m_device(m_queue.get_device())
+    }))
   {}
 
-  static void parallel_for_setup(size_t &localSize, size_t &nWG, size_t globalSize = UINT_MAX) {
+  static void parallel_for_setup(size_t &localSize, size_t &nWG, size_t &globalSize, size_t N) {
     localSize = 256;
-    nWG = 512;
-    if(globalSize != UINT_MAX) {
-      nWG = (nWG + (2 * localSize) - 1) / (2 * localSize);
-    }
+    globalSize = N;
+    nWG = (globalSize + localSize - 1) / localSize;
   }
 
-  cl::sycl::queue &sycl_queue() {
-    return m_queue;
-  }
-
-  cl::sycl::device sycl_device() {
-    return m_device;
-  }
+  cl::sycl::queue sycl_queue() { return m_queue; }
+  cl::sycl::device sycl_device() { return m_queue.get_device(); }
 };
 
 template <typename T>

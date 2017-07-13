@@ -22,8 +22,8 @@
 *
 **************************************************************************/
 
-#ifndef BLAS_TREE_EXPR_HPP_T5AMW6CZ
-#define BLAS_TREE_EXPR_HPP_T5AMW6CZ
+#ifndef BLAS_TREE_EXPR_HPP
+#define BLAS_TREE_EXPR_HPP
 
 namespace blas {
 
@@ -41,7 +41,7 @@ struct JoinExpr {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 /** Assign.
@@ -57,7 +57,7 @@ struct AssignExpr {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 /*! DoubleAssign.
@@ -77,7 +77,7 @@ struct DoubleAssignExpr {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r2.getSize(); }
+  size_t getSize() const { return r2.getSize(); }
 };
 
 /*!ScalarOp.
@@ -93,7 +93,7 @@ struct ScalarExpr {
 
   ScalarExpr(SCL _scl, RHS &_r) : scl(_scl), r(_r){};
 
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 /*! UnaryOp.
@@ -107,7 +107,7 @@ struct UnaryExpr {
 
   UnaryExpr(RHS &_r) : r(_r){};
 
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 /*! BinaryOp.
@@ -124,7 +124,7 @@ struct BinaryExpr {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 
 /*! TupleOp.
@@ -138,7 +138,7 @@ struct TupleExpr {
 
   TupleExpr(RHS &_r) : r(_r) {}
 
-  size_t getSize() { return r.getSize(); }
+  size_t getSize() const { return r.getSize(); }
 };
 }  // namespace blas
 

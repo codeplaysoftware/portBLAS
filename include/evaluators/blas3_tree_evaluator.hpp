@@ -47,7 +47,7 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
   using Expression = PrdRowMatColMatExpr<RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
-  static constexpr bool supported = RHS1::supported && RHS2::supported;
+  /* static constexpr bool supported = RHS1::supported && RHS2::supported; */
 
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;
@@ -56,8 +56,8 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
       : r1(Evaluator<RHS1, Device>(expr.r1)),
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
-  size_t getSize() { return r1.getSize(); }
-  cont_type data() { return r1.data(); }
+  size_t getSize() const { return r1.getSize(); }
+  cont_type *data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(NULL, dev);

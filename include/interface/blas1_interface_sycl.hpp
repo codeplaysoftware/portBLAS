@@ -31,6 +31,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <CL/sycl.hpp>
+
 #include <executors/executor_sycl.hpp>
 #include <operations/blas1_trees.hpp>
 
@@ -47,24 +49,14 @@ namespace blas {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _axpy(Executor<ExecutorType> ex, int _N, T _alpha,
-           vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _vy, int _incy) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _axpy(Executor<ExecutorType> ex, Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  std::cout << "alpha = " << _alpha << std::endl;
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto addExpr = make_expr<BinaryExpr, addOp2_struct>(my_vy, scalExpr);
   auto assignExpr = make_expr<AssignExpr>(my_vy, addExpr);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  my_vy.printH("VY");
-#endif  //  VERBOSE
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -76,21 +68,12 @@ void _axpy(Executor<ExecutorType> ex, int _N, T _alpha,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _copy(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _vy, int _incy) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _copy(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
   auto assignExpr = make_expr<AssignExpr>(my_vy, my_vx);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -102,21 +85,12 @@ void _copy(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _swap(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _vy, int _incy) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _swap(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
   auto swapExpr = make_expr<DoubleAssignExpr>(my_vy, my_vx, my_vx, my_vy);
-  ex.execute(swapExpr);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
+  ex.execute(swapExpr, dev);
 }
 
 /**
@@ -126,20 +100,12 @@ void _swap(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
-           vector_view<T, ContainerT> _vx, int _incx) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _scal(Executor<ExecutorType> ex, Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx, int _incx) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  std::cout << "alpha = " << _alpha << std::endl;
-  my_vx.printH("VX");
-#endif  //  VERBOSE
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto assignExpr = make_expr<AssignExpr>(my_vx, scalExpr);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -152,37 +118,19 @@ void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-/* template <typename ExecutorType, typename T, typename ContainerT> */
-/* T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, */
-/*        int _incx, vector_view<T, ContainerT> _vy, int _incy) { */
-/*   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N); */
-/*   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N); */
-/* #ifdef VERBOSE */
-/*   my_vx.printH("VX"); */
-/*   my_vy.printH("VY"); */
-/* #endif  //  VERBOSE */
-/*   auto prdOp = make_expr<BinaryOp, prdOp2_struct>(my_vx, my_vy); */
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+T _dot(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy) {
+  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
 
-/*   auto localSize = 256; */
-/*   auto nWG = 512; */
-/*   ContainerT valT1(nWG); */
-/*   auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG); */
-/*   auto assignExpr1 = */
-/*       make_addAssignReductionExpr(val1, prdOp, localSize, nWG * localSize);
- */
-/*   ex.execute(assignExpr1); */
-
-/*   ContainerT valT2(1); */
-/*   auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1); */
-/*   auto assignExpr2 = make_addAssignReductionExpr(val2, val1, localSize, nWG);
- */
-/*   ex.execute(assignExpr2); */
-
-/* #ifdef VERBOSE */
-/*   std::cout << "val = " << val2.eval(0) << std::endl; */
-/* #endif  //  VERBOSE */
-/*   return val2.eval(0); */
-/* } */
+  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
+  T result;
+  cl::sycl::buffer<T, 1> buf_result(&result, cl::sycl::range<1>{1});
+  auto rs = vector_view<T, ContainerT>(buf_result, 0, 1, 1);
+  auto assignExpr = make_addReductionExpr(buf_result, prdExpr);
+  ex.execute(assignExpr);
+  return rs.eval(0);
+}
 
 /**
  * \brief Compute the inner product of two vectors with extended precision
@@ -193,24 +141,14 @@ void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, vector_view<T, ContainerT> _rs) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _dot(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-  my_rs.printH("VR");
-#endif  //  VERBOSE
   auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignExpr = make_addAssignReduction(my_rs, prdExpr);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  my_rs.printH("VR");
-#endif  //  VERBOSE
+  auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -220,23 +158,15 @@ void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+T _nrm2(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
 
-  auto localSize = 256;
-  auto nWG = 512;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignExpr = make_addAssignReductionExpr(val1, prdExpr);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  std::cout << "val = " << std::sqrt(val1.eval(0)) << std::endl;
-#endif  //  VERBOSE
+  ContainerT valT1(1);
+  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, 1);
+  auto assignExpr = make_addReductionExpr(val1, prdExpr);
+  ex.execute(assignExpr, dev);
   return std::sqrt(val1.eval(0));
 }
 
@@ -246,52 +176,16 @@ T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _nrm2(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_rs.printH("VR");
-#endif  //  VERBOSE
 
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignExpr = make_addAssignReductionExpr(my_rs, prdExpr, localSize, localSize * nWG);
-  ex.execute(assignExpr);
-  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(my_rs);
+  auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
+  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(assignExpr);
   auto assignExpr2 = make_expr<AssignExpr>(my_rs, sqrtExpr);
-  ex.execute(assignExpr2);
-#ifdef VERBOSE
-  my_rs.printH("VR");
-#endif  //  VERBOSE
-}
-
-/**
- * \brief ASUM Takes the sum of the absolute values
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-
-  auto localSize = 256;
-  auto nWG = 128;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignExpr = make_addAbsAssignReductionExpr(val1, my_vx, localSize, nWG * localSize);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  std::cout << "val = " << val2.eval(0) << std::endl;
-#endif  //  VERBOSE
-  return val1.eval(0);
+  ex.execute(assignExpr2, dev);
 }
 
 /**
@@ -300,21 +194,12 @@ T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _asum(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_rs.printH("VR");
-#endif  //  VERBOSE
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignExpr = make_addAbsAssignReductionExpr(my_rs, my_vx);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  my_rs.printH("VR");
-#endif  //  VERBOSE
+  auto assignExpr = make_addAbsReductionExpr(my_rs, my_vx);
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -322,23 +207,13 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, in
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I, typename ContainerI>
-void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT, typename I, typename ContainerI>
+void _iamax(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-  size_t localSize = 256, nWG = 512;
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG, constant<IndVal<T>, const_val::imax>::value);
-  auto bvalT1 = cl::sycl::buffer<IndVal<T>, 1>(valT1.data(), cl::sycl::range<1>{nWG});
-  auto val1 = BufferVectorView<IndVal<T>>(bvalT1, 0, 1, nWG);
-  auto assignExpr = make_maxIndAssignReductionExpr(val1, tupExpr);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
+  auto assignExpr = make_maxIndReductionExpr(my_rs, tupExpr);
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -346,12 +221,12 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, i
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  IndVal<T> rsT;
-  auto brsT = cl::sycl::buffer<IndVal<T>, 1>(&rsT, cl::sycl::range<1>{1});
-  auto rs = BufferVectorView<IndVal<T>>(brsT, 0, 1, 1);
-  _iamax(ex, _N, _vx, _incx, rs);
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+size_t _iamax(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
+  IndVal<T> result;
+  cl::sycl::buffer<IndVal<T>, 1> buf_result(&result, cl::sycl::range<1>{1});
+  auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
+  _iamax(ex, dev, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
 
@@ -360,23 +235,13 @@ size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I, typename ContainerI>
-void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT, typename I, typename ContainerI>
+void _iamin(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<I, ContainerI> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-  size_t localSize = 256, nWG = 512;
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG, constant<IndVal<T>, const_val::imin>::value);
-  auto bvalT1 = cl::sycl::buffer<IndVal<T>, 1>(valT1.data(), cl::sycl::range<1>{nWG});
-  auto val1 = BufferVectorView<IndVal<T>>(bvalT1, 0, 1, nWG);
-  auto assignExpr = make_minIndAssignReduction(val1, tupExpr, localSize, localSize * nWG);
-  ex.execute(assignExpr);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
+  auto assignExpr = make_minIndReductionExpr(my_rs, tupExpr);
+  ex.execute(assignExpr, dev);
 }
 
 /**
@@ -384,12 +249,12 @@ void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, i
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  IndVal<T> rsT;
-  auto brsT = cl::sycl::buffer<IndVal<T>, 1>(&rsT, cl::sycl::range<1>{1});
-  auto rs = BufferVectorView<IndVal<T>>(brsT, 0, 1, 1);
-  _iamin(ex, _N, _vx, _incx, rs);
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+size_t _iamin(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
+  IndVal<T> result;
+  auto buf_result = cl::sycl::buffer<IndVal<T>, 1> (&result, cl::sycl::range<1>{1});
+  auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
+  _iamin(ex, dev, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
 
@@ -435,15 +300,10 @@ void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
  * @brief Consturcts given plane rotation
  * Not implemented.
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, T _cos, T _sin) {
+template <typename ExecutorType, typename Device, typename T, typename ContainerT>
+void _rot(Executor<ExecutorType> ex, Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx, vector_view<T, ContainerT> _vy, int _incy, T _cos, T _sin) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  std::cout << "cos = " << _cos << " , sin = " << _sin << std::endl;
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
   auto scalExpr1 = make_expr<ScalarExpr, prdOp2_struct>(_cos, my_vx);
   auto scalExpr2 = make_expr<ScalarExpr, prdOp2_struct>(_sin, my_vy);
   auto scalExpr3 = make_expr<ScalarExpr, prdOp2_struct>(-_sin, my_vx);
@@ -451,11 +311,7 @@ void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx, int
   auto addExpr12 = make_expr<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
   auto addExpr34 = make_expr<BinaryExpr, addOp2_struct>(scalExpr3, scalExpr4);
   auto doubleAssignExpr = make_expr<DoubleAssignExpr>(my_vx, my_vy, addExpr12, addExpr34);
-  ex.execute(doubleAssignExpr);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
+  ex.execute(doubleAssignExpr, dev);
 }
 
 }  // namespace blas

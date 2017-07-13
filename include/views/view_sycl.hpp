@@ -60,7 +60,7 @@ struct get_size_struct<bufferT<ScalarT>> {
  */
 template <typename ScalarT>
 struct vector_view<ScalarT, bufferT<ScalarT>> {
-  static constexpr bool supported = Packet_traits<ScalarT, SYCLDevice>::Supported;
+  /* static constexpr bool supported = Packet_traits<ScalarT, SYCLDevice>::Supported; */
   using ContainerT = bufferT<ScalarT>;
   ContainerT data_;
   size_t size_data_;
@@ -141,7 +141,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  size_t getSize() { return size_; }
+  size_t getSize() const { return size_; }
 
   /*! vector_view.
    * See vector_view.
@@ -201,62 +201,6 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
           this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
           this->strd_, size);
     }
-  }
-
-  /*! eval.
-    * See vector_view::eval.
-    */
-  ScalarT &eval(size_t i) {
-    //  auto eval(size_t i) -> decltype(data_[i]) {
-    auto ind = disp_;
-    if (strd_ == 1) {
-      ind += i;
-    } else if (strd_ > 0) {
-      ind += strd_ * i;
-    } else {
-      ind -= strd_ * (size_ - i - 1);
-    }
-#ifndef __SYCL_DEVICE_ONLY__
-    if (ind >= size_data_) {
-      throw std::out_of_range("invalid index");
-    }
-#endif  //__SYCL_DEVICE_ONLY__
-    ScalarT retVal;
-    {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
-    }
-
-    return retVal;
-  }
-
-  /*! eval.
-   * See eval.
-   */
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
-  }
-
-  /*! evalPacket.
-   */
-  packet_type<ScalarT, SYCLDevice> evalPacket(size_t i) {
-    size_t packet_size = Packet_traits<ScalarT, SYCLDevice>::Size;
-    if (strd_ != 1)
-      throw std::invalid_argument(
-          "vectorization is only supported for stride == 1");
-    size_t ind = disp_ + i * packet_size;
-    if (ind + packet_size >= size_data_)
-      throw std::out_of_range("invalid packet start index");
-    packet_type<ScalarT, SYCLDevice> retVec;
-    /* { */
-    /*   auto hostPtr = data_.template
-     * get_acceess<cl::sycl::access::mode::read_write,
-     * cl::sycl::access::target::host_buffer>(); */
-    /*   retVec.load(ind, hostPtr); */
-    /* } */
-    return retVec;
   }
 
   /*! val.
@@ -434,7 +378,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getSize() { return sizeR_ * sizeC_; }
+  size_t getSize() const { return sizeR_ * sizeC_; }
 
   /*!
    * @brief See matrix_view.
@@ -709,7 +653,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getSize() { return size_; }
+  size_t getSize() const { return size_; }
 
   /*!
    * @brief See vector_view.
@@ -907,11 +851,11 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   size_t getDataSize() { return size_data_; }
 
-  size_t getSize() { return sizeR_ * sizeC_; }
+  size_t getSize() const { return sizeR_ * sizeC_; }
 
-  size_t getSizeR() { return sizeR_; }
+  size_t getSizeR() const { return sizeR_; }
 
-  size_t getSizeC() { return sizeC_; }
+  size_t getSizeC() const { return sizeC_; }
 
   int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
