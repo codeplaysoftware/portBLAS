@@ -24,7 +24,7 @@ endif()
 
 if(USE_CLBLAS)
   message(STATUS "Will enable comparison with clBLAS")
-  set(CLBLAS_LIBRARIES "${CLBLAS_ROOT}/lib/x86_64-linux-gnu/libclBLAS.so")
+  set(CLBLAS_LIBRARIES "${CLBLAS_ROOT}/lib64/libclBLAS.so")
   set(CLBLAS_INCLUDE "${CLBLAS_ROOT}/include/")
 endif(USE_CLBLAS)
 
