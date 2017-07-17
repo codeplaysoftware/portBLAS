@@ -28,6 +28,7 @@
 
 #include <CL/sycl.hpp>
 
+#include <executors/blas_device_sycl.hpp>
 #include <executors/blas_packet_traits_sycl.hpp>
 #include <views/operview_base.hpp>
 
@@ -60,7 +61,8 @@ struct get_size_struct<bufferT<ScalarT>> {
  */
 template <typename ScalarT>
 struct vector_view<ScalarT, bufferT<ScalarT>> {
-  /* static constexpr bool supported = Packet_traits<ScalarT, SYCLDevice>::Supported; */
+  /* static constexpr bool supported = Packet_traits<ScalarT,
+   * SYCLDevice>::Supported; */
   using ContainerT = bufferT<ScalarT>;
   ContainerT data_;
   size_t size_data_;

@@ -23,13 +23,14 @@
  *
  **************************************************************************/
 
-#ifndef OPERVIEW_BASE_HPP
-#define OPERVIEW_BASE_HPP
+#ifndef BLAS_OPERVIEW_BASE_HPP
+#define BLAS_OPERVIEW_BASE_HPP
 
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 
+#include <executors/blas_device.hpp>
 #include <executors/blas_packet_traits.hpp>
 
 namespace blas {
@@ -511,4 +512,4 @@ struct matrix_view {
 
 }  // namespace blas
 
-#endif  // OPERVIEW_BASE_HPP
+#endif  // BLAS_OPERVIEW_BASE_HPP

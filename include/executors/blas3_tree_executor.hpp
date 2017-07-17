@@ -33,6 +33,7 @@
 #include <evaluators/blas1_tree_evaluator.hpp>
 #include <evaluators/blas2_tree_evaluator.hpp>
 #include <evaluators/blas3_tree_evaluator.hpp>
+#include <executors/blas_device_sycl.hpp>
 #include <executors/executor_base.hpp>
 #include <views/view_sycl.hpp>
 

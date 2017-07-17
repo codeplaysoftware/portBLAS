@@ -56,11 +56,13 @@ struct functor_traits<posOp1_struct, ScalarT, Device> : posOp1_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<negOp1_struct, ScalarT, Device> : negOp1_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_neg; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_neg;
+   */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<sqtOp1_struct, ScalarT, Device> : sqtOp1_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_sqrt; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_sqrt;
+   */
   template <typename R = ScalarT>
   static R eval(R r) {
     return cl::sycl::sqrt(r);
@@ -72,15 +74,18 @@ struct functor_traits<tupOp1_struct, ScalarT, Device> : tupOp1_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<addOp1_struct, ScalarT, Device> : addOp1_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_add || Packet_traits<ScalarT, Device>::has_mul; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_add
+   * || Packet_traits<ScalarT, Device>::has_mul; */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<prdOp1_struct, ScalarT, Device> : prdOp1_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_mul; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_mul;
+   */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<absOp1_struct, ScalarT, Device> : absOp1_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs;
+   */
   template <typename R = ScalarT>
   static R eval(R r) {
     return cl::sycl::abs(r);
@@ -88,19 +93,23 @@ struct functor_traits<absOp1_struct, ScalarT, Device> : absOp1_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<addOp2_struct, ScalarT, Device> : addOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_add; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_add;
+   */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<prdOp2_struct, ScalarT, Device> : prdOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_mul; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_mul;
+   */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<divOp2_struct, ScalarT, Device> : divOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_div; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_div;
+   */
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<maxOp2_struct, ScalarT, Device> : maxOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_max; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_max;
+   */
   template <typename L = ScalarT, typename R = ScalarT>
   static R eval(L l, R r) {
     return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) <
@@ -114,7 +123,8 @@ struct functor_traits<maxOp2_struct, ScalarT, Device> : maxOp2_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<minOp2_struct, ScalarT, Device> : minOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_min; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_min;
+   */
   template <typename L = ScalarT, typename R = ScalarT>
   static R eval(L l, R r) {
     return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) >
@@ -128,7 +138,8 @@ struct functor_traits<minOp2_struct, ScalarT, Device> : minOp2_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<addAbsOp2_struct, ScalarT, Device> : addAbsOp2_struct {
-  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs && Packet_traits<ScalarT, Device>::has_add; */
+  /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs
+   * && Packet_traits<ScalarT, Device>::has_add; */
   template <typename L = ScalarT, typename R = ScalarT>
   static R eval(L l, R r) {
     return functor_traits<addOp2_struct, ScalarT, Device>::eval(

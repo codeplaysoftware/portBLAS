@@ -30,9 +30,7 @@
 
 #include <CL/sycl.hpp>
 
-#include <executors/executor_base.hpp>
-#include <executors/executor_sycl_base.hpp>
-#include <executors/reduction_sycl.hpp>
+#include <executors/blas_device_sycl.hpp>
 
 namespace blas {
 /*! execute_tree.
@@ -46,50 +44,48 @@ namespace blas {
 @param _shMem Size in elements of the shared memory (should be zero if
 usingSharedMem == false).
 */
-template <int usingSharedMem, typename Device, typename ExpressionT>
-static void execute_tree(Device &dev, ExpressionT expr, size_t _localSize, size_t _globalSize, size_t _shMem) {
-  using value_type = typename shared_mem_type<usingSharedMem, ExpressionT>::type;
+template <typename ExpressionT, typename Device>
+static void execute_tree(ExpressionT expr, Device &dev, size_t localSize,
+                         size_t globalSize) {
+  using EvaluatorT = Evaluator<ExpressionT, Device> using value_type =
+      typename EvaluatorT::type;
 
-  auto localSize = _localSize;
-  auto globalSize = _globalSize;
-  auto shMem = _shMem;
-
-  Evaluator<ExpressionT, Device> ev(expr);
+  EvaluatorT ev(expr);
   ev.eval_subexpr_if_needed(NULL, dev);
 
-  auto cg1 = [=](cl::sycl::handler &h) mutable {
+  dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
     auto nTree = blas::make_accessor(ev, h);
-    auto scratch = shared_mem<value_type, usingSharedMem>(shMem, h);
-    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for(gridConfiguration, ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch), value_type>(scratch, nTree));
-  };
-
-  dev.sycl_queue().submit(cg1);
+    auto scratch = shared_mem<value_type, usingSharedMem>(sharedsize, h);
+    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+        cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+    h.parallel_for(
+        gridConfiguration,
+        ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
+                        value_type>(scratch, nTree));
+  });
 }
 
-/*! Executor<SYCL>.
- * @brief Executes an Expression Tree using SYCL.
- */
-template <>
-class Executor<SYCL> {
- public:
-  /*!
-   * @brief Constructs a SYCL executor using the given queue.
-   * @param q A SYCL queue.
-   */
-  Executor() {}
-
-  /*!
-   * @brief Executes the tree without defining required shared memory.
-   */
-  template <typename ExpressionT, typename Device>
-  void execute(ExpressionT expr, Device &dev) {
-    size_t localSize, nWG, globalSize;
-    auto _N = expr.getSize();
-    dev.parallel_for_setup(localSize, nWG, globalSize, _N);
-    execute_tree<using_shared_mem::disabled>(dev, expr, localSize, globalSize, 0);
-  };
+/*! execute_tree.
+@brief the functor for executing a tree in SYCL.
+@tparam EvaluatorT Type of the tree.
+@param EvaluatorT Tree object.
+*/
+template <typename EvaluatorT>
+struct ExecTreeFunctor {
+  EvaluatorT ev;
+  ExecTreeFunctor(EvaluatorT ev_) :, ev(ev_) {}
+  void operator()(cl::sycl::nd_item<1> i) { ev.eval(i); }
 };
+
+/*!
+ * @brief Executes the tree without defining required shared memory.
+ */
+void execute(ExpressionT expr, Device &dev) {
+  size_t localSize, nWG, globalSize;
+  auto _N = expr.getSize();
+  dev.parallel_for_setup(localSize, nWG, globalSize, _N);
+  execute_tree<using_shared_mem::disabled>(dev, expr, localSize, globalSize, 0);
+}
 
 }  // namespace blas
 

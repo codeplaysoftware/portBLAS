@@ -55,8 +55,7 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
 
   Evaluator(Expression &expr)
       : r1(Evaluator<RHS1, Device>(expr.r1)),
-        r2(Evaluator<RHS2, Device>(expr.r2))
-  {}
+        r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return r1.data(); }
@@ -93,7 +92,8 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
   using Expression = PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  /* static constexpr bool supported = LHS::supported && RHS1::supported && RHS2::supported && RHS3::supported; */
+  /* static constexpr bool supported = LHS::supported && RHS1::supported &&
+   * RHS2::supported && RHS3::supported; */
 
   value_type scl;
   Evaluator<LHS, Device> l;
@@ -109,8 +109,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
         r1(Evaluator<RHS1, Device>(expr.r1)),
         r2(Evaluator<RHS2, Device>(expr.r2)),
         r3(Evaluator<RHS3, Device>(expr.r3)),
-        nThr(2)
-  {}
+        nThr(2) {}
 
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return l.data(); }
@@ -189,7 +188,8 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   using Expression = PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  /* static constexpr bool supported = LHS::supported && RHS1::supported && RHS2::supported; */
+  /* static constexpr bool supported = LHS::supported && RHS1::supported &&
+   * RHS2::supported; */
 
   Evaluator<LHS, Device> l;
   Evaluator<RHS1, Device> r1;
@@ -281,7 +281,8 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   using Expression = AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  /* static constexpr bool supported = LHS::supported && RHS1::supported && RHS2::supported; */
+  /* static constexpr bool supported = LHS::supported && RHS1::supported &&
+   * RHS2::supported; */
 
   value_type scl;
   Evaluator<LHS, Device> l;
@@ -440,7 +441,8 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   using Expression = ModifRank1Expr<RHS1, RHS2, RHS3>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
-  /* static constexpr bool supported = RHS1::supported && RHS2::supported && RHS3::supported; */
+  /* static constexpr bool supported = RHS1::supported && RHS2::supported &&
+   * RHS3::supported; */
 
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;

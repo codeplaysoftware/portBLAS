@@ -72,7 +72,8 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device> {
   Evaluator<LHS, Device> l;
   Evaluator<RHS, Device> r;
 
-  Evaluator(Expression &expr) : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
+  Evaluator(Expression &expr)
+      : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return l.data(); }
 
@@ -93,7 +94,8 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device> {
   using Expression = DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS1, Device>::cont_type;
-  /* constexpr static bool supported = LHS1::supported && LHS2::supported && RHS1::supported && RHS2::supported; */
+  /* constexpr static bool supported = LHS1::supported && LHS2::supported &&
+   * RHS1::supported && RHS2::supported; */
 
   Evaluator<LHS1, Device> l1;
   Evaluator<LHS2, Device> l2;
@@ -134,12 +136,14 @@ struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
-  /* constexpr static bool supported = dev_functor::supported && RHS::supported; */
+  /* constexpr static bool supported = dev_functor::supported && RHS::supported;
+   */
 
   SCL scl;
   Evaluator<RHS, Device> r;
 
-  Evaluator(Expression &expr): scl(expr.scl), r(Evaluator<RHS, Device>(expr.r)) {}
+  Evaluator(Expression &expr)
+      : scl(expr.scl), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return r.data(); }
 
@@ -162,7 +166,8 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
-  /* constexpr static bool supported = dev_functor::supported && RHS::supported; */
+  /* constexpr static bool supported = dev_functor::supported && RHS::supported;
+   */
 
   Evaluator<RHS, Device> r;
 
@@ -187,7 +192,8 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  /* constexpr static bool supported = dev_functor::supported && LHS::supported && RHS::supported; */
+  /* constexpr static bool supported = dev_functor::supported && LHS::supported
+   * && RHS::supported; */
 
   Evaluator<LHS, Device> l;
   Evaluator<RHS, Device> r;

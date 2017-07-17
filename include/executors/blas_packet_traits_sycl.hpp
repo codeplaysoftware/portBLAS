@@ -29,40 +29,10 @@
 #include <climits>
 
 #include <CL/sycl.hpp>
+#include <executors/blas_device_sycl.hpp>
 #include <executors/blas_packet_traits.hpp>
 
 namespace blas {
-
-class SYCLDevice {
-  /*!
-   * @brief SYCL queue for execution of trees.
-   */
-  cl::sycl::queue m_queue;
-
- public:
-  SYCLDevice():
-    m_queue(cl::sycl::queue([&](cl::sycl::exception_list l) {
-      for(const auto &e : l) {
-        try {
-          if(e) {
-            std::rethrow_exception(e);
-          }
-        } catch(cl::sycl::exception e) {
-          std::cerr << e.what() << std::endl;
-        }
-      }
-    }))
-  {}
-
-  static void parallel_for_setup(size_t &localSize, size_t &nWG, size_t &globalSize, size_t N) {
-    localSize = 256;
-    globalSize = N;
-    nWG = (globalSize + localSize - 1) / localSize;
-  }
-
-  cl::sycl::queue sycl_queue() { return m_queue; }
-  cl::sycl::device sycl_device() { return m_queue.get_device(); }
-};
 
 template <typename T>
 struct Packet_traits<T, SYCLDevice> {
@@ -108,6 +78,6 @@ struct Packet_traits<float, SYCLDevice> {
   };
 };
 
-}  // blas
+}  // namespace BLAS
 
 #endif

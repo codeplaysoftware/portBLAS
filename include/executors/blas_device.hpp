@@ -19,45 +19,17 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas_packet_traits.hpp
+ *  @filename blas_device.hpp
  *
  **************************************************************************/
 
-#include <executors/blas_device.hpp>
-
-#ifndef BLAS_PACKET_TRAITS_HPP
-#define BLAS_PACKET_TRAITS_HPP
+#ifndef BLAS_DEVICE_HPP
+#define BLAS_DEVICE_HPP
 
 namespace blas {
 
-template <typename T, typename Device>
-struct default_packet_traits {
-  using packet_type = T;
-  enum {
-    Size = 1,
-    Supported = 1,
-    has_abs = 1,
-    has_sqrt = 1,
-    has_sin = 1,
-    has_cos = 1,
-    has_add = 1,
-    has_sub = 1,
-    has_mul = 1,
-    has_div = 1,
-    has_mad = 0,
-    has_dot = 0,
-    has_length = 0,
-    has_min = 1,
-    has_max = 1
-  };
-};
-
-template <typename T, typename Device>
-struct Packet_traits : default_packet_traits<T, Device> {};
-
-template <typename T, typename Device>
-using packet_type = typename Packet_traits<T, Device>::packet_type;
+class SimpleDevice {};
 
 }  // namespace BLAS
 
-#endif
+#endif /* end of include guard: BLAS_DEVICE_HPP */
