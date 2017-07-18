@@ -1,5 +1,5 @@
-#ifndef BLAS1_TEST_HPP_DFQO1OHP
-#define BLAS1_TEST_HPP_DFQO1OHP
+#ifndef BLAS1_TEST_HPP
+#define BLAS1_TEST_HPP
 
 #include <cmath>
 #include <complex>
@@ -13,13 +13,14 @@
 
 #include <interface/blas1_interface_sycl.hpp>
 
-using namespace cl::sycl;
 using namespace blas;
 
 template <typename ClassName>
 struct option_size;
-#define RANDOM_SIZE UINT_MAX
-#define RANDOM_STRD UINT_MAX
+namespace {
+static const size_t RANDOM_SIZE = UINT_MAX;
+static const size_t RANDOM_STRD = UINT_MAX;
+}  // namespace special
 #define REGISTER_SIZE(size, test_name)          \
   template <>                                   \
   struct option_size<class test_name> {         \
@@ -69,6 +70,9 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   virtual void TearDown() {}
 
   static size_t rand_size() {
+    // make sure the generated number is not too big for a type
+    // i.e. we do not want the sample size to be too big because of
+    // precision/memory restrictions
     size_t ret = rand() >> 5;
     int type_size =
         sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
@@ -77,17 +81,42 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
            1;
   }
 
+  // it is important that all tests are run with the same test size
+  // so each time we access this function within the same program, we get the
+  // same
+  // randomly generated size
+  size_t test_size() {
+    static bool first = true;
+    static size_t N;
+    if (first) {
+      first = false;
+      N = rand_size();
+    }
+    return N;
+  }
+
+  // getting the stride in the same way as the size above
+  size_t test_strd() {
+    static bool first = true;
+    static size_t N;
+    if (first) {
+      first = false;
+      N = ((rand() & 1) * (rand() % 5)) + 1;
+    }
+    return N;
+  }
+
   template <typename DataType,
-            typename ValueType = typename DataType::value_type>
+            typename value_type = typename DataType::value_type>
   static void set_rand(DataType &vec, size_t _N) {
-    ValueType left(-1), right(1);
+    value_type left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = ValueType(rand() % int(right - left) * 1000) * .001 - right;
+      vec[i] = value_type(rand() % int(right - left) * 1000) * .001 - right;
     }
   }
 
   template <typename DataType,
-            typename ValueType = typename DataType::value_type>
+            typename value_type = typename DataType::value_type>
   static void print_cont(const DataType &vec, size_t _N,
                          std::string name = "vector") {
     std::cout << name << ": ";
@@ -96,15 +125,15 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   }
 
   template <typename DataType,
-            typename ValueType = typename DataType::value_type>
-  static buffer<ValueType, 1> make_buffer(DataType &vec) {
-    return buffer<ValueType, 1>(vec.data(), vec.size());
+            typename value_type = typename DataType::value_type>
+  static cl::sycl::buffer<value_type, 1> make_buffer(DataType &vec) {
+    return cl::sycl::buffer<value_type, 1>(vec.data(), vec.size());
   }
 
-  template <typename ValueType>
-  static vector_view<ValueType, buffer<ValueType>> make_vview(
-      buffer<ValueType, 1> &buf) {
-    return vector_view<ValueType, buffer<ValueType>>(buf);
+  template <typename value_type>
+  static vector_view<value_type, cl::sycl::buffer<value_type>> make_vview(
+      cl::sycl::buffer<value_type, 1> &buf) {
+    return vector_view<value_type, cl::sycl::buffer<value_type>>(buf);
   }
 
   template <typename DeviceSelector,
@@ -113,41 +142,19 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       try {
-        for (auto &e : eL) std::rethrow_exception(e);
+        for (auto &e : eL) {
+          std::rethrow_exception(e);
+        }
       } catch (cl::sycl::exception &e) {
-        std::cout << " E " << e.what() << std::endl;
+        std::cout << "E " << e.what() << std::endl;
+      } catch (std::exception &e) {
+        std::cout << "Standard Exception " << e.what() << std::endl;
       } catch (...) {
         std::cout << " An exception " << std::endl;
       }
     });
   }
 };
-
-// it is important that all tests are run with the same test size
-// so each time we access this function within the same program, we get the same
-// randomly generated size
-template <class TestClass>
-size_t test_size() {
-  static bool first = true;
-  static size_t N;
-  if (first) {
-    first = false;
-    N = TestClass::rand_size();
-  }
-  return N;
-}
-
-// getting the stride in the same way as the size above
-template <class TestClass>
-size_t test_strd() {
-  static bool first = true;
-  static size_t N;
-  if (first) {
-    first = false;
-    N = ((rand() & 1) * (rand() % 5)) + 1;
-  }
-  return N;
-}
 
 // unpacking the parameters within the test function
 // B is blas_templ_struct
@@ -162,14 +169,14 @@ size_t test_strd() {
   using ExecutorType = typename TypeParam::executor_t; \
   using test = class test_name;
 // TEST_SIZE determines the size based on the suggestion
-#define TEST_SIZE                                                     \
-  ((option_size<test>::value == RANDOM_SIZE) ? test_size<TestClass>() \
-                                             : option_size<test>::value)
-#define TEST_STRD                                                     \
-  ((option_strd<test>::value == RANDOM_SIZE) ? test_strd<TestClass>() \
-                                             : option_strd<test>::value)
+#define TEST_SIZE                                                       \
+  ((option_size<test>::value == ::RANDOM_SIZE) ? TestClass::test_size() \
+                                               : option_size<test>::value)
+#define TEST_STRD                                                       \
+  ((option_strd<test>::value == ::RANDOM_STRD) ? TestClass::test_strd() \
+                                               : option_strd<test>::value)
 // TEST_PREC determines the precision for the test based on the suggestion for
 // the type
 #define TEST_PREC option_prec<ScalarT, test>::value
 
-#endif
+#endif /* end of include guard: BLAS1_TEST_HPP */

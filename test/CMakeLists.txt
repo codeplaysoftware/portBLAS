@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.8.2)
 
-project(syclblas_gtest)
-
 # compile google test, google mock
 
 include(ExternalProject)
@@ -30,8 +28,8 @@ add_library(libgmock IMPORTED STATIC GLOBAL)
 add_dependencies(libgmock gmock)
 
 set_target_properties(libgmock PROPERTIES
-  "IMPORTED_LOCATION" "${binary_dir}/googlemock/libgmock.a"
-  "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
+  IMPORTED_LOCATION "${binary_dir}/googlemock/libgmock.a"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
 )
 set(GMOCK_LIB "${source_dir}/googlemock/include")
 
