@@ -79,10 +79,10 @@ static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
  */
 template <typename ExpressionT>
 void execute(SYCLDevice &dev, ExpressionT expr) {
-  size_t localSize, nWG, globalSize;
+  size_t localsize, nwg, globalsize;
   auto _N = expr.getSize();
-  dev.parallel_for_setup(localSize, nWG, globalSize, _N);
-  execute_tree(dev, expr, localSize, globalSize);
+  dev.parallel_for_setup(localsize, nwg, globalsize, _N);
+  execute_tree(dev, expr, localsize, globalsize);
 }
 
 }  // namespace blas

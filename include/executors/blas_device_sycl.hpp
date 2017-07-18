@@ -51,11 +51,12 @@ class SYCLDevice {
           }
         })) {}
 
-  static void parallel_for_setup(size_t &localSize, size_t &nWG,
-                                 size_t &globalSize, size_t N) {
-    localSize = 256;
-    globalSize = N;
-    nWG = (globalSize + localSize - 1) / localSize;
+  static void parallel_for_setup(size_t &localsize, size_t &nwg,
+                                 size_t &globalsize, size_t N) {
+    localsize = 256;
+    globalsize = N;
+    nwg = (globalsize + localsize - 1) / localsize;
+    globalsize = nwg * localsize;
   }
 
   cl::sycl::queue sycl_queue() { return m_queue; }
