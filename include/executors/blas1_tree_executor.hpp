@@ -28,8 +28,6 @@
 
 #include <stdexcept>
 
-#include <CL/sycl.hpp>
-
 #include <evaluators/blas1_tree_evaluator.hpp>
 #include <evaluators/blas2_tree_evaluator.hpp>
 #include <evaluators/blas3_tree_evaluator.hpp>
@@ -52,12 +50,12 @@ template <typename Evaluator>
 struct Converter {
   using value_type = Evaluator;
   using input_type = Evaluator;
-  using type = Evaluator;
+  using out_type = Evaluator;
 
   /** convert_to.
    * @brief .
    */
-  static type convert_to(input_type v, cl::sycl::handler &h) { return v; }
+  static out_type convert_to(input_type v, cl::sycl::handler &h) { return v; }
 };
 
 /*! Converter <Join<LHS, RHS>>.
@@ -66,16 +64,16 @@ struct Converter {
 template <typename LHS, typename RHS>
 struct Converter<Evaluator<JoinExpr<LHS, RHS>, SYCLDevice>> {
   using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
-  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::type;
-  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::type;
-  using cont_type = typename lhs_type::cont_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::out_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
   using input_type = Evaluator<JoinExpr<LHS, RHS>, SYCLDevice>;
-  using type = Evaluator<JoinExpr<lhs_type, rhs_type>, SYCLDevice>;
+  using out_type = JoinExpr<lhs_type, rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
     auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
-    return type(lhs, rhs);
+    return out_type(lhs, rhs);
   }
 };
 
@@ -87,7 +85,7 @@ struct Converter<Evaluator<AssignExpr<LHS, RHS>, SYCLDevice>> {
   using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
   using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::out_type;
   using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
-  using cont_type = typename Evaluator<LHS, SYCLDevice>::cont_type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
   using input_type = Evaluator<AssignExpr<LHS, RHS>, SYCLDevice>;
   using out_type = AssignExpr<lhs_type, rhs_type>;
 
@@ -108,7 +106,7 @@ struct Converter<
   using lhs2_type = typename Converter<Evaluator<LHS2, SYCLDevice>>::out_type;
   using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::out_type;
   using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::out_type;
-  using cont_type = typename Evaluator<LHS1, SYCLDevice>::cont_type;
+  using cont_type = typename Converter<Evaluator<LHS1, SYCLDevice>>::cont_type;
   using input_type =
       Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, SYCLDevice>;
   using out_type = DoubleAssignExpr<lhs1_type, lhs2_type, rhs1_type, rhs2_type>;
@@ -147,7 +145,7 @@ template <typename RHS>
 struct Converter<Evaluator<TupleExpr<RHS>, SYCLDevice>> {
   using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
   using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
-  using cont_type = typename rhs_type::cont_type;
+  using cont_type = typename Converter<Evaluator<RHS, SYCLDevice>>::cont_type;
   using input_type = Evaluator<TupleExpr<RHS>, SYCLDevice>;
   using out_type = TupleExpr<rhs_type>;
 
@@ -301,14 +299,17 @@ struct Converter<Evaluator<matrix_view<ScalarT, ContainerT>, SYCLDevice>> {
  * @param Tree The Input Expression Tree.
  * @param handler The Command Group Handler used to create the accessors
  */
+namespace detail {
 template <typename EvaluatorT>
 using Converted =
     Evaluator<typename Converter<EvaluatorT>::out_type, SYCLDevice>;
+}  // namespace detail
 
 template <typename EvaluatorT>
-Converted<EvaluatorT> make_accessor(EvaluatorT e, cl::sycl::handler &h) {
+detail::Converted<EvaluatorT> make_accessor(EvaluatorT e,
+                                            cl::sycl::handler &h) {
   auto expr = Converter<EvaluatorT>::convert_to(e, h);
-  return Converted<EvaluatorT>(expr);
+  return detail::Converted<EvaluatorT>(expr);
 }
 
 }  // namespace BLAS

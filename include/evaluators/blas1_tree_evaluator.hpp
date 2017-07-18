@@ -41,15 +41,9 @@ struct GenericReducerClassic;
 template <class EvaluatorT>
 struct GenericReducerTwoStage;
 template <class EvaluatorT, class Reducer>
-struct FullReducer {
-  using Device = typename EvaluatorT::Device;
-  static void run(EvaluatorT &ev, Device &dev);
-};
+struct FullReducer;
 template <class EvaluatorT, class Reducer>
-struct PartialReduction {
-  using Device = typename EvaluatorT::Device;
-  static void run(EvaluatorT &ev, Device &dev);
-};
+struct PartialReduction;
 
 /*! Reduction.
  * @brief Implements the reduction operation for assignments (in the form y = x)

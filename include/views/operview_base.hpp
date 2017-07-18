@@ -379,24 +379,24 @@ struct matrix_view {
   /*!
    * @brief Returns the data size
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief Returns the size of the view.
    */
-  size_t getSize() { return sizeR_ * sizeC_; }
+  size_t getSize() const { return sizeR_ * sizeC_; }
 
   /*! getSizeR.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  size_t getSizeR() { return sizeR_; }
+  size_t getSizeR() const { return sizeR_; }
 
 #if BLAS_EXPERIMENTAL
   // These implementationS are currently not working
-  size_t getSizeR() { return getAccess() ? sizeR_ : sizeC_; }
-  size_t getSizeR() { return accessOpr_ ? sizeR_ : sizeC_; }
+  size_t getSizeR() const { return getAccess() ? sizeR_ : sizeC_; }
+  size_t getSizeR() const { return accessOpr_ ? sizeR_ : sizeC_; }
 #endif  // BLAS_EXPERIMENTAL
 
   /*! getSizeC.
@@ -408,26 +408,26 @@ struct matrix_view {
   }
 #if BLAS_EXPERIMENTAL
   // This implementations are currently not working
-  size_t getSizeC() { return getAccess() ? sizeC_ : sizeR_; }
-  size_t getSizeC() { return accessOpr_ ? sizeC_ : sizeR_; }
+  size_t getSizeC() const { return getAccess() ? sizeC_ : sizeR_; }
+  size_t getSizeC() const { return accessOpr_ ? sizeC_ : sizeR_; }
 #endif  // BLAS_EXPERIMENTAL
 
   /*! getAccess.
    * @brief Access mode for the view.
    * Combination of the device access vs the operation mode.
    */
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
   /*! getAccessDev.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
-  int getAccessDev() { return accessDev_; }
+  int getAccessDev() const { return accessDev_; }
 
   /*! getAccessOpr.
    * @brief Returns the operation access mode
    * @return True: Normal access, False: Transpose
    */
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
   /*! getDisp.
    * @brief get displacement from the origin.

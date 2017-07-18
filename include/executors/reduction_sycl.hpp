@@ -281,17 +281,16 @@ class GenericReducerClassic : GenericReducer<EvaluatorT> {
 
 template <class EvaluatorT, class Reducer>
 struct FullReducer {
+  using Device = typename EvaluatorT::Device;
   static void run(EvaluatorT &ev, Device &dev) {
-    using Device = typename EvaluatorT::Device;
     /* Reducer::reduce(ev, dev, result); */
   }
 };
 
 template <class EvaluatorT, class Reducer>
 struct PartialReducer {
-  static void run(EvaluatorT &expr, Device &dev) {
-    using Device = typename EvaluatorT::Device;
-  }
+  using Device = typename EvaluatorT::Device;
+  static void run(EvaluatorT &expr, Device &dev) {}
 };
 
 /*!
