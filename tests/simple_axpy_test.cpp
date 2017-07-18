@@ -38,18 +38,18 @@ int main(int argc, char *argv[]) {
                   [&](double &elem) { elem = 1.0; });
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
-    cl::sycl::queue q([=](cl::sycl::exception_list eL) {
-      try {
-        for (auto &e : eL) {
-          std::rethrow_exception(e);
-        }
-      } catch (cl::sycl::exception &e) {
-        std::cout << " E " << e.what() << std::endl;
-      } catch (...) {
-        std::cout << " An exception " << std::endl;
-      }
-    });
-    Executor<SYCL> ex(q);
+    /* cl::sycl::queue q([=](cl::sycl::exception_list eL) { */
+    /* try { */
+    /*   for (auto &e : eL) { */
+    /*     std::rethrow_exception(e); */
+    /*   } */
+    /* } catch (cl::sycl::exception &e) { */
+    /*   std::cout << " E " << e.what() << std::endl; */
+    /* } catch (...) { */
+    /*   std::cout << " An exception " << std::endl; */
+    /* } */
+    /* }); */
+    SYCLDevice dev;
 
     {
       // CREATION OF THE BUFFERS
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
       BufferVectorView<double> bvY(bY);
 
       // EXECUTION OF THE ROUTINES
-      _axpy<SYCL>(ex, bX.get_count(), 1.0, bvX, 1, bvY, 1);
+      _axpy(dev, bX.get_count(), 1.0, bvX, 1, bvY, 1);
     }
 
     std::cout << " Output: ";
