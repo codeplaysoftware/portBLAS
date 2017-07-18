@@ -30,8 +30,6 @@
 
 #include <CL/sycl.hpp>
 
-#include <evaluators/blas1_tree_evaluator.hpp>
-#include <evaluators/blas2_tree_evaluator.hpp>
 #include <evaluators/blas3_tree_evaluator.hpp>
 #include <executors/blas_device_sycl.hpp>
 #include <views/view_sycl.hpp>
@@ -48,15 +46,15 @@ struct Converter;
 template <typename RHS1, typename RHS2>
 struct Converter<Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, SYCLDevice>> {
   using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
-  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::type;
-  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::out_type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::out_type;
   using input_type = Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, SYCLDevice>;
-  using type = Evaluator<PrdRowMatColMatExpr<rhs1_type, rhs2_type>, SYCLDevice>;
+  using out_type = PrdRowMatColMatExpr<rhs1_type, rhs2_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
-    return type(rhs1, rhs2);
+    return out_type(rhs1, rhs2);
   }
 };
 

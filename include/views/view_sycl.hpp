@@ -375,7 +375,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief See matrix_view.
@@ -385,17 +385,17 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeR() { return sizeR_; }
+  size_t getSizeR() const { return sizeR_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeC() { return sizeC_; }
+  size_t getSizeC() const { return sizeC_; }
 
   /*!
    * @brief See matrix_view.
    */
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
   /*!
    * @brief See matrix_view.
@@ -405,12 +405,12 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
   /*!
    * @brief See matrix_view.
    */
-  long getDisp() { return disp_; }
+  long getDisp() const { return disp_; }
 
   /*!
    * @brief See matrix_view.
@@ -650,7 +650,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief See vector_view.
@@ -660,12 +660,12 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  size_t getDisp() const { return disp_; }
 
   /*!
    * @brief See vector_view.
    */
-  long getStrd() { return strd_; }
+  long getStrd() const { return strd_; }
 
   /*!
    * @brief See vector_view.
@@ -851,7 +851,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   /**** RETRIEVING DATA ****/
   ContainerT &getData() { return data_; }
 
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   size_t getSize() const { return sizeR_ * sizeC_; }
 
@@ -859,13 +859,13 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   size_t getSizeC() const { return sizeC_; }
 
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
-  int getAccessDev() { return accessDev_; }
+  int getAccessDev() const { return accessDev_; }
 
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
-  long getDisp() { return disp_; }
+  long getDisp() const { return disp_; }
 
   /**** OPERATORS ****/
   matrix_view<ScalarT, ContainerT> operator+(size_t disp) {

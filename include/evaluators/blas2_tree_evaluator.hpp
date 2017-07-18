@@ -338,13 +338,11 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
   /* static constexpr bool supported = RHS1::supported && RHS2::supported; */
 
-  value_type scl;
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;
 
   Evaluator(Expression &expr)
-      : scl(expr.scl),
-        r1(Evaluator<RHS1, Device>(expr.r1)),
+      : r1(Evaluator<RHS1, Device>(expr.r1)),
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }

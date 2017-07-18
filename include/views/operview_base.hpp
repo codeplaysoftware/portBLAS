@@ -48,8 +48,8 @@ expression.
 */
 template <class ScalarT, class containerT>
 struct vector_view {
-  static constexpr bool supported =
-      Packet_traits<ScalarT, SimpleDevice>::Supported;
+  /* static constexpr bool supported = Packet_traits<ScalarT,
+   * SimpleDevice>::Supported; */
   containerT data_;
   size_t size_data_;
   size_t size_;
@@ -129,22 +129,22 @@ struct vector_view {
   /*!
    * @brief Returns the displacement
    */
-  size_t getDisp() { return disp_; }
+  size_t getDisp() const { return disp_; }
 
   /*!
    * @brief Returns the size of the underlying container.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    @brief Returns the size of the view
    */
-  size_t getSize() { return size_; }
+  size_t getSize() const { return size_; }
 
   /*!
    @brief Returns the stride of the view.
   */
-  long getStrd() { return strd_; }
+  long getStrd() const { return strd_; }
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
@@ -237,8 +237,8 @@ struct vector_view {
  */
 template <class ScalarT, class containerT>
 struct matrix_view {
-  static constexpr bool supported =
-      Packet_traits<ScalarT, SimpleDevice>::Supported;
+  /* static constexpr bool supported = Packet_traits<ScalarT,
+   * SimpleDevice>::Supported; */
   // Information related to the data
   containerT &data_;
   int accessDev_;     // True for row-major, column-major otherwise
@@ -432,7 +432,7 @@ struct matrix_view {
   /*! getDisp.
    * @brief get displacement from the origin.
    */
-  long getDisp() { return disp_; }
+  long getDisp() const { return disp_; }
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.

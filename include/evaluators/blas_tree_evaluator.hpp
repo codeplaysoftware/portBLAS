@@ -286,6 +286,8 @@ struct Evaluator<matrix_view<ScalarT, ContainerT>, Device> {
   size_t getSize() const { return mat.getSizeR(); }
   size_t getSizeR() const { return mat.getSizeR(); }
   size_t getSizeC() const { return mat.getSizeC(); }
+  int getAccess() const { return mat.getAccess(); }
+  int getAccessOpr() const { return mat.getAccessOpr(); }
   cont_type data() { return mat.getData(); }
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) { return true; }
   value_type &eval(size_t i) { return mat.eval(i); }

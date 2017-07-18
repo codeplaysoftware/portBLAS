@@ -40,11 +40,10 @@ namespace blas {
 
 // dgemm (TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
 
-template <typename ExecutorType, typename T, typename ContainerT>
-void _gemm(Executor<ExecutorType> ex, std::string _TransA, std::string _TransB,
-           size_t _M, size_t _N, size_t _K, T _alpha,
-           matrix_view<T, ContainerT> _mA, size_t _lda,
-           matrix_view<T, ContainerT> _mB, size_t _ldb, T _beta,
+template <typename Device, typename T, typename ContainerT>
+void _gemm(Device &dev, std::string _TransA, std::string _TransB, size_t _M,
+           size_t _N, size_t _K, T _alpha, matrix_view<T, ContainerT> _mA,
+           size_t _lda, matrix_view<T, ContainerT> _mB, size_t _ldb, T _beta,
            matrix_view<T, ContainerT> _mC, size_t _ldc) {
   if ((_TransA[0] != 'n') && (_TransA[0] != 't') && (_TransA[0] != 'c') &&
       (_TransA[0] != 'N') && (_TransA[0] != 'T') && (_TransA[0] != 'C') &&
@@ -88,21 +87,21 @@ void _gemm(Executor<ExecutorType> ex, std::string _TransA, std::string _TransB,
     // IN WHICH, A IS ACCESSED BY ROWS AND B BY COLUMNS.
     // THUS, ALL THE THREADS COMPUTE A DOT PRODUCT MAKING
     // A COALESCENT ACCESS TO THE DATA
-    auto scalExpr1 = make_op<ScalarExpr, prdOp2_struct>(_beta, my_mC);
+    auto scalExpr1 = make_expr<ScalarExpr, prdOp2_struct>(_beta, my_mC);
 #ifdef BLAS_EXPERIMENTAL
-    auto assignExpr = make_op<Assign>(my_mC, scalExpr1);
-    ex.execute(assignExpr);
+    auto assignExpr = make_expr<AssignExpr>(my_mC, scalExpr1);
+    blas::execute(dev, assignExpr);
 #endif  // BLAS_EXPERIMENTAL
     auto prdRowMatColMattExpr = make_prdRowMatColMatExpr(my_mA, my_mB);
 #ifdef BLAS_EXPERIMENTAL
-    auto assignExpr = make_op<Assign>(my_mC, prdRowMatColMattExpr);
-    ex.execute(assignExpr);
+    auto assignExpr = make_expr<AssignExpr>(my_mC, prdRowMatColMattExpr);
+    blas::execute(dev, assignExpr);
 #endif  // BLAS_EXPERIMENTAL
     auto scalExpr2 =
-        make_op<ScalarExpr, prdOp2_struct>(_alpha, prdRowMatColMattExpr);
-    auto addExpr = make_op<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
-    auto assignExpr = make_op<Assign>(my_mC, addExpr);
-    ex.execute(assignExpr);
+        make_expr<ScalarExpr, prdOp2_struct>(_alpha, prdRowMatColMattExpr);
+    auto addExpr = make_expr<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
+    auto assignExpr = make_expr<AssignExpr>(my_mC, addExpr);
+    blas::execute(dev, assignExpr);
   } else {
     printf("A^t*B^t NO IMPLEMENTED\n");
   }

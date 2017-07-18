@@ -150,18 +150,16 @@ struct RedRowMatVctExpr {
 
   RHS1 r1;
   RHS2 r2;
-  size_t warpSize;
+  /* size_t warpSize; */
 
-  RedRowMatVctExpr(RHS1 &_r1, RHS2 &_r2, size_t _warpSize)
-      : r1(_r1), r2(_r2), warpSize(_warpSize){};
+  RedRowMatVctExpr(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
-  size_t getSize() const { return r1.getSizeR(); }
+  size_t getSize() const { return r1.getSize(); }
 };
 
 template <class RHS1, class RHS2>
-RedRowMatVctExpr<RHS1, RHS2> make_redRowMatVctExpr(RHS1 &r1, RHS2 &r2,
-                                                   size_t warpSize) {
-  return RedRowMatVctExpr<RHS1, RHS2>(r1, r2, warpSize);
+RedRowMatVctExpr<RHS1, RHS2> make_redRowMatVctExpr(RHS1 &r1, RHS2 &r2) {
+  return RedRowMatVctExpr<RHS1, RHS2>(r1, r2);
 }
 
 /*! ModifRank1.

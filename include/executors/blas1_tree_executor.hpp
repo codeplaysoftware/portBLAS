@@ -29,8 +29,6 @@
 #include <stdexcept>
 
 #include <evaluators/blas1_tree_evaluator.hpp>
-#include <evaluators/blas2_tree_evaluator.hpp>
-#include <evaluators/blas3_tree_evaluator.hpp>
 #include <evaluators/blas_tree_evaluator.hpp>
 #include <executors/blas_device_sycl.hpp>
 #include <views/view_sycl.hpp>
