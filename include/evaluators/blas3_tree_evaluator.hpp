@@ -57,7 +57,7 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSize(); }
-  cont_type *data() { return r1.data(); }
+  cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(NULL, dev);

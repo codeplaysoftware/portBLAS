@@ -34,6 +34,7 @@
 #include <CL/sycl.hpp>
 
 #include <executors/executor_sycl.hpp>
+#include <executors/reduction_sycl.hpp>
 #include <operations/blas1_trees.hpp>
 
 namespace blas {
@@ -43,7 +44,7 @@ namespace blas {
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vy  VectorView
@@ -57,13 +58,13 @@ void _axpy(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto addExpr = make_expr<BinaryExpr, addOp2_struct>(my_vy, scalExpr);
   auto assignExpr = make_expr<AssignExpr>(my_vy, addExpr);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vy  VectorView
@@ -75,13 +76,13 @@ void _copy(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto assignExpr = make_expr<AssignExpr>(my_vy, my_vx);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
  * \brief SWAP interchanges two vectors
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vy  VectorView
@@ -93,13 +94,13 @@ void _swap(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto swapExpr = make_expr<DoubleAssignExpr>(my_vy, my_vx, my_vx, my_vy);
-  blas::execute(swapExpr, dev);
+  blas::execute(dev, swapExpr);
 }
 
 /**
  * \brief SCAL scales a vector by a constant
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
@@ -109,14 +110,14 @@ void _scal(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto assignExpr = make_expr<AssignExpr>(my_vx, scalExpr);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
  * \briefCompute the inner product of two vectors with extended
     precision accumulation and result.
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vx  VectorView
@@ -132,15 +133,15 @@ T _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   T result;
   cl::sycl::buffer<T, 1> buf_result(&result, cl::sycl::range<1>{1});
   auto rs = vector_view<T, ContainerT>(buf_result, 0, 1, 1);
-  auto assignExpr = make_addReductionExpr(buf_result, prdExpr);
-  blas::execute(assignExpr);
+  auto assignExpr = make_addReductionExpr(rs, prdExpr);
+  blas::execute(dev, assignExpr);
   return rs.eval(0);
 }
 
 /**
  * \brief Compute the inner product of two vectors with extended precision
     accumulation.
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vx  VectorView
@@ -155,13 +156,13 @@ void _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
   auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
   auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  *
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
@@ -171,15 +172,15 @@ T _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
 
   ContainerT valT1(1);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, 1);
-  auto assignExpr = make_addReductionExpr(val1, prdExpr);
-  blas::execute(assignExpr, dev);
-  return std::sqrt(val1.eval(0));
+  auto rs = vector_view<T, ContainerT>(valT1, 0, 1, 1);
+  auto assignExpr = make_addReductionExpr(rs, prdExpr);
+  blas::execute(dev, assignExpr);
+  return std::sqrt(rs.eval(0));
 }
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
@@ -193,12 +194,12 @@ void _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
   auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(assignExpr);
   auto assignExpr2 = make_expr<AssignExpr>(my_rs, sqrtExpr);
-  blas::execute(assignExpr2, dev);
+  blas::execute(dev, assignExpr2);
 }
 
 /**
  * \brief ASUM Takes the sum of the absolute values
- * @param Executor<ExecutorType> ex
+ * @param Device &dev
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
@@ -208,7 +209,7 @@ void _asum(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
   auto assignExpr = make_addAbsReductionExpr(my_rs, my_vx);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
@@ -224,7 +225,7 @@ void _iamax(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
   auto assignExpr = make_maxIndReductionExpr(my_rs, tupExpr);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
@@ -237,7 +238,7 @@ size_t _iamax(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   IndVal<T> result;
   cl::sycl::buffer<IndVal<T>, 1> buf_result(&result, cl::sycl::range<1>{1});
   auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
-  _iamax(ex, dev, _N, _vx, _incx, rs);
+  _iamax(dev, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
 
@@ -254,7 +255,7 @@ void _iamin(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
   auto assignExpr = make_minIndReductionExpr(my_rs, tupExpr);
-  blas::execute(assignExpr, dev);
+  blas::execute(dev, assignExpr);
 }
 
 /**
@@ -268,7 +269,7 @@ size_t _iamin(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
   auto buf_result =
       cl::sycl::buffer<IndVal<T>, 1>(&result, cl::sycl::range<1>{1});
   auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
-  _iamin(ex, dev, _N, _vx, _incx, rs);
+  _iamin(dev, _N, _vx, _incx, rs);
   return rs.eval(0).getInd();
 }
 
@@ -327,7 +328,7 @@ void _rot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto addExpr34 = make_expr<BinaryExpr, addOp2_struct>(scalExpr3, scalExpr4);
   auto doubleAssignExpr =
       make_expr<DoubleAssignExpr>(my_vx, my_vy, addExpr12, addExpr34);
-  blas::execute(doubleAssignExpr, dev);
+  blas::execute(dev, doubleAssignExpr);
 }
 
 }  // namespace blas

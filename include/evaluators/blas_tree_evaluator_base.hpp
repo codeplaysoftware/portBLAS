@@ -27,7 +27,7 @@
 #define BLAS_TREE_EVALUATOR_BASE_HPP
 
 #include <evaluators/blas_functor_traits.hpp>
-#include <operations/blas_trees.hpp>
+#include <operations/blas_types.hpp>
 #include <views/operview_base.hpp>
 
 namespace blas {
@@ -39,12 +39,7 @@ namespace internal {
  * it is assumed to be a vector and the first value
  * is used.
  */
-template <typename T,
-          bool isscal = std::is_same<T, int>::value ||
-                        std::is_same<T, float>::value ||
-                        std::is_same<T, double>::value ||
-                        std::is_same<T, std::complex<float>>::value ||
-                        std::is_same<T, std::complex<double>>::value>
+template <typename T, bool is_supported_scalar = blas_type_support<T>::value>
 struct DetectScalar;
 template <typename T>
 struct DetectScalar<T, true> {

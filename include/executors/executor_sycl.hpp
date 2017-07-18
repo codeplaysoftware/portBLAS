@@ -30,40 +30,12 @@
 
 #include <CL/sycl.hpp>
 
+#include <executors/blas1_tree_executor.hpp>
+#include <executors/blas2_tree_executor.hpp>
+#include <executors/blas3_tree_executor.hpp>
 #include <executors/blas_device_sycl.hpp>
 
 namespace blas {
-/*! execute_tree.
-@brief Static function for executing a tree in SYCL.
-@tparam int usingSharedMem specifying whether shared memory is enabled.
-@tparam Tree Type of the tree.
-@param q_ SYCL queue.
-@param t Tree object.
-@param _localSize Local work group size.
-@param _globalSize Global work size.
-@param _shMem Size in elements of the shared memory (should be zero if
-usingSharedMem == false).
-*/
-template <typename ExpressionT, typename Device>
-static void execute_tree(ExpressionT expr, Device &dev, size_t localSize,
-                         size_t globalSize) {
-  using EvaluatorT = Evaluator<ExpressionT, Device> using value_type =
-      typename EvaluatorT::type;
-
-  EvaluatorT ev(expr);
-  ev.eval_subexpr_if_needed(NULL, dev);
-
-  dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
-    auto nTree = blas::make_accessor(ev, h);
-    auto scratch = shared_mem<value_type, usingSharedMem>(sharedsize, h);
-    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-        cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for(
-        gridConfiguration,
-        ExecTreeFunctor<usingSharedMem, decltype(nTree), decltype(scratch),
-                        value_type>(scratch, nTree));
-  });
-}
 
 /*! execute_tree.
 @brief the functor for executing a tree in SYCL.
@@ -73,18 +45,44 @@ static void execute_tree(ExpressionT expr, Device &dev, size_t localSize,
 template <typename EvaluatorT>
 struct ExecTreeFunctor {
   EvaluatorT ev;
-  ExecTreeFunctor(EvaluatorT ev_) :, ev(ev_) {}
+  ExecTreeFunctor(EvaluatorT ev_) : ev(ev_) {}
   void operator()(cl::sycl::nd_item<1> i) { ev.eval(i); }
 };
+
+/*! execute_tree.
+@brief Static function for executing a tree in SYCL.
+@tparam Tree Type of the tree.
+@param q_ SYCL queue.
+@param t Tree object.
+@param _localSize Local work group size.
+@param _globalSize Global work size.
+*/
+template <typename ExpressionT>
+static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
+                         size_t globalSize) {
+  using Device = SYCLDevice;
+  using EvaluatorT = Evaluator<ExpressionT, Device>;
+
+  EvaluatorT ev(expr);
+  ev.eval_subexpr_if_needed(NULL, dev);
+
+  dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+    auto nTree = blas::make_accessor(ev, h);
+    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+        cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+    h.parallel_for(gridConfiguration, ExecTreeFunctor<decltype(nTree)>(nTree));
+  });
+}
 
 /*!
  * @brief Executes the tree without defining required shared memory.
  */
-void execute(ExpressionT expr, Device &dev) {
+template <typename ExpressionT>
+void execute(SYCLDevice &dev, ExpressionT expr) {
   size_t localSize, nWG, globalSize;
   auto _N = expr.getSize();
   dev.parallel_for_setup(localSize, nWG, globalSize, _N);
-  execute_tree<using_shared_mem::disabled>(dev, expr, localSize, globalSize, 0);
+  execute_tree(dev, expr, localSize, globalSize);
 }
 
 }  // namespace blas

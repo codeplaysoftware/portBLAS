@@ -144,7 +144,6 @@ AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShmExpr(
 /*! RedRowMatVct.
  * @brief CLASSICAL AXPY GEMV
  */
-// #define ORIGINAL_CODE 1
 template <class RHS1, class RHS2>
 struct RedRowMatVctExpr {
   using value_type = typename RHS2::value_type;

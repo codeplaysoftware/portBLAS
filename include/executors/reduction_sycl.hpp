@@ -29,6 +29,10 @@
 #include <evaluators/blas1_tree_evaluator.hpp>
 #include <evaluators/blas2_tree_evaluator.hpp>
 #include <evaluators/blas3_tree_evaluator.hpp>
+#include <evaluators/blas_tree_evaluator.hpp>
+#include <executors/blas1_tree_executor.hpp>
+#include <executors/blas2_tree_executor.hpp>
+#include <executors/blas3_tree_executor.hpp>
 #include <executors/blas_device_sycl.hpp>
 #include <executors/blas_packet_traits_sycl.hpp>
 
@@ -53,7 +57,7 @@ struct shared_mem {
   /*!
   @brief Local accessor.
   */
-  local_accessor_t<ScalarT> localAcc;
+  local_accessor_t localAcc;
 
   /*!
   @brief Constructor that creates a local accessor from a size and a SYCL
@@ -73,45 +77,44 @@ struct shared_mem {
   ScalarT &operator[](cl::sycl::id<1> id) { return localAcc[id]; }
 };
 
-template <class ExpressionT, typename Device>
+template <class EvaluatorT>
 class GenericReducer {
-  using EvaluatorT = Evaluator<ExpressionT, Device>;
+  using Device = typename EvaluatorT::Device;
 
   struct KernelFunctorNoScratch {
     EvaluatorT ev;
-    GenericReducer<ExpressionT, Device> reducer;
 
-    KernelFunctorNoScratch(EvaluatorT ev,
-                           GenericReducer<ExpressionT, Device> reducer)
-        : ev(ev), reducer(reducer) {}
+    KernelFunctorNoScratch(EvaluatorT ev) : ev(ev) {}
 
-    void operator()(cl::sycl::nd_item<1> i) {
+    void operator()(cl::sycl::nd_item<1> ndItem) {
       using dev_functor = typename EvaluatorT::dev_functor;
-      size_t vecS = ev.r.getSize();
+      /* size_t vecS = ev.r.getSize(); */
 
-      size_t frs_thrd = 2 * blqS * i;
-      size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd + blqS);
-      // Reduction across the grid
-      value_type val = dev_functor::init(ev.r);
-      for (size_t j = frs_thrd; j < lst_thrd; j++) {
-        value_type local_val = dev_functor::init(ev.r);
-        for (size_t k = j; k < vecS; k += 2 * grdS) {
-          local_val = dev_functor::eval(local_val, ev.r.eval(k));
-          if (k + blqS < vecS) {
-            local_val = dev_functor::eval(local_val, ev.r.eval(k + blqS));
-          }
-        }
-        // Reduction inside the block
-        val = dev_functor::eval(val, local_val);
-      }
-      return ev.l.eval(i) = val;
+      /* size_t frs_thrd = 2 * blqS * i; */
+      /* size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd +
+       * blqS); */
+      /* // Reduction across the grid */
+      /* value_type val = dev_functor::init(ev.r); */
+      /* for (size_t j = frs_thrd; j < lst_thrd; j++) { */
+      /*   value_type local_val = dev_functor::init(ev.r); */
+      /*   for (size_t k = j; k < vecS; k += 2 * grdS) { */
+      /*     local_val = dev_functor::eval(local_val, ev.r.eval(k)); */
+      /*     if (k + blqS < vecS) { */
+      /*       local_val = dev_functor::eval(local_val, ev.r.eval(k + blqS)); */
+      /*     } */
+      /*   } */
+      /*   // Reduction inside the block */
+      /*   val = dev_functor::eval(val, local_val); */
+      /* } */
+      /* return ev.l.eval(i) = val; */
+      return ev.l.eval(ndItem);
     }
 
-    void execute(size_t localsize, size_t globalsize) {
-      q.submit([=](cl::sycl::handler &h) mutable {
+    void execute(Device &dev, size_t localsize, size_t globalsize) {
+      dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
         auto nTree = blas::make_accessor(ev, h);
         cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-            cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+            cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
         h.parallel_for(gridConfiguration, *this);
       });
     }
@@ -122,164 +125,172 @@ class GenericReducer {
     EvaluatorT ev;
     Scratch scratch;
 
-    KernelFunctor(EvaluatorT &ev, Scratch &scratch)
-        : ev(ev), scratch(scratch) {}
+    KernelFunctor(EvaluatorT &ev, Scratch scratch) : ev(ev), scratch(scratch) {}
 
-    void operator()(cl::sycl::nd_item<1> i) {
+    void operator()(cl::sycl::nd_item<1> ndItem) {
       using dev_functor = typename EvaluatorT::dev_functor;
       size_t localid = ndItem.get_local(0);
       size_t localSz = ndItem.get_local_range(0);
       size_t groupid = ndItem.get_group(0);
 
-      size_t vecS = ev.r.getSize();
-      size_t frs_thrd = 2 * groupid * localSz + localid;
-      size_t blqS = 256;
-      size_t grdS = 512;
+      /*       size_t vecS = ev.r.getSize(); */
+      /*       size_t frs_thrd = 2 * groupid * localSz + localid; */
+      /*       size_t blqS = 256; */
+      /*       size_t grdS = 512; */
 
-      // Reduction across the grid
-      value_type val = dev_functor::init(ev.r);
-      for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) {
-        val = dev_functor::eval(val, ev.r.eval(k));
-        if ((k + blqS < vecS)) {
-          val = dev_functor::eval(val, ev.r.eval(k + blqS));
-        }
-      }
+      /*       // Reduction across the grid */
+      /*       value_type val = dev_functor::init(ev.r); */
+      /*       for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) { */
+      /*         val = dev_functor::eval(val, ev.r.eval(k)); */
+      /*         if ((k + blqS < vecS)) { */
+      /*           val = dev_functor::eval(val, ev.r.eval(k + blqS)); */
+      /*         } */
+      /*       } */
 
-      scratch[localid] = val;
-      // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+      /*       scratch[localid] = val; */
+      /*       // This barrier is mandatory to be sure the data is on the shared
+       * memory */
+      /*       ndItem.barrier(cl::sycl::access::fence_space::local_space); */
 
-      // Reduction inside the block
-      for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) {
-        if (localid < offset) {
-          scratch[localid] =
-              dev_functor::eval(scratch[localid], scratch[localid + offset]);
-        }
-        // This barrier is mandatory to be sure the data are on the shared
-        // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
-      }
-      if (localid == 0) {
-        ev.l.eval(groupid) = scratch[localid];
-      }
+      /*       // Reduction inside the block */
+      /*       for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) { */
+      /*         if (localid < offset) { */
+      /*           scratch[localid] = dev_functor::eval(scratch[localid],
+       * scratch[localid + offset]); */
+      /*         } */
+      /*         // This barrier is mandatory to be sure the data are on the
+       * shared */
+      /*         // memory */
+      /*         ndItem.barrier(cl::sycl::access::fence_space::local_space); */
+      /*       } */
+      /*       if (localid == 0) { */
+      /*         ev.l.eval(groupid) = scratch[localid]; */
+      /*       } */
       return ev.l.eval(groupid);
     }
 
-    void execute(KernelFunctor<Scratch> kernel_functor, size_t localsize,
-                 size_t globalsize, size_t sharedsize) {
-      using value_type =
-          typename shared_mem_type<usingSharedMem::enabled,
-                                   typename EvaluatorT::Expression>::type;
+    void execute(Device &dev, size_t localsize, size_t globalsize,
+                 size_t sharedsize) {
+      using value_type = typename EvaluatorT::value_type;
       dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
         auto nTree = blas::make_accessor(ev, h);
-        auto scratch = shared_mem<value_type, usingSharedMem>(sharedsize, h);
+        auto scratch = shared_mem<value_type>(sharedsize, h);
         cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-            cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+            cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
         h.parallel_for(gridConfiguration, *this);
       });
     }
   };
 };
 
-template <class ExpressionT, typename Device>
-class GenericReducerTwoStage : GenericReducer<ExpressionT, Device> {
-  using EvaluatorT = Evaluator<ExpressionT, Device>;
+template <class EvaluatorT>
+class GenericReducerTwoStage : GenericReducer<EvaluatorT> {
+  using ExpressionT = typename EvaluatorT::Expression;
+  using Device = typename EvaluatorT::Device;
   using value_type = typename EvaluatorT::value_type;
-  static void run(ExpressionT expr, Device &dev,
-                  typename EvaluatorT::cont_type &result) {
-    Evaluator<ExpressionT, Device> ev(expr);
-    // first stage, N -> nWG
-    size_t localsize = 256;
-    size_t nwg = 512;
-    size_t sharedsize = nwg;
-    size_t globalsize = ev.getSize();
-    cl::sycl::buffer<value_type, 1> shMem(sharedsize);
-    KernelFunctor<decltype(shMem)>(ev, shMem).execute(localsize,
-                                                      localsize * nwg);
-    KernelFunctorNoScratch(ev).execute(localsize, nwg);
+  static void run(ExpressionT expr, Device &dev) {
+    /* Evaluator<ExpressionT, Device> ev(expr); */
+    /* // first stage, N -> nWG */
+    /* size_t localsize = 256; */
+    /* size_t nwg = 512; */
+    /* size_t sharedsize = nwg; */
+    /* size_t globalsize = ev.getSize(); */
+    /* /1* shared_mem<value_type> shMem(sharedsize); *1/ */
+    /* KernelFunctor<decltype(shMem)>(ev, shMem).execute(localsize, localsize *
+     * nwg); */
+    /* KernelFunctorNoScratch(ev).execute(localsize, nwg); */
   }
 };
 
-template <class ExpressionT, typename Device>
-class GenericReducerClassic : GenericReducer<ExpressionT, Device> {
-  using EvaluatorT = Evaluator<ExpressionT, Device>;
+template <class EvaluatorT>
+class GenericReducerClassic : GenericReducer<EvaluatorT> {
+  using Device = typename EvaluatorT::Device;
   using value_type = typename EvaluatorT::value_type;
-  using oper_type =
-      typename Converter<Evaluator<Expression, Device>>::oper_type;
+  using oper_type = typename Converter<EvaluatorT>::oper_type;
   using dev_functor = typename EvaluatorT::dev_functor;
-  using input_type =
-      typename Converter<Evaluator<Expression, Device>>::input_type;
-  using cont_type =
-      typename Converter<Evaluator<Expression, Device>>::cont_type;
-  using LHS_type = typename Converter<Evaluator<Expression, Device>>::LHS_type;
+  using input_type = typename Converter<EvaluatorT>::input_type;
+  using cont_type = typename Converter<EvaluatorT>::cont_type;
+  using LHS_type = typename Converter<EvaluatorT>::LHS_type;
 
-  static void run(ExpressionT expr, Device &dev,
-                  typename Evaluator<ExpressionT, Device>::cont_type &result) {
+  static void run(EvaluatorT &ev, Device &dev) {
     // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
     // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
     // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
     // ALL THE ELEMENTS ARE PROCESSED
-    EvaluatorT ev(expr);
-    size_t N = ev.getSize();
-    size_t localsize = 256;
-    size_t nwg = (512 + (2 * localsize) - 1) / (2 * localsize);
-    size_t sharedsize = std::min(nwg, localsize);
-    auto lhs = ev.l;
-    auto rhs = ev.r;
+    /* EvaluatorT ev(expr); */
+    /* size_t N = ev.getSize(); */
+    /* size_t localsize = 256; */
+    /* size_t nwg = (512 + (2 * localsize) - 1) / (2 * localsize); */
+    /* size_t sharedsize = std::min(nwg, localsize); */
+    /* auto lhs = ev.l; */
+    /* auto rhs = ev.r; */
 
-    // Two accessors to local memory
-    cl::sycl::buffer<value_type, 1> shMem1(sharedSize);
-    cl::sycl::buffer<value_type, 1> shMem2(sharedSize);
+    /* // Two accessors to local memory */
+    /* cl::sycl::buffer<value_type, 1> shMem1(sharedSize); */
+    /* cl::sycl::buffer<value_type, 1> shMem2(sharedSize); */
 
-    bool frst = true;
-    bool even = false;
-    KernelFunctor<decltype(shMem1)> kernel_functor_shm1(ev, shMem1);
-    KernelFunctor<decltype(shMem2)> kernel_functor_shm2(ev, shMem2);
-    KernelFunctorNoScratch kernel_functor_noscratch(ev);
-    do {
-      size_t globalSize = nWG * localSize;
-      if (frst) {
-        if (nwg == 1) {
-          kernel_functor_shm1.execute(localsize, globalsize, sharedsize);
-        } else {
-          kernel_functor_shm2.execute(localsize, globalsize, 1);
-        }
-        /* // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION */
-        /* auto localEval = ExpressionT(((nWG == 1) ? lhs : shMemEval1), rhs);
-         */
-        /* execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
-         * localEval, localSize, globalSize, sharedSize); */
-      } else {
-        if (nwg == 1) {
-          kernel_functor_noscratch.execute(localsize, globalsize);
-        } else {
-          if (!even) {
-            kernel_functor_shm1.execute(localsize, globalsize, sharedsize);
-          } else {
-            kernel_functor_shm2.execute(localsize, globalsize, sharedsize);
-          }
-        }
-        /* // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION */
-        /* auto localEval = (nWG == 1) ? lhs : (even ? shMemEval2 : shMemEval1),
-         * (even ? shMemEval1 : shMemEval2); */
-        /* execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
-         * localEval, localSize, globalSize, sharedSize); */
-      }
-      N = nWG;
-      nWG = (N + (2 * localSize) - 1) / (2 * localSize);
-      frst = false;
-      even = !even;
-    } while (N > 1);
+    /* bool frst = true; */
+    /* bool even = false; */
+    /* KernelFunctor<decltype(shMem1)> kernel_functor_shm1(ev, shMem1); */
+    /* KernelFunctor<decltype(shMem2)> kernel_functor_shm2(ev, shMem2); */
+    /* KernelFunctorNoScratch kernel_functor_noscratch(ev); */
+    /* do { */
+    /*   size_t globalsize = nWG * localsize; */
+    /*   if (frst) { */
+    /*     if (nwg == 1) { */
+    /*       kernel_functor_shm1.execute(dev, localsize, globalsize,
+     * sharedsize); */
+    /*     } else { */
+    /*       kernel_functor_shm2.execute(dev, localsize, globalsize, 1); */
+    /*     } */
+    /*     /1* // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION *1/
+     */
+    /*     /1* auto localEval = ExpressionT(((nWG == 1) ? lhs : shMemEval1),
+     * rhs); */
+    /*      *1/ */
+    /*     /1* execute_subtree<Device,
+     * using_shared_mem::enabled>(dev.sycl_queue(), */
+    /*      * localEval, localsize, globalsize, sharedSize); *1/ */
+    /*   } else { */
+    /*     if (nwg == 1) { */
+    /*       kernel_functor_noscratch.execute(dev, localsize, globalsize); */
+    /*     } else { */
+    /*       if (!even) { */
+    /*         kernel_functor_shm1.execute(dev, localsize, globalsize,
+     * sharedsize); */
+    /*       } else { */
+    /*         kernel_functor_shm2.execute(dev, localsize, globalsize,
+     * sharedsize); */
+    /*       } */
+    /*     } */
+    /*     /1* // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION *1/ */
+    /*     /1* auto localEval = (nWG == 1) ? lhs : (even ? shMemEval2 :
+     * shMemEval1), */
+    /*      * (even ? shMemEval1 : shMemEval2); *1/ */
+    /*     /1* execute_subtree<Device,
+     * using_shared_mem::enabled>(dev.sycl_queue(), */
+    /*      * localEval, localsize, globalsize, sharedSize); *1/ */
+    /*   } */
+    /*   N = nWG; */
+    /*   nWG = (N + (2 * localsize) - 1) / (2 * localsize); */
+    /*   frst = false; */
+    /*   even = !even; */
+    /* } while (N > 1); */
   }
 };
 
-template <class ExpressionT, typename Device,
-          template <class... As> class Reducer>
-class FullReducer {
-  using EvaluatorT = Evaluator<ExpressionT, Device>;
-  static void run(ExpressionT &expr, Device &dev,
-                  typename EvaluatorT::cont_type &result) {
-    Reducer<ExpressionT, Device>::reduce(expr, dev, result);
+template <class EvaluatorT, class Reducer>
+struct FullReducer {
+  static void run(EvaluatorT &ev, Device &dev) {
+    using Device = typename EvaluatorT::Device;
+    /* Reducer::reduce(ev, dev, result); */
+  }
+};
+
+template <class EvaluatorT, class Reducer>
+struct PartialReducer {
+  static void run(EvaluatorT &expr, Device &dev) {
+    using Device = typename EvaluatorT::Device;
   }
 };
 
@@ -300,39 +311,39 @@ class FullReducer {
 /*   using LHS_type = typename Converter<Evaluator<Expression,
  * Device>>::LHS_type; */
 /*   auto _N = getSize(); */
-/*   auto localSize = 256; */
+/*   auto localsize = 256; */
 /*   // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
  */
 /*   // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP */
 /*   // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL */
 /*   // ALL THE ELEMENTS ARE PROCESSED */
-/*   auto nWG = (512 + (2 * localSize) - 1) / (2 * localSize); */
+/*   auto nWG = (512 + (2 * localsize) - 1) / (2 * localsize); */
 /*   auto lhs = this->l; */
 /*   auto rhs = this->r; */
 
 /*   // Two accessors to local memory */
-/*   auto sharedSize = ((nWG < localSize) ? localSize : nWG); */
+/*   auto sharedSize = ((nWG < localsize) ? localsize : nWG); */
 /*   cl::sycl::buffer<typename EvaluatorT::value_type, 1> shMem1(sharedSize); */
 /*   cl::sycl::buffer<typename EvaluatorT::value_type, 1> shMem2(sharedSize); */
 
 /*   bool frst = true; */
 /*   bool even = false; */
 /*   do { */
-/*     auto globalSize = nWG * localSize; */
+/*     auto globalsize = nWG * localsize; */
 /*     if(frst) { */
 /*       // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION */
 /*       auto localEval = Expression(((nWG == 1) ? lhs : shMemEval1), rhs); */
 /*       execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
- * localEval, localSize, globalSize, sharedSize); */
+ * localEval, localsize, globalsize, sharedSize); */
 /*     } else { */
 /*       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION */
 /*       auto localEval = (nWG == 1) ? lhs : (even ? shMemEval2 : shMemEval1),
  * (even ? shMemEval1 : shMemEval2); */
 /*       execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
- * localEval, localSize, globalSize, sharedSize); */
+ * localEval, localsize, globalsize, sharedSize); */
 /*     } */
 /*     _N = nWG; */
-/*     nWG = (_N + (2 * localSize) - 1) / (2 * localSize); */
+/*     nWG = (_N + (2 * localsize) - 1) / (2 * localsize); */
 /*     frst = false; */
 /*     even = !even; */
 /*   } while (_N > 1); */
@@ -352,43 +363,43 @@ class FullReducer {
 /*   using LHS_type = typename blas::Converter<Evaluator<ExpressionT,
  * Device>>::LHS_type; */
 /*   auto _N = ev.getSize(); */
-/*   auto localSize = ev.blqS; */
+/*   auto localsize = ev.blqS; */
 /*   // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
  */
 /*   // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP */
 /*   // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL */
 /*   // ALL THE ELEMENTS ARE PROCESSED */
-/*   auto nWG = (ev.grdS + (2 * localSize) - 1) / (2 * localSize); */
+/*   auto nWG = (ev.grdS + (2 * localsize) - 1) / (2 * localsize); */
 /*   auto lhs = ev.l; */
 /*   auto rhs = ev.r; */
 
 /*   // Two accessors to local memory */
-/*   auto sharedSize = ((nWG < localSize) ? localSize : nWG); */
+/*   auto sharedSize = ((nWG < localsize) ? localsize : nWG); */
 /*   auto opShMem1 = LHS_type(scr, 0, 1, sharedSize); */
 /*   auto opShMem2 = LHS_type(scr, sharedSize, 1, sharedSize); */
 
 /*   bool frst = true; */
 /*   bool even = false; */
 /*   do { */
-/*     auto globalSize = nWG * localSize; */
+/*     auto globalsize = nWG * localsize; */
 /*     if (frst) { */
 /*       // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION */
 /*       auto localEval = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
- * localSize, globalSize); */
+ * localsize, globalsize); */
 /*       execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
- * localExpr, localSize, */
-/*                                               globalSize, sharedSize); */
+ * localExpr, localsize, */
+/*                                               globalsize, sharedSize); */
 /*     } else { */
 /*       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION */
 /*       auto localEval = Evaluator<ReductionExpr<oper_type, LHS_type,
  * LHS_type>, Device>( */
 /*               ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)), */
-/*               (even ? opShMem1 : opShMem2), localSize, globalSize); */
+/*               (even ? opShMem1 : opShMem2), localsize, globalsize); */
 /*       execute_subtree<Device, using_shared_mem::enabled>(dev.sycl_queue(),
- * localExpr, localSize, globalSize, sharedSize); */
+ * localExpr, localsize, globalsize, sharedSize); */
 /*     } */
 /*     _N = nWG; */
-/*     nWG = (_N + (2 * localSize) - 1) / (2 * localSize); */
+/*     nWG = (_N + (2 * localsize) - 1) / (2 * localsize); */
 /*     frst = false; */
 /*     even = !even; */
 /*   } while (_N > 1); */

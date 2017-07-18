@@ -40,7 +40,7 @@ namespace blas {
  */
 template <typename Functor, class LHS, class RHS>
 struct ReductionExpr {
-  using value_type = typename RHS::value_type;
+  using value_type = typename LHS::value_type;
 
   LHS l;
   RHS r;
@@ -56,85 +56,31 @@ ReductionExpr<Functor, LHS, RHS> make_ReductionExpr(LHS &l, RHS &r) {
 }
 
 template <typename LHS, typename RHS>
-auto make_addReductionExpr(LHS &l, RHS &r)
-    -> decltype(make_ReductionExpr<addOp2_struct>(l, r)) {
+ReductionExpr<addOp2_struct, LHS, RHS> make_addReductionExpr(LHS &l, RHS &r) {
   return make_ReductionExpr<addOp2_struct>(l, r);
 }
 
 template <typename LHS, typename RHS>
-auto make_prdReductionExpr(LHS &l, RHS &r)
-    -> decltype(make_ReductionExpr<prdOp2_struct>(l, r)) {
+ReductionExpr<prdOp2_struct, LHS, RHS> make_prdReductionExpr(LHS &l, RHS &r) {
   return make_ReductionExpr<prdOp2_struct>(l, r);
 }
 
 template <typename LHS, typename RHS>
-auto make_addAbsReductionExpr(LHS &l, RHS &r)
-    -> decltype(make_ReductionExpr<addAbsOp2_struct>(l, r)) {
+ReductionExpr<addAbsOp2_struct, LHS, RHS> make_addAbsReductionExpr(LHS &l,
+                                                                   RHS &r) {
   return make_ReductionExpr<addAbsOp2_struct>(l, r);
 }
 
 template <typename LHS, typename RHS>
-auto make_maxIndReductionExpr(LHS &l, RHS &r)
-    -> decltype(make_ReductionExpr<maxIndOp2_struct>(l, r)) {
+ReductionExpr<maxIndOp2_struct, LHS, RHS> make_maxIndReductionExpr(LHS &l,
+                                                                   RHS &r) {
   return make_ReductionExpr<maxIndOp2_struct>(l, r);
 }
 
 template <typename LHS, typename RHS>
-auto make_minIndReductionExpr(LHS &l, RHS &r)
-    -> decltype(make_ReductionExpr<minIndOp2_struct>(l, r)) {
+ReductionExpr<minIndOp2_struct, LHS, RHS> make_minIndReductionExpr(LHS &l,
+                                                                   RHS &r) {
   return make_ReductionExpr<minIndOp2_struct>(l, r);
-}
-
-/*!
-@brief Template function for constructing expression nodes based on input
-template and function arguments. Non-specialised case for N reference
-subexpressions.
-@tparam expressionT Expression type of the expression node.
-@tparam subexprsTN Subexpression types of the oeration node.
-@param subexpressions Reference subexpressions of the expression node.
-@return Constructed expression node.
-*/
-template <template <class...> class expressionT, typename... subexprsTN>
-expressionT<subexprsTN...> make_expr(subexprsTN &... subexprs) {
-  return expressionT<subexprsTN...>(subexprs...);
-}
-
-/*!
-@brief Template function for constructing expression nodes based on input
-template and function arguments. Specialised case for an operator and N
-reference subexpressions.
-@tparam expressionT Expression type of the expression node.
-@tparam exprT Expr type of the expression node.
-@tparam subexprsTN subexpression types of the expression node.
-@param Subexpressions Reference subexpressions of the expression node.
-@return Constructed expression node.
-*/
-template <template <class...> class expressionT, typename exprT,
-          typename... subexprsTN>
-expressionT<exprT, subexprsTN...> make_expr(subexprsTN &... subexprs) {
-  return expressionT<exprT, subexprsTN...>(subexprs...);
-}
-
-/*!
-@brief Template function for constructing expression nodes based on input
-tempalte and function arguments. Specialised case for an expression, a single by
-value subexpression and N reference subexpressions.
-@tparam expressionT Expression type of the expression node.
-@tparam exprT Expr type of the expression node.
-@tparam subexprT0 Subexpression type of the first by value subexpression of the
-expression node.
-@tparam subexprsTN Subexpression types of the subsequent reference
-subexpressions of
-the expression node.
-@param subexpr0 First by value subexpression of the expression node.
-@param subexprs Subsequent reference subexpressions of the expression node.
-@return Constructed expression node.
-*/
-template <template <class...> class expressionT, typename exprT,
-          typename subexprT0, typename... subexprsTN>
-expressionT<exprT, subexprT0, subexprsTN...> make_expr(
-    subexprT0 subexpr0, subexprsTN &... subexprs) {
-  return expressionT<exprT, subexprT0, subexprsTN...>(subexpr0, subexprs...);
 }
 
 }  // namespace blas

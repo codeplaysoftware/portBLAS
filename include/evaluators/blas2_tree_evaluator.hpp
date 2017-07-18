@@ -58,7 +58,7 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return r1.data(); }
+  cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(NULL, dev);
@@ -112,7 +112,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
         nThr(2) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(NULL, dev);
@@ -205,7 +205,7 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   }
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(NULL, dev);
@@ -252,7 +252,9 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
     // Copying  to the scratch
     k = localid;
     for (size_t j = colid + localid; j < colid + colSz; j += rowSz) {
-      if ((rowid < dimR) && (j < dimC)) scratch[k] = r2.eval(j);
+      if ((rowid < dimR) && (j < dimC)) {
+        scratch[k] = r2.eval(j);
+      }
       k += rowSz;
     }
 
@@ -264,10 +266,14 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
         functor_traits<iniAddOp1_struct, value_type, Device>::eval(r2.eval(0));
     k = 0;
     for (size_t j = colid; j < colid + colSz; j++) {
-      if ((rowid < dimR) && (j < dimC)) val += r1.eval(rowid, j) * scratch[k++];
+      if ((rowid < dimR) && (j < dimC)) {
+        val += r1.eval(rowid, j) * scratch[k++];
+      }
     }
     // The result is stored in lhs
-    if (rowid < dimR) l.eval(rowid, blqidC) = val;
+    if (rowid < dimR) {
+      l.eval(rowid, blqidC) = val;
+    }
 
     return val;
   }
@@ -296,7 +302,7 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(NULL, dev);
@@ -325,7 +331,6 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
 /*! RedRowMatVct.
  * @brief CLASSICAL AXPY GEMV
  */
-// #define ORIGINAL_CODE 1
 template <class RHS1, class RHS2, typename Device>
 struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   using Expression = RedRowMatVctExpr<RHS1, RHS2>;
@@ -343,7 +348,7 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return r1.data(); }
+  cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(NULL, dev);
@@ -454,7 +459,7 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
         r3(Evaluator<RHS3, Device>(expr.r3)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type *data() { return r1.data(); }
+  cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(NULL, dev);

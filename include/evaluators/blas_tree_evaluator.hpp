@@ -45,7 +45,7 @@ struct Evaluator<JoinExpr<LHS, RHS>, Device> {
   Evaluator(Expression &expr)
       : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(NULL, dev);
@@ -75,11 +75,12 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device> {
   Evaluator(Expression &expr)
       : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    cont_type data = l.data();
     l.eval_subexpr_if_needed(NULL, dev);
-    r.eval_subexpr_if_needed(l.data(), dev);
+    r.eval_subexpr_if_needed(&data, dev);
     return true;
   }
 
@@ -108,13 +109,14 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device> {
         r1(Evaluator<RHS1, Device>(expr.r1)),
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
   size_t getSize() const { return r1.getSize(); }
-  cont_type *data() { return l1.data(); }
+  cont_type data() { return l1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l1.eval_subexpr_if_needed(NULL, dev);
     l2.eval_subexpr_if_needed(NULL, dev);
-    r1.eval_subexpr_if_needed(l1.data(), dev);
-    r2.eval_subexpr_if_needed(l2.data(), dev);
+    cont_type data1 = l1.data(), data2 = l2.data();
+    r1.eval_subexpr_if_needed(&data1, dev);
+    r2.eval_subexpr_if_needed(&data2, dev);
     return true;
   }
 
@@ -145,7 +147,7 @@ struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device> {
   Evaluator(Expression &expr)
       : scl(expr.scl), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return r.data(); }
+  cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(NULL, dev);
@@ -173,7 +175,7 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device> {
 
   Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return r.data(); }
+  cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(NULL, dev);
@@ -201,11 +203,12 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device> {
   Evaluator(Expression &expr)
       : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return l.data(); }
+  cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    cont_type data = l.data();
     l.eval_subexpr_if_needed(NULL, dev);
-    r.eval_subexpr_if_needed(l.data(), dev);
+    r.eval_subexpr_if_needed(&data, dev);
     return true;
   }
 
@@ -226,7 +229,7 @@ struct Evaluator<TupleExpr<RHS>, Device> {
 
   Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type *data() { return r.data(); }
+  cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(NULL, dev);
@@ -251,7 +254,7 @@ struct Evaluator<vector_view<ScalarT, ContainerT>, Device> {
 
   Evaluator(Expression &vec) : vec(vec) {}
   size_t getSize() const { return vec.getSize(); }
-  cont_type *data() { return &vec.data_; }
+  cont_type data() { return vec.data_; }
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) { return true; }
   value_type &eval(size_t i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
@@ -283,7 +286,7 @@ struct Evaluator<matrix_view<ScalarT, ContainerT>, Device> {
   size_t getSize() const { return mat.getSizeR(); }
   size_t getSizeR() const { return mat.getSizeR(); }
   size_t getSizeC() const { return mat.getSizeC(); }
-  cont_type *data() { return mat.getData(); }
+  cont_type data() { return mat.getData(); }
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) { return true; }
   value_type &eval(size_t i) { return mat.eval(i); }
   value_type &eval(size_t i, size_t j) { return mat.eval(i, j); }
