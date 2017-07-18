@@ -109,7 +109,6 @@ struct benchmark {
  */
 #define BENCHMARK_MAIN_BEGIN(STEP_SIZE_PARAM, NUM_STEPS, REPS) \
   int main(int argc, char *argv[]) {                           \
-    benchmark_arguments ba(argc, argv);                        \
     benchmark<>::output_headers();                             \
     const unsigned num_reps = (REPS);                          \
     const unsigned step_size = (STEP_SIZE_PARAM);              \
