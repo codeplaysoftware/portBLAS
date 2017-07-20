@@ -99,13 +99,13 @@ class vec {
     template <typename Accessor>
     void store(size_t offset, Accessor acc) { data_.store(offset, acc); }
 
-    DEFINE_OPERATOR(+, size);
-    DEFINE_OPERATOR(-, size);
-    DEFINE_OPERATOR(*, size);
-    DEFINE_OPERATOR(/, size);
-    DEFINE_OPERATOR(%, size);
-    DEFINE_OPERATOR(>>, size);
-    DEFINE_OPERATOR(<<, size);
+    DEFINE_OPERATOR(+, size)
+    DEFINE_OPERATOR(-, size)
+    DEFINE_OPERATOR(*, size)
+    DEFINE_OPERATOR(/, size)
+    DEFINE_OPERATOR(%, size)
+    DEFINE_OPERATOR(>>, size)
+    DEFINE_OPERATOR(<<, size)
 };
 
 
@@ -151,13 +151,13 @@ class vec<dataT, 1> {
     template <typename Accessor>
     void store(size_t offset, Accessor acc) { acc[offset] = data_; }
 
-    DEFINE_OPERATOR(+, 1);
-    DEFINE_OPERATOR(-, 1);
-    DEFINE_OPERATOR(*, 1);
-    DEFINE_OPERATOR(/, 1);
-    DEFINE_OPERATOR(%, 1);
-    DEFINE_OPERATOR(>>, 1);
-    DEFINE_OPERATOR(<<, 1);
+    DEFINE_OPERATOR(+, 1)
+    DEFINE_OPERATOR(-, 1)
+    DEFINE_OPERATOR(*, 1)
+    DEFINE_OPERATOR(/, 1)
+    DEFINE_OPERATOR(%, 1)
+    DEFINE_OPERATOR(>>, 1)
+    DEFINE_OPERATOR(<<, 1)
 };
 
 
