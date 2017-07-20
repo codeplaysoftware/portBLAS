@@ -164,6 +164,30 @@ class vec<dataT, 1> {
 #undef DEFINE_OPERATOR
 
 
+template <int start, int end>
+struct for_vec_elem {
+  template <typename VecType, typename OpType>
+  static void map(const VecType &vec, OpType op) {
+    op(start, vec.template swizzle<start>());
+    for_vec_elem<start+1, end>::map(vec, op);
+  }
+  template <typename VecType, typename OpType>
+  static void transform(VecType &vec, OpType op) {
+    vec.template swizzle<start>() = op(start, vec.template swizzle<start>());
+    for_vec_elem<start+1, end>::map(vec, op);
+  }
+};
+
+
+template <int end>
+struct for_vec_elem<end, end> {
+  template <typename VecType, typename OpType>
+  static void map(const VecType &vec, OpType op) {}
+  template <typename VecType, typename OpType>
+  static void transform(VecType &vec, OpType op) {}
+};
+
+
 }
 
 
