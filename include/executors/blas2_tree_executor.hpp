@@ -58,6 +58,11 @@ struct Converter<Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, SYCLDevice>> {
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return out_type(rhs1, rhs2);
   }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
+  }
 };
 
 /*! Converter<PrdRowMatVctMult>.
@@ -84,6 +89,13 @@ struct Converter<
     auto rhs3 = Converter<Evaluator<RHS3, SYCLDevice>>::convert_to(v.r3, h);
     return out_type(lhs, v.scl, rhs1, rhs2, rhs3, v.nThr);
   }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.lhs, ev.lhs, h);
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
+    Converter<Evaluator<RHS3, SYCLDevice>>::bind_to(t.r3, ev.r3, h);
+  }
 };
 
 /*! Converter<PrdRowMatVctMultShm>.
@@ -105,6 +117,12 @@ struct Converter<
     auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return out_type(lhs, rhs1, rhs2, v.nThr);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.lhs, ev.lhs, h);
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
   }
 };
 
@@ -129,6 +147,12 @@ struct Converter<
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return out_type(lhs, v.scl, rhs1, rhs2);
   }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.l, ev.l, h);
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
+  }
 };
 
 /*! Converter<RedRowMatVct>.
@@ -146,6 +170,11 @@ struct Converter<Evaluator<RedRowMatVctExpr<RHS1, RHS2>, SYCLDevice>> {
     auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return out_type(rhs1, rhs2);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
   }
 };
 
@@ -166,6 +195,12 @@ struct Converter<Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, SYCLDevice>> {
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     auto rhs3 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r3, h);
     return out_type(rhs1, rhs2, rhs3);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
+    Converter<Evaluator<RHS3, SYCLDevice>>::bind_to(t.r3, ev.r2, h);
   }
 };
 

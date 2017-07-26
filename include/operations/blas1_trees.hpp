@@ -29,8 +29,9 @@
 #include <stdexcept>
 #include <vector>
 
+#include <executors/blas_pointer_struct.hpp>
 #include <operations/blas_operators.hpp>
-#include <views/view_sycl.hpp>
+#include <views/operview_base.hpp>
 
 namespace blas {
 
@@ -38,49 +39,44 @@ namespace blas {
  * @brief Implements the reduction operation for assignments (in the form y = x)
  *  with y a scalar and x a subexpression tree.
  */
-template <typename Functor, class LHS, class RHS>
+template <typename Functor, class RHS,
+          template <class> class MakePointer = MakeHostPointer>
 struct ReductionExpr {
-  using value_type = typename LHS::value_type;
-
-  LHS l;
+  using value_type = typename RHS::value_type;
   RHS r;
-
-  ReductionExpr(LHS &_l, RHS &_r) : l(_l), r(_r) {}
+  ReductionExpr(RHS &_r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
 };
 
-template <typename Functor, typename LHS, typename RHS>
-ReductionExpr<Functor, LHS, RHS> make_ReductionExpr(LHS &l, RHS &r) {
-  return ReductionExpr<Functor, LHS, RHS>(l, r);
+template <typename Functor, typename RHS>
+ReductionExpr<Functor, RHS> make_ReductionExpr(RHS &r) {
+  return ReductionExpr<Functor, RHS>(r);
 }
 
-template <typename LHS, typename RHS>
-ReductionExpr<addOp2_struct, LHS, RHS> make_addReductionExpr(LHS &l, RHS &r) {
-  return make_ReductionExpr<addOp2_struct>(l, r);
+template <typename RHS>
+ReductionExpr<addOp2_struct, RHS> make_addReductionExpr(RHS &r) {
+  return make_ReductionExpr<addOp2_struct>(r);
 }
 
-template <typename LHS, typename RHS>
-ReductionExpr<prdOp2_struct, LHS, RHS> make_prdReductionExpr(LHS &l, RHS &r) {
-  return make_ReductionExpr<prdOp2_struct>(l, r);
+template <typename RHS>
+ReductionExpr<prdOp2_struct, RHS> make_prdReductionExpr(RHS &r) {
+  return make_ReductionExpr<prdOp2_struct>(r);
 }
 
-template <typename LHS, typename RHS>
-ReductionExpr<addAbsOp2_struct, LHS, RHS> make_addAbsReductionExpr(LHS &l,
-                                                                   RHS &r) {
-  return make_ReductionExpr<addAbsOp2_struct>(l, r);
+template <typename RHS>
+ReductionExpr<addAbsOp2_struct, RHS> make_addAbsReductionExpr(RHS &r) {
+  return make_ReductionExpr<addAbsOp2_struct>(r);
 }
 
-template <typename LHS, typename RHS>
-ReductionExpr<maxIndOp2_struct, LHS, RHS> make_maxIndReductionExpr(LHS &l,
-                                                                   RHS &r) {
-  return make_ReductionExpr<maxIndOp2_struct>(l, r);
+template <typename RHS>
+ReductionExpr<maxIndOp2_struct, RHS> make_maxIndReductionExpr(RHS &r) {
+  return make_ReductionExpr<maxIndOp2_struct>(r);
 }
 
-template <typename LHS, typename RHS>
-ReductionExpr<minIndOp2_struct, LHS, RHS> make_minIndReductionExpr(LHS &l,
-                                                                   RHS &r) {
-  return make_ReductionExpr<minIndOp2_struct>(l, r);
+template <typename RHS>
+ReductionExpr<minIndOp2_struct, RHS> make_minIndReductionExpr(RHS &r) {
+  return make_ReductionExpr<minIndOp2_struct>(r);
 }
 
 }  // namespace blas

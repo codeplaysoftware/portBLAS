@@ -60,8 +60,8 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
   cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(NULL, dev);
-    r2.eval_subexpr_if_needed(NULL, dev);
+    r1.eval_subexpr_if_needed(nullptr, dev);
+    r2.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -82,6 +82,8 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+
+  void cleanup() {}
 };
 
 }  // namespace blas

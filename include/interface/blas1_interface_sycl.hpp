@@ -133,7 +133,8 @@ T _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   T result;
   cl::sycl::buffer<T, 1> buf_result(&result, cl::sycl::range<1>{1});
   auto rs = vector_view<T, ContainerT>(buf_result, 0, 1, 1);
-  auto assignExpr = make_addReductionExpr(rs, prdExpr);
+  auto dotExpr = make_addReductionExpr(prdExpr);
+  auto assignExpr = make_expr<AssignExpr>(rs, dotExpr);
   blas::execute(dev, assignExpr);
   return rs.eval(0);
 }
@@ -155,7 +156,8 @@ void _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
   auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
+  auto dotExpr = make_addReductionExpr(prdExpr);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, dotExpr);
   blas::execute(dev, assignExpr);
 }
 
@@ -173,7 +175,8 @@ T _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
 
   ContainerT valT1(1);
   auto rs = vector_view<T, ContainerT>(valT1, 0, 1, 1);
-  auto assignExpr = make_addReductionExpr(rs, prdExpr);
+  auto nrm2Expr = make_addReductionExpr(prdExpr);
+  auto assignExpr = make_expr<AssignExpr>(rs, nrm2Expr);
   blas::execute(dev, assignExpr);
   return std::sqrt(rs.eval(0));
 }
@@ -191,10 +194,10 @@ void _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
 
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
-  auto assignExpr = make_addReductionExpr(my_rs, prdExpr);
-  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(assignExpr);
-  auto assignExpr2 = make_expr<AssignExpr>(my_rs, sqrtExpr);
-  blas::execute(dev, assignExpr2);
+  auto nrm2Expr = make_addReductionExpr(my_rs, prdExpr);
+  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(nrm2Expr);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, sqrtExpr);
+  blas::execute(dev, assignExpr);
 }
 
 /**
@@ -208,7 +211,8 @@ void _asum(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
            vector_view<T, ContainerT> _rs) {
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-  auto assignExpr = make_addAbsReductionExpr(my_rs, my_vx);
+  auto asumExpr = make_addAbsReductionExpr(my_vx);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, asumExpr);
   blas::execute(dev, assignExpr);
 }
 
@@ -224,7 +228,8 @@ void _iamax(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
-  auto assignExpr = make_maxIndReductionExpr(my_rs, tupExpr);
+  auto iamaxExpr = make_maxIndReductionExpr(tupExpr);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, iamaxExpr);
   blas::execute(dev, assignExpr);
 }
 
@@ -254,7 +259,8 @@ void _iamin(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
   auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
-  auto assignExpr = make_minIndReductionExpr(my_rs, tupExpr);
+  auto iaminExpr = make_minIndReductionExpr(tupExpr);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, iaminExpr);
   blas::execute(dev, assignExpr);
 }
 

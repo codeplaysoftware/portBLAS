@@ -28,6 +28,7 @@
 
 #include <CL/sycl.hpp>
 #include <executors/blas_device.hpp>
+#include <executors/blas_pointer_struct.hpp>
 
 namespace blas {
 
@@ -61,7 +62,18 @@ class SYCLDevice {
 
   cl::sycl::queue sycl_queue() { return m_queue; }
   cl::sycl::device sycl_device() { return m_queue.get_device(); }
+
+  template <typename T>
+  cl::sycl::buffer<T, 1> *allocate(T *data, size_t N) {
+    return new cl::sycl::buffer<T, 1>(data, {N});
+  }
+
+  template <typename T>
+  void deallocate(cl::sycl::buffer<T, 1> *buffer) {
+    delete buffer;
+  }
 };
+
 }  // namespace BLAS
 
 #endif /* end of include guard: BLAS_DEVICE_SYCL_HPP */

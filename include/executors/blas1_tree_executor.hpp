@@ -44,16 +44,18 @@ namespace blas {
  * make_accessor function, which starts processing the tree.
  */
 
-template <typename Evaluator>
+template <typename EvaluatorT>
 struct Converter {
-  using value_type = Evaluator;
-  using input_type = Evaluator;
-  using out_type = Evaluator;
+  using value_type = typename EvaluatorT::value_type;
+  using input_type = EvaluatorT;
+  using out_type = typename EvaluatorT::Expression;
 
   /** convert_to.
    * @brief .
    */
   static out_type convert_to(input_type v, cl::sycl::handler &h) { return v; }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
 /*! Converter <Join<LHS, RHS>>.
@@ -73,6 +75,12 @@ struct Converter<Evaluator<JoinExpr<LHS, RHS>, SYCLDevice>> {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(lhs, rhs);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.lhs, ev.lhs, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.rhs, ev.rhs, h);
+  }
 };
 
 /*! Converter <Assign<LHS, RHS>>a
@@ -91,6 +99,12 @@ struct Converter<Evaluator<AssignExpr<LHS, RHS>, SYCLDevice>> {
     auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(lhs, rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.l, ev.l, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
@@ -116,6 +130,14 @@ struct Converter<
     auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
     return out_type(lhs1, lhs2, rhs1, rhs2);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS1, SYCLDevice>>::bind_to(t.l1, ev.l1, h);
+    Converter<Evaluator<LHS2, SYCLDevice>>::bind_to(t.l2, ev.l2, h);
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
+  }
 };
 
 /*! Converter<ScalarOp<Operator, SCL, RHS>>
@@ -134,6 +156,11 @@ struct Converter<Evaluator<ScalarExpr<Functor, SCL, RHS>, SYCLDevice>> {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(v.scl, rhs);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+  }
 };
 
 /*! Converter<TupleOp<Operator, RHS>
@@ -151,6 +178,11 @@ struct Converter<Evaluator<TupleExpr<RHS>, SYCLDevice>> {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(rhs);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+  }
 };
 
 /*! Converter<UnaryOp<Operator, RHS>
@@ -167,6 +199,11 @@ struct Converter<Evaluator<UnaryExpr<Functor, RHS>, SYCLDevice>> {
   static out_type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<rhs_type, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
@@ -187,26 +224,37 @@ struct Converter<Evaluator<BinaryExpr<Functor, LHS, RHS>, SYCLDevice>> {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(lhs, rhs);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.l, ev.l, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+  }
 };
 
 /*! Converter<Reduction<Operator, LHS, RHS>>
  * @brief See Converter.
  */
-template <typename Functor, typename LHS, typename RHS>
-struct Converter<Evaluator<ReductionExpr<Functor, LHS, RHS>, SYCLDevice>> {
-  using Expression = ReductionExpr<Functor, LHS, RHS>;
-  using value_type = typename LHS::value_type;
+template <typename Functor, typename RHS>
+struct Converter<
+    Evaluator<ReductionExpr<Functor, RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = ReductionExpr<Functor, RHS, MakeHostPointer>;
+  using value_type = typename RHS::value_type;
   using oper_type = Functor;
-  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::out_type;
   using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
-  using cont_type = typename Evaluator<LHS, SYCLDevice>::cont_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
   using input_type = Evaluator<Expression, SYCLDevice>;
-  using out_type = ReductionExpr<Functor, lhs_type, rhs_type>;
+  using out_type = ReductionExpr<Functor, rhs_type, MakeDevicePointer>;
 
   static out_type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
-    return out_type(lhs, rhs);
+    return out_type(rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+    h.require(*t.result, ev.result);
   }
 };
 
@@ -233,6 +281,9 @@ struct Converter<
                                                                     h);
     return out_type(nested, t.vec.disp_, t.vec.strd_, t.vec.size_);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
 /*! Converter<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
@@ -259,6 +310,9 @@ struct Converter<
     return out_type(nested, t.mat.accessDev_, t.mat.sizeR_, t.mat.sizeC_,
                     t.mat.accessOpr_, t.mat.sizeL_, t.mat.disp_);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
 /*! Converter<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
@@ -274,6 +328,8 @@ struct Converter<Evaluator<vector_view<ScalarT, ContainerT>, SYCLDevice>> {
   using out_type = vector_view<ScalarT, nested_type>;
 
   static out_type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
 /*! Converter<matrix_view<ScalarT, ContainerT>>
@@ -289,6 +345,8 @@ struct Converter<Evaluator<matrix_view<ScalarT, ContainerT>, SYCLDevice>> {
   using out_type = matrix_view<ScalarT, nested_type>;
 
   static out_type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
 /** make_accessor.
@@ -297,17 +355,13 @@ struct Converter<Evaluator<matrix_view<ScalarT, ContainerT>, SYCLDevice>> {
  * @param Tree The Input Expression Tree.
  * @param handler The Command Group Handler used to create the accessors
  */
-namespace detail {
 template <typename EvaluatorT>
-using Converted =
-    Evaluator<typename Converter<EvaluatorT>::out_type, SYCLDevice>;
-}  // namespace detail
-
-template <typename EvaluatorT>
-detail::Converted<EvaluatorT> make_accessor(EvaluatorT e,
-                                            cl::sycl::handler &h) {
-  auto expr = Converter<EvaluatorT>::convert_to(e, h);
-  return detail::Converted<EvaluatorT>(expr);
+Evaluator<typename Converter<EvaluatorT>::out_type, SYCLDevice> make_accessor(
+    EvaluatorT e, cl::sycl::handler &h) {
+  using converter = Converter<EvaluatorT>;
+  auto ec = converter::convert_to(e, h);
+  converter::bind_to(e, ec, h);
+  return ec;
 }
 
 }  // namespace BLAS

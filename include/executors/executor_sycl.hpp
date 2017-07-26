@@ -64,7 +64,7 @@ static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
   using EvaluatorT = Evaluator<ExpressionT, Device>;
 
   EvaluatorT ev(expr);
-  ev.eval_subexpr_if_needed(NULL, dev);
+  ev.eval_subexpr_if_needed(nullptr, dev);
 
   dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
     auto nTree = blas::make_accessor(ev, h);

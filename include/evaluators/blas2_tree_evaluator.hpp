@@ -61,8 +61,8 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
   cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(NULL, dev);
-    r2.eval_subexpr_if_needed(NULL, dev);
+    r1.eval_subexpr_if_needed(nullptr, dev);
+    r2.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -115,7 +115,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
   cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
     r1.eval_subexpr_if_needed(l.data(), dev);
     r2.eval_subexpr_if_needed(l.data(), dev);
     r3.eval_subexpr_if_needed(l.data(), dev);
@@ -175,6 +175,8 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
     }
     return val;
   }
+
+  void cleanup() {}
 };
 
 /*! PrdRowMatCvtMultShm.
@@ -208,7 +210,7 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
     r1.eval_subexpr_if_needed(l.data(), dev);
     r2.eval_subexpr_if_needed(l.data(), dev);
     return true;
@@ -277,6 +279,8 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
 
     return val;
   }
+
+  void cleanup() {}
 };
 
 /*! AddPrdRowMatVctMultShm.
@@ -305,7 +309,7 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
     r1.eval_subexpr_if_needed(l.data(), dev);
     r2.eval_subexpr_if_needed(l.data(), dev);
     return true;
@@ -326,6 +330,8 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+
+  void cleanup() {}
 };
 
 /*! RedRowMatVct.
@@ -349,8 +355,8 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(NULL, dev);
-    r2.eval_subexpr_if_needed(NULL, dev);
+    r1.eval_subexpr_if_needed(nullptr, dev);
+    r2.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -367,6 +373,8 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+
+  void cleanup() {}
 
 #if BLAS_EXPERIMENTAL
   template <typename sharedT>
@@ -460,9 +468,9 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   cont_type data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(NULL, dev);
-    r2.eval_subexpr_if_needed(NULL, dev);
-    r3.eval_subexpr_if_needed(NULL, dev);
+    r1.eval_subexpr_if_needed(nullptr, dev);
+    r2.eval_subexpr_if_needed(nullptr, dev);
+    r3.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -479,6 +487,8 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+
+  void cleanup() {}
 };
 
 }  // namespace blas

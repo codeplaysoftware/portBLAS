@@ -77,110 +77,115 @@ struct shared_mem {
   ScalarT &operator[](cl::sycl::id<1> id) { return localAcc[id]; }
 };
 
+template <typename EvaluatorT>
+struct KernelFunctorNoScratch {
+  EvaluatorT ev;
+
+  KernelFunctorNoScratch(EvaluatorT ev) : ev(ev) {}
+
+  void operator()(cl::sycl::nd_item<1> ndItem) {
+    using dev_functor = typename EvaluatorT::dev_functor;
+    /* size_t vecS = ev.r.getSize(); */
+
+    /* size_t frs_thrd = 2 * blqS * i; */
+    /* size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd +
+     * blqS); */
+    /* // Reduction across the grid */
+    /* value_type val = dev_functor::init(ev.r); */
+    /* for (size_t j = frs_thrd; j < lst_thrd; j++) { */
+    /*   value_type local_val = dev_functor::init(ev.r); */
+    /*   for (size_t k = j; k < vecS; k += 2 * grdS) { */
+    /*     local_val = dev_functor::eval(local_val, ev.r.eval(k)); */
+    /*     if (k + blqS < vecS) { */
+    /*       local_val = dev_functor::eval(local_val, ev.r.eval(k + blqS)); */
+    /*     } */
+    /*   } */
+    /*   // Reduction inside the block */
+    /*   val = dev_functor::eval(val, local_val); */
+    /* } */
+    /* return ev.l.eval(i) = val; */
+    return ev.l.eval(ndItem);
+  }
+};
+
+template <typename EvaluatorT, typename Scratch>
+struct KernelFunctor {
+  EvaluatorT ev;
+  Scratch scratch;
+
+  KernelFunctor(EvaluatorT &ev, Scratch scratch) : ev(ev), scratch(scratch) {}
+
+  void operator()(cl::sycl::nd_item<1> ndItem) {
+    using dev_functor = typename EvaluatorT::dev_functor;
+    size_t localid = ndItem.get_local(0);
+    size_t localSz = ndItem.get_local_range(0);
+    size_t groupid = ndItem.get_group(0);
+
+    /*       size_t vecS = ev.r.getSize(); */
+    /*       size_t frs_thrd = 2 * groupid * localSz + localid; */
+    /*       size_t blqS = 256; */
+    /*       size_t grdS = 512; */
+
+    /*       // Reduction across the grid */
+    /*       value_type val = dev_functor::init(ev.r); */
+    /*       for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) { */
+    /*         val = dev_functor::eval(val, ev.r.eval(k)); */
+    /*         if ((k + blqS < vecS)) { */
+    /*           val = dev_functor::eval(val, ev.r.eval(k + blqS)); */
+    /*         } */
+    /*       } */
+
+    /*       scratch[localid] = val; */
+    /*       // This barrier is mandatory to be sure the data is on the shared
+     * memory */
+    /*       ndItem.barrier(cl::sycl::access::fence_space::local_space); */
+
+    /*       // Reduction inside the block */
+    /*       for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) { */
+    /*         if (localid < offset) { */
+    /*           scratch[localid] = dev_functor::eval(scratch[localid],
+     * scratch[localid + offset]); */
+    /*         } */
+    /*         // This barrier is mandatory to be sure the data are on the
+     * shared */
+    /*         // memory */
+    /*         ndItem.barrier(cl::sycl::access::fence_space::local_space); */
+    /*       } */
+    /*       if (localid == 0) { */
+    /*         ev.l.eval(groupid) = scratch[localid]; */
+    /*       } */
+    return ev.l.eval(groupid);
+  }
+};
+
 template <class EvaluatorT>
 class GenericReducer {
   using Device = typename EvaluatorT::Device;
 
-  struct KernelFunctorNoScratch {
-    EvaluatorT ev;
-
-    KernelFunctorNoScratch(EvaluatorT ev) : ev(ev) {}
-
-    void operator()(cl::sycl::nd_item<1> ndItem) {
-      using dev_functor = typename EvaluatorT::dev_functor;
-      /* size_t vecS = ev.r.getSize(); */
-
-      /* size_t frs_thrd = 2 * blqS * i; */
-      /* size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd +
-       * blqS); */
-      /* // Reduction across the grid */
-      /* value_type val = dev_functor::init(ev.r); */
-      /* for (size_t j = frs_thrd; j < lst_thrd; j++) { */
-      /*   value_type local_val = dev_functor::init(ev.r); */
-      /*   for (size_t k = j; k < vecS; k += 2 * grdS) { */
-      /*     local_val = dev_functor::eval(local_val, ev.r.eval(k)); */
-      /*     if (k + blqS < vecS) { */
-      /*       local_val = dev_functor::eval(local_val, ev.r.eval(k + blqS)); */
-      /*     } */
-      /*   } */
-      /*   // Reduction inside the block */
-      /*   val = dev_functor::eval(val, local_val); */
-      /* } */
-      /* return ev.l.eval(i) = val; */
-      return ev.l.eval(ndItem);
-    }
-
-    void execute(Device &dev, size_t localsize, size_t globalsize) {
-      dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
-        auto nTree = blas::make_accessor(ev, h);
-        cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-            cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
-        h.parallel_for(gridConfiguration, *this);
-      });
-    }
-  };
+  void execute(Device &dev, EvaluatorT ev, size_t localsize,
+               size_t globalsize) {
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      h.require(*ev.result, nTree.result);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
+      h.parallel_for(gridConfiguration, KernelFunctorNoScratch<EvaluatorT>(ev));
+    });
+  }
 
   template <typename Scratch>
-  struct KernelFunctor {
-    EvaluatorT ev;
-    Scratch scratch;
-
-    KernelFunctor(EvaluatorT &ev, Scratch scratch) : ev(ev), scratch(scratch) {}
-
-    void operator()(cl::sycl::nd_item<1> ndItem) {
-      using dev_functor = typename EvaluatorT::dev_functor;
-      size_t localid = ndItem.get_local(0);
-      size_t localSz = ndItem.get_local_range(0);
-      size_t groupid = ndItem.get_group(0);
-
-      /*       size_t vecS = ev.r.getSize(); */
-      /*       size_t frs_thrd = 2 * groupid * localSz + localid; */
-      /*       size_t blqS = 256; */
-      /*       size_t grdS = 512; */
-
-      /*       // Reduction across the grid */
-      /*       value_type val = dev_functor::init(ev.r); */
-      /*       for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) { */
-      /*         val = dev_functor::eval(val, ev.r.eval(k)); */
-      /*         if ((k + blqS < vecS)) { */
-      /*           val = dev_functor::eval(val, ev.r.eval(k + blqS)); */
-      /*         } */
-      /*       } */
-
-      /*       scratch[localid] = val; */
-      /*       // This barrier is mandatory to be sure the data is on the shared
-       * memory */
-      /*       ndItem.barrier(cl::sycl::access::fence_space::local_space); */
-
-      /*       // Reduction inside the block */
-      /*       for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) { */
-      /*         if (localid < offset) { */
-      /*           scratch[localid] = dev_functor::eval(scratch[localid],
-       * scratch[localid + offset]); */
-      /*         } */
-      /*         // This barrier is mandatory to be sure the data are on the
-       * shared */
-      /*         // memory */
-      /*         ndItem.barrier(cl::sycl::access::fence_space::local_space); */
-      /*       } */
-      /*       if (localid == 0) { */
-      /*         ev.l.eval(groupid) = scratch[localid]; */
-      /*       } */
-      return ev.l.eval(groupid);
-    }
-
-    void execute(Device &dev, size_t localsize, size_t globalsize,
-                 size_t sharedsize) {
-      using value_type = typename EvaluatorT::value_type;
-      dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
-        auto nTree = blas::make_accessor(ev, h);
-        auto scratch = shared_mem<value_type>(sharedsize, h);
-        cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-            cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
-        h.parallel_for(gridConfiguration, *this);
-      });
-    }
-  };
+  void execute(Device &dev, EvaluatorT ev, size_t localsize, size_t globalsize,
+               size_t sharedsize) {
+    using value_type = typename EvaluatorT::value_type;
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      auto scratch = shared_mem<value_type>(sharedsize, h);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
+      h.parallel_for(gridConfiguration,
+                     KernelFunctor<EvaluatorT, Scratch>(ev, scratch));
+    });
+  }
 };
 
 template <class EvaluatorT>

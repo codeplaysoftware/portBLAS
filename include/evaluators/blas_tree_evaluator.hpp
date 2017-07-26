@@ -48,8 +48,8 @@ struct Evaluator<JoinExpr<LHS, RHS>, Device> {
   cont_type data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(NULL, dev);
-    r.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
+    r.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -60,6 +60,7 @@ struct Evaluator<JoinExpr<LHS, RHS>, Device> {
   value_type eval(cl::sycl::nd_item<1> nditem) {
     return eval(nditem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class LHS, class RHS, typename Device>
@@ -79,7 +80,7 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device> {
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     cont_type data = l.data();
-    l.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
     r.eval_subexpr_if_needed(&data, dev);
     return true;
   }
@@ -88,6 +89,7 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device> {
   value_type eval(cl::sycl::nd_item<1> nditem) {
     return eval(nditem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class LHS1, class LHS2, class RHS1, class RHS2, typename Device>
@@ -112,8 +114,8 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device> {
   cont_type data() { return l1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l1.eval_subexpr_if_needed(NULL, dev);
-    l2.eval_subexpr_if_needed(NULL, dev);
+    l1.eval_subexpr_if_needed(nullptr, dev);
+    l2.eval_subexpr_if_needed(nullptr, dev);
     cont_type data1 = l1.data(), data2 = l2.data();
     r1.eval_subexpr_if_needed(&data1, dev);
     r2.eval_subexpr_if_needed(&data2, dev);
@@ -130,6 +132,7 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device> {
   value_type eval(cl::sycl::nd_item<1> nditem) {
     return eval(nditem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class Functor, class SCL, class RHS, typename Device>
@@ -150,7 +153,7 @@ struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device> {
   cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r.eval_subexpr_if_needed(NULL, dev);
+    r.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -178,7 +181,7 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device> {
   cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r.eval_subexpr_if_needed(NULL, dev);
+    r.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -186,6 +189,7 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class Functor, class LHS, class RHS, typename Device>
@@ -207,7 +211,7 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device> {
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     cont_type data = l.data();
-    l.eval_subexpr_if_needed(NULL, dev);
+    l.eval_subexpr_if_needed(nullptr, dev);
     r.eval_subexpr_if_needed(&data, dev);
     return true;
   }
@@ -216,6 +220,7 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class RHS, typename Device>
@@ -232,7 +237,7 @@ struct Evaluator<TupleExpr<RHS>, Device> {
   cont_type data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r.eval_subexpr_if_needed(NULL, dev);
+    r.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -241,6 +246,7 @@ struct Evaluator<TupleExpr<RHS>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class ScalarT, class ContainerT, typename Device>
@@ -271,6 +277,7 @@ struct Evaluator<vector_view<ScalarT, ContainerT>, Device> {
   value_type &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void cleanup() {}
 };
 
 template <class ScalarT, class ContainerT, typename Device>
@@ -295,6 +302,7 @@ struct Evaluator<matrix_view<ScalarT, ContainerT>, Device> {
   value_type &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void cleanup() {}
 };
 
 }  // namespace blas
