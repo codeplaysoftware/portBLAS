@@ -203,7 +203,7 @@ struct Converter<Evaluator<UnaryExpr<Functor, RHS>, SYCLDevice>> {
 
   static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
                       cl::sycl::handler &h) {
-    Converter<Evaluator<rhs_type, SYCLDevice>>::bind_to(t.r, ev.r, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 

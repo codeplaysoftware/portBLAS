@@ -194,7 +194,7 @@ void _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
   auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
 
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
-  auto nrm2Expr = make_addReductionExpr(my_rs, prdExpr);
+  auto nrm2Expr = make_addReductionExpr(prdExpr);
   auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(nrm2Expr);
   auto assignExpr = make_expr<AssignExpr>(my_rs, sqrtExpr);
   blas::execute(dev, assignExpr);

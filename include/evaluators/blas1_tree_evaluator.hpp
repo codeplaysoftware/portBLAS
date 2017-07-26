@@ -45,13 +45,6 @@ struct FullReducer;
 template <class EvaluatorT, class Reducer>
 struct PartialReduction;
 
-template <class MakePointerT>
-struct host_pointer_struct {};
-template <typename T>
-struct host_pointer_struct<MakeHostPointer<T>> {
-  T *value = nullptr;
-};
-
 /*! Reduction.
  * @brief Implements the reduction operation for assignments (in the form y = x)
  *  with y a scalar and x a subexpression tree.
@@ -67,11 +60,12 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   /* static constexpr bool supported = functor_traits<Functor, value_type,
    * SYCLDevice>::supported && RHS::supported; */
   bool allocated_result = false;
-  host_pointer_struct<MakePointer<value_type>> host_data;
   typename MakePointer<value_type>::type result;
   Evaluator<RHS, Device> r;
 
-  Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
+  Evaluator(Expression &expr)
+      : r(Evaluator<RHS, Device>(expr.r)),
+        result(MakePointer<value_type>::init()) {}
 
   size_t getSize() const { return r.getSize(); }
   cont_type data() { return r.data(); }
@@ -83,8 +77,7 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
       result = cont;
     } else {
       allocated_result = true;
-      host_data.value = new value_type[1];
-      result = dev.allocate<value_type>(host_data.value, 1);
+      result = dev.allocate<value_type>(1);
     }
     FullReducer<Self, GenericReducerTwoStage<Self>>::run(*this, dev);
     return true;
@@ -98,7 +91,6 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
 
   void cleanup(SYCLDevice &dev) {
     if (allocated_result) {
-      delete[] host_data.value;
       dev.deallocate<value_type>(result);
     }
   }
