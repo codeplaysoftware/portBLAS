@@ -50,11 +50,12 @@ namespace blas {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _axpy(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _axpy(Device &dev, int _N, ScalarT _alpha,
+           vector_view<ScalarT, ContainerT> _vx, int _incx,
+           vector_view<ScalarT, ContainerT> _vy, int _incy) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto addExpr = make_expr<BinaryExpr, addOp2_struct>(my_vy, scalExpr);
   auto assignExpr = make_expr<AssignExpr>(my_vy, addExpr);
@@ -70,11 +71,11 @@ void _axpy(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _copy(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _copy(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
+           vector_view<ScalarT, ContainerT> _vy, int _incy) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto assignExpr = make_expr<AssignExpr>(my_vy, my_vx);
   blas::execute(dev, assignExpr);
 }
@@ -88,11 +89,11 @@ void _copy(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _swap(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _swap(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
+           vector_view<ScalarT, ContainerT> _vy, int _incy) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
   auto swapExpr = make_expr<DoubleAssignExpr>(my_vy, my_vx, my_vx, my_vy);
   blas::execute(dev, swapExpr);
 }
@@ -104,10 +105,10 @@ void _swap(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _scal(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
-           int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _scal(Device &dev, int _N, ScalarT _alpha,
+           vector_view<ScalarT, ContainerT> _vx, int _incx) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
   auto assignExpr = make_expr<AssignExpr>(my_vx, scalExpr);
   blas::execute(dev, assignExpr);
@@ -123,16 +124,16 @@ void _scal(Device &dev, int _N, T _alpha, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename T, typename ContainerT>
-T _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-       vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+ScalarT _dot(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
+             int _incx, vector_view<ScalarT, ContainerT> _vy, int _incy) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
 
   auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  T result;
-  cl::sycl::buffer<T, 1> buf_result(&result, cl::sycl::range<1>{1});
-  auto rs = vector_view<T, ContainerT>(buf_result, 0, 1, 1);
+  ScalarT result;
+  cl::sycl::buffer<ScalarT, 1> buf_result(&result, cl::sycl::range<1>{1});
+  auto rs = vector_view<ScalarT, ContainerT>(buf_result, 0, 1, 1);
   auto dotExpr = make_addReductionExpr(prdExpr);
   auto assignExpr = make_expr<AssignExpr>(rs, dotExpr);
   blas::execute(dev, assignExpr);
@@ -148,13 +149,26 @@ T _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-          vector_view<T, ContainerT> _vy, int _incy,
-          vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _dot(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
+          vector_view<ScalarT, ContainerT> _vy, int _incy,
+          vector_view<ScalarT, ContainerT> _rs) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
+  auto dotExpr = make_addReductionExpr(prdExpr);
+  auto assignExpr = make_expr<AssignExpr>(my_rs, dotExpr);
+  blas::execute(dev, assignExpr);
+}
+
+template <typename Device, typename ScalarT, typename ContainerT>
+void _dot_tree(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
+               int _incx, vector_view<ScalarT, ContainerT> _vy, int _incy,
+               vector_view<ScalarT, ContainerT> _rs) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
   auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
   auto dotExpr = make_addReductionExpr(prdExpr);
   auto assignExpr = make_expr<AssignExpr>(my_rs, dotExpr);
@@ -168,13 +182,14 @@ void _dot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename Device, typename T, typename ContainerT>
-T _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+template <typename Device, typename ScalarT, typename ContainerT>
+ScalarT _nrm2(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
+              int _incx) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
 
   ContainerT valT1(1);
-  auto rs = vector_view<T, ContainerT>(valT1, 0, 1, 1);
+  auto rs = vector_view<ScalarT, ContainerT>(valT1, 0, 1, 1);
   auto nrm2Expr = make_addReductionExpr(prdExpr);
   auto assignExpr = make_expr<AssignExpr>(rs, nrm2Expr);
   blas::execute(dev, assignExpr);
@@ -187,11 +202,11 @@ T _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _nrm2(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
+           vector_view<ScalarT, ContainerT> _rs) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
 
   auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
   auto nrm2Expr = make_addReductionExpr(prdExpr);
@@ -206,11 +221,11 @@ void _nrm2(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename Device, typename T, typename ContainerT>
-void _asum(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+template <typename Device, typename ScalarT, typename ContainerT>
+void _asum(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
+           vector_view<ScalarT, ContainerT> _rs) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
   auto asumExpr = make_addAbsReductionExpr(my_vx);
   auto assignExpr = make_expr<AssignExpr>(my_rs, asumExpr);
   blas::execute(dev, assignExpr);
@@ -221,13 +236,13 @@ void _asum(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename Device, typename T, typename ContainerT, typename I,
+template <typename Device, typename ScalarT, typename ContainerT, typename I,
           typename ContainerI>
-void _iamax(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-            vector_view<I, ContainerI> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
+void _iamax(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
+            int _incx, vector_view<I, ContainerI> _rs) {
+  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
   auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
-  auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
+  auto tupExpr = TupleExpr<vector_view<ScalarT, ContainerT>>(my_vx);
   auto iamaxExpr = make_maxIndReductionExpr(tupExpr);
   auto assignExpr = make_expr<AssignExpr>(my_rs, iamaxExpr);
   blas::execute(dev, assignExpr);

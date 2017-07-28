@@ -28,6 +28,10 @@
 
 namespace blas {
 
+/*!
+ * SimpleDevice.
+ * @brief Simple prototype device for executing the expression trees.
+ */
 class SimpleDevice {};
 
 }  // namespace BLAS

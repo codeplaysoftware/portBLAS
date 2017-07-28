@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas1_tree_evaluator_base.hpp
+ *  @filename blas_tree_evaluator_base.hpp
  *
  **************************************************************************/
 
@@ -34,7 +34,8 @@ namespace blas {
 namespace internal {
 
 /*! DetectScalar.
- * @brief Class specialization used to detect scalar values in ScalarOp nodes.
+ * @brief Class specialization used to detect scalar values in scalar expression
+ * nodes.
  * When the value is not an integral basic type,
  * it is assumed to be a vector and the first value
  * is used.
@@ -60,6 +61,13 @@ auto get_scalar(T &scl) -> decltype(DetectScalar<T>::get_scalar(scl)) {
 
 }  // namespace internal
 
+/*!
+ * Evaluator.
+ * @brief Evaluation class which specifies how an expression node is evaluated
+ * on a specific device.
+ * @tparam Expression Expression to be evaluated.
+ * @tparam Device Device for which evaluation rules are specified.
+ */
 template <class Expression, typename Device>
 struct Evaluator;
 

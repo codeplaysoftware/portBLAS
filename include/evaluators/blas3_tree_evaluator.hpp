@@ -83,7 +83,10 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
     return eval(ndItem.get_global(0));
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+  }
 };
 
 }  // namespace blas

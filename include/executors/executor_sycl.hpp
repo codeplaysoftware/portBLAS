@@ -45,7 +45,7 @@ namespace blas {
 template <typename EvaluatorT>
 struct ExecTreeFunctor {
   EvaluatorT ev;
-  ExecTreeFunctor(EvaluatorT ev_) : ev(ev_) {}
+  ExecTreeFunctor(EvaluatorT ev) : ev(ev) {}
   void operator()(cl::sycl::nd_item<1> i) { ev.eval(i); }
 };
 
@@ -58,8 +58,8 @@ struct ExecTreeFunctor {
 @param _globalSize Global work size.
 */
 template <typename ExpressionT>
-static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
-                         size_t globalSize) {
+void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
+                  size_t globalSize) {
   using Device = SYCLDevice;
   using EvaluatorT = Evaluator<ExpressionT, Device>;
 
@@ -72,6 +72,8 @@ static void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
         cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
     h.parallel_for(gridConfiguration, ExecTreeFunctor<decltype(nTree)>(nTree));
   });
+
+  ev.cleanup(dev);
 }
 
 /*!
@@ -84,6 +86,37 @@ void execute(SYCLDevice &dev, ExpressionT expr) {
   dev.parallel_for_setup(localsize, nwg, globalsize, _N);
   execute_tree(dev, expr, localsize, globalsize);
 }
+
+template <typename EvaluatorT>
+struct ExecSubTreeFunctor {
+  EvaluatorT ev;
+  ExecSubTreeFunctor(EvaluatorT ev) : ev(ev) {}
+  void operator()(cl::sycl::nd_item<1> i) {
+    return ev.result[i.get_global(0)] = ev.subeval(i);
+  }
+};
+template <typename EvaluatorT>
+struct FinalExecution {
+  using Expression = typename EvaluatorT::Expression;
+  using Device = typename EvaluatorT::Device;
+  static void run(EvaluatorT &ev, Device &dev) {
+    size_t localsize, nwg, globalsize;
+    auto _N = ev.getSize();
+    dev.parallel_for_setup(localsize, nwg, globalsize, _N);
+
+    ev.eval_subexpr_if_needed(nullptr, dev);
+
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
+      h.parallel_for(gridConfiguration,
+                     ExecSubTreeFunctor<decltype(nTree)>(nTree));
+    });
+
+    ev.cleanup(dev);
+  }
+};
 
 }  // namespace blas
 

@@ -45,9 +45,9 @@ struct FullReducer;
 template <class EvaluatorT, class Reducer>
 struct PartialReduction;
 
-/*! Reduction.
- * @brief Implements the reduction operation for assignments (in the form y = x)
- *  with y a scalar and x a subexpression tree.
+/*!
+ * Evaluator<ReductionExpr>.
+ * @brief Evaluates the reduction expression; breaks the kernel.
  */
 template <typename Functor, class RHS, template <class> class MakePointer>
 struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
@@ -90,7 +90,9 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   }
 
   void cleanup(SYCLDevice &dev) {
+    r.cleanup(dev);
     if (allocated_result) {
+      allocated_result = false;
       dev.deallocate<value_type>(result);
     }
   }

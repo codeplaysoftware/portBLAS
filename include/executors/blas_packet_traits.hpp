@@ -30,6 +30,12 @@
 
 namespace blas {
 
+/*!
+ * default_packet_traits.
+ * @brief Base class for packet traits, providing default support indicators.
+ * @tparam T Type for which the support is described.
+ * @tparam Device Device for which the support is described.
+ */
 template <typename T, typename Device>
 struct default_packet_traits {
   using packet_type = T;
@@ -52,6 +58,11 @@ struct default_packet_traits {
   };
 };
 
+/*!
+ * Packet_traits.
+ * @brief Contains information avoid type/device support for a certain
+ * operation.
+ */
 template <typename T, typename Device>
 struct Packet_traits : default_packet_traits<T, Device> {};
 

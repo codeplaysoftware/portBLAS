@@ -1,26 +1,27 @@
 /***************************************************************************
-*  @license
-*  Copyright (C) 2016 Codeplay Software Limited
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  For your convenience, a copy of the License has been included in this
-*  repository.
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  SYCL-BLAS: BLAS implementation using SYCL
-*
-*  @filename blas_trees_expr.hpp
-*
-**************************************************************************/
+ *
+ *  @license
+ *  Copyright (C) 2016 Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename blas_trees_expr.hpp
+ *
+ **************************************************************************/
 
 #ifndef BLAS_TREE_EXPR_HPP
 #define BLAS_TREE_EXPR_HPP
@@ -30,8 +31,9 @@
 
 namespace blas {
 
-/** Join.
- * @brief Joins both sides of the expression in the single kernel.
+/*!
+ * JoinExpr.
+ * @brief An expression for two expressions.
  */
 template <class LHS, class RHS>
 struct JoinExpr {
@@ -47,7 +49,9 @@ struct JoinExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
-/** Assign.
+/*!
+ * AssignExpr.
+ * @brief Expression for assignment.
  */
 template <class LHS, class RHS>
 struct AssignExpr {
@@ -63,7 +67,9 @@ struct AssignExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
-/*! DoubleAssign.
+/*!
+ * DoubleAssignExpr.
+ * @brief Expression used to swap two vector views.
  */
 template <class LHS1, class LHS2, class RHS1, class RHS2>
 struct DoubleAssignExpr {
@@ -83,8 +89,9 @@ struct DoubleAssignExpr {
   size_t getSize() const { return r2.getSize(); }
 };
 
-/*!ScalarOp.
- * @brief Implements an scalar operation.
+/*!
+ * ScalarExpr.
+ * @brief Expression for scalar operation.
  * (e.g alpha OP x, with alpha scalar and x vector)
  */
 template <typename Functor, typename SCL, typename RHS>
@@ -99,8 +106,9 @@ struct ScalarExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
-/*! UnaryOp.
- * Implements a Unary Operation ( Op(z), e.g. z++), with z a vector.
+/*!
+ * UnaryExpr.
+ * @brief Expression for Unary Operation ( Op(z), e.g. z++), with z a vector.
  */
 template <typename Functor, typename RHS>
 struct UnaryExpr {
@@ -113,8 +121,9 @@ struct UnaryExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
-/*! BinaryOp.
- * @brief Implements a Binary Operation (x OP z) with x and z vectors.
+/*!
+ * BinaryExpr.
+ * @brief Expression for a Binary Operation (x OP z) with x and z vectors.
  */
 template <typename Functor, typename LHS, typename RHS>
 struct BinaryExpr {
@@ -130,8 +139,9 @@ struct BinaryExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
-/*! TupleOp.
- * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
+/*!
+ * TupleExpr.
+ * @brief Expression for index-dependent operations.
  */
 template <typename RHS>
 struct TupleExpr {
@@ -140,6 +150,22 @@ struct TupleExpr {
   RHS r;
 
   TupleExpr(RHS &_r) : r(_r) {}
+
+  size_t getSize() const { return r.getSize(); }
+};
+
+/*!
+ * FinalExpr
+ * @brief Expression for separating execution of a subexpression from the rest
+ * of the execution.
+ */
+template <typename RHS, template <class> class MakePointer>
+struct FinalExpr {
+  using value_type = typename RHS::value_type;
+
+  RHS r;
+
+  FinalExpr(RHS &_r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
 };

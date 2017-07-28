@@ -34,7 +34,8 @@
 
 namespace blas {
 
-/*! PrdRowMatColMat.
+/*!
+ * PrdRowMatColMatExpr.
  * @brief CLASSICAL DOT PRODUCT GEMM
  * Each thread computes a dot product
  * If the matrix is column-major the accesses are coalescent.

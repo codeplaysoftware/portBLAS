@@ -80,6 +80,11 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+
+  void cleanup(Device &dev) {
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+  }
 };
 
 /** PrdRowMatVctMult
@@ -176,7 +181,12 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
     return val;
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    l.cleanup(dev);
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+    r3.cleanup(dev);
+  }
 };
 
 /*! PrdRowMatCvtMultShm.
@@ -280,7 +290,11 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
     return val;
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    l.cleanup(dev);
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+  }
 };
 
 /*! AddPrdRowMatVctMultShm.
@@ -331,7 +345,11 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
     return eval(ndItem.get_global(0));
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    l.cleanup(dev);
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+  }
 };
 
 /*! RedRowMatVct.
@@ -374,7 +392,10 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
     return eval(ndItem.get_global(0));
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+  }
 
 #if BLAS_EXPERIMENTAL
   template <typename sharedT>
@@ -488,7 +509,11 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
     return eval(ndItem.get_global(0));
   }
 
-  void cleanup() {}
+  void cleanup(Device &dev) {
+    r1.cleanup(dev);
+    r2.cleanup(dev);
+    r3.cleanup(dev);
+  }
 };
 
 }  // namespace blas

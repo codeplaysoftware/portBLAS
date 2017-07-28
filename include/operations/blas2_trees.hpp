@@ -34,7 +34,8 @@
 
 namespace blas {
 
-/*! PrdRowMatVct.
+/*!
+ * PrdRowMatVctExpr.
  * @brief CLASSICAL DOT PRODUCT GEMV
  * Each thread computes a dot product, If
  * the matrix is column-major the accesses are coalescent.
@@ -59,7 +60,8 @@ PrdRowMatVctExpr<RHS1, RHS2> make_prdRowMatVctExpr(RHS1 &r1, RHS2 &r2) {
   return PrdRowMatVctExpr<RHS1, RHS2>(r1, r2);
 }
 
-/** PrdRowMatVctMult
+/*!
+ * PrdRowMatVctMultExpr.
  * @brief MULTITHREAD DOT PRODUCT GEMV
  * P threads compute a dot product
  * If the matrix is column-major the accesses are coalescent.
@@ -90,7 +92,8 @@ PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3> make_prdRowMatVctMultExpr(
   return PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>(l, scl, r1, r2, r3, nThr);
 }
 
-/*! PrdRowMatCvtMultShm.
+/*!
+ * PrdRowMatCvtMultShmExpr.
  * @brief TWO KERNELS DOT PRODUCT GEMV
  * FIRST KERNEL: THE LOCAL COMPUTATIONS ARE MADE
  * The common data are copied to the scratch vector,
@@ -117,7 +120,8 @@ PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2> make_prdRowMatVctMultShmExpr(
   return PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>(l, r1, r2, nThr);
 }
 
-/*! AddPrdRowMatVctMultShm.
+/*!
+ * AddPrdRowMatVctMultShmExpr.
  * @brief SECOND KERNEL: REDUCTION OF THE LOCAL COMPUTATIONS
  */
 template <class LHS, class RHS1, class RHS2>
@@ -141,7 +145,8 @@ AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShmExpr(
   return AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>(l, scl, r1, r2);
 }
 
-/*! RedRowMatVct.
+/*!
+ * RedRowMatVctExpr.
  * @brief CLASSICAL AXPY GEMV
  */
 template <class RHS1, class RHS2>
@@ -162,7 +167,8 @@ RedRowMatVctExpr<RHS1, RHS2> make_redRowMatVctExpr(RHS1 &r1, RHS2 &r2) {
   return RedRowMatVctExpr<RHS1, RHS2>(r1, r2);
 }
 
-/*! ModifRank1.
+/*!
+ * ModifRank1Expr.
  * @brief RANK 1 UPDATE
  */
 template <class RHS1, class RHS2, class RHS3>

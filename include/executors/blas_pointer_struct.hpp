@@ -26,12 +26,22 @@
 #ifndef BLAS_POINTER_STRUCT_HPP
 #define BLAS_POINTER_STRUCT_HPP
 
+/*!
+ * MakeHostPointer.
+ * @tparam T Type that cl::sycl::buffer refers to.
+ * @brief Refers to the intermediate result type of host-side evaluators.
+ */
 template <typename T>
 struct MakeHostPointer {
   using type = cl::sycl::buffer<T, 1> *;
   static constexpr type init() { return type(nullptr); }
 };
 
+/*!
+ * MakeDevicePointer.
+ * @tparam T Type that cl::sycl::accessor refers to.
+ * @brief Refers to the intermediate result type of device-side evaluators.
+ */
 template <typename T>
 struct MakeDevicePointer {
   using type =

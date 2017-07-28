@@ -29,6 +29,10 @@
 #include <complex>
 #include <type_traits>
 
+/*!
+ * @brief Scalar types support indicator
+ * @tparam ScalarT Scalar type to be checked
+ */
 template <class ScalarT>
 struct blas_type_support {
   static constexpr bool value =

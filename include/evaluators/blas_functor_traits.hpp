@@ -37,6 +37,11 @@
 
 namespace blas {
 
+/*!
+ * functor_traits.
+ * @brief Changes the functor if it has a different implementation on the
+ * device.
+ */
 template <class Functor, typename ScalarT, typename Device>
 struct functor_traits : Functor {
   /* static constexpr bool supported = false; */

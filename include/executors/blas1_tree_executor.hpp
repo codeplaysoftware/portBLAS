@@ -239,7 +239,7 @@ template <typename Functor, typename RHS>
 struct Converter<
     Evaluator<ReductionExpr<Functor, RHS, MakeHostPointer>, SYCLDevice>> {
   using Expression = ReductionExpr<Functor, RHS, MakeHostPointer>;
-  using value_type = typename RHS::value_type;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
   using oper_type = Functor;
   using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
   using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
@@ -251,6 +251,25 @@ struct Converter<
     return out_type(rhs);
   }
 
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+    h.require(*t.result, ev.result);
+  }
+};
+
+template <typename RHS>
+struct Converter<Evaluator<FinalExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = FinalExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = FinalExpr<rhs_type, MakeDevicePointer>;
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(rhs);
+  }
   static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
                       cl::sycl::handler &h) {
     Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);

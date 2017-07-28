@@ -32,6 +32,10 @@
 
 namespace blas {
 
+/*!
+ * SYCLDevice.
+ * @brief Device which uses SYCL to execute the expression trees.
+ */
 class SYCLDevice {
   /*!
    * @brief SYCL queue for execution of trees.
@@ -52,6 +56,14 @@ class SYCLDevice {
           }
         })) {}
 
+  /*!
+   * @brief Sets the parameters for simple case of execution.
+   * e.g. axpy/scal kernels.
+   * @param [out] localsize Local size.
+   * @param [out] nwg Number of work groups.
+   * @param [out] globalsize Global size.
+   * @param [in] N Number of elements to be processed.
+   */
   static void parallel_for_setup(size_t &localsize, size_t &nwg,
                                  size_t &globalsize, size_t N) {
     localsize = 256;
@@ -60,14 +72,32 @@ class SYCLDevice {
     globalsize = nwg * localsize;
   }
 
+  /*!
+   * @brief Gets cl::sycl::queue attached to this device instance.
+   */
   cl::sycl::queue sycl_queue() { return m_queue; }
+  /*!
+   * @brief Gets a cl::sycl::device from cl::sycl::queue attached to this device
+   * instance.
+   */
   cl::sycl::device sycl_device() { return m_queue.get_device(); }
 
+  /*!
+   * @brief Allocates a global memory buffer on heap.
+   * @tparam T Type of the objects that the buffer refers to.
+   * @param N Number of elements to be allocated in the global memory.
+   * @returns Pointer to the new cl::sycl::buffer<T, 1>.
+   */
   template <typename T>
   cl::sycl::buffer<T, 1> *allocate(size_t N) {
     return new cl::sycl::buffer<T, 1>({N});
   }
 
+  /*!
+   * @brief deallocates a buffer (causes data movement).
+   * @tparam T Type of the objects that buffer refers to.
+   * @param buffer Pointer to buffer allocated for this device.
+   */
   template <typename T>
   void deallocate(cl::sycl::buffer<T, 1> *buffer) {
     delete buffer;

@@ -35,15 +35,16 @@
 
 namespace blas {
 
-/*! Reduction.
- * @brief Implements the reduction operation for assignments (in the form y = x)
- *  with y a scalar and x a subexpression tree.
+/*!
+ * ReductionExpr.
+ * @brief Expression for reduction with a functor.
  */
 template <typename Functor, class RHS,
           template <class> class MakePointer = MakeHostPointer>
 struct ReductionExpr {
   using value_type = typename RHS::value_type;
   RHS r;
+
   ReductionExpr(RHS &_r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
