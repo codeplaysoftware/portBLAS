@@ -90,7 +90,7 @@ class SYCLDevice {
    */
   template <typename T>
   cl::sycl::buffer<T, 1> *allocate(size_t N) {
-    return new cl::sycl::buffer<T, 1>({N});
+    return new cl::sycl::buffer<T, 1>{N};
   }
 
   /*!

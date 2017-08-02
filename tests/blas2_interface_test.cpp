@@ -324,12 +324,15 @@ size_t TestingBLAS2(bool accessDev, size_t dim, size_t divSz, size_t shftR,
 
     _ger(dev, dimR - shftR, dimC - shftC, 3.0, bvY0, 1, bvX0, 1,
          bmM0(shftR, shftC), dimL);
-    auto reduceExprX = make_addReductionExpr(bvR, bvX0);
-    blas::execute(dev, reduceExprX);
-    auto reduceExprY = make_addReductionExpr(bvS, bvY0);
-    blas::execute(dev, reduceExprY);
-    auto reduceExprV = make_addReductionExpr(bvT, bvV0);
-    blas::execute(dev, reduceExprV);
+    auto reduceExprX = make_addReductionExpr(bvX0);
+    auto assignExprX = make_expr<AssignExpr>(bvR, reduceExprX);
+    blas::execute(dev, assignExprX);
+    auto reduceExprY = make_addReductionExpr(bvY0);
+    auto assignExprY = make_expr<AssignExpr>(bvS, reduceExprY);
+    blas::execute(dev, assignExprY);
+    auto reduceExprV = make_addReductionExpr(bvV0);
+    auto assignExprV = make_expr<AssignExpr>(bvT, reduceExprV);
+    blas::execute(dev, assignExprV);
   }
 
   // ANALYSIS OF THE RESULTS

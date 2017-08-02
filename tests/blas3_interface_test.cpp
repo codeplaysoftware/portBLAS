@@ -214,8 +214,9 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
           dimR - shftR, dimC - shftC, dimK - shftK, 1.5, bmA0(shftR, shftK),
           dimLA, bmB0(shftK, shftC), dimLB, 2.5, bmC0(shftR, shftC), dimLC);
 
-    auto reducExprV = make_addReductionExpr(bvR, bvV0);
-    blas::execute(dev, reducExprV);
+    auto reduceExprV = make_addReductionExpr(bvV0);
+    auto assignExprV = make_expr<AssignExpr>(bvR, reduceExprV);
+    blas::execute(dev, assignExprV);
   }
 #ifdef VERBOSE
   m_C.printH("MC");
