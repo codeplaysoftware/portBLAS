@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_trees_gemm.hpp
+ *  @filename matrix.hpp
  *
  **************************************************************************/
 
@@ -29,6 +29,9 @@
 
 #include <ostream>
 #include <type_traits>
+
+
+#include <CL/sycl.hpp>
 
 
 namespace blas {
@@ -155,21 +158,41 @@ namespace detail {
 
 template <typename T>
 struct value_type {
-  typedef typename T::value_type type;
+  using type = typename T::value_type;
 };
 
 
 template <size_t n, typename T>
 struct value_type<T[n]> {
-  typedef T type;
+  using type = T;
 };
 
 
 template <typename T>
 struct value_type<T*> {
-  typedef T type;
+  using type = T;
 };
 
+template <typename T>
+struct value_type<T&> {
+  using type = typename value_type<T>::type;
+};
+
+
+template <typename T>
+struct value_type<cl::sycl::global_ptr<T>> {
+  using type = T;
+};
+
+template <typename T>
+struct value_type<cl::sycl::local_ptr<T>> {
+  using type = T;
+};
+
+template <typename T>
+struct value_type<cl::sycl::constant_ptr<T>> {
+  using type = T;
+};
 
 template <storage_type>
 inline int linearize_idx(int row, int col, int ld) {} // = delete;
@@ -224,17 +247,56 @@ inline typename std::enable_if<std::is_same<
 }
 
 
+template <typename T>
+struct ptr_or_ref {
+  using type = T&;
+};
+
+
+template <typename T>
+struct ptr_or_ref<T*> {
+  using type = T*;
+};
+
+
+template <typename T>
+struct ptr_or_ref<cl::sycl::global_ptr<T>> {
+  using type = cl::sycl::global_ptr<T>;
+};
+
+
+template <typename T>
+struct ptr_or_ref<cl::sycl::local_ptr<T>> {
+  using type = cl::sycl::local_ptr<T>;
+};
+
+
+template <typename T>
+struct ptr_or_ref<cl::sycl::constant_ptr<T>> {
+  using type = cl::sycl::constant_ptr<T>;
+};
+
+
+template <typename T>
+struct ptr_or_ref<T&> {
+  using type = typename ptr_or_ref<T>::type;
+};
+
 template <storage_type storage, typename AccessorType>
 class matrix {
   public:
     using accessor_type = AccessorType;
     using value_type = typename detail::value_type<AccessorType>::type;
+    using accessor_ref = typename ptr_or_ref<AccessorType>::type;
 
-    constexpr matrix(int rows, int cols, AccessorType &data, int ld)
-      : row_span_(0, rows), col_span_(0, cols), data_(data), ld_(ld) {}
+    constexpr matrix(int rows, int cols, accessor_ref data, int ld)
+      : row_span_(0, rows), col_span_(0, cols),
+        data_(data), ld_(ld) {}
 
-    constexpr matrix(int rows, int cols, AccessorType &data)
-      : matrix(rows, cols, data, rows) {}
+    constexpr matrix(int rows, int cols, accessor_ref data)
+      : matrix(rows, cols, data_(data), rows) {}
+
+    // constexpr matrix(const matrix<storage, AccessorType> &other) = default;
 
     constexpr value_type operator ()(int row, int col) const {
       return data_[detail::linearize_idx<storage>(
@@ -282,27 +344,29 @@ class matrix {
 
   private:
     constexpr matrix(const span &row_span, const span &col_span,
-                     AccessorType &data, int ld)
+                     accessor_ref data, int ld)
       : row_span_(row_span), col_span_(col_span), data_(data), ld_(ld) {}
 
     const span row_span_;
     const span col_span_;
-    AccessorType &data_;
+    AccessorType data_;
     const int ld_;
 };
 
 
 template <storage_type storage, typename AccessorType>
 constexpr matrix<storage, AccessorType> make_matrix(
-    int rows, int cols, AccessorType &data, int ld) {
-  return matrix<storage, AccessorType>(rows, cols, data, ld);
+    int rows, int cols, AccessorType &&data, int ld) {
+  return matrix<storage, AccessorType>(
+      rows, cols, std::forward<AccessorType>(data), ld);
 }
 
 
 template <storage_type storage, typename AccessorType>
 constexpr matrix<storage, AccessorType> make_matrix(
-    int rows, int cols, AccessorType &data) {
-  return make_matrix<storage>(rows, cols, data, rows);
+    int rows, int cols, AccessorType &&data) {
+  return make_matrix<storage>(
+      rows, cols, std::forward<AccessorType>(data), rows);
 }
 
 

@@ -40,7 +40,7 @@
 
 
 using namespace cl::sycl;
-using namespace blas;
+// using namespace blas;
 
 
 template <typename T>
@@ -87,7 +87,7 @@ void vector_gemv_test(queue q, RndEngine rnd) {
         }
         pB.load(0, aB);
         pC.load(0, aC);
-        vector::_gemv<vec_size>(pA, pB, pC);
+        blas::vector::_gemv<vec_size>(pA, pB, pC);
         pC.store(0, aC);
       });
     });
@@ -147,7 +147,7 @@ void thread_gemm_test(queue q, Rnd rnd) {
         for (int i = 0; i < scratch_width; ++i) {
           pC[i].load(i, aC);
         }
-        thread::_gemm<scratch_width, thr_size, vec_size>(pA, aB, pC);
+        blas::thread::_gemm<scratch_width, thr_size, vec_size>(pA, aB, pC);
         #pragma unroll
         for (int i = 0; i < scratch_width; ++i) {
           pC[i].store(i, aC);

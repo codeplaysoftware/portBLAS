@@ -42,6 +42,13 @@ std::vector<T> gen_matrix(int m, int n, T lo, T hi, RndEngine rnd) {
 
 template <typename T>
 T relative_diff(const std::vector<T> &ref, const std::vector<T> &obt) {
+  /*
+  std::cout << "cw_error: ";
+  for (int i = 0; i < ref.size(); ++i) {
+    printf("%d: %2.2f\n", i, (ref[i] - obt[i]) / ref[i]);
+  }
+  std::cout << std::endl;
+  */
   T mag(0);
   for (auto x : ref) {
     mag += x*x;
@@ -70,4 +77,21 @@ ENABLE_TYPE_NAME(double)
 
 
 template <int...> struct static_list {};
+
+
+template <typename TestOperator>
+void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
+    // warmup
+    op();
+    auto start = std::chrono::steady_clock::now();
+    for (int i = 0; i < rep; ++i) {
+        op();
+    }
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> sec = end - start;
+    double sec1 = sec.count() / rep;
+    std::cout << "time = " << sec1 * 1e3 << " mus\n"
+              << "perf = " << flop_cnt / sec1 / 1e9 << " GFLOPS"
+              << std::endl;
+}
 
