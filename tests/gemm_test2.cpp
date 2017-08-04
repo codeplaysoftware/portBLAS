@@ -146,14 +146,6 @@ void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
 }
 
 
-/*
-template <ENABLE_TEST_PARAMS>
-ENABLE_TEST(gemm_v2, GemmV2, "",
-    (m*n + lr - 1) / lr,
-    _gemm_v2(id.get_global(0), 1.0f, A, B, 1.0f, C))
-*/
-
-
 template <int, int, int> class GemmV17;
 template <ENABLE_TEST_PARAMS>
 ENABLE_TEST_LOCAL(gemm_v2, GemmV2, "",

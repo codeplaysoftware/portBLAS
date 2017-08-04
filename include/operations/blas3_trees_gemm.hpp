@@ -65,23 +65,6 @@ void _gemm_v2(
 }
 
 
-template <int start, int end>
-struct static_for {
-  template <typename UnaryOperator>
-  static inline void loop(UnaryOperator op) {
-    op(start);
-    static_for<start+1, end>::loop(op);
-  }
-};
-
-
-template <int end>
-struct static_for<end, end> {
-  template <typename UnaryOperator>
-  static inline void loop(UnaryOperator) {}
-};
-
-
 template <bool> inline bool do_check(bool cond) { return cond; }
 template <> inline bool do_check<false>(bool) { return true; }
 
@@ -92,17 +75,19 @@ inline void extract_input_blocks(
   int c_row, int item_id, int m, int n, int k,
   cl::sycl::global_ptr<T> A, int lda, cl::sycl::global_ptr<T> B, int ldb,
   cl::sycl::local_ptr<T> s1, cl::sycl::local_ptr<T> s3) {
-  static_for<0, b_size/c_inc>::loop([&](int i) {
+  #pragma unroll
+  for (int i = 0; i < b_size/c_inc; ++i) {
     const bool in_range = do_check<check_k_limit>(c_row < k) &&
                          do_check<check_n_limit>(c_inc*i < n);
     s1[c_inc*i*cl_elems] = in_range ? B[c_inc*i*ldb] : T(0);
-  });
-  static_for<0, b_size/c_inc>::loop([&](int i) {
+  }
+  #pragma unroll
+  for (int i = 0; i < b_size/c_inc; ++i) {
     const bool in_range =
         do_check<check_n_limit>(0 < m) &&
         do_check<check_k_limit>(item_id/b_size + i*(wg_size/b_size) < k);
     s3[i*wg_size] = in_range ? A[i*(wg_size/b_size)*lda] : T(0);
-  });
+  }
 }
 
 
@@ -112,15 +97,18 @@ inline void compute_block_gemm(
     cl::sycl::local_ptr<T> s2, cl::sycl::local_ptr<T> s4,
     T reg_a[wsize/rsize], T &reg_b, T reg_res[wsize/rsize][cl_elems/csize]) {
   for (int i = 0; i < cl_elems; ++i) {
-    static_for<0, wsize/rsize>::loop([&](int j) {
+    #pragma unroll
+      for (int j = 0; j < wsize/rsize; ++j) {
       reg_a[j] = s4[j*rsize*cl_elems + i*b_size];
-    });
-    static_for<0, cl_elems/csize>::loop([&](int j) {
+    }
+    #pragma unroll
+    for (int j = 0; j < cl_elems/csize; ++j) {
       reg_b = s2[i + j*cl_elems];
-      static_for<0, wsize/rsize>::loop([&](int l) {
+      #pragma unroll
+      for (int l = 0; l < wsize/rsize; ++l) {
         reg_res[l][j] += reg_a[l] * reg_b;
-      });
-    });
+      }
+    }
   }
 }
 
@@ -163,16 +151,18 @@ inline void compute_panel_gemm(
       (s2, s4, reg_a, reg_b, reg_res);
   }
 
-  static_for<0, cl_elems/csize>::loop([&](int i) {
-    static_for<0, wsize/rsize>::loop([&](int j) {
+  #pragma unroll
+  for (int i = 0; i < cl_elems/csize; ++i) {
+    #pragma unroll
+    for (int j = 0; j < wsize/rsize; ++j) {
       const bool in_range = do_check<check_m_limit>(j*rsize*cl_elems < mc) &&
                             do_check<check_n_limit>(i < nc);
       if (in_range) {
         C[j*rsize*cl_elems] = alpha*reg_res[j][i] + beta*C[j*rsize*cl_elems];
       }
-    });
+    }
     C = C + ldc;
-  });
+  }
 }
 
 
