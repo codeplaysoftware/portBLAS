@@ -155,6 +155,15 @@ ENABLE_TEST(gemm_v2, GemmV2, "",
 
 
 template <int, int, int> class GemmV17;
+template <ENABLE_TEST_PARAMS>
+ENABLE_TEST_LOCAL(gemm_v2, GemmV2, "",
+    (m*n - 1) / lr + 1, 4, 1,
+    _gemm_v2(
+      id.get_global(0), m, n, k, element_type(1), accA.get_pointer(), m,
+      accB.get_pointer(), k, element_type(1), accC.get_pointer(), m))
+
+
+template <int, int, int> class GemmV17;
 #define _tparams rsize, csize, work
 template <int rsize, int csize, int work, ENABLE_TEST_PARAMS>
 ENABLE_TEST_LOCAL(gemm_v17, GemmV17<_tparams>,
@@ -211,6 +220,10 @@ int main(int argc, char *argv[]) {
   std::cout << "\nDevice: "
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
+
+
+  test_gemm_v2(128, m, n, k, dataA, dataB, origC, refC, q);
+
 
   test_gemm_v17<1, 1, 4>(1*1*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
 

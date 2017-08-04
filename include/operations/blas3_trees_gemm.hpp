@@ -36,21 +36,32 @@ namespace blas {
 const int cl_size = 64;
 
 
-template <typename T, typename MatrixTypeA, typename MatrixTypeB,
-          typename MatrixTypeC>
-void _gemm_v2(int item_id, T alpha, const MatrixTypeA A, const MatrixTypeB B,
-              T beta, MatrixTypeC C) {
-  using value_type = typename MatrixTypeC::value_type;
-  if (item_id >= C.get_num_rows() * C.get_num_cols()) {
+template <typename T, typename GlobalPointerType>
+void _gemm_v2(
+    int item_id, int m, int n, int k, T alpha, GlobalPointerType A, int lda,
+    GlobalPointerType B, int ldb, T beta, GlobalPointerType C, int ldc) {
+  using value_type = T;
+  if (item_id >= m*n) {
     return;
   }
-  const int col = item_id / C.get_num_rows();
-  const int row = item_id % C.get_num_rows();
-  value_type tmp(0);
-  for (int k = 0; k < A.get_num_cols(); ++k) {
-    tmp += A(row, k) * B(k, col);
+
+  const int row = item_id % m;
+  const int col = item_id / m;
+
+  A = A + row;
+  B = B + col*ldb;
+  C = C + row + col*ldc;
+
+  value_type reg_res = {};
+
+  while (k > 0) {
+    reg_res += A[0] * B[0];
+    --k;
+    A = A + lda;
+    B = B + 1;
   }
-  C(row, col) = alpha * tmp + beta * C(row, col);
+
+  C[0] = alpha * reg_res + beta * C[0];
 }
 
 
