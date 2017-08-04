@@ -41,39 +41,24 @@ using namespace cl::sycl;
 using namespace blas;
 
 
-extern "C"
-void sgemm_(const char *transA, const char *transB, const int *m, const int *n,
-            const int *k, const float *alpha, const float *a, const int *lda,
-            const float *b, const int *ldb, const float *beta, float *c,
-            const int *ldc);
-
-
-/*
-template <typename T>
-void reference_gemm(int m, int n, int k, T *A, int lda, T *B, int ldb, T *C,
-                    int ldc) {
-  for(int j = 0; j < n; ++j) {
-    for(int p = 0; p < k; ++p) {
-      for(int i = 0; i < m; ++i) {
-        C[i + j*ldc] += A[i + p*lda] * B[p + j*ldb];
-      }
-    }
-  }
+#define ENABLE_SYSTEM_GEMM(_type, _system_name) \
+extern "C" void _system_name( \
+    const char *, const char *, const int *, const int *, const int *, \
+    const _type *, const _type *, const int *, const _type *, const int *, \
+    const _type *, _type *, const int *); \
+void gemm( \
+    const char *transA, const char *transB, int m, int n, int k, _type alpha, \
+    const _type a[], int lda, const _type b[], int ldb, _type beta, \
+    _type c[], int ldc) { \
+  _system_name(transA, transB, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, \
+               c, &ldc); \
 }
 
-template <typename T>
-void reference_block_gemm(int m, int n, int k, T *A, int lda, T *B, int ldb,
-                          T *C, int ldc, int bsize) {
-  for (int j = 0; j < n; j += bsize) {
-    for (int p = 0; p < k; p += bsize) {
-      for (int i = 0; i < m; i += bsize) {
-        reference_gemm(bsize, bsize, bsize, A + i + p*lda, lda, A + p+j*ldb,
-                       ldb, C + i+j*ldc, ldc);
-      }
-    }
-  }
-}
-*/
+ENABLE_SYSTEM_GEMM(float, sgemm_)
+ENABLE_SYSTEM_GEMM(double, dgemm_)
+
+#undef ENABLE_SYSTEM_GEMM
+
 
 #define ENABLE_TEST_USER_DATA
 #define ENABLE_TEST_PARAMS typename Container
@@ -309,11 +294,11 @@ ENABLE_TEST_LOCAL(gemm_v14, GemmV14<_tparams>,
     ((n + work * cl_size / sizeof(element_type) - 1) /
      (work * cl_size / sizeof(element_type))),
     2*cl_size/sizeof(element_type) + 1, work * cl_size/sizeof(element_type),
-    _gemm_v14<_tparams>(id, id.get_group(0), id.get_local(0),
-                        m, n, k, 1.0f, accA.get_pointer(), m,
-                        accB.get_pointer(), k,  1.0f, accC.get_pointer(), m,
-                        scratch.get_pointer(),
-                        2*cl_size/sizeof(element_type) + 1))
+    _gemm_v14<_tparams>(
+      id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
+      accA.get_pointer(), m, accB.get_pointer(), k, element_type(1),
+      accC.get_pointer(), m, scratch.get_pointer(),
+      2*cl_size/sizeof(element_type) + 1))
 #undef _tparams
 
 
@@ -327,10 +312,10 @@ ENABLE_TEST_LOCAL(gemm_v15, GemmV15<_tparams>,
     ((n + work * cl_size / sizeof(element_type) - 1) /
      (work * cl_size / sizeof(element_type))),
     4*cl_size/sizeof(element_type), work * cl_size/sizeof(element_type),
-    _gemm_v15<_tparams>(id, id.get_group(0), id.get_local(0),
-                        m, n, k, 1.0f, accA.get_pointer(), m,
-                        accB.get_pointer(), k,  1.0f, accC.get_pointer(), m,
-                        scratch.get_pointer()))
+    _gemm_v15<_tparams>(
+      id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
+      accA.get_pointer(), m, accB.get_pointer(), k, element_type(1),
+      accC.get_pointer(), m, scratch.get_pointer()))
 #undef _tparams
 
 
@@ -344,10 +329,10 @@ ENABLE_TEST_LOCAL(gemm_v16, GemmV16<_tparams>,
     ((n + work * cl_size / sizeof(element_type) - 1) /
      (work * cl_size / sizeof(element_type))),
     4*cl_size/sizeof(element_type), work * cl_size/sizeof(element_type),
-    _gemm_v16<_tparams>(id, id.get_group(0), id.get_local(0),
-                        m, n, k, 1.0f, accA.get_pointer(), m,
-                        accB.get_pointer(), k,  1.0f, accC.get_pointer(), m,
-                        scratch.get_pointer()))
+    _gemm_v16<_tparams>(
+      id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
+      accA.get_pointer(), m, accB.get_pointer(), k, element_type(1),
+      accC.get_pointer(), m, scratch.get_pointer()))
 #undef _tparams
 
 
@@ -361,10 +346,10 @@ ENABLE_TEST_LOCAL(gemm_v17, GemmV17<_tparams>,
     ((n + work * cl_size / sizeof(element_type) - 1) /
      (work * cl_size / sizeof(element_type))),
     4*cl_size/sizeof(element_type), work * cl_size/sizeof(element_type),
-    _gemm_v17<_tparams>(id, id.get_group(0), id.get_local(0),
-                        m, n, k, 1.0f, accA.get_pointer(), m,
-                        accB.get_pointer(), k,  1.0f, accC.get_pointer(), m,
-                        scratch.get_pointer()))
+    _gemm_v17<_tparams>(
+      id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
+      accA.get_pointer(), m, accB.get_pointer(), k,  element_type(1),
+      accC.get_pointer(), m, scratch.get_pointer()))
 #undef _tparams
 
 
@@ -400,11 +385,9 @@ int main(int argc, char *argv[]) {
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-  float one = 1.0f;
   run_test(5, 2.0*m*n*k, [&] {
-    sgemm_("N", "N", &m, &n, &k, &one, dataA.data(), &m, dataB.data(), &k,
-           &one, refC.data(), &m);
-    // reference_gemm(m, n, k, dataA.data(), m, dataB.data(), k, refC.data(), m);
+    gemm("N", "N", m, n, k, element_type(1), dataA.data(), m, dataB.data(), k,
+         element_type(1), refC.data(), m);
   });
 
   /*
