@@ -62,50 +62,9 @@ ENABLE_SYSTEM_GEMM(double, dgemm_)
 #define ENABLE_TEST_USER_DATA
 #define ENABLE_TEST_PARAMS typename Container
 
-#define ENABLE_TEST(_name, _kernel_name, _desc_data, _global_range_expr, \
-                    _command) \
-void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
-                  const Container &dataB, Container dataC, \
-                  const Container &refC, cl::sycl::queue q \
-                  ENABLE_TEST_USER_DATA) { \
-  using element_type = typename Container::value_type; \
-  std::cout << "\n=== Testing " #_kernel_name "(lr = " << lr << ") "\
-            << _desc_data << " ===" << std::endl; \
-  { \
-    cl::sycl::buffer<element_type, 1> buffA( \
-        dataA.data(), cl::sycl::range<1>(dataA.size())); \
-    cl::sycl::buffer<element_type, 1> buffB( \
-        dataB.data(), cl::sycl::range<1>(dataB.size())); \
-    cl::sycl::buffer<element_type, 1> buffC( \
-        dataC.data(), cl::sycl::range<1>(dataC.size())); \
-    run_test(5, 2.0*m*n*k, [&] { \
-      q.submit([&] (cl::sycl::handler &cgh) { \
-        auto accA = \
-            buffA.template get_access<cl::sycl::access::mode::read>(cgh); \
-        auto accB = \
-            buffB.template get_access<cl::sycl::access::mode::read>(cgh); \
-        auto accC = buffC.template get_access< \
-              cl::sycl::access::mode::read_write>(cgh); \
-        const cl::sycl::range<1> local_range = lr; \
-        const cl::sycl::range<1> global_range = (_global_range_expr); \
-        cgh.parallel_for<class _kernel_name>( \
-            cl::sycl::nd_range<1>(global_range*local_range, local_range), \
-            [=](cl::sycl::nd_item<1> id) { \
-          auto A = make_matrix<storage_type::cms>(m, k, accA); \
-          auto B = make_matrix<storage_type::cms>(k, n, accB); \
-          auto C = make_matrix<storage_type::cms>(m, n, accC); \
-          _command; \
-        }); \
-      }); \
-      q.wait(); \
-    }); \
-  } \
-  std::cout << "err = " << relative_diff(refC, dataC) << std::endl; \
-}
 
-#define ENABLE_TEST_LOCAL(_name, _kernel_name, _desc_data, \
-                          _global_range_expr, _local_rows, _local_cols, \
-                          _command) \
+#define ENABLE_TEST(_name, _kernel_name, _desc_data, _global_range_expr, \
+                    _local_mem_size, _command) \
 void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
                   const Container &dataB, Container dataC, \
                   const Container &refC, cl::sycl::queue q \
@@ -130,7 +89,7 @@ void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
               cl::sycl::access::mode::read_write>(cgh); \
         cl::sycl::accessor<element_type, 1, \
             cl::sycl::access::mode::read_write, access::target::local> \
-          scratch(cl::sycl::range<1>((_local_rows)*(_local_cols)), cgh); \
+          scratch(cl::sycl::range<1>(_local_mem_size), cgh); \
         const cl::sycl::range<1> local_range = lr; \
         const cl::sycl::range<1> global_range = (_global_range_expr); \
         cgh.parallel_for<class _kernel_name>( \
@@ -146,29 +105,29 @@ void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
 }
 
 
-template <int, int, int> class GemmV17;
 template <ENABLE_TEST_PARAMS>
-ENABLE_TEST_LOCAL(gemm_v2, GemmV2, "",
-    (m*n - 1) / lr + 1, 4, 1,
+ENABLE_TEST(gemm_v2, GemmV2, "",
+    (m*n - 1) / lr + 1, 1,
     _gemm_v2(
       id.get_global(0), m, n, k, element_type(1), accA.get_pointer(), m,
       accB.get_pointer(), k, element_type(1), accC.get_pointer(), m))
 
 
-template <int, int, int, int> class GemmV18;
-#define _tparams clsize, rsize, csize, work
-template <int clsize, int rsize, int csize, int work, ENABLE_TEST_PARAMS>
-ENABLE_TEST_LOCAL(gemm_v18, GemmV18<_tparams>,
-    "rsize = " << rsize << " csize = " << csize << " work = " << work,
-    ((m + work * clsize / sizeof(element_type) - 1) /
-     (work * clsize / sizeof(element_type))) *
-    ((n + work * clsize / sizeof(element_type) - 1) /
-     (work * clsize / sizeof(element_type))),
-    4*clsize/sizeof(element_type), work * clsize/sizeof(element_type),
-    _gemm_v18<_tparams>(
+template <int, int, int, int, int> class GemmV19;
+#define _tparams cl, item_rows, item_cols, wg_rows, wg_cols
+template <int cl, int item_rows, int item_cols, int wg_rows, int wg_cols,
+          ENABLE_TEST_PARAMS>
+ENABLE_TEST(gemm_v19, GemmV19<_tparams>,
+    "item_dim = (" << item_rows << ", " << item_cols << "); " <<
+    " wg_dim = (" << wg_rows << ", " << wg_cols << ")",
+    ((m - 1)/(wg_rows * item_rows) + 1)* ((n - 1)/(wg_cols * item_cols) + 1),
+    2*cl/sizeof(element_type) * (wg_rows * item_rows + wg_cols * item_cols),
+    _gemm_v19<_tparams>(
       id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
       accA.get_pointer(), m, accB.get_pointer(), k,  element_type(1),
       accC.get_pointer(), m, scratch.get_pointer()))
+
+
 #undef _tparams
 
 
@@ -218,20 +177,19 @@ int main(int argc, char *argv[]) {
   test_gemm_v2(128, m, n, k, dataA, dataB, origC, refC, q);
 
 
-  test_gemm_v18<cl, 1, 1, 4>(1*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 4, 16, 16, 4>(16*4, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v18<cl, 2, 1, 2>(2*1*2*lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v18<cl, 2, 1, 4>(2*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v18<cl, 2, 1, 8>(2*1*8*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 1, 16, 32, 2>(32*2, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 2, 16, 32, 4>(32*4, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 4, 16, 32, 8>(32*8, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v18<cl, 4, 1, 4>(4*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 1, 16, 64, 4>(64*4, m, n, k, dataA, dataB, origC, refC, q);
 
+  test_gemm_v19<cl, 4, 8, 16, 8>(16*8, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 8, 8, 16, 16>(16*16, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v18<cl, 1, 2, 4>(1*2*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v18<cl, 1, 2, 8>(1*2*8*lrm, m, n, k, dataA, dataB, origC, refC, q);
-
-  test_gemm_v18<cl, 2, 2, 2>(2*2*2*lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v18<cl, 2, 2, 4>(2*2*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 1, 8, 32, 4>(32*4, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<cl, 2, 8, 32, 8>(32*8, m, n, k, dataA, dataB, origC, refC, q);
 
   return 0;
 }
