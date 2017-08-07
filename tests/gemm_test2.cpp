@@ -155,17 +155,17 @@ ENABLE_TEST_LOCAL(gemm_v2, GemmV2, "",
       accB.get_pointer(), k, element_type(1), accC.get_pointer(), m))
 
 
-template <int, int, int> class GemmV17;
-#define _tparams rsize, csize, work
-template <int rsize, int csize, int work, ENABLE_TEST_PARAMS>
-ENABLE_TEST_LOCAL(gemm_v17, GemmV17<_tparams>,
+template <int, int, int, int> class GemmV18;
+#define _tparams clsize, rsize, csize, work
+template <int clsize, int rsize, int csize, int work, ENABLE_TEST_PARAMS>
+ENABLE_TEST_LOCAL(gemm_v18, GemmV18<_tparams>,
     "rsize = " << rsize << " csize = " << csize << " work = " << work,
-    ((m + work * cl_size / sizeof(element_type) - 1) /
-     (work * cl_size / sizeof(element_type))) *
-    ((n + work * cl_size / sizeof(element_type) - 1) /
-     (work * cl_size / sizeof(element_type))),
-    4*cl_size/sizeof(element_type), work * cl_size/sizeof(element_type),
-    _gemm_v17<_tparams>(
+    ((m + work * clsize / sizeof(element_type) - 1) /
+     (work * clsize / sizeof(element_type))) *
+    ((n + work * clsize / sizeof(element_type) - 1) /
+     (work * clsize / sizeof(element_type))),
+    4*clsize/sizeof(element_type), work * clsize/sizeof(element_type),
+    _gemm_v18<_tparams>(
       id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
       accA.get_pointer(), m, accB.get_pointer(), k,  element_type(1),
       accC.get_pointer(), m, scratch.get_pointer()))
@@ -206,7 +206,8 @@ int main(int argc, char *argv[]) {
          element_type(1), refC.data(), m);
   });
 
-  const int lrm = cl_size / sizeof(element_type);
+  const int cl = 64;
+  const int lrm = cl / sizeof(element_type);
 
   cl::sycl::queue q;
   std::cout << "\nDevice: "
@@ -217,20 +218,20 @@ int main(int argc, char *argv[]) {
   test_gemm_v2(128, m, n, k, dataA, dataB, origC, refC, q);
 
 
-  test_gemm_v17<1, 1, 4>(1*1*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 1, 1, 4>(1*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v17<2, 1, 2>(2*1*2 * lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v17<2, 1, 4>(2*1*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v17<2, 1, 8>(2*1*8 * lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 2, 1, 2>(2*1*2*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 2, 1, 4>(2*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 2, 1, 8>(2*1*8*lrm, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v17<4, 1, 4>(4*1*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 4, 1, 4>(4*1*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
 
 
-  test_gemm_v17<1, 2, 4>(1*2*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v17<1, 2, 8>(1*2*8 * lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 1, 2, 4>(1*2*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 1, 2, 8>(1*2*8*lrm, m, n, k, dataA, dataB, origC, refC, q);
 
-  test_gemm_v17<2, 2, 2>(2*2*2 * lrm, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v17<2, 2, 4>(2*2*4 * lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 2, 2, 2>(2*2*2*lrm, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v18<cl, 2, 2, 4>(2*2*4*lrm, m, n, k, dataA, dataB, origC, refC, q);
 
   return 0;
 }

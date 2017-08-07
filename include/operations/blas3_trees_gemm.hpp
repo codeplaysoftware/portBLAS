@@ -33,7 +33,7 @@
 namespace blas {
 
 
-const int cl_size = 64;
+// const int cl_size = 64;
 
 
 template <typename T, typename GlobalPointerType>
@@ -70,11 +70,12 @@ template <> inline bool do_check<false>(bool) { return true; }
 
 
 template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
-          int cl_elems, int b_size, int c_inc, int wg_size, typename T>
+          int cl_elems, int b_size, int c_inc, int wg_size, typename T,
+          typename GlobalPointerType, typename LocalPointerType>
 inline void extract_input_blocks(
   int c_row, int item_id, int m, int n, int k,
-  cl::sycl::global_ptr<T> A, int lda, cl::sycl::global_ptr<T> B, int ldb,
-  cl::sycl::local_ptr<T> s1, cl::sycl::local_ptr<T> s3) {
+  GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+  LocalPointerType s1, LocalPointerType s3) {
   #pragma unroll
   for (int i = 0; i < b_size/c_inc; ++i) {
     const bool in_range = do_check<check_k_limit>(c_row < k) &&
@@ -92,13 +93,13 @@ inline void extract_input_blocks(
 
 
 template <int cl_elems, int wsize, int rsize, int csize, int b_size,
-          typename T>
+          typename T, typename LocalPointerType>
 inline void compute_block_gemm(
-    cl::sycl::local_ptr<T> s2, cl::sycl::local_ptr<T> s4,
+    LocalPointerType s2, LocalPointerType s4,
     T reg_a[wsize/rsize], T &reg_b, T reg_res[wsize/rsize][cl_elems/csize]) {
   for (int i = 0; i < cl_elems; ++i) {
     #pragma unroll
-      for (int j = 0; j < wsize/rsize; ++j) {
+    for (int j = 0; j < wsize/rsize; ++j) {
       reg_a[j] = s4[j*rsize*cl_elems + i*b_size];
     }
     #pragma unroll
@@ -114,20 +115,22 @@ inline void compute_block_gemm(
 
 
 template <bool check_m_limit, bool check_n_limit, int cl_elems, int b_size,
-          int c_inc, int wg_size, int wsize, int rsize, int csize, typename T>
+          int c_inc, int wg_size, int wsize, int rsize, int csize, typename T,
+          typename GlobalPointerType, typename LocalPointerType>
 inline void compute_panel_gemm(
     cl::sycl::nd_item<1> id, int c_row, int item_id,
     int m, int mc, int n, int nc, int k, T alpha,
-    cl::sycl::global_ptr<T> A, int lda, cl::sycl::global_ptr<T> B, int ldb,
-    T beta, cl::sycl::global_ptr<T> C, int ldc,
-    cl::sycl::local_ptr<T> s1, cl::sycl::local_ptr<T> s2,
-    cl::sycl::local_ptr<T> s3, cl::sycl::local_ptr<T> s4,
+    GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+    T beta, GlobalPointerType C, int ldc,
+    LocalPointerType s1, LocalPointerType s2,
+    LocalPointerType s3, LocalPointerType s4,
     T reg_a[wsize/rsize], T &reg_b, T reg_res[wsize/rsize][cl_elems/csize]) {
   int ofs = 1;
 
   while (k >= cl_elems) {
     extract_input_blocks
-      <check_m_limit, check_n_limit, false, cl_elems, b_size, c_inc, wg_size>
+      <check_m_limit, check_n_limit, false, cl_elems, b_size, c_inc, wg_size,
+       T>
       (c_row, item_id, m, n, k, A, lda, B, ldb, s1, s3);
     id.barrier(cl::sycl::access::fence_space::local_space);
     compute_block_gemm<cl_elems, wsize, rsize, csize, b_size>
@@ -144,7 +147,7 @@ inline void compute_panel_gemm(
 
   if (k > 0) {
     extract_input_blocks
-      <check_m_limit, check_n_limit, true, cl_elems, b_size, c_inc, wg_size>
+      <check_m_limit, check_n_limit, true, cl_elems, b_size, c_inc, wg_size, T>
       (c_row, item_id, m, n, k, A, lda, B, ldb, s1, s3);
     id.barrier(cl::sycl::access::fence_space::local_space);
     compute_block_gemm<cl_elems, wsize, rsize, csize, b_size>
@@ -166,14 +169,14 @@ inline void compute_panel_gemm(
 }
 
 
-template <int rsize, int csize, int wsize, typename T>
-void _gemm_v17(
+template <int clsize, int rsize, int csize, int wsize, typename T,
+          typename GlobalPointerType, typename LocalPointerType>
+void _gemm_v18(
     cl::sycl::nd_item<1> id, int wg_id, int item_id, int m, int n, int k,
-    T alpha, cl::sycl::global_ptr<T> A, int lda, cl::sycl::global_ptr<T> B,
-    int ldb, T beta, cl::sycl::global_ptr<T> C, int ldc,
-    cl::sycl::local_ptr<T> scratch) {
+    T alpha, GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+    T beta, GlobalPointerType C, int ldc, LocalPointerType scratch) {
 
-  const int cl_elems = cl_size / sizeof(T);
+  const int cl_elems = clsize / sizeof(T);
   const int wg_size = rsize * csize * wsize * cl_elems;
   const int b_size = cl_elems * wsize;
 
@@ -181,11 +184,10 @@ void _gemm_v17(
   const int wg_row = (wg_id % wg_per_col) * b_size;
   const int wg_col = (wg_id / wg_per_col) * b_size;
 
-  const int b_row = item_id / (b_size * csize);
-  const int b_row_id = item_id % (b_size * csize);
-
-  const int item_row = b_row*cl_elems + b_row_id % cl_elems;
-  const int item_col = b_row_id / cl_elems * (cl_elems / csize);
+  const int threads_per_col = rsize * cl_elems;
+  const int work_per_thread = cl_elems / csize;
+  const int item_row = item_id % threads_per_col;
+  const int item_col = (item_id / threads_per_col) * work_per_thread;
 
   const int row = wg_row + item_row;
   const int col = wg_col + item_col;
@@ -209,10 +211,10 @@ void _gemm_v17(
   A = A + wg_row + item_id%b_size + (item_id/b_size)*lda;
   m = m - wg_row - item_id%b_size;
 
-  cl::sycl::local_ptr<T> s1 = scratch + c_row + c_col*cl_elems;
-  cl::sycl::local_ptr<T> s2 = scratch + item_col*cl_elems;
-  cl::sycl::local_ptr<T> s3 = scratch + 2*b_size*cl_elems + item_id;
-  cl::sycl::local_ptr<T> s4 = scratch + 2*b_size*cl_elems + item_row;
+  LocalPointerType s1 = scratch + c_row + c_col*cl_elems;
+  LocalPointerType s2 = scratch + item_col*cl_elems;
+  LocalPointerType s3 = scratch + 2*b_size*cl_elems + item_id;
+  LocalPointerType s4 = scratch + 2*b_size*cl_elems + item_row;
 
   if (internal) {
     compute_panel_gemm
