@@ -118,7 +118,28 @@ inline void compute_block_gemm(
 }
 
 
-template <bool check_m_limit, bool check_n_limit, int cl_elems, int block_rows,
+template <bool double_buffer>
+typename std::enable_if<double_buffer>::type
+sync_smem(cl::sycl::nd_item<1>, int &ofs_sign) { ofs_sign = -ofs_sign; }
+
+
+template <bool double_buffer, int o, int... os, typename P, typename... Ps>
+typename std::enable_if<double_buffer>::type
+sync_smem(cl::sycl::nd_item<1> id, int &ofs_sign, P &s, Ps &...ss) {
+  s = s + ofs_sign*o;
+  sync_smem<double_buffer, os...>(id, ofs_sign, ss...);
+}
+
+
+template <bool double_buffer, int..., typename... Ps>
+typename std::enable_if<!double_buffer>::type
+sync_smem(cl::sycl::nd_item<1> id, int&, Ps&...) {
+  id.barrier(cl::sycl::access::fence_space::local_space);
+}
+
+
+template <bool double_buffer,
+          bool check_m_limit, bool check_n_limit, int cl_elems, int block_rows,
           int block_cols, int wg_size, int wg_rows, int wg_cols, int item_rows,
           int item_cols, typename T, typename GlobalPointerType,
           typename LocalPointerType>
@@ -143,11 +164,16 @@ inline void compute_panel_gemm(
     A = A + cl_elems*lda;
     B = B + cl_elems;
     k -= cl_elems;
+    sync_smem<double_buffer, block_cols*cl_elems, block_cols*cl_elems,
+              block_rows*cl_elems, block_rows*cl_elems>
+        (id, ofs, s1, s2, s3, s4);
+    /*
     s1 = s1 + ofs*block_cols*cl_elems;
     s2 = s2 + ofs*block_cols*cl_elems;
     s3 = s3 + ofs*block_rows*cl_elems;
     s4 = s4 + ofs*block_rows*cl_elems;
-    ofs = -ofs;
+    */
+    // ofs = -ofs;
   }
 
   if (k > 0) {
@@ -175,8 +201,9 @@ inline void compute_panel_gemm(
 }
 
 
-template <int cl, int item_rows, int item_cols, int wg_rows, int wg_cols,
-          typename T, typename GlobalPointerType, typename LocalPointerType>
+template <int double_buffer, int cl, int item_rows, int item_cols, int wg_rows,
+          int wg_cols, typename T, typename GlobalPointerType,
+          typename LocalPointerType>
 void _gemm_v19(
     cl::sycl::nd_item<1> id, int wg_id, int item_id, int m, int n, int k,
     T alpha, GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
@@ -223,20 +250,20 @@ void _gemm_v19(
   LocalPointerType s1 =
       scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
   LocalPointerType s2 = scratch + item_col*cl_elems;
+  const auto ofs = (double_buffer+1)*block_cols*cl_elems;
   LocalPointerType s3 =
-      scratch + 2*block_cols*cl_elems +
-      item_id%block_rows + (item_id/block_rows)*block_rows;
-  LocalPointerType s4 = scratch + 2*block_cols*cl_elems + item_row;
+      scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
+  LocalPointerType s4 = scratch + ofs + item_row;
 
   if (internal) {
     compute_panel_gemm
-      <false, false, cl_elems, block_rows, block_cols,
+      <double_buffer, false, false, cl_elems, block_rows, block_cols,
        wg_size, wg_rows, wg_cols>
       (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
        ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
   } else {
     compute_panel_gemm
-      <true, true, cl_elems, block_rows, block_cols,
+      <double_buffer, true, true, cl_elems, block_rows, block_cols,
        wg_size, wg_rows, wg_cols>
       (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
        ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);

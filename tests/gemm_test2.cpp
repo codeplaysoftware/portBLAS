@@ -65,7 +65,7 @@ ENABLE_SYSTEM_GEMM(double, dgemm_)
 
 #define ENABLE_TEST(_name, _kernel_name, _desc_data, _global_range_expr, \
                     _local_mem_size, _command) \
-void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
+void test_##_name(int lr, int r, int m, int n, int k, const Container &dataA, \
                   const Container &dataB, Container dataC, \
                   const Container &refC, cl::sycl::queue q \
                   ENABLE_TEST_USER_DATA) { \
@@ -79,7 +79,7 @@ void test_##_name(int lr, int m, int n, int k, const Container &dataA, \
         dataB.data(), cl::sycl::range<1>(dataB.size())); \
     cl::sycl::buffer<element_type, 1> buffC( \
         dataC.data(), cl::sycl::range<1>(dataC.size())); \
-    run_test(5, 2.0*m*n*k, [&] { \
+    run_test(r, 2.0*m*n*k, [&] { \
       q.submit([&] (cl::sycl::handler &cgh) { \
         auto accA = \
             buffA.template get_access<cl::sycl::access::mode::read>(cgh); \
@@ -113,15 +113,17 @@ ENABLE_TEST(gemm_v2, GemmV2, "",
       accB.get_pointer(), k, element_type(1), accC.get_pointer(), m))
 
 
-template <int, int, int, int, int> class GemmV19;
-#define _tparams cl, item_rows, item_cols, wg_rows, wg_cols
-template <int cl, int item_rows, int item_cols, int wg_rows, int wg_cols,
-          ENABLE_TEST_PARAMS>
+template <bool, int, int, int, int, int> class GemmV19;
+#define _tparams double_buffer, cl, item_rows, item_cols, wg_rows, wg_cols
+template <bool double_buffer, int cl, int item_rows, int item_cols,
+          int wg_rows, int wg_cols, ENABLE_TEST_PARAMS>
 ENABLE_TEST(gemm_v19, GemmV19<_tparams>,
     "item_dim = (" << item_rows << ", " << item_cols << "); " <<
-    " wg_dim = (" << wg_rows << ", " << wg_cols << ")",
+    "wg_dim = (" << wg_rows << ", " << wg_cols << "); " <<
+    "db = " << double_buffer,
     ((m - 1)/(wg_rows * item_rows) + 1) * ((n - 1)/(wg_cols * item_cols) + 1),
-    2*cl/sizeof(element_type) * (wg_rows*item_rows + wg_cols*item_cols),
+    (double_buffer+1) * cl/sizeof(element_type) *
+    (wg_rows*item_rows + wg_cols*item_cols),
     _gemm_v19<_tparams>(
       id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
       accA.get_pointer(), m, accB.get_pointer(), k, element_type(1),
@@ -140,14 +142,15 @@ int main(int argc, char *argv[]) {
   using element_type = float;
   const int seed = 42;
 
-  if (argc != 4) {
-    std::cerr << "Usage: " << argv[0] << " M N K" << std::endl;
+  if (argc != 5) {
+    std::cerr << "Usage: " << argv[0] << " M N K rep" << std::endl;
     return -1;
   }
 
   const int m = std::atoi(argv[1]);
   const int k = std::atoi(argv[2]);
   const int n = std::atoi(argv[3]);
+  const int rep = std::atoi(argv[4]);
 
   std::cout << std::scientific;
 
@@ -160,7 +163,7 @@ int main(int argc, char *argv[]) {
 
 
   std::cout << "\n=== Testing system CPU implementation ===" << std::endl;
-  run_test(5, 2.0*m*n*k, [&] {
+  run_test(rep, 2.0*m*n*k, [&] {
     gemm("N", "N", m, n, k, element_type(1), dataA.data(), m, dataB.data(), k,
          element_type(1), refC.data(), m);
   });
@@ -174,24 +177,37 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
 
-  test_gemm_v2(128, m, n, k, dataA, dataB, origC, refC, q);
+#define DATA rep, m, n, k, dataA, dataB, origC, refC, q
 
+  test_gemm_v2(128, DATA);
 
-  test_gemm_v19<cl, 4, 16, 16, 4>(16*4, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<true, cl, 4, 16, 16, 4>(16*4, DATA);
+  test_gemm_v19<false, cl, 4, 16, 16, 4>(16*4, DATA);
 
-  test_gemm_v19<cl, 1, 16, 32, 2>(32*2, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v19<cl, 2, 16, 32, 4>(32*4, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v19<cl, 4, 16, 32, 8>(32*8, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<true, cl, 1, 16, 32, 2>(32*2, DATA);
+  test_gemm_v19<false, cl, 1, 16, 32, 2>(32*2, DATA);
+  test_gemm_v19<true, cl, 2, 16, 32, 4>(32*4, DATA);
+  test_gemm_v19<false, cl, 2, 16, 32, 4>(32*4, DATA);
+  test_gemm_v19<true, cl, 4, 16, 32, 8>(32*8, DATA);
+  test_gemm_v19<false, cl, 4, 16, 32, 8>(32*8, DATA);
 
-  test_gemm_v19<cl, 1, 16, 64, 4>(64*4, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<true, cl, 1, 16, 64, 4>(64*4, DATA);
+  test_gemm_v19<false, cl, 1, 16, 64, 4>(64*4, DATA);
 
-  test_gemm_v19<cl, 4, 8, 16, 8>(16*8, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v19<cl, 8, 8, 16, 16>(16*16, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<true, cl, 4, 8, 16, 8>(16*8, DATA);
+  test_gemm_v19<false, cl, 4, 8, 16, 8>(16*8, DATA);
+  test_gemm_v19<true, cl, 8, 8, 16, 16>(16*16, DATA);
+  test_gemm_v19<false, cl, 8, 8, 16, 16>(16*16, DATA);
 
-  test_gemm_v19<cl, 8, 9, 16, 8>(16*8, m, n, k, dataA, dataB, origC, refC, q);
+  // test_gemm_v19<true, cl, 8, 9, 16, 16>(16*16, DATA);
+  test_gemm_v19<false, cl, 8, 9, 16, 16>(16*16, DATA);
 
-  test_gemm_v19<cl, 1, 8, 32, 4>(32*4, m, n, k, dataA, dataB, origC, refC, q);
-  test_gemm_v19<cl, 2, 8, 32, 8>(32*8, m, n, k, dataA, dataB, origC, refC, q);
+  test_gemm_v19<true, cl, 1, 8, 32, 4>(32*4, DATA);
+  test_gemm_v19<false, cl, 1, 8, 32, 4>(32*4, DATA);
+  test_gemm_v19<true, cl, 2, 8, 32, 8>(32*8, DATA);
+  test_gemm_v19<false, cl, 2, 8, 32, 8>(32*8, DATA);
+
+#undef DATA
 
   return 0;
 }
