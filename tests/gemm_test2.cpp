@@ -120,11 +120,11 @@ template <int cl, int item_rows, int item_cols, int wg_rows, int wg_cols,
 ENABLE_TEST(gemm_v19, GemmV19<_tparams>,
     "item_dim = (" << item_rows << ", " << item_cols << "); " <<
     " wg_dim = (" << wg_rows << ", " << wg_cols << ")",
-    ((m - 1)/(wg_rows * item_rows) + 1)* ((n - 1)/(wg_cols * item_cols) + 1),
-    2*cl/sizeof(element_type) * (wg_rows * item_rows + wg_cols * item_cols),
+    ((m - 1)/(wg_rows * item_rows) + 1) * ((n - 1)/(wg_cols * item_cols) + 1),
+    2*cl/sizeof(element_type) * (wg_rows*item_rows + wg_cols*item_cols),
     _gemm_v19<_tparams>(
       id, id.get_group(0), id.get_local(0), m, n, k, element_type(1),
-      accA.get_pointer(), m, accB.get_pointer(), k,  element_type(1),
+      accA.get_pointer(), m, accB.get_pointer(), k, element_type(1),
       accC.get_pointer(), m, scratch.get_pointer()))
 
 
@@ -187,6 +187,8 @@ int main(int argc, char *argv[]) {
 
   test_gemm_v19<cl, 4, 8, 16, 8>(16*8, m, n, k, dataA, dataB, origC, refC, q);
   test_gemm_v19<cl, 8, 8, 16, 16>(16*16, m, n, k, dataA, dataB, origC, refC, q);
+
+  test_gemm_v19<cl, 8, 9, 16, 8>(16*8, m, n, k, dataA, dataB, origC, refC, q);
 
   test_gemm_v19<cl, 1, 8, 32, 4>(32*4, m, n, k, dataA, dataB, origC, refC, q);
   test_gemm_v19<cl, 2, 8, 32, 8>(32*8, m, n, k, dataA, dataB, origC, refC, q);

@@ -33,9 +33,6 @@
 namespace blas {
 
 
-// const int cl_size = 64;
-
-
 template <typename T, typename GlobalPointerType>
 void _gemm_v2(
     int item_id, int m, int n, int k, T alpha, GlobalPointerType A, int lda,
@@ -76,14 +73,20 @@ inline void extract_input_blocks(
   int item_id, int m, int n, int k,
   GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
   LocalPointerType s1, LocalPointerType s3) {
+  const int block_size_b = block_cols * cl_elems;
   #pragma unroll
-  for (int i = 0; i < block_cols * cl_elems / wg_size; ++i) {
+  for (int i = 0; i < (block_size_b-1) / wg_size + 1; ++i) {
+    if (!do_check<block_size_b % wg_size>(item_id + i*wg_size < block_size_b))
+      continue;
     const bool in_range = do_check<check_k_limit>(item_id % cl_elems < k) &&
                          do_check<check_n_limit>(wg_size/cl_elems*i < n);
     s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems)*ldb] : T(0);
   }
+  const int block_size_a = block_rows * cl_elems;
   #pragma unroll
-  for (int i = 0; i < block_rows * cl_elems / wg_size; ++i) {
+  for (int i = 0; i < (block_size_a-1) / wg_size + 1; ++i) {
+    if (!do_check<block_size_a % wg_size>(item_id + i*wg_size < block_size_a))
+      continue;
     const bool in_range =
         do_check<check_n_limit>(0 < m) &&
         do_check<check_k_limit>(item_id/block_rows+i*(wg_size/block_rows) < k);
@@ -92,12 +95,12 @@ inline void extract_input_blocks(
 }
 
 
-template <int cl_elems, int item_rows, int item_cols, int wg_rows, int wg_cols,
-          int block_rows, int block_cols,
+template <int cl_elems, int wg_rows, int wg_cols, int block_rows,
+          int block_cols, int item_rows, int item_cols,
           typename T, typename LocalPointerType>
 inline void compute_block_gemm(
     LocalPointerType s2, LocalPointerType s4,
-    T reg_a[item_rows], T &reg_b, T reg_res[item_rows][item_cols]) {
+    T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols]) {
   for (int i = 0; i < cl_elems; ++i) {
     #pragma unroll
     for (int j = 0; j < item_rows; ++j) {
@@ -116,8 +119,8 @@ inline void compute_block_gemm(
 
 
 template <bool check_m_limit, bool check_n_limit, int cl_elems, int block_rows,
-          int block_cols, int wg_size, int item_rows, int item_cols,
-          int wg_rows, int wg_cols, typename T, typename GlobalPointerType,
+          int block_cols, int wg_size, int wg_rows, int wg_cols, int item_rows,
+          int item_cols, typename T, typename GlobalPointerType,
           typename LocalPointerType>
 inline void compute_panel_gemm(
     cl::sycl::nd_item<1> id, int item_id,
@@ -126,7 +129,7 @@ inline void compute_panel_gemm(
     T beta, GlobalPointerType C, int ldc,
     LocalPointerType s1, LocalPointerType s2,
     LocalPointerType s3, LocalPointerType s4,
-    T reg_a[item_rows], T &reg_b, T reg_res[item_rows][item_cols]) {
+    T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols]) {
   int ofs = 1;
 
   while (k >= cl_elems) {
@@ -135,8 +138,7 @@ inline void compute_panel_gemm(
        wg_size, T>
       (item_id, m, n, k, A, lda, B, ldb, s1, s3);
     id.barrier(cl::sycl::access::fence_space::local_space);
-    compute_block_gemm<cl_elems, item_rows, item_cols, wg_rows, wg_cols,
-                       block_rows, block_cols>
+    compute_block_gemm<cl_elems, wg_rows, wg_cols, block_rows, block_cols>
       (s2, s4, reg_a, reg_b, reg_res);
     A = A + cl_elems*lda;
     B = B + cl_elems;
@@ -154,8 +156,7 @@ inline void compute_panel_gemm(
        wg_size, T>
       (item_id, m, n, k, A, lda, B, ldb, s1, s3);
     id.barrier(cl::sycl::access::fence_space::local_space);
-    compute_block_gemm<cl_elems, item_rows, item_cols, wg_rows, wg_cols,
-                       block_rows, block_cols>
+    compute_block_gemm<cl_elems, wg_rows, wg_cols, block_rows, block_cols>
       (s2, s4, reg_a, reg_b, reg_res);
   }
 
@@ -188,7 +189,7 @@ void _gemm_v19(
   const auto block_cols = wg_cols * item_cols;
 
   const auto wg_per_col = (m - 1) / block_rows + 1;
-  const auto wg_row = (wg_id % wg_per_col) * block_cols;
+  const auto wg_row = (wg_id % wg_per_col) * block_rows;
   const auto wg_col = (wg_id / wg_per_col) * block_cols;
 
   const auto item_row = item_id % wg_rows;
@@ -197,9 +198,12 @@ void _gemm_v19(
   const auto row = wg_row + item_row;
   const auto col = wg_col + item_col;
 
-  const auto c_row = item_id % cl_elems;
-  const auto c_col = item_id / cl_elems;
-  const auto c_inc = wg_size / cl_elems;
+  static_assert(wg_size % cl_elems == 0,
+                "Work group size must be a multiple "
+                "of elements in a cache line");
+  static_assert(wg_size % block_rows == 0,
+                "Work group size must be a multiple "
+                "of the number of rows in a block");
 
   T reg_res[item_rows][item_cols] = {};
   T reg_a[item_rows];
@@ -211,26 +215,29 @@ void _gemm_v19(
 
   const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-  B = B + c_row + (wg_col + c_col)*ldb;
-  n = n - wg_col - c_col;
+  B = B + item_id%cl_elems + (wg_col + item_id/cl_elems)*ldb;
+  n = n - wg_col - item_id/cl_elems;
   A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
   m = m - wg_row - item_id%block_rows;
 
-  LocalPointerType s1 = scratch + c_row + c_col*cl_elems;
+  LocalPointerType s1 =
+      scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
   LocalPointerType s2 = scratch + item_col*cl_elems;
-  LocalPointerType s3 = scratch + 2*block_cols*cl_elems + item_id;
+  LocalPointerType s3 =
+      scratch + 2*block_cols*cl_elems +
+      item_id%block_rows + (item_id/block_rows)*block_rows;
   LocalPointerType s4 = scratch + 2*block_cols*cl_elems + item_row;
 
   if (internal) {
     compute_panel_gemm
-      <false, false, cl_elems, block_rows, block_cols, wg_size,
-       item_rows, item_cols, wg_rows, wg_cols>
+      <false, false, cl_elems, block_rows, block_cols,
+       wg_size, wg_rows, wg_cols>
       (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
        ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
   } else {
     compute_panel_gemm
-      <true, true, cl_elems, block_rows, block_cols, wg_size,
-       item_rows, item_cols, wg_rows, wg_cols>
+      <true, true, cl_elems, block_rows, block_cols,
+       wg_size, wg_rows, wg_cols>
       (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
        ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
   }
