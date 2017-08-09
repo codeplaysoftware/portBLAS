@@ -33,41 +33,6 @@
 namespace blas {
 
 template <class LHS, class RHS, typename Device_>
-struct Evaluator<JoinExpr<LHS, RHS>, Device_> {
-  using Expression = JoinExpr<LHS, RHS>;
-  using Device = Device_;
-  using value_type = typename Expression::value_type;
-  using cont_type = typename Evaluator<LHS, Device>::cont_type;
-  /* constexpr static bool supported = LHS::supported && RHS::supported; */
-
-  Evaluator<LHS, Device> l;
-  Evaluator<RHS, Device> r;
-
-  Evaluator(Expression &expr)
-      : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
-  size_t getSize() const { return r.getSize(); }
-  cont_type data() { return l.data(); }
-
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(nullptr, dev);
-    r.eval_subexpr_if_needed(nullptr, dev);
-    return true;
-  }
-
-  value_type eval(size_t i) {
-    l.eval(i);
-    return r.eval(i);
-  }
-  value_type eval(cl::sycl::nd_item<1> nditem) {
-    return eval(nditem.get_global(0));
-  }
-  void cleanup(Device &dev) {
-    l.cleanup(dev);
-    r.cleanup(dev);
-  }
-};
-
-template <class LHS, class RHS, typename Device_>
 struct Evaluator<AssignExpr<LHS, RHS>, Device_> {
   using Expression = AssignExpr<LHS, RHS>;
   using Device = Device_;
@@ -81,18 +46,21 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device_> {
   Evaluator(Expression &expr)
       : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return l.data(); }
+  cont_type *data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    cont_type data = l.data();
     l.eval_subexpr_if_needed(nullptr, dev);
-    r.eval_subexpr_if_needed(&data, dev);
+    r.eval_subexpr_if_needed(l.data(), dev);
     return true;
   }
 
-  value_type eval(size_t i) { return l.eval(i) = r.eval(i); }
+  value_type eval(size_t i) { return l.evalref(i) = r.eval(i); }
   value_type eval(cl::sycl::nd_item<1> nditem) {
     return eval(nditem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return l.evalref(i) = r.eval(i); }
+  value_type &evalref(cl::sycl::nd_item<1> nditem) {
+    return evalref(nditem.get_global(0));
   }
   void cleanup(Device &dev) {
     l.cleanup(dev);
@@ -120,22 +88,21 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device_> {
         r1(Evaluator<RHS1, Device>(expr.r1)),
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
   size_t getSize() const { return r1.getSize(); }
-  cont_type data() { return l1.data(); }
+  cont_type *data() { return l1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l1.eval_subexpr_if_needed(nullptr, dev);
     l2.eval_subexpr_if_needed(nullptr, dev);
-    cont_type data1 = l1.data(), data2 = l2.data();
-    r1.eval_subexpr_if_needed(&data1, dev);
-    r2.eval_subexpr_if_needed(&data2, dev);
+    r1.eval_subexpr_if_needed(l1.data(), dev);
+    r2.eval_subexpr_if_needed(l2.data(), dev);
     return true;
   }
 
   value_type eval(size_t i) {
     auto val1 = r1.eval(i);
     auto val2 = r2.eval(i);
-    l1.eval(i) = val1;
-    l2.eval(i) = val2;
+    l1.evalref(i) = val1;
+    l2.evalref(i) = val2;
     return val1;
   }
   value_type eval(cl::sycl::nd_item<1> nditem) {
@@ -165,7 +132,7 @@ struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device_> {
   Evaluator(Expression &expr)
       : scl(expr.scl), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return r.data(); }
+  cont_type *data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(nullptr, dev);
@@ -196,7 +163,7 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device_> {
 
   Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return r.data(); }
+  cont_type *data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(nullptr, dev);
@@ -226,12 +193,11 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device_> {
   Evaluator(Expression &expr)
       : l(Evaluator<LHS, Device>(expr.l)), r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return l.data(); }
+  cont_type *data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    cont_type data = l.data();
     l.eval_subexpr_if_needed(nullptr, dev);
-    r.eval_subexpr_if_needed(&data, dev);
+    r.eval_subexpr_if_needed(nullptr, dev);
     return true;
   }
 
@@ -257,7 +223,7 @@ struct Evaluator<TupleExpr<RHS>, Device_> {
 
   Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return r.data(); }
+  cont_type *data() { return r.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r.eval_subexpr_if_needed(nullptr, dev);
@@ -272,48 +238,89 @@ struct Evaluator<TupleExpr<RHS>, Device_> {
   void cleanup(Device &dev) { r.cleanup(dev); }
 };
 
+template <class RHS>
+TupleExpr<RHS> make_tplExpr(RHS r) {
+  return TupleExpr<RHS>(r);
+}
+
 template <typename EvaluatorT>
-struct FinalExecution;
+struct SubExecutor;
+
+template <class RHS, typename Device_>
+struct Evaluator<EmptyExpr<RHS>, Device_> {
+  using Expression = EmptyExpr<RHS>;
+  using Device = Device_;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+
+  Evaluator<RHS, Device> r;
+  Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
+  Evaluator(Expression &&expr) : Evaluator(expr) {}
+
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return r.data(); }
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    r.eval_subexpr_if_needed(nullptr, dev);
+    return true;
+  }
+  value_type eval(size_t i) { return r.eval(i); }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  void cleanup(Device &dev) { r.cleanup(dev); }
+};
 
 template <class RHS, template <class> class MakePointer>
-struct Evaluator<FinalExpr<RHS, MakePointer>, SYCLDevice> {
-  using Expression = FinalExpr<RHS, MakePointer>;
+struct Evaluator<BreakExpr<RHS, MakePointer>, SYCLDevice> {
+  using Expression = BreakExpr<RHS, MakePointer>;
   using Device = SYCLDevice;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
   using Self = Evaluator<Expression, Device>;
   /* constexpr static bool supported = true; */
   bool allocated_result = false;
+  bool defined = false;
   typename MakePointer<value_type>::type result;
 
   Evaluator<RHS, Device> r;
 
   Evaluator(Expression &expr)
       : r(Evaluator<RHS, Device>(expr.r)),
-        result(MakePointer<value_type>::init()) {}
+        result(expr.use_rhs_result ? data() : nullptr) {}
+
+  Evaluator(Expression &&expr) : Evaluator(expr) {}
+
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return r.data(); }
+  cont_type *data() { return r.data(); }
 
   bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont,
                               Device &dev) {
     r.eval_subexpr_if_needed(nullptr, dev);
-    if (cont) {
-      result = cont;
-    } else {
-      allocated_result = true;
-      result = dev.allocate<value_type>(getSize());
+    if (!defined) {
+      if (cont) {
+        result = cont;
+        defined = true;
+      } else {
+        allocated_result = true;
+        result = dev.allocate<value_type>(getSize());
+        defined = true;
+      }
     }
-    FinalExecution<Self>::run(*this, dev);
+    SubExecutor<Self>::run(*this, dev);
     return true;
   }
 
-  value_type subeval(size_t i) { return r.eval(i); }
+  value_type subeval(size_t i) { return result[i] = r.eval(i); }
   value_type subeval(cl::sycl::nd_item<1> ndItem) {
     return subeval(ndItem.get_global(0));
   }
   value_type eval(size_t i) { return result[i]; }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return result[i]; }
+  value_type &evalref(cl::sycl::nd_item<1> &ndItem) {
+    return evalref(ndItem.get_global(0));
   }
   void cleanup(Device &dev) {
     r.cleanup(dev);
@@ -324,20 +331,192 @@ struct Evaluator<FinalExpr<RHS, MakePointer>, SYCLDevice> {
   }
 };
 
-template <class ScalarT, class ContainerT, typename Device>
-struct Evaluator<vector_view<ScalarT, ContainerT>, Device> {
+template <class RHS>
+struct Evaluator<BreakExpr<RHS, MakeDevicePointer>, SYCLDevice> {
+  using Expression = BreakExpr<RHS, MakeDevicePointer>;
+  using Device = SYCLDevice;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+  using Self = Evaluator<Expression, Device>;
+  /* constexpr static bool supported = true; */
+  bool allocated_result = false;
+  typename MakeDevicePointer<value_type>::type result;
+
+  Evaluator<RHS, Device> r;
+
+  Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
+
+  Evaluator(Expression &&expr) : Evaluator(expr) {}
+
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return r.data(); }
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    r.eval_subexpr_if_needed(nullptr, dev);
+    return true;
+  }
+  value_type subeval(size_t i) { return result[i] = r.eval(i); }
+  value_type subeval(cl::sycl::nd_item<1> ndItem) {
+    return subeval(ndItem.get_global(0));
+  }
+  value_type eval(size_t i) { return result[i]; }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return result[i]; }
+  value_type &evalref(cl::sycl::nd_item<1> &ndItem) {
+    return evalref(ndItem.get_global(0));
+  }
+  void cleanup(Device &dev) { r.cleanup(dev); }
+};
+
+template <class RHS, template <class> class MakePointer, class Device_>
+struct Evaluator<BreakIfExpr<RHS, MakePointer>, Device_> {
+  using Expression = BreakIfExpr<RHS, MakePointer>;
+  using Device = Device_;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+
+  using RHS_empty = EmptyExpr<RHS>;
+  using RHS_break = BreakExpr<RHS, MakePointer>;
+
+  const bool to_break;
+  Evaluator<RHS_empty, Device> r_empty;
+  Evaluator<RHS_break, Device> r_break;
+  size_t N;
+
+  // expr is the expression we want to conditionally isolate from
+  Evaluator(Expression &expr)
+      : to_break(expr.to_break),
+        r_empty(Evaluator<RHS_empty, Device>(expr.r_empty)),
+        r_break(Evaluator<RHS_break, Device>(expr.r_break)),
+        N(r_empty.getSize()) {}
+
+  Evaluator(Expression &&expr) : Evaluator(expr) {}
+
+  size_t getSize() const { return N; }
+
+  cont_type *data() {
+    if (to_break) {
+      return r_break.data();
+    } else {
+      return r_empty.data();
+    }
+  }
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    if (to_break) {
+      r_break.eval_subexpr_if_needed(cont, dev);
+    } else {
+      r_empty.eval_subexpr_if_needed(cont, dev);
+    }
+    return true;
+  }
+  value_type eval(size_t i) { return r_break.eval(i); }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  value_type eval_alt(size_t i) { return r_empty.eval(i); }
+  value_type eval_alt(cl::sycl::nd_item<1> ndItem) {
+    return eval_alt(ndItem.get_global(0));
+  }
+  void cleanup(Device &dev) {
+    if (to_break) {
+      r_break.cleanup(dev);
+    } else {
+      r_empty.cleanup(dev);
+    }
+  }
+};
+
+template <class RHS, template <class> class MakePointer>
+struct Evaluator<StrideExpr<RHS, MakePointer>, SYCLDevice> {
+  using Expression = StrideExpr<RHS, MakePointer>;
+  using Device = SYCLDevice;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+  /* constexpr static bool supported = true; */
+
+  Evaluator<BreakIfExpr<RHS, MakePointer>, Device> r;
+  long offt;
+  long strd;
+  size_t N;
+
+  // expr is an expression we want to change the stride for
+  Evaluator(Expression &expr)
+      :  // branch
+        r(Evaluator<BreakIfExpr<RHS, MakePointer>, Device>(
+            BreakIfExpr<RHS, MakePointer>(expr.r,
+                                          !(expr.offt == 0 && expr.strd == 1 &&
+                                            expr.N == expr.getSize())))),
+        offt(expr.offt),
+        strd(expr.strd),
+        N(expr.N) {}
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return r.data(); }
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    r.eval_subexpr_if_needed(nullptr, dev);
+    return true;
+  }
+  value_type eval(size_t i) {
+    return r.eval(offt + (strd >= 0 ? i * strd : (N - i - 1) * strd));
+  }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  void cleanup(Device &dev) { return r.cleanup(dev); }
+};
+
+template <typename ScalarT, typename ContainerT,
+          template <class> class MakePointer>
+struct Evaluator<StrideExpr<vector_view<ScalarT, ContainerT>, MakePointer>,
+                 SYCLDevice> {
+  using RHS = vector_view<ScalarT, ContainerT>;
+  using Expression = StrideExpr<RHS, MakePointer>;
+  using Device = SYCLDevice;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+  /* constexpr static bool supported = true; */
+
+  Evaluator<RHS, Device> r;
+
+  Evaluator(Expression &expr)
+      : r(Evaluator<RHS, Device>(
+            RHS(expr.r, expr.r.getDisp() + expr.offt, expr.strd, expr.N))) {}
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return r.data(); }
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    r.eval_subexpr_if_needed(nullptr, dev);
+    return true;
+  }
+  value_type eval(size_t i) { return r.eval(i); }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return r.evalref(i); }
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
+    return evalref(ndItem.get_global(0));
+  }
+  void cleanup(Device &dev) { return r.cleanup(dev); }
+};
+
+template <class ScalarT, class ContainerT, typename Device_>
+struct Evaluator<vector_view<ScalarT, ContainerT>, Device_> {
   using Expression = vector_view<ScalarT, ContainerT>;
+  using Device = Device_;
   using value_type = typename Expression::value_type;
   using cont_type = ContainerT;
   /* constexpr static bool supported = true; */
 
   vector_view<ScalarT, ContainerT> vec;
 
-  Evaluator(Expression &vec) : vec(vec) {}
+  Evaluator(Expression vec) : vec(vec) {}
   size_t getSize() const { return vec.getSize(); }
-  cont_type data() { return vec.getData(); }
+  cont_type *data() { return &vec.getData(); }
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) { return true; }
-  value_type &eval(size_t i) {
+  value_type eval(size_t i) { return evalref(i); }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
     auto ind = vec.getDisp();
     if (vec.getStrd() == 1) {
@@ -349,33 +528,39 @@ struct Evaluator<vector_view<ScalarT, ContainerT>, Device> {
     }
     return vec.getData()[ind];
   }
-  value_type &eval(cl::sycl::nd_item<1> ndItem) {
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
   void cleanup(Device &dev) {}
 };
 
-template <class ScalarT, class ContainerT, typename Device>
-struct Evaluator<matrix_view<ScalarT, ContainerT>, Device> {
+template <class ScalarT, class ContainerT, typename Device_>
+struct Evaluator<matrix_view<ScalarT, ContainerT>, Device_> {
   using Expression = matrix_view<ScalarT, ContainerT>;
+  using Device = Device_;
   using value_type = typename Expression::value_type;
   using cont_type = ContainerT;
   /* constexpr static bool supported = true; */
 
   matrix_view<ScalarT, ContainerT> mat;
 
-  Evaluator(Expression &mat) : mat(mat) {}
+  Evaluator(Expression mat) : mat(mat) {}
   size_t getSize() const { return mat.getSizeR(); }
   size_t getSizeR() const { return mat.getSizeR(); }
   size_t getSizeC() const { return mat.getSizeC(); }
   int getAccess() const { return mat.getAccess(); }
   int getAccessOpr() const { return mat.getAccessOpr(); }
-  cont_type data() { return mat.getData(); }
+  cont_type *data() { return &mat.getData(); }
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) { return true; }
-  value_type &eval(size_t i) { return mat.eval(i); }
-  value_type &eval(size_t i, size_t j) { return mat.eval(i, j); }
-  value_type &eval(cl::sycl::nd_item<1> ndItem) {
+  value_type eval(size_t i) { return mat.eval(i); }
+  value_type eval(size_t i, size_t j) { return mat.eval(i, j); }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return mat.eval(i); }
+  value_type &evalref(size_t i, size_t j) { return mat.evalref(i, j); }
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
+    return evalref(ndItem.get_global(0));
   }
   void cleanup(Device &dev) {}
 };

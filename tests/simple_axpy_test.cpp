@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
       BufferVectorView<double> bvY(bY);
 
       // EXECUTION OF THE ROUTINES
-      _axpy(dev, bX.get_count(), 1.0, bvX, 1, bvY, 1);
+      blas::execute(dev, _axpy(bX.get_count(), 1.0, bvX, 0, 1, bvY, 0, 1));
     }
 
     std::cout << " Output: ";

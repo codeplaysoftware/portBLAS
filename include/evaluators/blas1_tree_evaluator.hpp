@@ -37,7 +37,7 @@
 namespace blas {
 
 template <class EvaluatorT>
-struct GenericReducerClassic;
+struct GenericReducer;
 template <class EvaluatorT>
 struct GenericReducerTwoStage;
 template <class EvaluatorT, class Reducer>
@@ -53,7 +53,6 @@ template <typename Functor, class RHS, template <class> class MakePointer>
 struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   using Expression = ReductionExpr<Functor, RHS, MakePointer>;
   using Device = SYCLDevice;
-  using Self = Evaluator<Expression, Device>;
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
@@ -64,11 +63,9 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   Evaluator<RHS, Device> r;
 
   Evaluator(Expression &expr)
-      : r(Evaluator<RHS, Device>(expr.r)),
-        result(MakePointer<value_type>::init()) {}
-
+      : r(Evaluator<RHS, Device>(expr.r)), result(nullptr) {}
   size_t getSize() const { return r.getSize(); }
-  cont_type data() { return r.data(); }
+  cont_type *data() { return r.data(); }
 
   bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont,
                               Device &dev) {
@@ -79,14 +76,18 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
       allocated_result = true;
       result = dev.allocate<value_type>(1);
     }
-    FullReducer<Self, GenericReducerTwoStage<Self>>::run(*this, dev);
+    FullReducer<Evaluator<RHS, Device>,
+                GenericReducer<Evaluator<RHS, Device>>>::run(dev, r, *result);
     return true;
   }
 
   value_type eval(size_t i) { return result[i]; }
-
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return result[i]; }
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
+    return evalref(ndItem.get_global(0));
   }
 
   void cleanup(SYCLDevice &dev) {
@@ -96,6 +97,32 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
       dev.deallocate<value_type>(result);
     }
   }
+};
+
+template <typename Functor, class RHS>
+struct Evaluator<ReductionExpr<Functor, RHS, MakeDevicePointer>, SYCLDevice> {
+  using Expression = ReductionExpr<Functor, RHS, MakeDevicePointer>;
+  using Device = SYCLDevice;
+  using Self = Evaluator<Expression, Device>;
+  using value_type = typename Expression::value_type;
+  using dev_functor = functor_traits<Functor, value_type, Device>;
+  using cont_type = typename Evaluator<RHS, Device>::cont_type;
+
+  typename MakeDevicePointer<value_type>::type result;
+  Evaluator<RHS, Device> r;
+
+  Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
+  size_t getSize() const { return r.getSize(); }
+  cont_type *data() { return r.data(); }
+  value_type eval(size_t i) { return result[i]; }
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+  value_type &evalref(size_t i) { return result[i]; }
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
+    return evalref(ndItem.get_global(0));
+  }
+  void cleanup(SYCLDevice &dev) { r.cleanup(dev); }
 };
 
 }  // namespace blas

@@ -155,20 +155,80 @@ struct TupleExpr {
 };
 
 /*!
- * FinalExpr
+ * BreakExpr
  * @brief Expression for separating execution of a subexpression from the rest
  * of the execution.
  */
-template <typename RHS, template <class> class MakePointer>
-struct FinalExpr {
+template <typename RHS>
+struct EmptyExpr {
   using value_type = typename RHS::value_type;
 
   RHS r;
 
-  FinalExpr(RHS &_r) : r(_r) {}
+  EmptyExpr(RHS &_r) : r(_r) {}
+  EmptyExpr(RHS &&_r) : EmptyExpr(_r) {}
 
   size_t getSize() const { return r.getSize(); }
 };
+
+/*!
+ * BreakExpr
+ * @brief Expression for separating execution of a subexpression from the rest
+ * of the execution.
+ */
+template <typename RHS, template <class> class MakePointer>
+struct BreakExpr {
+  using value_type = typename RHS::value_type;
+
+  RHS r;
+  bool use_rhs_result;
+
+  BreakExpr(RHS &_r, bool use_rhs_result = false)
+      : r(_r), use_rhs_result(use_rhs_result) {}
+
+  BreakExpr(RHS &&_r, bool use_rhs_result = false)
+      : BreakExpr(_r, use_rhs_result) {}
+
+  size_t getSize() const { return r.getSize(); }
+};
+
+template <typename RHS, template <class> class MakePointer>
+struct BreakIfExpr {
+  using value_type = typename RHS::value_type;
+
+  EmptyExpr<RHS> r_empty;
+  BreakExpr<RHS, MakePointer> r_break;
+  bool to_break;
+
+  BreakIfExpr(RHS &_r, bool to_break)
+      : r_empty(_r), r_break(_r), to_break(to_break) {}
+
+  size_t getSize() const { return r_empty.getSize(); }
+};
+
+template <typename RHS, template <class> class MakePointer>
+struct StrideExpr {
+  using value_type = typename RHS::value_type;
+
+  RHS r;
+  long offt;
+  long strd;
+  size_t N;
+
+  StrideExpr(RHS &_r, long offt, long strd, size_t N)
+      : r(_r), offt(offt), strd(strd), N(N) {}
+
+  StrideExpr(BreakIfExpr<RHS, MakePointer> &_br, long offt, long strd, size_t N)
+      : StrideExpr(_br.r, offt, strd, N) {}
+
+  size_t getSize() const { return N; }
+};
+
+template <typename RHS>
+StrideExpr<RHS, MakeHostPointer> make_strdExpr(RHS r, long offset, long stride,
+                                               size_t N) {
+  return StrideExpr<RHS, MakeHostPointer>(r, offset, stride, N);
+}
 
 /*!
 @brief Template function for constructing expression nodes based on input
@@ -179,8 +239,9 @@ subexpressions.
 @param subexpressions Reference subexpressions of the expression node.
 @return Constructed expression node.
 */
+
 template <template <class...> class expressionT, typename... subexprsTN>
-expressionT<subexprsTN...> make_expr(subexprsTN &... subexprs) {
+expressionT<subexprsTN...> make_expr(subexprsTN... subexprs) {
   return expressionT<subexprsTN...>(subexprs...);
 }
 
@@ -194,9 +255,10 @@ reference subexpressions.
 @param Subexpressions Reference subexpressions of the expression node.
 @return Constructed expression node.
 */
+
 template <template <class...> class expressionT, typename exprT,
           typename... subexprsTN>
-expressionT<exprT, subexprsTN...> make_expr(subexprsTN &... subexprs) {
+expressionT<exprT, subexprsTN...> make_expr(subexprsTN... subexprs) {
   return expressionT<exprT, subexprsTN...>(subexprs...);
 }
 
@@ -215,10 +277,11 @@ the expression node.
 @param subexprs Subsequent reference subexpressions of the expression node.
 @return Constructed expression node.
 */
+
 template <template <class...> class expressionT, typename exprT,
           typename subexprT0, typename... subexprsTN>
-expressionT<exprT, subexprT0, subexprsTN...> make_expr(
-    subexprT0 subexpr0, subexprsTN &... subexprs) {
+expressionT<exprT, subexprT0, subexprsTN...> make_expr(subexprT0 subexpr0,
+                                                       subexprsTN... subexprs) {
   return expressionT<exprT, subexprT0, subexprsTN...>(subexpr0, subexprs...);
 }
 

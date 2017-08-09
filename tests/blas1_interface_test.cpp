@@ -92,36 +92,33 @@ int main(int argc, char *argv[]) {
     double nrmX = 0.0, nrmY = 0.0, max = 0.0, min = 1e9;
     double diff = 0.0;
     double _cos, _sin, giv = 0.0;
-    /* std::for_each(std::begin(vZ), std::end(vZ), [&](double &elem) { */
-    /*   elem = vY[i] + alpha * vX[i]; */
-    /*   sum += std::abs(elem); */
-    /*   dot += (elem * vX[i]); */
-    /*   nrmX += vX[i] * vX[i]; */
-    /*   nrmY += elem * elem; */
-    /*   if (std::abs(elem) > std::abs(max)) { */
-    /*     max = elem, indMax = i; */
-    /*   } */
-    /*   if (std::abs(elem) < std::abs(min)) { */
-    /*     min = elem, indMin = i; */
-    /*   } */
-    /*   if (i == 0) { */
-    /*     diff = elem - vX[i]; */
-    /*     double num1 = vX[0], num2 = elem; */
-    /*     _rotg(num1, num2, _cos, _sin); */
-    /*   } */
-    /*   giv += ((vX[i] * _cos + elem * _sin) * (elem * _cos - vX[i] * _sin));
-     */
-    /*   if (i == 0) { */
-    /*     diff = (elem * _cos - vX[i] * _sin) - ((vX[i] * _cos + elem * _sin));
-     */
-    /*   } else if ((i + 1) == sizeV) { */
-    /*     diff += (elem * _cos - vX[i] * _sin) - ((vX[i] * _cos + elem *
-     * _sin)); */
-    /*   } */
-    /*   i++; */
-    /* }); */
-    /* nrmX = std::sqrt(nrmX); */
-    /* nrmY = std::sqrt(nrmY); */
+    std::for_each(std::begin(vZ), std::end(vZ), [&](double &elem) {
+      elem = vY[i] + alpha * vX[i];
+      sum += std::abs(elem);
+      dot += (elem * vX[i]);
+      nrmX += vX[i] * vX[i];
+      nrmY += elem * elem;
+      if (std::abs(elem) > std::abs(max)) {
+        max = elem, indMax = i;
+      }
+      if (std::abs(elem) < std::abs(min)) {
+        min = elem, indMin = i;
+      }
+      if (i == 0) {
+        diff = elem - vX[i];
+        double num1 = vX[0], num2 = elem;
+        _rotg(num1, num2, _cos, _sin);
+      }
+      giv += ((vX[i] * _cos + elem * _sin) * (elem * _cos - vX[i] * _sin));
+      if (i == 0) {
+        diff = (elem * _cos - vX[i] * _sin) - ((vX[i] * _cos + elem * _sin));
+      } else if ((i + 1) == sizeV) {
+        diff += (elem * _cos - vX[i] * _sin) - ((vX[i] * _cos + elem * _sin));
+      }
+      i++;
+    });
+    nrmX = std::sqrt(nrmX);
+    nrmY = std::sqrt(nrmY);
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
     SYCLDevice dev;
@@ -148,18 +145,18 @@ int main(int argc, char *argv[]) {
       BufferVectorView<IndVal<double>> bvImin(bImin);
 
       // EXECUTION OF THE ROUTINES
-      _copy(dev, bX.get_count(), bvX, 1, bvY, 1);
-      _scal(dev, bX.get_count(), alpha, bvX, 1);
-      _axpy(dev, bX.get_count(), alpha, bvX, 1, bvY, 1);
-      _asum(dev, bY.get_count(), bvY, 1, bvR);
-      /* /1* vS[0] = _dot<SYCL>(ex, bY.get_count(), bvX, 1, bvY, 1); *1/ */
-      _dot(dev, bY.get_count(), bvX, 1, bvY, 1, bvS);
-      _nrm2(dev, bY.get_count(), bvY, 1, bvT);
-      _iamax(dev, bY.get_count(), bvY, 1, bvImax);
-      _iamin(dev, bY.get_count(), bvY, 1, bvImin);
-      _rot(dev, bY.get_count(), bvX, 1, bvY, 1, _cos, _sin);
-      _dot(dev, bY.get_count(), bvX, 1, bvY, 1, bvU);
-      _swap(dev, bY.get_count(), bvX, 1, bvY, 1);
+      blas::execute(dev, _copy(bX.get_count(), bvX, 0, 1, bvY, 0, 1));
+      blas::execute(dev, _scal(bX.get_count(), alpha, bvX, 0, 1));
+      blas::execute(dev, _axpy(bX.get_count(), alpha, bvX, 0, 1, bvY, 0, 1));
+      blas::execute(dev, _asum(bY.get_count(), bvY, 0, 1, bvR));
+      blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bvS));
+      blas::execute(dev, _nrm2(bY.get_count(), bvY, 0, 1, bvT));
+      blas::execute(dev, _iamax(bY.get_count(), bvY, 0, 1, bvImax));
+      blas::execute(dev, _iamin(bY.get_count(), bvY, 0, 1, bvImin));
+      /* blas::execute(dev, _rot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, _cos,
+       * _sin)); */
+      /* blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bvU)); */
+      blas::execute(dev, _swap(bY.get_count(), bvX, 0, 1, bvY, 0, 1));
     }
 
     // ANALYSIS OF THE RESULTS

@@ -49,6 +49,13 @@ struct ExecTreeFunctor {
   void operator()(cl::sycl::nd_item<1> i) { ev.eval(i); }
 };
 
+template <typename EvaluatorT>
+struct ExecTreeFunctorAlt {
+  EvaluatorT ev;
+  ExecTreeFunctorAlt(EvaluatorT ev) : ev(ev) {}
+  void operator()(cl::sycl::nd_item<1> i) { ev.eval2(i); }
+};
+
 /*! execute_tree.
 @brief Static function for executing a tree in SYCL.
 @tparam Tree Type of the tree.
@@ -58,23 +65,52 @@ struct ExecTreeFunctor {
 @param _globalSize Global work size.
 */
 template <typename ExpressionT>
-void execute_tree(SYCLDevice &dev, ExpressionT expr, size_t localSize,
+struct execute_tree {
+  static void run(SYCLDevice &dev, ExpressionT expr, size_t localSize,
                   size_t globalSize) {
-  using Device = SYCLDevice;
-  using EvaluatorT = Evaluator<ExpressionT, Device>;
+    using Device = SYCLDevice;
+    using EvaluatorT = Evaluator<ExpressionT, Device>;
 
-  EvaluatorT ev(expr);
-  ev.eval_subexpr_if_needed(nullptr, dev);
+    EvaluatorT ev(expr);
+    ev.eval_subexpr_if_needed(nullptr, dev);
 
-  dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
-    auto nTree = blas::make_accessor(ev, h);
-    cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
-        cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
-    h.parallel_for(gridConfiguration, ExecTreeFunctor<decltype(nTree)>(nTree));
-  });
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+      h.parallel_for(gridConfiguration,
+                     ExecTreeFunctor<decltype(nTree)>(nTree));
+    });
 
-  ev.cleanup(dev);
-}
+    ev.cleanup(dev);
+  }
+};
+
+template <typename RHS, template <class> class MakePointer>
+struct execute_tree<BreakIfExpr<RHS, MakePointer>> {
+  using ExpressionT = BreakIfExpr<RHS, MakePointer>;
+  static void run(SYCLDevice &dev, ExpressionT expr, size_t localSize,
+                  size_t globalSize) {
+    using Device = SYCLDevice;
+    using EvaluatorT = Evaluator<ExpressionT, Device>;
+
+    EvaluatorT ev(expr);
+    ev.eval_subexpr_if_needed(nullptr, dev);
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
+      if (ev.to_break) {
+        h.parallel_for(gridConfiguration,
+                       ExecTreeFunctor<decltype(nTree)>(nTree));
+      } else {
+        h.parallel_for(gridConfiguration,
+                       ExecTreeFunctorAlt<decltype(nTree)>(nTree));
+      }
+    });
+    ev.cleanup(dev);
+  }
+};
 
 /*!
  * @brief Executes the tree without defining required shared memory.
@@ -84,7 +120,7 @@ void execute(SYCLDevice &dev, ExpressionT expr) {
   size_t localsize, nwg, globalsize;
   auto _N = expr.getSize();
   dev.parallel_for_setup(localsize, nwg, globalsize, _N);
-  execute_tree(dev, expr, localsize, globalsize);
+  execute_tree<ExpressionT>::run(dev, expr, localsize, globalsize);
 }
 
 template <typename EvaluatorT>
@@ -92,11 +128,11 @@ struct ExecSubTreeFunctor {
   EvaluatorT ev;
   ExecSubTreeFunctor(EvaluatorT ev) : ev(ev) {}
   void operator()(cl::sycl::nd_item<1> i) {
-    return ev.result[i.get_global(0)] = ev.subeval(i);
+    ev.result[i.get_global(0)] = ev.subeval(i);
   }
 };
 template <typename EvaluatorT>
-struct FinalExecution {
+struct SubExecutor {
   using Expression = typename EvaluatorT::Expression;
   using Device = typename EvaluatorT::Device;
   static void run(EvaluatorT &ev, Device &dev) {

@@ -259,13 +259,28 @@ struct Converter<
 };
 
 template <typename RHS>
-struct Converter<Evaluator<FinalExpr<RHS, MakeHostPointer>, SYCLDevice>> {
-  using Expression = FinalExpr<RHS, MakeHostPointer>;
+struct Converter<Evaluator<EmptyExpr<RHS>, SYCLDevice>> {
+  using ConvRHS = Converter<Evaluator<RHS, SYCLDevice>>;
+  using Expression = EmptyExpr<RHS>;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = typename ConvRHS::out_type;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    return ConvRHS::convert_to(t.r, h);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    ConvRHS::bind_to(t.r, ev, h);
+  }
+};
+
+template <typename RHS>
+struct Converter<Evaluator<BreakExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = BreakExpr<RHS, MakeHostPointer>;
   using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
   using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
   using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
   using input_type = Evaluator<Expression, SYCLDevice>;
-  using out_type = FinalExpr<rhs_type, MakeDevicePointer>;
+  using out_type = BreakExpr<rhs_type, MakeDevicePointer>;
   static out_type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
     return out_type(rhs);
@@ -274,6 +289,71 @@ struct Converter<Evaluator<FinalExpr<RHS, MakeHostPointer>, SYCLDevice>> {
                       cl::sycl::handler &h) {
     Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
     h.require(*t.result, ev.result);
+  }
+};
+
+template <typename RHS>
+struct Converter<Evaluator<BreakIfExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = BreakIfExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<Expression, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = BreakIfExpr<rhs_type, MakeDevicePointer>;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(
+        t.to_break ? t.r_break.r : t.r_empty.r, h);
+    return out_type(rhs);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    if (t.to_break) {
+      Converter<Evaluator<BreakExpr<RHS, MakeHostPointer>,
+                          SYCLDevice>>::bind_to(t.r_break, ev.r_break, h);
+    } else {
+      Converter<Evaluator<EmptyExpr<RHS>, SYCLDevice>>::bind_to(t.r_empty,
+                                                                ev.r_empty, h);
+    }
+  }
+};
+
+template <typename RHS>
+struct Converter<Evaluator<StrideExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using BRHS = BreakIfExpr<RHS, MakeHostPointer>;
+  using Expression = StrideExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<BRHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = StrideExpr<rhs_type, MakeDevicePointer>;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<BRHS, SYCLDevice>>::convert_to(t.r, h);
+    return out_type(rhs);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+  }
+};
+
+template <typename ScalarT, typename ContainerT>
+struct Converter<
+    Evaluator<StrideExpr<vector_view<ScalarT, ContainerT>, MakeHostPointer>,
+              SYCLDevice>> {
+  using RHS = vector_view<ScalarT, ContainerT>;
+  using Expression = StrideExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = rhs_type;
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(rhs);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev, h);
   }
 };
 

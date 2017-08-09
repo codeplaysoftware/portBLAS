@@ -39,28 +39,8 @@
 
 namespace blas {
 
-/**
- * \brief AXPY constant times a vector plus a vector.
- *
- * Implements AXPY \f$y = ax + y\f$
- *
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vy  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _axpy(Device &dev, int _N, ScalarT _alpha,
-           vector_view<ScalarT, ContainerT> _vx, int _incx,
-           vector_view<ScalarT, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
-  auto addExpr = make_expr<BinaryExpr, addOp2_struct>(my_vy, scalExpr);
-  auto assignExpr = make_expr<AssignExpr>(my_vy, addExpr);
-  blas::execute(dev, assignExpr);
-}
+#define RETURNCXX11(expr) \
+  ->decltype(expr) { return expr; }
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
@@ -71,260 +51,162 @@ void _axpy(Device &dev, int _N, ScalarT _alpha,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _copy(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
-           vector_view<ScalarT, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto assignExpr = make_expr<AssignExpr>(my_vy, my_vx);
-  blas::execute(dev, assignExpr);
-}
+template <typename X, typename Y>
+auto _copy(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy)
+    RETURNCXX11(make_expr<AssignExpr>(make_strdExpr(_x, _offx, _incx, _N),
+                                      make_strdExpr(_y, _offy, _incy, _N)))
 
-/**
- * \brief SWAP interchanges two vectors
- *
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vy  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _swap(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
-           vector_view<ScalarT, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto swapExpr = make_expr<DoubleAssignExpr>(my_vy, my_vx, my_vx, my_vy);
-  blas::execute(dev, swapExpr);
-}
+    /**
+     * \brief SWAP interchanges two vectors
+     *
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     * @param _vy  VectorView
+     * @param _incy Increment in Y axis
+     */
+    template <typename ScalarT, typename ContainerT>
+    auto _swap(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx,
+               int _incx, vector_view<ScalarT, ContainerT> _vy, int _offy,
+               int _incy)
+        RETURNCXX11(
+            make_expr<DoubleAssignExpr>(make_strdExpr(_vy, _offy, _incy, _N),
+                                        make_strdExpr(_vx, _offx, _incx, _N),
+                                        make_strdExpr(_vx, _offx, _incx, _N),
+                                        make_strdExpr(_vy, _offy, _incy, _N)))
 
-/**
- * \brief SCAL scales a vector by a constant
- *
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _scal(Device &dev, int _N, ScalarT _alpha,
-           vector_view<ScalarT, ContainerT> _vx, int _incx) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto scalExpr = make_expr<ScalarExpr, prdOp2_struct>(_alpha, my_vx);
-  auto assignExpr = make_expr<AssignExpr>(my_vx, scalExpr);
-  blas::execute(dev, assignExpr);
-}
+    /**
+     * \brief SCAL scales a vector by a constant
+     *
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     */
+    template <typename ScalarT, typename X>
+    auto _scal(int _N, ScalarT _alpha, X _x, int _offx, int _incx) RETURNCXX11(
+        make_expr<AssignExpr>(make_strdExpr(_x, _offx, _incx, _N),
+                              make_expr<ScalarExpr, prdOp2_struct>(
+                                  _alpha, make_strdExpr(_x, _offx, _incx, _N))))
 
-/**
- * \briefCompute the inner product of two vectors with extended
-    precision accumulation and result.
- *
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vx  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-ScalarT _dot(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
-             int _incx, vector_view<ScalarT, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+    /**
+     * \brief AXPY constant times a vector plus a vector.
+     *
+     * Implements AXPY \f$y = ax + y\f$
+     *
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     * @param _vy  VectorView
+     * @param _incy Increment in Y axis
+     */
+    template <typename ScalarT, typename X, typename Y>
+    auto _axpy(int _N, ScalarT _alpha, X _x, int _offx, int _incx, Y _y,
+               int _offy, int _incy)
+        RETURNCXX11(make_expr<AssignExpr>(
+            make_strdExpr(_y, _offy, _incy, _N),
+            make_expr<BinaryExpr, addOp2_struct>(
+                make_strdExpr(_x, _offx, _incx, _N),
+                make_expr<ScalarExpr, prdOp2_struct>(
+                    _alpha, make_strdExpr(_y, _offy, _incy, _N)))))
 
-  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  ScalarT result;
-  cl::sycl::buffer<ScalarT, 1> buf_result(&result, cl::sycl::range<1>{1});
-  auto rs = vector_view<ScalarT, ContainerT>(buf_result, 0, 1, 1);
-  auto dotExpr = make_addReductionExpr(prdExpr);
-  auto assignExpr = make_expr<AssignExpr>(rs, dotExpr);
-  blas::execute(dev, assignExpr);
-  return rs.eval(0);
-}
+    /**
+     * \brief Compute the inner product of two vectors with extended precision
+     * accumulation.
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     * @param _vx  VectorView
+     * @param _incy Increment in Y axis
+     */
+    template <typename X, typename Y, typename ScalarT, typename ContainerT>
+    auto _dot(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy,
+              vector_view<ScalarT, ContainerT> _rs)
+        RETURNCXX11(make_expr<AssignExpr>(
+            _rs, make_addReductionExpr(make_expr<BinaryExpr, prdOp2_struct>(
+                     make_strdExpr(_x, _offx, _incx, _N),
+                     make_strdExpr(_y, _offy, _incy, _N)))))
 
-/**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vx  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _dot(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
-          vector_view<ScalarT, ContainerT> _vy, int _incy,
-          vector_view<ScalarT, ContainerT> _rs) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  auto dotExpr = make_addReductionExpr(prdExpr);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, dotExpr);
-  blas::execute(dev, assignExpr);
-}
+    /**
+     * \brief NRM2 Returns the euclidian norm of a vector
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     */
+    template <typename X, typename ScalarT, typename ContainerT>
+    auto _nrm2(int _N, X _x, int _offx, int _incx,
+               vector_view<ScalarT, ContainerT> _rs)
+        RETURNCXX11(make_expr<AssignExpr>(
+            _rs, make_expr<UnaryExpr, sqtOp1_struct>(
+                     make_addReductionExpr(make_expr<UnaryExpr, prdOp1_struct>(
+                         make_strdExpr(_x, _offx, _incx, _N))))))
 
-template <typename Device, typename ScalarT, typename ContainerT>
-void _dot_tree(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
-               int _incx, vector_view<ScalarT, ContainerT> _vy, int _incy,
-               vector_view<ScalarT, ContainerT> _rs) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<ScalarT, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-  auto prdExpr = make_expr<BinaryExpr, prdOp2_struct>(my_vx, my_vy);
-  auto dotExpr = make_addReductionExpr(prdExpr);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, dotExpr);
-  blas::execute(dev, assignExpr);
-}
+    /**
+     * \brief ASUM Takes the sum of the absolute values
+     * @param Device &dev
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     */
+    template <typename X, typename ScalarT, typename ContainerT>
+    auto _asum(int _N, X _x, int _offx, int _incx,
+               vector_view<ScalarT, ContainerT> _rs)
+        RETURNCXX11(make_expr<AssignExpr>(
+            _rs, make_addAbsReductionExpr(make_strdExpr(_x, _offx, _incx, _N))))
 
-/**
- * \brief NRM2 Returns the euclidian norm of a vector
- *
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-ScalarT _nrm2(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
-              int _incx) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
+    /**
+     * \brief IAMAX finds the index of the first element having maximum
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     */
+    template <typename X, typename ScalarI, typename ContainerI>
+    auto _iamax(int _N, X _x, int _offx, int _incx,
+                vector_view<ScalarI, ContainerI> _rs)
+        RETURNCXX11(make_expr<AssignExpr>(
+            _rs, make_maxIndReductionExpr(
+                     make_tplExpr(make_strdExpr(_x, _offx, _incx, _N)))))
 
-  ContainerT valT1(1);
-  auto rs = vector_view<ScalarT, ContainerT>(valT1, 0, 1, 1);
-  auto nrm2Expr = make_addReductionExpr(prdExpr);
-  auto assignExpr = make_expr<AssignExpr>(rs, nrm2Expr);
-  blas::execute(dev, assignExpr);
-  return std::sqrt(rs.eval(0));
-}
+    /**
+     * \brief IAMIN finds the index of the first element having minimum
+     * @param _vx  VectorView
+     * @param _incx Increment in X axis
+     */
+    template <typename X, typename ScalarI, typename ContainerI>
+    auto _iamin(int _N, X _x, int _offx, int _incx,
+                vector_view<ScalarI, ContainerI> _rs)
+        RETURNCXX11(make_expr<AssignExpr>(
+            _rs, make_minIndReductionExpr(
+                     make_tplExpr(make_strdExpr(_x, _offx, _incx, _N)))))
 
-/**
- * \brief NRM2 Returns the euclidian norm of a vector
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _nrm2(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
-           vector_view<ScalarT, ContainerT> _rs) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+    /**
+     * ROTG.
+     * @brief Consturcts given plane rotation
+     * Not implemented.
+     */
+    template <typename ScalarT>
+    void _rotg(ScalarT &_alpha, ScalarT &_beta, ScalarT &_cos, ScalarT &_sin) {
+  ScalarT abs_alpha = std::abs(_alpha);
+  ScalarT abs_beta = std::abs(_beta);
+  ScalarT roe = (abs_alpha > abs_beta) ? _alpha : _beta;
+  ScalarT scale = abs_alpha + abs_beta;
+  ScalarT norm;
+  ScalarT aux;
 
-  auto prdExpr = make_expr<UnaryExpr, prdOp1_struct>(my_vx);
-  auto nrm2Expr = make_addReductionExpr(prdExpr);
-  auto sqrtExpr = make_expr<UnaryExpr, sqtOp1_struct>(nrm2Expr);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, sqrtExpr);
-  blas::execute(dev, assignExpr);
-}
-
-/**
- * \brief ASUM Takes the sum of the absolute values
- * @param Device &dev
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename ScalarT, typename ContainerT>
-void _asum(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx, int _incx,
-           vector_view<ScalarT, ContainerT> _rs) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<ScalarT, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-  auto asumExpr = make_addAbsReductionExpr(my_vx);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, asumExpr);
-  blas::execute(dev, assignExpr);
-}
-
-/**
- * \brief IAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename ScalarT, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamax(Device &dev, int _N, vector_view<ScalarT, ContainerT> _vx,
-            int _incx, vector_view<I, ContainerI> _rs) {
-  auto my_vx = vector_view<ScalarT, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
-  auto tupExpr = TupleExpr<vector_view<ScalarT, ContainerT>>(my_vx);
-  auto iamaxExpr = make_maxIndReductionExpr(tupExpr);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, iamaxExpr);
-  blas::execute(dev, assignExpr);
-}
-
-/**
- * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename T, typename ContainerT>
-size_t _iamax(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  IndVal<T> result;
-  cl::sycl::buffer<IndVal<T>, 1> buf_result(&result, cl::sycl::range<1>{1});
-  auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
-  _iamax(dev, _N, _vx, _incx, rs);
-  return rs.eval(0).getInd();
-}
-
-/**
- * \brief IAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename T, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamin(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-            vector_view<I, ContainerI> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<I, ContainerI>(_rs, _rs.getDisp(), 1, 1);
-  auto tupExpr = TupleExpr<vector_view<T, ContainerT>>(my_vx);
-  auto iaminExpr = make_minIndReductionExpr(tupExpr);
-  auto assignExpr = make_expr<AssignExpr>(my_rs, iaminExpr);
-  blas::execute(dev, assignExpr);
-}
-
-/**
- * \brief ICAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename Device, typename T, typename ContainerT>
-size_t _iamin(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx) {
-  IndVal<T> result;
-  auto buf_result =
-      cl::sycl::buffer<IndVal<T>, 1>(&result, cl::sycl::range<1>{1});
-  auto rs = BufferVectorView<IndVal<T>>(buf_result, 0, 1, 1);
-  _iamin(dev, _N, _vx, _incx, rs);
-  return rs.eval(0).getInd();
-}
-
-/**
- * ROTG.
- * @brief Consturcts given plane rotation
- * Not implemented.
- */
-template <typename T>
-void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
-  T abs_alpha = std::abs(_alpha);
-  T abs_beta = std::abs(_beta);
-  T roe = (abs_alpha > abs_beta) ? _alpha : _beta;
-  T scale = abs_alpha + abs_beta;
-  T norm;
-  T aux;
-
-  if (scale == constant<T, const_val::zero>::value) {
-    _cos = constant<T, const_val::one>::value;
-    _sin = constant<T, const_val::zero>::value;
-    norm = constant<T, const_val::zero>::value;
-    aux = constant<T, const_val::zero>::value;
+  if (scale == constant<ScalarT, const_val::zero>::value) {
+    _cos = constant<ScalarT, const_val::one>::value;
+    _sin = constant<ScalarT, const_val::zero>::value;
+    norm = constant<ScalarT, const_val::zero>::value;
+    aux = constant<ScalarT, const_val::zero>::value;
   } else {
     norm = scale * std::sqrt((_alpha / scale) * (_alpha / scale) +
                              (_beta / scale) * (_beta / scale));
-    if (roe < constant<T, const_val::zero>::value) norm = -norm;
+    if (roe < constant<ScalarT, const_val::zero>::value) norm = -norm;
     _cos = _alpha / norm;
     _sin = _beta / norm;
     if (abs_alpha > abs_beta) {
       aux = _sin;
-    } else if (_cos != constant<T, const_val::zero>::value) {
-      aux = constant<T, const_val::one>::value / _cos;
+    } else if (_cos != constant<ScalarT, const_val::zero>::value) {
+      aux = constant<ScalarT, const_val::one>::value / _cos;
     } else {
-      aux = constant<T, const_val::one>::value;
+      aux = constant<ScalarT, const_val::one>::value;
     }
   }
   _alpha = norm;
@@ -336,21 +218,23 @@ void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
  * @brief Consturcts given plane rotation
  * Not implemented.
  */
-template <typename Device, typename T, typename ContainerT>
-void _rot(Device &dev, int _N, vector_view<T, ContainerT> _vx, int _incx,
-          vector_view<T, ContainerT> _vy, int _incy, T _cos, T _sin) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto scalExpr1 = make_expr<ScalarExpr, prdOp2_struct>(_cos, my_vx);
-  auto scalExpr2 = make_expr<ScalarExpr, prdOp2_struct>(_sin, my_vy);
-  auto scalExpr3 = make_expr<ScalarExpr, prdOp2_struct>(-_sin, my_vx);
-  auto scalExpr4 = make_expr<ScalarExpr, prdOp2_struct>(_cos, my_vy);
-  auto addExpr12 = make_expr<BinaryExpr, addOp2_struct>(scalExpr1, scalExpr2);
-  auto addExpr34 = make_expr<BinaryExpr, addOp2_struct>(scalExpr3, scalExpr4);
-  auto doubleAssignExpr =
-      make_expr<DoubleAssignExpr>(my_vx, my_vy, addExpr12, addExpr34);
-  blas::execute(dev, doubleAssignExpr);
-}
+template <typename ScalarT, typename ContainerT>
+auto _rot(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx, int _incx,
+          vector_view<ScalarT, ContainerT> _vy, int _offy, int _incy,
+          ScalarT _cos, ScalarT _sin)
+    RETURNCXX11(make_expr<DoubleAssignExpr>(
+        make_strdExpr(_vx, _offx, _incx, _N),
+        make_strdExpr(_vy, _offy, _incy, _N),
+        make_expr<BinaryExpr, addOp2_struct>(
+            make_expr<ScalarExpr, prdOp2_struct>(
+                _cos, make_strdExpr(_vx, _offx, _incx, _N)),
+            make_expr<ScalarExpr, prdOp2_struct>(
+                _sin, make_strdExpr(_vy, _offy, _incy, _N))),
+        make_expr<BinaryExpr, addOp2_struct>(
+            make_expr<ScalarExpr, prdOp2_struct>(
+                -_sin, make_strdExpr(_vx, _offx, _incx, _N)),
+            make_expr<ScalarExpr, prdOp2_struct>(
+                _cos, make_strdExpr(_vy, _offy, _incy, _N)))))
 
 }  // namespace blas
 

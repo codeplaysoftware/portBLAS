@@ -34,7 +34,7 @@
 template <typename T>
 struct MakeHostPointer {
   using type = cl::sycl::buffer<T, 1> *;
-  static constexpr type init() { return type(nullptr); }
+  /* static constexpr type init() { return type(nullptr); } */
 };
 
 /*!
@@ -48,7 +48,7 @@ struct MakeDevicePointer {
       cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                          cl::sycl::access::target::global_buffer,
                          cl::sycl::codeplay::access::placeholder::true_t>;
-  static constexpr type init() { return type(); }
+  /* static constexpr type init() { return type(); } */
 };
 
 #endif  // BLAS_POINTER_STRUCT_HPP

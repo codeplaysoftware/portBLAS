@@ -58,7 +58,7 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return r1.data(); }
+  cont_type *data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(nullptr, dev);
@@ -117,7 +117,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
         nThr(2) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return l.data(); }
+  cont_type *data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(nullptr, dev);
@@ -217,7 +217,7 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   }
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return l.data(); }
+  cont_type *data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(nullptr, dev);
@@ -320,7 +320,7 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return l.data(); }
+  cont_type *data() { return l.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     l.eval_subexpr_if_needed(nullptr, dev);
@@ -370,7 +370,7 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return r1.data(); }
+  cont_type *data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(nullptr, dev);
@@ -486,7 +486,7 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
         r3(Evaluator<RHS3, Device>(expr.r3)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
-  cont_type data() { return r1.data(); }
+  cont_type *data() { return r1.data(); }
 
   bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
     r1.eval_subexpr_if_needed(nullptr, dev);

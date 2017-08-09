@@ -45,38 +45,38 @@ struct ReductionExpr {
   using value_type = typename RHS::value_type;
   RHS r;
 
-  ReductionExpr(RHS &_r) : r(_r) {}
+  ReductionExpr(RHS _r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
 };
 
 template <typename Functor, typename RHS>
-ReductionExpr<Functor, RHS> make_ReductionExpr(RHS &r) {
+ReductionExpr<Functor, RHS> make_ReductionExpr(RHS r) {
   return ReductionExpr<Functor, RHS>(r);
 }
 
 template <typename RHS>
-ReductionExpr<addOp2_struct, RHS> make_addReductionExpr(RHS &r) {
+ReductionExpr<addOp2_struct, RHS> make_addReductionExpr(RHS r) {
   return make_ReductionExpr<addOp2_struct>(r);
 }
 
 template <typename RHS>
-ReductionExpr<prdOp2_struct, RHS> make_prdReductionExpr(RHS &r) {
+ReductionExpr<prdOp2_struct, RHS> make_prdReductionExpr(RHS r) {
   return make_ReductionExpr<prdOp2_struct>(r);
 }
 
 template <typename RHS>
-ReductionExpr<addAbsOp2_struct, RHS> make_addAbsReductionExpr(RHS &r) {
+ReductionExpr<addAbsOp2_struct, RHS> make_addAbsReductionExpr(RHS r) {
   return make_ReductionExpr<addAbsOp2_struct>(r);
 }
 
 template <typename RHS>
-ReductionExpr<maxIndOp2_struct, RHS> make_maxIndReductionExpr(RHS &r) {
+ReductionExpr<maxIndOp2_struct, RHS> make_maxIndReductionExpr(RHS r) {
   return make_ReductionExpr<maxIndOp2_struct>(r);
 }
 
 template <typename RHS>
-ReductionExpr<minIndOp2_struct, RHS> make_minIndReductionExpr(RHS &r) {
+ReductionExpr<minIndOp2_struct, RHS> make_minIndReductionExpr(RHS r) {
   return make_ReductionExpr<minIndOp2_struct>(r);
 }
 
