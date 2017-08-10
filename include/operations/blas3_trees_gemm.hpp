@@ -1,5 +1,4 @@
-/***************************************************************************
- *
+/*************************************************************************** 
  *  @license
  *  Copyright (C) 2017 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,246 +29,332 @@
 #include <CL/sycl.hpp>
 
 
+#include <string>
+#include <type_traits>
+
+
 namespace blas {
 
 
-template <typename T, typename GlobalPointerType>
-void _gemm_v2(
-    int item_id, int m, int n, int k, T alpha, GlobalPointerType A, int lda,
-    GlobalPointerType B, int ldb, T beta, GlobalPointerType C, int ldc) {
+template <typename T> struct type_string {
+  static const char *get_value() { return "unknown"; }
+};
+
+
+#define ENABLE_TYPE_STRING(_type) \
+template <> struct type_string<_type> { \
+  static const char *get_value() { return #_type; }\
+};
+
+
+ENABLE_TYPE_STRING(float)
+ENABLE_TYPE_STRING(double)
+
+
+#undef ENABLE_TYPE_STRING
+
+
+template <int WgSize, typename T>
+class GemmFactoryV2 {
+public:
   using value_type = T;
-  if (item_id >= m*n) {
-    return;
+
+  static const int wg_size = WgSize;
+
+  static inline std::string get_type_string() noexcept
+  {
+    return std::string("GemmFactoryV2<") + std::to_string(wg_size) + ", " +
+           type_string<value_type>::get_value() + ">";
   }
 
-  const int row = item_id % m;
-  const int col = item_id / m;
-
-  A = A + row;
-  B = B + col*ldb;
-  C = C + row + col*ldc;
-
-  value_type reg_res = {};
-
-  while (k > 0) {
-    reg_res += A[0] * B[0];
-    --k;
-    A = A + lda;
-    B = B + 1;
+  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept
+  {
+    const cl::sycl::range<1> nwg((m*n - 1) / wg_size + 1);
+    const cl::sycl::range<1> wgs(wg_size);
+    return cl::sycl::nd_range<1>(nwg*wgs, wgs);
   }
 
-  C[0] = alpha * reg_res + beta * C[0];
-}
+  template <typename GlobalPointerType>
+  static inline void run(
+      int item_id, int m, int n, int k, T alpha, GlobalPointerType A, int lda,
+      GlobalPointerType B, int ldb, T beta, GlobalPointerType C, int ldc)
+      noexcept
+  {
+    if (item_id >= m*n) {
+      return;
+    }
+
+    const int row = item_id % m;
+    const int col = item_id / m;
+
+    A = A + row;
+    B = B + col*ldb;
+    C = C + row + col*ldc;
+
+    value_type reg_res = {};
+
+    while (k > 0) {
+      reg_res += A[0] * B[0];
+      --k;
+      A = A + lda;
+      B = B + 1;
+    }
+
+    C[0] = alpha * reg_res + beta * C[0];
+  }
+};
 
 
 template <bool> inline bool do_check(bool cond) { return cond; }
 template <> inline bool do_check<false>(bool) { return true; }
 
 
-template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
-          int cl_elems, int block_rows, int block_cols, int wg_size,
-          typename T, typename GlobalPointerType, typename LocalPointerType>
-inline void extract_input_blocks(
-  int item_id, int m, int n, int k,
-  GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-  LocalPointerType s1, LocalPointerType s3) {
-  const int block_size_b = block_cols * cl_elems;
-  #pragma unroll
-  for (int i = 0; i < (block_size_b-1) / wg_size + 1; ++i) {
-    if (!do_check<block_size_b % wg_size>(item_id + i*wg_size < block_size_b))
-      continue;
-    const bool in_range = do_check<check_k_limit>(item_id % cl_elems < k) &&
-                         do_check<check_n_limit>(wg_size/cl_elems*i < n);
-    s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems)*ldb] : T(0);
+template <int ItemRows, int ItemCols, int WgRows, int WgCols>
+struct Tile {
+  static const int item_rows = ItemRows;
+  static const int item_cols = ItemCols;
+  static const int wg_rows = WgRows;
+  static const int wg_cols = WgCols;
+
+  static inline std::string get_type_string() noexcept
+  {
+    return std::string("Tile<") + std::to_string(item_rows) + ", " +
+           std::to_string(item_cols) + ", " + std::to_string(wg_rows) + ", " +
+           std::to_string(wg_cols) + ">";
   }
-  const int block_size_a = block_rows * cl_elems;
-  #pragma unroll
-  for (int i = 0; i < (block_size_a-1) / wg_size + 1; ++i) {
-    if (!do_check<block_size_a % wg_size>(item_id + i*wg_size < block_size_a))
-      continue;
-    const bool in_range =
-        do_check<check_n_limit>(0 < m) &&
-        do_check<check_k_limit>(item_id/block_rows+i*(wg_size/block_rows) < k);
-    s3[i*wg_size] = in_range ? A[i*(wg_size/block_rows)*lda] : T(0);
-  }
-}
+};
 
 
-template <int cl_elems, int wg_rows, int wg_cols, int block_rows,
-          int block_cols, int item_rows, int item_cols,
-          typename T, typename LocalPointerType>
-inline void compute_block_gemm(
-    LocalPointerType s2, LocalPointerType s4,
-    T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols]) {
-  for (int i = 0; i < cl_elems; ++i) {
-    #pragma unroll
-    for (int j = 0; j < item_rows; ++j) {
-      reg_a[j] = s4[j*wg_rows + i*block_rows];
-    }
-    #pragma unroll
-    for (int j = 0; j < item_cols; ++j) {
-      reg_b = s2[i + j*cl_elems];
-      #pragma unroll
-      for (int l = 0; l < item_rows; ++l) {
-        reg_res[l][j] += reg_a[l] * reg_b;
-      }
-    }
-  }
-}
+template <bool DoubleBuffer, int ClSize, typename TileType, typename T>
+class GemmFactoryV19 {
+public:
+  using tile_type = TileType;
+  using value_type = T;
 
+  // enable easier access to tile dimensions
+  static const int item_rows = tile_type::item_rows;
+  static const int item_cols = tile_type::item_cols;
+  static const int wg_rows = tile_type::wg_rows;
+  static const int wg_cols = tile_type::wg_cols;
 
-template <bool double_buffer>
-typename std::enable_if<double_buffer>::type
-sync_smem(cl::sycl::nd_item<1>, int &ofs_sign) { ofs_sign = -ofs_sign; }
-
-
-template <bool double_buffer, int o, int... os, typename P, typename... Ps>
-typename std::enable_if<double_buffer>::type
-sync_smem(cl::sycl::nd_item<1> id, int &ofs_sign, P &s, Ps &...ss) {
-  s = s + ofs_sign*o;
-  sync_smem<double_buffer, os...>(id, ofs_sign, ss...);
-}
-
-
-template <bool double_buffer, int..., typename... Ps>
-typename std::enable_if<!double_buffer>::type
-sync_smem(cl::sycl::nd_item<1> id, int&, Ps&...) {
-  id.barrier(cl::sycl::access::fence_space::local_space);
-}
-
-
-template <bool double_buffer,
-          bool check_m_limit, bool check_n_limit, int cl_elems, int block_rows,
-          int block_cols, int wg_size, int wg_rows, int wg_cols, int item_rows,
-          int item_cols, typename T, typename GlobalPointerType,
-          typename LocalPointerType>
-inline void compute_panel_gemm(
-    cl::sycl::nd_item<1> id, int item_id,
-    int m, int mc, int n, int nc, int k, T alpha,
-    GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-    T beta, GlobalPointerType C, int ldc,
-    LocalPointerType s1, LocalPointerType s2,
-    LocalPointerType s3, LocalPointerType s4,
-    T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols]) {
-  int ofs = 1;
-
-  while (k >= cl_elems) {
-    extract_input_blocks
-      <check_m_limit, check_n_limit, false, cl_elems, block_rows, block_cols,
-       wg_size, T>
-      (item_id, m, n, k, A, lda, B, ldb, s1, s3);
-    id.barrier(cl::sycl::access::fence_space::local_space);
-    compute_block_gemm<cl_elems, wg_rows, wg_cols, block_rows, block_cols>
-      (s2, s4, reg_a, reg_b, reg_res);
-    A = A + cl_elems*lda;
-    B = B + cl_elems;
-    k -= cl_elems;
-    sync_smem<double_buffer, block_cols*cl_elems, block_cols*cl_elems,
-              block_rows*cl_elems, block_rows*cl_elems>
-        (id, ofs, s1, s2, s3, s4);
-    /*
-    s1 = s1 + ofs*block_cols*cl_elems;
-    s2 = s2 + ofs*block_cols*cl_elems;
-    s3 = s3 + ofs*block_rows*cl_elems;
-    s4 = s4 + ofs*block_rows*cl_elems;
-    */
-    // ofs = -ofs;
-  }
-
-  if (k > 0) {
-    extract_input_blocks
-      <check_m_limit, check_n_limit, true, cl_elems, block_rows, block_cols,
-       wg_size, T>
-      (item_id, m, n, k, A, lda, B, ldb, s1, s3);
-    id.barrier(cl::sycl::access::fence_space::local_space);
-    compute_block_gemm<cl_elems, wg_rows, wg_cols, block_rows, block_cols>
-      (s2, s4, reg_a, reg_b, reg_res);
-  }
-
-  #pragma unroll
-  for (int i = 0; i < item_cols; ++i) {
-    #pragma unroll
-    for (int j = 0; j < item_rows; ++j) {
-      const bool in_range = do_check<check_m_limit>(j*wg_rows < mc) &&
-                            do_check<check_n_limit>(i < nc);
-      if (in_range) {
-        C[j*wg_rows] = alpha*reg_res[j][i] + beta*C[j*wg_rows];
-      }
-    }
-    C = C + ldc;
-  }
-}
-
-
-template <int double_buffer, int cl, int item_rows, int item_cols, int wg_rows,
-          int wg_cols, typename T, typename GlobalPointerType,
-          typename LocalPointerType>
-void _gemm_v19(
-    cl::sycl::nd_item<1> id, int wg_id, int item_id, int m, int n, int k,
-    T alpha, GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-    T beta, GlobalPointerType C, int ldc, LocalPointerType scratch) {
-  const auto cl_elems = cl / sizeof(T);
-
-  const auto wg_size = wg_rows * wg_cols;
-
-  const auto block_rows = wg_rows * item_rows;
-  const auto block_cols = wg_cols * item_cols;
-
-  const auto wg_per_col = (m - 1) / block_rows + 1;
-  const auto wg_row = (wg_id % wg_per_col) * block_rows;
-  const auto wg_col = (wg_id / wg_per_col) * block_cols;
-
-  const auto item_row = item_id % wg_rows;
-  const auto item_col = (item_id / wg_rows) * item_cols;
-
-  const auto row = wg_row + item_row;
-  const auto col = wg_col + item_col;
+  static const int double_buffer = DoubleBuffer;
+  static const int cl_size = ClSize;
+  static const int cl_elems = cl_size / sizeof(T);
+  static const int wg_size = wg_rows * wg_cols;
+  static const int block_rows = wg_rows * item_rows;
+  static const int block_cols = wg_cols * item_cols;
 
   static_assert(wg_size % cl_elems == 0,
-                "Work group size must be a multiple "
-                "of elements in a cache line");
+                "Work group size should be a multiple "
+                "of elements in a cache line\n"
+                " --- this is ensured iff:"
+                " cl_size | sizeof(T) * wg_rows * wg_cols");
+
   static_assert(wg_size % block_rows == 0,
-                "Work group size must be a multiple "
-                "of the number of rows in a block");
+                "Work group size should be a multiple "
+                "of the number of rows in a block\n"
+                " --- this is ensured iff: item_rows | wg_cols");
 
-  T reg_res[item_rows][item_cols] = {};
-  T reg_a[item_rows];
-  T reg_b;
+  static const int scratch_size =
+      (double_buffer+1) * cl_elems * (block_rows + block_cols);
 
-  C = C + row + col*ldc;
-  const auto mc = m - row;
-  const auto nc = n - col;
-
-  const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
-
-  B = B + item_id%cl_elems + (wg_col + item_id/cl_elems)*ldb;
-  n = n - wg_col - item_id/cl_elems;
-  A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
-  m = m - wg_row - item_id%block_rows;
-
-  LocalPointerType s1 =
-      scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
-  LocalPointerType s2 = scratch + item_col*cl_elems;
-  const auto ofs = (double_buffer+1)*block_cols*cl_elems;
-  LocalPointerType s3 =
-      scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
-  LocalPointerType s4 = scratch + ofs + item_row;
-
-  if (internal) {
-    compute_panel_gemm
-      <double_buffer, false, false, cl_elems, block_rows, block_cols,
-       wg_size, wg_rows, wg_cols>
-      (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
-       ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
-  } else {
-    compute_panel_gemm
-      <double_buffer, true, true, cl_elems, block_rows, block_cols,
-       wg_size, wg_rows, wg_cols>
-      (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
-       ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
+  static inline std::string get_type_string() noexcept
+  {
+    return std::string("GemmFactoryV19<") + std::to_string(double_buffer) +
+           ", " + std::to_string(cl_size) + ", " +
+           tile_type::get_type_string() + ", " +
+           type_string<value_type>::get_value() + ">";
   }
 
-}
+  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept
+  {
+    const cl::sycl::range<1> nwg(
+        ((m - 1) / block_rows + 1) * ((n - 1) / block_cols + 1));
+    const cl::sycl::range<1> wgs(wg_size);
+    return cl::sycl::nd_range<1>(nwg*wgs, wgs);
+  }
+
+  template <typename GlobalPointerType, typename LocalPointerType>
+  static inline void run(
+      cl::sycl::nd_item<1> id, int wg_id, int item_id, int m, int n, int k,
+      T alpha, GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+      T beta, GlobalPointerType C, int ldc, LocalPointerType scratch) noexcept
+  {
+    const auto wg_per_col = (m - 1) / block_rows + 1;
+    const auto wg_row = (wg_id % wg_per_col) * block_rows;
+    const auto wg_col = (wg_id / wg_per_col) * block_cols;
+
+    const auto item_row = item_id % wg_rows;
+    const auto item_col = (item_id / wg_rows) * item_cols;
+
+    const auto row = wg_row + item_row;
+    const auto col = wg_col + item_col;
+
+    T reg_res[item_rows][item_cols] = {};
+    T reg_a[item_rows];
+    T reg_b;
+
+    C = C + row + col*ldc;
+    const auto mc = m - row;
+    const auto nc = n - col;
+
+    const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
+
+    B = B + item_id%cl_elems + (wg_col + item_id/cl_elems)*ldb;
+    n = n - wg_col - item_id/cl_elems;
+    A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
+    m = m - wg_row - item_id%block_rows;
+
+    LocalPointerType s1 =
+        scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
+    LocalPointerType s2 = scratch + item_col*cl_elems;
+    const auto ofs = (double_buffer+1)*block_cols*cl_elems;
+    LocalPointerType s3 =
+        scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
+    LocalPointerType s4 = scratch + ofs + item_row;
+
+    if (internal) {
+      compute_panel_gemm
+        <double_buffer, false, false>
+        (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
+         ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
+    } else {
+      compute_panel_gemm
+        <double_buffer, true, true>
+        (id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C,
+         ldc, s1, s2, s3, s4, reg_a, reg_b, reg_res);
+    }
+  }
+
+private:
+  template <bool double_buffer,
+            bool check_m_limit, bool check_n_limit, 
+            typename GlobalPointerType,
+            typename LocalPointerType>
+  static inline void compute_panel_gemm(
+      cl::sycl::nd_item<1> id, int item_id,
+      int m, int mc, int n, int nc, int k, T alpha,
+      GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+      T beta, GlobalPointerType C, int ldc,
+      LocalPointerType s1, LocalPointerType s2,
+      LocalPointerType s3, LocalPointerType s4,
+      T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
+      noexcept
+  {
+    int ofs = 1;
+
+    while (k >= cl_elems) {
+      extract_input_blocks
+        <check_m_limit, check_n_limit, false>
+        (item_id, m, n, k, A, lda, B, ldb, s1, s3);
+      id.barrier(cl::sycl::access::fence_space::local_space);
+      compute_block_gemm
+        (s2, s4, reg_a, reg_b, reg_res);
+      A = A + cl_elems*lda;
+      B = B + cl_elems;
+      k -= cl_elems;
+      sync_smem<double_buffer, block_cols*cl_elems, block_cols*cl_elems,
+                block_rows*cl_elems, block_rows*cl_elems>
+          (id, ofs, s1, s2, s3, s4);
+    }
+
+    if (k > 0) {
+      extract_input_blocks
+        <check_m_limit, check_n_limit, true>
+        (item_id, m, n, k, A, lda, B, ldb, s1, s3);
+      id.barrier(cl::sycl::access::fence_space::local_space);
+      compute_block_gemm
+        (s2, s4, reg_a, reg_b, reg_res);
+    }
+
+    #pragma unroll
+    for (int i = 0; i < item_cols; ++i) {
+      #pragma unroll
+      for (int j = 0; j < item_rows; ++j) {
+        const bool in_range = do_check<check_m_limit>(j*wg_rows < mc) &&
+                              do_check<check_n_limit>(i < nc);
+        if (in_range) {
+          C[j*wg_rows] = alpha*reg_res[j][i] + beta*C[j*wg_rows];
+        }
+      }
+      C = C + ldc;
+    }
+  }
+
+  template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
+            typename GlobalPointerType, typename LocalPointerType>
+  static inline void extract_input_blocks(
+    int item_id, int m, int n, int k,
+    GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
+    LocalPointerType s1, LocalPointerType s3) noexcept
+  {
+    const int bsb = block_cols * cl_elems;
+    #pragma unroll
+    for (int i = 0; i < (bsb-1) / wg_size + 1; ++i) {
+      if (!do_check<bsb % wg_size>(item_id + i*wg_size < bsb))
+        continue;
+      const bool in_range = do_check<check_k_limit>(item_id % cl_elems < k) &&
+                            do_check<check_n_limit>(wg_size/cl_elems*i < n);
+      s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems)*ldb] : T(0);
+    }
+    const int bsa = block_rows * cl_elems;
+    #pragma unroll
+    for (int i = 0; i < (bsa-1) / wg_size + 1; ++i) {
+      if (!do_check<bsa % wg_size>(item_id + i*wg_size < bsa))
+        continue;
+      const bool in_range =
+          do_check<check_n_limit>(0 < m) &&
+          do_check<check_k_limit>
+            (item_id/block_rows+i*(wg_size/block_rows) < k);
+      s3[i*wg_size] = in_range ? A[i*(wg_size/block_rows)*lda] : T(0);
+    }
+  }
+
+  template <typename LocalPointerType>
+  static inline void compute_block_gemm(
+      LocalPointerType s2, LocalPointerType s4,
+      T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
+      noexcept
+  {
+    for (int i = 0; i < cl_elems; ++i) {
+      #pragma unroll
+      for (int j = 0; j < item_rows; ++j) {
+        reg_a[j] = s4[j*wg_rows + i*block_rows];
+      }
+      #pragma unroll
+      for (int j = 0; j < item_cols; ++j) {
+        reg_b = s2[i + j*cl_elems];
+        #pragma unroll
+        for (int l = 0; l < item_rows; ++l) {
+          reg_res[l][j] += reg_a[l] * reg_b;
+        }
+      }
+    }
+  }
+
+  template <bool db>
+  static inline typename std::enable_if<db>::type
+  sync_smem(cl::sycl::nd_item<1>, int &ofs_sign) noexcept
+  { ofs_sign = -ofs_sign; }
+
+
+  template <bool db, int o, int... os, typename P, typename... Ps>
+  static inline typename std::enable_if<db>::type
+  sync_smem(cl::sycl::nd_item<1> id, int &ofs_sign, P &s, Ps &...ss) noexcept
+  {
+    s = s + ofs_sign*o;
+    sync_smem<db, os...>(id, ofs_sign, ss...);
+  }
+
+  template <bool db, int..., typename... Ps>
+  static inline typename std::enable_if<!db>::type
+  sync_smem(cl::sycl::nd_item<1> id, int&, Ps&...) noexcept
+  {
+    id.barrier(cl::sycl::access::fence_space::local_space);
+  }
+
+};
+
 
 }  // namespace blas
 
