@@ -54,12 +54,15 @@ ENABLE_TYPE_STRING(double)
 #undef ENABLE_TYPE_STRING
 
 
-template <int WgSize, typename T>
+template <int WgSize, bool TransA, bool TransB, typename T>
 class GemmFactoryV2 {
 public:
   using value_type = T;
 
+  static const int version = 2;
   static const int wg_size = WgSize;
+  static const bool trans_a = TransA;
+  static const bool trans_b = TransB;
 
   static inline std::string get_type_string() noexcept
   {
@@ -125,11 +128,14 @@ struct Tile {
 };
 
 
-template <bool DoubleBuffer, int ClSize, typename TileType, typename T>
+template <bool DoubleBuffer, int ClSize, typename TileType,
+          bool TransA, bool TransB, typename T>
 class GemmFactoryV19 {
 public:
   using tile_type = TileType;
   using value_type = T;
+
+  static const int version = 19;
 
   // enable easier access to tile dimensions
   static const int item_rows = tile_type::item_rows;
@@ -137,7 +143,10 @@ public:
   static const int wg_rows = tile_type::wg_rows;
   static const int wg_cols = tile_type::wg_cols;
 
-  static const int double_buffer = DoubleBuffer;
+  static const bool double_buffer = DoubleBuffer;
+  static const bool trans_a = TransA;
+  static const bool trans_b = TransB;
+
   static const int cl_size = ClSize;
   static const int cl_elems = cl_size / sizeof(T);
   static const int wg_size = wg_rows * wg_cols;

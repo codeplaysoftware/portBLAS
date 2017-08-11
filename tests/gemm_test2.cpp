@@ -59,13 +59,14 @@ ENABLE_SYSTEM_GEMM(double, dgemm_)
 #undef ENABLE_SYSTEM_GEMM
 
 
-template <typename T> class test {};
+template <typename T> class Test {};
 
 
 template <typename Gemm, typename Container>
-void test_gemm_v2(
-    int r, int m, int n, int k, const Container &dataA, const Container &dataB,
-    Container dataC, const Container &refC, cl::sycl::queue q)
+typename std::enable_if<Gemm::version == 2>::type
+test(int r, int m, int n, int k, const Container &dataA,
+     const Container &dataB, Container dataC, const Container &refC,
+     cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
   std::cout << "\n=== Testing " << Gemm::get_type_string() << " ==="
@@ -79,7 +80,7 @@ void test_gemm_v2(
         auto accA = buffA.template get_access<access::mode::read>(cgh);
         auto accB = buffB.template get_access<access::mode::read>(cgh);
         auto accC = buffC.template get_access<access::mode::read_write>(cgh);
-        cgh.parallel_for<test<Gemm>>(Gemm::get_nd_range(m, n),
+        cgh.parallel_for<Test<Gemm>>(Gemm::get_nd_range(m, n),
             [=](nd_item<1> id) {
           Gemm::run(id.get_global(0), m, n, k, etype(1.0),
                     accA.get_pointer(), m, accB.get_pointer(), k, etype(1.0),
@@ -94,9 +95,10 @@ void test_gemm_v2(
 
 
 template <typename Gemm, typename Container>
-void test_gemm_v19(
-    int r, int m, int n, int k, const Container &dataA, const Container &dataB,
-    Container dataC, const Container &refC, cl::sycl::queue q)
+typename std::enable_if<Gemm::version == 19>::type
+test(int r, int m, int n, int k, const Container &dataA,
+     const Container &dataB, Container dataC, const Container &refC,
+     cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
   std::cout << "\n=== Testing " << Gemm::get_type_string() << " ==="
@@ -112,7 +114,7 @@ void test_gemm_v19(
         auto accC = buffC.template get_access<access::mode::read_write>(cgh);
         accessor<etype, 1, access::mode::read_write, access::target::local>
           scratch(range<1>(Gemm::scratch_size), cgh);
-        cgh.parallel_for<test<Gemm>>(Gemm::get_nd_range(m, n),
+        cgh.parallel_for<Test<Gemm>>(Gemm::get_nd_range(m, n),
             [=](nd_item<1> id) {
           Gemm::run(id, id.get_group(0), id.get_local(0), m, n, k, etype(1.0),
                     accA.get_pointer(), m, accB.get_pointer(), k, etype(1.0),
@@ -156,8 +158,6 @@ int main(int argc, char *argv[]) {
          etype(1), refC.data(), m);
   });
 
-  const int cl = 64;
-
   cl::sycl::queue q;
   std::cout << "\nDevice: "
             << q.get_device().get_info<cl::sycl::info::device::name>()
@@ -166,33 +166,38 @@ int main(int argc, char *argv[]) {
 
 #define DATA rep, m, n, k, dataA, dataB, origC, refC, q
 
-  test_gemm_v2<GemmFactoryV2<128, etype>>(DATA);
+  const int cls = 64; // size of cache line in bytes
+  const bool db = true; // use double buffer
+  const bool ta = true; // transpose A
+  const bool tb = true; // transpose B
+
+  test<GemmFactoryV2<128, !ta, !tb, etype>>(DATA);
 
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<1, 1, 8, 8>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<1, 1, 8, 8>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<1, 1, 8, 8>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<1, 1, 8, 8>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<2, 2, 8, 8>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<2, 2, 8, 8>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<2, 2, 8, 8>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<2, 2, 8, 8>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<4, 4, 8, 8>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<4, 4, 8, 8>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<4, 4, 8, 8>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<4, 4, 8, 8>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<8, 8, 8, 8>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<8, 8, 8, 8>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<8, 8, 8, 8>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<8, 8, 8, 8>, !ta, !tb, etype>>(DATA);
 
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<1, 1, 16, 16>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<1, 1, 16, 16>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<1, 1, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<1, 1, 16, 16>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<2, 2, 16, 16>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<2, 2, 16, 16>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<2, 2, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<2, 2, 16, 16>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<4, 4, 16, 16>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<4, 4, 16, 16>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<4, 4, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<4, 4, 16, 16>, !ta, !tb, etype>>(DATA);
 
-  test_gemm_v19<GemmFactoryV19<false, cl, Tile<8, 8, 16, 16>, etype>>(DATA);
-  test_gemm_v19<GemmFactoryV19<true, cl, Tile<8, 8, 16, 16>, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<8, 8, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<8, 8, 16, 16>, !ta, !tb, etype>>(DATA);
 
 #undef DATA
 
