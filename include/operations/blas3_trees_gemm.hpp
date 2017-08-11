@@ -90,8 +90,8 @@ public:
     const int row = item_id % m;
     const int col = item_id / m;
 
-    A = A + row;
-    B = B + col*ldb;
+    A = A + row * (trans_a ? lda : 1);
+    B = B + col * (trans_b ? 1 : ldb);
     C = C + row + col*ldc;
 
     value_type reg_res = {};
@@ -99,8 +99,8 @@ public:
     while (k > 0) {
       reg_res += A[0] * B[0];
       --k;
-      A = A + lda;
-      B = B + 1;
+      A = A + (trans_a ? 1 : lda);
+      B = B + (trans_b ? ldb : 1);
     }
 
     C[0] = alpha * reg_res + beta * C[0];
