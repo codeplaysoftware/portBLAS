@@ -42,13 +42,6 @@ std::vector<T> gen_matrix(int m, int n, T lo, T hi, RndEngine rnd) {
 
 template <typename T>
 T relative_diff(const std::vector<T> &ref, const std::vector<T> &obt) {
-  /*
-  std::cout << "cw_error: ";
-  for (int i = 0; i < ref.size(); ++i) {
-    printf("%d: %2.2f\n", i, (ref[i] - obt[i]) / ref[i]);
-  }
-  std::cout << std::endl;
-  */
   T mag(0);
   for (auto x : ref) {
     mag += x*x;
@@ -88,10 +81,10 @@ void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
         op();
     }
     auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> sec = end - start;
-    double sec1 = sec.count() / rep;
-    std::cout << "time = " << sec1 * 1e3 << " mus\n"
-              << "perf = " << flop_cnt / sec1 / 1e9 << " GFLOPS"
+    std::chrono::duration<double> sec_d = end - start;
+    double sec = sec_d.count() / rep;
+    std::cout << "time = " << sec * 1e3 << " ms\n"
+              << "perf = " << flop_cnt / sec / 1e9 << " GFLOPS"
               << std::endl;
 }
 

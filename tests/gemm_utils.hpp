@@ -19,13 +19,15 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_test2.hpp
+ *  @filename gemm_utils.hpp
  *
  **************************************************************************/
+
 
 #include <iostream>
 #include <random>
 #include <vector>
+
 
 #include <CL/sycl.hpp>
 
@@ -62,11 +64,11 @@ ENABLE_SYSTEM_GEMM(double, dgemm_)
 template <typename T> class Test {};
 
 
-template <typename Gemm, typename Container>
+template <typename Gemm, typename T, typename Container>
 typename std::enable_if<Gemm::version == 2>::type
-test(int r, int m, int n, int k, const Container &dataA,
-     const Container &dataB, Container dataC, const Container &refC,
-     cl::sycl::queue q)
+test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
+     const Container &dataB, int ldb, T beta, Container dataC, int ldc,
+     const Container &refC, cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
   std::cout << "\n=== Testing " << Gemm::get_type_string() << " ==="
@@ -82,9 +84,9 @@ test(int r, int m, int n, int k, const Container &dataA,
         auto accC = buffC.template get_access<access::mode::read_write>(cgh);
         cgh.parallel_for<Test<Gemm>>(Gemm::get_nd_range(m, n),
             [=](nd_item<1> id) {
-          Gemm::run(id.get_global(0), m, n, k, etype(1.0),
-                    accA.get_pointer(), m, accB.get_pointer(), k, etype(1.0),
-                    accC.get_pointer(), m);
+          Gemm::run(id.get_global(0), m, n, k, etype(alpha),
+                    accA.get_pointer(), lda, accB.get_pointer(), ldb,
+                    etype(beta), accC.get_pointer(), ldc);
         });
       });
       q.wait();
@@ -94,11 +96,11 @@ test(int r, int m, int n, int k, const Container &dataA,
 }
 
 
-template <typename Gemm, typename Container>
+template <typename Gemm, typename T, typename Container>
 typename std::enable_if<Gemm::version == 19>::type
-test(int r, int m, int n, int k, const Container &dataA,
-     const Container &dataB, Container dataC, const Container &refC,
-     cl::sycl::queue q)
+test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
+     const Container &dataB, int ldb, T beta, Container dataC, int ldc, 
+     const Container &refC, cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
   std::cout << "\n=== Testing " << Gemm::get_type_string() << " ==="
@@ -116,9 +118,10 @@ test(int r, int m, int n, int k, const Container &dataA,
           scratch(range<1>(Gemm::scratch_size), cgh);
         cgh.parallel_for<Test<Gemm>>(Gemm::get_nd_range(m, n),
             [=](nd_item<1> id) {
-          Gemm::run(id, id.get_group(0), id.get_local(0), m, n, k, etype(1.0),
-                    accA.get_pointer(), m, accB.get_pointer(), k, etype(1.0),
-                    accC.get_pointer(), m, scratch.get_pointer());
+          Gemm::run(
+              id, id.get_group(0), id.get_local(0), m, n, k, etype(alpha),
+              accA.get_pointer(), lda, accB.get_pointer(), ldb, etype(beta),
+              accC.get_pointer(), ldc, scratch.get_pointer());
         });
       });
       q.wait();
@@ -127,35 +130,29 @@ test(int r, int m, int n, int k, const Container &dataA,
   std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
 }
 
-
-int main(int argc, char *argv[]) {
-  using etype = float;
-  const int seed = 42;
-
-  if (argc != 5) {
-    std::cerr << "Usage: " << argv[0] << " M N K rep" << std::endl;
-    return -1;
-  }
-
-  const int m = std::atoi(argv[1]);
-  const int k = std::atoi(argv[2]);
-  const int n = std::atoi(argv[3]);
-  const int rep = std::atoi(argv[4]);
-
+template <bool TransA, bool TransB, typename etype>
+void run_gemm_tests(int seed, int m, int k, int n, int rep)
+{
   std::cout << std::scientific;
 
   std::mt19937 rnd(seed);
 
-  auto dataA = gen_matrix<etype>(m, k, -1, 1, rnd);
-  auto dataB = gen_matrix<etype>(k, n, -1, 1, rnd);
+  auto dataA = gen_matrix<etype>(TransA ? k : m, TransA ? m : k, -1, 1, rnd);
+  auto dataB = gen_matrix<etype>(TransB ? n : k, TransB ? k : n, -1, 1, rnd);
   auto origC = gen_matrix<etype>(m, n, -1, 1, rnd);
   auto refC = origC;
 
+  const char *ta_str = TransA ? "T" : "N";
+  const char *tb_str = TransB ? "T" : "N";
+
+  const int lda = TransA ? k : m;
+  const int ldb = TransB ? n : k;
+  const int ldc = m;
 
   std::cout << "\n=== Testing system CPU implementation ===" << std::endl;
   run_test(rep, 2.0*m*n*k, [&] {
-    gemm("N", "N", m, n, k, etype(1), dataA.data(), m, dataB.data(), k,
-         etype(1), refC.data(), m);
+    gemm(ta_str, tb_str, m, n, k, etype(1), dataA.data(), lda, dataB.data(),
+         ldb, etype(1), refC.data(), m);
   });
 
   cl::sycl::queue q;
@@ -164,43 +161,43 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
 
-#define DATA rep, m, n, k, dataA, dataB, origC, refC, q
+#define DATA rep, m, n, k, etype(1), dataA, lda, dataB, ldb, etype(1), origC, \
+             ldc, refC, q
 
   const int cls = 64; // size of cache line in bytes
   const bool db = true; // use double buffer
-  const bool ta = true; // transpose A
-  const bool tb = true; // transpose B
+  const bool ta = TransA;
+  const bool tb = TransB;
 
-  test<GemmFactoryV2<128, !ta, !tb, etype>>(DATA);
-
-
-  test<GemmFactoryV19<!db, cls, Tile<1, 1, 8, 8>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<1, 1, 8, 8>, !ta, !tb, etype>>(DATA);
-
-  test<GemmFactoryV19<!db, cls, Tile<2, 2, 8, 8>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<2, 2, 8, 8>, !ta, !tb, etype>>(DATA);
-
-  test<GemmFactoryV19<!db, cls, Tile<4, 4, 8, 8>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<4, 4, 8, 8>, !ta, !tb, etype>>(DATA);
-
-  test<GemmFactoryV19<!db, cls, Tile<8, 8, 8, 8>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<8, 8, 8, 8>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV2<128, ta, tb, etype>>(DATA);
 
 
-  test<GemmFactoryV19<!db, cls, Tile<1, 1, 16, 16>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<1, 1, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<1, 1, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<1, 1, 8, 8>, ta, tb, etype>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<2, 2, 16, 16>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<2, 2, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<2, 2, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<2, 2, 8, 8>, ta, tb, etype>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<4, 4, 16, 16>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<4, 4, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<4, 4, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<4, 4, 8, 8>, ta, tb, etype>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<8, 8, 16, 16>, !ta, !tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<8, 8, 16, 16>, !ta, !tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, cls, Tile<8, 8, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<8, 8, 8, 8>, ta, tb, etype>>(DATA);
+
+
+  test<GemmFactoryV19<!db, cls, Tile<1, 1, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<1, 1, 16, 16>, ta, tb, etype>>(DATA);
+
+  test<GemmFactoryV19<!db, cls, Tile<2, 2, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<2, 2, 16, 16>, ta, tb, etype>>(DATA);
+
+  test<GemmFactoryV19<!db, cls, Tile<4, 4, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<4, 4, 16, 16>, ta, tb, etype>>(DATA);
+
+  test<GemmFactoryV19<!db, cls, Tile<8, 8, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<db, cls, Tile<8, 8, 16, 16>, ta, tb, etype>>(DATA);
 
 #undef DATA
 
-  return 0;
 }
 
