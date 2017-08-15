@@ -88,9 +88,9 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   using ScalarT = ScalarT_;
   using ExecutorType = ExecutorType_;
 
-  BLAS1_Test() {}
+  BLAS1_Test() = default;
+  virtual ~BLAS1_Test() = default;
 
-  virtual ~BLAS1_Test() {}
   virtual void SetUp() {}
   virtual void TearDown() {}
 
@@ -99,18 +99,19 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
     size_t ret = rand() >> 5;
-    int type_size =
-        sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
-    return (ret & (std::numeric_limits<size_t>::max() +
-                   (size_t(1) << (type_size - 2)))) +
-           1;
+    int type_size = sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
+    return (ret & (std::numeric_limits<size_t>::max() + (size_t(1) << (type_size - 2)))) + 1;
   }
 
   // it is important that all tests are run with the same test size
   // so each time we access this function within the same program, we get the
   // same
   // randomly generated size
+  template <typename test>
   size_t test_size() {
+    if(option_size<test>::value != ::RANDOM_SIZE) {
+      return option_size<test>::value;
+    }
     static bool first = true;
     static size_t N;
     if (first) {
@@ -120,8 +121,13 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return N;
   }
 
-  // getting the stride in the same way as the size above
+  // randomly generates stride when run for the first time, and keeps returning
+  // the same value consecutively
+  template <typename test>
   size_t test_strd() {
+    if(option_strd<test>::value != ::RANDOM_STRD) {
+      return option_strd<test>::value;
+    }
     static bool first = true;
     static size_t N;
     if (first) {
@@ -129,6 +135,11 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
       N = ((rand() & 1) * (rand() % 5)) + 1;
     }
     return N;
+  }
+
+  template <typename test>
+  ScalarT test_prec() {
+    return option_prec<ScalarT, test>::value;
   }
 
   template <typename DataType,
@@ -161,47 +172,33 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return vector_view<value_type, cl::sycl::buffer<value_type>>(buf);
   }
 
-  template <typename DeviceSelector,
-            typename = typename std::enable_if<
-                std::is_same<ExecutorType, SYCL>::value>::type>
+  template <typename DeviceSelector, typename = typename std::enable_if< std::is_same<ExecutorType, SYCL>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
-      try {
-        for (auto &e : eL) {
-          std::rethrow_exception(e);
+      for (auto &e : eL) {
+        try {
+            std::rethrow_exception(e);
+        } catch (cl::sycl::exception &e) {
+          std::cout << "E " << e.what() << std::endl;
+        } catch (std::exception &e) {
+          std::cout << "Standard Exception " << e.what() << std::endl;
+        } catch (...) {
+          std::cout << " An exception " << std::endl;
         }
-      } catch (cl::sycl::exception &e) {
-        std::cout << "E " << e.what() << std::endl;
-      } catch (std::exception &e) {
-        std::cout << "Standard Exception " << e.what() << std::endl;
-      } catch (...) {
-        std::cout << " An exception " << std::endl;
       }
     });
   }
 };
 
 // unpacking the parameters within the test function
-// B is blas_templ_struct
-// TestClass is BLAS1_Test<B>
-// T is default (scalar) type for the test (e.g. float, double)
-// C is the container type for the test (e.g. std::vector)
-// E is the executor kind for the test (sequential, openmp, sycl)
-#define B1_TEST(name) TYPED_TEST(BLAS1_Test, name)
+// TestClass is BLAS1_Test<TypeParam>
+// ScalarT is default (scalar) type for the test (e.g. float, double)
+// ExecutorType is the executor kind for the test (sequential, openmp, sycl)
+// test is an alias for the current class that options are bound to
 #define UNPACK_PARAM(test_name)                        \
   using ScalarT = typename TypeParam::scalar_t;        \
   using TestClass = BLAS1_Test<TypeParam>;             \
   using ExecutorType = typename TypeParam::executor_t; \
   using test = class test_name;
-// TEST_SIZE determines the size based on the suggestion
-#define TEST_SIZE                                                       \
-  ((option_size<test>::value == ::RANDOM_SIZE) ? TestClass::test_size() \
-                                               : option_size<test>::value)
-#define TEST_STRD                                                       \
-  ((option_strd<test>::value == ::RANDOM_STRD) ? TestClass::test_strd() \
-                                               : option_strd<test>::value)
-// TEST_PREC determines the precision for the test based on the suggestion for
-// the type
-#define TEST_PREC option_prec<ScalarT, test>::value
 
 #endif /* end of include guard: BLAS1_TEST_HPP */
