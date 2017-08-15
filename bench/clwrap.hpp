@@ -39,28 +39,40 @@ class Context {
 
   static cl_uint get_platform_count() {
     cl_uint num_platforms;
-    clGetPlatformIDs(0, NULL, &num_platforms);
+    cl_int status = clGetPlatformIDs(0, NULL, &num_platforms);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure in clGetPlatformIDs");
+    }
     return num_platforms;
   }
 
   static cl_platform_id get_platform_id(size_t platform_id = 0) {
     cl_uint num_platforms = get_platform_count();
     cl_platform_id platforms[num_platforms];
-    clGetPlatformIDs(num_platforms, platforms, NULL);
+    cl_int status = clGetPlatformIDs(num_platforms, platforms, NULL);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure in clGetPlatformIDs");
+    }
     cl_platform_id platform = platforms[platform_id];
     return platform;
   }
 
   static cl_uint get_device_count(cl_platform_id plat) {
     cl_uint num_devices;
-    clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
+    cl_int status = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure in clGetDeviceIDs");
+    }
     return num_devices;
   }
 
   static cl_device_id get_device_id(cl_platform_id plat, size_t device_id = 0) {
     cl_uint num_devices = get_device_count(plat);
     cl_device_id devices[num_devices];
-    clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, num_devices, devices, NULL);
+    cl_int status = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, num_devices, devices, NULL);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure in clGetDeviceIDs");
+    }
     cl_device_id device = devices[device_id];
     return device;
   }
@@ -74,14 +86,27 @@ class Context {
 
   void create() {
     if (is_active) throw std::runtime_error("context is already active");
-    context = clCreateContext(NULL, 1, &device, NULL, NULL, NULL);
-    command_queue = clCreateCommandQueue(context, device, 0, NULL);
+    cl_int status;
+    context = clCreateContext(NULL, 1, &device, NULL, NULL, &status);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to create context");
+    }
+    command_queue = clCreateCommandQueue(context, device, 0, &status);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to create command queue");
+    }
     is_active = true;
   }
 
   void release() {
-    clReleaseCommandQueue(command_queue);
-    clReleaseContext(context);
+    cl_int status = clReleaseCommandQueue(command_queue);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to release command queue");
+    }
+    status = clReleaseContext(context);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to release context");
+    }
     is_active = false;
   }
 
@@ -93,6 +118,45 @@ class Context {
 
   ~Context() {
     if (is_active) release();
+  }
+};
+
+class Event {
+  cl_event event;
+public:
+
+  Event()
+  {}
+
+  cl_event &_cl() {
+    return event;
+  }
+
+  void wait() {
+    cl_int status = clWaitForEvents(1, &event);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure in clWaitForEvents");
+    }
+  }
+
+  static void wait(std::vector<Event> &&events) {
+    for(auto &ev : events) {
+      ev.wait();
+    }
+  }
+
+  void release() {
+    cl_int status = clReleaseEvent(event);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to release an event");
+    }
+  }
+
+  template <typename... EVs>
+  static void release(std::vector<Event> &&events) {
+    for(auto &&ev : events) {
+      ev.wait();
+    }
   }
 };
 
@@ -113,23 +177,33 @@ class MemBuffer {
   bool is_active = false;
 
   void init() {
-    if (is_active) throw std::runtime_error("buffer is already active");
-    dev_ptr =
-        clCreateBuffer(context, Options, size * sizeof(ScalarT), NULL, NULL);
+    if (is_active) {
+      throw std::runtime_error("buffer is already active");
+    }
+    cl_int status;
+    dev_ptr = clCreateBuffer(context, Options, size * sizeof(ScalarT), NULL, &status);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to create buffer");
+    }
     is_active = true;
-    if (to_write)
-      clEnqueueWriteBuffer(context.queue(), dev_ptr, CL_TRUE, 0,
-                           size * sizeof(ScalarT), host_ptr, 0, NULL, NULL);
+    if (to_write) {
+      status = clEnqueueWriteBuffer(context.queue(), dev_ptr, CL_TRUE, 0, size * sizeof(ScalarT), host_ptr, 0, NULL, NULL);
+      if(status != CL_SUCCESS) {
+        throw std::runtime_error("failure in clEnqueueWriteBuffer");
+      }
+    }
   }
 
  public:
-  MemBuffer(Context &ctx, ScalarT *ptr, size_t size)
-      : context(ctx), host_ptr(ptr), size(size) {
+  MemBuffer(Context &ctx, ScalarT *ptr, size_t size):
+    context(ctx), host_ptr(ptr), size(size)
+  {
     init();
   }
 
-  MemBuffer(Context &ctx, size_t size, bool initialized = true)
-      : context(ctx), size(size) {
+  MemBuffer(Context &ctx, size_t size, bool initialized = true):
+    context(ctx), size(size)
+  {
     private_host_ptr = true;
     host_ptr = new_data<ScalarT>(size, initialized);
     init();
@@ -144,17 +218,30 @@ class MemBuffer {
   ScalarT *host() { return host_ptr; }
 
   void release() {
-    if (to_read)
-      clEnqueueReadBuffer(context.queue(), dev_ptr, CL_TRUE, 0,
-                          size * sizeof(ScalarT), host_ptr, 0, NULL, NULL);
-    if (!is_active) throw std::runtime_error("cannot release inactive buffer");
-    clReleaseMemObject(dev_ptr);
+    if (to_read) {
+      cl_int status;
+      status = clEnqueueReadBuffer(context.queue(), dev_ptr, CL_TRUE, 0, size * sizeof(ScalarT), host_ptr, 0, NULL, NULL);
+      if(status != CL_SUCCESS) {
+        throw std::runtime_error("failure in clEnqueueReadBuffer");
+      }
+    }
+    if (!is_active) {
+      throw std::runtime_error("cannot release inactive buffer");
+    }
+    cl_int status = clReleaseMemObject(dev_ptr);
+    if(status != CL_SUCCESS) {
+      throw std::runtime_error("failure to release memobject");
+    }
     is_active = false;
   }
 
   ~MemBuffer() {
-    if (is_active) release();
-    if (private_host_ptr) release_data(host_ptr);
+    if (is_active) {
+      release();
+    }
+    if (private_host_ptr) {
+      release_data(host_ptr);
+    }
   }
 };
 

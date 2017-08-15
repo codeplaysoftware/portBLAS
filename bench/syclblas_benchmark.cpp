@@ -29,8 +29,6 @@
 
 using namespace blas;
 
-#define UNPACK_PARAM using ScalarT = TypeParam;
-
 template <typename ExecutorType = SYCL>
 class SyclBlasBenchmarker {
   cl::sycl::queue q;
@@ -64,7 +62,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(scal_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT alpha(2.4367453465);
     double flops;
@@ -81,7 +79,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(axpy_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
     ScalarT alpha(2.4367453465);
@@ -102,7 +100,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(asum_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT vr;
     double flops;
@@ -121,7 +119,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(nrm2_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT vr;
     double flops;
@@ -140,7 +138,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(dot_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
     ScalarT vr;
@@ -163,7 +161,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(iamax_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     IndVal<ScalarT> vI(std::numeric_limits<size_t>::max(), 0);
     double flops;
@@ -182,7 +180,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(iamin_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     IndVal<ScalarT> vI(std::numeric_limits<size_t>::max(), 0);
     double flops;
@@ -201,7 +199,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(scal2op_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT alpha(2.4367453465);
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
@@ -225,7 +223,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(scal3op_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT alpha(2.4367453465);
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
@@ -254,7 +252,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(axpy3op_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
                                      3.78164387328};
     ScalarT *vsrc1 = new_data<ScalarT>(size);
@@ -296,7 +294,7 @@ class SyclBlasBenchmarker {
   }
 
   BENCHMARK_FUNCTION(blas1_bench) {
-    UNPACK_PARAM;
+    using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
     ScalarT vr[4];
