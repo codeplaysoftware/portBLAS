@@ -150,7 +150,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   static void set_rand(DataType &vec, size_t _N) {
     value_type left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = value_type(rand() % (int(right - left) * 1e3)) * 1e-3 - right;
+      vec[i] = value_type(rand() % int(right - left) * 1e3) * 1e-3 - right;
     }
   }
 
