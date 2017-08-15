@@ -61,10 +61,15 @@ int main(int argc, char *argv[]) {
       BufferVectorView<double> bvY(bY);
 
       // EXECUTION OF THE ROUTINES
-      blas::execute(dev, _axpy(bX.get_count(), 1.0, bvX, 0, 1, bvY, 0, 1));
+      auto scal = _scal(DEF_SIZE_VECT/2, 2.0, bvX, 0, 2);
+      blas::execute(dev, _axpy(DEF_SIZE_VECT/2, 1.0, scal, 0, 1, bvY, 0, 1));
     }
 
     std::cout << " Output: ";
+    std::for_each(std::begin(vX), std::end(vX), [&](double elem) {
+      std::cout << elem << ",";
+    });
+    std::cout << std::endl;
     std::for_each(std::begin(vY), std::end(vY), [&](double elem) {
       std::cout << elem << ",";
       sum += elem;

@@ -36,14 +36,10 @@
 
 namespace blas {
 
-template <class EvaluatorT>
-struct GenericReducer;
-template <class EvaluatorT>
-struct GenericReducerTwoStage;
-template <class EvaluatorT, class Reducer>
-struct FullReducer;
-template <class EvaluatorT, class Reducer>
-struct PartialReduction;
+template <class EvaluatorT, class Functor> struct GenericReducer;
+template <class EvaluatorT, class Functor> struct GenericReducerTwoStage;
+template <class EvaluatorT, class Functor, class Reducer> struct FullReducer;
+template <class EvaluatorT, class Functor, class Reducer> struct PartialReduction;
 
 /*!
  * Evaluator<ReductionExpr>.
@@ -56,19 +52,19 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
-  /* static constexpr bool supported = functor_traits<Functor, value_type,
-   * SYCLDevice>::supported && RHS::supported; */
+  /* static constexpr bool supported = functor_traits<Functor, value_type, SYCLDevice>::supported && RHS::supported; */
   bool allocated_result = false;
   typename MakePointer<value_type>::type result;
   Evaluator<RHS, Device> r;
 
-  Evaluator(Expression &expr)
-      : r(Evaluator<RHS, Device>(expr.r)), result(nullptr) {}
+  explicit Evaluator(Expression &expr):
+    r(Evaluator<RHS, Device>(expr.r)),
+    result(MakePointer<value_type>::init())
+  {}
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return r.data(); }
 
-  bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont,
-                              Device &dev) {
+  bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont, Device &dev) {
     r.eval_subexpr_if_needed(nullptr, dev);
     if (cont) {
       result = cont;
@@ -76,18 +72,8 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
       allocated_result = true;
       result = dev.allocate<value_type>(1);
     }
-    FullReducer<Evaluator<RHS, Device>,
-                GenericReducer<Evaluator<RHS, Device>>>::run(dev, r, *result);
+    GenericReducer<Evaluator<RHS, Device>, dev_functor>::run(dev, r, *result);
     return true;
-  }
-
-  value_type eval(size_t i) { return result[i]; }
-  value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
-  }
-  value_type &evalref(size_t i) { return result[i]; }
-  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
-    return evalref(ndItem.get_global(0));
   }
 
   void cleanup(SYCLDevice &dev) {
@@ -111,10 +97,13 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakeDevicePointer>, SYCLDevice> {
   typename MakeDevicePointer<value_type>::type result;
   Evaluator<RHS, Device> r;
 
-  Evaluator(Expression &expr) : r(Evaluator<RHS, Device>(expr.r)) {}
-  size_t getSize() const { return r.getSize(); }
+  explicit Evaluator(Expression &expr):
+    r(Evaluator<RHS, Device>(expr.r)),
+    result(MakeDevicePointer<value_type>::init())
+  {}
+  size_t getSize() const { return 1; }
   cont_type *data() { return r.data(); }
-  value_type eval(size_t i) { return result[i]; }
+  value_type eval(size_t i) { return result[0]; }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }

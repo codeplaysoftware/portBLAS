@@ -63,8 +63,8 @@ namespace blas {
     }                                                          \
                                                                \
     template <typename R>                                      \
-    static typename R::value_type init(const R) {              \
-      return constant<typename R::value_type, initial>::value; \
+    static R init() {                                          \
+      return constant<R, initial>::value;                      \
     }                                                          \
   };
 
@@ -96,7 +96,7 @@ SYCLBLAS_DEFINE_UNARY_OPERATOR(sqtOp1_struct, std::sqrt(r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(tupOp1_struct, r)
 SYCLBLAS_DEFINE_UNARY_OPERATOR(addOp1_struct, (r + r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(prdOp1_struct, (r * r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(absOp1_struct, std::abs(r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(absOp1_struct, std::fabs(r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addOp2_struct, const_val::zero, (l + r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(prdOp2_struct, const_val::one, (l * r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(divOp2_struct, const_val::one, (l / r))

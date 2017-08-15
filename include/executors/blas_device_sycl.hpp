@@ -64,11 +64,9 @@ class SYCLDevice {
    * @param [out] globalsize Global size.
    * @param [in] N Number of elements to be processed.
    */
-  static void parallel_for_setup(size_t &localsize, size_t &nwg,
-                                 size_t &globalsize, size_t N) {
-    localsize = 256;
-    globalsize = N;
-    nwg = (globalsize + localsize - 1) / localsize;
+  static void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
+    localsize = std::min<size_t>(N, 256);
+    nwg = (N + localsize - 1) / localsize;
     globalsize = nwg * localsize;
   }
 

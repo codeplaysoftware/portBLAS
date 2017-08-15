@@ -137,113 +137,109 @@ int main(int argc, char *argv[]) {
       BufferVectorView<double> bvX(bX);
       BufferVectorView<double> bvY(bY);
       BufferVectorView<double> bvZ(bZ);
-      BufferVectorView<double> bvR(bR);
-      BufferVectorView<double> bvS(bS);
-      BufferVectorView<double> bvT(bT);
-      BufferVectorView<double> bvU(bU);
-      BufferVectorView<IndVal<double>> bvImax(bImax);
-      BufferVectorView<IndVal<double>> bvImin(bImin);
+      /* BufferVectorView<double> bvR(bR); */
+      /* BufferVectorView<double> bvS(bS); */
+      /* BufferVectorView<double> bvT(bT); */
+      /* BufferVectorView<double> bvU(bU); */
+      /* BufferVectorView<IndVal<double>> bvImax(bImax); */
+      /* BufferVectorView<IndVal<double>> bvImin(bImin); */
 
       // EXECUTION OF THE ROUTINES
-      blas::execute(dev, _copy(bX.get_count(), bvX, 0, 1, bvY, 0, 1));
-      blas::execute(dev, _scal(bX.get_count(), alpha, bvX, 0, 1));
+      /* blas::execute(dev, _copy(bX.get_count(), bvX, 0, 1, bvY, 0, 1)); */
+      /* auto scal = _scal(bX.get_count(), alpha, bvX, 0, 1); */
+      /* blas::execute(dev, _axpy(bX.get_count(), alpha, bvX, 0, 1, bvY, 0, 1)); */
       blas::execute(dev, _axpy(bX.get_count(), alpha, bvX, 0, 1, bvY, 0, 1));
-      blas::execute(dev, _asum(bY.get_count(), bvY, 0, 1, bvR));
-      blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bvS));
-      blas::execute(dev, _nrm2(bY.get_count(), bvY, 0, 1, bvT));
-      blas::execute(dev, _iamax(bY.get_count(), bvY, 0, 1, bvImax));
-      blas::execute(dev, _iamin(bY.get_count(), bvY, 0, 1, bvImin));
-      /* blas::execute(dev, _rot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, _cos,
-       * _sin)); */
-      /* blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bvU)); */
+      blas::execute(dev, _asum(bY.get_count(), bvY, 0, 1, bR));
+      blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bS));
+      /* blas::execute(dev, _nrm2(bY.get_count(), bvY, 0, 1, bvT)); */
+      blas::execute(dev, _iamax(bY.get_count(), bvY, 0, 1, bImax));
+      blas::execute(dev, _iamin(bY.get_count(), bvY, 0, 1, bImin));
+      blas::execute(dev, _rot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, _cos, _sin));
+      blas::execute(dev, _dot(bY.get_count(), bvX, 0, 1, bvY, 0, 1, bU));
       blas::execute(dev, _swap(bY.get_count(), bvX, 0, 1, bvY, 0, 1));
     }
 
     // ANALYSIS OF THE RESULTS
-    /* res = vR[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> res = " << res << " , sum = " << sum */
-    /*               << " , err = " << sum - res << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (std::abs((res - sum) / res) > ERROR_ALLOWED) { */
-    /*       std::cout << "ERROR!! --> res = " << res << " , sum = " << sum */
-    /*                 << " , err = " << sum - res << std::endl; */
-    /*       returnVal += 2; */
-    /*     } */
+    res = vR[0];
+#ifdef SHOW_VALUES
+    std::cout << "VALUES!! --> res = " << res << " , sum = " << sum
+              << " , err = " << sum - res << std::endl;
+#endif  //  SHOW_VALUES
+    if (std::abs((res - sum) / res) > ERROR_ALLOWED) {
+      std::cout << "ERROR!! --> res = " << res << " , sum = " << sum
+                << " , err = " << sum - res << std::endl;
+      returnVal += 2;
+    }
 
-    /*     res = vS[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> res = " << res << " , dot = " << dot */
-    /*               << " , err = " << dot - res << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (std::abs((res - dot) / res) > ERROR_ALLOWED) { */
-    /*       std::cout << "ERROR!! --> res = " << res << " , dot = " << dot */
-    /*                 << " , err = " << dot - res << std::endl; */
-    /*       returnVal += 4; */
-    /*     } */
+    res = vS[0];
+#ifdef SHOW_VALUES
+    std::cout << "VALUES!! --> res = " << res << " , dot = " << dot
+              << " , err = " << dot - res << std::endl;
+#endif  //  SHOW_VALUES
+    if (std::abs((res - dot) / res) > ERROR_ALLOWED) {
+      std::cout << "ERROR!! --> res = " << res << " , dot = " << dot
+                << " , err = " << dot - res << std::endl;
+      returnVal += 4;
+    }
 
-    /*     res = vT[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> res = " << res << " , nrmY = " << nrmY */
-    /*               << " , err = " << nrmY - res << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (std::abs((res - nrmY) / res) > ERROR_ALLOWED) { */
-    /*       std::cout << "ERROR!! --> res = " << res << " , nrmY = " << nrmY */
-    /*                 << " , err = " << nrmY - res << std::endl; */
-    /*       returnVal += 8; */
-    /*     } */
+    res = vT[0];
+#ifdef SHOW_VALUES
+    std::cout << "VALUES!! --> res = " << res << " , nrmY = " << nrmY
+              << " , err = " << nrmY - res << std::endl;
+#endif  //  SHOW_VALUES
+    if (std::abs((res - nrmY) / res) > ERROR_ALLOWED) {
+      std::cout << "ERROR!! --> res = " << res << " , nrmY = " << nrmY
+                << " , err = " << nrmY - res << std::endl;
+      returnVal += 8;
+    }
 
-    /*     IndVal<double> ind = vImax[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> resInd = " << ind.getInd() */
-    /*               << ", resMax = " << ind.getVal() << " , ind = " << indMax
-     */
-    /*               << " , max = " << max << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (ind.getInd() != indMax) { */
-    /*       std::cout << "ERROR!! --> resInd = " << ind.getInd() */
-    /*                 << ", resMax = " << ind.getVal() << " , ind = " << indMax
-     */
-    /*                 << " , max = " << max << std::endl; */
-    /*       returnVal += 16; */
-    /*     } */
+    /* IndVal<double> ind = vImax[0]; */
+/* #ifdef SHOW_VALUES */
+    /* std::cout << "VALUES!! --> resInd = " << ind.getInd() */
+    /*           << ", resMax = " << ind.getVal() << " , ind = " << indMax */
+    /*           << " , max = " << max << std::endl; */
+/* #endif  //  SHOW_VALUES */
+    /* if (ind.getInd() != indMax) { */
+    /*   std::cout << "ERROR!! --> resInd = " << ind.getInd() */
+    /*             << ", resMax = " << ind.getVal() << " , ind = " << indMax */
+    /*             << " , max = " << max << std::endl; */
+    /*   returnVal += 16; */
+    /* } */
 
-    /*     ind = vImin[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> resInd = " << ind.getInd() */
-    /*               << ", resmin = " << ind.getVal() << " , ind = " << indMin
-     */
-    /*               << " , min = " << min << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (ind.getInd() != indMin) { */
-    /*       std::cout << "ERROR!! --> resInd = " << ind.getInd() */
-    /*                 << ", resmin = " << ind.getVal() << " , ind = " << indMin
-     */
-    /*                 << " , min = " << min << std::endl; */
-    /*       returnVal += 16; */
-    /*     } */
+    /* ind = vImin[0]; */
+/* #ifdef SHOW_VALUES */
+    /* std::cout << "VALUES!! --> resInd = " << ind.getInd() */
+    /*           << ", resmin = " << ind.getVal() << " , ind = " << indMin */
+    /*           << " , min = " << min << std::endl; */
+/* #endif  //  SHOW_VALUES */
+    /* if (ind.getInd() != indMin) { */
+    /*   std::cout << "ERROR!! --> resInd = " << ind.getInd() */
+    /*             << ", resmin = " << ind.getVal() << " , ind = " << indMin */
+    /*             << " , min = " << min << std::endl; */
+    /*   returnVal += 16; */
+    /* } */
 
-    /*     res = vU[0]; */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> res = " << res << " , giv = " << giv */
-    /*               << " , err = " << giv - res << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (std::abs((res - giv) / res) > ERROR_ALLOWED) { */
-    /*       std::cout << "ERROR!! --> res = " << res << " , giv = " << giv */
-    /*                 << " , err = " << giv - res << std::endl; */
-    /*       returnVal += 32; */
-    /*     } */
+    /* res = vU[0]; */
+/* #ifdef SHOW_VALUES */
+    /* std::cout << "VALUES!! --> res = " << res << " , giv = " << giv */
+    /*           << " , err = " << giv - res << std::endl; */
+/* #endif  //  SHOW_VALUES */
+    /* if (std::abs((res - giv) / res) > ERROR_ALLOWED) { */
+    /*   std::cout << "ERROR!! --> res = " << res << " , giv = " << giv */
+    /*             << " , err = " << giv - res << std::endl; */
+    /*   returnVal += 32; */
+    /* } */
 
-    /*     res = (vX[0] - vY[0]) + (vX[sizeV - 1] - vY[sizeV - 1]); */
-    /* #ifdef SHOW_VALUES */
-    /*     std::cout << "VALUES!! --> res = " << res << " , diff = " << diff */
-    /*               << " , err = " << diff - res << std::endl; */
-    /* #endif  //  SHOW_VALUES */
-    /*     if (std::abs((res - diff) / res) > ERROR_ALLOWED) { */
-    /*       std::cout << "ERROR!! --> res = " << res << " , diff = " << diff */
-    /*                 << " , err = " << diff - res << std::endl; */
-    /*       returnVal += 64; */
-    /*     } */
+    res = (vX[0] - vY[0]) + (vX[sizeV - 1] - vY[sizeV - 1]);
+#ifdef SHOW_VALUES
+    std::cout << "VALUES!! --> res = " << res << " , diff = " << diff
+              << " , err = " << diff - res << std::endl;
+#endif  //  SHOW_VALUES
+    if (std::abs((res - diff) / res) > ERROR_ALLOWED) {
+      std::cout << "ERROR!! --> res = " << res << " , diff = " << diff
+                << " , err = " << diff - res << std::endl;
+      returnVal += 64;
+    }
   }
 
   return returnVal;

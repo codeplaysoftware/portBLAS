@@ -52,137 +52,152 @@ namespace blas {
  * @param _incy Increment in Y axis
  */
 template <typename X, typename Y>
-auto _copy(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy)
-    RETURNCXX11(make_expr<AssignExpr>(make_strdExpr(_x, _offx, _incx, _N),
-                                      make_strdExpr(_y, _offy, _incy, _N)))
+auto _copy(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy) RETURNCXX11(
+  make_expr<AssignExpr>(
+    make_strdExpr(_x, _offx, _incx, _N),
+    make_strdExpr(_y, _offy, _incy, _N))
+)
 
-    /**
-     * \brief SWAP interchanges two vectors
-     *
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     * @param _vy  VectorView
-     * @param _incy Increment in Y axis
-     */
-    template <typename ScalarT, typename ContainerT>
-    auto _swap(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx,
-               int _incx, vector_view<ScalarT, ContainerT> _vy, int _offy,
-               int _incy)
-        RETURNCXX11(
-            make_expr<DoubleAssignExpr>(make_strdExpr(_vy, _offy, _incy, _N),
-                                        make_strdExpr(_vx, _offx, _incx, _N),
-                                        make_strdExpr(_vx, _offx, _incx, _N),
-                                        make_strdExpr(_vy, _offy, _incy, _N)))
+/**
+ * \brief SWAP interchanges two vectors
+ *
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vy  VectorView
+ * @param _incy Increment in Y axis
+ */
+template <typename ScalarT, typename ContainerT>
+auto _swap(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx, int _incx, vector_view<ScalarT, ContainerT> _vy, int _offy, int _incy) RETURNCXX11(
+  make_expr<DoubleAssignExpr>(
+    make_strdExpr(_vy, _offy, _incy, _N),
+    make_strdExpr(_vx, _offx, _incx, _N),
+    make_strdExpr(_vx, _offx, _incx, _N),
+    make_strdExpr(_vy, _offy, _incy, _N))
+)
 
-    /**
-     * \brief SCAL scales a vector by a constant
-     *
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     */
-    template <typename ScalarT, typename X>
-    auto _scal(int _N, ScalarT _alpha, X _x, int _offx, int _incx) RETURNCXX11(
-        make_expr<AssignExpr>(make_strdExpr(_x, _offx, _incx, _N),
-                              make_expr<ScalarExpr, prdOp2_struct>(
-                                  _alpha, make_strdExpr(_x, _offx, _incx, _N))))
+/**
+ * \brief SCAL scales a vector by a constant
+ *
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ScalarT, typename X>
+auto _scal(int _N, ScalarT _alpha, X _x, int _offx, int _incx) RETURNCXX11(
+  make_expr<AssignExpr>(
+    make_strdExpr(_x, _offx, _incx, _N),
+    make_expr<ScalarExpr, prdOp2_struct>(
+      _alpha,
+      make_strdExpr(_x, _offx, _incx, _N)))
+)
 
-    /**
-     * \brief AXPY constant times a vector plus a vector.
-     *
-     * Implements AXPY \f$y = ax + y\f$
-     *
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     * @param _vy  VectorView
-     * @param _incy Increment in Y axis
-     */
-    template <typename ScalarT, typename X, typename Y>
-    auto _axpy(int _N, ScalarT _alpha, X _x, int _offx, int _incx, Y _y,
-               int _offy, int _incy)
-        RETURNCXX11(make_expr<AssignExpr>(
-            make_strdExpr(_y, _offy, _incy, _N),
-            make_expr<BinaryExpr, addOp2_struct>(
-                make_strdExpr(_x, _offx, _incx, _N),
-                make_expr<ScalarExpr, prdOp2_struct>(
-                    _alpha, make_strdExpr(_y, _offy, _incy, _N)))))
+/**
+ * \brief AXPY constant times a vector plus a vector.
+ *
+ * Implements AXPY \f$y = ax + y\f$
+ *
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vy  VectorView
+ * @param _incy Increment in Y axis
+ */
+template <typename ScalarT, typename X, typename Y>
+auto _axpy(int _N, ScalarT _alpha, X _x, int _offx, int _incx, Y _y, int _offy, int _incy) RETURNCXX11(
+  make_expr<AssignExpr>(
+    make_strdExpr(_y, _offy, _incy, _N),
+    make_expr<BinaryExpr, addOp2_struct>(
+      make_strdExpr(_y, _offx, _incx, _N),
+      make_expr<ScalarExpr, prdOp2_struct>(
+        _alpha,
+        make_strdExpr(_x, _offy, _incy, _N))))
+)
 
-    /**
-     * \brief Compute the inner product of two vectors with extended precision
-     * accumulation.
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     * @param _vx  VectorView
-     * @param _incy Increment in Y axis
-     */
-    template <typename X, typename Y, typename ScalarT, typename ContainerT>
-    auto _dot(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy,
-              vector_view<ScalarT, ContainerT> _rs)
-        RETURNCXX11(make_expr<AssignExpr>(
-            _rs, make_addReductionExpr(make_expr<BinaryExpr, prdOp2_struct>(
-                     make_strdExpr(_x, _offx, _incx, _N),
-                     make_strdExpr(_y, _offy, _incy, _N)))))
+/**
+ * \brief Compute the inner product of two vectors with extended precision
+ * accumulation.
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vx  VectorView
+ * @param _incy Increment in Y axis
+ */
+template <typename X, typename Y, typename ScalarT>
+auto _dot(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
+  make_expr<AssignExpr>(
+    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_addReductionExpr(
+      make_expr<BinaryExpr, prdOp2_struct>(
+        make_strdExpr(_x, _offx, _incx, _N),
+        make_strdExpr(_y, _offy, _incy, _N))))
+)
 
-    /**
-     * \brief NRM2 Returns the euclidian norm of a vector
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     */
-    template <typename X, typename ScalarT, typename ContainerT>
-    auto _nrm2(int _N, X _x, int _offx, int _incx,
-               vector_view<ScalarT, ContainerT> _rs)
-        RETURNCXX11(make_expr<AssignExpr>(
-            _rs, make_expr<UnaryExpr, sqtOp1_struct>(
-                     make_addReductionExpr(make_expr<UnaryExpr, prdOp1_struct>(
-                         make_strdExpr(_x, _offx, _incx, _N))))))
+/**
+ * \brief NRM2 Returns the euclidian norm of a vector
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename X, typename ScalarT>
+auto _nrm2(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
+  make_expr<AssignExpr>(
+    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_expr<UnaryExpr, sqtOp1_struct>(
+      make_addReductionExpr(
+        make_expr<UnaryExpr, prdOp1_struct>(
+          make_strdExpr(_x, _offx, _incx, _N)))))
+)
 
-    /**
-     * \brief ASUM Takes the sum of the absolute values
-     * @param Device &dev
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     */
-    template <typename X, typename ScalarT, typename ContainerT>
-    auto _asum(int _N, X _x, int _offx, int _incx,
-               vector_view<ScalarT, ContainerT> _rs)
-        RETURNCXX11(make_expr<AssignExpr>(
-            _rs, make_addAbsReductionExpr(make_strdExpr(_x, _offx, _incx, _N))))
+/**
+ * \brief ASUM Takes the sum of the absolute values
+ * @param Device &dev
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename X, typename ScalarT>
+auto _asum(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
+  make_expr<AssignExpr>(
+    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_addAbsReductionExpr(
+      make_strdExpr(_x, _offx, _incx, _N)))
+)
 
-    /**
-     * \brief IAMAX finds the index of the first element having maximum
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     */
-    template <typename X, typename ScalarI, typename ContainerI>
-    auto _iamax(int _N, X _x, int _offx, int _incx,
-                vector_view<ScalarI, ContainerI> _rs)
-        RETURNCXX11(make_expr<AssignExpr>(
-            _rs, make_maxIndReductionExpr(
-                     make_tplExpr(make_strdExpr(_x, _offx, _incx, _N)))))
+/**
+ * \brief IAMAX finds the index of the first element having maximum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename X, typename ScalarI>
+auto _iamax(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarI, 1> _rs) RETURNCXX11(
+  make_expr<AssignExpr>(
+    vector_view<ScalarI, cl::sycl::buffer<ScalarI, 1>>(_rs, 0, 1, 1),
+    make_maxIndReductionExpr(
+      make_tplExpr(
+        make_strdExpr(_x, _offx, _incx, _N))))
+)
 
-    /**
-     * \brief IAMIN finds the index of the first element having minimum
-     * @param _vx  VectorView
-     * @param _incx Increment in X axis
-     */
-    template <typename X, typename ScalarI, typename ContainerI>
-    auto _iamin(int _N, X _x, int _offx, int _incx,
-                vector_view<ScalarI, ContainerI> _rs)
-        RETURNCXX11(make_expr<AssignExpr>(
-            _rs, make_minIndReductionExpr(
-                     make_tplExpr(make_strdExpr(_x, _offx, _incx, _N)))))
+/**
+ * \brief IAMIN finds the index of the first element having minimum
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename X, typename ScalarI>
+auto _iamin(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarI, 1> _rs) RETURNCXX11(
+  make_expr<AssignExpr>(
+    vector_view<ScalarI, cl::sycl::buffer<ScalarI, 1>>(_rs, 0, 1, 1),
+    make_minIndReductionExpr(
+      make_tplExpr(
+        make_strdExpr(_x, _offx, _incx, _N))))
+)
 
-    /**
-     * ROTG.
-     * @brief Consturcts given plane rotation
-     * Not implemented.
-     */
-    template <typename ScalarT>
-    void _rotg(ScalarT &_alpha, ScalarT &_beta, ScalarT &_cos, ScalarT &_sin) {
+/**
+ * ROTG.
+ * @brief Consturcts given plane rotation
+ * Not implemented.
+ */
+template <typename ScalarT>
+void _rotg(ScalarT &_alpha, ScalarT &_beta, ScalarT &_cos, ScalarT &_sin) {
   ScalarT abs_alpha = std::abs(_alpha);
   ScalarT abs_beta = std::abs(_beta);
   ScalarT roe = (abs_alpha > abs_beta) ? _alpha : _beta;
@@ -219,22 +234,21 @@ auto _copy(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy)
  * Not implemented.
  */
 template <typename ScalarT, typename ContainerT>
-auto _rot(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx, int _incx,
-          vector_view<ScalarT, ContainerT> _vy, int _offy, int _incy,
-          ScalarT _cos, ScalarT _sin)
-    RETURNCXX11(make_expr<DoubleAssignExpr>(
-        make_strdExpr(_vx, _offx, _incx, _N),
-        make_strdExpr(_vy, _offy, _incy, _N),
-        make_expr<BinaryExpr, addOp2_struct>(
-            make_expr<ScalarExpr, prdOp2_struct>(
-                _cos, make_strdExpr(_vx, _offx, _incx, _N)),
-            make_expr<ScalarExpr, prdOp2_struct>(
-                _sin, make_strdExpr(_vy, _offy, _incy, _N))),
-        make_expr<BinaryExpr, addOp2_struct>(
-            make_expr<ScalarExpr, prdOp2_struct>(
-                -_sin, make_strdExpr(_vx, _offx, _incx, _N)),
-            make_expr<ScalarExpr, prdOp2_struct>(
-                _cos, make_strdExpr(_vy, _offy, _incy, _N)))))
+auto _rot(int _N, vector_view<ScalarT, ContainerT> _vx, int _offx, int _incx, vector_view<ScalarT, ContainerT> _vy, int _offy, int _incy, ScalarT _cos, ScalarT _sin) RETURNCXX11(
+  make_expr<DoubleAssignExpr>(
+    make_strdExpr(_vx, _offx, _incx, _N),
+    make_strdExpr(_vy, _offy, _incy, _N),
+    make_expr<BinaryExpr, addOp2_struct>(
+      make_expr<ScalarExpr, prdOp2_struct>(
+        _cos, make_strdExpr(_vx, _offx, _incx, _N)),
+      make_expr<ScalarExpr, prdOp2_struct>(
+        _sin, make_strdExpr(_vy, _offy, _incy, _N))),
+    make_expr<BinaryExpr, addOp2_struct>(
+      make_expr<ScalarExpr, prdOp2_struct>(
+        -_sin, make_strdExpr(_vx, _offx, _incx, _N)),
+      make_expr<ScalarExpr, prdOp2_struct>(
+        _cos, make_strdExpr(_vy, _offy, _incy, _N))))
+)
 
 }  // namespace blas
 

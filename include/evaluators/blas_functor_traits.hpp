@@ -68,7 +68,7 @@ template <typename ScalarT, typename Device>
 struct functor_traits<sqtOp1_struct, ScalarT, Device> : sqtOp1_struct {
   /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_sqrt;
    */
-  template <typename R = ScalarT>
+  template <typename R>
   static R eval(R r) {
     return cl::sycl::sqrt(r);
   }
@@ -91,9 +91,9 @@ template <typename ScalarT, typename Device>
 struct functor_traits<absOp1_struct, ScalarT, Device> : absOp1_struct {
   /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs;
    */
-  template <typename R = ScalarT>
+  template <typename R>
   static R eval(R r) {
-    return cl::sycl::abs(r);
+    return cl::sycl::fabs(r);
   }
 };
 template <typename ScalarT, typename Device>
@@ -115,7 +115,7 @@ template <typename ScalarT, typename Device>
 struct functor_traits<maxOp2_struct, ScalarT, Device> : maxOp2_struct {
   /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_max;
    */
-  template <typename L = ScalarT, typename R = ScalarT>
+  template <typename L, typename R>
   static R eval(L l, R r) {
     return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) <
              functor_traits<absOp1_struct, R, Device>::eval(r.getVal())) ||
@@ -130,7 +130,7 @@ template <typename ScalarT, typename Device>
 struct functor_traits<minOp2_struct, ScalarT, Device> : minOp2_struct {
   /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_min;
    */
-  template <typename L = ScalarT, typename R = ScalarT>
+  template <typename L, typename R>
   static R eval(L l, R r) {
     return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) >
              functor_traits<absOp1_struct, R, Device>::eval(r.getVal())) ||
@@ -145,7 +145,7 @@ template <typename ScalarT, typename Device>
 struct functor_traits<addAbsOp2_struct, ScalarT, Device> : addAbsOp2_struct {
   /* static constexpr bool supported = Packet_traits<ScalarT, Device>::has_abs
    * && Packet_traits<ScalarT, Device>::has_add; */
-  template <typename L = ScalarT, typename R = ScalarT>
+  template <typename L, typename R>
   static R eval(L l, R r) {
     return functor_traits<addOp2_struct, ScalarT, Device>::eval(
         functor_traits<absOp1_struct, L, Device>::eval(l),

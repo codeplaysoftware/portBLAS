@@ -34,6 +34,7 @@ namespace blas {
  */
 class SimpleDevice {};
 
+
 }  // namespace BLAS
 
 #endif /* end of include guard: BLAS_DEVICE_HPP */

@@ -32,24 +32,6 @@
 namespace blas {
 
 /*!
- * JoinExpr.
- * @brief An expression for two expressions.
- */
-template <class LHS, class RHS>
-struct JoinExpr {
-  using value_type = typename RHS::value_type;
-
-  LHS l;
-  RHS r;
-
-  JoinExpr(LHS &_l, RHS _r) : l(_l), r(_r){};
-
-  // PROBLEM: Only the RHS size is considered. If LHS size is different??
-  // If it is smaller, eval function will crash
-  size_t getSize() const { return r.getSize(); }
-};
-
-/*!
  * AssignExpr.
  * @brief Expression for assignment.
  */
@@ -153,23 +135,7 @@ struct TupleExpr {
 
   size_t getSize() const { return r.getSize(); }
 };
-
-/*!
- * BreakExpr
- * @brief Expression for separating execution of a subexpression from the rest
- * of the execution.
- */
-template <typename RHS>
-struct EmptyExpr {
-  using value_type = typename RHS::value_type;
-
-  RHS r;
-
-  EmptyExpr(RHS &_r) : r(_r) {}
-  EmptyExpr(RHS &&_r) : EmptyExpr(_r) {}
-
-  size_t getSize() const { return r.getSize(); }
-};
+;
 
 /*!
  * BreakExpr
@@ -181,30 +147,21 @@ struct BreakExpr {
   using value_type = typename RHS::value_type;
 
   RHS r;
+  bool to_break;
   bool use_rhs_result;
 
-  BreakExpr(RHS &_r, bool use_rhs_result = false)
-      : r(_r), use_rhs_result(use_rhs_result) {}
+  BreakExpr(RHS &_r, bool to_break, bool use_rhs_result = false):
+    r(_r),
+    to_break(to_break),
+    use_rhs_result(use_rhs_result)
+  {}
 
-  BreakExpr(RHS &&_r, bool use_rhs_result = false)
-      : BreakExpr(_r, use_rhs_result) {}
+  BreakExpr(RHS &&_r, bool to_break, bool use_rhs_result = false)
+      : BreakExpr(_r, to_break, use_rhs_result) {}
 
   size_t getSize() const { return r.getSize(); }
 };
 
-template <typename RHS, template <class> class MakePointer>
-struct BreakIfExpr {
-  using value_type = typename RHS::value_type;
-
-  EmptyExpr<RHS> r_empty;
-  BreakExpr<RHS, MakePointer> r_break;
-  bool to_break;
-
-  BreakIfExpr(RHS &_r, bool to_break)
-      : r_empty(_r), r_break(_r), to_break(to_break) {}
-
-  size_t getSize() const { return r_empty.getSize(); }
-};
 
 template <typename RHS, template <class> class MakePointer>
 struct StrideExpr {
@@ -216,18 +173,35 @@ struct StrideExpr {
   size_t N;
 
   StrideExpr(RHS &_r, long offt, long strd, size_t N)
-      : r(_r), offt(offt), strd(strd), N(N) {}
+      : r(_r), offt(offt), strd(strd), N(N)
+  {}
 
-  StrideExpr(BreakIfExpr<RHS, MakePointer> &_br, long offt, long strd, size_t N)
-      : StrideExpr(_br.r, offt, strd, N) {}
+  StrideExpr(RHS &&_r, long offt, long strd, size_t N):
+    StrideExpr(_r, offt, strd, N)
+  {}
 
   size_t getSize() const { return N; }
 };
 
+template <typename RHS> struct strdExpr_constructor {
+  using BRHS = BreakExpr<RHS, MakeHostPointer>;
+  using rettype = StrideExpr<BRHS, MakeHostPointer>;
+  static rettype make(RHS &r, long offset, long stride, size_t N) {
+    return rettype(BRHS(r, !(offset==0&&stride==1&&N==r.getSize())), offset, stride, N);
+  }
+};
+
+template <typename ScalarT, typename ContainerT> struct strdExpr_constructor<vector_view<ScalarT, ContainerT>> {
+  using RHS = vector_view<ScalarT, ContainerT>;
+  using rettype = StrideExpr<RHS, MakeHostPointer>;
+  static rettype make(RHS &r, long offset, long stride, size_t N) {
+    return rettype(r, offset, stride, N);
+  }
+};
+
 template <typename RHS>
-StrideExpr<RHS, MakeHostPointer> make_strdExpr(RHS r, long offset, long stride,
-                                               size_t N) {
-  return StrideExpr<RHS, MakeHostPointer>(r, offset, stride, N);
+typename strdExpr_constructor<RHS>::rettype make_strdExpr(RHS r, long offset, long stride, size_t N) {
+  return strdExpr_constructor<RHS>::make(r, offset, stride, N);
 }
 
 /*!
