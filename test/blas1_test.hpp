@@ -43,9 +43,9 @@ using namespace blas;
 template <typename ClassName>
 struct option_size;
 namespace {
-static const size_t RANDOM_SIZE = UINT_MAX;
-static const size_t RANDOM_STRD = UINT_MAX;
-}  // namespace special
+  static const size_t RANDOM_SIZE = UINT_MAX;
+  static const size_t RANDOM_STRD = UINT_MAX;
+}  // namespace
 #define REGISTER_SIZE(size, test_name)          \
   template <>                                   \
   struct option_size<class test_name> {         \
@@ -99,8 +99,11 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
     size_t ret = rand() >> 5;
-    int type_size = sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
-    return (ret & (std::numeric_limits<size_t>::max() + (size_t(1) << (type_size - 2)))) + 1;
+    int type_size =
+        sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
+    return (ret & (std::numeric_limits<size_t>::max() +
+                   (size_t(1) << (type_size - 2)))) +
+           1;
   }
 
   // it is important that all tests are run with the same test size
@@ -109,7 +112,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   // randomly generated size
   template <typename test>
   size_t test_size() {
-    if(option_size<test>::value != ::RANDOM_SIZE) {
+    if (option_size<test>::value != ::RANDOM_SIZE) {
       return option_size<test>::value;
     }
     static bool first = true;
@@ -125,7 +128,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   // the same value consecutively
   template <typename test>
   size_t test_strd() {
-    if(option_strd<test>::value != ::RANDOM_STRD) {
+    if (option_strd<test>::value != ::RANDOM_STRD) {
       return option_strd<test>::value;
     }
     static bool first = true;
@@ -172,12 +175,14 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return vector_view<value_type, cl::sycl::buffer<value_type>>(buf);
   }
 
-  template <typename DeviceSelector, typename = typename std::enable_if< std::is_same<ExecutorType, SYCL>::value>::type>
+  template <typename DeviceSelector,
+            typename = typename std::enable_if<
+                std::is_same<ExecutorType, SYCL>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       for (auto &e : eL) {
         try {
-            std::rethrow_exception(e);
+          std::rethrow_exception(e);
         } catch (cl::sycl::exception &e) {
           std::cout << "E " << e.what() << std::endl;
         } catch (std::exception &e) {
