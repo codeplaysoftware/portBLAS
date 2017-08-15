@@ -325,79 +325,35 @@ ClBlasBenchmarker blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("scal_complex_float", */
-/*                             scal_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal_complex_double", */
-/*                             scal_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("axpy_complex_float", */
-/*                             axpy_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("axpy_complex_double", */
-/*                             axpy_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("asum_complex_float", */
-/*                             asum_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("asum_complex_double", */
-/*                             asum_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("nrm2_complex_float", */
-/*                             nrm2_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("nrm2_complex_double", */
-/*                             nrm2_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("dot_complex_float", */
-/*                             dot_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("dot_complex_double", */
-/*                             dot_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("iamax_complex_float", */
-/*                             iamax_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("iamax_complex_double", */
-/*                             iamax_bench<std::complex<double>>); */
 
 /* BENCHMARK_REGISTER_FUNCTION("iamin_float", iamin_bench<float>); */
 /* BENCHMARK_REGISTER_FUNCTION("iamin_double", iamin_bench<double>); */
-/* BENCHMARK_REGISTER_FUNCTION("iamin_complex_float", */
-/*                             iamin_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("iamin_complex_double", */
-/*                             iamin_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("scal2op_complex_float", */
-/*                             scal2op_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal2op_complex_double", */
-/*                             scal2op_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("scal3op_complex_float", */
-/*                             scal3op_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal3op_complex_double", */
-/*                             scal3op_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("axpy3op_complex_float", */
-/*                             axpy3op_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("axpy3op_complex_double", */
-/*                             axpy3op_bench<std::complex<double>>); */
 
 BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>);
-/* BENCHMARK_REGISTER_FUNCTION("blas1_complex_float", */
-/*                             blas1_bench<std::complex<float>>); */
-/* BENCHMARK_REGISTER_FUNCTION("blas1_complex_double", */
-/*                             blas1_bench<std::complex<double>>); */
 
 BENCHMARK_MAIN_END();
