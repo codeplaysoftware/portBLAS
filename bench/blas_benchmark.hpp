@@ -47,7 +47,7 @@ ScalarT *new_data(size_t size, bool initialized = true) {
   }
   return v;
 }
-#define release_data(ptr) delete[] (ptr);
+#define release_data(ptr) delete[](ptr);
 
 template <typename time_units_t_ = std::chrono::nanoseconds,
           typename ClockT = std::chrono::system_clock>
