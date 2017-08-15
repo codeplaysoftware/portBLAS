@@ -1,4 +1,4 @@
-/***************************************************************************
+/*************************************************************************** 
  *  @license
  *  Copyright (C) 2017 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,7 +70,8 @@ public:
            type_string<value_type>::get_value() + ">";
   }
 
-  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept {
+  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept
+  {
     const cl::sycl::range<1> nwg((m*n - 1) / wg_size + 1);
     const cl::sycl::range<1> wgs(wg_size);
     return cl::sycl::nd_range<1>(nwg*wgs, wgs);
@@ -213,10 +214,12 @@ public:
     A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
     m = m - wg_row - item_id%block_rows;
 
-    LocalPointerType s1 = scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
+    LocalPointerType s1 =
+        scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
     LocalPointerType s2 = scratch + item_col*cl_elems;
     const auto ofs = (double_buffer+1)*block_cols*cl_elems;
-    LocalPointerType s3 = scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
+    LocalPointerType s3 =
+        scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
     LocalPointerType s4 = scratch + ofs + item_row;
 
     if (internal) {
@@ -234,7 +237,7 @@ public:
 
 private:
   template <bool double_buffer,
-            bool check_m_limit, bool check_n_limit,
+            bool check_m_limit, bool check_n_limit, 
             typename GlobalPointerType,
             typename LocalPointerType>
   static inline void compute_panel_gemm(

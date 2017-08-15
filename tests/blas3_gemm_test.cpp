@@ -8,10 +8,10 @@ using namespace blas;
 using T = float;
 
 int main() {
-  size_t m=4096,n=4096,k=4096;
-  T *ma = new T[m*n];
-  T *mb = new T[n*k];
-  T *mc = new T[m*k];
+  size_t m = 4096, n = 4096, k = 4096;
+  T *ma = new T[m * n];
+  T *mb = new T[n * k];
+  T *mc = new T[m * k];
 
   std::cout << "initialized data" << std::endl;
 
@@ -28,23 +28,18 @@ int main() {
   });
   Executor<SYCL> ex(q);
 
-
   {
-    buffer<T, 1> mba(ma, range<1>{m*k});
-    buffer<T, 1> mbb(mb, range<1>{k*n});
-    buffer<T, 1> mbc(mc, range<1>{m*n});
-    bool _tra=false,_trb=false;
-    T alpha=.54,beta=.39;
+    buffer<T, 1> mba(ma, range<1>{m * k});
+    buffer<T, 1> mbb(mb, range<1>{k * n});
+    buffer<T, 1> mbc(mc, range<1>{m * n});
+    char _tra = 'N', _trb = 'N';
+    T alpha = .54, beta = .39;
     std::cout << "running kernel" << std::endl;
-    _gemm(ex,_tra,_trb,m,k,n,alpha,
-          mba,m,
-          mbb,n,
-          beta,
-          mbc,k);
+    _gemm(ex, _tra, _trb, m, k, n, alpha, mba, m, mbb, n, beta, mbc, k);
   }
   std::cout << "finish" << std::endl;
 
-  delete [] ma;
-  delete [] mb;
-  delete [] mc;
+  delete[] ma;
+  delete[] mb;
+  delete[] mc;
 }
