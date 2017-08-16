@@ -37,3 +37,6 @@ include_directories(
   ${GTEST_LIB}
   ${GMOCK_LIB}
 )
+
+add_subdirectory(${SYCLBLAS_TEST}/unittest)
+add_subdirectory(${SYCLBLAS_TEST}/exprtest)
