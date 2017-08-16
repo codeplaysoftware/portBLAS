@@ -195,15 +195,4 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   }
 };
 
-// unpacking the parameters within the test function
-// TestClass is BLAS1_Test<TypeParam>
-// ScalarT is default (scalar) type for the test (e.g. float, double)
-// ExecutorType is the executor kind for the test (sequential, openmp, sycl)
-// test is an alias for the current class that options are bound to
-#define UNPACK_PARAM(test_name)                        \
-  using ScalarT = typename TypeParam::scalar_t;        \
-  using TestClass = BLAS1_Test<TypeParam>;             \
-  using ExecutorType = typename TypeParam::executor_t; \
-  using test = class test_name;
-
 #endif /* end of include guard: BLAS1_TEST_HPP */
