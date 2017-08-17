@@ -43,20 +43,25 @@ TYPED_TEST(BLAS1_Test, copy_test) {
   size_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create two vectors: vX and vY
   std::vector<ScalarT> vX(size);
+  std::vector<ScalarT> vY(size, 0);
   TestClass::set_rand(vX, size);
 
   SYCL_DEVICE_SELECTOR d;
-  std::vector<ScalarT> vY(size, 0);
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // copy vX to vY
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vY = TestClass::make_vview(buf_vY);
     _copy(ex, size, view_vX, strd, view_vY, strd);
   }
+  // check that vX and vY are the same
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vX[i], vY[i]);

@@ -48,6 +48,7 @@ TYPED_TEST(BLAS1_Test, asum_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
   std::vector<ScalarT> vR(1, ScalarT(0));

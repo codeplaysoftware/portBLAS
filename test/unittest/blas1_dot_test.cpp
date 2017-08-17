@@ -44,17 +44,21 @@ TYPED_TEST(BLAS1_Test, dot_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
+  // create two random vectors: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
+  // create a vector of size 1 for the result
   std::vector<ScalarT> vR(1, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
   ScalarT res(0);
+  // compute dot(vX, vY) into res with a for loop
   for (size_t i = 0; i < size; i += strd) {
     res += vX[i] * vY[i];
   }
@@ -63,6 +67,7 @@ TYPED_TEST(BLAS1_Test, dot_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // compute dot(vX, vY) into vR with syclblas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_vR = TestClass::make_buffer(vR);
@@ -71,5 +76,6 @@ TYPED_TEST(BLAS1_Test, dot_test) {
     auto view_vR = TestClass::make_vview(buf_vR);
     _dot(ex, size, view_vX, strd, view_vY, strd, view_vR);
   }
+  // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
 }

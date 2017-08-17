@@ -43,28 +43,31 @@ TYPED_TEST(BLAS1_Test, swap_test) {
   size_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create two random vectors with the same size: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
-  std::vector<ScalarT> vZ(size);
-  std::vector<ScalarT> vT(size);
-  for (size_t i = 0; i < size; ++i) {
-    vZ[i] = vX[i];
-    vT[i] = vY[i];
-  }
+  // create two more vectors equal to vX and vY
+  std::vector<ScalarT> vZ = vX;
+  std::vector<ScalarT> vT = vY;
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // swap the elements between vX and vY with syclblas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vY = TestClass::make_vview(buf_vY);
     _swap(ex, size, view_vX, strd, view_vY, strd);
   }
+  // check that new vX is equal to the copy of the original vY and
+  // that new vY is equal to the copy of the original vX
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vZ[i], vY[i]);

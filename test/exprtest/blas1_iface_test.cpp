@@ -46,6 +46,7 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   std::vector<ScalarT> vX_(size);
   std::vector<ScalarT> vY_(size);
   TestClass::set_rand(vX_, size);
@@ -75,7 +76,7 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   ScalarT _cos(0);
   ScalarT _sin(0);
   ScalarT giv(0);
-  for (size_t i = 0; i < size; i += i) {
+  for (size_t i = 0; i < size; i += strd) {
     ScalarT &x = vX[i];
     ScalarT &y = vY[i];
     ScalarT &z = vZ[i];
@@ -93,8 +94,7 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
       imin = i;
     }
     if (i == 0) {
-      ScalarT n1 = x;
-      ScalarT n2 = z;
+      ScalarT n1 = x, n2 = z;
       _rotg(n1, n2, _cos, _sin);
       diff = (z * _cos - x * _sin) - (x * _cos + z * _sin);
     } else if (i == size - 1) {
@@ -149,6 +149,6 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].getVal(), prec_sample);
   EXPECT_EQ(imin, vImin[0].getInd());
   EXPECT_NEAR(max, vImax[0].getVal(), prec_sample);
-  /* EXPECT_NEAR(giv, vU[0], prec_sample); */
+  EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
 }

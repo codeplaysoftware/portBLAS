@@ -44,15 +44,19 @@ TYPED_TEST(BLAS1_Test, nrm2_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
+  // create a random vector
   std::vector<ScalarT> vX(size);
+  // create a vector which will hold the result
   std::vector<ScalarT> vR(1, 0);
   TestClass::set_rand(vX, size);
 
   ScalarT res(0);
+  // compute nrm2 (euclidean length) of vX into res in a for loop
   for (size_t i = 0; i < size; i += strd) {
     res += vX[i] * vX[i];
   }
@@ -62,11 +66,13 @@ TYPED_TEST(BLAS1_Test, nrm2_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // compute nrm2 of a vX into vR
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vR = TestClass::make_buffer(vR);
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vR = TestClass::make_vview(buf_vR);
     _nrm2(ex, size, view_vX, strd, view_vR);
   }
+  // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
 }

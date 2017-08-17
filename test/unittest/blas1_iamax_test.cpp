@@ -30,7 +30,7 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
-REGISTER_STRD(::RANDOM_STRD, iamax_test)
+REGISTER_STRD(1, iamax_test)
 
 TYPED_TEST(BLAS1_Test, iamax_test) {
   using ScalarT = typename TypeParam::scalar_t;
@@ -43,13 +43,17 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create a random vector vX
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
+  // create a vector which will hold the result
   std::vector<IndVal<ScalarT>> vI(
       1, constant<IndVal<ScalarT>, const_val::imax>::value);
 
   ScalarT max = 0.;
   size_t imax = std::numeric_limits<size_t>::max();
+  // compute index and value of the element with biggest absolute value
   for (size_t i = 0; i < size; i += strd) {
     if (std::abs(vX[i]) > std::abs(max)) {
       max = vX[i];
@@ -62,6 +66,7 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // compute iamax of vX into vI with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
     auto view_vX = TestClass::make_vview(buf_vX);
@@ -69,6 +74,8 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
     _iamax(ex, size, view_vX, strd, view_vI);
   }
   IndVal<ScalarT> res2(vI[0]);
+  // check that the result value is the same
   ASSERT_EQ(res.getVal(), res2.getVal());
+  // check that the result index is the same
   ASSERT_EQ(res.getInd(), res2.getInd());
 }

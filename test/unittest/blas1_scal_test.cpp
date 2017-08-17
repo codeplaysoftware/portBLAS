@@ -42,18 +42,21 @@ TYPED_TEST(BLAS1_Test, scal_test) {
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class scal_test;
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   ScalarT prec = TestClass::template test_prec<test>();
 
   ScalarT alpha(1.54);
+  // create two vectors: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size, 0);
   TestClass::set_rand(vX, size);
 
-  SYCL_DEVICE_SELECTOR d;
+  // compute vector scalar product vX * alpha in a for loop and put it into vY
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       vY[i] = alpha * vX[i];
@@ -62,13 +65,16 @@ TYPED_TEST(BLAS1_Test, scal_test) {
     }
   }
 
+  SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // vector scalar product vX * alpha with the result left in vX
     auto buf_vX = TestClass::make_buffer(vX);
     auto view_vX = TestClass::make_vview(buf_vX);
     _scal(ex, size, alpha, view_vX, strd);
   }
+  // check that the result is the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);
   }

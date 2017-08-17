@@ -100,12 +100,10 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     // make sure the generated number is not too big for a type
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
-    size_t ret = rand() >> 5;
-    int type_size =
-        sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
+    size_t ret = rand() >> 10;
+    int type_size = sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
     return (ret & (std::numeric_limits<size_t>::max() +
-                   (size_t(1) << (type_size - 2)))) +
-           1;
+                   (size_t(1) << (type_size - 2)))) + 1;
   }
 
   // it is important that all tests are run with the same test size
@@ -152,7 +150,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   static void set_rand(DataType &vec, size_t _N) {
     value_type left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = value_type(rand() % int(right - left) * 1e3) * 1e-3 - right;
+      vec[i] = value_type(rand() % int(int(right - left) * 1e3)) * 1e-3 - right;
     }
   }
 

@@ -25,8 +25,7 @@
 
 #include "blas1_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
-    BlasTypes;
+typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >BlasTypes;
 
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
@@ -34,7 +33,8 @@ REGISTER_SIZE(::RANDOM_SIZE, axpy_test)
 REGISTER_STRD(::RANDOM_STRD, axpy_test)
 REGISTER_PREC(float, 1e-4, axpy_test)
 REGISTER_PREC(double, 1e-6, axpy_test)
-REGISTER_PREC(long double, 1e-7, axpy_test)
+REGISTER_PREC(std::complex<float>, 1e-4, axpy_test)
+REGISTER_PREC(std::complex<double>, 1e-6, axpy_test)
 
 TYPED_TEST(BLAS1_Test, axpy_test) {
   using ScalarT = typename TypeParam::scalar_t;
@@ -46,9 +46,14 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  (std::cout << "size == " << size << std::endl);
+  (std::cout << "strd == " << strd << std::endl);
+
+  // axpy(alpha, vX, vY) = (vY = alpha * vX + vY)
+  // setting alpha to some value
   ScalarT alpha(1.54);
+  // creating three vectors: vX, vY and vZ.
+  // the for loop will compute axpy for vX, vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   std::vector<ScalarT> vZ(size, 0);
@@ -56,6 +61,7 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   TestClass::set_rand(vY, size);
 
   SYCL_DEVICE_SELECTOR d;
+  // compute axpy in a for loop and put the result into vZ
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       vZ[i] = alpha * vX[i] + vY[i];
@@ -67,13 +73,15 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // compute axpy with syclblas and put the result into vY
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vY = TestClass::make_vview(buf_vY);
     _axpy(ex, size, alpha, view_vX, strd, view_vY, strd);
   }
+  // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
-    ASSERT_NEAR(vZ[i], vY[i], prec);
+    ASSERT_NEAR(vZ[i], vY[i], std::abs((vY[i]==0.0)?1:vY[i])*prec);
   }
 }

@@ -43,6 +43,7 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
@@ -57,32 +58,31 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
   ScalarT _cos, _sin;
 
   ScalarT giv = 0;
-  ScalarT diff = 0;
+  // givens rotation of vectors vX and vY
+  // and computation of dot of both vectors
   for(size_t i = 0; i < size; i += strd) {
     ScalarT x = vX[i], y = vY[i];
     if(i == 0) {
-      diff = vY[i] - vX[i];
+      // compute _cos and _sin
       _rotg(x, y, _cos, _sin);
     }
     x = vX[i], y = vY[i];
-    giv += ((vX[i] * _cos + vY[i] * _sin) * (vY[i] * _cos - vX[i] * _sin));
-    if(i == 0) {
-      diff = (vY[i] * _cos - vX[i] * _sin) - ((vX[i] * _cos + vY[i] * _sin));
-    } else {
-      diff += (vY[i] * _cos - vX[i] * _sin) - ((vX[i] * _cos + vY[i] * _sin));
-    }
+    giv += ((x*_cos + y*_sin) * (y*_cos - x*_sin));
   }
 
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // checking _rotg with _rot and _dot
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_res = TestClass::make_buffer(vR);
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vY = TestClass::make_vview(buf_vY);
     auto view_res = TestClass::make_vview(buf_res);
+    _rot(ex, size/strd, view_vX, strd, view_vY, strd, _cos, _sin);
     _dot(ex, size/strd, view_vX, strd, view_vY, strd, view_res);
   }
+  // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
 }
