@@ -46,33 +46,34 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
-  ScalarT alpha(ScalarT(rand() % size_t(size * 1e2)) * 1e-2);
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  ScalarT alpha(1.54);
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   std::vector<ScalarT> vZ(size, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
-  for (auto &d : cl::sycl::device::get_devices()) {
-    for (size_t i = 0; i < size; ++i) {
-      if (i % strd == 0) {
-        vZ[i] = alpha * vX[i] + vY[i];
-      } else {
-        vZ[i] = vY[i];
-      }
+  SYCL_DEVICE_SELECTOR d;
+  for (size_t i = 0; i < size; ++i) {
+    if (i % strd == 0) {
+      vZ[i] = alpha * vX[i] + vY[i];
+    } else {
+      vZ[i] = vY[i];
     }
+  }
 
-    auto q = TestClass::make_queue(d);
-    Executor<ExecutorType> ex(q);
-    {
-      auto buf_vX = TestClass::make_buffer(vX);
-      auto buf_vY = TestClass::make_buffer(vY);
-      auto view_vX = TestClass::make_vview(buf_vX);
-      auto view_vY = TestClass::make_vview(buf_vY);
-      _axpy(ex, size, alpha, view_vX, strd, view_vY, strd);
-    }
-    for (size_t i = 0; i < size; ++i) {
-      ASSERT_NEAR(vZ[i], vY[i], prec);
-    }
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  {
+    auto buf_vX = TestClass::make_buffer(vX);
+    auto buf_vY = TestClass::make_buffer(vY);
+    auto view_vX = TestClass::make_vview(buf_vX);
+    auto view_vY = TestClass::make_vview(buf_vY);
+    _axpy(ex, size, alpha, view_vX, strd, view_vY, strd);
+  }
+  for (size_t i = 0; i < size; ++i) {
+    ASSERT_NEAR(vZ[i], vY[i], prec);
   }
 }

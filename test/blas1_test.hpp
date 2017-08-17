@@ -38,6 +38,8 @@
 
 #include <interface/blas1_interface_sycl.hpp>
 
+#include "blas_test_macros.hpp"
+
 using namespace blas;
 
 template <typename ClassName>

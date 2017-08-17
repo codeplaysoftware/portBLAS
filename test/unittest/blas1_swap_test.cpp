@@ -42,6 +42,7 @@ TYPED_TEST(BLAS1_Test, swap_test) {
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
 
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   TestClass::set_rand(vX, size);
@@ -54,31 +55,23 @@ TYPED_TEST(BLAS1_Test, swap_test) {
     vT[i] = vY[i];
   }
 
-  bool swap_checker_mode = false;
-  for (auto &d : cl::sycl::device::get_devices()) {
-    auto q = TestClass::make_queue(d);
-    Executor<ExecutorType> ex(q);
-    {
-      auto buf_vX = TestClass::make_buffer(vX);
-      auto buf_vY = TestClass::make_buffer(vY);
-      auto view_vX = TestClass::make_vview(buf_vX);
-      auto view_vY = TestClass::make_vview(buf_vY);
-      _swap(ex, size, view_vX, strd, view_vY, strd);
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  {
+    auto buf_vX = TestClass::make_buffer(vX);
+    auto buf_vY = TestClass::make_buffer(vY);
+    auto view_vX = TestClass::make_vview(buf_vX);
+    auto view_vY = TestClass::make_vview(buf_vY);
+    _swap(ex, size, view_vX, strd, view_vY, strd);
+  }
+  for (size_t i = 0; i < size; ++i) {
+    if (i % strd == 0) {
+      ASSERT_EQ(vZ[i], vY[i]);
+      ASSERT_EQ(vT[i], vX[i]);
+    } else {
+      ASSERT_EQ(vZ[i], vX[i]);
+      ASSERT_EQ(vT[i], vY[i]);
     }
-    for (size_t i = 0; i < size; ++i) {
-      if (i % strd == 0) {
-        if (swap_checker_mode) {
-          ASSERT_EQ(vZ[i], vX[i]);
-          ASSERT_EQ(vT[i], vY[i]);
-        } else {
-          ASSERT_EQ(vZ[i], vY[i]);
-          ASSERT_EQ(vT[i], vX[i]);
-        }
-      } else {
-        ASSERT_EQ(vZ[i], vX[i]);
-        ASSERT_EQ(vT[i], vY[i]);
-      }
-    }
-    swap_checker_mode = !swap_checker_mode;
   }
 }

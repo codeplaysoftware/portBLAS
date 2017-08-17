@@ -41,6 +41,8 @@ TYPED_TEST(BLAS1_Test, iamin_test) {
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
 
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
   std::vector<IndVal<ScalarT>> vI(
@@ -56,18 +58,17 @@ TYPED_TEST(BLAS1_Test, iamin_test) {
   }
   IndVal<ScalarT> res(imin, min);
 
-  for (auto &d : cl::sycl::device::get_devices()) {
-    auto q = TestClass::make_queue(d);
-    Executor<ExecutorType> ex(q);
-    {
-      auto buf_vX = TestClass::make_buffer(vX);
-      auto buf_vI = TestClass::make_buffer(vI);
-      auto view_vX = TestClass::make_vview(buf_vX);
-      auto view_vI = TestClass::make_vview(buf_vI);
-      _iamin(ex, size, view_vX, strd, view_vI);
-    }
-    IndVal<ScalarT> res2(vI[0]);
-    ASSERT_EQ(res.getVal(), res2.getVal());
-    ASSERT_EQ(res.getInd(), res2.getInd());
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  {
+    auto buf_vX = TestClass::make_buffer(vX);
+    auto buf_vI = TestClass::make_buffer(vI);
+    auto view_vX = TestClass::make_vview(buf_vX);
+    auto view_vI = TestClass::make_vview(buf_vI);
+    _iamin(ex, size, view_vX, strd, view_vI);
   }
+  IndVal<ScalarT> res2(vI[0]);
+  ASSERT_EQ(res.getVal(), res2.getVal());
+  ASSERT_EQ(res.getInd(), res2.getInd());
 }
