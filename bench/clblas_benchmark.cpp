@@ -43,12 +43,6 @@
   struct clblasX##postfix<double> {                       \
     static constexpr const auto func = &clblasD##postfix; \
   };
-/* template <> struct clblasX##postfix<std::complex<float>> { \ */
-/*   static constexpr const auto value = clblasC##postfix; \ */
-/* }; \ */
-/* template <> struct clblasX##postfix<std::complex<double>> { \ */
-/*   static constexpr const auto value = clblasZ##postfix; \ */
-/* }; */
 
 #define CLBLASI_FUNCTION(postfix)                          \
   template <typename T>                                    \
@@ -108,7 +102,8 @@ class ClBlasBenchmarker {
       Event event;
       flops = benchmark<>::measure(no_reps, size * 1, [&]() {
         clblasXaxpy<ScalarT>::func(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0,
-                                   1, 1, context._queue(), 0, NULL, &event._cl());
+                                   1, 1, context._queue(), 0, NULL,
+                                   &event._cl());
         event.wait();
         event.release();
       });
@@ -291,7 +286,8 @@ class ClBlasBenchmarker {
       Event events[5];
       flops = benchmark<>::measure(no_reps, size * 12, [&]() {
         clblasXaxpy<ScalarT>::func(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0,
-                                   1, 1, context._queue(), 0, NULL, &events[0]._cl());
+                                   1, 1, context._queue(), 0, NULL,
+                                   &events[0]._cl());
         clblasXasum<ScalarT>::func(size, bufr.dev(), 0, buf2.dev(), 0, 1,
                                    scratch[0].dev(), 1, context._queue(), 0,
                                    NULL, &events[1]._cl());
@@ -334,9 +330,6 @@ BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
 
 BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
-
-/* BENCHMARK_REGISTER_FUNCTION("iamin_float", iamin_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("iamin_double", iamin_bench<double>); */
 
 BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);

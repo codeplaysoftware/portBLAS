@@ -164,7 +164,7 @@ class ClBlastBenchmarker {
       Event event;
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
         clblast::Amin<ScalarT>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
-                                context._queue(), &event._cl());
+                               context._queue(), &event._cl());
         event.wait();
         event.release();
       });
@@ -290,9 +290,6 @@ BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
 
 BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
-
-BENCHMARK_REGISTER_FUNCTION("iamin_float", iamin_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("iamin_double", iamin_bench<double>);
 
 BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
