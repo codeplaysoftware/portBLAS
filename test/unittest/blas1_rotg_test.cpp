@@ -60,14 +60,14 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
   ScalarT giv = 0;
   // givens rotation of vectors vX and vY
   // and computation of dot of both vectors
-  for(size_t i = 0; i < size; i += strd) {
+  for (size_t i = 0; i < size; i += strd) {
     ScalarT x = vX[i], y = vY[i];
-    if(i == 0) {
+    if (i == 0) {
       // compute _cos and _sin
       _rotg(x, y, _cos, _sin);
     }
     x = vX[i], y = vY[i];
-    giv += ((x*_cos + y*_sin) * (y*_cos - x*_sin));
+    giv += ((x * _cos + y * _sin) * (y * _cos - x * _sin));
   }
 
   auto q = TestClass::make_queue(d);
@@ -80,8 +80,8 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
     auto view_vX = TestClass::make_vview(buf_vX);
     auto view_vY = TestClass::make_vview(buf_vY);
     auto view_res = TestClass::make_vview(buf_res);
-    _rot(ex, size/strd, view_vX, strd, view_vY, strd, _cos, _sin);
-    _dot(ex, size/strd, view_vX, strd, view_vY, strd, view_res);
+    _rot(ex, size / strd, view_vX, strd, view_vY, strd, _cos, _sin);
+    _dot(ex, size / strd, view_vX, strd, view_vY, strd, view_res);
   }
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);

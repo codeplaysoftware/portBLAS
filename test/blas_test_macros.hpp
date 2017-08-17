@@ -35,9 +35,9 @@
 #ifndef SYCL_DEVICE
 #define SYCL_DEVICE_SELECTOR cl::sycl::default_selector
 #else
-#define PASTER(x,y) x ## y
-#define EVALUATOR(x,y) PASTER(x,y)
-#define SYCL_DEVICE_SELECTOR cl::sycl::EVALUATOR(SYCL_DEVICE,_selector)
+#define PASTER(x, y) x##y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define SYCL_DEVICE_SELECTOR cl::sycl::EVALUATOR(SYCL_DEVICE, _selector)
 #undef PASTER
 #undef EVALUATOR
 #endif /* ifndef SYCL_DEVICE */

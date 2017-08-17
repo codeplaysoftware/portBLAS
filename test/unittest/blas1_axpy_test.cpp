@@ -25,7 +25,8 @@
 
 #include "blas1_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >BlasTypes;
+typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+    BlasTypes;
 
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
@@ -46,8 +47,8 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
-  (std::cout << "size == " << size << std::endl);
-  (std::cout << "strd == " << strd << std::endl);
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // axpy(alpha, vX, vY) = (vY = alpha * vX + vY)
   // setting alpha to some value
@@ -82,6 +83,6 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   }
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
-    ASSERT_NEAR(vZ[i], vY[i], std::abs((vY[i]==0.0)?1:vY[i])*prec);
+    ASSERT_NEAR(vZ[i], vY[i], std::abs((vY[i] == 0.0) ? 1 : vY[i]) * prec);
   }
 }

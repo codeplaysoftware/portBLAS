@@ -62,8 +62,10 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   std::vector<ScalarT> vT(1);
   std::vector<ScalarT> vU(1);
 
-  std::vector<IndVal<ScalarT>> vImax(1, constant<IndVal<ScalarT>, const_val::imax>::value);
-  std::vector<IndVal<ScalarT>> vImin(1, constant<IndVal<ScalarT>, const_val::imin>::value);
+  std::vector<IndVal<ScalarT>> vImax(
+      1, constant<IndVal<ScalarT>, const_val::imax>::value);
+  std::vector<IndVal<ScalarT>> vImin(
+      1, constant<IndVal<ScalarT>, const_val::imin>::value);
   size_t imax = 0, imin = 0;
   ScalarT asum(0);
   const ScalarT alpha(0.432);
@@ -135,13 +137,13 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
     _dot(ex, size, view_vX, strd, view_vY, strd, view_vU);
     _swap(ex, size, view_vX, strd, view_vY, strd);
   }
-  ScalarT prec_sample =
-      std::max(std::numeric_limits<ScalarT>::epsilon() * size * 2,
-               prec * ScalarT(1e1));
+  ScalarT prec_sample = std::max(
+      std::numeric_limits<ScalarT>::epsilon() * size * 2, prec * ScalarT(1e1));
   EXPECT_LE(prec_sample, prec * 1e4);
-  DEBUG_PRINT(std::cout << "prec==" << std::fixed
-          << std::setprecision(std::numeric_limits<ScalarT>::digits10)
-          << prec_sample << std::endl);
+  DEBUG_PRINT(
+      std::cout << "prec==" << std::fixed
+                << std::setprecision(std::numeric_limits<ScalarT>::digits10)
+                << prec_sample << std::endl);
   EXPECT_NEAR(asum, vR[0], prec_sample);
   EXPECT_NEAR(dot, vS[0], prec_sample);
   EXPECT_NEAR(nrmY, vT[0], prec_sample);

@@ -101,9 +101,11 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
     size_t ret = rand() >> 10;
-    int type_size = sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
+    int type_size =
+        sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
     return (ret & (std::numeric_limits<size_t>::max() +
-                   (size_t(1) << (type_size - 2)))) + 1;
+                   (size_t(1) << (type_size - 2)))) +
+           1;
   }
 
   // it is important that all tests are run with the same test size
