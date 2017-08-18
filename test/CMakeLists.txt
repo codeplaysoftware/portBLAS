@@ -33,7 +33,18 @@ set_target_properties(libgmock PROPERTIES
 )
 set(GMOCK_LIB "${source_dir}/googlemock/include")
 
+if(VERBOSE)
+  add_definitions(-DVERBOSE=VERBOSE)
+endif(VERBOSE)
+
+if(SYCL_DEVICE)
+  add_definitions(-DSYCL_DEVICE=${SYCL_DEVICE})
+endif(SYCL_DEVICE)
+
 include_directories(
   ${GTEST_LIB}
   ${GMOCK_LIB}
 )
+
+add_subdirectory(${SYCLBLAS_TEST}/unittest)
+add_subdirectory(${SYCLBLAS_TEST}/exprtest)
