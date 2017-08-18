@@ -47,8 +47,8 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
-  (std::cout << "size == " << size << std::endl);
-  (std::cout << "strd == " << strd << std::endl);
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // axpy(alpha, vX, vY) = (vY = alpha * vX + vY)
   // setting alpha to some value
