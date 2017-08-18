@@ -30,33 +30,37 @@
 
 #include <CL/sycl.hpp>
 
-#include <executors/executor_base.hpp>
-#include <operations/blas1_trees.hpp>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas3_trees.hpp>
+#include <evaluators/blas3_tree_evaluator.hpp>
+#include <executors/blas_device_sycl.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
 
 template <typename Tree>
-struct Evaluate;
+struct Converter;
 
 /********************************/
 /*            BLAS 3            */
 /********************************/
 
 template <typename RHS1, typename RHS2>
-struct Evaluate<PrdRowMatColMat<RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using input_type = PrdRowMatColMat<RHS1, RHS2>;
-  using type = PrdRowMatColMat<rhs1_type, rhs2_type>;
+struct Converter<Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS2, SYCLDevice>::value_type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::out_type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::out_type;
+  using input_type = Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, SYCLDevice>;
+  using out_type = PrdRowMatColMatExpr<rhs1_type, rhs2_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    return type(rhs1, rhs2);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
+    return out_type(rhs1, rhs2);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
   }
 };
 

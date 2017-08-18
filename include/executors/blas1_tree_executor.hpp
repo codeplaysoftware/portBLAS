@@ -28,253 +28,312 @@
 
 #include <stdexcept>
 
-#include <CL/sycl.hpp>
-
-#include <executors/executor_base.hpp>
-#include <operations/blas1_trees.hpp>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas3_trees.hpp>
+#include <evaluators/blas1_tree_evaluator.hpp>
+#include <evaluators/blas_tree_evaluator.hpp>
+#include <executors/blas_device_sycl.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
 
-/*! Evaluate
- * @brief Evaluate the expression tree passed, converting node types.
+/*! Converter
+ * @brief Converter the expression tree passed, converting node types.
  * This set of template specializations is used to convert the buffer
  * types of the expression tree into accessors, suitable to be used on
  * the kernel scope.
  * When using the expression tree on the device, developers call the
  * make_accessor function, which starts processing the tree.
  */
-template <typename Tree>
-struct Evaluate {
-  using value_type = Tree;
-  using input_type = Tree;
-  using type = Tree;
+
+template <typename EvaluatorT>
+struct Converter {
+  using value_type = typename EvaluatorT::value_type;
+  using input_type = EvaluatorT;
+  using out_type = typename EvaluatorT::Expression;
 
   /** convert_to.
-   * @brief .
+   * @brief Converts host-side evaluator to device-side evaluator.
    */
-  static type convert_to(input_type v, cl::sycl::handler &h) { return v; }
+  static out_type convert_to(input_type v, cl::sycl::handler &h) { return v; }
+  /**
+   * @brief Binds host-side evaluator to device-side evaluator.
+   */
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {}
 };
 
-/*! Evaluate <Join<LHS, RHS>>.
- * @brief See Evaluate.
+/*! Converter <Assign<LHS, RHS>>a
+ * @brief See Converter.
  */
 template <typename LHS, typename RHS>
-struct Evaluate<Join<LHS, RHS>> {
-  using value_type = typename RHS::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = Join<LHS, RHS>;
-  using type = Join<lhs_type, rhs_type>;
+struct Converter<Evaluator<AssignExpr<LHS, RHS>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::out_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Converter<Evaluator<LHS, SYCLDevice>>::cont_type;
+  using input_type = Evaluator<AssignExpr<LHS, RHS>, SYCLDevice>;
+  using out_type = AssignExpr<lhs_type, rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(lhs, rhs);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(lhs, rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.l, ev.l, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
-/*! Evaluate <Assign<LHS, RHS>>a
- * @brief See Evaluate.
- */
-template <typename LHS, typename RHS>
-struct Evaluate<Assign<LHS, RHS>> {
-  using value_type = typename RHS::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = Assign<LHS, RHS>;
-  using type = Assign<lhs_type, rhs_type>;
-
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(lhs, rhs);
-  }
-};
-
-/*! Evaluate <DoubleAssign<LHS, RHS>>
- * @brief See Evaluate.
+/*! Converter <DoubleAssign<LHS, RHS>>
+ * @brief See Converter.
  */
 template <class LHS1, class LHS2, class RHS1, class RHS2>
-struct Evaluate<DobleAssign<LHS1, LHS2, RHS1, RHS2>> {
-  using lhs1_type = typename Evaluate<LHS1>::type;
-  using lhs2_type = typename Evaluate<LHS2>::type;
-  using rhs1_type = typename Evaluate<RHS1>::type;
-  using rhs2_type = typename Evaluate<RHS2>::type;
-  using input_type = DobleAssign<LHS1, LHS2, RHS1, RHS2>;
-  using type = DobleAssign<lhs1_type, lhs2_type, rhs1_type, rhs2_type>;
+struct Converter<
+    Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, SYCLDevice>> {
+  using lhs1_type = typename Converter<Evaluator<LHS1, SYCLDevice>>::out_type;
+  using lhs2_type = typename Converter<Evaluator<LHS2, SYCLDevice>>::out_type;
+  using rhs1_type = typename Converter<Evaluator<RHS1, SYCLDevice>>::out_type;
+  using rhs2_type = typename Converter<Evaluator<RHS2, SYCLDevice>>::out_type;
+  using cont_type = typename Converter<Evaluator<LHS1, SYCLDevice>>::cont_type;
+  using input_type = Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, SYCLDevice>;
+  using out_type = DoubleAssignExpr<lhs1_type, lhs2_type, rhs1_type, rhs2_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs1 = Evaluate<LHS1>::convert_to(v.l1, h);
-    auto lhs2 = Evaluate<LHS2>::convert_to(v.l2, h);
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    return type(lhs1, lhs2, rhs1, rhs2);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto lhs1 = Converter<Evaluator<LHS1, SYCLDevice>>::convert_to(v.l1, h);
+    auto lhs2 = Converter<Evaluator<LHS2, SYCLDevice>>::convert_to(v.l2, h);
+    auto rhs1 = Converter<Evaluator<RHS1, SYCLDevice>>::convert_to(v.r1, h);
+    auto rhs2 = Converter<Evaluator<RHS2, SYCLDevice>>::convert_to(v.r2, h);
+    return out_type(lhs1, lhs2, rhs1, rhs2);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<LHS1, SYCLDevice>>::bind_to(t.l1, ev.l1, h);
+    Converter<Evaluator<LHS2, SYCLDevice>>::bind_to(t.l2, ev.l2, h);
+    Converter<Evaluator<RHS1, SYCLDevice>>::bind_to(t.r1, ev.r1, h);
+    Converter<Evaluator<RHS2, SYCLDevice>>::bind_to(t.r2, ev.r2, h);
   }
 };
 
-/*! Evaluate<ScalarOp<Operator, SCL, RHS>>
- * @brief See Evaluate.
+/*! Converter<ScalarExpr<Operator, SCL, RHS>>
+ * @brief See Converter.
  */
-template <typename Operator, typename SCL, typename RHS>
-struct Evaluate<ScalarOp<Operator, SCL, RHS>> {
-  using value_type = typename RHS::value_type;
-  using scl_type = typename Evaluate<SCL>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = ScalarOp<Operator, SCL, RHS>;
-  using type = ScalarOp<Operator, scl_type, rhs_type>;
+template <typename Functor, typename SCL, typename RHS>
+struct Converter<Evaluator<ScalarExpr<Functor, SCL, RHS>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
+  using scl_type = value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<ScalarExpr<Functor, SCL, RHS>, SYCLDevice>;
+  using out_type = ScalarExpr<Functor, scl_type, rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto scl = Evaluate<SCL>::convert_to(v.scl, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(scl, rhs);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(v.scl, rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
-/*! Evaluate<TupleOp<Operator, RHS>
- * @brief See Evaluate.
+/*! Converter<TupleExpr<Operator, RHS>
+ * @brief See Converter.
  */
 template <typename RHS>
-struct Evaluate<TupleOp<RHS>> {
-  using value_type = typename RHS::value_type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = TupleOp<RHS>;
-  using type = TupleOp<rhs_type>;
+struct Converter<Evaluator<TupleExpr<RHS>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Converter<Evaluator<RHS, SYCLDevice>>::cont_type;
+  using input_type = Evaluator<TupleExpr<RHS>, SYCLDevice>;
+  using out_type = TupleExpr<rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(rhs);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
-/*! Evaluate<UnaryOp<Operator, RHS>
- * @brief See Evaluate.
+/*! Converter<UnaryExpr<Operator, RHS>
+ * @brief See Converter.
  */
-template <typename Operator, typename RHS>
-struct Evaluate<UnaryOp<Operator, RHS>> {
-  using value_type = typename RHS::value_type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = UnaryOp<Operator, RHS>;
-  using type = UnaryOp<Operator, rhs_type>;
+template <typename Functor, typename RHS>
+struct Converter<Evaluator<UnaryExpr<Functor, RHS>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Converter<Evaluator<RHS, SYCLDevice>>::cont_type;
+  using input_type = Evaluator<UnaryExpr<Functor, RHS>, SYCLDevice>;
+  using out_type = UnaryExpr<Functor, rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(rhs);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev,
+                      cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
-/*! Evaluate<BinaryOp<Operator, LHS, RHS>>
- * @brief See Evaluate.
+/*! Converter<BinaryExpr<Operator, LHS, RHS>>
+ * @brief See Converter.
  */
-template <typename Operator, typename LHS, typename RHS>
-struct Evaluate<BinaryOp<Operator, LHS, RHS>> {
-  using value_type = typename RHS::value_type;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = BinaryOp<Operator, LHS, RHS>;
-  using type = BinaryOp<Operator, lhs_type, rhs_type>;
+template <typename Functor, typename LHS, typename RHS>
+struct Converter<Evaluator<BinaryExpr<Functor, LHS, RHS>, SYCLDevice>> {
+  using value_type = typename Evaluator<RHS, SYCLDevice>::value_type;
+  using lhs_type = typename Converter<Evaluator<LHS, SYCLDevice>>::out_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<LHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<BinaryExpr<Functor, LHS, RHS>, SYCLDevice>;
+  using out_type = BinaryExpr<Functor, lhs_type, rhs_type>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(lhs, rhs);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto lhs = Converter<Evaluator<LHS, SYCLDevice>>::convert_to(v.l, h);
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(lhs, rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
+    Converter<Evaluator<LHS, SYCLDevice>>::bind_to(t.l, ev.l, h);
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
   }
 };
 
-/*! Evaluate<AssignReduction<Operator, LHS, RHS>>
- * @brief See Evaluate.
+/*! Converter<Reduction<Operator, LHS, RHS>>
+ * @brief See Converter.
  */
-template <typename Operator, typename LHS, typename RHS>
-struct Evaluate<AssignReduction<Operator, LHS, RHS>> {
-  using value_type = typename LHS::value_type;
-  using oper_type = Operator;
-  using LHS_type = LHS;
-  using cont_type = typename LHS::ContainerT;
-  using lhs_type = typename Evaluate<LHS>::type;
-  using rhs_type = typename Evaluate<RHS>::type;
-  using input_type = AssignReduction<Operator, LHS, RHS>;
-  using type = AssignReduction<Operator, lhs_type, rhs_type>;
+template <typename Functor, typename RHS>
+struct Converter<Evaluator<ReductionExpr<Functor, RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = ReductionExpr<Functor, RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using oper_type = Functor;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = ReductionExpr<Functor, rhs_type, MakeDevicePointer>;
 
-  static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto lhs = Evaluate<LHS>::convert_to(v.l, h);
-    auto rhs = Evaluate<RHS>::convert_to(v.r, h);
-    return type(lhs, rhs, v.blqS, v.grdS);
+  static out_type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(v.r, h);
+    return out_type(rhs);
+  }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+    h.require(*t.result, ev.result);
   }
 };
 
-/*! Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
- * @brief See Evaluate.
+template <typename RHS>
+struct Converter<Evaluator<BreakExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = BreakExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = BreakExpr<rhs_type, MakeDevicePointer>;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(t.r, h);
+    return out_type(rhs, t.to_break);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+    /* if(t.to_break) { */
+      h.require(*t.result, ev.result);
+    /* } */
+  }
+};
+
+template <typename RHS>
+struct Converter<Evaluator<StrideExpr<RHS, MakeHostPointer>, SYCLDevice>> {
+  using Expression = StrideExpr<RHS, MakeHostPointer>;
+  using value_type = typename Evaluator<Expression, SYCLDevice>::value_type;
+  using rhs_type = typename Converter<Evaluator<RHS, SYCLDevice>>::out_type;
+  using cont_type = typename Evaluator<RHS, SYCLDevice>::cont_type;
+  using input_type = Evaluator<Expression, SYCLDevice>;
+  using out_type = StrideExpr<rhs_type, MakeDevicePointer>;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto rhs = Converter<Evaluator<RHS, SYCLDevice>>::convert_to(t.r, h);
+    return out_type(rhs, t.offt, t.strd, t.N);
+  }
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
+    Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
+  }
+};
+
+/*! Converter<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+ * @brief See Converter.
  */
 template <typename ScalarT>
-struct Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
+struct Converter<Evaluator<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>> {
   using value_type = ScalarT;
   using cont_type = cl::sycl::buffer<ScalarT, 1>;
-  using input_type = vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = Evaluator<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>;
   using nested_type = cl::sycl::buffer<ScalarT, 1>;
-  using type = vector_view<
-      ScalarT,
-      cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                         cl::sycl::access::target::global_buffer>>;
+  using out_type = vector_view<value_type, cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::global_buffer>>;
 
-  static type convert_to(input_type t, cl::sycl::handler &h) {
-    auto nested =
-        cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                           cl::sycl::access::target::global_buffer>(t.data_, h);
-    return type(nested, t.disp_, t.strd_, t.size_);
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto nested = cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::global_buffer>(t.vec.data_, h);
+    return out_type(nested, t.vec.disp_, t.vec.strd_, t.vec.size_);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {}
 };
 
-/*! Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
- * @brief See Evaluate.
+/*! Converter<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+ * @brief See Converter.
  */
 template <typename ScalarT>
-struct Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
+struct Converter<Evaluator<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>> {
   using value_type = ScalarT;
   using cont_type = cl::sycl::buffer<ScalarT, 1>;
-  using input_type = matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = Evaluator<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>;
   using nested_type = cl::sycl::buffer<ScalarT, 1>;
-  using type = matrix_view<
-      ScalarT,
-      cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                         cl::sycl::access::target::global_buffer>>;
+  using out_type = matrix_view<ScalarT, cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::global_buffer>>;
 
-  static type convert_to(input_type t, cl::sycl::handler &h) {
-    auto nested =
-        cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                           cl::sycl::access::target::global_buffer>(t.data_, h);
-    return type(nested, t.accessDev_, t.sizeR_, t.sizeC_, t.accessOpr_,
-                t.sizeL_, t.disp_);
+  static out_type convert_to(input_type t, cl::sycl::handler &h) {
+    auto nested = cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::global_buffer>(t.mat.data_, h);
+    return out_type(nested, t.mat.accessDev_, t.mat.sizeR_, t.mat.sizeC_, t.mat.accessOpr_, t.mat.sizeL_, t.mat.disp_);
   }
+
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {}
 };
 
-/*! Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
- * @brief See Evaluate.
+/*! Converter<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+ * @brief See Converter.
  */
 template <typename ScalarT, typename ContainerT>
-struct Evaluate<vector_view<ScalarT, ContainerT>> {
+struct Converter<Evaluator<vector_view<ScalarT, ContainerT>, SYCLDevice>> {
   using value_type = ScalarT;
   using cont_type = ContainerT;
-  using input_type = vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = Evaluator<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>;
   using nested_type = ContainerT;
-  using type = vector_view<ScalarT, nested_type>;
+  using out_type = vector_view<ScalarT, nested_type>;
 
-  static type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {}
 };
 
-/*! Evaluate<matrix_view<ScalarT, ContainerT>>
- * @brief See Evaluate.
+/*! Converter<matrix_view<ScalarT, ContainerT>>
+ * @brief See Converter.
  */
 template <typename ScalarT, typename ContainerT>
-struct Evaluate<matrix_view<ScalarT, ContainerT>> {
+struct Converter<Evaluator<matrix_view<ScalarT, ContainerT>, SYCLDevice>> {
   using value_type = ScalarT;
   using cont_type = ContainerT;
-  using input_type = matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = Evaluator<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>, SYCLDevice>;
   using nested_type = ContainerT;
-  using type = matrix_view<ScalarT, nested_type>;
+  using out_type = matrix_view<ScalarT, nested_type>;
 
-  static type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static out_type convert_to(input_type t, cl::sycl::handler &h) = delete;
+  static void bind_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {}
 };
 
 /** make_accessor.
@@ -283,12 +342,15 @@ struct Evaluate<matrix_view<ScalarT, ContainerT>> {
  * @param Tree The Input Expression Tree.
  * @param handler The Command Group Handler used to create the accessors
  */
-template <typename Tree>
-auto make_accessor(Tree t, cl::sycl::handler &h) ->
-    typename Evaluate<Tree>::type {
-  return Evaluate<Tree>::convert_to(t, h);
+template <typename EvaluatorT>
+Evaluator<typename Converter<EvaluatorT>::out_type, SYCLDevice> make_accessor(EvaluatorT evh, cl::sycl::handler &h) {
+  using converter = Converter<EvaluatorT>;
+  auto expr = converter::convert_to(evh, h);
+  auto evd = Evaluator<decltype(expr), SYCLDevice>(expr);
+  converter::bind_to(evh, evd, h);
+  return evd;
 }
 
-}  // namespace blas
+}  // namespace BLAS
 
 #endif  // BLAS1_TREE_EXECUTOR_HPP
