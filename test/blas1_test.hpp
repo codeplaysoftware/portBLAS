@@ -45,7 +45,7 @@ struct option_size;
 namespace {
 static const size_t RANDOM_SIZE = UINT_MAX;
 static const size_t RANDOM_STRD = UINT_MAX;
-}  // namespace
+}  // namespace special
 #define REGISTER_SIZE(size, test_name)          \
   template <>                                   \
   struct option_size<class test_name> {         \
@@ -68,29 +68,28 @@ struct option_prec;
 
 // Wraps the above arguments into one template parameter.
 // We will treat template-specialized blas_templ_struct as a single class
-template <class ScalarT_, class ExecutorType_>
+template <class ScalarT_, class Device_>
 struct blas_templ_struct {
   using scalar_t = ScalarT_;
-  using executor_t = ExecutorType_;
+  using device_t = Device_;
 };
 // A "using" shortcut for the struct
-template <class ScalarT_, class ExecutorType_ = SYCL>
-using blas1_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
+template <class ScalarT_, class Device_ = SYCLDevice>
+using blas1_test_args = blas_templ_struct<ScalarT_, Device_>;
 
 // the test class itself
 template <class B>
 class BLAS1_Test;
 
-template <class ScalarT_, class ExecutorType_>
-class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
-    : public ::testing::Test {
+template <class ScalarT_, class Device_>
+class BLAS1_Test<blas1_test_args<ScalarT_, Device_>> : public ::testing::Test {
  public:
   using ScalarT = ScalarT_;
-  using ExecutorType = ExecutorType_;
+  using Device = Device_;
 
-  BLAS1_Test() = default;
-  virtual ~BLAS1_Test() = default;
+  BLAS1_Test() {}
 
+  virtual ~BLAS1_Test() {}
   virtual void SetUp() {}
   virtual void TearDown() {}
 
@@ -98,23 +97,16 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     // make sure the generated number is not too big for a type
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
-    size_t ret = rand() >> 5;
-    int type_size =
-        sizeof(ScalarT) * CHAR_BIT - std::numeric_limits<ScalarT>::digits10 - 2;
-    return (ret & (std::numeric_limits<size_t>::max() +
-                   (size_t(1) << (type_size - 2)))) +
-           1;
+    int max_size = 19 + 3 * std::log2(sizeof(ScalarT) / sizeof(float));
+    int max_rand = std::log2(RAND_MAX);
+    return rand() >> (max_rand - max_size);
   }
 
   // it is important that all tests are run with the same test size
   // so each time we access this function within the same program, we get the
   // same
   // randomly generated size
-  template <typename test>
   size_t test_size() {
-    if (option_size<test>::value != ::RANDOM_SIZE) {
-      return option_size<test>::value;
-    }
     static bool first = true;
     static size_t N;
     if (first) {
@@ -124,13 +116,8 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return N;
   }
 
-  // randomly generates stride when run for the first time, and keeps returning
-  // the same value consecutively
-  template <typename test>
+  // getting the stride in the same way as the size above
   size_t test_strd() {
-    if (option_strd<test>::value != ::RANDOM_STRD) {
-      return option_strd<test>::value;
-    }
     static bool first = true;
     static size_t N;
     if (first) {
@@ -140,17 +127,12 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return N;
   }
 
-  template <typename test>
-  ScalarT test_prec() {
-    return option_prec<ScalarT, test>::value;
-  }
-
   template <typename DataType,
             typename value_type = typename DataType::value_type>
   static void set_rand(DataType &vec, size_t _N) {
     value_type left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = value_type(rand() % int(right - left) * 1e3) * 1e-3 - right;
+      vec[i] = value_type(rand() % int(int(right - left) * 16)) * .03125 - right;
     }
   }
 
@@ -177,22 +159,45 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
 
   template <typename DeviceSelector,
             typename = typename std::enable_if<
-                std::is_same<ExecutorType, SYCL>::value>::type>
+                std::is_same<Device, SYCLDevice>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
-      for (auto &e : eL) {
-        try {
+      try {
+        for (auto &e : eL) {
           std::rethrow_exception(e);
-        } catch (cl::sycl::exception &e) {
-          std::cout << "E " << e.what() << std::endl;
-        } catch (std::exception &e) {
-          std::cout << "Standard Exception " << e.what() << std::endl;
-        } catch (...) {
-          std::cout << " An exception " << std::endl;
         }
+      } catch (cl::sycl::exception &e) {
+        std::cout << "E " << e.what() << std::endl;
+      } catch (std::exception &e) {
+        std::cout << "Standard Exception " << e.what() << std::endl;
+      } catch (...) {
+        std::cout << " An exception " << std::endl;
       }
     });
   }
 };
+
+// unpacking the parameters within the test function
+// B is blas_templ_struct
+// TestClass is BLAS1_Test<B>
+// T is default (scalar) type for the test (e.g. float, double)
+// C is the container type for the test (e.g. std::vector)
+// E is the executor kind for the test (sequential, openmp, sycl)
+#define B1_TEST(name) TYPED_TEST(BLAS1_Test, name)
+#define UNPACK_PARAM(test_name)                 \
+  using ScalarT = typename TypeParam::scalar_t; \
+  using TestClass = BLAS1_Test<TypeParam>;      \
+  using Device = typename TypeParam::device_t;  \
+  using test = class test_name;
+// TEST_SIZE determines the size based on the suggestion
+#define TEST_SIZE                                                       \
+  ((option_size<test>::value == ::RANDOM_SIZE) ? TestClass::test_size() \
+                                               : option_size<test>::value)
+#define TEST_STRD                                                       \
+  ((option_strd<test>::value == ::RANDOM_STRD) ? TestClass::test_strd() \
+                                               : option_strd<test>::value)
+// TEST_PREC determines the precision for the test based on the suggestion for
+// the type
+#define TEST_PREC option_prec<ScalarT, test>::value
 
 #endif /* end of include guard: BLAS1_TEST_HPP */
