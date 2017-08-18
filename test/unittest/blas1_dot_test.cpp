@@ -42,12 +42,12 @@ TYPED_TEST(BLAS1_Test, dot_test) {
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class dot_test;
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
   size_t size = TestClass::template test_size<test>();
   size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create two random vectors: vX and vY
   std::vector<ScalarT> vX(size);

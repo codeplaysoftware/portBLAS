@@ -47,25 +47,15 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX_(size);
-  std::vector<ScalarT> vY_(size);
-  TestClass::set_rand(vX_, size);
-  TestClass::set_rand(vY_, size);
-
-  SYCL_DEVICE_SELECTOR d;
-  auto vX = vX_;
-  auto vY = vY_;
+  // creating three random vectors
+  std::vector<ScalarT> vX(size);
+  std::vector<ScalarT> vY(size);
   std::vector<ScalarT> vZ(size);
+  TestClass::set_rand(vX, size);
+  TestClass::set_rand(vY, size);
+  TestClass::set_rand(vZ, size);
 
-  std::vector<ScalarT> vR(1);
-  std::vector<ScalarT> vS(1);
-  std::vector<ScalarT> vT(1);
-  std::vector<ScalarT> vU(1);
-
-  std::vector<IndVal<ScalarT>> vImax(
-      1, constant<IndVal<ScalarT>, const_val::imax>::value);
-  std::vector<IndVal<ScalarT>> vImin(
-      1, constant<IndVal<ScalarT>, const_val::imin>::value);
+  // the values will first be computed in a for loop:
   size_t imax = 0, imin = 0;
   ScalarT asum(0);
   const ScalarT alpha(0.432);
@@ -83,18 +73,24 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
     ScalarT &y = vY[i];
     ScalarT &z = vZ[i];
 
+    // axpy:
     z = x * alpha + y;
+
+    // reductions;
     asum += std::abs(z);
     dot += x * z;
     nrmX += x * x, nrmY += z * z;
+    // iamax
     if (std::abs(z) > std::abs(max)) {
       max = z;
       imax = i;
     }
+    // iamin
     if (std::abs(z) < std::abs(min)) {
       min = z;
       imin = i;
     }
+    // givens rotation
     if (i == 0) {
       ScalarT n1 = x, n2 = z;
       _rotg(n1, n2, _cos, _sin);
@@ -106,9 +102,26 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   }
   nrmX = std::sqrt(nrmX), nrmY = std::sqrt(nrmY);
 
+  // creating vectors which will contain the result
+  // for asum:
+  std::vector<ScalarT> vR(1);
+  // for dot:
+  std::vector<ScalarT> vS(1);
+  // for nrm2:
+  std::vector<ScalarT> vT(1);
+  // for dot after _rot
+  std::vector<ScalarT> vU(1);
+  // for iamax/iamin
+  std::vector<IndVal<ScalarT>> vImax(
+      1, constant<IndVal<ScalarT>, const_val::imax>::value);
+  std::vector<IndVal<ScalarT>> vImin(
+      1, constant<IndVal<ScalarT>, const_val::imin>::value);
+
+  SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
+    // computing the same values with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_vR = TestClass::make_buffer(vR);
@@ -137,13 +150,17 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
     _dot(ex, size, view_vX, strd, view_vY, strd, view_vU);
     _swap(ex, size, view_vX, strd, view_vY, strd);
   }
+  // because there is a lot of operations, it makes sense to set the precision
+  // threshold
   ScalarT prec_sample = std::max(
       std::numeric_limits<ScalarT>::epsilon() * size * 2, prec * ScalarT(1e1));
+  // checking that precision is reasonable
   EXPECT_LE(prec_sample, prec * 1e4);
   DEBUG_PRINT(
       std::cout << "prec==" << std::fixed
                 << std::setprecision(std::numeric_limits<ScalarT>::digits10)
                 << prec_sample << std::endl);
+  // compare the results
   EXPECT_NEAR(asum, vR[0], prec_sample);
   EXPECT_NEAR(dot, vS[0], prec_sample);
   EXPECT_NEAR(nrmY, vT[0], prec_sample);
