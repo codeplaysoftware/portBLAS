@@ -58,8 +58,7 @@ B1_TEST(scal_test) {
   Device dev;
   {
     auto buf_vX = TestClass::make_buffer(vX);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    blas::execute(dev, _scal((size+strd-1)/strd alpha, view_vX, 0, strd));
+    blas::execute(dev, _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd));
   }
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);

@@ -56,7 +56,7 @@ B1_TEST(iamin_test) {
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
-    blas::execute(dev, _iamin((size+strd-1)/strd buf_vX, 0, strd, buf_vI));
+    blas::execute(dev, _iamin((size+strd-1)/strd, buf_vX, 0, strd, buf_vI));
   }
   IndVal<ScalarT> res2(vI[0]);
   ASSERT_EQ(res.getVal(), res2.getVal());

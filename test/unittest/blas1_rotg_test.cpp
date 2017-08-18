@@ -62,9 +62,7 @@ B1_TEST(rot_test) {
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    blas::execute(dev, _copy((size+strd-1)/strd view_vX, 0, strd, view_vY, 0, strd));
+    blas::execute(dev, _copy((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
   }
   for (size_t i = 0; i < size; i += strd) {
     ASSERT_NEAR(vZ[i], vX[i], prec);

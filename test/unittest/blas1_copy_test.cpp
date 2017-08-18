@@ -46,7 +46,7 @@ B1_TEST(copy_test) {
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
-    blas::execute(dev, _copy((size+strd-1)/strd buf_vX, 0, strd, buf_vY, 0, strd));
+    blas::execute(dev, _copy((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
   }
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {

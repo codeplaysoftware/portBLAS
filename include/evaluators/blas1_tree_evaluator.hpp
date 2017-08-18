@@ -37,7 +37,7 @@
 namespace blas {
 
 template <class EvaluatorT, class Functor> struct GenericReducer;
-template <class EvaluatorT, class Functor> struct GenericReducerTwoStage;
+template <class EvaluatorT, class Functor> struct GenericReducerTwoStages;
 template <class EvaluatorT, class Functor, class Reducer> struct FullReducer;
 template <class EvaluatorT, class Functor, class Reducer> struct PartialReduction;
 

@@ -54,9 +54,7 @@ B1_TEST(swap_test) {
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    blas::execute(dev, _swap((size+strd-1)/strd view_vX, 0, strd, view_vY, 0, strd));
+    blas::execute(dev, _swap((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
   }
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
