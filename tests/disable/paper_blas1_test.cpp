@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <operations/blas1_trees.hpp>
 #include <interface/blas1_interface_sycl.hpp>
+#include <operations/blas1_trees.hpp>
 
 using namespace cl::sycl;
 using namespace blas;
