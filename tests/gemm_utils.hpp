@@ -130,16 +130,16 @@ test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
   std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
 }
 
-template <bool TransA, bool TransB, typename etype>
+template <bool TransA, bool TransB, typename E>
 void run_gemm_tests(int seed, int m, int k, int n, int rep)
 {
   std::cout << std::scientific;
 
   std::mt19937 rnd(seed);
 
-  auto dataA = gen_matrix<etype>(TransA ? k : m, TransA ? m : k, -1, 1, rnd);
-  auto dataB = gen_matrix<etype>(TransB ? n : k, TransB ? k : n, -1, 1, rnd);
-  auto origC = gen_matrix<etype>(m, n, -1, 1, rnd);
+  auto dataA = gen_matrix<E>(TransA ? k : m, TransA ? m : k, -1, 1, rnd);
+  auto dataB = gen_matrix<E>(TransB ? n : k, TransB ? k : n, -1, 1, rnd);
+  auto origC = gen_matrix<E>(m, n, -1, 1, rnd);
   auto refC = origC;
 
   const char *ta_str = TransA ? "T" : "N";
@@ -151,8 +151,8 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
 
   std::cout << "\n=== Testing system CPU implementation ===" << std::endl;
   run_test(rep, 2.0*m*n*k, [&] {
-    gemm(ta_str, tb_str, m, n, k, etype(1), dataA.data(), lda, dataB.data(),
-         ldb, etype(1), refC.data(), m);
+    gemm(ta_str, tb_str, m, n, k, E(1), dataA.data(), lda, dataB.data(),
+         ldb, E(1), refC.data(), m);
   });
 
   cl::sycl::queue q;
@@ -161,41 +161,70 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
             << std::endl;
 
 
-#define DATA rep, m, n, k, etype(1), dataA, lda, dataB, ldb, etype(1), origC, \
+#define DATA rep, m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, \
              ldc, refC, q
 
   const int cls = 64; // size of cache line in bytes
   const bool db = true; // use double buffer
+  const bool ba = true; // avoid bank conflicts for A
+  const bool bb = true; // avoid bank conflicts for B
   const bool ta = TransA;
   const bool tb = TransB;
 
-  test<GemmFactoryV2<128, ta, tb, etype>>(DATA);
+  test<GemmFactoryV2<128, ta, tb, E>>(DATA);
 
 
-  test<GemmFactoryV19<!db, cls, Tile<1, 1, 8, 8>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<1, 1, 8, 8>, ta, tb, etype>>(DATA);
+  /*
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<2, 2, 8, 8>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<2, 2, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<4, 4, 8, 8>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<4, 4, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
+  */
 
-  test<GemmFactoryV19<!db, cls, Tile<8, 8, 8, 8>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<8, 8, 8, 8>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
 
+  /*
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<1, 1, 16, 16>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<1, 1, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
 
-  test<GemmFactoryV19<!db, cls, Tile<2, 2, 16, 16>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<2, 2, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
+  */
 
-  test<GemmFactoryV19<!db, cls, Tile<4, 4, 16, 16>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<4, 4, 16, 16>, ta, tb, etype>>(DATA);
-
-  test<GemmFactoryV19<!db, cls, Tile<8, 8, 16, 16>, ta, tb, etype>>(DATA);
-  test<GemmFactoryV19<db, cls, Tile<8, 8, 16, 16>, ta, tb, etype>>(DATA);
+  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<!db, ba, bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
 
 #undef DATA
 

@@ -128,7 +128,8 @@ struct Tile {
 };
 
 
-template <bool DoubleBuffer, int ClSize, typename TileType,
+template <bool DoubleBuffer, bool NbcA, bool NbcB,
+          int ClSize, typename TileType,
           bool TransA, bool TransB, typename T>
 class GemmFactoryV19 {
 public:
@@ -144,6 +145,9 @@ public:
   static const int wg_cols = tile_type::wg_cols;
 
   static const bool double_buffer = DoubleBuffer;
+  static const bool nbc_a = NbcA;
+  static const bool nbc_b = NbcB;
+  // static const bool no_bconflicts = !double_buffer;
   static const bool trans_a = TransA;
   static const bool trans_b = TransB;
 
@@ -164,8 +168,10 @@ public:
                 "of the number of rows in a block\n"
                 " --- this is ensured iff: item_rows | wg_cols");
 
+  static const int ldsa = block_rows + nbc_a;
+  static const int ldsb = cl_elems + nbc_b;
   static const int scratch_size =
-      (double_buffer+1) * cl_elems * (block_rows + block_cols);
+      (double_buffer+1) * (ldsa * cl_elems + ldsb * block_cols);
 
   static inline std::string get_type_string() noexcept
   {
@@ -211,19 +217,23 @@ public:
 
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    B = B + item_id%cl_elems * (trans_b ? ldb : 1)
-          + (wg_col + item_id/cl_elems) * (trans_b ? 1 : ldb);
-    n = n - wg_col - item_id/cl_elems;
-    A = A + (wg_row + item_id%block_rows) * (trans_a ? lda : 1)
-          + (item_id/block_rows) * (trans_a ? 1 : lda);
-    m = m - wg_row - item_id%block_rows;
+    B = B + (trans_b ?
+        (item_id/block_cols) * ldb + (wg_col + item_id%block_cols) :
+        item_id%cl_elems + (wg_col + item_id/cl_elems) * ldb);
+    n = n - wg_col - (trans_b ? item_id%block_cols : item_id/cl_elems);
+    A = A + (trans_a ?
+        (wg_row + item_id/cl_elems) * lda + (item_id%cl_elems) :
+        (wg_row + item_id%block_rows) + (item_id/block_rows) * lda);
+    m = m - wg_row - (trans_a ? item_id/cl_elems : item_id%block_rows);
 
-    ScratchPointerType s1 =
-        scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
-    ScratchPointerType s2 = scratch + item_col*cl_elems;
-    const auto ofs = (double_buffer+1)*block_cols*cl_elems;
-    ScratchPointerType s3 =
-        scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
+    ScratchPointerType s1 = scratch + (trans_b ?
+        item_id/block_cols + (item_id%block_cols)*ldsb :
+        item_id%cl_elems + (item_id/cl_elems)*ldsb);
+    ScratchPointerType s2 = scratch + item_col*ldsb;
+    const auto ofs = (double_buffer+1)*block_cols*ldsb;
+    ScratchPointerType s3 = scratch + ofs + (trans_a ?
+        item_id/cl_elems + (item_id%cl_elems)*ldsa :
+        item_id%block_rows + (item_id/block_rows)*ldsa);
     ScratchPointerType s4 = scratch + ofs + item_row;
 
     if (internal) {
@@ -266,8 +276,8 @@ private:
       A = A + cl_elems * (trans_a ? 1 : lda);
       B = B + cl_elems * (trans_b ? ldb : 1);
       k -= cl_elems;
-      sync_smem<double_buffer, block_cols*cl_elems, block_cols*cl_elems,
-                block_rows*cl_elems, block_rows*cl_elems>
+      sync_smem<double_buffer, block_cols*ldsb, block_cols*ldsb,
+                ldsa*cl_elems, ldsa*cl_elems>
           (id, ofs, s1, s2, s3, s4);
     }
 
@@ -297,31 +307,59 @@ private:
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename InputPointerType, typename ScratchPointerType>
   static inline void extract_input_blocks(
-    int item_id, int m, int n, int k,
-    InputPointerType A, int lda, InputPointerType B, int ldb,
-    ScratchPointerType s1, ScratchPointerType s3) noexcept
+      int item_id, int m, int n, int k,
+      InputPointerType A, int lda, InputPointerType B, int ldb,
+      ScratchPointerType sB, ScratchPointerType sA) noexcept
   {
-    const int bsb = block_cols * cl_elems;
+    extract_block
+      <check_m_limit, check_k_limit, trans_a, block_rows, cl_elems, ldsa>
+      (item_id, A, lda, sA, [&](int ir, int cr) { return cr < m; },
+       [&](int ic, int cc) { return cc < k - ic; });
+    extract_block
+      <check_k_limit, check_n_limit, trans_b, cl_elems, block_cols, ldsb>
+      (item_id, B, ldb, sB, [&](int ir, int cr) { return cr < k - ir; },
+       [&](int ic, int cc) { return cc < n; });
+  }
+
+  template <bool check_row_limit, bool check_col_limit, bool trans,
+            int rows, int cols, int lds,
+            typename InputPointerType, typename ScratchPointerType,
+            typename RowPredicate, typename ColPredicate>
+  static inline typename std::enable_if<!trans>::type
+  extract_block(
+      int item_id, InputPointerType ptr, int ld, ScratchPointerType scratch,
+      RowPredicate in_row, ColPredicate in_col)
+  {
+    const int bs = rows * cols;
     #pragma unroll
-    for (int i = 0; i < (bsb-1) / wg_size + 1; ++i) {
-      if (!do_check<bsb % wg_size>(item_id + i*wg_size < bsb))
-        continue;
-      const bool in_range = do_check<check_k_limit>(item_id % cl_elems < k) &&
-                            do_check<check_n_limit>(wg_size/cl_elems*i < n);
-      s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems) * (trans_b ? 1:ldb)]
-                               : T(0);
-    }
-    const int bsa = block_rows * cl_elems;
-    #pragma unroll
-    for (int i = 0; i < (bsa-1) / wg_size + 1; ++i) {
-      if (!do_check<bsa % wg_size>(item_id + i*wg_size < bsa))
-        continue;
+    for (int i = 0; i < (bs - 1) / wg_size + 1; ++i) {
+      if (!do_check<bs % wg_size>(item_id + i*wg_size < bs)) continue;
+      const int col_ofs = i * (wg_size/rows);
       const bool in_range =
-          do_check<check_n_limit>(0 < m) &&
-          do_check<check_k_limit>
-            (item_id/block_rows+i*(wg_size/block_rows) < k);
-      s3[i*wg_size] = in_range ? A[i*(wg_size/block_rows) * (trans_a ? 1:lda)]
-                               : T(0);
+          do_check<check_row_limit>(in_row(item_id%rows, 0)) &&
+          do_check<check_col_limit>(in_col(item_id/rows, col_ofs));
+      scratch[col_ofs * lds] = in_range ? ptr[col_ofs * ld] : T(0);
+    }
+  }
+
+  template <bool check_row_limit, bool check_col_limit, bool trans,
+            int rows, int cols, int lds,
+            typename InputPointerType, typename ScratchPointerType,
+            typename RowPredicate, typename ColPredicate>
+  static inline typename std::enable_if<trans>::type
+  extract_block(
+      int item_id, InputPointerType ptr, int ld, ScratchPointerType scratch,
+      RowPredicate in_row, ColPredicate in_col)
+  {
+    const int bs = rows * cols;
+    #pragma unroll
+    for (int i = 0; i < (bs - 1) / wg_size + 1; ++i) {
+      if (!do_check<bs % wg_size>(item_id + i*wg_size < bs)) continue;
+      const int row_ofs = i * (wg_size/cols);
+      const bool in_range =
+          do_check<check_row_limit>(in_row(item_id/cols, row_ofs)) &&
+          do_check<check_col_limit>(in_col(item_id%cols, 0));
+      scratch[row_ofs] = in_range ? ptr[row_ofs * ld] : T(0);
     }
   }
 
@@ -334,11 +372,11 @@ private:
     for (int i = 0; i < cl_elems; ++i) {
       #pragma unroll
       for (int j = 0; j < item_rows; ++j) {
-        reg_a[j] = s4[j*wg_rows + i*block_rows];
+        reg_a[j] = s4[j*wg_rows + i*ldsa];
       }
       #pragma unroll
       for (int j = 0; j < item_cols; ++j) {
-        reg_b = s2[i + j*cl_elems];
+        reg_b = s2[i + j*ldsb];
         #pragma unroll
         for (int l = 0; l < item_rows; ++l) {
           reg_res[l][j] += reg_a[l] * reg_b;
