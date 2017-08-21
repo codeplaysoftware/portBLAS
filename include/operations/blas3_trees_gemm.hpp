@@ -183,11 +183,13 @@ public:
     return cl::sycl::nd_range<1>(nwg*wgs, wgs);
   }
 
-  template <typename GlobalPointerType, typename LocalPointerType>
+  template <typename InputPointerType, typename OutputPointerType,
+            typename ScratchPointerType>
   static inline void run(
       cl::sycl::nd_item<1> id, int wg_id, int item_id, int m, int n, int k,
-      T alpha, GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-      T beta, GlobalPointerType C, int ldc, LocalPointerType scratch) noexcept
+      T alpha, InputPointerType A, int lda, InputPointerType B, int ldb,
+      T beta, OutputPointerType C, int ldc, ScratchPointerType scratch)
+      noexcept
   {
     const auto wg_per_col = (m - 1) / block_rows + 1;
     const auto wg_row = (wg_id % wg_per_col) * block_rows;
@@ -214,13 +216,13 @@ public:
     A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
     m = m - wg_row - item_id%block_rows;
 
-    LocalPointerType s1 =
+    ScratchPointerType s1 =
         scratch + item_id%cl_elems + (item_id/cl_elems)*cl_elems;
-    LocalPointerType s2 = scratch + item_col*cl_elems;
+    ScratchPointerType s2 = scratch + item_col*cl_elems;
     const auto ofs = (double_buffer+1)*block_cols*cl_elems;
-    LocalPointerType s3 =
+    ScratchPointerType s3 =
         scratch + ofs + item_id%block_rows + (item_id/block_rows)*block_rows;
-    LocalPointerType s4 = scratch + ofs + item_row;
+    ScratchPointerType s4 = scratch + ofs + item_row;
 
     if (internal) {
       compute_panel_gemm
@@ -237,16 +239,16 @@ public:
 
 private:
   template <bool double_buffer,
-            bool check_m_limit, bool check_n_limit, 
-            typename GlobalPointerType,
-            typename LocalPointerType>
+            bool check_m_limit, bool check_n_limit,
+            typename InputPointerType, typename OutputPointerType,
+            typename ScratchPointerType>
   static inline void compute_panel_gemm(
       cl::sycl::nd_item<1> id, int item_id,
       int m, int mc, int n, int nc, int k, T alpha,
-      GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-      T beta, GlobalPointerType C, int ldc,
-      LocalPointerType s1, LocalPointerType s2,
-      LocalPointerType s3, LocalPointerType s4,
+      InputPointerType A, int lda, InputPointerType B, int ldb,
+      T beta, OutputPointerType C, int ldc,
+      ScratchPointerType s1, ScratchPointerType s2,
+      ScratchPointerType s3, ScratchPointerType s4,
       T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
       noexcept
   {
@@ -291,11 +293,11 @@ private:
   }
 
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
-            typename GlobalPointerType, typename LocalPointerType>
+            typename InputPointerType, typename ScratchPointerType>
   static inline void extract_input_blocks(
     int item_id, int m, int n, int k,
-    GlobalPointerType A, int lda, GlobalPointerType B, int ldb,
-    LocalPointerType s1, LocalPointerType s3) noexcept
+    InputPointerType A, int lda, InputPointerType B, int ldb,
+    ScratchPointerType s1, ScratchPointerType s3) noexcept
   {
     const int bsb = block_cols * cl_elems;
     #pragma unroll
@@ -319,9 +321,9 @@ private:
     }
   }
 
-  template <typename LocalPointerType>
+  template <typename ScratchPointerType>
   static inline void compute_block_gemm(
-      LocalPointerType s2, LocalPointerType s4,
+      ScratchPointerType s2, ScratchPointerType s4,
       T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
       noexcept
   {
