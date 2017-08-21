@@ -211,9 +211,11 @@ public:
 
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    B = B + item_id%cl_elems + (wg_col + item_id/cl_elems)*ldb;
+    B = B + item_id%cl_elems * (trans_b ? ldb : 1)
+          + (wg_col + item_id/cl_elems) * (trans_b ? 1 : ldb);
     n = n - wg_col - item_id/cl_elems;
-    A = A + wg_row + item_id%block_rows + (item_id/block_rows)*lda;
+    A = A + (wg_row + item_id%block_rows) * (trans_a ? lda : 1)
+          + (item_id/block_rows) * (trans_a ? 1 : lda);
     m = m - wg_row - item_id%block_rows;
 
     ScratchPointerType s1 =
@@ -261,8 +263,8 @@ private:
       id.barrier(cl::sycl::access::fence_space::local_space);
       compute_block_gemm
         (s2, s4, reg_a, reg_b, reg_res);
-      A = A + cl_elems*lda;
-      B = B + cl_elems;
+      A = A + cl_elems * (trans_a ? 1 : lda);
+      B = B + cl_elems * (trans_b ? ldb : 1);
       k -= cl_elems;
       sync_smem<double_buffer, block_cols*cl_elems, block_cols*cl_elems,
                 block_rows*cl_elems, block_rows*cl_elems>
@@ -306,7 +308,8 @@ private:
         continue;
       const bool in_range = do_check<check_k_limit>(item_id % cl_elems < k) &&
                             do_check<check_n_limit>(wg_size/cl_elems*i < n);
-      s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems)*ldb] : T(0);
+      s1[i*wg_size] = in_range ? B[i*(wg_size/cl_elems) * (trans_b ? 1:ldb)]
+                               : T(0);
     }
     const int bsa = block_rows * cl_elems;
     #pragma unroll
@@ -317,7 +320,8 @@ private:
           do_check<check_n_limit>(0 < m) &&
           do_check<check_k_limit>
             (item_id/block_rows+i*(wg_size/block_rows) < k);
-      s3[i*wg_size] = in_range ? A[i*(wg_size/block_rows)*lda] : T(0);
+      s3[i*wg_size] = in_range ? A[i*(wg_size/block_rows) * (trans_a ? 1:lda)]
+                               : T(0);
     }
   }
 
