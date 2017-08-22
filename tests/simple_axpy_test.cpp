@@ -38,18 +38,18 @@ int main(int argc, char *argv[]) {
                   [&](double &elem) { elem = 1.0; });
 
     // CREATING THE SYCL QUEUE AND EXECUTOR
-    /* cl::sycl::queue q([=](cl::sycl::exception_list eL) { */
-    /* try { */
-    /*   for (auto &e : eL) { */
-    /*     std::rethrow_exception(e); */
-    /*   } */
-    /* } catch (cl::sycl::exception &e) { */
-    /*   std::cout << " E " << e.what() << std::endl; */
-    /* } catch (...) { */
-    /*   std::cout << " An exception " << std::endl; */
-    /* } */
-    /* }); */
-    SYCLDevice dev;
+    cl::sycl::queue q([=](cl::sycl::exception_list eL) {
+      for (auto &e : eL) {
+        try {
+            std::rethrow_exception(e);
+        } catch (cl::sycl::exception &e) {
+          std::cout << " E " << e.what() << std::endl;
+        } catch (...) {
+          std::cout << " An exception " << std::endl;
+        }
+      }
+    });
+    SYCLDevice dev(q);
 
     {
       // CREATION OF THE BUFFERS
@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
 
       // EXECUTION OF THE ROUTINES
       auto scal = _scal(DEF_SIZE_VECT/2, 2.0, bvX, 0, 2);
-      blas::execute(dev, _axpy(DEF_SIZE_VECT/2, 1.0, scal, 0, 1, bvY, 0, 1));
+      auto axpy = _axpy(DEF_SIZE_VECT/2, 1.0, scal, 0, 1, bvY, 0, 1);
+      blas::execute(dev, axpy);
     }
 
     std::cout << " Output: ";

@@ -39,8 +39,10 @@
 
 namespace blas {
 
+#ifndef RETURNCXX11
 #define RETURNCXX11(expr) \
   ->decltype(expr) { return expr; }
+#endif // RETURNCXX11
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.

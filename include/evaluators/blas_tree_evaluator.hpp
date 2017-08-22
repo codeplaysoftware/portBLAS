@@ -115,63 +115,6 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device_> {
   }
 };
 
-/* namespace detail { */
-/*   template <size_t... Is> struct index_seq{}; */
-/*   template <class IS1, class IS2> struct concat_index_seq; */
-/*   template <class IS1, class IS2> using concat = typename concat_index_seq<IS1, IS2>::type; */
-/*   template <size_t... Is1, size_t... Is2> */
-/*   struct concat_index_seq <index_seq<Is1...>, index_seq<Is2...>> { */
-/*     using type = index_seq<Is1..., Is2...>; */
-/*   }; */
-/*   template <size_t N> */
-/*   struct make_index_seq { */
-/*     using type = concat<typename make_index_seq<N - 1>::type, index_seq<N - 1>>; */
-/*     static constexpr type value; */
-/*   }; */
-/*   template <> struct make_index_seq<0> { */
-/*     using type = index_seq<0>; */
-/*     static constexpr type value; */
-/*   }; */
-/* } // namespace detail */
-/* template <class... EXPRs, typename Device_> */
-/* struct Evaluator<MultipleExpr<EXPRs...>, Device_> { */
-/*   using Expression = MultipleExpr<EXPRs...>; */
-/*   using Device = Device_; */
-
-/*   size_t N; */
-/*   std::tuple<Evaluator<EXPRs, Device>...> evs; */
-
-/*   Evaluator(Expression &expr): */
-/*     evs(std::forward<EXPRs>(Evaluator<EXPRs, Device>(exprs))...) */
-/*   {} */
-
-/* private: */
-/*   template <typename EXPR> */
-/*   bool eval_subexpr_if_needed(Evaluator<EXPR, Device> ev, typename EXPR::cont_type *cont, Device &dev) { */
-/*     ev.eval_subexpr_if_needed(cont, dev); */
-/*     return true; */
-/*   } */
-
-/*   template <size_t... Is> */
-/*   bool eval_subexpr_if_needed(Device &dev, detail::index_seq<Is...>) { */
-/*     return std::all_of(eval_subexpr_if_needed(std::get<Is>(evs), nullptr, dev)...); */
-/*   } */
-
-/*   template <size_t... Is> */
-/*   void eval(size_t i, detail::index_seq<Is...) */
-
-/* public: */
-/*   bool eval_subexpr_if_needed(void *cont, Device &dev) { */
-/*     eval_subexpr_if_needed(dev, detail::make_index_seq<std::tuple_size<decltype(evs)>::value) */
-/*   } */
-
-/*   void eval(size_t i) { */
-/*     void eval(size_t i, detail::make_index_seq<std::tuple_size<decltype(evs)>::value); */
-/*   } */
-/*   void eval(cl::sycl::nd_item<1> ndItem) { eval(ndItem.get_global(0)); } */
-/*   size_t getSize() const { return N; } */
-/* }; */
-
 template <class Functor, class SCL, class RHS, typename Device_>
 struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device_> {
   using Expression = ScalarExpr<Functor, SCL, RHS>;
@@ -289,6 +232,105 @@ template <class RHS>
 TupleExpr<RHS> make_tplExpr(RHS r) {
   return TupleExpr<RHS>(r);
 }
+
+namespace detail {
+  template <size_t... Is> struct index_seq {
+    using type = index_seq;
+  };
+  template <class A, class B> struct concat_index_seq;
+
+  template <size_t... As, size_t... Bs>
+  struct concat_index_seq<index_seq<As...>, index_seq<Bs...>> : index_seq<As..., Bs...>{};
+
+  template <class A, class B>
+  using concat = typename concat_index_seq<A, B>::type;
+
+  template <size_t L, size_t U>
+  struct make_index_range : concat<typename make_index_range<L, U - 1>::type, index_seq<U - 1>>{};
+  template <size_t L> struct make_index_range<L, L> : index_seq<>{};
+  template <size_t N> struct make_index_seq : make_index_range<0, N>{};
+}
+template <typename TreeFirst, typename... Trees, typename Device_>
+struct Evaluator<ForestExpr<TreeFirst, Trees...>, Device_> {
+  using Expression = ForestExpr<TreeFirst, Trees...>;
+  using Device = Device_;
+  using value_type = typename Expression::value_type;
+  using cont_type = typename Evaluator<TreeFirst, Device>::cont_type;
+  constexpr static size_t ntrees = 1 + sizeof...(Trees);
+
+  std::tuple<Evaluator<TreeFirst, Device>, Evaluator<Trees, Device>...> evs;
+
+private:
+  template <typename... Ts> void unroll(Ts...){}
+
+  template <size_t... Is>
+  Evaluator(Expression &expr, detail::index_seq<Is...>):
+    evs(std::make_tuple(decltype(std::get<Is>(evs))(std::get<Is>(expr.trees))...))
+  {}
+
+  template <size_t I>
+  bool eval_subexpr_if_needed_iter(Device &dev) {
+    return std::get<I>(evs).eval_subexpr_if_needed(nullptr, dev);
+  }
+
+  template <size_t... Is>
+  bool eval_subexpr_if_needed_each(Device &dev, detail::index_seq<Is...> val) {
+    unroll(eval_subexpr_if_needed_iter<Is>(dev)...);
+    return true;
+  }
+
+  template <size_t I>
+  value_type eval_iter(size_t i) {
+    return std::get<I>(evs).eval(i);
+  }
+  template <size_t I>
+  value_type eval_iter(cl::sycl::nd_item<1> ndItem) {
+    return eval_iter<I>(ndItem.get_global(0));
+  }
+
+  template <size_t... Is>
+  void eval_each(size_t i, detail::index_seq<Is...>) {
+    unroll(eval_iter<Is>(i)...);
+  }
+
+  template <size_t I>
+  int cleanup_iter(Device &dev) {
+    std::get<I>(evs).cleanup(dev);
+    return 0;
+  }
+
+  template <size_t... Is>
+  void cleanup_each(Device &dev, detail::index_seq<Is...>) {
+    unroll(cleanup_iter<Is>(dev)...);
+  }
+public:
+  Evaluator(Expression &expr):
+    Evaluator(expr, detail::make_index_seq<ntrees>{})
+  {}
+
+  size_t getSize() const { return std::get<0>(evs).getSize(); }
+  cont_type *data() { return std::get<0>(evs).data(); }
+
+  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
+    std::get<0>(evs).eval_subexpr_if_needed(cont, dev);
+    eval_subexpr_if_needed_each(dev, detail::make_index_range<1, ntrees>{});
+    return true;
+  }
+
+  value_type eval(size_t i) {
+    value_type x = eval_iter<0>(i);
+    eval_each(i, detail::make_index_range<1, ntrees>{});
+    return x;
+  }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global(0));
+  }
+
+  void cleanup(Device &dev) {
+    cleanup_each(dev, detail::make_index_seq<ntrees>{});
+  }
+};
 
 template <typename EvaluatorT>
 struct SubExecutor;

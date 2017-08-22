@@ -162,6 +162,31 @@ struct BreakExpr {
   size_t getSize() const { return r.getSize(); }
 };
 
+/*!
+ * ForestExpr
+ * @brief Expression for fusing multiple independent trees in the main kernel.
+ */
+template <typename... TREES> struct ForestExpr;
+template <typename Tf, typename... Ts>
+struct ForestExpr <Tf, Ts...> {
+  using value_type = typename Tf::value_type;
+  std::tuple<Tf, Ts...> trees;
+
+  ForestExpr(Tf &&f, Ts&&... s):
+    trees(std::make_tuple(f, s...))
+  {}
+
+  ForestExpr(Tf &f, Ts&... s):
+    trees(std::make_tuple(f, s...))
+  {}
+  size_t getSize() const { return std::get<0>(trees).getSize(); }
+};
+
+template <typename... Ts>
+ForestExpr<Ts...> make_forest(Ts... s) {
+  return ForestExpr<Ts...>(s...);
+}
+
 
 /*!
  * StrideExpr
