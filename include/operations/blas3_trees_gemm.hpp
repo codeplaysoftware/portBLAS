@@ -1,4 +1,4 @@
-/*************************************************************************** 
+/***************************************************************************
  *  @license
  *  Copyright (C) 2017 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,18 +112,22 @@ template <bool> inline bool do_check(bool cond) { return cond; }
 template <> inline bool do_check<false>(bool) { return true; }
 
 
-template <int ItemRows, int ItemCols, int WgRows, int WgCols>
+template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
+          int TlRows = 1, int TlCols = 1>
 struct Tile {
   static const int item_rows = ItemRows;
   static const int item_cols = ItemCols;
   static const int wg_rows = WgRows;
   static const int wg_cols = WgCols;
+  static const int tl_rows = TlRows;
+  static const int tl_cols = TlCols;
 
   static inline std::string get_type_string() noexcept
   {
     return std::string("Tile<") + std::to_string(item_rows) + ", " +
            std::to_string(item_cols) + ", " + std::to_string(wg_rows) + ", " +
-           std::to_string(wg_cols) + ">";
+           std::to_string(wg_cols) + ", " + std::to_string(tl_rows) + ", " +
+           std::to_string(tl_cols) + ">";
   }
 };
 
@@ -143,11 +147,12 @@ public:
   static const int item_cols = tile_type::item_cols;
   static const int wg_rows = tile_type::wg_rows;
   static const int wg_cols = tile_type::wg_cols;
+  static const int tl_rows = tile_type::tl_rows;
+  static const int tl_cols = tile_type::tl_cols;
 
   static const bool double_buffer = DoubleBuffer;
   static const bool nbc_a = NbcA;
   static const bool nbc_b = NbcB;
-  // static const bool no_bconflicts = !double_buffer;
   static const bool trans_a = TransA;
   static const bool trans_b = TransB;
 
@@ -156,6 +161,8 @@ public:
   static const int wg_size = wg_rows * wg_cols;
   static const int block_rows = wg_rows * item_rows;
   static const int block_cols = wg_cols * item_cols;
+  static const int big_tile_rows = tl_rows * block_rows;
+  static const int big_tile_cols = tl_cols * block_cols;
 
   static_assert(wg_size % cl_elems == 0,
                 "Work group size should be a multiple "
@@ -168,6 +175,11 @@ public:
                 "of the number of rows in a block\n"
                 " --- this is ensured iff: item_rows | wg_cols");
 
+  static_assert(wg_size % block_cols == 0,
+                "Work group size should be a multiple "
+                "of the number of columns in a block\n"
+                " --- this is ensured iff: item_cols | wg_rows");
+
   static const int ldsa = block_rows + nbc_a;
   static const int ldsb = cl_elems + nbc_b;
   static const int scratch_size =
@@ -176,6 +188,7 @@ public:
   static inline std::string get_type_string() noexcept
   {
     return std::string("GemmFactoryV19<") + std::to_string(double_buffer) +
+           ", " + std::to_string(nbc_a) + ", " + std::to_string(nbc_b) +
            ", " + std::to_string(cl_size) + ", " +
            tile_type::get_type_string() + ", " +
            type_string<value_type>::get_value() + ">";
@@ -184,7 +197,8 @@ public:
   static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept
   {
     const cl::sycl::range<1> nwg(
-        ((m - 1) / block_rows + 1) * ((n - 1) / block_cols + 1));
+        ((m - 1) / big_tile_rows + 1) * ((n - 1) / big_tile_cols + 1) *
+         tl_rows * tl_cols);
     const cl::sycl::range<1> wgs(wg_size);
     return cl::sycl::nd_range<1>(nwg*wgs, wgs);
   }
@@ -197,9 +211,17 @@ public:
       T beta, OutputPointerType C, int ldc, ScratchPointerType scratch)
       noexcept
   {
-    const auto wg_per_col = (m - 1) / block_rows + 1;
-    const auto wg_row = (wg_id % wg_per_col) * block_rows;
-    const auto wg_col = (wg_id / wg_per_col) * block_cols;
+    const auto tile_size = tl_rows * tl_cols;
+    const auto tile_id = wg_id / tile_size;
+    const auto tile_local_id = wg_id % tile_size;
+    const auto tiles_per_col = (m - 1) / big_tile_rows + 1;
+    const auto tile_row = (tile_id % tiles_per_col) * tl_rows;
+    const auto tile_col = (tile_id / tiles_per_col) * tl_cols;
+    const auto wg_row = (tile_row + tile_local_id % tl_rows) * block_rows;
+    const auto wg_col = (tile_col + tile_local_id / tl_rows) * block_rows;
+    if (wg_row >= m || wg_col >= n) {
+      return;
+    }
 
     const auto item_row = item_id % wg_rows;
     const auto item_col = (item_id / wg_rows) * item_cols;

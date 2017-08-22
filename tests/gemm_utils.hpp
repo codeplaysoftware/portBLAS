@@ -161,72 +161,32 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
             << std::endl;
 
 
-#define DATA rep, m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, \
-             ldc, refC, q
+#define ARG rep, m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, \
+            ldc, refC, q
+#define TARG(_tir, _tic, _twr, _twc) \
+    db, ba, bb, cls, Tile<_tir, _tic, _twr, _twc>, ta, tb, E
 
   const int cls = 64; // size of cache line in bytes
-  const bool db = true; // use double buffer
-  const bool ba = true; // avoid bank conflicts for A
-  const bool bb = true; // avoid bank conflicts for B
+  const bool db = false; // use double buffer
+  const bool ba = false; // avoid bank conflicts for A
+  const bool bb = false; // avoid bank conflicts for B
   const bool ta = TransA;
   const bool tb = TransB;
 
-  test<GemmFactoryV2<128, ta, tb, E>>(DATA);
+  test<GemmFactoryV2<128, ta, tb, E>>(ARG);
 
+  test<GemmFactoryV19<TARG(1, 1, 8, 8)>>(ARG);
+  test<GemmFactoryV19<TARG(2, 2, 8, 8)>>(ARG);
+  test<GemmFactoryV19<TARG(4, 4, 8, 8)>>(ARG);
+  test<GemmFactoryV19<TARG(8, 8, 8, 8)>>(ARG);
 
-  /*
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<1, 1, 8, 8>, ta, tb, E>>(DATA);
+  test<GemmFactoryV19<TARG(1, 1, 16, 16)>>(ARG);
+  test<GemmFactoryV19<TARG(2, 2, 16, 16)>>(ARG);
+  test<GemmFactoryV19<TARG(4, 4, 16, 16)>>(ARG);
+  test<GemmFactoryV19<TARG(8, 8, 16, 16)>>(ARG);
 
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<2, 2, 8, 8>, ta, tb, E>>(DATA);
-
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<4, 4, 8, 8>, ta, tb, E>>(DATA);
-  */
-
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<8, 8, 8, 8>, ta, tb, E>>(DATA);
-
-  /*
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<1, 1, 16, 16>, ta, tb, E>>(DATA);
-
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<2, 2, 16, 16>, ta, tb, E>>(DATA);
-
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<4, 4, 16, 16>, ta, tb, E>>(DATA);
-  */
-
-  test<GemmFactoryV19<!db, !ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, !ba, bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<!db, ba, bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
-  test<GemmFactoryV19<db, !ba, !bb, cls, Tile<8, 8, 16, 16>, ta, tb, E>>(DATA);
-
-#undef DATA
+#undef ARG
+#undef TARG
 
 }
 
