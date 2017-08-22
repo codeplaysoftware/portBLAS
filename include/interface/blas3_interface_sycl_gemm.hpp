@@ -23,8 +23,10 @@
  *
  **************************************************************************/
 
+
 #ifndef BLAS3_INTERFACE_SYCL_GEMM_HPP
 #define BLAS3_INTERFACE_SYCL_GEMM_HPP
+
 
 #include <algorithm>
 #include <cctype>
@@ -33,17 +35,23 @@
 #include <stdexcept>
 #include <vector>
 
+
 // #define VERBOSE 1
+
 
 #include <executors/executor_sycl.hpp>
 #include <operations/blas3_trees_gemm.hpp>
 
+
 using namespace cl::sycl;
+
 
 namespace blas {
 
+
 template <typename T>
 struct Wrap {};
+
 
 template <typename Gemm, typename ExecutorType, typename T>
 inline void _gemm_v2_tr(Executor<ExecutorType> ex, int _M, int _N, int _K,
@@ -63,31 +71,31 @@ inline void _gemm_v2_tr(Executor<ExecutorType> ex, int _M, int _N, int _K,
   ex.sycl_queue().wait();
 }
 
+
 template <size_t WG, typename ExecutorType, typename T>
 inline void _gemm_v2(Executor<ExecutorType> ex, bool _TransA, bool _TransB,
                      int _M, int _N, int _K, T _alpha,
                      cl::sycl::buffer<T, 1> _A, int _lda,
                      cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
                      cl::sycl::buffer<T, 1> _C, int _ldc) {
-  if (_TransA && _TransB) {
-    _gemm_v2_tr<GemmFactoryV2<WG, true, true, T>>(ex, _M, _N, _K, _alpha, _A,
-                                                  _lda, _B, _beta, _C, _ldc);
-    return;
-  } else if (_TransA && !_TransB) {
-    _gemm_v2_tr<GemmFactoryV2<WG, true, false, T>>(ex, _M, _N, _K, _alpha, _A,
-                                                   _lda, _B, _beta, _C, _ldc);
-    return;
-  } else if (!_TransA && _TransB) {
-    _gemm_v2_tr<GemmFactoryV2<WG, false, true, T>>(ex, _M, _N, _K, _alpha, _A,
-                                                   _lda, _B, _beta, _C, _ldc);
-    return;
-  } else if (!_TransA && !_TransB) {
-    _gemm_v2_tr<GemmFactoryV2<WG, false, false, T>>(ex, _M, _N, _K, _alpha, _A,
-                                                    _lda, _B, _beta, _C, _ldc);
-    return;
+  #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b) \
+  if (_TransA == _trans_a && _TransB == _trans_b) { \
+    _gemm_v2_tr<GemmFactoryV2<WG, _trans_a, _trans_b, T>>( \
+        ex, _M, _N, _K, _alpha, _A, _lda, _B, _beta, _C, _ldc); \
+    return;\
   }
-  throw std::runtime_error("leak in the condition");
+
+  const bool NoTrans = false;
+  const bool Trans   =  true;
+
+  ENABLE_GEMM_TRANSPOSE(NoTrans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(  Trans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(NoTrans,   Trans);
+  ENABLE_GEMM_TRANSPOSE(  Trans,   Trans);
+
+  #undef ENABLE_GEMM_TRANSPOSE
 }
+
 
 template <typename Gemm, typename ExecutorType, typename T>
 void _gemm_v19_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
@@ -109,35 +117,35 @@ void _gemm_v19_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
   ex.sycl_queue().wait();
 }
 
-template <bool DoubleBuffer, size_t ClSize, typename TileT,
-          typename ExecutorType, typename T>
+
+template <bool DoubleBuffer, bool ConflictA, bool ConflictB, size_t ClSize,
+          typename TileT, typename ExecutorType, typename T>
 void _gemm_v19(Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M,
                int _N, int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
                cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
                cl::sycl::buffer<T, 1> _C, int _ldc) {
-  if (_TransA && _TransB) {
-    _gemm_v19_tr<GemmFactoryV19<DoubleBuffer, ClSize, TileT, true, true, T>>(
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc);
-    return;
-  } else if (_TransA && !_TransB) {
-    _gemm_v19_tr<GemmFactoryV19<DoubleBuffer, ClSize, TileT, true, false, T>>(
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc);
-    return;
-  } else if (!_TransA && _TransB) {
-    _gemm_v19_tr<GemmFactoryV19<DoubleBuffer, ClSize, TileT, false, true, T>>(
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc);
-    return;
-  } else if (!_TransA && !_TransB) {
-    _gemm_v19_tr<GemmFactoryV19<DoubleBuffer, ClSize, TileT, false, false, T>>(
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc);
-    return;
+  #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b) \
+  if (_TransA == _trans_a && _TransB == _trans_b) { \
+    _gemm_v19_tr<\
+      GemmFactoryV19<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
+      _trans_a, _trans_b, T>>( \
+      ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
   }
-  throw std::runtime_error("leak in the condition");
+
+  const bool NoTrans = false;
+  const bool Trans   =  true;
+
+  ENABLE_GEMM_TRANSPOSE(NoTrans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(  Trans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(NoTrans,   Trans);
+  ENABLE_GEMM_TRANSPOSE(  Trans,   Trans);
+
+  #undef ENABLE_GEMM_TRANSPOSE
 }
+
 
 typedef enum { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU } DEVICETYPE;
 DEVICETYPE get_device_type(const cl::sycl::device dev) {
-  // std::vector<cl::sycl::device> supported_devices;
   cl::sycl::platform platform = dev.get_platform();
   auto plat_name = platform.template get_info<cl::sycl::info::platform::name>();
   std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
@@ -147,10 +155,11 @@ DEVICETYPE get_device_type(const cl::sycl::device dev) {
   } else if (plat_name.find("intel") != std::string::npos && dev.is_gpu()) {
     return INTELGPU;
   } else {
-    return UNSUPPORTED_DEVICE;  // UNSUPPORTED_DEVICE;
+    return UNSUPPORTED_DEVICE;
   }
   throw std::runtime_error("couldn't find device");
 }
+
 
 template <typename ExecutorType, typename T>
 void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
@@ -167,56 +176,37 @@ void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
 
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
-#define ARGS \
-  ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc
-#define IF_MNK_EQ(m, n, k) if (_M == (m) && _N == (n) && _K == (k))
-  cl::sycl::device dev = ex.sycl_queue().get_device();
-  if (get_device_type(dev) == AMDGPU) {
-    IF_MNK_EQ(4096, 4096, 4096) {
-      _gemm_v19<false, 64, Tile<8, 8, 16, 16>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(2048, 784, 1024) {
-      _gemm_v19<false, 64, Tile<8, 8, 16, 16>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(4096, 2048, 1024) {
-      _gemm_v19<false, 64, Tile<8, 8, 16, 16>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(1024, 4096, 1024) {
-      _gemm_v19<false, 64, Tile<8, 8, 16, 16>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(10, 1024, 1024) {
-      _gemm_v19<true, 64, Tile<1, 1, 16, 16>>(ARGS);
-      return;
-    }
-  } else if (get_device_type(dev) == INTELGPU) {
-    IF_MNK_EQ(4096, 4096, 4096) {
-      _gemm_v19<false, 64, Tile<8, 8, 8, 8>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(2048, 784, 1024) {
-      _gemm_v19<false, 64, Tile<8, 8, 8, 8>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(4096, 2048, 1024) {
-      _gemm_v19<false, 64, Tile<8, 8, 8, 8>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(1024, 4096, 1024) {
-      _gemm_v19<false, 64, Tile<4, 4, 16, 16>>(ARGS);
-      return;
-    }
-    else IF_MNK_EQ(10, 1024, 1024) {
-      _gemm_v19<false, 64, Tile<2, 2, 8, 8>>(ARGS);
-      return;
-    }
+
+  #define BIND_DATA_SIZE(_m, _n, _k) \
+    if (_M == (_m) && _N == (_n) && _K == (_k))
+
+  #define BIND_DEFAULT
+
+  #define TO_TPARAMS(_db, _tir, _tic, _twr, _twc) {\
+    _gemm_v19<_db, false, false, 64, Tile<_tir, _tic, _twr, _twc>>( \
+        ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, \
+        _beta, _C, _ldc); \
+    return; \
   }
-  throw std::runtime_error("not implemented");
+
+  cl::sycl::device dev = ex.sycl_queue().get_device();
+  if (get_device_type(dev) == INTELGPU) {
+    BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(false, 4, 4, 16, 16);
+    BIND_DATA_SIZE(  10, 1024, 1024) TO_TPARAMS(false, 2, 2,  8,  8);
+    BIND_DEFAULT                     TO_TPARAMS(false, 8, 8,  8,  8);
+  } else {
+    BIND_DATA_SIZE(  10, 1024, 1024) TO_TPARAMS( true, 1, 1, 16, 16);
+    BIND_DEFAULT                     TO_TPARAMS(false, 8, 8, 16, 16);
+  }
+
+  #undef BIND_DATA_SIZE
+  #undef BIND_DEFAULT
+  #undef TO_TPARAMS
 }
+
 
 }  // namespace blas
 
+
 #endif  // BLAS3_INTERFACE_SYCL_HPP
+

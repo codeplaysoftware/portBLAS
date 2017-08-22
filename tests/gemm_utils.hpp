@@ -32,6 +32,7 @@
 #include <CL/sycl.hpp>
 
 
+#include <interface/blas3_interface_sycl_gemm.hpp>
 #include <operations/blas3_trees_gemm.hpp>
 
 
@@ -130,6 +131,31 @@ test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
   std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
 }
 
+
+template <typename T, typename Container>
+void test_syclblas(int r, char transA, char transB, int m, int n, int k,
+                   T alpha, const Container &dataA, int lda,
+                   const Container &dataB, int ldb, T beta,
+                   Container dataC, int ldc, const Container &refC,
+                   cl::sycl::queue q) {
+  using etype = typename Container::value_type;
+  std::cout << "\n=== Testing SYCL-BLAS gemm ==="
+            << std::endl;
+  Executor<SYCL> ex(q);
+  {
+    buffer<etype, 1> buffA(dataA.data(), range<1>(dataA.size()));
+    buffer<etype, 1> buffB(dataB.data(), range<1>(dataB.size()));
+    buffer<etype, 1> buffC(dataC.data(), range<1>(dataC.size()));
+    run_test(r, 2.0*m*n*k, [&] {
+      _gemm(ex, transA, transB, m, n, k, alpha,
+            buffA, lda, buffB, ldb, beta, buffC, ldc);
+      q.wait();
+    });
+  }
+  std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
+}
+
+
 template <bool TransA, bool TransB, typename E>
 void run_gemm_tests(int seed, int m, int k, int n, int rep)
 {
@@ -155,16 +181,24 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
          ldb, E(1), refC.data(), m);
   });
 
-  cl::sycl::queue q;
+  cl::sycl::queue q([=](cl::sycl::exception_list eL) {
+    try {
+      for (auto &e : eL) {
+        std::rethrow_exception(e);
+      }
+    } catch (cl::sycl::exception &e) {
+      std::cout << " E " << e.what() << std::endl;
+    } catch (...) {
+      std::cout << " An exception " << std::endl;
+    }
+  });
+
   std::cout << "\nDevice: "
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-
-#define ARG rep, m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, \
+#define ARG m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, \
             ldc, refC, q
-#define TARG(_tir, _tic, _twr, _twc) \
-    db, ba, bb, cls, Tile<_tir, _tic, _twr, _twc>, ta, tb, E
 
   const int cls = 64; // size of cache line in bytes
   const bool db = false; // use double buffer
@@ -173,20 +207,24 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
   const bool ta = TransA;
   const bool tb = TransB;
 
-  test<GemmFactoryV2<128, ta, tb, E>>(ARG);
+  test<GemmFactoryV2<128, ta, tb, E>>(rep, ARG);
 
-  test<GemmFactoryV19<TARG(1, 1, 8, 8)>>(ARG);
-  test<GemmFactoryV19<TARG(2, 2, 8, 8)>>(ARG);
-  test<GemmFactoryV19<TARG(4, 4, 8, 8)>>(ARG);
-  test<GemmFactoryV19<TARG(8, 8, 8, 8)>>(ARG);
+#define TARG(_tir, _tic, _twr, _twc) \
+    GemmFactoryV19<db, ba, bb, cls, Tile<_tir, _tic, _twr, _twc>, ta, tb, E>
+  test<TARG(1, 1, 8, 8)>(rep, ARG);
+  test<TARG(2, 2, 8, 8)>(rep, ARG);
+  test<TARG(4, 4, 8, 8)>(rep, ARG);
+  test<TARG(8, 8, 8, 8)>(rep, ARG);
 
-  test<GemmFactoryV19<TARG(1, 1, 16, 16)>>(ARG);
-  test<GemmFactoryV19<TARG(2, 2, 16, 16)>>(ARG);
-  test<GemmFactoryV19<TARG(4, 4, 16, 16)>>(ARG);
-  test<GemmFactoryV19<TARG(8, 8, 16, 16)>>(ARG);
+  test<TARG(1, 1, 16, 16)>(rep, ARG);
+  test<TARG(2, 2, 16, 16)>(rep, ARG);
+  test<TARG(4, 4, 16, 16)>(rep, ARG);
+  test<TARG(8, 8, 16, 16)>(rep, ARG);
+#undef TARG
+
+  test_syclblas(rep, *ta_str, *tb_str, ARG);
 
 #undef ARG
-#undef TARG
 
 }
 
