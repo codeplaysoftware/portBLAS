@@ -257,6 +257,10 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_{q} {};
 
+  cl::sycl::queue sycl_queue() {
+    return q_;
+  }
+
   /*!
    * @brief Executes the tree without defining required shared memory.
    */
