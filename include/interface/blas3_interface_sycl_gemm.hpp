@@ -53,50 +53,10 @@ template <typename T>
 struct Wrap {};
 
 
-template <typename Gemm, typename ExecutorType, typename T>
-inline void _reference_gemm_tr(
-    Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
-    cl::sycl::buffer<T, 1> _A, int _lda, cl::sycl::buffer<T, 1> _B, int _ldb,
-    T _beta, cl::sycl::buffer<T, 1> _C, int _ldc) {
-  ex.sycl_queue().submit([&](handler &h) {
-    auto accA = _A.template get_access<access::mode::read>(h);
-    auto accB = _B.template get_access<access::mode::read>(h);
-    auto accC = _C.template get_access<access::mode::read_write>(h);
-    h.parallel_for<Wrap<Gemm>>(Gemm::get_nd_range(_M, _N), [=](nd_item<1> id) {
-      Gemm::run(id.get_global(0), _M, _N, _K, T(_alpha), accA.get_pointer(),
-                _lda, accB.get_pointer(), _ldb, T(_beta), accC.get_pointer(),
-                _ldc);
-    });
-  });
-  ex.sycl_queue().wait();
-}
-
-
-template <size_t WG, typename ExecutorType, typename T>
-inline void _reference_gemm(
-    Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M, int _N,
-    int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
-    cl::sycl::buffer<T, 1> _B, int _ldb, T _beta, cl::sycl::buffer<T, 1> _C,
-    int _ldc) {
-  #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b) \
-  if (_TransA == _trans_a && _TransB == _trans_b) { \
-    _reference_gemm_tr<ReferenceGemmFactory<WG, _trans_a, _trans_b, T>>( \
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _beta, _C, _ldc); \
-    return;\
-  }
-
-  const bool NoTrans = false;
-  const bool Trans   =  true;
-
-  ENABLE_GEMM_TRANSPOSE(NoTrans, NoTrans);
-  ENABLE_GEMM_TRANSPOSE(  Trans, NoTrans);
-  ENABLE_GEMM_TRANSPOSE(NoTrans,   Trans);
-  ENABLE_GEMM_TRANSPOSE(  Trans,   Trans);
-
-  #undef ENABLE_GEMM_TRANSPOSE
-}
-
-
+/*!
+ * @brief Launch a kernel which calls a GemmFactory instance given by template
+ *        parameter Gemm.
+ */
 template <typename Gemm, typename ExecutorType, typename T>
 void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
               cl::sycl::buffer<T, 1> _A, int _lda,
@@ -118,6 +78,10 @@ void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
 }
 
 
+/*!
+ * @brief Select the correct transpose version of GemmFactory, depending on the
+ *        runtime values of transpose.
+ */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, size_t ClSize,
           typename TileT, typename ExecutorType, typename T>
 void _select_gemm(
@@ -131,6 +95,7 @@ void _select_gemm(
       GemmFactory<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                   _trans_a, _trans_b, T>>( \
         ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
+    return; \
   }
 
   const bool NoTrans = false;
@@ -162,6 +127,12 @@ DEVICETYPE get_device_type(const cl::sycl::device dev) {
 }
 
 
+/*!
+ * @brief This is a top-level wrapper for GemmFactory, which provides a
+ *        "standard" BLAS gemm interface.
+ *
+ * See netlib.org/blas for details.
+ */
 template <typename ExecutorType, typename T>
 void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
            int _N, int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
