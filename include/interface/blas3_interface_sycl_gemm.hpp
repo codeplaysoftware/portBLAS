@@ -54,10 +54,10 @@ struct Wrap {};
 
 
 template <typename Gemm, typename ExecutorType, typename T>
-inline void _gemm_v2_tr(Executor<ExecutorType> ex, int _M, int _N, int _K,
-                        T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
-                        cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
-                        cl::sycl::buffer<T, 1> _C, int _ldc) {
+inline void _reference_gemm_tr(
+    Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
+    cl::sycl::buffer<T, 1> _A, int _lda, cl::sycl::buffer<T, 1> _B, int _ldb,
+    T _beta, cl::sycl::buffer<T, 1> _C, int _ldc) {
   ex.sycl_queue().submit([&](handler &h) {
     auto accA = _A.template get_access<access::mode::read>(h);
     auto accB = _B.template get_access<access::mode::read>(h);
@@ -73,14 +73,14 @@ inline void _gemm_v2_tr(Executor<ExecutorType> ex, int _M, int _N, int _K,
 
 
 template <size_t WG, typename ExecutorType, typename T>
-inline void _gemm_v2(Executor<ExecutorType> ex, bool _TransA, bool _TransB,
-                     int _M, int _N, int _K, T _alpha,
-                     cl::sycl::buffer<T, 1> _A, int _lda,
-                     cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
-                     cl::sycl::buffer<T, 1> _C, int _ldc) {
+inline void _reference_gemm(
+    Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M, int _N,
+    int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
+    cl::sycl::buffer<T, 1> _B, int _ldb, T _beta, cl::sycl::buffer<T, 1> _C,
+    int _ldc) {
   #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b) \
   if (_TransA == _trans_a && _TransB == _trans_b) { \
-    _gemm_v2_tr<GemmFactoryV2<WG, _trans_a, _trans_b, T>>( \
+    _reference_gemm_tr<ReferenceGemmFactory<WG, _trans_a, _trans_b, T>>( \
         ex, _M, _N, _K, _alpha, _A, _lda, _B, _beta, _C, _ldc); \
     return;\
   }
@@ -98,10 +98,10 @@ inline void _gemm_v2(Executor<ExecutorType> ex, bool _TransA, bool _TransB,
 
 
 template <typename Gemm, typename ExecutorType, typename T>
-void _gemm_v19_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
-                  cl::sycl::buffer<T, 1> _A, int _lda,
-                  cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
-                  cl::sycl::buffer<T, 1> _C, int _ldc) {
+void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
+              cl::sycl::buffer<T, 1> _A, int _lda,
+              cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
+              cl::sycl::buffer<T, 1> _C, int _ldc) {
   ex.sycl_queue().submit([&](handler &h) {
     auto accA = _A.template get_access<access::mode::read>(h);
     auto accB = _B.template get_access<access::mode::read>(h);
@@ -120,16 +120,17 @@ void _gemm_v19_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
 
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, size_t ClSize,
           typename TileT, typename ExecutorType, typename T>
-void _gemm_v19(Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M,
+void _select_gemm(
+    Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M,
                int _N, int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
                cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
                cl::sycl::buffer<T, 1> _C, int _ldc) {
   #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b) \
   if (_TransA == _trans_a && _TransB == _trans_b) { \
-    _gemm_v19_tr<\
-      GemmFactoryV19<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
-      _trans_a, _trans_b, T>>( \
-      ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
+    _gemm_tr<\
+      GemmFactory<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
+                  _trans_a, _trans_b, T>>( \
+        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
   }
 
   const bool NoTrans = false;
@@ -183,7 +184,7 @@ void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
   #define BIND_DEFAULT
 
   #define TO_TPARAMS(_db, _tir, _tic, _twr, _twc) {\
-    _gemm_v19<_db, false, false, 64, Tile<_tir, _tic, _twr, _twc>>( \
+    _select_gemm<_db, false, false, 64, Tile<_tir, _tic, _twr, _twc>>( \
         ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, \
         _beta, _C, _ldc); \
     return; \

@@ -207,19 +207,23 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
   const bool ta = TransA;
   const bool tb = TransB;
 
-  test<GemmFactoryV2<128, ta, tb, E>>(rep, ARG);
+  test<ReferenceGemmFactory<128, ta, tb, E>>(rep, ARG);
 
-#define TARG(_tir, _tic, _twr, _twc) \
-    GemmFactoryV19<db, ba, bb, cls, Tile<_tir, _tic, _twr, _twc>, ta, tb, E>
-  test<TARG(1, 1, 8, 8)>(rep, ARG);
-  test<TARG(2, 2, 8, 8)>(rep, ARG);
-  test<TARG(4, 4, 8, 8)>(rep, ARG);
-  test<TARG(8, 8, 8, 8)>(rep, ARG);
+#define TARG(_tir, _tic, _twr, _twc, _ttr, _ttc) \
+    GemmFactory<db, ba, bb, cls, Tile<_tir, _tic, _twr, _twc, _ttr, _ttc>, \
+                ta, tb, E>
+  test<TARG(8, 8, 8, 8, 1, 1)>(rep, ARG);
+  test<TARG(8, 8, 8, 8, 2, 2)>(rep, ARG);
+  test<TARG(8, 8, 8, 8, 4, 4)>(rep, ARG);
+  test<TARG(8, 8, 8, 8, 8, 8)>(rep, ARG);
+  test<TARG(8, 8, 8, 8, 16, 16)>(rep, ARG);
 
-  test<TARG(1, 1, 16, 16)>(rep, ARG);
-  test<TARG(2, 2, 16, 16)>(rep, ARG);
-  test<TARG(4, 4, 16, 16)>(rep, ARG);
-  test<TARG(8, 8, 16, 16)>(rep, ARG);
+  test<TARG(8, 8, 16, 16, 1, 1)>(rep, ARG);
+  test<TARG(8, 8, 16, 16, 2, 2)>(rep, ARG);
+  test<TARG(8, 8, 16, 16, 4, 4)>(rep, ARG);
+  test<TARG(8, 8, 16, 16, 8, 8)>(rep, ARG);
+  test<TARG(8, 8, 16, 16, 16, 16)>(rep, ARG);
+
 #undef TARG
 
   test_syclblas(rep, *ta_str, *tb_str, ARG);

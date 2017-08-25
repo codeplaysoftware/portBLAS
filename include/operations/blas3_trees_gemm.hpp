@@ -55,7 +55,7 @@ ENABLE_TYPE_STRING(double)
 
 
 template <int WgSize, bool TransA, bool TransB, typename T>
-class GemmFactoryV2 {
+class ReferenceGemmFactory {
 public:
   using value_type = T;
 
@@ -66,8 +66,8 @@ public:
 
   static inline std::string get_type_string() noexcept
   {
-    return std::string("GemmFactoryV2<") + std::to_string(wg_size) + ", " +
-           type_string<value_type>::get_value() + ">";
+    return std::string("ReferenceGemmFactory<") + std::to_string(wg_size) +
+           ", " + type_string<value_type>::get_value() + ">";
   }
 
   static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept
@@ -135,7 +135,7 @@ struct Tile {
 template <bool DoubleBuffer, bool NbcA, bool NbcB,
           int ClSize, typename TileType,
           bool TransA, bool TransB, typename T>
-class GemmFactoryV19 {
+class GemmFactory {
 public:
   using tile_type = TileType;
   using value_type = T;
@@ -187,7 +187,7 @@ public:
 
   static inline std::string get_type_string() noexcept
   {
-    return std::string("GemmFactoryV19<") + std::to_string(double_buffer) +
+    return std::string("GemmFactory<") + std::to_string(double_buffer) +
            ", " + std::to_string(nbc_a) + ", " + std::to_string(nbc_b) +
            ", " + std::to_string(cl_size) + ", " +
            tile_type::get_type_string() + ", " +
@@ -326,6 +326,11 @@ private:
     }
   }
 
+  /*!
+   * @brief Extract a block of A, and a conformant block of B.
+   *
+   * @see GemmFactory::extract_block()
+   */
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename InputPointerType, typename ScratchPointerType>
   static inline void extract_input_blocks(
@@ -343,6 +348,36 @@ private:
        [&](int ic, int cc) { return cc < n; });
   }
 
+  /*!
+   * @brief Extract a block of a matrix from global to shared memory, and
+   *        optionally transpose it on the fly.
+   *
+   * This is a collective operation on all items in a work group.
+   *
+   * @tparam check_row_limit  iff true, check the row out-of-bound condition
+   * @tparam check_col_limit  iff true, check the column out-of-bound condition
+   * @tparam trans  iff true, transpose the matrix
+   * @tparam rows  number of rows in the block
+   * @tparam cols  number of columns in the block
+   * @tparam lds  leading dimension of the block in shared memory
+   * @tparam InputPointerType  pointer type of the input matrix
+   * @tparam ScratchPointerType  pointer type of the memory used to store the
+   *                             extracted block
+   * @tparam RowPredicate  row out-of-bound condition type
+   * @tparam ColPredicate  column out-of-bound condition type
+   *
+   * @param item_id  id of the work item which called this method
+   * @param ptr  pointer to the input matrix with proper item-dependent offset,
+   *             see GemmFactory::run() for details
+   * @param ld  the leading dimension of the input matrix
+   * @param scratch  the pointer to memory where the output block is stored,
+   *                 with proper item-dependent offset, see GemmFactory::run()
+   *                 for details
+   * @param in_row  a predicate which checks whether a row index is within
+   *                matrix bounds
+   * @param in_col  a predicate which checks whether a col index is within
+   *                matrix bounds
+   */
   template <bool check_row_limit, bool check_col_limit, bool trans,
             int rows, int cols, int lds,
             typename InputPointerType, typename ScratchPointerType,
@@ -385,34 +420,59 @@ private:
     }
   }
 
-  template <typename ScratchPointerType>
+  /*!
+   * @brief Compute a small matrix-matrix product `reg_res += A*B`.
+   *
+   * @tparam InputPointerType  pointer type for A and B
+   *
+   * @param B  pointer to matrix A with proper item-dependent offset,
+   *           see GemmFactory::run() for details
+   * @param A  pointer to matrix B with proper item-dependent offset,
+   *           see GemmFactory::run() for details
+   * @param reg_a  temporary register array used to prefetch columns of A
+   * @param reg_b  temporary register used to prefetch elements of B
+   * @param reg_res  2D register array used to store the result C
+   */
+  template <typename InputPointerType>
   static inline void compute_block_gemm(
-      ScratchPointerType s2, ScratchPointerType s4,
+      InputPointerType B, InputPointerType A,
       T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
       noexcept
   {
     for (int i = 0; i < cl_elems; ++i) {
       #pragma unroll
       for (int j = 0; j < item_rows; ++j) {
-        reg_a[j] = s4[j*wg_rows + i*ldsa];
+        reg_a[j] = A[j*wg_rows];
       }
       #pragma unroll
       for (int j = 0; j < item_cols; ++j) {
-        reg_b = s2[i + j*ldsb];
+        reg_b = B[j*ldsb];
         #pragma unroll
         for (int l = 0; l < item_rows; ++l) {
           reg_res[l][j] += reg_a[l] * reg_b;
         }
       }
+      A = A + ldsa;
+      B = B + 1;
     }
   }
 
-  template <bool db>
-  static inline typename std::enable_if<db>::type
-  sync_smem(cl::sycl::nd_item<1>, int &ofs_sign) noexcept
-  { ofs_sign = -ofs_sign; }
-
-
+  /*!
+   * @brief Synchronize multiple shared memory blocks using a barrier or
+   *        double buffering.
+   *
+   * @tparam db  if true, use double buffering, otherwise use barrier
+   * @tparam o  size of the first memory block
+   * @tparam os  sizes of other memory blocks
+   * @tparam P  type of first memory block
+   * @tparam Ps  types of other memory blocks
+   *
+   * @param id  nd_item used to call barrier sync
+   * @param ofs_sign  if 1, use next block for double buffering, if -1 use
+   *                  previous block
+   * @param s  pointer to first memory block
+   * @param ss  pointers to other memory blocks
+   */
   template <bool db, int o, int... os, typename P, typename... Ps>
   static inline typename std::enable_if<db>::type
   sync_smem(cl::sycl::nd_item<1> id, int &ofs_sign, P &s, Ps &...ss) noexcept
@@ -420,6 +480,12 @@ private:
     s = s + ofs_sign*o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
+
+  template <bool db>
+  static inline typename std::enable_if<db>::type
+  sync_smem(cl::sycl::nd_item<1>, int &ofs_sign) noexcept
+  { ofs_sign = -ofs_sign; }
+
 
   template <bool db, int..., typename... Ps>
   static inline typename std::enable_if<!db>::type
