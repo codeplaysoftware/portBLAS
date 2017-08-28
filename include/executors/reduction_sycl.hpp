@@ -118,7 +118,7 @@ struct KernelfFirstStage {
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
     }
-    if (localid == 0 && i < N) {
+    if (localid == 0) {
       scratch[groupid] = shmem[localid];
     }
   }
@@ -202,7 +202,7 @@ struct GenericReducerTwoStages : GenericReducer<EvaluatorT, Functor> {
     size_t globalsize = localsize * nwg;
     cl::sycl::buffer<value_type, 1> scratch{nwg};
     execute1(dev, scratch, ev, localsize, globalsize, sharedsize);
-    execute2(dev, result, scratch, nwg, nwg, sharedsize, (N + localsize - 1) / localsize);
+    execute2(dev, result, scratch, nwg, nwg, sharedsize=nwg, (N + localsize - 1) / localsize);
   }
 };
 
