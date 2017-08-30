@@ -29,36 +29,29 @@
 
 using namespace blas;
 
-template <typename ExecutorType = SYCL>
+template <typename Device = SYCLDevice>
 class SyclBlasBenchmarker {
   cl::sycl::queue q;
-  Executor<ExecutorType> ex;
+  Device dev;
 
  public:
-  SyclBlasBenchmarker()
-      : q(cl::sycl::default_selector(),
-          [=](cl::sycl::exception_list eL) {
-            for (auto &e : eL) {
-              try {
-                std::rethrow_exception(e);
-              } catch (cl::sycl::exception &e) {
-                std::cout << " E " << e.what() << std::endl;
-              } catch (...) {
-                std::cout << " An exception " << std::endl;
-              }
-            }
-          }),
-        ex(q) {}
+  SyclBlasBenchmarker():
+    q(cl::sycl::default_selector(), [=](cl::sycl::exception_list eL) {
+        for (auto &e : eL) {
+          try {
+            std::rethrow_exception(e);
+          } catch (cl::sycl::exception &e) {
+            std::cout << " E " << e.what() << std::endl;
+          } catch (...) {
+            std::cout << " An exception " << std::endl;
+          }
+        }
+    }), dev(q)
+  {}
 
   template <typename ScalarT>
   static cl::sycl::buffer<ScalarT, 1> mkbuffer(ScalarT *data, size_t len) {
     return cl::sycl::buffer<ScalarT, 1>(data, len);
-  }
-
-  template <typename ScalarT>
-  static vector_view<ScalarT, cl::sycl::buffer<ScalarT>> mkvview(
-      cl::sycl::buffer<ScalarT, 1> &buf) {
-    return vector_view<ScalarT, cl::sycl::buffer<ScalarT>>(buf);
   }
 
   BENCHMARK_FUNCTION(scal_bench) {
@@ -68,9 +61,8 @@ class SyclBlasBenchmarker {
     double flops;
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
-      auto vvw1 = mkvview(buf1);
       flops = benchmark<>::measure(no_reps, size * 1, [&]() {
-        _scal(ex, size, alpha, vvw1, 1);
+        blas::execute(dev, _scal(size, alpha, buf1, 0, 1));
         q.wait_and_throw();
       });
     }
@@ -87,10 +79,8 @@ class SyclBlasBenchmarker {
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf2 = mkbuffer<ScalarT>(v2, size);
-      auto vvw1 = mkvview(buf1);
-      auto vvw2 = mkvview(buf2);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _axpy(ex, size, alpha, vvw1, 1, vvw2, 1);
+        blas::execute(dev, _axpy(size, alpha, buf1, 0, 1, buf2, 0, 1));
         q.wait_and_throw();
       });
     }
@@ -107,10 +97,8 @@ class SyclBlasBenchmarker {
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto bufR = mkbuffer<ScalarT>(&vr, 1);
-      auto vvw1 = mkvview(buf1);
-      auto vvwR = mkvview(bufR);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _asum(ex, size, vvw1, 1, vvwR);
+        blas::execute(dev, _asum(size, buf1, 0, 1, bufR));
         q.wait_and_throw();
       });
     }
@@ -126,10 +114,8 @@ class SyclBlasBenchmarker {
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto bufR = mkbuffer<ScalarT>(&vr, 1);
-      auto vvw1 = mkvview(buf1);
-      auto vvwR = mkvview(bufR);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _nrm2(ex, size, vvw1, 1, vvwR);
+        blas::execute(dev, _nrm2(size, buf1, 0, 1, bufR));
         q.wait_and_throw();
       });
     }
@@ -147,11 +133,8 @@ class SyclBlasBenchmarker {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf2 = mkbuffer<ScalarT>(v2, size);
       auto bufR = mkbuffer<ScalarT>(&vr, 1);
-      auto vvw1 = mkvview(buf1);
-      auto vvw2 = mkvview(buf2);
-      auto vvwR = mkvview(bufR);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _dot(ex, size, vvw1, 1, vvw2, 1, vvwR);
+        blas::execute(dev, _dot(size, buf1, 0, 1, buf2, 0, 1, bufR));
         q.wait_and_throw();
       });
     }
@@ -168,10 +151,8 @@ class SyclBlasBenchmarker {
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf_i = mkbuffer<IndVal<ScalarT>>(&vI, 1);
-      auto vvw1 = mkvview(buf1);
-      auto vvw_i = mkvview(buf_i);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _iamax(ex, size, vvw1, 1, vvw_i);
+        blas::execute(dev, _iamax(size, buf1, 0, 1, buf_i));
         q.wait_and_throw();
       });
     }
@@ -187,10 +168,8 @@ class SyclBlasBenchmarker {
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf_i = mkbuffer<IndVal<ScalarT>>(&vI, 1);
-      auto vvw1 = mkvview(buf1);
-      auto vvw_i = mkvview(buf_i);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _iamin(ex, size, vvw1, 1, vvw_i);
+        blas::execute(dev, _iamin(size, buf1, 0, 1, buf_i));
         q.wait_and_throw();
       });
     }
@@ -208,12 +187,9 @@ class SyclBlasBenchmarker {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf2 = mkbuffer<ScalarT>(v2, size);
 
-      auto vvw1 = mkvview(buf1);
-      auto vvw2 = mkvview(buf2);
-
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        _scal(ex, size, alpha, vvw1, 1);
-        _scal(ex, size, alpha, vvw2, 1);
+        blas::execute(dev, _scal(size, alpha, buf1, 0, 1));
+        blas::execute(dev, _scal(size, alpha, buf2, 0, 1));
         q.wait_and_throw();
       });
     }
@@ -234,14 +210,10 @@ class SyclBlasBenchmarker {
       auto buf2 = mkbuffer<ScalarT>(v2, size);
       auto buf3 = mkbuffer<ScalarT>(v3, size);
 
-      auto vvw1 = mkvview(buf1);
-      auto vvw2 = mkvview(buf2);
-      auto vvw3 = mkvview(buf3);
-
       flops = benchmark<>::measure(no_reps, size * 3, [&]() {
-        _scal(ex, size, alpha, vvw1, 1);
-        _scal(ex, size, alpha, vvw2, 1);
-        _scal(ex, size, alpha, vvw3, 1);
+        blas::execute(dev, _scal(size, alpha, buf1, 0, 1));
+        blas::execute(dev, _scal(size, alpha, buf2, 0, 1));
+        blas::execute(dev, _scal(size, alpha, buf3, 0, 1));
         q.wait_and_throw();
       });
     }
@@ -270,17 +242,10 @@ class SyclBlasBenchmarker {
       auto bufdst2 = mkbuffer<ScalarT>(vdst2, size);
       auto bufdst3 = mkbuffer<ScalarT>(vdst3, size);
 
-      auto vvwsrc1 = mkvview(bufsrc1);
-      auto vvwsrc2 = mkvview(bufsrc2);
-      auto vvwsrc3 = mkvview(bufsrc3);
-      auto vvwdst1 = mkvview(bufdst1);
-      auto vvwdst2 = mkvview(bufdst2);
-      auto vvwdst3 = mkvview(bufdst3);
-
       flops = benchmark<>::measure(no_reps, size * 3 * 2, [&]() {
-        _axpy(ex, size, alphas[0], vvwsrc1, 1, vvwdst1, 1);
-        _axpy(ex, size, alphas[1], vvwsrc2, 1, vvwdst2, 1);
-        _axpy(ex, size, alphas[2], vvwsrc3, 1, vvwdst3, 1);
+        blas::execute(dev, _axpy(size, alphas[0], bufsrc1, 0, 1, bufdst1, 0, 1));
+        blas::execute(dev, _axpy(size, alphas[1], bufsrc2, 0, 1, bufdst2, 0, 1));
+        blas::execute(dev, _axpy(size, alphas[2], bufsrc3, 0, 1, bufdst3, 0, 1));
         q.wait_and_throw();
       });
     }
@@ -312,23 +277,14 @@ class SyclBlasBenchmarker {
       auto buf_i1 = mkbuffer<IndVal<ScalarT>>(&vImax, 1);
       /* auto buf_i2 = mkbuffer<IndVal<ScalarT>>(&vImin, 1); */
 
-      auto vvw1 = mkvview(buf1);
-      auto vvw2 = mkvview(buf2);
-      auto vvwr0 = mkvview(bufr0);
-      auto vvwr1 = mkvview(bufr1);
-      auto vvwr2 = mkvview(bufr2);
-      auto vvwr3 = mkvview(bufr3);
-      auto vvw_i1 = mkvview(buf_i1);
-      /* auto vvw_i2 = mkvview(buf_i2); */
-
       flops = benchmark<>::measure(no_reps, size * 12, [&]() {
-        _axpy(ex, size, alpha, vvw1, 1, vvw2, 1);
-        _asum(ex, size, vvw2, 1, vvwr0);
-        _dot(ex, size, vvw1, 1, vvw2, 1, vvwr1);
-        _nrm2(ex, size, vvw2, 1, vvwr2);
-        _iamax(ex, size, vvw2, 1, vvw_i1);
-        /* _iamin(ex, size, vvw2, 1, vvw_i2); */
-        _dot(ex, size, vvw1, 1, vvw2, 1, vvwr3);
+        blas::execute(dev, _axpy(size, alpha, buf1, 0, 1, buf2, 0, 1));
+        blas::execute(dev, _asum(size, buf2, 0, 1, bufr0));
+        blas::execute(dev, _dot(size, buf1, 0, 1, buf2, 0, 1, bufr1));
+        blas::execute(dev, _nrm2(size, buf2, 0, 1, bufr2));
+        blas::execute(dev, _iamax(size, buf2, 0, 1, buf_i1));
+        /* blas::execute(dev, _iamin(size, buf2, 1, buf_i2)); */
+        blas::execute(dev, _dot(size, buf1, 0, 1, buf2, 0, 1, bufr3));
         q.wait_and_throw();
       });
     }
@@ -338,8 +294,8 @@ class SyclBlasBenchmarker {
   }
 };
 
-BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
-SyclBlasBenchmarker<SYCL> blasbenchmark;
+BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 28, 10);
+SyclBlasBenchmarker<SYCLDevice> blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);

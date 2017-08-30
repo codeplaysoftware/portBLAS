@@ -270,7 +270,7 @@ class ClBlastBenchmarker {
   }
 };
 
-BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
+BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 28, 10);
 ClBlastBenchmarker blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
