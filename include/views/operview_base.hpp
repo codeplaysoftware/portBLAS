@@ -23,12 +23,15 @@
  *
  **************************************************************************/
 
-#ifndef OPERVIEW_BASE_HPP
-#define OPERVIEW_BASE_HPP
+#ifndef BLAS_OPERVIEW_BASE_HPP
+#define BLAS_OPERVIEW_BASE_HPP
 
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+
+#include <executors/blas_device.hpp>
+#include <executors/blas_packet_traits.hpp>
 
 namespace blas {
 
@@ -40,18 +43,20 @@ using string_class = std::string;
 /*!
 @brief Template struct for containing vector that can used within a compile-time
 expression.
-@tparam valueT Type of each element fo the vector.
+@tparam ScalarT Type of each element fo the vector.
 @tparam containerT Type of the container that is stored inside.
 */
-template <class valueT, class containerT>
+template <class ScalarT, class containerT>
 struct vector_view {
-  containerT &data_;
+  /* static constexpr bool supported = Packet_traits<ScalarT,
+   * SimpleDevice>::Supported; */
+  containerT data_;
   size_t size_data_;
   size_t size_;
   size_t disp_;
   long strd_;  // never size_t, because it could be negative
 
-  using value_type = valueT;
+  using value_type = ScalarT;
 
   /*!
   @brief Initializes the view using the indexing values.
@@ -106,7 +111,7 @@ struct vector_view {
   /*!
    @brief Creates a view from an existing view.
   */
-  vector_view(vector_view<valueT, containerT> opV, size_t disp, long strd,
+  vector_view(vector_view<ScalarT, containerT> opV, size_t disp, long strd,
               size_t size)
       : data_(opV.getData()),
         size_data_(opV.getData().size()),
@@ -124,33 +129,33 @@ struct vector_view {
   /*!
    * @brief Returns the displacement
    */
-  size_t getDisp() { return disp_; }
+  size_t getDisp() const { return disp_; }
 
   /*!
    * @brief Returns the size of the underlying container.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    @brief Returns the size of the view
    */
-  size_t getSize() { return size_; }
+  size_t getSize() const { return size_; }
 
   /*!
    @brief Returns the stride of the view.
   */
-  long getStrd() { return strd_; }
+  long getStrd() const { return strd_; }
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  vector_view<valueT, containerT> operator+(size_t disp) {
+  vector_view<ScalarT, containerT> operator+(size_t disp) {
     if (this->strd_ > 0) {
-      return vector_view<valueT, containerT>(this->data_,
-                                             this->disp_ + (disp * this->strd_),
-                                             this->strd_, this->size_ - disp);
+      return vector_view<ScalarT, containerT>(
+          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+          this->size_ - disp);
     } else {
-      return vector_view<valueT, containerT>(
+      return vector_view<ScalarT, containerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
     }
@@ -159,13 +164,13 @@ struct vector_view {
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  vector_view<valueT, containerT> operator()(size_t disp) {
+  vector_view<ScalarT, containerT> operator()(size_t disp) {
     if (this->strd_ > 0) {
-      return vector_view<valueT, containerT>(this->data_,
-                                             this->disp_ + (disp * this->strd_),
-                                             this->strd_, this->size_ - disp);
+      return vector_view<ScalarT, containerT>(
+          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+          this->size_ - disp);
     } else {
-      return vector_view<valueT, containerT>(
+      return vector_view<ScalarT, containerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
     }
@@ -174,27 +179,27 @@ struct vector_view {
   /*!
    @brief Multiplies the view stride by the given one and returns a new one
   */
-  vector_view<valueT, containerT> operator*(long strd) {
-    return vector_view<valueT, containerT>(this->data_, this->disp_,
-                                           this->strd_ * strd);
+  vector_view<ScalarT, containerT> operator*(long strd) {
+    return vector_view<ScalarT, containerT>(this->data_, this->disp_,
+                                            this->strd_ * strd);
   }
 
   /*!
    @brief
   */
-  vector_view<valueT, containerT> operator%(size_t size) {
+  vector_view<ScalarT, containerT> operator%(size_t size) {
     if (this->strd_ > 0) {
-      return vector_view<valueT, containerT>(this->data_, this->disp_,
-                                             this->strd_, size);
+      return vector_view<ScalarT, containerT>(this->data_, this->disp_,
+                                              this->strd_, size);
     } else {
-      return vector_view<valueT, containerT>(
+      return vector_view<ScalarT, containerT>(
           this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
           this->strd_, size);
     }
   }
 
   /**** EVALUATING ****/
-  valueT &eval(size_t i) {
+  ScalarT &eval(size_t i) {
     auto ind = disp_;
     if (strd_ > 0) {
       ind += strd_ * i;
@@ -227,11 +232,13 @@ struct vector_view {
 
 /*! matrix_view
 @brief Represents a Matrix on the given Container.
-@tparam valueT Value type of the container.
+@tparam ScalarT Value type of the container.
 @tparam containerT Type of the container.
  */
-template <class valueT, class containerT>
+template <class ScalarT, class containerT>
 struct matrix_view {
+  /* static constexpr bool supported = Packet_traits<ScalarT,
+   * SimpleDevice>::Supported; */
   // Information related to the data
   containerT &data_;
   int accessDev_;     // True for row-major, column-major otherwise
@@ -242,7 +249,7 @@ struct matrix_view {
   size_t sizeL_;      // size of the leading dimension
   size_t disp_;       // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
-  using value_type = valueT;
+  using value_type = ScalarT;
 
   /*!
    * @brief Constructs a matrix view on the container.
@@ -333,7 +340,7 @@ struct matrix_view {
    * @param sizeL Size of the leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(matrix_view<valueT, containerT> opM, int accessDev, size_t sizeR,
+  matrix_view(matrix_view<ScalarT, containerT> opM, int accessDev, size_t sizeR,
               size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(accessDev),
@@ -353,7 +360,7 @@ struct matrix_view {
    * @param sizeL Size of leading dimension.
    * @param disp Displacement from the start.
    */
-  matrix_view(matrix_view<valueT, containerT> opM, size_t sizeR, size_t sizeC,
+  matrix_view(matrix_view<ScalarT, containerT> opM, size_t sizeR, size_t sizeC,
               int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(opM.accessDev_),
@@ -372,66 +379,66 @@ struct matrix_view {
   /*!
    * @brief Returns the data size
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief Returns the size of the view.
    */
-  size_t getSize() { return sizeR_ * sizeC_; }
+  size_t getSize() const { return sizeR_ * sizeC_; }
 
   /*! getSizeR.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  size_t getSizeR() { return sizeR_; }
+  size_t getSizeR() const { return sizeR_; }
 
 #if BLAS_EXPERIMENTAL
   // These implementationS are currently not working
-  size_t getSizeR() { return getAccess() ? sizeR_ : sizeC_; }
-  size_t getSizeR() { return accessOpr_ ? sizeR_ : sizeC_; }
+  size_t getSizeR() const { return getAccess() ? sizeR_ : sizeC_; }
+  size_t getSizeR() const { return accessOpr_ ? sizeR_ : sizeC_; }
 #endif  // BLAS_EXPERIMENTAL
 
   /*! getSizeC.
    * @brief Return the number of columns.
-   * @bug This value should change depending on the access mode, but 
-   * is currently set to Rows. 
+   * @bug This value should change depending on the access mode, but
+   * is currently set to Rows.
    */ size_t getSizeC() {
     return sizeC_;
   }
 #if BLAS_EXPERIMENTAL
   // This implementations are currently not working
-  size_t getSizeC() { return getAccess() ? sizeC_ : sizeR_; }
-  size_t getSizeC() { return accessOpr_ ? sizeC_ : sizeR_; }
+  size_t getSizeC() const { return getAccess() ? sizeC_ : sizeR_; }
+  size_t getSizeC() const { return accessOpr_ ? sizeC_ : sizeR_; }
 #endif  // BLAS_EXPERIMENTAL
 
   /*! getAccess.
    * @brief Access mode for the view.
    * Combination of the device access vs the operation mode.
    */
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
   /*! getAccessDev.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
-  int getAccessDev() { return accessDev_; }
+  int getAccessDev() const { return accessDev_; }
 
   /*! getAccessOpr.
    * @brief Returns the operation access mode
    * @return True: Normal access, False: Transpose
    */
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
   /*! getDisp.
    * @brief get displacement from the origin.
    */
-  long getDisp() { return disp_; }
+  long getDisp() const { return disp_; }
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  matrix_view<valueT, containerT> operator+(size_t disp) {
-    return matrix_view<valueT, containerT>(
+  matrix_view<ScalarT, containerT> operator+(size_t disp) {
+    return matrix_view<ScalarT, containerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
@@ -439,15 +446,15 @@ struct matrix_view {
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  matrix_view<valueT, containerT> operator()(size_t i, size_t j) {
+  matrix_view<ScalarT, containerT> operator()(size_t i, size_t j) {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
-      return matrix_view<valueT, containerT>(
+      return matrix_view<ScalarT, containerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
     } else {
       // ACCESING BY COLUMN
-      return matrix_view<valueT, containerT>(
+      return matrix_view<ScalarT, containerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
     }
@@ -456,7 +463,7 @@ struct matrix_view {
   /*! eval.
    * @brief Evaluation for the given linear value.
    */
-  valueT &eval(size_t k) {
+  ScalarT &eval(size_t k) {
     auto ind = disp_;
     auto access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
@@ -469,7 +476,7 @@ struct matrix_view {
   /*! eval.
    * @brief Evaluation for the pair of row/col.
    */
-  valueT &eval(size_t i, size_t j) {
+  ScalarT &eval(size_t i, size_t j) {
     auto ind = disp_;
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -505,4 +512,4 @@ struct matrix_view {
 
 }  // namespace blas
 
-#endif  // OPERVIEW_BASE_HPP
+#endif  // BLAS_OPERVIEW_BASE_HPP
