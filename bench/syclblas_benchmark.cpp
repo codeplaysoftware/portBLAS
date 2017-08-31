@@ -294,7 +294,7 @@ class SyclBlasBenchmarker {
   }
 };
 
-BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 28, 10);
+BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
 SyclBlasBenchmarker<SYCLDevice> blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
