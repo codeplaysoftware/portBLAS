@@ -234,6 +234,9 @@ struct GenericReducerOneStage : GenericReducer<EvaluatorT, Functor> {
     size_t N = ev.getSize();
     size_t localsize = 256;
     size_t nwg = 1;
+    if(dev.sycl_device().is_cpu()) {
+      localsize = 2048;
+    }
     size_t sharedsize = localsize;
     size_t globalsize = localsize * nwg;
     execute(dev, result, ev, localsize, globalsize, sharedsize);
