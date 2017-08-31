@@ -58,8 +58,8 @@ struct ExecTreeFunctor {
  */
 template <typename ExpressionT>
 struct execute_tree {
-  static void run(SYCLDevice &dev, ExpressionT expr, size_t localsize, size_t globalsize) {
-    using Device = SYCLDevice;
+  using Device = SYCLDevice;
+  static void run(Device &dev, ExpressionT expr, size_t localsize, size_t globalsize) {
     using EvaluatorT = Evaluator<ExpressionT, Device>;
 
     EvaluatorT ev(expr);
@@ -72,6 +72,19 @@ struct execute_tree {
     });
     dev.sycl_queue().wait_and_throw();
 
+    ev.cleanup(dev);
+  }
+};
+
+template <typename LHS, typename Functor, typename RHS>
+struct execute_tree<AssignExpr<LHS, ReductionExpr<Functor, RHS, MakeHostPointer>>> {
+  using ExpressionT = AssignExpr<LHS, ReductionExpr<Functor, RHS, MakeHostPointer>>;
+  using Device = SYCLDevice;
+  static void run(SYCLDevice &dev, ExpressionT expr, size_t localsize, size_t globalsize) {
+    using EvaluatorT = Evaluator<ExpressionT, Device>;
+
+    EvaluatorT ev(expr);
+    ev.eval_subexpr_if_needed(nullptr, dev);
     ev.cleanup(dev);
   }
 };
