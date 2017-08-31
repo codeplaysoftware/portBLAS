@@ -76,6 +76,54 @@ struct shared_mem {
   value_type &operator[](cl::sycl::id<1> id) { return localAcc[id]; }
 };
 
+template <typename EvaluatorT, typename Result, typename ShMem, typename Functor>
+struct KernelfOneStage {
+  using value_type = typename EvaluatorT::value_type;
+  using dev_functor = Functor;
+
+  EvaluatorT ev;
+  Result result;
+  ShMem shmem;
+
+  KernelfOneStage(EvaluatorT ev, Result result, ShMem shmem):
+    ev(ev), result(result), shmem(shmem)
+  {}
+
+  void operator()(cl::sycl::nd_item<1> ndItem) {
+    size_t i = ndItem.get_global(0);
+    size_t N = ev.getSize();
+
+    size_t localid = ndItem.get_local(0);
+    size_t groupid = ndItem.get_group(0);
+
+    size_t localsize = ndItem.get_local_range(0);
+    size_t nwg = ndItem.get_num_groups(0);
+
+    // Reduction across the grid
+    value_type val = dev_functor::template init<value_type>();
+    for (size_t k = i; k < N; k += localsize * nwg) {
+      val = dev_functor::eval(val, ev.eval(k));
+    }
+
+    shmem[localid] = val;
+    // This barrier is mandatory to be sure the data is on the shared memory
+    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+    // Reduction inside the block
+    for (size_t offset = localsize >> 1; offset > 0; offset >>= 1) {
+      if (localid < offset) {
+        value_type l=shmem[localid],r=shmem[localid+offset];
+        shmem[localid] = dev_functor::eval(shmem[localid], shmem[localid + offset]);
+      }
+      // This barrier is mandatory to be sure the data is on the shared memory
+      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    }
+    if (localid == 0) {
+      result[groupid] = shmem[localid];
+    }
+  }
+};
+
 template <typename EvaluatorT, typename Scratch, typename ShMem, typename Functor>
 struct KernelfFirstStage {
   using value_type = typename EvaluatorT::value_type;
@@ -166,11 +214,38 @@ struct KernelfSecondStage {
 };
 
 template <class EvaluatorT, class Functor>
+struct GenericReducerOneStage : GenericReducer<EvaluatorT, Functor> {
+  using Device = typename EvaluatorT::Device;
+  using value_type = typename EvaluatorT::value_type;
+
+  static void execute(Device &dev, cl::sycl::buffer<value_type, 1> result, const EvaluatorT &ev, size_t localsize, size_t globalsize, size_t sharedsize) {
+    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+      auto nTree = blas::make_accessor(ev, h);
+      auto acc = result.template get_access<cl::sycl::access::mode::write>(h);
+      shared_mem<value_type> shmem(sharedsize, h);
+      KernelfOneStage<decltype(nTree), decltype(acc), decltype(shmem), Functor> kf(nTree, acc, shmem);
+      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
+      h.parallel_for(gridConfiguration, kf);
+    });
+    dev.sycl_queue().wait_and_throw();
+  }
+
+  static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
+    size_t N = ev.getSize();
+    size_t localsize = 256;
+    size_t nwg = 1;
+    size_t sharedsize = localsize;
+    size_t globalsize = localsize * nwg;
+    execute(dev, result, ev, localsize, globalsize, sharedsize);
+  }
+};
+
+template <class EvaluatorT, class Functor>
 struct GenericReducerTwoStages : GenericReducer<EvaluatorT, Functor> {
   using Device = typename EvaluatorT::Device;
   using value_type = typename EvaluatorT::value_type;
 
-  static void execute1(Device &dev, cl::sycl::buffer<value_type, 1> scratch, EvaluatorT ev, size_t localsize, size_t globalsize, size_t sharedsize) {
+  static void execute1(Device &dev, cl::sycl::buffer<value_type, 1> scratch, const EvaluatorT &ev, size_t localsize, size_t globalsize, size_t sharedsize) {
     dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
       auto nTree = blas::make_accessor(ev, h);
       auto acc = scratch.template get_access<cl::sycl::access::mode::write>(h);
@@ -194,7 +269,7 @@ struct GenericReducerTwoStages : GenericReducer<EvaluatorT, Functor> {
     dev.sycl_queue().wait_and_throw();
   }
 
-  static void run(Device &dev, EvaluatorT ev, cl::sycl::buffer<value_type, 1> result) {
+  static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
     size_t N = ev.getSize();
     size_t localsize = 256;
     size_t nwg = 256;
@@ -214,8 +289,12 @@ struct GenericReducer {
   using Device = typename EvaluatorT::Device;
   using value_type = typename EvaluatorT::value_type;
 
-  static void run(Device &dev, EvaluatorT ev, cl::sycl::buffer<value_type, 1> result) {
-    GenericReducerTwoStages<EvaluatorT, Functor>::run(dev, ev, result);
+  static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
+    if(dev.sycl_device().is_cpu()) {
+      GenericReducerOneStage<EvaluatorT, Functor>::run(dev, ev, result);
+    } else {
+      GenericReducerTwoStages<EvaluatorT, Functor>::run(dev, ev, result);
+    }
   }
 };
 
