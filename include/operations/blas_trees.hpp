@@ -47,6 +47,8 @@ struct AssignExpr {
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 /*!
@@ -69,6 +71,8 @@ struct DoubleAssignExpr {
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
   size_t getSize() const { return r2.getSize(); }
+  long getStrd() const { return r2.getStrd(); }
+  size_t getDisp() const { return r2.getDisp(); }
 };
 
 /*!
@@ -86,6 +90,8 @@ struct ScalarExpr {
   ScalarExpr(SCL _scl, RHS &_r) : scl(_scl), r(_r){};
 
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 /*!
@@ -101,6 +107,8 @@ struct UnaryExpr {
   UnaryExpr(RHS &_r) : r(_r){};
 
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 /*!
@@ -119,6 +127,8 @@ struct BinaryExpr {
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 /*!
@@ -134,8 +144,9 @@ struct TupleExpr {
   TupleExpr(RHS &_r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
-;
 
 /*!
  * BreakExpr
@@ -160,6 +171,8 @@ struct BreakExpr {
       : BreakExpr(_r, to_break, use_rhs_result) {}
 
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 
@@ -186,6 +199,8 @@ struct StrideExpr {
   {}
 
   size_t getSize() const { return N; }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 /*!
@@ -196,7 +211,11 @@ template <typename RHS> struct strdExpr_constructor {
   using BRHS = BreakExpr<RHS, MakeHostPointer>;
   using rettype = StrideExpr<BRHS, MakeHostPointer>;
   static rettype make(RHS &r, long offset, long stride, size_t N) {
-    return rettype(BRHS(r, !(offset==0&&stride==1&&N==r.getSize())), offset, stride, N);
+    return rettype(BRHS(r, !(
+            offset == r.getDisp() &&
+            stride == r.getStrd() &&
+            N == r.getSize())
+          ), offset, stride, N);
   }
 };
 

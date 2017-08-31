@@ -145,12 +145,12 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  size_t getDisp() const { return disp_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  long getStrd() { return strd_; }
+  long getStrd() const { return strd_; }
 
   /*! vector_view.
    * See vector_view.
