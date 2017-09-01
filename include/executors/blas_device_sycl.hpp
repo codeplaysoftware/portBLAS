@@ -133,7 +133,7 @@ class SYCLDevice {
    */
   template <typename T>
   void generic_reduction_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
-    if(sycl_device().is_gpu()) {
+    if(sycl_device().is_gpu() || sycl_device().is_host()) {
       localsize = 256;
       nwg = 256;
     } else if(sycl_device().is_cpu() && vendor == INTEL) {
