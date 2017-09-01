@@ -50,15 +50,14 @@ class SYCLDevice {
     UNKNOWN_VENDOR
   };
 
-  enum DEVICE_TYPE {
-    DEVICE_CPU,
-    DEVICE_GPU,
-    UNKNOWN_DEVICE
-  };
+ public:
+  const VENDOR vendor;
+  const cl::sycl::info::device_type devtype;
+  const size_t MAX_LOCALSIZE;
+  const size_t MAX_COMPUTE_UNITS;
+  const size_t MAX_LOCAL_MEM;
 
-  VENDOR vendor;
-  DEVICE_TYPE devtype;
-
+ private:
   VENDOR get_vendor(cl::sycl::device d) {
     std::string plat_name = d.get_platform().template get_info<cl::sycl::info::platform::name>();
     if(plat_name.find("intel")) {
@@ -67,15 +66,6 @@ class SYCLDevice {
       return AMD;
     }
     return UNKNOWN_VENDOR;
-  }
-
-  DEVICE_TYPE get_devtype(cl::sycl::device d) {
-    if(d.is_cpu()) {
-      return DEVICE_CPU;
-    } else if(d.is_gpu()) {
-      return DEVICE_GPU;
-    }
-    return UNKNOWN_DEVICE;
   }
 
  public:
@@ -106,8 +96,11 @@ class SYCLDevice {
 
   SYCLDevice(cl::sycl::queue q):
     m_queue(q),
-    devtype(get_devtype(q.get_device())),
-    vendor(get_vendor(q.get_device()))
+    vendor(get_vendor(q.get_device())),
+    MAX_LOCALSIZE(sycl_device().template get_info<cl::sycl::info::device::max_work_group_size>()),
+    MAX_COMPUTE_UNITS(sycl_device().template get_info<cl::sycl::info::device::max_compute_units>()),
+    MAX_LOCAL_MEM(sycl_device().template get_info<cl::sycl::info::device::local_mem_size>()),
+    devtype(sycl_device().template get_info<cl::sycl::info::device::device_type>())
   {}
 
   /*!
@@ -118,12 +111,39 @@ class SYCLDevice {
    * @param [out] globalsize Global size.
    * @param [in] N Number of elements to be processed.
    */
-  static void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
-    /* const size_t localsize_max = m_queue.get_device().max_work_group_size(); */
-    /* const size_t nwg_max = m_queue.get_device().global_mem_size() / localsize_max; */
-    localsize = std::min<size_t>(N, 256);
+  void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
+    if(sycl_device().is_gpu()) {
+      localsize = 256;
+    } else if(sycl_device().is_cpu() && vendor == INTEL) {
+      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, MAX_LOCALSIZE / 2);
+    } else {
+      throw std::runtime_error("unsupported device type");
+    }
     nwg = (N + localsize - 1) / localsize;
     globalsize = nwg * localsize;
+  }
+
+  /*!
+   * @brief Sets up the execution parameters for generic reduction.
+   * e.g. asum/dot/nrm2 ...
+   * @param [out] localsize Local size.
+   * @param [out] nwg Number of work groups.
+   * @param [out] globalsize Global size.
+   * @param [in] N Number of elements to be processed.
+   */
+  template <typename T>
+  void generic_reduction_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
+    if(sycl_device().is_gpu()) {
+      localsize = 256;
+      nwg = 256;
+    } else if(sycl_device().is_cpu() && vendor == INTEL) {
+      size_t max_sharedsize = MAX_LOCAL_MEM / sizeof(T) / 2;
+      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, std::min<size_t>(MAX_LOCALSIZE / 4, max_sharedsize));
+      nwg = MAX_COMPUTE_UNITS;
+    } else {
+      throw std::runtime_error("unsupported device type");
+    }
+    globalsize = localsize * nwg;
   }
 
   /*!

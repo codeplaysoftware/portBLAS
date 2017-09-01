@@ -232,13 +232,13 @@ struct GenericReducerOneStage : GenericReducer<EvaluatorT, Functor> {
 
   static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
     size_t N = ev.getSize();
-    size_t localsize = 256;
+    size_t localsize;
+    size_t nwg_noset;
+    size_t globalsize;
+    dev.template generic_reduction_setup<value_type>(localsize, nwg_noset, globalsize, N);
     size_t nwg = 1;
-    if(dev.sycl_device().is_cpu()) {
-      localsize = 2048;
-    }
     size_t sharedsize = localsize;
-    size_t globalsize = localsize * nwg;
+    globalsize = localsize * nwg;
     execute(dev, result, ev, localsize, globalsize, sharedsize);
   }
 };
@@ -274,10 +274,11 @@ struct GenericReducerTwoStages : GenericReducer<EvaluatorT, Functor> {
 
   static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
     size_t N = ev.getSize();
-    size_t localsize = 256;
-    size_t nwg = 256;
+    size_t localsize;
+    size_t nwg;
+    size_t globalsize;
+    dev.template generic_reduction_setup<value_type>(localsize, nwg, globalsize, N);
     size_t sharedsize = localsize;
-    size_t globalsize = localsize * nwg;
     cl::sycl::buffer<value_type, 1> scratch{nwg};
     execute1(dev, scratch, ev, localsize, globalsize, sharedsize);
     execute2(dev, result, scratch, nwg, nwg, sharedsize=nwg, (N + localsize - 1) / localsize);
@@ -293,10 +294,12 @@ struct GenericReducer {
   using value_type = typename EvaluatorT::value_type;
 
   static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
-    if(dev.sycl_device().is_cpu()) {
+    if(dev.sycl_device().is_gpu() || ev.getSize() > 4e6) {
+      GenericReducerTwoStages<EvaluatorT, Functor>::run(dev, ev, result);
+    } else if(dev.sycl_device().is_cpu()) {
       GenericReducerOneStage<EvaluatorT, Functor>::run(dev, ev, result);
     } else {
-      GenericReducerTwoStages<EvaluatorT, Functor>::run(dev, ev, result);
+      throw std::runtime_error("unsupported device");
     }
   }
 };
