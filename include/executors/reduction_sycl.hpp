@@ -296,7 +296,7 @@ struct GenericReducer {
   static void run(Device &dev, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
     if(dev.sycl_device().is_gpu() || ev.getSize() > 4e6) {
       GenericReducerTwoStages<EvaluatorT, Functor>::run(dev, ev, result);
-    } else if(dev.sycl_device().is_cpu()) {
+    } else if(dev.sycl_device().is_cpu() || dev.sycl_device().is_host()) {
       GenericReducerOneStage<EvaluatorT, Functor>::run(dev, ev, result);
     } else {
       throw std::runtime_error("unsupported device");

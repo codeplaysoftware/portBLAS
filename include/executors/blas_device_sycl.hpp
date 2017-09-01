@@ -112,7 +112,7 @@ class SYCLDevice {
    * @param [in] N Number of elements to be processed.
    */
   void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
-    if(sycl_device().is_gpu()) {
+    if(sycl_device().is_gpu() || sycl_device().is_host()) {
       localsize = 256;
     } else if(sycl_device().is_cpu() && vendor == INTEL) {
       localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, MAX_LOCALSIZE / 2);
