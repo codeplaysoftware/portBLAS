@@ -129,8 +129,8 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
     auto buf_vImax = TestClass::make_buffer(vImax);
     auto buf_vImin = TestClass::make_buffer(vImin);
 
-    blas::execute(dev, _axpy(size, alpha, buf_vX, 0, strd, buf_vY, 0, strd));
-    blas::execute(dev, _asum(size, buf_vY, 0, strd, buf_vR));
+    auto axpy_xy = _axpy(size, alpha, buf_vX, 0, strd, buf_vY, 0, strd);
+    blas::execute(dev, _asum(size, axpy_xy, 0, strd, buf_vR));
     blas::execute(dev, _dot(size, buf_vX, 0, strd, buf_vY, 0, strd, buf_vS));
     blas::execute(dev, _nrm2(size, buf_vY, 0, strd, buf_vT));
     blas::execute(dev, _iamax(size, buf_vY, 0, strd, buf_vImax));

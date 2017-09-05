@@ -160,6 +160,25 @@ class SyclBlasBenchmarker {
     return flops;
   }
 
+  BENCHMARK_FUNCTION(rot_bench) {
+    using ScalarT = TypeParam;
+    ScalarT *v1 = new_data<ScalarT>(size);
+    ScalarT *v2 = new_data<ScalarT>(size);
+    ScalarT _cos(.345487), _sin(.173754);
+    double flops;
+    {
+      auto buf1 = mkbuffer<ScalarT>(v1, size);
+      auto buf2 = mkbuffer<ScalarT>(v2, size);
+      flops = benchmark<>::measure(no_reps, size * 2, [&]() {
+        blas::execute(dev, _rot(size, buf1, 0, 1, buf2, 0, 1, _cos, _sin));
+        q.wait_and_throw();
+      });
+    }
+    release_data(v1);
+    release_data(v2);
+    return flops;
+  }
+
   BENCHMARK_FUNCTION(scal2op_bench) {
     using ScalarT = TypeParam;
     ScalarT alpha(2.4367453465);
