@@ -30,21 +30,30 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
-REGISTER_STRD(::RANDOM_STRD, iamax_test)
+REGISTER_STRD(1, iamax_test)
 
-B1_TEST(iamax_test) {
-  UNPACK_PARAM(iamax_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
+TYPED_TEST(BLAS1_Test, iamax_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class iamax_test;
 
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create a random vector vX
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
+  // create a vector which will hold the result
   std::vector<IndVal<ScalarT>> vI(
       1, constant<IndVal<ScalarT>, const_val::imax>::value);
 
-  std::cout << strd << std::endl;
   ScalarT max = 0.;
   size_t imax = std::numeric_limits<size_t>::max();
+  // compute index and value of the element with biggest absolute value
   for (size_t i = 0; i < size; i += strd) {
     if (std::abs(vX[i]) > std::abs(max)) {
       max = vX[i];
@@ -53,13 +62,18 @@ B1_TEST(iamax_test) {
   }
   IndVal<ScalarT> res(imax, max);
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // compute iamax of vX into vI with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
     blas::execute(dev, _iamax((size+strd-1)/strd, buf_vX, 0, strd, buf_vI));
   }
   IndVal<ScalarT> res2(vI[0]);
+  // check that the result value is the same
   ASSERT_EQ(res.getVal(), res2.getVal());
+  // check that the result index is the same
   ASSERT_EQ(res.getInd(), res2.getInd());
 }

@@ -91,29 +91,40 @@ template <typename ScalarT, typename Device>
 struct functor_traits<divOp2_struct, ScalarT, Device> : divOp2_struct {
 };
 template <typename ScalarT, typename Device>
-struct functor_traits<maxOp2_struct, ScalarT, Device> : maxOp2_struct {
+struct functor_traits<maxIndOp2_struct, ScalarT, Device> : maxIndOp2_struct {
+  template <typename R>
+  static inline R abs(IndVal<R> r) {
+    return functor_traits<absOp1_struct, R, Device>::eval(r.getVal());
+  }
+
   template <typename L, typename R>
   static R eval(L l, R r) {
-    return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) <
-             functor_traits<absOp1_struct, R, Device>::eval(r.getVal())) ||
-            (functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) ==
-                 functor_traits<absOp1_struct, R, Device>::eval(r.getVal()) &&
-             l.getInd() > r.getInd()))
-               ? r
-               : l;
+    if(abs(l) > abs(r)) {
+      return l;
+    } else if(abs(l) < abs(r)) {
+      return r;
+    } else {
+      return (l.getInd() < r.getInd()) ? l : r;
+    }
   }
 };
+
 template <typename ScalarT, typename Device>
-struct functor_traits<minOp2_struct, ScalarT, Device> : minOp2_struct {
+struct functor_traits<minIndOp2_struct, ScalarT, Device> : minIndOp2_struct {
+  template <typename R>
+  static inline R abs(IndVal<R> r) {
+    return functor_traits<absOp1_struct, R, Device>::eval(r.getVal());
+  }
+
   template <typename L, typename R>
   static R eval(L l, R r) {
-    return ((functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) >
-             functor_traits<absOp1_struct, R, Device>::eval(r.getVal())) ||
-            (functor_traits<absOp1_struct, L, Device>::eval(l.getVal()) ==
-                 functor_traits<absOp1_struct, R, Device>::eval(r.getVal()) &&
-             l.getInd() > r.getInd()))
-               ? r
-               : l;
+    if(abs(l) < abs(r)) {
+      return l;
+    } else if(abs(l) > abs(r)) {
+      return r;
+    } else {
+      return (l.getInd() < r.getInd()) ? l : r;
+    }
   }
 };
 template <typename ScalarT, typename Device>

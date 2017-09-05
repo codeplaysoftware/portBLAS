@@ -33,29 +33,39 @@ TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 REGISTER_SIZE(::RANDOM_SIZE, swap_test)
 REGISTER_STRD(::RANDOM_STRD, swap_test)
 
-B1_TEST(swap_test) {
-  UNPACK_PARAM(swap_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
+TYPED_TEST(BLAS1_Test, swap_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class swap_test;
 
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create two random vectors with the same size: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
-  std::vector<ScalarT> vZ(size);
-  std::vector<ScalarT> vT(size);
-  for (size_t i = 0; i < size; ++i) {
-    vZ[i] = vX[i];
-    vT[i] = vY[i];
-  }
+  // create two more vectors equal to vX and vY
+  std::vector<ScalarT> vZ = vX;
+  std::vector<ScalarT> vT = vY;
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // swap the elements between vX and vY with syclblas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     blas::execute(dev, _swap((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
   }
+  // check that new vX is equal to the copy of the original vY and
+  // that new vY is equal to the copy of the original vX
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vZ[i], vY[i]);

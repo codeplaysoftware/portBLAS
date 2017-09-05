@@ -50,16 +50,15 @@ class SYCLDevice {
     UNKNOWN_VENDOR
   };
 
-  enum DEVICE_TYPE {
-    DEVICE_CPU,
-    DEVICE_GPU,
-    UNKNOWN_DEVICE
-  };
+ public:
+  const VENDOR vendor;
+  const cl::sycl::info::device_type devtype;
+  const size_t MAX_LOCALSIZE;
+  const size_t MAX_COMPUTE_UNITS;
+  const size_t MAX_LOCAL_MEM;
 
-  VENDOR vendor;
-  DEVICE_TYPE devtype;
-
-  VENDOR get_vendor(cl::sycl::device d) {
+ private:
+  VENDOR get_vendor(cl::sycl::device d) const {
     std::string plat_name = d.get_platform().template get_info<cl::sycl::info::platform::name>();
     if(plat_name.find("intel")) {
       return INTEL;
@@ -67,15 +66,6 @@ class SYCLDevice {
       return AMD;
     }
     return UNKNOWN_VENDOR;
-  }
-
-  DEVICE_TYPE get_devtype(cl::sycl::device d) {
-    if(d.is_cpu()) {
-      return DEVICE_CPU;
-    } else if(d.is_gpu()) {
-      return DEVICE_GPU;
-    }
-    return UNKNOWN_DEVICE;
   }
 
  public:
@@ -102,12 +92,16 @@ class SYCLDevice {
   template <typename DeviceSelector = cl::sycl::default_selector>
   SYCLDevice(DeviceSelector selector, std::function<void (cl::sycl::exception_list)> &&queue_lambda):
     SYCLDevice((cl::sycl::queue(selector, queue_lambda)))
+
   {}
 
   SYCLDevice(cl::sycl::queue q):
     m_queue(q),
-    devtype(get_devtype(q.get_device())),
-    vendor(get_vendor(q.get_device()))
+    vendor(get_vendor(q.get_device())),
+    MAX_LOCALSIZE(sycl_device().template get_info<cl::sycl::info::device::max_work_group_size>()),
+    MAX_COMPUTE_UNITS(sycl_device().template get_info<cl::sycl::info::device::max_compute_units>()),
+    MAX_LOCAL_MEM(sycl_device().template get_info<cl::sycl::info::device::local_mem_size>()),
+    devtype(sycl_device().template get_info<cl::sycl::info::device::device_type>())
   {}
 
   /*!
@@ -118,23 +112,54 @@ class SYCLDevice {
    * @param [out] globalsize Global size.
    * @param [in] N Number of elements to be processed.
    */
-  static void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
-    /* const size_t localsize_max = m_queue.get_device().max_work_group_size(); */
-    /* const size_t nwg_max = m_queue.get_device().global_mem_size() / localsize_max; */
-    localsize = std::min<size_t>(N, 256);
+  void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) const {
+    if(sycl_device().is_gpu() || sycl_device().is_host()) {
+      localsize = 256;
+    } else if(sycl_device().is_cpu() && vendor == INTEL) {
+      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, MAX_LOCALSIZE);
+    } else {
+      throw std::runtime_error("unsupported device type");
+    }
     nwg = (N + localsize - 1) / localsize;
     globalsize = nwg * localsize;
   }
 
   /*!
+   * @brief Sets up the execution parameters for generic reduction.
+   * e.g. asum/dot/nrm2 ...
+   * @param [out] localsize Local size.
+   * @param [out] nwg Number of work groups.
+   * @param [out] globalsize Global size.
+   * @param [in] N Number of elements to be processed.
+   */
+  template <typename T>
+  void generic_reduction_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) const {
+    if(sycl_device().is_cpu() && vendor == INTEL) {
+      size_t max_sharedsize = MAX_LOCAL_MEM / sizeof(T) / 2;
+      localsize = 8;
+      nwg = MAX_COMPUTE_UNITS;
+    } else if(sycl_device().is_gpu() || sycl_device().is_host()) {
+      localsize = 256;
+      nwg = 256;
+    } else {
+      throw std::runtime_error("unsupported device type");
+    }
+    globalsize = localsize * nwg;
+  }
+
+  /*!
    * @brief Gets cl::sycl::queue attached to this device instance.
    */
-  cl::sycl::queue sycl_queue() { return m_queue; }
+  cl::sycl::queue sycl_queue() const {
+    return m_queue;
+  }
   /*!
    * @brief Gets a cl::sycl::device from cl::sycl::queue attached to this device
    * instance.
    */
-  cl::sycl::device sycl_device() { return m_queue.get_device(); }
+  cl::sycl::device sycl_device() const {
+    return sycl_queue().get_device();
+  }
 
   /*!
    * @brief Allocates a global memory buffer on heap.
@@ -143,7 +168,7 @@ class SYCLDevice {
    * @returns Pointer to the new cl::sycl::buffer<T, 1>.
    */
   template <typename T>
-  cl::sycl::buffer<T, 1> *allocate(size_t N) {
+  cl::sycl::buffer<T, 1> *allocate(size_t N) const {
     return new cl::sycl::buffer<T, 1>{N};
   }
 
@@ -153,7 +178,7 @@ class SYCLDevice {
    * @param buffer Pointer to buffer allocated for this device.
    */
   template <typename T>
-  void deallocate(cl::sycl::buffer<T, 1> *buffer) {
+  void deallocate(cl::sycl::buffer<T, 1> *buffer) const {
     delete buffer;
   }
 };

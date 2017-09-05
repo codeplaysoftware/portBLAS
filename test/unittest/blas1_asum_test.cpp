@@ -25,7 +25,8 @@
 
 #include "blas1_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+    BlasTypes;
 
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
@@ -35,14 +36,18 @@ REGISTER_PREC(float, 1e-4, asum_test)
 REGISTER_PREC(double, 1e-6, asum_test)
 REGISTER_PREC(long double, 1e-7, asum_test)
 
-B1_TEST(asum_test) {
-  UNPACK_PARAM(asum_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
-  ScalarT prec = TEST_PREC;
+TYPED_TEST(BLAS1_Test, asum_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class asum_test;
 
-  std::cout << "SIZE== " << size << std::endl;
-  std::cout << "STRD== " << strd << std::endl;
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+  ScalarT prec = TestClass::template test_prec<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
@@ -52,7 +57,9 @@ B1_TEST(asum_test) {
     res += std::abs(vX[i]);
   }
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vR = TestClass::make_buffer(vR);

@@ -30,18 +30,26 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
-REGISTER_STRD(::RANDOM_STRD, iamin_test)
+REGISTER_STRD(1, iamin_test)
 
-B1_TEST(iamin_test) {
-  UNPACK_PARAM(iamin_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
+TYPED_TEST(BLAS1_Test, iamin_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class iamin_test;
+
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
   std::vector<IndVal<ScalarT>> vI(
       1, constant<IndVal<ScalarT>, const_val::imin>::value);
 
+  // compute iamin of vX into res with a for loop
   ScalarT min = std::numeric_limits<ScalarT>::max();
   size_t imin = std::numeric_limits<size_t>::max();
   for (size_t i = 0; i < size; i += strd) {
@@ -52,13 +60,18 @@ B1_TEST(iamin_test) {
   }
   IndVal<ScalarT> res(imin, min);
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // compute iamax of vX into vI with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
     blas::execute(dev, _iamin((size+strd-1)/strd, buf_vX, 0, strd, buf_vI));
   }
   IndVal<ScalarT> res2(vI[0]);
+  // check that the result value is the same
   ASSERT_EQ(res.getVal(), res2.getVal());
+  // check that the result index is the same
   ASSERT_EQ(res.getInd(), res2.getInd());
 }

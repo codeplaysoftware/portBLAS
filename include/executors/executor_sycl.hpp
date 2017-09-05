@@ -58,20 +58,25 @@ struct ExecTreeFunctor {
  */
 template <typename ExpressionT>
 struct execute_tree {
-  static void run(SYCLDevice &dev, ExpressionT expr, size_t localsize, size_t globalsize) {
-    using Device = SYCLDevice;
+  using Device = SYCLDevice;
+  static void run(Device &dev, ExpressionT &expr, size_t localsize, size_t globalsize) {
     using EvaluatorT = Evaluator<ExpressionT, Device>;
 
     EvaluatorT ev(expr);
-    ev.eval_subexpr_if_needed(nullptr, dev);
-
-    dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
-      auto nTree = blas::make_accessor(ev, h);
-      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
-      h.parallel_for(gridConfiguration, ExecTreeFunctor<decltype(nTree)>(nTree));
-    });
-    dev.sycl_queue().wait_and_throw();
-
+    if(ev.template eval_subexpr_if_needed<void>(nullptr, nullptr, dev)) {
+      dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
+        auto nTree = blas::make_accessor(ev, h);
+        cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
+        h.parallel_for(
+          cl::sycl::nd_range<1>{
+            cl::sycl::range<1>{globalsize},
+            cl::sycl::range<1>{localsize}
+          },
+          ExecTreeFunctor<decltype(nTree)>(nTree)
+        );
+      });
+      dev.sycl_queue().wait_and_throw();
+    }
     ev.cleanup(dev);
   }
 };
@@ -117,8 +122,13 @@ struct SubExecutor {
 
     dev.sycl_queue().submit([=](cl::sycl::handler &h) mutable {
       auto nTree = blas::make_accessor(ev, h);
-      cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{cl::sycl::range<1>{globalsize}, cl::sycl::range<1>{localsize}};
-      h.parallel_for(gridConfiguration, ExecSubTreeFunctor<decltype(nTree)>(nTree));
+      h.parallel_for(
+        cl::sycl::nd_range<1>{
+          cl::sycl::range<1>{globalsize},
+          cl::sycl::range<1>{localsize}
+        },
+        ExecSubTreeFunctor<decltype(nTree)>(nTree)
+      );
     });
     dev.sycl_queue().wait_and_throw();
   }

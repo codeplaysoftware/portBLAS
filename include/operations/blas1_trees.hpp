@@ -48,6 +48,8 @@ struct ReductionExpr {
   ReductionExpr(RHS _r) : r(_r) {}
 
   size_t getSize() const { return r.getSize(); }
+  long getStrd() const { return r.getStrd(); }
+  size_t getDisp() const { return r.getDisp(); }
 };
 
 template <typename Functor, typename RHS>

@@ -36,17 +36,27 @@ REGISTER_PREC(float, 1e-4, scal_test)
 REGISTER_PREC(double, 1e-6, scal_test)
 REGISTER_PREC(long double, 1e-7, scal_test)
 
-B1_TEST(scal_test) {
-  UNPACK_PARAM(scal_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
-  ScalarT prec = TEST_PREC;
+TYPED_TEST(BLAS1_Test, scal_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class scal_test;
 
-  ScalarT alpha((rand() % size * 1e2) * 1e-2);
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  ScalarT prec = TestClass::template test_prec<test>();
+
+  ScalarT alpha(1.54);
+  // create two vectors: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size, 0);
   TestClass::set_rand(vX, size);
 
+  // compute vector scalar product vX * alpha in a for loop and put it into vY
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
       vY[i] = alpha * vX[i];
@@ -55,11 +65,15 @@ B1_TEST(scal_test) {
     }
   }
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // vector scalar product vX * alpha with the result left in vX
     auto buf_vX = TestClass::make_buffer(vX);
     blas::execute(dev, _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd));
   }
+  // check that the result is the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);
   }

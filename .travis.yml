@@ -44,6 +44,6 @@ install:
 script:
   - mkdir build
   - cd build
-  - cmake .. -DCOMPUTECPP_PACKAGE_ROOT_DIR=/tmp/ComputeCpp-CE-0.3.0-Linux/ -DCOMPUTECPP_DISABLE_GCC_DUAL_ABI=1 -DCMAKE_BUILD_TYPE=Release
+  - cmake .. -DCOMPUTECPP_PACKAGE_ROOT_DIR=/tmp/ComputeCpp-CE-0.3.1-Linux/ -DCOMPUTECPP_DISABLE_GCC_DUAL_ABI=1 -DCMAKE_BUILD_TYPE=Release
   - make
-  - COMPUTECPP_TARGET="host" tests/simple_axpy_test
+  - COMPUTECPP_TARGET="host" make test

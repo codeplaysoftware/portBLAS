@@ -100,10 +100,6 @@ SYCLBLAS_DEFINE_UNARY_OPERATOR(absOp1_struct, std::fabs(r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addOp2_struct, const_val::zero, (l + r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(prdOp2_struct, const_val::one, (l * r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(divOp2_struct, const_val::one, (l / r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(maxOp2_struct, const_val::min,
-                                ((l > r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
-                                ((l < r) ? l : r))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (absOp1_struct::eval(l) +
                                  absOp1_struct::eval(r)))

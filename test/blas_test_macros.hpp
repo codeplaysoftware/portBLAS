@@ -19,18 +19,27 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename main.cpp
+ *  @filename blas_test_macros.hpp
  *
  **************************************************************************/
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#ifndef VERBOSE_HPP
+#define VERBOSE_HPP
 
-#include "blas_test_macros.hpp"
+#ifdef VERBOSE
+#define DEBUG_PRINT(command) command
+#else
+#define DEBUG_PRINT(command)
+#endif /* ifdef VERBOSE */
 
-int main(int argc, char *argv[]) {
-  int seed = 12345;
-  srand(seed);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+#ifndef SYCL_DEVICE
+#define SYCL_DEVICE_SELECTOR cl::sycl::default_selector
+#else
+#define PASTER(x, y) x##y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define SYCL_DEVICE_SELECTOR cl::sycl::EVALUATOR(SYCL_DEVICE, _selector)
+#undef PASTER
+#undef EVALUATOR
+#endif /* ifndef SYCL_DEVICE */
+
+#endif /* end of include guard: VERBOSE_HPP */

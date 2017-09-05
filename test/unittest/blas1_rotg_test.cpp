@@ -30,42 +30,56 @@ typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
 
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
-REGISTER_SIZE(2, rot_test)
-REGISTER_STRD(1, rot_test)
-REGISTER_PREC(float, 1e-4, rot_test)
-REGISTER_PREC(double, 1e-7, rot_test)
+REGISTER_SIZE(2, rotg_test)
+REGISTER_STRD(1, rotg_test)
+REGISTER_PREC(float, 1e-4, rotg_test)
+REGISTER_PREC(double, 1e-7, rotg_test)
 
-B1_TEST(rot_test) {
-  UNPACK_PARAM(rot_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
-  ScalarT prec = TEST_PREC;
+TYPED_TEST(BLAS1_Test, rotg_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class rotg_test;
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+  ScalarT prec = TestClass::template test_prec<test>();
 
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
+  std::vector<ScalarT> vR(1, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
-  std::vector<ScalarT> vZ(size, 0);
-  std::vector<ScalarT> vT(size, 0);
+  SYCL_DEVICE_SELECTOR d;
   ScalarT _cos, _sin;
 
+  ScalarT giv = 0;
+  // givens rotation of vectors vX and vY
+  // and computation of dot of both vectors
   for (size_t i = 0; i < size; i += strd) {
     ScalarT x = vX[i], y = vY[i];
-    _rotg(x, y, _cos, _sin);
+    if (i == 0) {
+      // compute _cos and _sin
+      _rotg(x, y, _cos, _sin);
+    }
     x = vX[i], y = vY[i];
-    vZ[i] = (x * _cos + y * _sin);
-    vT[i] = (-x * _sin + y * _cos);
+    giv += ((x * _cos + y * _sin) * (y * _cos - x * _sin));
   }
 
-  Device dev;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // checking _rotg with _rot and _dot
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
-    blas::execute(dev, _copy((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
+    auto buf_res = TestClass::make_buffer(vR);
+    blas::execute(dev, _rot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, _cos, _sin));
+    blas::execute(dev, _dot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, buf_res));
   }
-  for (size_t i = 0; i < size; i += strd) {
-    ASSERT_NEAR(vZ[i], vX[i], prec);
-    ASSERT_NEAR(vT[i], vY[i], prec);
-  }
+  // check that the result is the same
+  ASSERT_NEAR(giv, vR[0], prec);
 }

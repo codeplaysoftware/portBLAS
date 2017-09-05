@@ -36,29 +36,43 @@ REGISTER_PREC(float, 1e-4, dot_test)
 REGISTER_PREC(double, 1e-6, dot_test)
 REGISTER_PREC(long double, 1e-7, dot_test)
 
-B1_TEST(dot_test) {
-  UNPACK_PARAM(dot_test);
-  size_t size = TEST_SIZE;
-  size_t strd = TEST_STRD;
-  ScalarT prec = TEST_PREC;
+TYPED_TEST(BLAS1_Test, dot_test) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using Device = typename TypeParam::device_t;
+  using TestClass = BLAS1_Test<TypeParam>;
+  using test = class dot_test;
 
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
+  ScalarT prec = TestClass::template test_prec<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create two random vectors: vX and vY
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
+  // create a vector of size 1 for the result
   std::vector<ScalarT> vR(1, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
   ScalarT res(0);
+  // compute dot(vX, vY) into res with a for loop
   for (size_t i = 0; i < size; i += strd) {
     res += vX[i] * vY[i];
   }
 
-  Device dev;
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Device dev(q);
   {
+    // compute dot(vX, vY) into vR with syclblas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_vR = TestClass::make_buffer(vR);
     blas::execute(dev, _dot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, buf_vR));
   }
+  // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
 }
