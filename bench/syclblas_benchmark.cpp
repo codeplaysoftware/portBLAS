@@ -277,34 +277,34 @@ class SyclBlasBenchmarker {
 BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
 SyclBlasBenchmarker<SYCLDevice> blasbenchmark;
 
-/* BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
 
 BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>);
 
-/* BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>); */
-/* BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>); */
+BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>);
 
 BENCHMARK_MAIN_END();
