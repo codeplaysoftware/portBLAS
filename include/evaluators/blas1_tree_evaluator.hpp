@@ -37,8 +37,6 @@
 namespace blas {
 
 template <class AssignAssignEvaluatorT, class AssignEvaluatorT, class Functor> struct GenericReducer;
-template <class AssignEvaluatorT, class Functor, class Reducer> struct FullReducer;
-template <class AssignEvaluatorT, class Functor, class Reducer> struct PartialReduction;
 
 // host side reduction expr
 template <typename Functor, class RHS, template <class> class MakePointer>

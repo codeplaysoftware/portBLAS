@@ -59,7 +59,7 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
@@ -117,7 +117,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
@@ -216,7 +216,7 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
@@ -318,7 +318,7 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
@@ -368,7 +368,7 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
@@ -483,7 +483,7 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r3.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);

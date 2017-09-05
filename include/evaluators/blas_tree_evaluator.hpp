@@ -70,7 +70,7 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device_> {
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l.template eval_subexpr_if_needed<void>(nullptr, nullptr, dev);
     return r.template eval_subexpr_if_needed<Self>(l.data(), this, dev);
   }
@@ -121,7 +121,7 @@ struct Evaluator<DoubleAssignExpr<LHS1, LHS2, RHS1, RHS2>, Device_> {
   cont_type *data() { return l1.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     l2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l1.data(), nullptr, dev);
@@ -166,7 +166,7 @@ struct Evaluator<ScalarExpr<Functor, SCL, RHS>, Device_> {
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return r.data(); }
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
@@ -194,7 +194,7 @@ struct Evaluator<UnaryExpr<Functor, RHS>, Device_> {
   cont_type *data() { return r.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     return r.template eval_subexpr_if_needed<AssignEvaluatorT>(cont, assign, dev);
   }
 
@@ -226,7 +226,7 @@ struct Evaluator<BinaryExpr<Functor, LHS, RHS>, Device_> {
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     r.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
@@ -258,7 +258,7 @@ struct Evaluator<TupleExpr<RHS>, Device_> {
   cont_type *data() { return r.data(); }
 
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
@@ -400,7 +400,7 @@ struct Evaluator<StrideExpr<RHS, MakePointer>, SYCLDevice> {
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return r.data(); }
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
     r.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
@@ -428,7 +428,7 @@ struct Evaluator<vector_view<ScalarT, ContainerT>, Device_> {
   size_t getSize() const { return vec.getSize(); }
   cont_type *data() { return &vec.getData(); }
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) { return true; }
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) { return true; }
   value_type eval(size_t i) { return evalref(i); }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -468,7 +468,7 @@ struct Evaluator<matrix_view<ScalarT, ContainerT>, Device_> {
   int getAccessOpr() const { return mat.getAccessOpr(); }
   cont_type *data() { return &mat.getData(); }
   template <typename AssignEvaluatorT = void>
-	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) { return true; }
+  bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) { return true; }
   value_type eval(size_t i) { return mat.eval(i); }
   value_type eval(size_t i, size_t j) { return mat.eval(i, j); }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
