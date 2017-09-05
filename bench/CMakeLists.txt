@@ -30,7 +30,7 @@ if (CLBLAS_FOUND)
   target_link_libraries(clblas_benchmarks ${OpenCL_LIBRARIES})
 endif(CLBLAS_FOUND)
 
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
+set(COMPUTECPP_DEVICE_COMPILER_FLAGS "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name -Ofast")
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})

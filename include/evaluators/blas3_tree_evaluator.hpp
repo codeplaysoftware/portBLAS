@@ -58,9 +58,10 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
   size_t getSize() const { return r1.getSize(); }
   cont_type *data() { return r1.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(nullptr, dev);
-    r2.eval_subexpr_if_needed(nullptr, dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
 

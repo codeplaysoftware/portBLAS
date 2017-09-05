@@ -39,8 +39,10 @@
 
 namespace blas {
 
+#ifndef RETURNCXX11
 #define RETURNCXX11(expr) \
   ->decltype(expr) { return expr; }
+#endif
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
@@ -141,7 +143,7 @@ auto _axpy(int _N, ScalarT _alpha, X _x, int _offx, int _incx, Y _y, int _offy, 
 template <typename X, typename Y, typename ScalarT>
 auto _dot(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
   make_expr<AssignExpr>(
-    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_strdExpr(_rs, 0, 1, 1),
     make_addReductionExpr(
       make_expr<BinaryExpr, prdOp2_struct>(
         make_strdExpr(_x, _offx, _incx, _N),
@@ -160,7 +162,7 @@ auto _dot(int _N, X _x, int _offx, int _incx, Y _y, int _offy, int _incy, cl::sy
 template <typename X, typename ScalarT>
 auto _nrm2(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
   make_expr<AssignExpr>(
-    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_strdExpr(_rs, 0, 1, 1),
     make_expr<UnaryExpr, sqtOp1_struct>(
       make_addReductionExpr(
         make_expr<UnaryExpr, prdOp1_struct>(
@@ -179,7 +181,7 @@ auto _nrm2(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs)
 template <typename X, typename ScalarT>
 auto _asum(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs) RETURNCXX11(
   make_expr<AssignExpr>(
-    vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>(_rs, 0, 1, 1),
+    make_strdExpr(_rs, 0, 1, 1),
     make_addAbsReductionExpr(
       make_strdExpr(_x, _offx, _incx, _N)))
 )
@@ -195,7 +197,7 @@ auto _asum(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarT, 1> _rs)
 template <typename X, typename ScalarI>
 auto _iamax(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarI, 1> _rs) RETURNCXX11(
   make_expr<AssignExpr>(
-    vector_view<ScalarI, cl::sycl::buffer<ScalarI, 1>>(_rs, 0, 1, 1),
+    make_strdExpr(_rs, 0, 1, 1),
     make_maxIndReductionExpr(
       make_tplExpr(
         make_strdExpr(_x, _offx, _incx, _N))))
@@ -212,7 +214,7 @@ auto _iamax(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarI, 1> _rs
 template <typename X, typename ScalarI>
 auto _iamin(int _N, X _x, int _offx, int _incx, cl::sycl::buffer<ScalarI, 1> _rs) RETURNCXX11(
   make_expr<AssignExpr>(
-    vector_view<ScalarI, cl::sycl::buffer<ScalarI, 1>>(_rs, 0, 1, 1),
+    make_strdExpr(_rs, 0, 1, 1),
     make_minIndReductionExpr(
       make_tplExpr(
         make_strdExpr(_x, _offx, _incx, _N))))

@@ -146,30 +146,13 @@ class SyclBlasBenchmarker {
   BENCHMARK_FUNCTION(iamax_bench) {
     using ScalarT = TypeParam;
     ScalarT *v1 = new_data<ScalarT>(size);
-    IndVal<ScalarT> vI(std::numeric_limits<size_t>::max(), 0);
+    IndVal<ScalarT> vI(std::numeric_limits<int>::max(), 0);
     double flops;
     {
       auto buf1 = mkbuffer<ScalarT>(v1, size);
       auto buf_i = mkbuffer<IndVal<ScalarT>>(&vI, 1);
       flops = benchmark<>::measure(no_reps, size * 2, [&]() {
         blas::execute(dev, _iamax(size, buf1, 0, 1, buf_i));
-        q.wait_and_throw();
-      });
-    }
-    release_data(v1);
-    return flops;
-  }
-
-  BENCHMARK_FUNCTION(iamin_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    IndVal<ScalarT> vI(std::numeric_limits<size_t>::max(), 0);
-    double flops;
-    {
-      auto buf1 = mkbuffer<ScalarT>(v1, size);
-      auto buf_i = mkbuffer<IndVal<ScalarT>>(&vI, 1);
-      flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-        blas::execute(dev, _iamin(size, buf1, 0, 1, buf_i));
         q.wait_and_throw();
       });
     }
@@ -263,8 +246,7 @@ class SyclBlasBenchmarker {
     ScalarT *v1 = new_data<ScalarT>(size);
     ScalarT *v2 = new_data<ScalarT>(size);
     ScalarT vr[4];
-    IndVal<ScalarT> vImax(std::numeric_limits<size_t>::max(), 0);
-    /* IndVal<ScalarT> vImin(std::numeric_limits<size_t>::max(), 0); */
+    IndVal<ScalarT> vImax(std::numeric_limits<int>::max(), 0);
     ScalarT alpha(3.135345123);
     double flops;
     {
@@ -275,7 +257,6 @@ class SyclBlasBenchmarker {
       auto bufr2 = mkbuffer<ScalarT>(&vr[2], 1);
       auto bufr3 = mkbuffer<ScalarT>(&vr[3], 1);
       auto buf_i1 = mkbuffer<IndVal<ScalarT>>(&vImax, 1);
-      /* auto buf_i2 = mkbuffer<IndVal<ScalarT>>(&vImin, 1); */
 
       flops = benchmark<>::measure(no_reps, size * 12, [&]() {
         blas::execute(dev, _axpy(size, alpha, buf1, 0, 1, buf2, 0, 1));
@@ -283,7 +264,6 @@ class SyclBlasBenchmarker {
         blas::execute(dev, _dot(size, buf1, 0, 1, buf2, 0, 1, bufr1));
         blas::execute(dev, _nrm2(size, buf2, 0, 1, bufr2));
         blas::execute(dev, _iamax(size, buf2, 0, 1, buf_i1));
-        /* blas::execute(dev, _iamin(size, buf2, 1, buf_i2)); */
         blas::execute(dev, _dot(size, buf1, 0, 1, buf2, 0, 1, bufr3));
         q.wait_and_throw();
       });
@@ -297,34 +277,34 @@ class SyclBlasBenchmarker {
 BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
 SyclBlasBenchmarker<SYCLDevice> blasbenchmark;
 
-BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>); */
 
 BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
 
-BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>); */
 
-BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>);
+/* BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>); */
+/* BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>); */
 
 BENCHMARK_MAIN_END();

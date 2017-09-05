@@ -56,13 +56,15 @@ namespace blas {
 template <typename ScalarT>
 struct IndVal {
   using value_type = ScalarT;
-  size_t ind;
+  int ind;
   value_type val;
 
-  constexpr explicit IndVal(size_t _ind, value_type _val)
+  constexpr explicit IndVal(int _ind, value_type _val)
       : ind(_ind), val(_val){};
-  size_t getInd() const { return ind; }
+  int getInd() const { return ind; }
   value_type getVal() const { return val; }
+
+  constexpr operator int() const { return ind; }
 };
 
 /*!
@@ -155,16 +157,16 @@ SYCLBLAS_DEFINE_CONSTANT(
     (std::complex<double>(std::numeric_limits<double>::min(),
                           std::numeric_limits<double>::min())))
 SYCLBLAS_DEFINE_CONSTANT(IndVal<float>, const_val::imax,
-                         (IndVal<float>(std::numeric_limits<size_t>::max(),
+                         (IndVal<float>(std::numeric_limits<int>::max(),
                                         std::numeric_limits<float>::max())))
 SYCLBLAS_DEFINE_CONSTANT(IndVal<float>, const_val::imin,
-                         (IndVal<float>(std::numeric_limits<size_t>::max(),
+                         (IndVal<float>(std::numeric_limits<int>::max(),
                                         std::numeric_limits<float>::min())))
 SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imax,
-                         (IndVal<double>(std::numeric_limits<size_t>::max(),
+                         (IndVal<double>(std::numeric_limits<int>::max(),
                                          std::numeric_limits<double>::max())))
 SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imin,
-                         (IndVal<double>(std::numeric_limits<size_t>::max(),
+                         (IndVal<double>(std::numeric_limits<int>::max(),
                                          std::numeric_limits<double>::min())))
 }  // namespace blas
 

@@ -58,7 +58,7 @@ class SYCLDevice {
   const size_t MAX_LOCAL_MEM;
 
  private:
-  VENDOR get_vendor(cl::sycl::device d) {
+  VENDOR get_vendor(cl::sycl::device d) const {
     std::string plat_name = d.get_platform().template get_info<cl::sycl::info::platform::name>();
     if(plat_name.find("intel")) {
       return INTEL;
@@ -92,6 +92,7 @@ class SYCLDevice {
   template <typename DeviceSelector = cl::sycl::default_selector>
   SYCLDevice(DeviceSelector selector, std::function<void (cl::sycl::exception_list)> &&queue_lambda):
     SYCLDevice((cl::sycl::queue(selector, queue_lambda)))
+
   {}
 
   SYCLDevice(cl::sycl::queue q):
@@ -111,11 +112,11 @@ class SYCLDevice {
    * @param [out] globalsize Global size.
    * @param [in] N Number of elements to be processed.
    */
-  void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
+  void parallel_for_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) const {
     if(sycl_device().is_gpu() || sycl_device().is_host()) {
       localsize = 256;
     } else if(sycl_device().is_cpu() && vendor == INTEL) {
-      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, MAX_LOCALSIZE / 2);
+      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, MAX_LOCALSIZE);
     } else {
       throw std::runtime_error("unsupported device type");
     }
@@ -132,14 +133,14 @@ class SYCLDevice {
    * @param [in] N Number of elements to be processed.
    */
   template <typename T>
-  void generic_reduction_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) {
-    if(sycl_device().is_gpu() || sycl_device().is_host()) {
+  void generic_reduction_setup(size_t &localsize, size_t &nwg, size_t &globalsize, size_t N) const {
+    if(sycl_device().is_cpu() && vendor == INTEL) {
+      size_t max_sharedsize = MAX_LOCAL_MEM / sizeof(T) / 2;
+      localsize = 8;
+      nwg = MAX_COMPUTE_UNITS;
+    } else if(sycl_device().is_gpu() || sycl_device().is_host()) {
       localsize = 256;
       nwg = 256;
-    } else if(sycl_device().is_cpu() && vendor == INTEL) {
-      size_t max_sharedsize = MAX_LOCAL_MEM / sizeof(T) / 2;
-      localsize = std::min<size_t>((N + 128 - 1) / 128 * 128, std::min<size_t>(MAX_LOCALSIZE / 4, max_sharedsize));
-      nwg = MAX_COMPUTE_UNITS;
     } else {
       throw std::runtime_error("unsupported device type");
     }
@@ -149,12 +150,16 @@ class SYCLDevice {
   /*!
    * @brief Gets cl::sycl::queue attached to this device instance.
    */
-  cl::sycl::queue sycl_queue() { return m_queue; }
+  cl::sycl::queue sycl_queue() const {
+    return m_queue;
+  }
   /*!
    * @brief Gets a cl::sycl::device from cl::sycl::queue attached to this device
    * instance.
    */
-  cl::sycl::device sycl_device() { return m_queue.get_device(); }
+  cl::sycl::device sycl_device() const {
+    return sycl_queue().get_device();
+  }
 
   /*!
    * @brief Allocates a global memory buffer on heap.
@@ -163,7 +168,7 @@ class SYCLDevice {
    * @returns Pointer to the new cl::sycl::buffer<T, 1>.
    */
   template <typename T>
-  cl::sycl::buffer<T, 1> *allocate(size_t N) {
+  cl::sycl::buffer<T, 1> *allocate(size_t N) const {
     return new cl::sycl::buffer<T, 1>{N};
   }
 
@@ -173,7 +178,7 @@ class SYCLDevice {
    * @param buffer Pointer to buffer allocated for this device.
    */
   template <typename T>
-  void deallocate(cl::sycl::buffer<T, 1> *buffer) {
+  void deallocate(cl::sycl::buffer<T, 1> *buffer) const {
     delete buffer;
   }
 };

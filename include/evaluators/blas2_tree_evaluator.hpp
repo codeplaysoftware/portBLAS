@@ -58,9 +58,10 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return r1.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(nullptr, dev);
-    r2.eval_subexpr_if_needed(nullptr, dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
 
@@ -115,11 +116,12 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return l.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(nullptr, dev);
-    r1.eval_subexpr_if_needed(l.data(), dev);
-    r2.eval_subexpr_if_needed(l.data(), dev);
-    r3.eval_subexpr_if_needed(l.data(), dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
+    r3.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     return true;
   }
 
@@ -213,10 +215,11 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return l.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(nullptr, dev);
-    r1.eval_subexpr_if_needed(l.data(), dev);
-    r2.eval_subexpr_if_needed(l.data(), dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     return true;
   }
 
@@ -314,10 +317,11 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return l.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    l.eval_subexpr_if_needed(nullptr, dev);
-    r1.eval_subexpr_if_needed(l.data(), dev);
-    r2.eval_subexpr_if_needed(l.data(), dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    l.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(l.data(), dev);
     return true;
   }
 
@@ -363,9 +367,10 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return r1.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(nullptr, dev);
-    r2.eval_subexpr_if_needed(nullptr, dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
 
@@ -477,10 +482,11 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   size_t getSize() const { return r1.getSizeR(); }
   cont_type *data() { return r1.data(); }
 
-  bool eval_subexpr_if_needed(cont_type *cont, Device &dev) {
-    r1.eval_subexpr_if_needed(nullptr, dev);
-    r2.eval_subexpr_if_needed(nullptr, dev);
-    r3.eval_subexpr_if_needed(nullptr, dev);
+  template <typename AssignEvaluatorT = void>
+	bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
+    r1.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r2.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
+    r3.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     return true;
   }
 

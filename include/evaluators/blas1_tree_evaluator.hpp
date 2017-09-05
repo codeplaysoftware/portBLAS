@@ -36,10 +36,9 @@
 
 namespace blas {
 
-template <class EvaluatorT, class Functor> struct GenericReducer;
-template <class EvaluatorT, class Functor> struct GenericReducerTwoStages;
-template <class EvaluatorT, class Functor, class Reducer> struct FullReducer;
-template <class EvaluatorT, class Functor, class Reducer> struct PartialReduction;
+template <class AssignAssignEvaluatorT, class AssignEvaluatorT, class Functor> struct GenericReducer;
+template <class AssignEvaluatorT, class Functor, class Reducer> struct FullReducer;
+template <class AssignEvaluatorT, class Functor, class Reducer> struct PartialReduction;
 
 // host side reduction expr
 template <typename Functor, class RHS, template <class> class MakePointer>
@@ -49,7 +48,9 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
-  /* static constexpr bool supported = functor_traits<Functor, value_type, SYCLDevice>::supported && RHS::supported; */
+
+  static constexpr bool needassign = false;
+
   bool allocated_result = false;
   typename MakePointer<value_type>::type result;
   Evaluator<RHS, Device> r;
@@ -61,16 +62,17 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   size_t getSize() const { return r.getSize(); }
   cont_type *data() { return r.data(); }
 
-  bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont, Device &dev) {
-    r.eval_subexpr_if_needed(nullptr, dev);
+  template <typename AssignEvaluatorT = void>
+  bool eval_subexpr_if_needed(typename MakePointer<value_type>::type cont, AssignEvaluatorT *assign, Device &dev) {
+    r.template eval_subexpr_if_needed<AssignEvaluatorT>(nullptr, nullptr, dev);
     if (cont) {
       result = cont;
     } else {
       allocated_result = true;
       result = dev.allocate<value_type>(1);
     }
-    GenericReducer<Evaluator<RHS, Device>, dev_functor>::run(dev, r, *result);
-    return true;
+    GenericReducer<AssignEvaluatorT, Evaluator<RHS, Device>, dev_functor>::run(dev, assign, r, *result);
+    return (cont == nullptr);
   }
 
   void cleanup(SYCLDevice &dev) {
@@ -91,6 +93,8 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakeDevicePointer>, SYCLDevice> {
   using value_type = typename Expression::value_type;
   using dev_functor = functor_traits<Functor, value_type, Device>;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
+
+  static constexpr bool needassign = false;
 
   typename MakeDevicePointer<value_type>::type result;
   Evaluator<RHS, Device> r;

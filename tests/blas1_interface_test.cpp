@@ -61,10 +61,10 @@ int main(int argc, char *argv[]) {
     std::vector<double> vT(1);
     std::vector<double> vU(1);
     std::vector<IndVal<double>> vImax(
-        1, IndVal<double>(std::numeric_limits<size_t>::max(),
+        1, IndVal<double>(std::numeric_limits<int>::max(),
                           std::numeric_limits<double>::min()));
     std::vector<IndVal<double>> vImin(
-        1, IndVal<double>(std::numeric_limits<size_t>::max(),
+        1, IndVal<double>(std::numeric_limits<int>::max(),
                           std::numeric_limits<double>::max()));
 
     size_t vSeed, gap;
