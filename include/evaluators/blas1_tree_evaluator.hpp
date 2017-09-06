@@ -57,7 +57,7 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
     r(Evaluator<RHS, Device>(expr.r)),
     result(MakePointer<value_type>::init())
   {}
-  size_t getSize() const { return r.getSize(); }
+  size_t getSize() const { return 1; }
   cont_type *data() { return r.data(); }
 
   template <typename AssignEvaluatorT = void>

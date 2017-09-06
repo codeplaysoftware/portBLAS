@@ -104,7 +104,9 @@ struct ExecSubTreeFunctor {
   EvaluatorT ev;
   ExecSubTreeFunctor(EvaluatorT ev) : ev(ev) {}
   void operator()(cl::sycl::nd_item<1> i) {
-    ev.subeval(i);
+    if(i.get_global(0) < ev.getSize()) {
+      ev.subeval(i);
+    }
   }
 };
 

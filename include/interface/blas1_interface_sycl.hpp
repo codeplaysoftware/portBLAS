@@ -121,10 +121,10 @@ auto _axpy(int _N, ScalarT _alpha, X _x, int _offx, int _incx, Y _y, int _offy, 
   make_expr<AssignExpr>(
     make_strdExpr(_y, _offy, _incy, _N),
     make_expr<BinaryExpr, addOp2_struct>(
-      make_strdExpr(_y, _offx, _incx, _N),
+      make_strdExpr(_y, _offy, _incy, _N),
       make_expr<ScalarExpr, prdOp2_struct>(
         _alpha,
-        make_strdExpr(_x, _offy, _incy, _N))))
+        make_strdExpr(_x, _offx, _incx, _N))))
 )
 
 /**

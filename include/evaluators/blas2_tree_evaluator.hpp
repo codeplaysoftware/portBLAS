@@ -48,6 +48,8 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
 
+  static constexpr bool needassign = true;
+
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;
 
@@ -96,6 +98,8 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
   using Expression = PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
+
+  static constexpr bool needassign = true;
 
   value_type scl;
   Evaluator<LHS, Device> l;
@@ -198,6 +202,8 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   using Expression = PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
+
+  static constexpr bool needassign = true;
 
   Evaluator<LHS, Device> l;
   Evaluator<RHS1, Device> r1;
@@ -303,6 +309,8 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
 
+  static constexpr bool needassign = true;
+
   value_type scl;
   Evaluator<LHS, Device> l;
   Evaluator<RHS1, Device> r1;
@@ -356,6 +364,8 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
   using Expression = RedRowMatVctExpr<RHS1, RHS2>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
+
+  static constexpr bool needassign = true;
 
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;
@@ -411,8 +421,7 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
     size_t blqSz = groupSz;  // number of workgroups
     // row blq id of the current workgroup
     size_t blqidR = (groupid + (Pieces * blqSz) - 1) / (Pieces * blqSz);
-    size_t blqidC =
-        groupid % (Pieces * blqSz);  // 1st col id of the current workgroup
+    size_t blqidC = groupid % (Pieces * blqSz);  // 1st col id of the current workgroup
 
     // number of columns per each workgroup
     size_t colSz = (dimC < (Pieces * localSz)) ? dimC : Pieces * localSz;
@@ -469,6 +478,8 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
   using Expression = ModifRank1Expr<RHS1, RHS2, RHS3>;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
+
+  static constexpr bool needassign = true;
 
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;

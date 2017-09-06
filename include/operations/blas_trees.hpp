@@ -212,8 +212,8 @@ template <typename RHS> struct strdExpr_constructor {
   using rettype = StrideExpr<BRHS, MakeHostPointer>;
   static rettype make(RHS &r, long offset, long stride, size_t N) {
     return rettype(BRHS(r, !(
-            offset == r.getDisp() &&
-            stride == r.getStrd() &&
+            offset == 0 &&
+            stride == 1 &&
             N == r.getSize())
           ), offset, stride, N);
   }

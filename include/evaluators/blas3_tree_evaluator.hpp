@@ -48,6 +48,8 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS1, Device>::cont_type;
 
+  static constexpr bool needassign = true;
+
   Evaluator<RHS1, Device> r1;
   Evaluator<RHS2, Device> r2;
 

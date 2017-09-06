@@ -103,6 +103,7 @@ struct KernelfOneStage {
 
     // Reduction across the grid
     value_type val = dev_functor::template init<value_type>();
+    #pragma unroll
     for (size_t k = i; k < N; k += localsize * nwg) {
       accum_functor_traits<dev_functor>::acc(val, ev.eval(k));
     }
@@ -112,6 +113,7 @@ struct KernelfOneStage {
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     /* // Reduction inside the block */
+    #pragma unroll
     for (size_t offset = localsize >> 1; offset > 0; offset >>= 1) {
       if (localid < offset) {
         value_type l=shmem[localid],r=shmem[localid+offset];
@@ -155,6 +157,7 @@ struct KernelfFirstStage {
 
     // Reduction across the grid
     value_type val = dev_functor::template init<value_type>();
+    #pragma unroll
     for (size_t k = i; k < N; k += localsize * nwg) {
       accum_functor_traits<dev_functor>::acc(val, ev.eval(k));
     }
@@ -164,6 +167,7 @@ struct KernelfFirstStage {
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     // Reduction inside the block
+    #pragma unroll
     for (size_t offset = localsize >> 1; offset > 0; offset >>= 1) {
       if (localid < offset) {
         value_type l=shmem[localid],r=shmem[localid+offset];
@@ -207,6 +211,7 @@ struct KernelfSecondStage {
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     // Reduction inside the block
+    #pragma unroll
     for (size_t offset = localsize >> 1; offset > 0; offset >>= 1) {
       if (localid < offset) {
         shmem[localid] = dev_functor::eval(shmem[localid], shmem[localid + offset]);
