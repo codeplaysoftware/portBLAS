@@ -61,8 +61,8 @@ struct IndVal {
 
   constexpr explicit IndVal(int _ind, value_type _val)
       : ind(_ind), val(_val){};
-  int getInd() const { return ind; }
-  value_type getVal() const { return val; }
+  constexpr int getInd() const { return ind; }
+  constexpr value_type getVal() const { return val; }
 
   constexpr operator int() const { return ind; }
 };

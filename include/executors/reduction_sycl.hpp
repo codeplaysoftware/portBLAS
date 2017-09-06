@@ -34,6 +34,7 @@
 #include <executors/blas2_tree_executor.hpp>
 #include <executors/blas3_tree_executor.hpp>
 #include <executors/blas_device_sycl.hpp>
+#include <executors/reduction_acc_traits.hpp>
 
 namespace blas {
 
@@ -103,7 +104,7 @@ struct KernelfOneStage {
     // Reduction across the grid
     value_type val = dev_functor::template init<value_type>();
     for (size_t k = i; k < N; k += localsize * nwg) {
-      val = dev_functor::eval(val, ev.eval(k));
+      accum_functor_traits<dev_functor>::acc(val, ev.eval(k));
     }
 
     shmem[localid] = val;
@@ -155,7 +156,7 @@ struct KernelfFirstStage {
     // Reduction across the grid
     value_type val = dev_functor::template init<value_type>();
     for (size_t k = i; k < N; k += localsize * nwg) {
-      val = dev_functor::eval(val, ev.eval(k));
+      accum_functor_traits<dev_functor>::acc(val, ev.eval(k));
     }
 
     shmem[localid] = val;
@@ -372,7 +373,7 @@ struct GenericReducer<void, EvaluatorT, Functor> {
   using value_type = typename EvaluatorT::value_type;
 
   static void run(Device &dev, void *assign, const EvaluatorT &ev, cl::sycl::buffer<value_type, 1> result) {
-    if(dev.sycl_device().is_gpu()) {
+    if(dev.sycl_device().is_gpu() || ev.getSize() > (1<<24)) {
       GenericReducerTwoStages<void, EvaluatorT, Functor>::run(dev, assign, ev, result);
     } else if(dev.sycl_device().is_cpu() || dev.sycl_device().is_host()) {
       GenericReducerOneStage<void, EvaluatorT, Functor>::run(dev, assign, ev, result);

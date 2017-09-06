@@ -129,11 +129,14 @@ struct functor_traits<minIndOp2_struct, ScalarT, Device> : minIndOp2_struct {
 };
 template <typename ScalarT, typename Device>
 struct functor_traits<addAbsOp2_struct, ScalarT, Device> : addAbsOp2_struct {
+  template <typename R>
+  static inline R abs(R r) {
+    return functor_traits<absOp1_struct, R, Device>::eval(r);
+  }
+
   template <typename L, typename R>
   static R eval(L l, R r) {
-    return functor_traits<addOp2_struct, ScalarT, Device>::eval(
-        functor_traits<absOp1_struct, L, Device>::eval(l),
-        functor_traits<absOp1_struct, R, Device>::eval(r));
+    return functor_traits<addOp2_struct, ScalarT, Device>::eval(abs(l), abs(r));
   }
 };
 
