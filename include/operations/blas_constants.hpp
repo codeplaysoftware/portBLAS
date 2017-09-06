@@ -27,6 +27,7 @@
 #define BLAS_CONSTANTS_HPP
 
 #include <operations/blas_types.hpp>
+#include <operations/blas_tuple.hpp>
 
 #include <complex>
 #include <limits>

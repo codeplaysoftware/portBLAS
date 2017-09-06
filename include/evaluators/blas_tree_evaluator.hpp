@@ -299,22 +299,22 @@ struct Evaluator<ForestExpr<TreeFirst, Trees...>, Device_> {
   using Device = Device_;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<TreeFirst, Device>::cont_type;
-  constexpr static size_t ntrees = 1 + sizeof...(Trees);
   static constexpr bool needassign = true;
 
-  std::tuple<Evaluator<TreeFirst, Device>, Evaluator<Trees, Device>...> evs;
+  blas::Tuple<Evaluator<TreeFirst, Device>, Evaluator<Trees, Device>...> evs;
+  constexpr static size_t ntrees = 1 + sizeof...(Trees);
 
 private:
   template <typename... Ts> void unroll(Ts...){}
 
   template <size_t... Is>
   Evaluator(Expression &expr, detail::index_seq<Is...>):
-    evs(std::make_tuple(decltype(std::get<Is>(evs))(std::get<Is>(expr.trees))...))
+    evs(blas::make_tuple(decltype(blas::get<Is>(evs))(blas::get<Is>(expr.trees))...))
   {}
 
   template <size_t I>
   bool eval_subexpr_if_needed_iter(Device &dev) {
-    return std::get<I>(evs).template eval_subexpr_if_needed<void>(nullptr, nullptr, dev);
+    return blas::get<I>(evs).template eval_subexpr_if_needed<void>(nullptr, nullptr, dev);
   }
 
   template <size_t... Is>
@@ -325,7 +325,7 @@ private:
 
   template <size_t I>
   value_type eval_iter(size_t i) {
-    return std::get<I>(evs).eval(i);
+    return blas::get<I>(evs).eval(i);
   }
   template <size_t I>
   value_type eval_iter(cl::sycl::nd_item<1> ndItem) {
@@ -339,7 +339,7 @@ private:
 
   template <size_t I>
   int cleanup_iter(Device &dev) {
-    std::get<I>(evs).cleanup(dev);
+    blas::get<I>(evs).cleanup(dev);
     return 0;
   }
 
@@ -352,12 +352,12 @@ public:
     Evaluator(expr, detail::make_index_seq<ntrees>{})
   {}
 
-  size_t getSize() const { return std::get<0>(evs).getSize(); }
-  cont_type *data() { return std::get<0>(evs).data(); }
+  size_t getSize() const { return blas::get<0>(evs).getSize(); }
+  cont_type *data() { return blas::get<0>(evs).data(); }
 
   template <typename AssignEvaluatorT>
   bool eval_subexpr_if_needed(cont_type *cont, AssignEvaluatorT *assign, Device &dev) {
-    std::get<0>(evs).eval_subexpr_if_needed(cont, dev);
+    blas::get<0>(evs).eval_subexpr_if_needed(cont, assign, dev);
     eval_subexpr_if_needed_each(dev, detail::make_index_range<1, ntrees>{});
     return true;
   }

@@ -183,16 +183,16 @@ template <typename... TREES> struct ForestExpr;
 template <typename Tf, typename... Ts>
 struct ForestExpr <Tf, Ts...> {
   using value_type = typename Tf::value_type;
-  std::tuple<Tf, Ts...> trees;
+  blas::Tuple<Tf, Ts...> trees;
 
   ForestExpr(Tf &&f, Ts&&... s):
-    trees(std::make_tuple(f, s...))
+    trees(blas::make_tuple(f, s...))
   {}
 
   ForestExpr(Tf &f, Ts&... s):
-    trees(std::make_tuple(f, s...))
+    trees(blas::make_tuple(f, s...))
   {}
-  size_t getSize() const { return std::get<0>(trees).getSize(); }
+  size_t getSize() const { return blas::get<0>(trees).getSize(); }
 };
 
 template <typename... Ts>

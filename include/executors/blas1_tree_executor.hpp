@@ -229,7 +229,7 @@ struct Converter<Evaluator<ForestExpr<Trees...>, SYCLDevice>> {
 private:
   template <size_t I>
   static auto convert_iter_to(input_type t, cl::sycl::handler &h) RETURNCXX11(
-    Converter<typename std::remove_reference<decltype(std::get<I>(t.evs))>::type>::convert_to(std::get<I>(t.evs), h)
+    Converter<typename std::remove_reference<decltype(blas::get<I>(t.evs))>::type>::convert_to(blas::get<I>(t.evs), h)
   )
 
   template <size_t... Is>
@@ -242,8 +242,8 @@ private:
 
   template<size_t I>
   static int bind_iter_to(input_type t, Evaluator<out_type, SYCLDevice> ev, cl::sycl::handler &h) {
-    auto &host = std::get<I>(t.evs);
-    auto &dev = std::get<I>(ev.evs);
+    auto &host = blas::get<I>(t.evs);
+    auto &dev = blas::get<I>(ev.evs);
     Converter<typename std::remove_reference<decltype(host)>::type>::bind_to(host, dev, h);
     return 0;
   }
