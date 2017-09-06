@@ -110,23 +110,6 @@ void _select_gemm(
 }
 
 
-typedef enum { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU } DEVICETYPE;
-DEVICETYPE get_device_type(const cl::sycl::device dev) {
-  cl::sycl::platform platform = dev.get_platform();
-  auto plat_name = platform.template get_info<cl::sycl::info::platform::name>();
-  std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
-                 ::tolower);
-  if (plat_name.find("amd") != std::string::npos && dev.is_gpu()) {
-    return AMDGPU;
-  } else if (plat_name.find("intel") != std::string::npos && dev.is_gpu()) {
-    return INTELGPU;
-  } else {
-    return UNSUPPORTED_DEVICE;
-  }
-  throw std::runtime_error("couldn't find device");
-}
-
-
 /*!
  * @brief This is a top-level wrapper for GemmFactory, which provides a
  *        "standard" BLAS gemm interface.
@@ -161,8 +144,7 @@ void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
     return; \
   }
 
-  cl::sycl::device dev = ex.sycl_queue().get_device();
-  if (get_device_type(dev) == INTELGPU) {
+  if (ex.get_device_type() == Executor<SYCL>::device_type::INTELGPU) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(false, 4, 4, 16, 16);
     BIND_DATA_SIZE(  10, 1024, 1024) TO_TPARAMS(false, 2, 2,  8,  8);
     BIND_DEFAULT                     TO_TPARAMS(false, 8, 8,  8,  8);

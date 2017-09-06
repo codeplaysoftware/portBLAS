@@ -61,8 +61,8 @@ ENABLE_TYPE_STRING(double)
  * output matrix to each work item, and are highly memory bound.
  * They should only be used as a reference in performance testing, or to check
  * correctness of other implementations.
- * Refer to GemmFactory for details about how to use this. Not that there is no
- * scratch_size value, as these functions do not use scratchpad memory.
+ * Refer to GemmFactory for details about how to use this. Note that there is
+ * no scratch_size value, as these functions do not use scratchpad memory.
  *
  * @tparam WgSize  the number of items in a work group
  * @tparam TransA  iff true, A will be transposed on the fly
@@ -122,8 +122,15 @@ public:
   }
 };
 
+
 /*!
+ * Optionally avoid evaluating the expression given as input.
  *
+ * @return If the template parameter is true, return the value of expression
+ *         given by cond, otherwise return true.
+ *
+ * @note This function can be used to hint the compiler that a boolean
+ *       expression does not have to be evaluated in certain situations.
  */
 template <bool> inline bool do_check(bool cond) { return cond; }
 template <> inline bool do_check<false>(bool) { return true; }
@@ -608,7 +615,10 @@ private:
       T (&reg_a)[item_rows], T &reg_b, T (&reg_res)[item_rows][item_cols])
       noexcept
   {
-    // NOTE: adding pragma unroll here reduces performance
+    // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9 Nano.
+    //       Seems that the small reduction of arithmetic operations does not
+    //       amortize the cost of loading the larger kernel binary resulting
+    //       from loop unrollment.
     for (int i = 0; i < cl_elems; ++i) {
       #pragma unroll
       for (int j = 0; j < item_rows; ++j) {
