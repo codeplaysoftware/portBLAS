@@ -58,8 +58,6 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSize(); }
-  long getStrd() const { return r1.getStrd(); }
-  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
