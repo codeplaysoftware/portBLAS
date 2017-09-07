@@ -30,7 +30,7 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
-REGISTER_STRD(1, iamax_test)
+REGISTER_STRD(::RANDOM_STRD, iamax_test)
 
 TYPED_TEST(BLAS1_Test, iamax_test) {
   using ScalarT = typename TypeParam::scalar_t;
@@ -52,10 +52,10 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
       1, constant<IndVal<ScalarT>, const_val::imax>::value);
 
   ScalarT max = 0.;
-  size_t imax = std::numeric_limits<size_t>::max();
+  size_t imax = std::numeric_limits<int>::max();
   // compute index and value of the element with biggest absolute value
   for (size_t i = 0; i < size; i += strd) {
-    if (std::abs(vX[i]) > std::abs(max)) {
+    if (i == 0 || std::fabs(vX[i]) > std::fabs(max)) {
       max = vX[i];
       imax = i;
     }

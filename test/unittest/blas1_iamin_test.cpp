@@ -30,7 +30,7 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
-REGISTER_STRD(1, iamin_test)
+REGISTER_STRD(::RANDOM_STRD, iamin_test)
 
 TYPED_TEST(BLAS1_Test, iamin_test) {
   using ScalarT = typename TypeParam::scalar_t;

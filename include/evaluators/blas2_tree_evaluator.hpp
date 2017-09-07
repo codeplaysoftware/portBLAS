@@ -58,6 +58,8 @@ struct Evaluator<PrdRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -118,6 +120,8 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
         nThr(2) {}
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -219,6 +223,8 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
   }
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -323,6 +329,8 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -375,6 +383,8 @@ struct Evaluator<RedRowMatVctExpr<RHS1, RHS2>, Device> {
         r2(Evaluator<RHS2, Device>(expr.r2)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -491,6 +501,8 @@ struct Evaluator<ModifRank1Expr<RHS1, RHS2, RHS3>, Device> {
         r3(Evaluator<RHS3, Device>(expr.r3)) {}
 
   size_t getSize() const { return r1.getSizeR(); }
+  long getStrd() const { return r1.getStrd(); }
+  long getDisp() const { return r1.getDisp(); }
   cont_type *data() { return r1.data(); }
 
   template <typename AssignEvaluatorT = void>
