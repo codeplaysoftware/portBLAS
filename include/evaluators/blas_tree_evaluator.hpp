@@ -57,7 +57,7 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device_> {
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<LHS, Device>::cont_type;
 
-  static constexpr bool needassign = Evaluator<RHS, Device>::needassign;
+  static constexpr bool needassign = false;
 
   Evaluator<LHS, Device> l;
   Evaluator<RHS, Device> r;
@@ -90,11 +90,11 @@ struct Evaluator<AssignExpr<LHS, RHS>, Device_> {
     return evalref_<NEED_ASSIGN>(ndItem.get_global(0));
   }
 
-  value_type eval(size_t i) { return eval_<needassign>(i); }
+  value_type eval(size_t i) { return eval_<Evaluator<RHS,Device>::needassign>(i); }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
-  value_type &evalref(size_t i) { return evalref_<needassign>(i); }
+  value_type &evalref(size_t i) { return evalref_<Evaluator<RHS,Device>::needassign>(i); }
   value_type &evalref(cl::sycl::nd_item<1> ndItem) { return evalref(ndItem.get_global(0)); }
   void cleanup(Device &dev) {
     l.cleanup(dev);
@@ -303,17 +303,21 @@ struct Evaluator<BreakExpr<RHS, MakePointer>, SYCLDevice> {
   using Self = Evaluator<Expression, Device>;
   bool allocated_result = false;
   bool defined = false;
+  typename MakePointer<value_type>::type rhs_data;
   typename MakePointer<value_type>::type result;
 
   static constexpr bool needassign = true;
 
   Evaluator<RHS, Device> r;
   bool to_break;
+  bool use_rhs_result;
 
   Evaluator(Expression &expr):
     r(Evaluator<RHS, Device>(expr.r)),
+    rhs_data(data()),
     result(expr.use_rhs_result ? data() : nullptr),
-    to_break(expr.to_break)
+    to_break(expr.to_break),
+    use_rhs_result(expr.use_rhs_result)
   {}
 
   Evaluator(Expression &&expr) : Evaluator(expr) {}
@@ -357,17 +361,21 @@ struct Evaluator<BreakExpr<RHS, MakeDevicePointer>, SYCLDevice> {
   using Device = SYCLDevice;
   using value_type = typename Expression::value_type;
   using cont_type = typename Evaluator<RHS, Device>::cont_type;
+  typename MakeDevicePointer<value_type>::type rhs_data;
   typename MakeDevicePointer<value_type>::type result;
 
   static constexpr bool needassign = true;
 
   bool to_break;
+  bool use_rhs_result;
   Evaluator<RHS, Device> r;
 
   Evaluator(Expression &expr):
     r(Evaluator<RHS, Device>(expr.r)),
     result(MakeDevicePointer<value_type>::init()),
-    to_break(expr.to_break)
+    rhs_data(MakeDevicePointer<value_type>::init()),
+    to_break(expr.to_break),
+    use_rhs_result(expr.use_rhs_result)
   {}
 
   Evaluator(Expression &&expr):
@@ -382,17 +390,33 @@ struct Evaluator<BreakExpr<RHS, MakeDevicePointer>, SYCLDevice> {
   }
   value_type subeval(cl::sycl::nd_item<1> ndItem) { return subeval(ndItem.get_global(0)); }
   value_type eval(size_t i) {
-    if(to_break) {
-      return result[i];
+    if(!to_break) {
+      return r.eval((i - getDisp()) / getStrd());
     }
-    return r.eval(i);
+    if(use_rhs_result) {
+      return rhs_data[i];
+    }
+    if((i - getDisp()) % getStrd() == 0) {
+      int ind = (i - getDisp()) / getStrd();
+      return result[ind];
+    } else {
+      return rhs_data[i];
+    }
   }
   value_type eval(cl::sycl::nd_item<1> ndItem) { return eval(ndItem.get_global(0)); }
   value_type &evalref(size_t i) {
-    if(to_break) {
-      return result[i];
+    if(!to_break) {
+      return r.evalref((i - getDisp()) / getStrd());
     }
-    return r.evalref(i);
+    if(use_rhs_result) {
+      return rhs_data[i];
+    }
+    if((i - getDisp()) % getStrd() == 0) {
+      int ind = (i - getDisp()) / getStrd();
+      return result[ind];
+    } else {
+      return rhs_data[i];
+    }
   }
   value_type &evalref(cl::sycl::nd_item<1> &ndItem) { return evalref(ndItem.get_global(0)); }
   void cleanup(Device &dev) { r.cleanup(dev); }

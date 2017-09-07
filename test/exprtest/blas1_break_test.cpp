@@ -82,13 +82,12 @@ TYPED_TEST(BLAS1_Test, break_test) {
     auto &_y = vT[i];
     if (i % strd == 0) {
       _x = alpha * x;
-      if(i % (strd * strd2) == 0) {
-        _y = beta * _x + y;
-      } else {
-        _y = y;
-      }
     } else {
       _x = x;
+    }
+    if(i % strd2 == 0) {
+      _y = beta * _x + y;
+    } else {
       _y = y;
     }
   }
@@ -100,9 +99,8 @@ TYPED_TEST(BLAS1_Test, break_test) {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
 
-    size_t N = (size+strd-1)/strd;
-    auto scal = _scal(N, alpha, buf_vX, 0, strd);
-    auto scaxpy = _axpy((N+strd2-1)/strd2, beta, scal, 0, strd2, buf_vY, 0, strd*strd2);
+    auto scal = _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd);
+    auto scaxpy = _axpy((size+strd2-1)/strd2, beta, scal, 0, strd2, buf_vY, 0, strd2);
 
     blas::execute(dev, scaxpy);
   }

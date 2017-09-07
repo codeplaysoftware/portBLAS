@@ -86,7 +86,7 @@ TYPED_TEST(BLAS1_Test, fusion_test) {
     auto buf_vY = TestClass::make_buffer(vY);
 
     auto scal = _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd);
-    auto scaxpy = _axpy((size+strd-1)/strd, beta, scal, 0, 1, buf_vY, 0, strd);
+    auto scaxpy = _axpy((size+strd-1)/strd, beta, scal, 0, strd, buf_vY, 0, strd);
 
     blas::execute(dev, scaxpy);
   }

@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
       // EXECUTION OF THE ROUTINES
       auto scal = _scal(DEF_SIZE_VECT/2, 2.0, bvX, 0, 2);
-      auto axpy = _axpy(DEF_SIZE_VECT/2, 1.0, scal, 0, 1, bvY, 0, 1);
+      auto axpy = _axpy(DEF_SIZE_VECT, 1.0, scal, 0, 1, bvY, 0, 1);
       blas::execute(dev, axpy);
     }
 

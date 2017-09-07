@@ -30,7 +30,7 @@ typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> > BlasT
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, reduction_fusion_test)
-REGISTER_STRD(::RANDOM_STRD, reduction_fusion_test)
+REGISTER_STRD(1, reduction_fusion_test)
 REGISTER_PREC(float, 1e-4, reduction_fusion_test)
 REGISTER_PREC(double, 1e-6, reduction_fusion_test)
 REGISTER_PREC(std::complex<float>, 1e-4, reduction_fusion_test)

@@ -231,6 +231,7 @@ struct Converter<Evaluator<BreakExpr<RHS, MakeHostPointer>, SYCLDevice>> {
     Converter<Evaluator<RHS, SYCLDevice>>::bind_to(t.r, ev.r, h);
     /* if(t.to_break) { */
       h.require(*t.result, ev.result);
+      h.require(*t.rhs_data, ev.rhs_data);
     /* } */
   }
 };
