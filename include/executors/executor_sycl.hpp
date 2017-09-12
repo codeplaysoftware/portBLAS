@@ -257,6 +257,29 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_{q} {};
 
+  cl::sycl::queue sycl_queue() const {
+    return q_;
+  }
+
+  enum device_type { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU };
+
+  device_type get_device_type() {
+    auto dev = q_.get_device();
+    auto platform = dev.get_platform();
+    auto plat_name = platform.template get_info<cl::sycl::info::platform::name>();
+    std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
+                   ::tolower);
+    if (plat_name.find("amd") != std::string::npos && dev.is_gpu()) {
+      return AMDGPU;
+    } else if (plat_name.find("intel") != std::string::npos && dev.is_gpu()) {
+      return INTELGPU;
+    } else {
+      return UNSUPPORTED_DEVICE;
+    }
+    throw std::runtime_error("couldn't find device");
+  }
+
+
   /*!
    * @brief Executes the tree without defining required shared memory.
    */

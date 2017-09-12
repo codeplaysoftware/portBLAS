@@ -23,5 +23,4 @@ foreach(testFile ${BLAS_TEST})
     message(STATUS "Test File " ${testFile})
     add_sycl_to_target(${testName} ${CMAKE_CURRENT_BINARY_DIR} ${testFile})
   endif()
-
 endforeach()
