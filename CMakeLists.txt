@@ -42,5 +42,5 @@ if (USE_CLBLAS)
 endif()
 
 
+add_subdirectory(test)
 add_subdirectory(tests)
-
