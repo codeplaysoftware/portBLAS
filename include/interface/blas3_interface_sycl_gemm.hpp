@@ -23,7 +23,6 @@
  *
  **************************************************************************/
 
-
 #ifndef BLAS3_INTERFACE_SYCL_GEMM_HPP
 #define BLAS3_INTERFACE_SYCL_GEMM_HPP
 
@@ -34,9 +33,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-
-// #define VERBOSE 1
 
 
 #include <executors/executor_sycl.hpp>
