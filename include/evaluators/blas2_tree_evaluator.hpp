@@ -119,7 +119,7 @@ struct Evaluator<PrdRowMatVctMultExpr<LHS, RHS1, RHS2, RHS3>, Device> {
 
   size_t getSize() const { return l.getSizeR(); }
   long getStrd() const { return l.getStrd(); }
-  long getDisp() const { return l.getDisp(); }
+  size_t getDisp() const { return l.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -222,7 +222,7 @@ struct Evaluator<PrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
 
   size_t getSize() const { return r1.getSizeR(); }
   long getStrd() const { return l.getStrd(); }
-  long getDisp() const { return l.getDisp(); }
+  size_t getDisp() const { return l.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -328,7 +328,7 @@ struct Evaluator<AddPrdRowMatVctMultShmExpr<LHS, RHS1, RHS2>, Device> {
 
   size_t getSize() const { return r1.getSizeR(); }
   long getStrd() const { return l.getStrd(); }
-  long getDisp() const { return l.getDisp(); }
+  size_t getDisp() const { return l.getDisp(); }
   cont_type *data() { return l.data(); }
 
   template <typename AssignEvaluatorT = void>

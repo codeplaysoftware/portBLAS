@@ -70,8 +70,7 @@ TYPED_TEST(BLAS1_Test, fusion_test) {
     auto &_x = vZ[i];
     auto &_y = vT[i];
     if (i % strd == 0) {
-      _x = alpha * x;
-      _y = beta * _x + y;
+      _y = beta * (_x = alpha * x) + y;
     } else {
       _x = x;
       _y = y;
@@ -85,8 +84,9 @@ TYPED_TEST(BLAS1_Test, fusion_test) {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
 
-    auto scal = _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd);
-    auto scaxpy = _axpy((size+strd-1)/strd, beta, scal, 0, strd, buf_vY, 0, strd);
+    size_t N = (size + strd - 1) / strd;
+    auto scal = _scal(N, alpha, buf_vX, 0, strd);
+    auto scaxpy = _axpy(N, beta, scal, 0, strd, buf_vY, 0, strd);
 
     blas::execute(dev, scaxpy);
   }

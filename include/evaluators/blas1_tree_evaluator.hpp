@@ -59,7 +59,7 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakePointer>, SYCLDevice> {
   {}
   size_t getSize() const { return 1; }
   long getStrd() const { return 1; }
-  long getDisp() const { return 0; }
+  size_t getDisp() const { return 0; }
   cont_type *data() { return r.data(); }
 
   template <typename AssignEvaluatorT = void>
@@ -105,7 +105,7 @@ struct Evaluator<ReductionExpr<Functor, RHS, MakeDevicePointer>, SYCLDevice> {
   {}
   size_t getSize() const { return 1; }
   long getStrd() const { return 1; }
-  long getDisp() const { return 0; }
+  size_t getDisp() const { return 0; }
   cont_type *data() { return r.data(); }
   value_type eval(size_t i) { return result[0]; }
   value_type eval(cl::sycl::nd_item<1> ndItem) {

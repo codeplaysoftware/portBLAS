@@ -38,8 +38,8 @@ REGISTER_PREC(std::complex<float>, 1e-4, break_test)
 REGISTER_PREC(std::complex<double>, 1e-6, break_test)
 
 // generates a random stride different from the original
-size_t get_different_stride(size_t strd) {
-  size_t strd2 = rand() % 5;
+long get_different_stride(long strd) {
+  long strd2 = rand() % 5;
   if(strd == strd2) {
     return get_different_stride(strd);
   }
@@ -53,8 +53,8 @@ TYPED_TEST(BLAS1_Test, break_test) {
   using test = class break_test;
 
   size_t size = TestClass::template test_size<test>();
-  size_t strd = TestClass::template test_strd<test>();
-  size_t strd2 = get_different_stride(strd);
+  long strd = TestClass::template test_strd<test>();
+  long strd2 = get_different_stride(strd);
   ScalarT prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);

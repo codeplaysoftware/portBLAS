@@ -46,7 +46,7 @@ template <typename ClassName>
 struct option_size;
 namespace {
 static const size_t RANDOM_SIZE = UINT_MAX;
-static const size_t RANDOM_STRD = UINT_MAX;
+static const size_t RANDOM_STRD = INT_MAX;
 }  // namespace
 #define REGISTER_SIZE(size, test_name)          \
   template <>                                   \
@@ -58,7 +58,7 @@ struct option_strd;
 #define REGISTER_STRD(strd, test_name)          \
   template <>                                   \
   struct option_strd<class test_name> {         \
-    static constexpr const size_t value = strd; \
+    static constexpr const long value = strd;   \
   };
 template <typename ScalarT, typename ClassName>
 struct option_prec;
@@ -127,7 +127,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, Device_>>
   // randomly generates stride when run for the first time, and keeps returning
   // the same value consecutively
   template <typename test>
-  size_t test_strd() {
+  long test_strd() {
     if (option_strd<test>::value != ::RANDOM_STRD) {
       return option_strd<test>::value;
     }

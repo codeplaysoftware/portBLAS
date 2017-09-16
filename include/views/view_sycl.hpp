@@ -95,7 +95,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp = 0, long strd = 1)
+  constexpr vector_view(ContainerT &data, size_t disp = 0, long strd = 1)
       : data_(data),
         size_data_(data_.get_size()),
         size_(data_.get_size() / sizeof(value_type)),
@@ -140,22 +140,22 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  size_t getSize() const { return size_; }
+  constexpr size_t getSize() const { return size_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  size_t getDisp() const { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  long getStrd() const { return strd_; }
+  constexpr long getStrd() const { return strd_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<value_type, ContainerT> operator+(size_t disp) {
+  vector_view<value_type, ContainerT> operator+(size_t disp) const {
     if (this->strd_ > 0)
       return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
@@ -169,7 +169,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<value_type, ContainerT> operator()(size_t disp) {
+  vector_view<value_type, ContainerT> operator()(size_t disp) const {
     if (this->strd_ > 0)
       return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
@@ -183,7 +183,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
     * See vector_view.
     */
-  vector_view<value_type, ContainerT> operator*(long strd) {
+  vector_view<value_type, ContainerT> operator*(long strd) const {
     return vector_view<value_type, ContainerT>(this->data_, this->disp_,
                                                this->strd_ * strd);
   }
@@ -191,7 +191,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<value_type, ContainerT> operator%(size_t size) {
+  vector_view<value_type, ContainerT> operator%(size_t size) const {
     if (this->strd_ > 0) {
       return vector_view<value_type, ContainerT>(this->data_, this->disp_,
                                                  this->strd_, size);
@@ -368,17 +368,17 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getSize() const { return sizeR_ * sizeC_; }
+  constexpr size_t getSize() const { return sizeR_ * sizeC_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeR() const { return sizeR_; }
+  constexpr size_t getSizeR() const { return sizeR_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeC() const { return sizeC_; }
+  constexpr size_t getSizeC() const { return sizeC_; }
 
   /*!
    * @brief See matrix_view.
@@ -398,12 +398,12 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  long getDisp() const { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<value_type, ContainerT> operator+(size_t disp) {
+  matrix_view<value_type, ContainerT> operator+(size_t disp) const {
     return matrix_view<value_type, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
@@ -412,7 +412,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<value_type, ContainerT> operator()(size_t i, size_t j) {
+  matrix_view<value_type, ContainerT> operator()(size_t i, size_t j) const {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
       return matrix_view<value_type, ContainerT>(
@@ -635,22 +635,22 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getSize() const { return size_; }
+  constexpr size_t getSize() const { return size_; }
 
   /*!
    * @brief See vector_view.
    */
-  size_t getDisp() const { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*!
    * @brief See vector_view.
    */
-  long getStrd() const { return strd_; }
+  constexpr long getStrd() const { return strd_; }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<value_type, ContainerT> operator+(size_t disp) {
+  vector_view<value_type, ContainerT> operator+(size_t disp) const {
     if (this->strd_ > 0)
       return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
@@ -664,7 +664,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view<value_type, ContainerT> operator()(size_t disp) {
+  vector_view<value_type, ContainerT> operator()(size_t disp) const {
     if (this->strd_ > 0)
       return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
@@ -678,7 +678,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view<value_type, ContainerT> operator*(long strd) {
+  vector_view<value_type, ContainerT> operator*(long strd) const {
     return vector_view<value_type, ContainerT>(this->data_, this->disp_,
                                                this->strd_ * strd);
   }
@@ -686,7 +686,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view<value_type, ContainerT> operator%(size_t size) {
+  vector_view<value_type, ContainerT> operator%(size_t size) const {
     if (this->strd_ > 0) {
       return vector_view<value_type, ContainerT>(this->data_, this->disp_,
                                                  this->strd_, size);
@@ -834,11 +834,11 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   size_t getDataSize() const { return size_data_; }
 
-  size_t getSize() const { return sizeR_ * sizeC_; }
+  constexpr size_t getSize() const { return sizeR_ * sizeC_; }
 
-  size_t getSizeR() const { return sizeR_; }
+  constexpr size_t getSizeR() const { return sizeR_; }
 
-  size_t getSizeC() const { return sizeC_; }
+  constexpr size_t getSizeC() const { return sizeC_; }
 
   int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
@@ -846,7 +846,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
 
   int getAccessOpr() const { return accessOpr_; }
 
-  long getDisp() const { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /**** OPERATORS ****/
   matrix_view<value_type, ContainerT> operator+(size_t disp) {

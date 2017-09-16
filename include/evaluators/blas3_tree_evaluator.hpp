@@ -73,8 +73,7 @@ struct Evaluator<PrdRowMatColMatExpr<RHS1, RHS2>, Device> {
     auto row = (r2.getAccess()) ? (k / dim2) : (k % dim2);
     auto col = (r2.getAccess()) ? (k % dim2) : (k / dim2);
 
-    auto val =
-        functor_traits<iniAddOp1_struct, value_type, Device>::eval(r1.eval(0));
+    auto val = functor_traits<iniAddOp1_struct, value_type, Device>::eval(r1.eval(0));
     for (size_t j = 0; j < dim1; j++) {
       val += r1.eval(row, j) * r2.eval(j, col);
     }
