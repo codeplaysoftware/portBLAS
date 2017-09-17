@@ -480,9 +480,10 @@ struct Evaluator<StrideExpr<RHS, MakePointer>, SYCLDevice> {
 
   // given that the child expression accesses the given index, compute child
   // expression's i
-  int r_getpos(int pos) const {
+  int r_get_ind(int pos) const {
     auto lbnd = r.left_bound, rbnd = r.right_bound;
-    if(strd > 0) {
+    auto rstrd = r.getStrd();
+    if(rstrd > 0) {
       return (pos - lbnd) / ind_step;
     } else {
       return (rbnd - pos) / ind_step;
@@ -499,7 +500,7 @@ struct Evaluator<StrideExpr<RHS, MakePointer>, SYCLDevice> {
     }
     auto pos = get_pos(i);
     if(r_is_indexed(pos)) {
-      return r.evalref(r_getpos(pos));
+      return r.evalref(r_get_ind(pos));
     } else {
       return r.rhs_evalref(pos);
     }
