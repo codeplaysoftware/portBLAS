@@ -30,11 +30,11 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
-REGISTER_STRD(1, iamin_test)
+REGISTER_STRD(::RANDOM_STRD, iamin_test)
 
 TYPED_TEST(BLAS1_Test, iamin_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class iamin_test;
 
@@ -62,14 +62,12 @@ TYPED_TEST(BLAS1_Test, iamin_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // compute iamax of vX into vI with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vI = TestClass::make_vview(buf_vI);
-    _iamin(ex, (size+strd-1)/strd, view_vX, strd, view_vI);
+    blas::execute(dev, _iamin((size+strd-1)/strd, buf_vX, 0, strd, buf_vI));
   }
   IndVal<ScalarT> res2(vI[0]);
   // check that the result value is the same

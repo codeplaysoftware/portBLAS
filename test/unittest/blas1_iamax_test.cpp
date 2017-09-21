@@ -30,11 +30,11 @@ typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
 TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
-REGISTER_STRD(1, iamax_test)
+REGISTER_STRD(::RANDOM_STRD, iamax_test)
 
 TYPED_TEST(BLAS1_Test, iamax_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class iamax_test;
 
@@ -52,10 +52,10 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
       1, constant<IndVal<ScalarT>, const_val::imax>::value);
 
   ScalarT max = 0.;
-  size_t imax = std::numeric_limits<size_t>::max();
+  size_t imax = std::numeric_limits<int>::max();
   // compute index and value of the element with biggest absolute value
   for (size_t i = 0; i < size; i += strd) {
-    if (std::abs(vX[i]) > std::abs(max)) {
+    if (i == 0 || std::fabs(vX[i]) > std::fabs(max)) {
       max = vX[i];
       imax = i;
     }
@@ -64,14 +64,12 @@ TYPED_TEST(BLAS1_Test, iamax_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // compute iamax of vX into vI with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vI = TestClass::make_buffer(vI);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vI = TestClass::make_vview(buf_vI);
-    _iamax(ex, (size+strd-1)/strd, view_vX, strd, view_vI);
+    blas::execute(dev, _iamax((size+strd-1)/strd, buf_vX, 0, strd, buf_vI));
   }
   IndVal<ScalarT> res2(vI[0]);
   // check that the result value is the same

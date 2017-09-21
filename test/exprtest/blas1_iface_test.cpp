@@ -36,7 +36,7 @@ REGISTER_PREC(double, 1e-6, interface1_test)
 
 TYPED_TEST(BLAS1_Test, interface1_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class interface1_test;
 
@@ -112,14 +112,12 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
   // for dot after _rot
   std::vector<ScalarT> vU(1);
   // for iamax/iamin
-  std::vector<IndVal<ScalarT>> vImax(
-      1, constant<IndVal<ScalarT>, const_val::imax>::value);
-  std::vector<IndVal<ScalarT>> vImin(
-      1, constant<IndVal<ScalarT>, const_val::imin>::value);
+  std::vector<IndVal<ScalarT>> vImax(1, constant<IndVal<ScalarT>, const_val::imax>::value);
+  std::vector<IndVal<ScalarT>> vImin(1, constant<IndVal<ScalarT>, const_val::imin>::value);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // computing the same values with sycl blas
     auto buf_vX = TestClass::make_buffer(vX);
@@ -131,29 +129,19 @@ TYPED_TEST(BLAS1_Test, interface1_test) {
     auto buf_vImax = TestClass::make_buffer(vImax);
     auto buf_vImin = TestClass::make_buffer(vImin);
 
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    auto view_vS = TestClass::make_vview(buf_vS);
-    auto view_vT = TestClass::make_vview(buf_vT);
-    auto view_vU = TestClass::make_vview(buf_vU);
-    auto view_vImax = TestClass::make_vview(buf_vImax);
-    auto view_vImin = TestClass::make_vview(buf_vImin);
-
-    _axpy(ex, size, alpha, view_vX, strd, view_vY, strd);
-    _asum(ex, size, view_vY, strd, view_vR);
-    _dot(ex, size, view_vX, strd, view_vY, strd, view_vS);
-    _nrm2(ex, size, view_vY, strd, view_vT);
-    _iamax(ex, size, view_vY, strd, view_vImax);
-    _iamin(ex, size, view_vY, strd, view_vImin);
-    _rot(ex, size, view_vX, strd, view_vY, strd, _cos, _sin);
-    _dot(ex, size, view_vX, strd, view_vY, strd, view_vU);
-    _swap(ex, size, view_vX, strd, view_vY, strd);
+    auto axpy_xy = _axpy(size, alpha, buf_vX, 0, strd, buf_vY, 0, strd);
+    blas::execute(dev, _asum(size, axpy_xy, 0, strd, buf_vR));
+    blas::execute(dev, _dot(size, buf_vX, 0, strd, buf_vY, 0, strd, buf_vS));
+    blas::execute(dev, _nrm2(size, buf_vY, 0, strd, buf_vT));
+    blas::execute(dev, _iamax(size, buf_vY, 0, strd, buf_vImax));
+    blas::execute(dev, _iamin(size, buf_vY, 0, strd, buf_vImin));
+    blas::execute(dev, _rot(size, buf_vX, 0, strd, buf_vY, 0, strd, _cos, _sin));
+    blas::execute(dev, _dot(size, buf_vX, 0, strd, buf_vY, 0, strd, buf_vU));
+    blas::execute(dev, _swap(size, buf_vX, 0, strd, buf_vY, 0, strd));
   }
   // because there is a lot of operations, it makes sense to set the precision
   // threshold
-  ScalarT prec_sample = std::max(
-      std::numeric_limits<ScalarT>::epsilon() * size * 2, prec * ScalarT(1e1));
+  ScalarT prec_sample = std::max(std::numeric_limits<ScalarT>::epsilon() * size * 2, prec * ScalarT(1e1));
   // checking that precision is reasonable
   EXPECT_LE(prec_sample, prec * 1e4);
   DEBUG_PRINT(

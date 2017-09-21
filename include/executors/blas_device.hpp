@@ -19,47 +19,22 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_trees.hpp
+ *  @filename blas_device.hpp
  *
  **************************************************************************/
 
-#ifndef BLAS3_TREE_EXPR_HPP
-#define BLAS3_TREE_EXPR_HPP
-
-#include <stdexcept>
-#include <vector>
-
-#include <operations/blas_operators.hpp>
-#include <views/view_sycl.hpp>
+#ifndef BLAS_DEVICE_HPP
+#define BLAS_DEVICE_HPP
 
 namespace blas {
 
 /*!
- * PrdRowMatColMatExpr.
- * @brief CLASSICAL DOT PRODUCT GEMM
- * Each thread computes a dot product
- * If the matrix is column-major the accesses are coalescent.
-*/
-template <class RHS1, class RHS2>
-struct PrdRowMatColMatExpr {
-  using value_type = typename RHS2::value_type;
+ * SimpleDevice.
+ * @brief Simple prototype device for executing the expression trees.
+ */
+class SimpleDevice {};
 
-  RHS1 r1;
-  RHS2 r2;
 
-  PrdRowMatColMatExpr(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
+}  // namespace BLAS
 
-  size_t getSize() const {
-    return (r1.getAccessOpr() ? r1.getSizeR() : r1.getSizeC()) *
-           (r2.getAccessOpr() ? r2.getSizeC() : r2.getSizeR());
-  }
-};
-
-template <class RHS1, class RHS2>
-PrdRowMatColMatExpr<RHS1, RHS2> make_prdRowMatColMatExpr(RHS1 &r1, RHS2 &r2) {
-  return PrdRowMatColMatExpr<RHS1, RHS2>(r1, r2);
-}
-
-}  // namespace blas
-
-#endif  // BLAS3_TREES_HPP
+#endif /* end of include guard: BLAS_DEVICE_HPP */

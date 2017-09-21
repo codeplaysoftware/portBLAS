@@ -97,12 +97,12 @@ class ClBlasBenchmarker {
     double flops;
     {
       ScalarT alpha(2.4367453465);
-      MemBuffer<ScalarT> buf1(context, size);
+      MemBuffer<ScalarT, CL_MEM_READ_ONLY> buf1(context, size);
       MemBuffer<ScalarT> buf2(context, size);
       Event event;
-      flops = benchmark<>::measure(no_reps, size * 1, [&]() {
-        clblasXaxpy<ScalarT>::func(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0,
-                                   1, 1, context._queue(), 0, NULL,
+      flops = benchmark<>::measure(1, size * 1, [&]() {
+        clblasXaxpy<ScalarT>::func(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0, 1,
+                                   1, context._queue(), 0, NULL,
                                    &event._cl());
         event.wait();
         event.release();

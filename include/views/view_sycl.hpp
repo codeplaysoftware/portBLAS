@@ -28,6 +28,7 @@
 
 #include <CL/sycl.hpp>
 
+#include <executors/blas_device_sycl.hpp>
 #include <views/operview_base.hpp>
 
 namespace blas {
@@ -60,7 +61,7 @@ struct get_size_struct<bufferT<ScalarT>> {
 template <typename ScalarT>
 struct vector_view<ScalarT, bufferT<ScalarT>> {
   using ContainerT = bufferT<ScalarT>;
-  ContainerT &data_;
+  ContainerT data_;
   size_t size_data_;
   size_t size_;
   size_t disp_;
@@ -94,10 +95,10 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp = 0, long strd = 1)
+  constexpr vector_view(ContainerT &data, size_t disp = 0, long strd = 1)
       : data_(data),
         size_data_(data_.get_size()),
-        size_(data_.get_size() / sizeof(ScalarT)),
+        size_(data_.get_size() / sizeof(value_type)),
         disp_(disp),
         strd_(strd) {}
 
@@ -116,7 +117,7 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(vector_view<ScalarT, ContainerT> opV, size_t disp, long strd,
+  vector_view(vector_view<value_type, ContainerT> opV, size_t disp, long strd,
               size_t size)
       : data_(opV.getData()),
         size_data_(opV.getData().get_size()),
@@ -139,28 +140,28 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  size_t getSize() { return size_; }
+  constexpr size_t getSize() const { return size_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  long getStrd() { return strd_; }
+  constexpr long getStrd() const { return strd_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator+(size_t disp) {
+  vector_view<value_type, ContainerT> operator+(size_t disp) const {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
           this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
   }
@@ -168,13 +169,13 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator()(size_t disp) {
+  vector_view<value_type, ContainerT> operator()(size_t disp) const {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
           this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
   }
@@ -182,69 +183,29 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
   /*! vector_view.
     * See vector_view.
     */
-  vector_view<ScalarT, ContainerT> operator*(long strd) {
-    return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                            this->strd_ * strd);
+  vector_view<value_type, ContainerT> operator*(long strd) const {
+    return vector_view<value_type, ContainerT>(this->data_, this->disp_,
+                                               this->strd_ * strd);
   }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator%(size_t size) {
+  vector_view<value_type, ContainerT> operator%(size_t size) const {
     if (this->strd_ > 0) {
-      return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                              this->strd_, size);
+      return vector_view<value_type, ContainerT>(this->data_, this->disp_,
+                                                 this->strd_, size);
     } else {
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
           this->strd_, size);
     }
   }
 
-  /*! eval.
-    * See vector_view::eval.
-    */
-  ScalarT &eval(size_t i) {
-    //  auto eval(size_t i) -> decltype(data_[i]) {
-    auto ind = disp_;
-    if (strd_ == 1) {
-      ind += i;
-    } else if (strd_ > 0) {
-      ind += strd_ * i;
-    } else {
-      ind -= strd_ * (size_ - i - 1);
-    }
-#ifndef __SYCL_DEVICE_ONLY__
-    if (ind >= size_data_) {
-#ifdef VERBOSE
-      // out of range access
-      printf("(A) ind = %ld , size_data_ = %ld \n", ind, size_data_);
-#endif  //  VERBOSE
-      throw std::invalid_argument("Out of range access");
-    }
-#endif  //__SYCL_DEVICE_ONLY__
-    ScalarT retVal;
-    {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
-    }
-
-    return retVal;
-  }
-
-  /*! eval.
-   * See eval.
-   */
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
-  }
-
   /*! val.
    * @brief Allows printing information on the host.
    */
-  ScalarT val(size_t i) {
+  value_type val(size_t i) {
     auto ind = disp_;
     if (strd_ == 1) {
       ind += i;
@@ -255,22 +216,11 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-#ifdef VERBOSE
-      printf("(B) ind = %ld , size_data_ = %ld \n", ind, size_data_);
-#endif  //  VERBOSE
       // out of range access
-      throw std::invalid_argument("Out of range access");
+      throw std::out_of_range("invalid index");
     }
 #endif  //__SYCL_DEVICE_ONLY__
-    ScalarT retVal;
-    {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
-    }
-
-    return retVal;
+    return data_[ind];
   }
 
   /**** PRINTING ****/
@@ -379,8 +329,9 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
-              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(matrix_view<value_type, ContainerT> opM, int accessDev,
+              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
+              size_t disp)
       : data_(opM.data_),
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -393,8 +344,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(matrix_view<value_type, ContainerT> opM, size_t sizeR,
+              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_(opM.data_),
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -412,27 +363,27 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSize() { return sizeR_ * sizeC_; }
+  constexpr size_t getSize() const { return sizeR_ * sizeC_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeR() { return sizeR_; }
+  constexpr size_t getSizeR() const { return sizeR_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeC() { return sizeC_; }
+  constexpr size_t getSizeC() const { return sizeC_; }
 
   /*!
    * @brief See matrix_view.
    */
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
   /*!
    * @brief See matrix_view.
@@ -442,18 +393,18 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
   /*!
    * @brief See matrix_view.
    */
-  long getDisp() { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<ScalarT, ContainerT> operator+(size_t disp) {
-    return matrix_view<ScalarT, ContainerT>(
+  matrix_view<value_type, ContainerT> operator+(size_t disp) const {
+    return matrix_view<value_type, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
@@ -461,15 +412,15 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<ScalarT, ContainerT> operator()(size_t i, size_t j) {
+  matrix_view<value_type, ContainerT> operator()(size_t i, size_t j) const {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<value_type, ContainerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
     } else {
       // ACCESING BY COLUMNS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<value_type, ContainerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
     }
@@ -478,7 +429,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
   /*!
    * @brief See matrix_view.
    */
-  ScalarT &eval(size_t k) {  // -> decltype(data_[i]) {
+  value_type &evalref(size_t k) {  // -> decltype(data_[i]) {
     auto ind = disp_;
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
@@ -488,10 +439,12 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
     return eval(i, j);
   }
 
+  value_type eval(size_t i) { return evalref(i); }
+
   /*!
    * @brief See matrix_view.
    */
-  ScalarT &eval(size_t i, size_t j) {
+  value_type &evalref(size_t i, size_t j) {
     auto ind = disp_;
 
     if (!(accessDev_ ^ accessOpr_)) {
@@ -508,25 +461,23 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
       throw std::invalid_argument("Out of range access");
     }
 #endif  // __SYCL_DEVICE_ONLY__
-    ScalarT retVal;
-    {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
-    }
-
-    return retVal;
+    return data_[ind];
   }
 
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
+  value_type eval(size_t i, size_t j) { return evalref(i, j); }
+
+  value_type &evalref(cl::sycl::nd_item<1> ndItem) {
+    return evalref(ndItem.get_global(0));
+  }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
 
   /*! val.
    * @brief Used to print the values on the host.
    */
-  ScalarT val(size_t i, size_t j) {
+  value_type val(size_t i, size_t j) {
     auto ind = disp_;
 
     if (!(accessDev_ ^ accessOpr_)) {
@@ -543,15 +494,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
       throw std::invalid_argument("Out of range access");
     }
 #endif  //__SYCL_DEVICE_ONLY__
-    ScalarT retVal;
-    {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
-    }
-
-    return retVal;
+    return data_[ind];
   }
 
   /*!
@@ -651,7 +594,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view(vector_view<ScalarT, ContainerT> &opV, size_t disp, long strd,
+  vector_view(vector_view<value_type, ContainerT> &opV, size_t disp, long strd,
               size_t size)
       : data_{opV.getData()},
         size_data_(opV.getData().get_size()),
@@ -687,33 +630,33 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
   /*!
    * @brief See vector_view.
    */
-  size_t getSize() { return size_; }
+  constexpr size_t getSize() const { return size_; }
 
   /*!
    * @brief See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /*!
    * @brief See vector_view.
    */
-  long getStrd() { return strd_; }
+  constexpr long getStrd() const { return strd_; }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator+(size_t disp) {
+  vector_view<value_type, ContainerT> operator+(size_t disp) const {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
           this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
   }
@@ -721,13 +664,13 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator()(size_t disp) {
+  vector_view<value_type, ContainerT> operator()(size_t disp) const {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ + (disp * this->strd_), this->strd_,
           this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
           this->strd_, this->size_ - disp);
   }
@@ -735,27 +678,27 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator*(long strd) {
-    return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                            this->strd_ * strd);
+  vector_view<value_type, ContainerT> operator*(long strd) const {
+    return vector_view<value_type, ContainerT>(this->data_, this->disp_,
+                                               this->strd_ * strd);
   }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator%(size_t size) {
+  vector_view<value_type, ContainerT> operator%(size_t size) const {
     if (this->strd_ > 0) {
-      return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                              this->strd_, size);
+      return vector_view<value_type, ContainerT>(this->data_, this->disp_,
+                                                 this->strd_, size);
     } else {
-      return vector_view<ScalarT, ContainerT>(
+      return vector_view<value_type, ContainerT>(
           this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
           this->strd_, size);
     }
   }
 
   /**** EVALUATING ****/
-  ScalarT &eval(size_t i) {
+  value_type &eval(size_t i) {
     auto ind = disp_;
     if (strd_ == 1) {
       ind += i;
@@ -774,7 +717,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
     return data_[ind];
   }
 
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
+  value_type &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
 
@@ -863,8 +806,9 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
-              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(matrix_view<value_type, ContainerT> opM, int accessDev,
+              size_t sizeR, size_t sizeC, int accessOpr, size_t sizeL,
+              size_t disp)
       : data_{opM.data_},
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -874,8 +818,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(matrix_view<value_type, ContainerT> opM, size_t sizeR,
+              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
       : data_{opM.data_},
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -888,45 +832,45 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   /**** RETRIEVING DATA ****/
   ContainerT &getData() { return data_; }
 
-  size_t getDataSize() { return size_data_; }
+  size_t getDataSize() const { return size_data_; }
 
-  size_t getSize() { return sizeR_ * sizeC_; }
+  constexpr size_t getSize() const { return sizeR_ * sizeC_; }
 
-  size_t getSizeR() { return sizeR_; }
+  constexpr size_t getSizeR() const { return sizeR_; }
 
-  size_t getSizeC() { return sizeC_; }
+  constexpr size_t getSizeC() const { return sizeC_; }
 
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int getAccess() const { return !(accessDev_ ^ accessOpr_); }
 
-  int getAccessDev() { return accessDev_; }
+  int getAccessDev() const { return accessDev_; }
 
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
-  long getDisp() { return disp_; }
+  constexpr size_t getDisp() const { return disp_; }
 
   /**** OPERATORS ****/
-  matrix_view<ScalarT, ContainerT> operator+(size_t disp) {
-    return matrix_view<ScalarT, ContainerT>(
+  matrix_view<value_type, ContainerT> operator+(size_t disp) {
+    return matrix_view<value_type, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
 
-  matrix_view<ScalarT, ContainerT> operator()(size_t i, size_t j) {
+  matrix_view<value_type, ContainerT> operator()(size_t i, size_t j) {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<value_type, ContainerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
     } else {
       // ACCESING BY COLUMNS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<value_type, ContainerT>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
     }
   }
 
   /**** EVALUATING ***/
-  ScalarT &eval(size_t k) {
+  value_type &eval(size_t k) {
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
@@ -935,7 +879,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     return eval(i, j);
   }
 
-  ScalarT &eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
+  value_type &eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
     auto ind = disp_;
     int accessMode = !(accessDev_ ^ accessOpr_);
 
@@ -952,7 +896,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     return data_[ind];
   }
 
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
+  value_type &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
 

@@ -38,7 +38,7 @@ REGISTER_PREC(long double, 1e-7, scal_test)
 
 TYPED_TEST(BLAS1_Test, scal_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class scal_test;
 
@@ -67,12 +67,11 @@ TYPED_TEST(BLAS1_Test, scal_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // vector scalar product vX * alpha with the result left in vX
     auto buf_vX = TestClass::make_buffer(vX);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    _scal(ex, (size+strd-1)/strd, alpha, view_vX, strd);
+    blas::execute(dev, _scal((size+strd-1)/strd, alpha, buf_vX, 0, strd));
   }
   // check that the result is the same
   for (size_t i = 0; i < size; ++i) {

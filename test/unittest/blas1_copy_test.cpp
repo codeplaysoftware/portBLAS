@@ -35,7 +35,7 @@ REGISTER_STRD(::RANDOM_STRD, copy_test)
 
 TYPED_TEST(BLAS1_Test, copy_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class copy_test;
 
@@ -52,14 +52,12 @@ TYPED_TEST(BLAS1_Test, copy_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // copy vX to vY
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    _copy(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd);
+    blas::execute(dev, _copy((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd));
   }
   // check that vX and vY are the same
   for (size_t i = 0; i < size; ++i) {

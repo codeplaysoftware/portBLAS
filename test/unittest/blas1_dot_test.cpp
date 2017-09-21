@@ -38,7 +38,7 @@ REGISTER_PREC(long double, 1e-7, dot_test)
 
 TYPED_TEST(BLAS1_Test, dot_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class dot_test;
 
@@ -65,16 +65,13 @@ TYPED_TEST(BLAS1_Test, dot_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // compute dot(vX, vY) into vR with syclblas
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_vR = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    _dot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, view_vR);
+    blas::execute(dev, _dot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, buf_vR));
   }
   // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);

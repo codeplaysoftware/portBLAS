@@ -9,13 +9,14 @@ include_directories(${SYCLBLAS_TEST})
 
 # compiling tests
 file(GLOB SYCL_EXPRTEST_SRCS
+  ${SYCLBLAS_EXPRTEST}/blas1_fusion_test.cpp
+  ${SYCLBLAS_EXPRTEST}/blas1_break_test.cpp
+  ${SYCLBLAS_EXPRTEST}/blas1_reduction_fusion_test.cpp
   ${SYCLBLAS_EXPRTEST}/blas1_iface_test.cpp
 )
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
-  message("-- blas test: ${blas_test}")
   get_filename_component(test_exec ${blas_test} NAME_WE)
-  message("-- test exec: ${test_exec}")
   set(test_exec, ${blas_test})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)

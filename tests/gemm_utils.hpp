@@ -100,7 +100,7 @@ test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
 template <typename Gemm, typename T, typename Container>
 typename std::enable_if<Gemm::version == 19>::type
 test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
-     const Container &dataB, int ldb, T beta, Container dataC, int ldc, 
+     const Container &dataB, int ldb, T beta, Container dataC, int ldc,
      const Container &refC, cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
@@ -141,13 +141,13 @@ void test_syclblas(int r, char transA, char transB, int m, int n, int k,
   using etype = typename Container::value_type;
   std::cout << "\n=== Testing SYCL-BLAS gemm ==="
             << std::endl;
-  Executor<SYCL> ex(q);
+  SYCLDevice dev(q);
   {
     buffer<etype, 1> buffA(dataA.data(), range<1>(dataA.size()));
     buffer<etype, 1> buffB(dataB.data(), range<1>(dataB.size()));
     buffer<etype, 1> buffC(dataC.data(), range<1>(dataC.size()));
     run_test(r, 2.0*m*n*k, [&] {
-      _gemm(ex, transA, transB, m, n, k, alpha,
+      _gemm(dev, transA, transB, m, n, k, alpha,
             buffA, lda, buffB, ldb, beta, buffC, ldc);
       q.wait();
     });

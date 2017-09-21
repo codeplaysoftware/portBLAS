@@ -38,7 +38,7 @@ REGISTER_PREC(long double, 1e-7, asum_test)
 
 TYPED_TEST(BLAS1_Test, asum_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class asum_test;
 
@@ -59,13 +59,11 @@ TYPED_TEST(BLAS1_Test, asum_test) {
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vR = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    _asum(ex, (size+strd-1)/strd, view_vX, strd, view_vR);
+    blas::execute(dev, _asum((size+strd-1)/strd, buf_vX, 0, strd, buf_vR));
   }
   ASSERT_NEAR(res, vR[0], prec);
 }

@@ -34,8 +34,7 @@
 #include <stdexcept>
 #include <vector>
 
-
-#include <executors/executor_sycl.hpp>
+#include <executors/blas_device_sycl.hpp>
 #include <operations/blas3_trees_gemm.hpp>
 
 
@@ -53,12 +52,12 @@ struct Wrap {};
  * @brief Launch a kernel which calls a GemmFactory instance given by template
  *        parameter Gemm.
  */
-template <typename Gemm, typename ExecutorType, typename T>
-void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
+template <typename Gemm, typename Device, typename T>
+void _gemm_tr(Device &dev, int _M, int _N, int _K, T _alpha,
               cl::sycl::buffer<T, 1> _A, int _lda,
               cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
               cl::sycl::buffer<T, 1> _C, int _ldc) {
-  ex.sycl_queue().submit([&](handler &h) {
+  dev.sycl_queue().submit([&](handler &h) {
     auto accA = _A.template get_access<access::mode::read>(h);
     auto accB = _B.template get_access<access::mode::read>(h);
     auto accC = _C.template get_access<access::mode::read_write>(h);
@@ -70,7 +69,7 @@ void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
                 accC.get_pointer(), _ldc, scratch.get_pointer());
     });
   });
-  ex.sycl_queue().wait();
+  dev.sycl_queue().wait();
 }
 
 
@@ -79,9 +78,9 @@ void _gemm_tr(Executor<ExecutorType> ex, int _M, int _N, int _K, T _alpha,
  *        runtime values of transpose.
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, size_t ClSize,
-          typename TileT, typename ExecutorType, typename T>
+          typename TileT, typename Device, typename T>
 void _select_gemm(
-    Executor<ExecutorType> ex, bool _TransA, bool _TransB, int _M,
+    Device &dev, bool _TransA, bool _TransB, int _M,
                int _N, int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
                cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
                cl::sycl::buffer<T, 1> _C, int _ldc) {
@@ -90,7 +89,7 @@ void _select_gemm(
     _gemm_tr<\
       GemmFactory<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                   _trans_a, _trans_b, T>>( \
-        ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
+        dev, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc); \
     return; \
   }
 
@@ -112,8 +111,8 @@ void _select_gemm(
  *
  * See netlib.org/blas for details.
  */
-template <typename ExecutorType, typename T>
-void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
+template <typename Device, typename T>
+void _gemm(Device &dev, char _TransA, char _TransB, int _M,
            int _N, int _K, T _alpha, cl::sycl::buffer<T, 1> _A, int _lda,
            cl::sycl::buffer<T, 1> _B, int _ldb, T _beta,
            cl::sycl::buffer<T, 1> _C, int _ldc) {
@@ -135,12 +134,12 @@ void _gemm(Executor<ExecutorType> ex, char _TransA, char _TransB, int _M,
 
   #define TO_TPARAMS(_db, _tir, _tic, _twr, _twc) {\
     _select_gemm<_db, false, false, 64, Tile<_tir, _tic, _twr, _twc>>( \
-        ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, \
+        dev, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, \
         _beta, _C, _ldc); \
     return; \
   }
 
-  if (ex.get_device_type() == Executor<SYCL>::device_type::INTELGPU) {
+  if (dev.sycl_device().is_gpu() && dev.vendor == Device::INTEL) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(false, 4, 4, 16, 16);
     BIND_DATA_SIZE(  10, 1024, 1024) TO_TPARAMS(false, 2, 2,  8,  8);
     BIND_DEFAULT                     TO_TPARAMS(false, 8, 8,  8,  8);

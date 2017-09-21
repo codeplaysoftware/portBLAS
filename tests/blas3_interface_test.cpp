@@ -178,18 +178,18 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
   m_S.printH("MS");
 #endif  // VERBOSE
   // CREATING THE SYCL QUEUE AND EXECUTOR
-  cl::sycl::queue q([=](cl::sycl::exception_list eL) {
-    try {
-      for (auto &e : eL) {
-        std::rethrow_exception(e);
-      }
-    } catch (cl::sycl::exception &e) {
-      std::cout << " E " << e.what() << std::endl;
-    } catch (...) {
-      std::cout << " An exception " << std::endl;
-    }
-  });
-  Executor<SYCL> ex(q);
+  /* cl::sycl::queue q([=](cl::sycl::exception_list eL) { */
+  /*   try { */
+  /*     for (auto &e : eL) { */
+  /*       std::rethrow_exception(e); */
+  /*     } */
+  /*   } catch (cl::sycl::exception &e) { */
+  /*     std::cout << " E " << e.what() << std::endl; */
+  /*   } catch (...) { */
+  /*     std::cout << " An exception " << std::endl; */
+  /*   } */
+  /* }); */
+  SYCLDevice dev;
 
   {
     // CREATION OF THE BUFFERS
@@ -210,13 +210,13 @@ size_t TestingGEMM(bool accessDev, size_t dim, size_t divSz, size_t shftR,
     size_t dimLA = dimM;  // for accessDev = true  then A^t
     // size_t dimLB = ((accessDev) ? dimN : dimK);  // Original
     size_t dimLB = dimN;  // for accessDev = false then B^t
-    _gemm<SYCL>(ex, ((accessDev) ? "Tr" : "No"), ((accessDev) ? "No" : "Tr"),
-                dimR - shftR, dimC - shftC, dimK - shftK, 1.5,
-                bmA0(shftR, shftK), dimLA, bmB0(shftK, shftC), dimLB, 2.5,
-                bmC0(shftR, shftC), dimLC);
+    _gemm(dev, ((accessDev) ? "Tr" : "No"), ((accessDev) ? "No" : "Tr"),
+          dimR - shftR, dimC - shftC, dimK - shftK, 1.5, bmA0(shftR, shftK),
+          dimLA, bmB0(shftK, shftC), dimLB, 2.5, bmC0(shftR, shftC), dimLC);
 
-    auto reducOpV = make_addAssignReduction(bvR, bvV0, 256, 512 * 256);
-    ex.reduce(reducOpV);
+    auto reduceExprV = make_addReductionExpr(bvV0);
+    auto assignExprV = make_expr<AssignExpr>(bvR, reduceExprV);
+    blas::execute(dev, assignExprV);
   }
 #ifdef VERBOSE
   m_C.printH("MC");

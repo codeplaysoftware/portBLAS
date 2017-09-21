@@ -37,7 +37,7 @@ REGISTER_PREC(double, 1e-7, rotg_test)
 
 TYPED_TEST(BLAS1_Test, rotg_test) {
   using ScalarT = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using Device = typename TypeParam::device_t;
   using TestClass = BLAS1_Test<TypeParam>;
   using test = class rotg_test;
 
@@ -71,17 +71,14 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
   }
 
   auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  Device dev(q);
   {
     // checking _rotg with _rot and _dot
     auto buf_vX = TestClass::make_buffer(vX);
     auto buf_vY = TestClass::make_buffer(vY);
     auto buf_res = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    auto view_res = TestClass::make_vview(buf_res);
-    _rot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, _cos, _sin);
-    _dot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, view_res);
+    blas::execute(dev, _rot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, _cos, _sin));
+    blas::execute(dev, _dot((size+strd-1)/strd, buf_vX, 0, strd, buf_vY, 0, strd, buf_res));
   }
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);

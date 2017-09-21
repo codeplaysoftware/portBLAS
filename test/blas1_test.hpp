@@ -46,7 +46,7 @@ template <typename ClassName>
 struct option_size;
 namespace {
 static const size_t RANDOM_SIZE = UINT_MAX;
-static const size_t RANDOM_STRD = UINT_MAX;
+static const size_t RANDOM_STRD = INT_MAX;
 }  // namespace
 #define REGISTER_SIZE(size, test_name)          \
   template <>                                   \
@@ -58,7 +58,7 @@ struct option_strd;
 #define REGISTER_STRD(strd, test_name)          \
   template <>                                   \
   struct option_strd<class test_name> {         \
-    static constexpr const size_t value = strd; \
+    static constexpr const long value = strd;   \
   };
 template <typename ScalarT, typename ClassName>
 struct option_prec;
@@ -70,25 +70,25 @@ struct option_prec;
 
 // Wraps the above arguments into one template parameter.
 // We will treat template-specialized blas_templ_struct as a single class
-template <class ScalarT_, class ExecutorType_>
+template <class ScalarT_, class Device_>
 struct blas_templ_struct {
   using scalar_t = ScalarT_;
-  using executor_t = ExecutorType_;
+  using device_t = Device_;
 };
 // A "using" shortcut for the struct
-template <class ScalarT_, class ExecutorType_ = SYCL>
-using blas1_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
+template <class ScalarT_, class Device_ = SYCLDevice>
+using blas1_test_args = blas_templ_struct<ScalarT_, Device_>;
 
 // the test class itself
 template <class B>
 class BLAS1_Test;
 
-template <class ScalarT_, class ExecutorType_>
-class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
+template <class ScalarT_, class Device_>
+class BLAS1_Test<blas1_test_args<ScalarT_, Device_>>
     : public ::testing::Test {
  public:
   using ScalarT = ScalarT_;
-  using ExecutorType = ExecutorType_;
+  using Device = Device_;
 
   BLAS1_Test() = default;
   virtual ~BLAS1_Test() = default;
@@ -127,7 +127,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   // randomly generates stride when run for the first time, and keeps returning
   // the same value consecutively
   template <typename test>
-  size_t test_strd() {
+  long test_strd() {
     if (option_strd<test>::value != ::RANDOM_STRD) {
       return option_strd<test>::value;
     }
@@ -168,15 +168,7 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return cl::sycl::buffer<value_type, 1>(vec.data(), vec.size());
   }
 
-  template <typename value_type>
-  static vector_view<value_type, cl::sycl::buffer<value_type>> make_vview(
-      cl::sycl::buffer<value_type, 1> &buf) {
-    return vector_view<value_type, cl::sycl::buffer<value_type>>(buf);
-  }
-
-  template <typename DeviceSelector,
-            typename = typename std::enable_if<
-                std::is_same<ExecutorType, SYCL>::value>::type>
+  template <typename DeviceSelector, typename = typename std::enable_if< std::is_same<Device, SYCLDevice>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       for (auto &e : eL) {
