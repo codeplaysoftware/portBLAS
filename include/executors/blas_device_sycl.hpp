@@ -44,13 +44,13 @@ class SYCLDevice {
    */
   cl::sycl::queue m_queue;
 
+ public:
   enum VENDOR {
     INTEL,
     AMD,
     UNKNOWN_VENDOR
   };
 
- public:
   const VENDOR vendor;
   const cl::sycl::info::device_type devtype;
   const size_t MAX_LOCALSIZE;
