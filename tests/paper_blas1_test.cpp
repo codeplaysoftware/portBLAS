@@ -494,6 +494,28 @@ int main(int argc, char *argv[]) {
     Executor<SYCL> ex(q);
     {
       // CREATION OF THE BUFFERS
+      buffer<double, 1> bX1(range<1>{vX1.size()});
+      buffer<double, 1> bY1(range<1>{vY1.size()});
+      buffer<double, 1> bZ1(range<1>{vZ1.size()});
+      buffer<double, 1> bR1(range<1>{vR1.size()});
+      buffer<double, 1> bS1(range<1>{vS1.size()});
+      buffer<double, 1> bX2(range<1>{vX2.size()});
+      buffer<double, 1> bY2(range<1>{vY2.size()});
+      buffer<double, 1> bZ2(range<1>{vZ2.size()});
+      buffer<double, 1> bR2(range<1>{vR2.size()});
+      buffer<double, 1> bS2(range<1>{vS2.size()});
+      buffer<double, 1> bX3(range<1>{vX3.size()});
+      buffer<double, 1> bY3(range<1>{vY3.size()});
+      buffer<double, 1> bZ3(range<1>{vZ3.size()});
+      buffer<double, 1> bR3(range<1>{vR3.size()});
+      buffer<double, 1> bS3(range<1>{vS3.size()});
+      buffer<double, 1> bX4(range<1>{vX4.size()});
+      buffer<double, 1> bY4(range<1>{vY4.size()});
+      buffer<double, 1> bZ4(range<1>{vZ4.size()});
+      buffer<double, 1> bR4(range<1>{vR4.size()});
+      buffer<double, 1> bS4(range<1>{vS4.size()});
+
+      /*
       buffer<double, 1> bX1(vX1.data(), range<1>{vX1.size()});
       buffer<double, 1> bY1(vY1.data(), range<1>{vY1.size()});
       buffer<double, 1> bZ1(vZ1.data(), range<1>{vZ1.size()});
@@ -513,7 +535,7 @@ int main(int argc, char *argv[]) {
       buffer<double, 1> bY4(vY4.data(), range<1>{vY4.size()});
       buffer<double, 1> bZ4(vZ4.data(), range<1>{vZ4.size()});
       buffer<double, 1> bR4(vR4.data(), range<1>{vR4.size()});
-      buffer<double, 1> bS4(vS4.data(), range<1>{vS4.size()});
+      buffer<double, 1> bS4(vS4.data(), range<1>{vS4.size()});*/
 
       // BUILDING A SYCL VIEW OF THE BUFFERS
       BufferVectorView<double> bvX1(bX1);
