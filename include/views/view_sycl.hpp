@@ -42,14 +42,14 @@ size_t get_size(ContainerT &c) {
   return get_size_struct<ContainerT>::get_size(c);
 }
 
-template <typename ScalarT>
-using bufferT = cl::sycl::buffer<ScalarT, 1>;
+template <typename ScalarT, int dim = 1, typename Allocator = cl::sycl::default_allocator<ScalarT>>
+using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
 
-template <typename ScalarT>
-using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT>>;
+template <typename ScalarT, int dim = 1, typename Allocator = cl::sycl::default_allocator<ScalarT>>
+using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator> >;
 
-template <typename ScalarT>
-struct get_size_struct<bufferT<ScalarT>> {
+template <typename ScalarT, int dim , typename Allocator >
+struct get_size_struct< bufferT<ScalarT, dim, Allocator> > {
   static inline size_t get_size(bufferT<ScalarT> &b) { return b.get_size(); }
 };
 
@@ -57,9 +57,9 @@ struct get_size_struct<bufferT<ScalarT>> {
  * @brief Specialization of the vector view to operate with buffers.
  * Note that the buffer class cannot be accessed on the host.
  */
-template <typename ScalarT>
-struct vector_view<ScalarT, bufferT<ScalarT>> {
-  using ContainerT = bufferT<ScalarT>;
+template <typename ScalarT, int dim, typename Allocator >
+struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
+  using ContainerT = bufferT<ScalarT, dim, Allocator>;
   ContainerT &data_;
   size_t size_data_;
   size_t size_;
@@ -291,6 +291,8 @@ struct vector_view<ScalarT, bufferT<ScalarT>> {
     printf(" ]\n");
   }
 };
+
+
 
 template <typename ScalarT>
 using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;

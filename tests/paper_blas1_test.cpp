@@ -11,7 +11,7 @@ using namespace cl::sycl;
 using namespace blas;
 
 #define COMPUTECPP_EXPORT
-#include <SYCL/codeplay/apis.h>
+#include <SYCL/apis.h>
 
 #define DEF_NUM_ELEM 1200
 #define DEF_STRIDE 1
@@ -539,7 +539,8 @@ int main(int argc, char *argv[]) {
 
       // Force update here to avoid including memory copies on the
       // benchmark
-      q.submit([&](codeplay::handler &h) {
+      ///FIXME: Currently there is a bug when disabling the queue
+      q.submit([&](handler &h) {
         auto accX1 = bX1.get_access<access::mode::write>(h);
         auto accX2 = bX2.get_access<access::mode::write>(h);
         auto accX3 = bX3.get_access<access::mode::write>(h);
@@ -560,25 +561,25 @@ int main(int argc, char *argv[]) {
         auto accR3 = bR3.get_access<access::mode::write>(h);
         auto accR4 = bR4.get_access<access::mode::write>(h);
 
-        h.update_to_device(accX1);
-        h.update_to_device(accX2);
-        h.update_to_device(accX3);
-        h.update_to_device(accX4);
+        h.copy((vX1.data()), accX1);
+        h.copy((vX2.data()), accX2);
+        h.copy((vX3.data()), accX3);
+        h.copy((vX4.data()), accX4);
 
-        h.update_to_device(accY1);
-        h.update_to_device(accY2);
-        h.update_to_device(accY3);
-        h.update_to_device(accY4);
+        h.copy((vY1.data()), accY1);
+        h.copy((vY2.data()), accY2);
+        h.copy((vY3.data()), accY3);
+        h.copy((vY4.data()), accY4);
 
-        h.update_to_device(accZ1);
-        h.update_to_device(accZ2);
-        h.update_to_device(accZ3);
-        h.update_to_device(accZ4);
+        h.copy((vZ1.data()), accZ1);
+        h.copy((vZ2.data()), accZ2);
+        h.copy((vZ3.data()), accZ3);
+        h.copy((vZ4.data()), accZ4);
 
-        h.update_to_device(accR1);
-        h.update_to_device(accR2);
-        h.update_to_device(accR3);
-        h.update_to_device(accR4);
+        h.copy((vR1.data()), accR1);
+        h.copy((vR2.data()), accR2);
+        h.copy((vR3.data()), accR3);
+        h.copy((vR4.data()), accR4);
       });
       q.wait_and_throw();
 
