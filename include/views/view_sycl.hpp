@@ -292,8 +292,6 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   }
 };
 
-
-
 template <typename ScalarT>
 using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;
 

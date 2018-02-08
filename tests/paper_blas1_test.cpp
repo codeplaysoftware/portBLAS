@@ -498,44 +498,25 @@ int main(int argc, char *argv[]) {
       buffer<double, 1> bY1(range<1>{vY1.size()});
       buffer<double, 1> bZ1(range<1>{vZ1.size()});
       buffer<double, 1> bR1(range<1>{vR1.size()});
-      buffer<double, 1> bS1(range<1>{vS1.size()});
       buffer<double, 1> bX2(range<1>{vX2.size()});
       buffer<double, 1> bY2(range<1>{vY2.size()});
       buffer<double, 1> bZ2(range<1>{vZ2.size()});
       buffer<double, 1> bR2(range<1>{vR2.size()});
-      buffer<double, 1> bS2(range<1>{vS2.size()});
       buffer<double, 1> bX3(range<1>{vX3.size()});
       buffer<double, 1> bY3(range<1>{vY3.size()});
       buffer<double, 1> bZ3(range<1>{vZ3.size()});
       buffer<double, 1> bR3(range<1>{vR3.size()});
-      buffer<double, 1> bS3(range<1>{vS3.size()});
       buffer<double, 1> bX4(range<1>{vX4.size()});
       buffer<double, 1> bY4(range<1>{vY4.size()});
       buffer<double, 1> bZ4(range<1>{vZ4.size()});
       buffer<double, 1> bR4(range<1>{vR4.size()});
-      buffer<double, 1> bS4(range<1>{vS4.size()});
-
-      /*
-      buffer<double, 1> bX1(vX1.data(), range<1>{vX1.size()});
-      buffer<double, 1> bY1(vY1.data(), range<1>{vY1.size()});
-      buffer<double, 1> bZ1(vZ1.data(), range<1>{vZ1.size()});
-      buffer<double, 1> bR1(vR1.data(), range<1>{vR1.size()});
       buffer<double, 1> bS1(vS1.data(), range<1>{vS1.size()});
-      buffer<double, 1> bX2(vX2.data(), range<1>{vX2.size()});
-      buffer<double, 1> bY2(vY2.data(), range<1>{vY2.size()});
-      buffer<double, 1> bZ2(vZ2.data(), range<1>{vZ2.size()});
-      buffer<double, 1> bR2(vR2.data(), range<1>{vR2.size()});
       buffer<double, 1> bS2(vS2.data(), range<1>{vS2.size()});
-      buffer<double, 1> bX3(vX3.data(), range<1>{vX3.size()});
-      buffer<double, 1> bY3(vY3.data(), range<1>{vY3.size()});
-      buffer<double, 1> bZ3(vZ3.data(), range<1>{vZ3.size()});
-      buffer<double, 1> bR3(vR3.data(), range<1>{vR3.size()});
       buffer<double, 1> bS3(vS3.data(), range<1>{vS3.size()});
-      buffer<double, 1> bX4(vX4.data(), range<1>{vX4.size()});
-      buffer<double, 1> bY4(vY4.data(), range<1>{vY4.size()});
-      buffer<double, 1> bZ4(vZ4.data(), range<1>{vZ4.size()});
-      buffer<double, 1> bR4(vR4.data(), range<1>{vR4.size()});
-      buffer<double, 1> bS4(vS4.data(), range<1>{vS4.size()});*/
+      buffer<double, 1> bS4(vS4.data(), range<1>{vS4.size()});
+
+
+
 
       // BUILDING A SYCL VIEW OF THE BUFFERS
       BufferVectorView<double> bvX1(bX1);
@@ -562,46 +543,71 @@ int main(int argc, char *argv[]) {
       // Force update here to avoid including memory copies on the
       // benchmark
       ///FIXME: Currently there is a bug when disabling the queue
+      // Force update here to avoid including memory copies on the
+      // benchmark
       q.submit([&](handler &h) {
         auto accX1 = bX1.get_access<access::mode::write>(h);
+        h.copy(vX1.data(), accX1);
+      });
+      q.submit([&](handler &h) {
         auto accX2 = bX2.get_access<access::mode::write>(h);
+        h.copy(vX2.data(), accX2);
+      });
+      q.submit([&](handler &h) {
         auto accX3 = bX3.get_access<access::mode::write>(h);
+        h.copy(vX3.data(), accX3);
+      });
+      q.submit([&](handler &h) {
         auto accX4 = bX4.get_access<access::mode::write>(h);
-
+        h.copy(vX4.data(), accX4);
+      });
+      q.submit([&](handler &h) {
         auto accY1 = bY1.get_access<access::mode::write>(h);
+        h.copy(vY1.data(), accY1);
+      });
+      q.submit([&](handler &h) {
         auto accY2 = bY2.get_access<access::mode::write>(h);
+        h.copy(vY2.data(), accY2);
+      });
+      q.submit([&](handler &h) {
         auto accY3 = bY3.get_access<access::mode::write>(h);
+        h.copy(vY3.data(), accY3);
+      });
+      q.submit([&](handler &h) {
         auto accY4 = bY4.get_access<access::mode::write>(h);
-
+        h.copy(vY4.data(), accY4);
+      });
+      q.submit([&](handler &h) {
         auto accZ1 = bZ1.get_access<access::mode::write>(h);
+        h.copy(vZ1.data(), accZ1);
+      });
+      q.submit([&](handler &h) {
         auto accZ2 = bZ2.get_access<access::mode::write>(h);
+        h.copy(vZ2.data(), accZ2);
+      });
+      q.submit([&](handler &h) {
         auto accZ3 = bZ3.get_access<access::mode::write>(h);
+        h.copy(vZ3.data(), accZ3);
+      });
+      q.submit([&](handler &h) {
         auto accZ4 = bZ4.get_access<access::mode::write>(h);
-
+        h.copy(vZ4.data(), accZ4);
+      });
+      q.submit([&](handler &h) {
         auto accR1 = bR1.get_access<access::mode::write>(h);
+        h.copy(vR1.data(), accR1);
+      });
+      q.submit([&](handler &h) {
         auto accR2 = bR2.get_access<access::mode::write>(h);
+        h.copy(vR2.data(), accR2);
+      });
+      q.submit([&](handler &h) {
         auto accR3 = bR3.get_access<access::mode::write>(h);
+        h.copy(vR3.data(), accR3);
+      });
+      q.submit([&](handler &h) {
         auto accR4 = bR4.get_access<access::mode::write>(h);
-
-        h.copy((vX1.data()), accX1);
-        h.copy((vX2.data()), accX2);
-        h.copy((vX3.data()), accX3);
-        h.copy((vX4.data()), accX4);
-
-        h.copy((vY1.data()), accY1);
-        h.copy((vY2.data()), accY2);
-        h.copy((vY3.data()), accY3);
-        h.copy((vY4.data()), accY4);
-
-        h.copy((vZ1.data()), accZ1);
-        h.copy((vZ2.data()), accZ2);
-        h.copy((vZ3.data()), accZ3);
-        h.copy((vZ4.data()), accZ4);
-
-        h.copy((vR1.data()), accR1);
-        h.copy((vR2.data()), accR2);
-        h.copy((vR3.data()), accR3);
-        h.copy((vR4.data()), accR4);
+        h.copy(vR4.data(), accR4);
       });
       q.wait_and_throw();
 
