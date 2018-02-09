@@ -27,7 +27,7 @@
 #include <functional>
 #include <numeric>
 #include <random>
-
+#include <cblas.h>
 
 template <typename T, typename RndEngine>
 std::vector<T> gen_matrix(int m, int n, T lo, T hi, RndEngine rnd) {
@@ -87,4 +87,3 @@ void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
               << "perf = " << flop_cnt / sec / 1e9 << " GFLOPS"
               << std::endl;
 }
-

@@ -16,17 +16,17 @@ include(FindComputeCpp)
 
 include(FindBLAS)
 
-if (DEFINED CLBLAS_ROOT)
-  set(USE_CLBLAS ON)
+if (DEFINED OPENBLAS_ROOT)
+  set(USE_OPENBLAS ON)
 else()
-  set(USE_CLBLAS OFF)
+  set(USE_OPENBLAS OFF)
 endif()
 
-if(USE_CLBLAS)
+if(USE_OPENBLAS)
   message(STATUS "Will enable comparison with clBLAS")
-  set(CLBLAS_LIBRARIES "${CLBLAS_ROOT}/lib64/libclBLAS.so")
-  set(CLBLAS_INCLUDE "${CLBLAS_ROOT}/include/")
-endif(USE_CLBLAS)
+  set(OPENBLAS_LIBRARIES "${OPENBLAS_ROOT}/lib/libopenblas.so")
+  set(OPENBLAS_INCLUDE "${OPENBLAS_ROOT}/include/")
+endif(USE_OPENBLAS)
 
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
@@ -37,8 +37,8 @@ message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
 
-if (USE_CLBLAS)
-  include_directories(${CLBLAS_INCLUDE})
+if (USE_OPENBLAS)
+  include_directories(${OPENBLAS_INCLUDE})
 endif()
 
 

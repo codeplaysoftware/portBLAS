@@ -100,7 +100,7 @@ test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
 template <typename Gemm, typename T, typename Container>
 typename std::enable_if<Gemm::version == 19>::type
 test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
-     const Container &dataB, int ldb, T beta, Container dataC, int ldc, 
+     const Container &dataB, int ldb, T beta, Container dataC, int ldc,
      const Container &refC, cl::sycl::queue q)
 {
   using etype = typename Gemm::value_type;
@@ -231,4 +231,3 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep)
 #undef ARG
 
 }
-
