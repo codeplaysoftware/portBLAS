@@ -38,11 +38,6 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
       message(FATAL_ERROR
         "host compiler - Not found! (gcc version must be at least 4.8)")
-    # Require the GCC dual ABI to be disabled for 5.1 or higher
-    elseif (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1)
-      #      set(COMPUTECPP_DISABLE_GCC_DUAL_ABI "True")
-      message(STATUS
-        "host compiler - gcc ${CMAKE_CXX_COMPILER_VERSION} (note pre 5.1 gcc ABI enabled)")
     else()
       message(STATUS "host compiler - gcc ${CMAKE_CXX_COMPILER_VERSION}")
     endif()
@@ -54,9 +49,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     else()
       message(STATUS "host compiler - clang ${CMAKE_CXX_COMPILER_VERSION}")
     endif()
-else()
-  message(WARNING
-    "host compiler - Not found! (ComputeCpp supports GCC and Clang, see readme)")
 endif()
 
 set(COMPUTECPP_64_BIT_DEFAULT ON)
@@ -64,18 +56,37 @@ option(COMPUTECPP_64_BIT_CODE "Compile device code in 64 bit mode"
         ${COMPUTECPP_64_BIT_DEFAULT})
 mark_as_advanced(COMPUTECPP_64_BIT_CODE)
 
+option(COMPUTECPP_DISABLE_GCC_DUAL_ABI "Compile with pre-5.1 ABI" OFF)
+mark_as_advanced(COMPUTECPP_DISABLE_GCC_DUAL_ABI)
+
+set(COMPUTECPP_USER_FLAGS "" CACHE STRING "User flags for compute++")
+mark_as_advanced(COMPUTECPP_USER_FLAGS)
+
+# Platform-specific arguments
+if(MSVC)
+  # Workaround to an unfixed Clang bug, rationale:
+  # https://github.com/codeplaysoftware/computecpp-sdk/pull/51#discussion_r139399093
+  set (COMPUTECPP_PLATFORM_SPECIFIC_ARGS "-fno-ms-compatibility")
+endif()
+
 # Find OpenCL package
 find_package(OpenCL REQUIRED)
-include_directories(${OpenCL_INCLUDE_DIR})
 
-# Find ComputeCpp packagee
+# Find ComputeCpp package
+
+# Try to read the environment variable
+if(DEFINED ENV{COMPUTECPP_PACKAGE_ROOT_DIR})
+  if(NOT COMPUTECPP_PACKAGE_ROOT_DIR)
+    set(COMPUTECPP_PACKAGE_ROOT_DIR $ENV{COMPUTECPP_PACKAGE_ROOT_DIR})
+  endif()
+endif()
+
 if(NOT COMPUTECPP_PACKAGE_ROOT_DIR)
   message(FATAL_ERROR
-    "ComputeCpp package - Not found! (please set COMPUTECPP_PACKAGE_ROOT_DIR")
+    "ComputeCpp package - Not found! (please set COMPUTECPP_PACKAGE_ROOT_DIR)")
 else()
   message(STATUS "ComputeCpp package - Found")
 endif()
-option(COMPUTECPP_PACKAGE_ROOT_DIR "Path to the ComputeCpp Package")
 
 # Obtain the path to compute++
 find_program(COMPUTECPP_DEVICE_COMPILER compute++ PATHS
@@ -98,15 +109,37 @@ else()
 endif()
 
 # Obtain the path to the ComputeCpp runtime library
-find_library(COMPUTECPP_RUNTIME_LIBRARY ComputeCpp PATHS ${COMPUTECPP_PACKAGE_ROOT_DIR}
+find_library(COMPUTECPP_RUNTIME_LIBRARY
+  NAMES ComputeCpp ComputeCpp_vs2015
+  PATHS ${COMPUTECPP_PACKAGE_ROOT_DIR}
   HINTS ${COMPUTECPP_PACKAGE_ROOT_DIR}/lib PATH_SUFFIXES lib
   DOC "ComputeCpp Runtime Library" NO_DEFAULT_PATH)
 
 if (EXISTS ${COMPUTECPP_RUNTIME_LIBRARY})
   mark_as_advanced(COMPUTECPP_RUNTIME_LIBRARY)
-  message(STATUS "libComputeCpp.so - Found")
 else()
-  message(FATAL_ERROR "libComputeCpp.so - Not found!")
+  message(FATAL_ERROR "ComputeCpp Runtime Library - Not found!")
+endif()
+
+find_library(COMPUTECPP_RUNTIME_LIBRARY_DEBUG
+  NAMES ComputeCpp ComputeCpp_vs2015_d
+  PATHS ${COMPUTECPP_PACKAGE_ROOT_DIR}
+  HINTS ${COMPUTECPP_PACKAGE_ROOT_DIR}/lib PATH_SUFFIXES lib
+  DOC "ComputeCpp Debug Runtime Library" NO_DEFAULT_PATH)
+
+if (EXISTS ${COMPUTECPP_RUNTIME_LIBRARY_DEBUG})
+  mark_as_advanced(COMPUTECPP_RUNTIME_LIBRARY_DEBUG)
+else()
+  message(FATAL_ERROR "ComputeCpp Debug Runtime Library - Not found!")
+endif()
+
+# NOTE: Having two sets of libraries is Windows specific, not MSVC specific.
+# Compiling with Clang on Windows would still require linking to both of them.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  message(STATUS "ComputeCpp runtime (Release): ${COMPUTECPP_RUNTIME_LIBRARY} - Found")
+  message(STATUS "ComputeCpp runtime  (Debug) : ${COMPUTECPP_RUNTIME_LIBRARY_DEBUG} - Found")
+else()
+  message(STATUS "ComputeCpp runtime: ${COMPUTECPP_RUNTIME_LIBRARY} - Found")
 endif()
 
 # Obtain the ComputeCpp include directory
@@ -129,12 +162,20 @@ else()
 endif()
 
 # Obtain the device compiler flags
-#execute_process(COMMAND ${COMPUTECPP_INFO_TOOL} "--dump-device-compiler-flags"
-#   OUTPUT_VARIABLE COMPUTECPP_DEVICE_COMPILER_FLAGS
-#  RESULT_VARIABLE COMPUTECPP_INFO_TOOL_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(USE_SPIRV "")
+if (COMPUTECPP_USE_SPIRV)
+  set(USE_SPIRV "--use-spirv")
+endif()
 
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS "-O2 -mllvm -inline-threshold=10000 -sycl -intelspirmetadata -emit-llvm")
-set(COMPUTECPP_INFO_TOOL_RESULT 0)
+set(USE_PTX "")
+if (COMPUTECPP_USE_PTX)
+  set(USE_PTX "--use-ptx")
+endif()
+
+execute_process(COMMAND ${COMPUTECPP_INFO_TOOL}
+  ${USE_SPIRV} ${USE_PTX} "--dump-device-compiler-flags"
+  OUTPUT_VARIABLE COMPUTECPP_DEVICE_COMPILER_FLAGS
+  RESULT_VARIABLE COMPUTECPP_INFO_TOOL_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if(NOT COMPUTECPP_INFO_TOOL_RESULT EQUAL "0")
   message(FATAL_ERROR "compute++ flags - Error obtaining compute++ flags!")
@@ -157,6 +198,19 @@ else()
     message(STATUS "platform - your system CANNOT support ComputeCpp")
   endif()
 endif()
+
+# This property allows targets to specify that their sources should be
+# compiled with the integration header included after the user's
+# sources, not before (e.g. when an enum is used in a kernel name, this
+# is not technically valid SYCL code but can work with ComputeCpp)
+define_property(
+  TARGET PROPERTY COMPUTECPP_INCLUDE_AFTER
+  BRIEF_DOCS "Include integration header after user source"
+  FULL_DOCS "Changes compiler arguments such that the source file is
+  actually the integration header, and the .cpp file is included on
+  the command line so that it is seen by the compiler first. Enables
+  non-standards-conformant SYCL code to compile with ComputeCpp."
+)
 
 ####################
 #   __build_sycl
@@ -181,10 +235,14 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
   set(outputSyclFile ${binaryDir}/${sourceFileName}.sycl)
 
   # Add any user-defined include to the device compiler
+  set(device_compiler_includes "")
   get_property(includeDirectories DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
     INCLUDE_DIRECTORIES)
-  set(device_compiler_includes "")
   foreach(directory ${includeDirectories})
+    set(device_compiler_includes "-I${directory}" ${device_compiler_includes})
+  endforeach()
+  get_target_property(targetIncludeDirectories ${targetName} INCLUDE_DIRECTORIES)
+  foreach(directory ${targetIncludeDirectories})
     set(device_compiler_includes "-I${directory}" ${device_compiler_includes})
   endforeach()
   if (CMAKE_INCLUDE_PATH)
@@ -194,6 +252,25 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
     endforeach()
   endif()
 
+  # Obtain language standard of the file
+  set(device_compiler_cxx_standard)
+  get_target_property(targetCxxStandard ${targetName} CXX_STANDARD)
+  if (targetCxxStandard MATCHES 17)
+    set(device_compiler_cxx_standard "-std=c++1z")
+  elseif (targetCxxStandard MATCHES 14)
+    set(device_compiler_cxx_standard "-std=c++14")
+  elseif (targetCxxStandard MATCHES 11)
+    set(device_compiler_cxx_standard "-std=c++11")
+  elseif (targetCxxStandard MATCHES 98)
+    message(FATAL_ERROR "SYCL applications cannot be compiled using C++98")
+  else ()
+    set(device_compiler_cxx_standard "")
+  endif()
+
+  set(COMPUTECPP_DEVICE_COMPILER_FLAGS
+    ${device_compiler_cxx_standard}
+    ${COMPUTECPP_DEVICE_COMPILER_FLAGS}
+    ${COMPUTECPP_USER_FLAGS})
   # Convert argument list format
   separate_arguments(COMPUTECPP_DEVICE_COMPILER_FLAGS)
 
@@ -208,24 +285,72 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
             -o ${outputSyclFile}
             -c ${sourceFile}
     DEPENDS ${sourceFile}
-    IMPLICIT_DEPENDS CXX "${sourceFile}"
+    IMPLICIT_DEPENDS CXX ${sourceFile}
     WORKING_DIRECTORY ${binaryDir}
-  COMMENT "Building ComputeCpp integration header file ${outputSyclFile}")
+    COMMENT "Building ComputeCpp integration header file ${outputSyclFile}")
 
-  # Name: (user-defined name)_(source file)_(counter for same source file name)_integration_header
-  set(headerTargetName ${targetName}_${sourceFileName}_${fileCounter}_integration_header)
+  # Name:
+  # (user-defined name)_(source file)_(counter)_ih
+  set(headerTargetName
+    ${targetName}_${sourceFileName}_${fileCounter}_ih)
 
-  # Add a custom target for the generated integration header
-  add_custom_target(${headerTargetName} DEPENDS ${outputSyclFile})
+  if(NOT MSVC)
+    # Add a custom target for the generated integration header
+    add_custom_target(${headerTargetName} DEPENDS ${outputSyclFile})
 
-  # Add a dependency on the integration header
-  add_dependencies(${targetName} ${headerTargetName})
+    # Add a dependency on the integration header
+    add_dependencies(${targetName} ${headerTargetName})
+  endif()
+
+  # This property can be set on a per-target basis to indicate that the
+  # integration header should appear after the main source listing
+  get_property(includeAfter TARGET ${targetName}
+      PROPERTY COMPUTECPP_INCLUDE_AFTER)
+
+  if(includeAfter)
+    # Change the source file to the integration header - e.g.
+    # g++ -c source_file_name.cpp.sycl
+    set_property(TARGET ${targetName} PROPERTY SOURCES ${outputSyclFile})
+    # CMake/gcc don't know what language a .sycl file is, so tell them
+    set_property(SOURCE ${outputSyclFile} PROPERTY LANGUAGE CXX)
+    set(includedFile ${sourceFile})
+  else()
+    set(includedFile ${outputSyclFile})
+  endif()
 
   # Force inclusion of the integration header for the host compiler
-  set(compileFlags -include ${outputSyclFile})
-  target_compile_options(${targetName} PUBLIC ${compileFlags})
+  if(MSVC)
+    # Group SYCL files inside Visual Studio
+    source_group("SYCL" FILES ${outputSyclFile})
 
-  # Disable GCC dual ABI on GCC 5.1 and higher
+    if(includeAfter)
+      # Allow the source file to be edited using Visual Studio.
+      # It will be added as a header file so it won't be compiled.
+      set_property(SOURCE ${sourceFile} PROPERTY HEADER_FILE_ONLY true)
+    endif()
+
+    # Add both source and the sycl files to the VS solution.
+    target_sources(${targetName} PUBLIC ${sourceFile} ${outputSyclFile})
+
+    # NOTE: The Visual Studio generators parse compile flags differently,
+    # hence the different argument syntax
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+      set(forceIncludeFlags "/FI\"${includedFile}\" /TP")
+    else()
+      set(forceIncludeFlags /FI ${includedFile} /TP)
+    endif()
+  else()
+      set(forceIncludeFlags "-include ${includedFile} -x c++")
+  endif()
+  # target_compile_options removes duplicated flags, which does not work
+  # for -include (it should appear once per included file - CMake bug #15826)
+  #   target_compile_options(${targetName} BEFORE PUBLIC ${forceIncludeFlags})
+  # To avoid the problem, we get the value of the property and manually append
+  # it to the previous status.
+  get_property(currentFlags TARGET ${targetName} PROPERTY COMPILE_FLAGS)
+  set_property(TARGET ${targetName} PROPERTY COMPILE_FLAGS
+                  "${forceIncludeFlags} ${currentFlags}")
+
   if(COMPUTECPP_DISABLE_GCC_DUAL_ABI)
     set_property(TARGET ${targetName} APPEND PROPERTY COMPILE_DEFINITIONS
       "_GLIBCXX_USE_CXX11_ABI=0")
@@ -248,6 +373,11 @@ function(add_sycl_to_target targetName binaryDir sourceFiles)
 
   set(sourceFiles ${sourceFiles} ${ARGN})
   set(fileCounter 0)
+  target_include_directories(
+    ${targetName} SYSTEM
+    PRIVATE ${OpenCL_INCLUDE_DIR}
+    PRIVATE ${COMPUTECPP_INCLUDE_DIRECTORY}
+  )
   # Add custom target to run compute++ and generate the integration header
   foreach(sourceFile ${sourceFiles})
     __build_spir(${targetName} ${sourceFile} ${binaryDir} ${fileCounter})
@@ -255,8 +385,8 @@ function(add_sycl_to_target targetName binaryDir sourceFiles)
   endforeach()
 
   # Link with the ComputeCpp runtime library
-  target_link_libraries(${targetName} PUBLIC ${COMPUTECPP_RUNTIME_LIBRARY}
-                        PUBLIC ${OpenCL_LIBRARIES})
+  target_link_libraries(${targetName} PUBLIC $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:${COMPUTECPP_RUNTIME_LIBRARY_DEBUG}>
+                                             $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>>:${COMPUTECPP_RUNTIME_LIBRARY}>
+                                             ${OpenCL_LIBRARIES})
 
 endfunction(add_sycl_to_target)
-

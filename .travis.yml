@@ -1,50 +1,44 @@
 language: cpp
-compiler: g++
 sudo: required
 dist: trusty
 os:
   - linux
 
-compiler:
-  - gcc
-  - clang
-
-branches:
-  only:
-    - master
+services:
+  - docker
 
 env:
-  - IMPL=COMPUTECPP
+#  - IMPL=triSYCL CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=host
+#  - IMPL=triSYCL CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=host
+  - IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=host
+  - IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=host
+  - IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=opencl
+  - IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=opencl
 
 matrix:
-  fast-finish: true
+  fast_finish: true
+# Some tests are not passing on triSYCL
+  allow_failures:
+    - env: IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=opencl
+    - env: IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=opencl
 
-addons:
-  apt:
-    sources:
-      - llvm-toolchain-precise
-      - ubuntu-toolchain-r-test
-      - source-line: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main'
-        key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
-    packages:
-      - python-yaml
-      - gcc-5
-      - g++-5
-      - clang-3.9
-      - libblas-dev
-      - libc++-dev
 
 before_install:
-  - bash .travis/before_install.sh
-
-install:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.9" CC="clang-3.9"; fi
-  - if [ "$IMPL" = "COMPUTECPP" ]; then bash .travis/build_computecpp.sh; fi
+  - |
+    if [[ ${TRAVIS_PULL_REQUEST} == "false" ]]; then
+       export GIT_SLUG=${TRAVIS_REPO_SLUG}
+       export GIT_BRANCH=${TRAVIS_BRANCH}
+    else
+       export GIT_SLUG=${TRAVIS_PULL_REQUEST_SLUG}
+       export GIT_BRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+    fi
+  - docker build --build-arg c_compiler=${CC_COMPILER}
+                 --build-arg cxx_compiler=${CXX_COMPILER}
+                 --build-arg git_branch=${GIT_BRANCH}
+                 --build-arg git_slug=${GIT_SLUG}
+                 --build-arg impl=${IMPL}
+                 --build-arg target=${TARGET}
+                 -t sycl-blas .
 
 script:
-  - mkdir build
-  - cd build
-  - cmake .. -DCOMPUTECPP_PACKAGE_ROOT_DIR=/tmp/ComputeCpp-CE-0.3.1-Linux/ -DCOMPUTECPP_DISABLE_GCC_DUAL_ABI=1 -DCMAKE_BUILD_TYPE=Release
-  - make
-  - COMPUTECPP_TARGET="host" make test
+  - docker run sycl-blas
