@@ -25,57 +25,75 @@
 
 #include <cstdlib>
 
-
 #include "gemm_utils.hpp"
 
-
 int main(int argc, char *argv[]) {
-
   const int seed = 42;
   const bool transA = true;
   const bool transB = true;
   if (argc != 5) {
     std::cout << "running Unit test " << argv[0] << " M K N rep" << std::endl;
-    std::cout << "costum test can be executed by calling " << argv[0] << " M K N rep" << std::endl;
+    std::cout << "costum test can be executed by calling " << argv[0]
+              << " M K N rep" << std::endl;
     int m = 256;
-    int n= 256;
-    int k= 256;
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << !transB << ", M: " << m - 1  << " K: "<< k - 1 << ", N: " << n - 1 << std::endl;
-          run_gemm_tests<!transA, !transB, float>(seed, m - 1, k - 1, n - 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << transB << ", M: " << m - 1  << " K: "<< k - 1 << ", N: " << n - 1 << std::endl;
-          run_gemm_tests<!transA,  transB, float>(seed, m - 1, k - 1, n - 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << !transB << ", M: " << m - 1  << " K: "<< k - 1 << ", N: " << n - 1 << std::endl;
-          run_gemm_tests< transA, !transB, float>(seed, m - 1, k - 1, n - 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << transB << ", M: " << m - 1  << " K: "<< k - 1 << ", N: " << n - 1 << std::endl;
-          run_gemm_tests< transA,  transB, float>(seed, m - 1, k - 1, n - 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << !transB << ", M: " << m  << " K: "<< k << ", N: " << n << std::endl;
-          run_gemm_tests<!transA, !transB, float>(seed, m, k, n, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << transB << ", M: " << m  << " K: "<< k << ", N: " << n << std::endl;
-          run_gemm_tests<!transA,  transB, float>(seed, m, k, n, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << !transB << ", M: " << m  << " K: "<< k << ", N: " << n << std::endl;
-          run_gemm_tests< transA, !transB, float>(seed, m, k, n, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << transB << ", M: " << m  << " K: "<< k << ", N: " << n << std::endl;
-          run_gemm_tests< transA,  transB, float>(seed, m, k, n, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << !transB << ", M: " << m + 1 << " K: "<< k + 1 << ", N: " << n + 1 << std::endl;
-          run_gemm_tests<!transA, !transB, float>(seed, m + 1, k + 1, n + 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< !transA << ", B Transposed: " << transB << ", M: " << m + 1 << " K: "<< k + 1 << ", N: " << n + 1 << std::endl;
-          run_gemm_tests<!transA,  transB, float>(seed, m + 1, k + 1, n + 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << !transB << ", M: " << m + 1 << " K: "<< k + 1 << ", N: " << n + 1 << std::endl;
-          run_gemm_tests< transA, !transB, float>(seed, m + 1, k + 1, n + 1, 1);
-          std::cout << std::boolalpha;
-          std::cout << "A Transposed: "<< transA << ", B Transposed: " << transB << ", M: " << m + 1 << " K: "<< k + 1 << ", N: " << n + 1 << std::endl;
-          run_gemm_tests< transA,  transB, float>(seed, m + 1, k + 1, n + 1, 1);
+    int n = 256;
+    int k = 256;
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << !transB
+              << ", M: " << m - 1 << " K: " << k - 1 << ", N: " << n - 1
+              << std::endl;
+    run_gemm_tests<!transA, !transB, float>(seed, m - 1, k - 1, n - 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << transB
+              << ", M: " << m - 1 << " K: " << k - 1 << ", N: " << n - 1
+              << std::endl;
+    run_gemm_tests<!transA, transB, float>(seed, m - 1, k - 1, n - 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << !transB
+              << ", M: " << m - 1 << " K: " << k - 1 << ", N: " << n - 1
+              << std::endl;
+    run_gemm_tests<transA, !transB, float>(seed, m - 1, k - 1, n - 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << transB
+              << ", M: " << m - 1 << " K: " << k - 1 << ", N: " << n - 1
+              << std::endl;
+    run_gemm_tests<transA, transB, float>(seed, m - 1, k - 1, n - 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << !transB
+              << ", M: " << m << " K: " << k << ", N: " << n << std::endl;
+    run_gemm_tests<!transA, !transB, float>(seed, m, k, n, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << transB
+              << ", M: " << m << " K: " << k << ", N: " << n << std::endl;
+    run_gemm_tests<!transA, transB, float>(seed, m, k, n, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << !transB
+              << ", M: " << m << " K: " << k << ", N: " << n << std::endl;
+    run_gemm_tests<transA, !transB, float>(seed, m, k, n, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << transB
+              << ", M: " << m << " K: " << k << ", N: " << n << std::endl;
+    run_gemm_tests<transA, transB, float>(seed, m, k, n, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << !transB
+              << ", M: " << m + 1 << " K: " << k + 1 << ", N: " << n + 1
+              << std::endl;
+    run_gemm_tests<!transA, !transB, float>(seed, m + 1, k + 1, n + 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << !transA << ", B Transposed: " << transB
+              << ", M: " << m + 1 << " K: " << k + 1 << ", N: " << n + 1
+              << std::endl;
+    run_gemm_tests<!transA, transB, float>(seed, m + 1, k + 1, n + 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << !transB
+              << ", M: " << m + 1 << " K: " << k + 1 << ", N: " << n + 1
+              << std::endl;
+    run_gemm_tests<transA, !transB, float>(seed, m + 1, k + 1, n + 1, 1);
+    std::cout << std::boolalpha;
+    std::cout << "A Transposed: " << transA << ", B Transposed: " << transB
+              << ", M: " << m + 1 << " K: " << k + 1 << ", N: " << n + 1
+              << std::endl;
+    run_gemm_tests<transA, transB, float>(seed, m + 1, k + 1, n + 1, 1);
   } else {
     const int m = std::atoi(argv[1]);
     const int k = std::atoi(argv[2]);
@@ -84,11 +102,10 @@ int main(int argc, char *argv[]) {
     const int rep = std::atoi(argv[4]);
 
     run_gemm_tests<!transA, !transB, float>(seed, m, k, n, rep);
-    run_gemm_tests<!transA,  transB, float>(seed, m, k, n, rep);
-    run_gemm_tests< transA, !transB, float>(seed, m, k, n, rep);
-    run_gemm_tests< transA,  transB, float>(seed, m, k, n, rep);
+    run_gemm_tests<!transA, transB, float>(seed, m, k, n, rep);
+    run_gemm_tests<transA, !transB, float>(seed, m, k, n, rep);
+    run_gemm_tests<transA, transB, float>(seed, m, k, n, rep);
   }
-
 
   return 0;
 }
