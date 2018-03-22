@@ -35,6 +35,8 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 
 RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /sycl-blas
 
+#OpenBLAS
+RUN bash /sycl-blas/.travis/build_OpenBLAS.sh
 # Intel OpenCL Runtime
 RUN if [ "${target}" = 'opencl' ]; then bash /sycl-blas/.travis/install_intel_opencl.sh; fi
 

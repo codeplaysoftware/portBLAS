@@ -25,9 +25,7 @@
 
 #include <cstdlib>
 
-
 #include "gemm_utils.hpp"
-
 
 int main(int argc, char *argv[]) {
   if (argc != 5) {
@@ -48,4 +46,3 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
