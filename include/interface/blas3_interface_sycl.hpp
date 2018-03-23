@@ -63,7 +63,6 @@ void _select_gemm(Executor<ExecutorType>& ex, bool _TransA, bool _TransB,
                                                 T(_alpha), T(_beta));          \
       ex.gemm_executor(gemm);                                                  \
     } else {                                                                   \
-      printf("This one is called\n");                                          \
       auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>(          \
           buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
       ex.gemm_executor(gemm);                                                  \

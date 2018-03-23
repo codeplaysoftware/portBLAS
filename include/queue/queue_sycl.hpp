@@ -12,7 +12,7 @@ class Queue_Interface<SYCL> {
   /*!
    * @brief SYCL queue for execution of trees.
    */
-  cl::sycl::queue &q_;
+  cl::sycl::queue q_;
   mutable cl::sycl::codeplay::PointerMapper pointer_mapper;
   bool pointer_mapper_owner;
   using generic_buffer_data_type = cl::sycl::codeplay::buffer_data_type_t;
@@ -20,7 +20,7 @@ class Queue_Interface<SYCL> {
  public:
   enum device_type { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU };
 
-  explicit Queue_Interface(cl::sycl::queue &q)
+  explicit Queue_Interface(cl::sycl::queue q)
       : q_(q), pointer_mapper_owner(true) {}
   // FIXME : The assignment constructor for pointer mapper is deleted
   /*  Queue_Interface(cl::sycl::queue q,
@@ -59,7 +59,7 @@ class Queue_Interface<SYCL> {
   inline void deallocate(T *p) const {
     cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), pointer_mapper);
   }
-  cl::sycl::queue &sycl_queue() const { return q_; }
+  cl::sycl::queue sycl_queue() const { return q_; }
   ~Queue_Interface() {
     if (pointer_mapper_owner) {
       pointer_mapper.clear();

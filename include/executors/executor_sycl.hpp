@@ -252,7 +252,8 @@ class Executor<SYCL> {
   // This should be added up on request
   // bool is_pointer_mapper_owner;
   Queue_Interface<SYCL> q_interface;
-  cl::sycl::queue &q_;
+  // FIXME::To do(Mehdi) queue will be completely remove form executor
+  cl::sycl::queue q_;
 
  public:
   template <typename T>
