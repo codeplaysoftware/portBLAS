@@ -10,15 +10,16 @@ services:
 env:
 #  - IMPL=triSYCL CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=host
 #  - IMPL=triSYCL CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=host
-  - IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=host
-  - IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=host
-  - IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=opencl
-  - IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=opencl
 
 matrix:
   fast_finish: true
-# Some tests are not passing on triSYCL
+# Some tests are not passing on host. We need newer version of computecpp.
+#On the current version(0.6.1) of the intel OpenCL some tests are not passing.
   allow_failures:
+    - env: IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=opencl
+    - env: IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=opencl
+    - env: IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=host
+    - env: IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=host
     - env: IMPL=COMPUTECPP CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 TARGET=opencl
     - env: IMPL=COMPUTECPP CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 TARGET=opencl
 
