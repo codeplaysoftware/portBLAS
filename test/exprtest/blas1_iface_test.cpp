@@ -40,8 +40,8 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
 
-  size_t size = TestClass::template test_size<test>();
-  size_t strd = TestClass::template test_strd<test>();
+  size_t size = 25;  // TestClass::template test_size<test>();
+  size_t strd = 1;   // TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
@@ -168,4 +168,12 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].getVal(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vY);
+  ex.template deallocate<ScalarT>(gpu_vR);
+  ex.template deallocate<ScalarT>(gpu_vS);
+  ex.template deallocate<ScalarT>(gpu_vT);
+  ex.template deallocate<ScalarT>(gpu_vU);
+  ex.template deallocate<IndVal<ScalarT>>(gpu_vImax);
+  ex.template deallocate<IndVal<ScalarT>>(gpu_vImin);
 }
