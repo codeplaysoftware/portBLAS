@@ -20,7 +20,7 @@ file(GLOB SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1_iamax_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1_iamin_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2_gemv_test.cpp
-  #${SYCLBLAS_UNITTEST}/blas2_ger_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2_ger_test.cpp
   #${SYCLBLAS_UNITTEST}/blas3_gemm_test.cpp
 )
 
