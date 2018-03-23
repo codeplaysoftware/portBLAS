@@ -23,12 +23,12 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, dot_test)
 REGISTER_STRD(::RANDOM_STRD, dot_test)
@@ -36,10 +36,10 @@ REGISTER_PREC(float, 1e-4, dot_test)
 REGISTER_PREC(double, 1e-6, dot_test)
 REGISTER_PREC(long double, 1e-7, dot_test)
 
-TYPED_TEST(BLAS1_Test, dot_test) {
+TYPED_TEST(BLAS_Test, dot_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class dot_test;
 
   size_t size = TestClass::template test_size<test>();
@@ -53,7 +53,7 @@ TYPED_TEST(BLAS1_Test, dot_test) {
   std::vector<ScalarT> vX(size);
   std::vector<ScalarT> vY(size);
   // create a vector of size 1 for the result
-  std::vector<ScalarT> vR(1, 0);
+  std::vector<ScalarT> vR(1, ScalarT(0));
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
@@ -66,16 +66,16 @@ TYPED_TEST(BLAS1_Test, dot_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // compute dot(vX, vY) into vR with syclblas
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vY = TestClass::make_buffer(vY);
-    auto buf_vR = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    _dot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, view_vR);
-  }
-  // check that the result is the same
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vY = ex.template allocate<ScalarT>(size);
+  auto gpu_vR = ex.template allocate<ScalarT>(1);
+  printf("inside the test: %p\n", gpu_vR);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  ex.copy_to_device(vY.data(), gpu_vY, size);
+  _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
+  ex.copy_to_host(gpu_vR, vR.data(), 1);
   ASSERT_NEAR(res, vR[0], prec);
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vY);
+  ex.template deallocate<ScalarT>(gpu_vR);
 }

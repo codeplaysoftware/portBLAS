@@ -23,12 +23,12 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, axpy_test)
 REGISTER_STRD(::RANDOM_STRD, axpy_test)
@@ -37,10 +37,10 @@ REGISTER_PREC(double, 1e-6, axpy_test)
 REGISTER_PREC(std::complex<float>, 1e-4, axpy_test)
 REGISTER_PREC(std::complex<double>, 1e-6, axpy_test)
 
-TYPED_TEST(BLAS1_Test, axpy_test) {
+TYPED_TEST(BLAS_Test, axpy_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class axpy_test;
 
   size_t size = TestClass::template test_size<test>();
@@ -49,8 +49,6 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  // axpy(alpha, vX, vY) = (vY = alpha * vX + vY)
   // setting alpha to some value
   ScalarT alpha(1.54);
   // creating three vectors: vX, vY and vZ.
@@ -61,7 +59,6 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
-  SYCL_DEVICE_SELECTOR d;
   // compute axpy in a for loop and put the result into vZ
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
@@ -71,18 +68,20 @@ TYPED_TEST(BLAS1_Test, axpy_test) {
     }
   }
 
+  SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // compute axpy with syclblas and put the result into vY
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vY = TestClass::make_buffer(vY);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    _axpy(ex, (size+strd-1)/strd, alpha, view_vX, strd, view_vY, strd);
-  }
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vY = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  ex.copy_to_device(vY.data(), gpu_vY, size);
+  _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  ex.copy_to_host(gpu_vY, vY.data(), size);
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vZ[i], vY[i], prec);
   }
+
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vY);
 }

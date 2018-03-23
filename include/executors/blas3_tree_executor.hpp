@@ -45,18 +45,41 @@ struct Evaluate;
 /*            BLAS 3            */
 /********************************/
 
-template <typename RHS1, typename RHS2>
-struct Evaluate<PrdRowMatColMat<RHS1, RHS2>> {
-  using value_type = typename RHS2::value_type;
+template <typename RHS1, typename RHS2, bool DoubleBuffer, bool NbcA, bool NbcB,
+          int ClSize, typename TileType, bool TransA, bool TransB, typename T>
+struct Evaluate<GemmFactory<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize,
+                            TileType, TransA, TransB, T>> {
+  using value_type = typename RHS1::value_type;
   using rhs1_type = typename Evaluate<RHS1>::type;
   using rhs2_type = typename Evaluate<RHS2>::type;
-  using input_type = PrdRowMatColMat<RHS1, RHS2>;
-  using type = PrdRowMatColMat<rhs1_type, rhs2_type>;
+  using input_type = GemmFactory<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize,
+                                 TileType, TransA, TransB, T>;
+  using type = GemmFactory<rhs1_type, rhs2_type, DoubleBuffer, NbcA, NbcB,
+                           ClSize, TileType, TransA, TransB, T>;
 
   static type convert_to(input_type v, cl::sycl::handler &h) {
-    auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
-    auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    return type(rhs1, rhs2);
+    auto rhs1 = Evaluate<RHS1>::convert_to(v._A, h);
+    auto rhs2 = Evaluate<RHS1>::convert_to(v._B, h);
+    auto rhs3 = Evaluate<RHS2>::convert_to(v._C, h);
+    return type(rhs1, rhs2, rhs3, v.alpha, v.beta);
+  }
+};
+template <typename RHS1, typename RHS2, int WgSize, bool TransA, bool TransB,
+          typename T>
+struct Evaluate<ReferenceGemmFactory<RHS1, RHS2, WgSize, TransA, TransB, T>> {
+  using value_type = typename RHS1::value_type;
+  using rhs1_type = typename Evaluate<RHS1>::type;
+  using rhs2_type = typename Evaluate<RHS2>::type;
+  using input_type =
+      ReferenceGemmFactory<RHS1, RHS2, WgSize, TransA, TransB, T>;
+  using type =
+      ReferenceGemmFactory<rhs1_type, rhs2_type, WgSize, TransA, TransB, T>;
+
+  static type convert_to(input_type v, cl::sycl::handler &h) {
+    auto rhs1 = Evaluate<RHS1>::convert_to(v._A, h);
+    auto rhs2 = Evaluate<RHS1>::convert_to(v._B, h);
+    auto rhs3 = Evaluate<RHS2>::convert_to(v._C, h);
+    return type(rhs1, rhs2, rhs3, v.alpha, v.beta);
   }
 };
 

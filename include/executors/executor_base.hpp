@@ -25,6 +25,7 @@
 
 #ifndef EXECUTOR_BASE_HPP
 #define EXECUTOR_BASE_HPP
+#include <queue/queue_base.hpp>
 
 namespace blas {
 
@@ -41,11 +42,11 @@ class Executor {
  public:
   template <typename Tree>
   void execute(Tree t) = delete;
+  template <typename T>
+  inline T* allocate(size_t num_bytes);
+  template <typename T>
+  inline void* deallocate(T* p);
 };
-
-class Sequential {};
-class Parallel {};
-class SYCL {};
 
 /*! Executor<Sequential>.
  * @brief Template specialization for Sequential Execution.

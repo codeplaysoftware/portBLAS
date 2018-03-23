@@ -37,6 +37,7 @@
 #include <operations/blas1_trees.hpp>
 #include <operations/blas2_trees.hpp>
 #include <operations/blas3_trees.hpp>
+#include <queue/queue_sycl.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
@@ -54,7 +55,7 @@ namespace blas {
 namespace using_shared_mem {
 static const int enabled = 0;
 static const int disabled = 1;
-};
+};  // namespace using_shared_mem
 
 /*!
 @brief Template alias for a local accessor.
@@ -178,7 +179,8 @@ struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
   static void eval(treeT &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if ((index.get_global(0) < tree.getSize())) {
+    if ((index.get_global(0) < tree.getSize())) {  // FIXME:: this should move
+                                                   // to the tree not the root
       tree.eval(index);
     }
   }
@@ -238,6 +240,8 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
   };
 
   q_.submit(cg1);
+
+  //  q_.wait();
 }
 
 /*! Executor<SYCL>.
@@ -245,52 +249,91 @@ static void execute_tree(cl::sycl::queue &q_, Tree t, size_t _localSize,
  */
 template <>
 class Executor<SYCL> {
-  /*!
-   * @brief SYCL queue for execution of trees.
-   */
-  cl::sycl::queue q_;
+  // This should be added up on request
+  // bool is_pointer_mapper_owner;
+  Queue_Interface<SYCL> q_interface;
+  cl::sycl::queue &q_;
 
  public:
+  template <typename T>
+  using ContainerT = bufferT<T>;
   /*!
    * @brief Constructs a SYCL executor using the given queue.
    * @param q A SYCL queue.
    */
-  Executor(cl::sycl::queue q) : q_{q} {};
+  Executor(cl::sycl::queue q) : q_interface(q), q_{q_interface.sycl_queue()} {};
 
-  cl::sycl::queue sycl_queue() const {
-    return q_;
+  // FIXME:The pointermapper constructor is deleted (later on it should be
+  // added)
+  /*Executor(const Queue_Interface<SYCL> &q_interface)
+      : q_interface(q_interface), q_{q_interface.sycl_queue()} {}*/
+
+  cl::sycl::queue sycl_queue() const { return q_; }
+
+  inline Queue_Interface<SYCL>::device_type get_device_type() {
+    return q_interface.get_device_type();
   }
 
-  enum device_type { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU };
-
-  device_type get_device_type() {
-    auto dev = q_.get_device();
-    auto platform = dev.get_platform();
-    auto plat_name = platform.template get_info<cl::sycl::info::platform::name>();
-    std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
-                   ::tolower);
-    if (plat_name.find("amd") != std::string::npos && dev.is_gpu()) {
-      return AMDGPU;
-    } else if (plat_name.find("intel") != std::string::npos && dev.is_gpu()) {
-      return INTELGPU;
-    } else {
-      return UNSUPPORTED_DEVICE;
-    }
-    throw std::runtime_error("couldn't find device");
+  inline bool has_local_memory() const {
+    return q_interface.has_local_memory();
+  }
+  template <typename T>
+  inline T *allocate(size_t num_elements) const {
+    return q_interface.template allocate<T>(num_elements);
   }
 
+  template <typename T>
+  inline void deallocate(T *p) const {
+    q_interface.deallocate(p);
+  }
+  /*
+  @brief this class is to return the dedicated buffer to the user
+  @ tparam T is the type of the pointer
+  @tparam bufferT<T> is the type of the buffer points to the data. on the host
+  side buffer<T> and T are the same
+  */
+  template <typename T>
+  inline bufferT<T> get_buffer(T *ptr) const {
+    return q_interface.get_buffer(ptr);
+  }
+  /*
+  @brief this function is to get the offset from the actual pointer
+  @tparam T is the type of the pointer
+  */
+  template <typename T>
+  inline ptrdiff_t get_offset(T *ptr) const {
+    return q_interface.get_offset(ptr);
+  }
+  /*  @brief Copying the data back to device
+      @tparam T is the type of the data
+      @param src is the host pointer we want to copy from.
+      @param dst is the device pointer we want to copy to.
+      @param size is the number of elements to be copied
+  */
+  template <typename T>
+  inline void copy_to_device(T *src, T *dst, size_t size) {
+    q_interface.copy_to_device(src, dst, size);
+  }
+  /*  @brief Copying the data back to device
+      @tparam T is the type of the data
+      @param src is the device pointer we want to copy from.
+      @param dst is the host pointer we want to copy to.
+      @param size is the number of elements to be copied
+  */
+  template <typename T>
+  inline void copy_to_host(T *src, T *dst, size_t size) {
+    q_interface.copy_to_host(src, dst, size);
+  }
 
   /*!
    * @brief Executes the tree without defining required shared memory.
    */
   template <typename Tree>
-  void execute(Tree t) {
+  inline void execute(Tree t) {
     auto device = q_.get_device();
     const auto localSize = 128;
-    //        device.get_info<cl::sycl::info::device::max_work_group_size>();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
-    //    auto globalSize = _N; // nWG * localSize;
     auto globalSize = nWG * localSize;
 
     execute_tree<using_shared_mem::disabled>(q_, t, localSize, globalSize, 0);
@@ -334,8 +377,8 @@ class Executor<SYCL> {
     using LHS_type = typename blas::Evaluate<Tree>::LHS_type;
     auto _N = t.getSize();
     auto localSize = t.blqS;
-    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
-    // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
+    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF
+    // ELEMENTS THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
     // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
     // ALL THE ELEMENTS ARE PROCESSED
     auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
@@ -385,8 +428,8 @@ class Executor<SYCL> {
     using LHS_type = typename blas::Evaluate<Tree>::LHS_type;
     auto _N = t.getSize();
     auto localSize = t.blqS;
-    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF ELEMENTS
-    // THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
+    // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF
+    // ELEMENTS THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
     // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
     // ALL THE ELEMENTS ARE PROCESSED
     auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
@@ -422,6 +465,25 @@ class Executor<SYCL> {
       even = !even;
     } while (_N > 1);
   };
+
+  template <bool Conds, int T1, int T2>
+  struct Choose_policy {
+    static const int type = T1;
+  };
+
+  template <int T1, int T2>
+  struct Choose_policy<false, T1, T2> {
+    static const int type = T2;
+  };
+
+  template <typename Gemm>
+  inline void gemm_executor(Gemm gemm_tree) {
+    auto rng = Gemm::get_nd_range(gemm_tree.m, gemm_tree.n);
+    execute_tree<Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
+                               using_shared_mem::disabled>::type>(
+        q_, gemm_tree, rng.get_local()[0], rng.get_global()[0],
+        Gemm::scratch_size);
+  }
 };
 
 }  // namespace blas

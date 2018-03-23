@@ -23,12 +23,12 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, nrm2_test)
 REGISTER_STRD(::RANDOM_STRD, nrm2_test)
@@ -36,10 +36,10 @@ REGISTER_PREC(float, 1e-4, nrm2_test)
 REGISTER_PREC(double, 1e-6, nrm2_test)
 REGISTER_PREC(long double, 1e-7, nrm2_test)
 
-TYPED_TEST(BLAS1_Test, nrm2_test) {
+TYPED_TEST(BLAS_Test, nrm2_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class nrm2_test;
 
   size_t size = TestClass::template test_size<test>();
@@ -52,7 +52,7 @@ TYPED_TEST(BLAS1_Test, nrm2_test) {
   // create a random vector
   std::vector<ScalarT> vX(size);
   // create a vector which will hold the result
-  std::vector<ScalarT> vR(1, 0);
+  std::vector<ScalarT> vR(1, ScalarT(0));
   TestClass::set_rand(vX, size);
 
   ScalarT res(0);
@@ -65,14 +65,16 @@ TYPED_TEST(BLAS1_Test, nrm2_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // compute nrm2 of a vX into vR
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vR = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    _nrm2(ex, (size+strd-1)/strd, view_vX, strd, view_vR);
-  }
+  // compute nrm2 of a vX into vR
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vR = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  ex.copy_to_device(vR.data(), gpu_vR, 1);
+  _nrm2(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
+  printf("offset :%ld , acutalsize %ld\n", (size + strd - 1) / strd, size);
+  ex.copy_to_host(gpu_vR, vR.data(), 1);
   // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vR);
 }

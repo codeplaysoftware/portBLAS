@@ -66,7 +66,7 @@ struct DetectScalar<float> {
 
 /*! DetectScalar.
  * @brief See Detect Scalar.
-*/
+ */
 template <>
 struct DetectScalar<double> {
   using T = double;
@@ -75,7 +75,7 @@ struct DetectScalar<double> {
 
 /*! DetectScalar.
  * @brief See Detect Scalar.
-*/
+ */
 template <>
 struct DetectScalar<std::complex<float>> {
   using T = std::complex<float>;
@@ -84,7 +84,7 @@ struct DetectScalar<std::complex<float>> {
 
 /*! DetectScalar.
  * @brief See Detect Scalar.
-*/
+ */
 template <>
 struct DetectScalar<std::complex<double>> {
   using T = std::complex<double>;
@@ -93,7 +93,7 @@ struct DetectScalar<std::complex<double>> {
 
 /*! get_scalar.
  * @brief Template autodecuction function for DetectScalar.
-*/
+ */
 template <typename T>
 auto get_scalar(T &scl) -> decltype(DetectScalar<T>::get_scalar(scl)) {
   return DetectScalar<T>::get_scalar(scl);
@@ -299,7 +299,10 @@ struct AssignReduction {
       // Reduction inside the block
       val = Operator::eval(val, local_val);
     }
-    return l.eval(i) = val;
+    if (i < l.getSize()) {
+      l.eval(i) = val;
+    }
+    return val;
   }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -344,8 +347,8 @@ struct AssignReduction {
 
 template <typename Operator, typename LHS, typename RHS>
 AssignReduction<Operator, LHS, RHS> make_AssignReduction(LHS &l, RHS &r,
-                                                             size_t blqS,
-                                                             size_t grdS) {
+                                                         size_t blqS,
+                                                         size_t grdS) {
   return AssignReduction<Operator, LHS, RHS>(l, r, blqS, grdS);
 }
 

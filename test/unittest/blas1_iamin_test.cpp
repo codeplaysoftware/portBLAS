@@ -23,19 +23,19 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas_test_args<double>> BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
 REGISTER_STRD(1, iamin_test)
 
-TYPED_TEST(BLAS1_Test, iamin_test) {
+TYPED_TEST(BLAS_Test, iamin_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class iamin_test;
 
   size_t size = TestClass::template test_size<test>();
@@ -63,17 +63,17 @@ TYPED_TEST(BLAS1_Test, iamin_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // compute iamax of vX into vI with sycl blas
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vI = TestClass::make_buffer(vI);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vI = TestClass::make_vview(buf_vI);
-    _iamin(ex, (size+strd-1)/strd, view_vX, strd, view_vI);
-  }
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vI = ex.template allocate<IndVal<ScalarT>>(1);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
+  ex.copy_to_host(gpu_vI, vI.data(), 1);
+
   IndVal<ScalarT> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.getVal(), res2.getVal());
   // check that the result index is the same
   ASSERT_EQ(res.getInd(), res2.getInd());
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<IndVal<ScalarT>>(gpu_vI);
 }

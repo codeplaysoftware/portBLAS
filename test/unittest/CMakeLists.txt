@@ -19,6 +19,9 @@ file(GLOB SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1_iamax_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1_iamin_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2_gemv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2_ger_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3_gemm_test.cpp
 )
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
@@ -27,6 +30,9 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
   target_link_libraries(${test_exec} PUBLIC libgtest libgmock)
+  if (USE_OPENBLAS)
+    target_link_libraries(${test_exec} PUBLIC ${OPENBLAS_LIBRARIES})
+  endif()
   add_sycl_to_target(${test_exec} ${CMAKE_CURRENT_BINARY_DIR} ${blas_test})
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")

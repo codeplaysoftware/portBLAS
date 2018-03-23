@@ -42,14 +42,16 @@ size_t get_size(ContainerT &c) {
   return get_size_struct<ContainerT>::get_size(c);
 }
 
-template <typename ScalarT, int dim = 1, typename Allocator = cl::sycl::default_allocator<ScalarT>>
+template <typename ScalarT, int dim = 1,
+          typename Allocator = cl::sycl::default_allocator<uint8_t>>
 using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
 
-template <typename ScalarT, int dim = 1, typename Allocator = cl::sycl::default_allocator<ScalarT>>
-using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator> >;
+template <typename ScalarT, int dim = 1,
+          typename Allocator = cl::sycl::default_allocator<ScalarT>>
+using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>>;
 
-template <typename ScalarT, int dim , typename Allocator >
-struct get_size_struct< bufferT<ScalarT, dim, Allocator> > {
+template <typename ScalarT, int dim, typename Allocator>
+struct get_size_struct<bufferT<ScalarT, dim, Allocator>> {
   static inline size_t get_size(bufferT<ScalarT> &b) { return b.get_size(); }
 };
 
@@ -57,7 +59,7 @@ struct get_size_struct< bufferT<ScalarT, dim, Allocator> > {
  * @brief Specialization of the vector view to operate with buffers.
  * Note that the buffer class cannot be accessed on the host.
  */
-template <typename ScalarT, int dim, typename Allocator >
+template <typename ScalarT, int dim, typename Allocator>
 struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   using ContainerT = bufferT<ScalarT, dim, Allocator>;
   ContainerT &data_;
@@ -180,8 +182,8 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   }
 
   /*! vector_view.
-    * See vector_view.
-    */
+   * See vector_view.
+   */
   vector_view<ScalarT, ContainerT> operator*(long strd) {
     return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
                                             this->strd_ * strd);
@@ -202,11 +204,11 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   }
 
   /*! eval.
-    * See vector_view::eval.
-    */
+   * See vector_view::eval.
+   */
   ScalarT &eval(size_t i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -226,9 +228,8 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
     ScalarT retVal;
     {
       auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
+          data_.template get_access<cl::sycl::access::mode::read_write>();
+      retVal = hostPtr[ind + disp_];
     }
 
     return retVal;
@@ -245,7 +246,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
    * @brief Allows printing information on the host.
    */
   ScalarT val(size_t i) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -265,9 +266,8 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
     ScalarT retVal;
     {
       auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
+          data_.template get_access<cl::sycl::access::mode::read_write>();
+      retVal = hostPtr[ind + disp_];
     }
 
     return retVal;
@@ -302,19 +302,19 @@ using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;
  *  original specialization.
  * @tparam ScalarT Value type of the SYCL buffer.
  */
-template <class ScalarT>
-struct matrix_view<ScalarT, bufferT<ScalarT>> {
-  using ContainerT = bufferT<ScalarT>;
+template <typename ScalarT, int dim, typename Allocator>
+struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
+  using ContainerT = bufferT<ScalarT, dim, Allocator>;
   // Information related to the data
   ContainerT &data_;
-  int accessDev_;     // row-major or column-major value for the device/language
+  int accessDev_;  // row-major or column-major value for the device/language.
   size_t size_data_;  // real size of the data
   // Information related to the operation
-  int accessOpr_;  // row-major or column-major
+  int accessOpr_;  // row-major or column-major.
   size_t sizeR_;   // number of rows
   size_t sizeC_;   // number of columns
   size_t sizeL_;   // size of the leading dimension
-  size_t disp_;    // displacementt od the first element
+  size_t disp_;    // displacementt from the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   using value_type = ScalarT;
 
@@ -429,6 +429,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    */
   size_t getSizeC() { return sizeC_; }
 
+  inline size_t getSizeL() { return sizeL_; }
+
   /*!
    * @brief See matrix_view.
    */
@@ -479,7 +481,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    * @brief See matrix_view.
    */
   ScalarT &eval(size_t k) {  // -> decltype(data_[i]) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
@@ -492,7 +494,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    * @brief See matrix_view.
    */
   ScalarT &eval(size_t i, size_t j) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor;
 
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -510,10 +512,11 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
 #endif  // __SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
+      // however for the host accessor it can be used as we did not use range
+      // accessor here
       auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
+          data_.template get_access<cl::sycl::access::mode::read_write>();
+      retVal = hostPtr[ind + disp_];
     }
 
     return retVal;
@@ -527,7 +530,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
    * @brief Used to print the values on the host.
    */
   ScalarT val(size_t i, size_t j) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
 
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -546,9 +549,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT>> {
     ScalarT retVal;
     {
       auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write,
-                                    cl::sycl::access::target::host_buffer>();
-      retVal = hostPtr[ind];
+          data_.template get_access<cl::sycl::access::mode::read_write>();
+      retVal = hostPtr[ind + disp_];
     }
 
     return retVal;
@@ -756,7 +758,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
 
   /**** EVALUATING ****/
   ScalarT &eval(size_t i) {
-    auto ind = disp_;
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -766,7 +768,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-      printf("(E) ind = %ld , size_data_ = %ld \n", ind, size_data_);
+      //    printf("(E) ind = %ld , size_data_ = %ld \n", ind, size_data_);
       // out of range access
       //      throw std::invalid_argument("Out of range access");
     }
@@ -886,23 +888,25 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         disp_(disp) {}
 
   /**** RETRIEVING DATA ****/
-  ContainerT &getData() { return data_; }
+  inline ContainerT &getData() { return data_; }
 
-  size_t getDataSize() { return size_data_; }
+  inline size_t getDataSize() { return size_data_; }
 
-  size_t getSize() { return sizeR_ * sizeC_; }
+  inline size_t getSize() { return sizeR_ * sizeC_; }
 
-  size_t getSizeR() { return sizeR_; }
+  inline size_t getSizeL() { return sizeL_; }
 
-  size_t getSizeC() { return sizeC_; }
+  inline size_t getSizeR() { return sizeR_; }
 
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  inline size_t getSizeC() { return sizeC_; }
 
-  int getAccessDev() { return accessDev_; }
+  inline int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
-  int getAccessOpr() { return accessOpr_; }
+  inline int getAccessDev() { return accessDev_; }
 
-  long getDisp() { return disp_; }
+  inline int getAccessOpr() { return accessOpr_; }
+
+  inline long getDisp() { return disp_; }
 
   /**** OPERATORS ****/
   matrix_view<ScalarT, ContainerT> operator+(size_t disp) {
@@ -926,7 +930,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   }
 
   /**** EVALUATING ***/
-  ScalarT &eval(size_t k) {
+  inline ScalarT &eval(size_t k) {
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
@@ -935,8 +939,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     return eval(i, j);
   }
 
-  ScalarT &eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
-    auto ind = disp_;
+  inline ScalarT &eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
+    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     int accessMode = !(accessDev_ ^ accessOpr_);
 
     if (accessMode) {
@@ -946,13 +950,14 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-      printf("(G) ind = %ld , size_data_ = %ld \n", ind, size_data_);
+      printf("(G) ind = %ld , size_data_ = %ld \n", static_cast<size_t>(ind),
+             static_cast<size_t>(size_data_));
     }
 #endif  //__SYCL_DEVICE_ONLY__
-    return data_[ind];
+    return data_[ind + disp_];
   }
 
-  ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
+  inline ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
 

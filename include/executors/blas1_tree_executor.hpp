@@ -204,15 +204,15 @@ struct Evaluate<AssignReduction<Operator, LHS, RHS>> {
   }
 };
 
-/*! Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+/*! Evaluate<vector_view<ScalarT, bufferT<ScalarT>>>
  * @brief See Evaluate.
  */
 template <typename ScalarT>
-struct Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
+struct Evaluate<vector_view<ScalarT, bufferT<ScalarT>>> {
   using value_type = ScalarT;
-  using cont_type = cl::sycl::buffer<ScalarT, 1>;
-  using input_type = vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
-  using nested_type = cl::sycl::buffer<ScalarT, 1>;
+  using cont_type = bufferT<ScalarT>;
+  using input_type = vector_view<ScalarT, bufferT<ScalarT>>;
+  using nested_type = bufferT<ScalarT>;
   using type = vector_view<
       ScalarT,
       cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
@@ -220,21 +220,23 @@ struct Evaluate<vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
 
   static type convert_to(input_type t, cl::sycl::handler &h) {
     auto nested =
-        cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                           cl::sycl::access::target::global_buffer>(t.data_, h);
+        t.getData()
+            .template get_access<cl::sycl::access::mode::read_write,
+                                 cl::sycl::access::target::global_buffer>(
+                h, cl::sycl::range<1>(t.getSize()), cl::sycl::id<1>(t.disp_));
     return type(nested, t.disp_, t.strd_, t.size_);
   }
 };
 
-/*! Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+/*! Evaluate<matrix_view<ScalarT, bufferT<ScalarT>>>
  * @brief See Evaluate.
  */
 template <typename ScalarT>
-struct Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
+struct Evaluate<matrix_view<ScalarT, bufferT<ScalarT>>> {
   using value_type = ScalarT;
-  using cont_type = cl::sycl::buffer<ScalarT, 1>;
-  using input_type = matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
-  using nested_type = cl::sycl::buffer<ScalarT, 1>;
+  using cont_type = bufferT<ScalarT>;
+  using input_type = matrix_view<ScalarT, bufferT<ScalarT>>;
+  using nested_type = bufferT<ScalarT>;
   using type = matrix_view<
       ScalarT,
       cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
@@ -242,21 +244,23 @@ struct Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>> {
 
   static type convert_to(input_type t, cl::sycl::handler &h) {
     auto nested =
-        cl::sycl::accessor<ScalarT, 1, cl::sycl::access::mode::read_write,
-                           cl::sycl::access::target::global_buffer>(t.data_, h);
+        t.getData()
+            .template get_access<cl::sycl::access::mode::read_write,
+                                 cl::sycl::access::target::global_buffer>(
+                h, cl::sycl::range<1>(t.getSize()), cl::sycl::id<1>(t.disp_));
     return type(nested, t.accessDev_, t.sizeR_, t.sizeC_, t.accessOpr_,
                 t.sizeL_, t.disp_);
   }
 };
 
-/*! Evaluate<matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>>
+/*! Evaluate<matrix_view<ScalarT, bufferT<ScalarT>>>
  * @brief See Evaluate.
  */
 template <typename ScalarT, typename ContainerT>
 struct Evaluate<vector_view<ScalarT, ContainerT>> {
   using value_type = ScalarT;
   using cont_type = ContainerT;
-  using input_type = vector_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = vector_view<ScalarT, bufferT<ScalarT>>;
   using nested_type = ContainerT;
   using type = vector_view<ScalarT, nested_type>;
 
@@ -270,7 +274,7 @@ template <typename ScalarT, typename ContainerT>
 struct Evaluate<matrix_view<ScalarT, ContainerT>> {
   using value_type = ScalarT;
   using cont_type = ContainerT;
-  using input_type = matrix_view<ScalarT, cl::sycl::buffer<ScalarT, 1>>;
+  using input_type = matrix_view<ScalarT, bufferT<ScalarT>>;
   using nested_type = ContainerT;
   using type = matrix_view<ScalarT, nested_type>;
 

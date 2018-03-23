@@ -23,12 +23,12 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, asum_test)
 REGISTER_STRD(::RANDOM_STRD, asum_test)
@@ -36,10 +36,10 @@ REGISTER_PREC(float, 1e-4, asum_test)
 REGISTER_PREC(double, 1e-6, asum_test)
 REGISTER_PREC(long double, 1e-7, asum_test)
 
-TYPED_TEST(BLAS1_Test, asum_test) {
+TYPED_TEST(BLAS_Test, asum_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test;
 
   size_t size = TestClass::template test_size<test>();
@@ -51,6 +51,7 @@ TYPED_TEST(BLAS1_Test, asum_test) {
 
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
+
   std::vector<ScalarT> vR(1, ScalarT(0));
   ScalarT res(0);
   for (size_t i = 0; i < size; i += strd) {
@@ -60,12 +61,14 @@ TYPED_TEST(BLAS1_Test, asum_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vR = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vR = TestClass::make_vview(buf_vR);
-    _asum(ex, (size+strd-1)/strd, view_vX, strd, view_vR);
-  }
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vR = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  ex.copy_to_device(vR.data(), gpu_vR, 1);
+  _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
+  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vR);
 }
