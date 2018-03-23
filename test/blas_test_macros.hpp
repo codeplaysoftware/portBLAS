@@ -33,7 +33,7 @@
 #endif /* ifdef VERBOSE */
 
 #ifndef SYCL_DEVICE
-#define SYCL_DEVICE_SELECTOR cl::sycl::host_selector
+#define SYCL_DEVICE_SELECTOR cl::sycl::default_selector
 #else
 #define PASTER(x, y) x##y
 #define EVALUATOR(x, y) PASTER(x, y)
