@@ -40,8 +40,8 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
 
-  size_t size = 25;  // TestClass::template test_size<test>();
-  size_t strd = 1;   // TestClass::template test_strd<test>();
+  size_t size = TestClass::template test_size<test>();
+  size_t strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
