@@ -44,9 +44,11 @@ namespace blas {
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           size_t ClSize, typename TileT, typename ExecutorType, typename T>
-void _select_gemm(Executor<ExecutorType>& ex, bool _TransA, bool _TransB,
-                  int _M, int _N, int _K, T _alpha, T* _A, int _lda, T* _B,
-                  int _ldb, T _beta, T* _C, int _ldc) {
+cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
+                             bool _TransB, int _M, int _N, int _K, T _alpha,
+                             T* _A, int _lda, T* _B, int _ldb, T _beta, T* _C,
+                             int _ldc) {
+  cl::sycl::event event;
   using RHS =
       matrix_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto a_container = ex.get_buffer(_A);
@@ -61,13 +63,13 @@ void _select_gemm(Executor<ExecutorType>& ex, bool _TransA, bool _TransB,
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
-      ex.gemm_executor(gemm);                                                  \
+      event = ex.gemm_executor(gemm);                                          \
     } else {                                                                   \
       auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>(          \
           buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
-      ex.gemm_executor(gemm);                                                  \
+      event = ex.gemm_executor(gemm);                                          \
     }                                                                          \
-    return;                                                                    \
+    return event;                                                              \
   }
 
   const bool NoTrans = false;
@@ -79,6 +81,7 @@ void _select_gemm(Executor<ExecutorType>& ex, bool _TransA, bool _TransB,
   ENABLE_GEMM_TRANSPOSE(Trans, Trans);
 
 #undef ENABLE_GEMM_TRANSPOSE
+  return event;
 }
 
 /*!
@@ -88,9 +91,9 @@ void _select_gemm(Executor<ExecutorType>& ex, bool _TransA, bool _TransB,
  * See netlib.org/blas for details.
  */
 template <typename ExecutorType, typename T>
-void _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB, int _M,
-           int _N, int _K, T _alpha, T* _A, int _lda, T* _B, int _ldb, T _beta,
-           T* _C, int _ldc) {
+cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
+                      int _M, int _N, int _K, T _alpha, T* _A, int _lda, T* _B,
+                      int _ldb, T _beta, T* _C, int _ldc) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
@@ -106,12 +109,12 @@ void _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB, int _M,
 
 #define BIND_DEFAULT
 
-#define TO_TPARAMS(_wg, _db, _tir, _tic, _twr, _twc)                        \
-  {                                                                         \
-    _select_gemm<_wg, _db, false, false, 64, Tile<_tir, _tic, _twr, _twc>>( \
-        ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C,  \
-        _ldc);                                                              \
-    return;                                                                 \
+#define TO_TPARAMS(_wg, _db, _tir, _tic, _twr, _twc)                       \
+  {                                                                        \
+    return _select_gemm<_wg, _db, false, false, 64,                        \
+                        Tile<_tir, _tic, _twr, _twc>>(                     \
+        ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, \
+        _ldc);                                                             \
   }
 
   if (ex.get_device_type() == Queue_Interface<SYCL>::device_type::INTELGPU) {

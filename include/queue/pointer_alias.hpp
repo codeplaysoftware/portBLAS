@@ -19,6 +19,9 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
+ *  The following file is taken fro  Codeplay's ComputeCpp SDK,
+ *  commit no: cc2d59c.
+ *
  *  pointer_alias.hpp
  *
  *  Description:
