@@ -69,11 +69,11 @@ class ReferenceGemmFactory {
  public:
   using value_type = T;
 
-  static const int version = 2;
-  static const int wg_size = WgSize;
-  static const bool trans_a = TransA;
-  static const bool trans_b = TransB;
-  static const int scratch_size = 0;
+  static constexpr int version = 2;
+  static constexpr int wg_size = WgSize;
+  static constexpr bool trans_a = TransA;
+  static constexpr bool trans_b = TransB;
+  static constexpr int scratch_size = 0;
   RHS0 _A;
   RHS0 _B;
   RHS1 _C;
@@ -211,12 +211,12 @@ inline bool do_check<false>(bool) {
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
           int TlRows = 1, int TlCols = 1>
 struct Tile {
-  static const int item_rows = ItemRows;
-  static const int item_cols = ItemCols;
-  static const int wg_rows = WgRows;
-  static const int wg_cols = WgCols;
-  static const int tl_rows = TlRows;
-  static const int tl_cols = TlCols;
+  static constexpr int item_rows = ItemRows;
+  static constexpr int item_cols = ItemCols;
+  static constexpr int wg_rows = WgRows;
+  static constexpr int wg_cols = WgCols;
+  static constexpr int tl_rows = TlRows;
+  static constexpr int tl_cols = TlCols;
 
   /*!
    * @brief Get tile type as human readable string.
@@ -269,35 +269,35 @@ class GemmFactory {
   using Scratch = cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                                      cl::sycl::access::target::local>;
 
-  static const int version = 19;
+  static constexpr int version = 19;
 
   // enable easier access to tile dimensions
-  static const int item_rows = tile_type::item_rows;
-  static const int item_cols = tile_type::item_cols;
-  static const int wg_rows = tile_type::wg_rows;
-  static const int wg_cols = tile_type::wg_cols;
-  static const int tl_rows = tile_type::tl_rows;
-  static const int tl_cols = tile_type::tl_cols;
+  static constexpr int item_rows = tile_type::item_rows;
+  static constexpr int item_cols = tile_type::item_cols;
+  static constexpr int wg_rows = tile_type::wg_rows;
+  static constexpr int wg_cols = tile_type::wg_cols;
+  static constexpr int tl_rows = tile_type::tl_rows;
+  static constexpr int tl_cols = tile_type::tl_cols;
 
-  static const bool double_buffer = DoubleBuffer;
-  static const bool nbc_a = NbcA;
-  static const bool nbc_b = NbcB;
-  static const bool trans_a = TransA;
-  static const bool trans_b = TransB;
+  static constexpr bool double_buffer = DoubleBuffer;
+  static constexpr bool nbc_a = NbcA;
+  static constexpr bool nbc_b = NbcB;
+  static constexpr bool trans_a = TransA;
+  static constexpr bool trans_b = TransB;
 
-  static const int cl_size = ClSize;
+  static constexpr int cl_size = ClSize;
   //! @brief Number of elements which fit within a cache line.
-  static const int cl_elems = cl_size / sizeof(T);
+  static constexpr int cl_elems = cl_size / sizeof(T);
   //! @brief Number of work items within a work group
-  static const int wg_size = wg_rows * wg_cols;
+  static constexpr int wg_size = wg_rows * wg_cols;
   //! @brief Number of rows within a work-group level tile
-  static const int block_rows = wg_rows * item_rows;
+  static constexpr int block_rows = wg_rows * item_rows;
   //! @brief Number of columns within a work-group level tile
-  static const int block_cols = wg_cols * item_cols;
+  static constexpr int block_cols = wg_cols * item_cols;
   //! @brief Number of rows within a top-level tile
-  static const int big_tile_rows = tl_rows * block_rows;
+  static constexpr int big_tile_rows = tl_rows * block_rows;
   //! @brief Number of columns within a top-level tile
-  static const int big_tile_cols = tl_cols * block_cols;
+  static constexpr int big_tile_cols = tl_cols * block_cols;
 
   static_assert(wg_size % cl_elems == 0,
                 "Work group size should be a multiple "
@@ -316,12 +316,12 @@ class GemmFactory {
                 " --- this is ensured iff: item_cols | wg_rows");
 
   //! @brief leading dimension of block of A in scratchpad
-  static const int ldsa = block_rows + nbc_a;
+  static constexpr int ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in scratchpad
-  static const int ldsb = cl_elems + nbc_b;
+  static constexpr int ldsb = cl_elems + nbc_b;
   //! @brief size (in elements) of scratchpad (local) memory required by each
   //         work group
-  static const int scratch_size =
+  static constexpr int scratch_size =
       (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);
 
   RHS1 _A;

@@ -48,8 +48,9 @@ namespace blas {
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _axpy(Executor<ExecutorType> &ex, IndexType _N, T _alpha, T *_vx,
-           IncrementType _incx, T *_vy, IncrementType _incy) {
+cl::sycl::event _axpy(Executor<ExecutorType> &ex, IndexType _N, T _alpha,
+                      T *_vx, IncrementType _incx, T *_vy,
+                      IncrementType _incy) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -66,10 +67,11 @@ void _axpy(Executor<ExecutorType> &ex, IndexType _N, T _alpha, T *_vx,
   auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
   auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
   auto assignOp = make_op<Assign>(vy, addOp);
-  ex.execute(assignOp);
+  auto event = ex.execute(assignOp);
 #ifdef VERBOSE
   vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -83,8 +85,8 @@ void _axpy(Executor<ExecutorType> &ex, IndexType _N, T _alpha, T *_vx,
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _copy(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-           IncrementType _incx, T *_vy, IncrementType _incy) {
+cl::sycl::event _copy(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_vy, IncrementType _incy) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -99,11 +101,12 @@ void _copy(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   vy.printH("VY");
 #endif  //  VERBOSE
   auto assignOp2 = make_op<Assign>(vy, vx);
-  ex.execute(assignOp2);
+  auto event = ex.execute(assignOp2);
 #ifdef VERBOSE
   vx.printH("VX");
   vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -117,8 +120,8 @@ void _copy(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
-          T *_vy, IncrementType _incy, T *_rs) {
+cl::sycl::event _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                     IncrementType _incx, T *_vy, IncrementType _incy, T *_rs) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -141,10 +144,11 @@ void _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
   auto nWG = 512;
   auto assignOp =
       make_addAssignReduction(rs, prdOp, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto event = ex.reduce(assignOp);
 #ifdef VERBOSE
   rs.printH("VR");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -180,8 +184,8 @@ T _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
  */
 template <typename ExecutorType, typename T, typename I, typename IndexType,
           typename IncrementType>
-void _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-            IncrementType _incx, I *_rs) {
+cl::sycl::event _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                       IncrementType _incx, I *_rs) {
   using InputVectorType =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   using TupleVectorType =
@@ -200,7 +204,8 @@ void _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   auto tupOp = TupleOp<InputVectorType>(vx);
   auto assignOp =
       make_maxIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto event = ex.reduce(assignOp);
+  return event;
 }
 
 /**
@@ -227,8 +232,8 @@ IndexType _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
  */
 template <typename ExecutorType, typename T, typename I, typename IndexType,
           typename IncrementType>
-void _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-            IncrementType _incx, I *_rs) {
+cl::sycl::event _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                       IncrementType _incx, I *_rs) {
   using InputVectorType =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   using TupleVectorType =
@@ -248,7 +253,8 @@ void _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   auto tupOp = TupleOp<InputVectorType>(vx);
   auto assignOp =
       make_minIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto event = ex.reduce(assignOp);
+  return event;
 }
 
 /**
@@ -279,8 +285,8 @@ IndexType _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _swap(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-           IncrementType _incx, T *_vy, IncrementType _incy) {
+cl::sycl::event _swap(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_vy, IncrementType _incy) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -294,17 +300,18 @@ void _swap(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   vy.printH("VY");
 #endif  //  VERBOSE
   auto swapOp = make_op<DobleAssign>(vy, vx, vx, vy);
-  ex.execute(swapOp);
+  auto event = ex.execute(swapOp);
 #ifdef VERBOSE
   vx.printH("VX");
   vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
 
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _scal(Executor<ExecutorType> &ex, IndexType _N, T _alpha, T *_vx,
-           IncrementType _incx) {
+cl::sycl::event _scal(Executor<ExecutorType> &ex, IndexType _N, T _alpha,
+                      T *_vx, IncrementType _incx) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -316,10 +323,11 @@ void _scal(Executor<ExecutorType> &ex, IndexType _N, T _alpha, T *_vx,
 #endif  //  VERBOSE
   auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
   auto assignOp = make_op<Assign>(vx, scalOp);
-  ex.execute(assignOp);
+  auto event = ex.execute(assignOp);
 #ifdef VERBOSE
   vx.printH("VX");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -349,8 +357,8 @@ T _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx) {
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-           IncrementType _incx, T *_rs) {
+cl::sycl::event _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_rs) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -370,7 +378,8 @@ void _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   ex.reduce(assignOp);
   auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
-  ex.execute(assignOpFinal);
+  auto event = ex.execute(assignOpFinal);
+  return event;
 }
 
 /**
@@ -381,8 +390,8 @@ void _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _asum(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
-           IncrementType _incx, T *_rs) {
+cl::sycl::event _asum(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_rs) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -401,10 +410,11 @@ void _asum(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
   auto nWG = 512;
   auto assignOp =
       make_addAbsAssignReduction(rs, vx, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+  auto event = ex.reduce(assignOp);
 #ifdef VERBOSE
   rs.printH("VR");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -473,8 +483,9 @@ void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
  */
 template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
-void _rot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
-          T *_vy, IncrementType _incy, T _cos, T _sin) {
+cl::sycl::event _rot(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                     IncrementType _incx, T *_vy, IncrementType _incy, T _cos,
+                     T _sin) {
   using VectorView =
       vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
   auto vx_container = ex.get_buffer(_vx);
@@ -495,11 +506,12 @@ void _rot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
   auto addOp12 = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
   auto addOp34 = make_op<BinaryOp, addOp2_struct>(scalOp3, scalOp4);
   auto dobleAssignView = make_op<DobleAssign>(vx, vy, addOp12, addOp34);
-  ex.execute(dobleAssignView);
+  auto event = ex.execute(dobleAssignView);
 #ifdef VERBOSE
   vx.printH("VX");
   vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
 
 // THIS ROUTINE IS UNVERIFIED AND HAS NOT BEEN TESTED
