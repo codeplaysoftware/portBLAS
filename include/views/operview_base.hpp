@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -394,11 +394,10 @@ struct matrix_view {
 
   /*! getSizeC.
    * @brief Return the number of columns.
-   * @bug This value should change depending on the access mode, but 
-   * is currently set to Rows. 
-   */ size_t getSizeC() {
-    return sizeC_;
-  }
+   * @bug This value should change depending on the access mode, but
+   * is currently set to Rows.
+   */
+  size_t getSizeC() { return sizeC_; }
 #if BLAS_EXPERIMENTAL
   // This implementations are currently not working
   size_t getSizeC() { return getAccess() ? sizeC_ : sizeR_; }
