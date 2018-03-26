@@ -112,10 +112,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   // for dot after _rot
   std::vector<ScalarT> vU(1);
   // for iamax/iamin
-  std::vector<IndVal<ScalarT>> vImax(
-      1, constant<IndVal<ScalarT>, const_val::imax>::value);
-  std::vector<IndVal<ScalarT>> vImin(
-      1, constant<IndVal<ScalarT>, const_val::imin>::value);
+  std::vector<IndexValueTuple<ScalarT>> vImax(
+      1, constant<IndexValueTuple<ScalarT>, const_val::imax>::value);
+  std::vector<IndexValueTuple<ScalarT>> vImin(
+      1, constant<IndexValueTuple<ScalarT>, const_val::imin>::value);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
@@ -126,8 +126,8 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   auto gpu_vS = ex.template allocate<ScalarT>(1);
   auto gpu_vT = ex.template allocate<ScalarT>(1);
   auto gpu_vU = ex.template allocate<ScalarT>(1);
-  auto gpu_vImax = ex.template allocate<IndVal<ScalarT>>(1);
-  auto gpu_vImin = ex.template allocate<IndVal<ScalarT>>(1);
+  auto gpu_vImax = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  auto gpu_vImin = ex.template allocate<IndexValueTuple<ScalarT>>(1);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
@@ -162,10 +162,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(asum, vR[0], prec_sample);
   EXPECT_NEAR(dot, vS[0], prec_sample);
   EXPECT_NEAR(nrmY, vT[0], prec_sample);
-  EXPECT_EQ(imax, vImax[0].getInd());
-  EXPECT_NEAR(max, vImax[0].getVal(), prec_sample);
-  EXPECT_EQ(imin, vImin[0].getInd());
-  EXPECT_NEAR(max, vImax[0].getVal(), prec_sample);
+  EXPECT_EQ(imax, vImax[0].get_index());
+  EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
+  EXPECT_EQ(imin, vImin[0].get_index());
+  EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
   ex.template deallocate<ScalarT>(gpu_vX);
@@ -174,6 +174,6 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   ex.template deallocate<ScalarT>(gpu_vS);
   ex.template deallocate<ScalarT>(gpu_vT);
   ex.template deallocate<ScalarT>(gpu_vU);
-  ex.template deallocate<IndVal<ScalarT>>(gpu_vImax);
-  ex.template deallocate<IndVal<ScalarT>>(gpu_vImin);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(gpu_vImax);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(gpu_vImin);
 }
