@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -45,7 +45,7 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   size_t size = TestClass::template test_size<test>();
-  size_t strd = TestClass::template test_strd<test>();
+  long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   std::vector<ScalarT> vX(size);
