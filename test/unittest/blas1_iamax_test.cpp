@@ -48,8 +48,8 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
   // create a vector which will hold the result
-  std::vector<IndVal<ScalarT>> vI(
-      1, constant<IndVal<ScalarT>, const_val::imax>::value);
+  std::vector<IndexValueTuple<ScalarT>> vI(
+      1, constant<IndexValueTuple<ScalarT>, const_val::imax>::value);
 
   ScalarT max = ScalarT(0);
   size_t imax = std::numeric_limits<size_t>::max();
@@ -60,21 +60,21 @@ TYPED_TEST(BLAS_Test, iamax_test) {
       imax = i;
     }
   }
-  IndVal<ScalarT> res(imax, max);
+  IndexValueTuple<ScalarT> res(imax, max);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vI = ex.template allocate<IndVal<ScalarT>>(1);
+  auto gpu_vI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   ex.copy_to_host(gpu_vI, vI.data(), 1);
-  IndVal<ScalarT> res2(vI[0]);
+  IndexValueTuple<ScalarT> res2(vI[0]);
   // check that the result value is the same
-  ASSERT_EQ(res.getVal(), res2.getVal());
+  ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
-  ASSERT_EQ(res.getInd(), res2.getInd());
+  ASSERT_EQ(res.get_index(), res2.get_index());
   ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<IndVal<ScalarT>>(gpu_vI);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(gpu_vI);
 }

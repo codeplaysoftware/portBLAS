@@ -251,7 +251,7 @@ struct BinaryOp {
  */
 template <typename RHS>
 struct TupleOp {
-  using value_type = IndVal<typename RHS::value_type>;
+  using value_type = IndexValueTuple<typename RHS::value_type>;
   RHS r;
 
   TupleOp(RHS &_r) : r(_r) {}
