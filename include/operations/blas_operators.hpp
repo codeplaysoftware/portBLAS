@@ -100,8 +100,8 @@ struct strip_asp {
     typedef ENTRY_TYPE type;                                       \
   };
 
-GENERATE_STRIP_ASP(IndVal<double>)
-GENERATE_STRIP_ASP(IndVal<float>)
+GENERATE_STRIP_ASP(IndexValueTuple<double>)
+GENERATE_STRIP_ASP(IndexValueTuple<float>)
 GENERATE_STRIP_ASP(double)
 GENERATE_STRIP_ASP(float)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
@@ -156,26 +156,28 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
                                 (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
     maxIndOp2_struct, const_val::imin,
-    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) <
+    (syclblas_abs::eval(
+         static_cast<typename strip_asp<L>::type>(l).get_value()) <
          syclblas_abs::eval(
-             static_cast<typename strip_asp<R>::type>(r).getVal()) ||
+             static_cast<typename strip_asp<R>::type>(r).get_value()) ||
      (syclblas_abs::eval(
-          static_cast<typename strip_asp<L>::type>(l).getVal()) ==
+          static_cast<typename strip_asp<L>::type>(l).get_value()) ==
           syclblas_abs::eval(
-              static_cast<typename strip_asp<R>::type>(r).getVal()) &&
-      l.getInd() > r.getInd()))
+              static_cast<typename strip_asp<R>::type>(r).get_value()) &&
+      l.get_index() > r.get_index()))
         ? static_cast<typename strip_asp<R>::type>(r)
         : static_cast<typename strip_asp<L>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
     minIndOp2_struct, const_val::imax,
-    (syclblas_abs::eval(static_cast<typename strip_asp<L>::type>(l).getVal()) >
+    (syclblas_abs::eval(
+         static_cast<typename strip_asp<L>::type>(l).get_value()) >
          syclblas_abs::eval(
-             static_cast<typename strip_asp<R>::type>(r).getVal()) ||
+             static_cast<typename strip_asp<R>::type>(r).get_value()) ||
      (syclblas_abs::eval(
-          static_cast<typename strip_asp<L>::type>(l).getVal()) ==
+          static_cast<typename strip_asp<L>::type>(l).get_value()) ==
           syclblas_abs::eval(
-              static_cast<typename strip_asp<R>::type>(r).getVal()) &&
-      l.getInd() > r.getInd()))
+              static_cast<typename strip_asp<R>::type>(r).get_value()) &&
+      l.get_index() > r.get_index()))
         ? static_cast<typename strip_asp<R>::type>(r)
         : static_cast<typename strip_asp<L>::type>(l))
 
