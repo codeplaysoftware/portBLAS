@@ -52,15 +52,15 @@ namespace blas {
 @brief Container for a scalar value and an index.
 */
 template <typename ScalarT>
-struct IndVal {
+struct IndexValueTuple {
   using value_type = ScalarT;
   size_t ind;
   value_type val;
 
-  constexpr explicit IndVal(size_t _ind, value_type _val)
+  constexpr explicit IndexValueTuple(size_t _ind, value_type _val)
       : ind(_ind), val(_val){};
-  size_t getInd() const { return ind; }
-  value_type getVal() const { return val; }
+  size_t get_index() const { return ind; }
+  value_type get_value() const { return val; }
 };
 
 /*!
@@ -152,12 +152,14 @@ SYCLBLAS_DEFINE_CONSTANT(
     std::complex<double>, const_val::min,
     (std::complex<double>(std::numeric_limits<double>::min(),
                           std::numeric_limits<double>::min())))
-SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imax,
-                         (IndVal<double>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<double>::max())))
-SYCLBLAS_DEFINE_CONSTANT(IndVal<double>, const_val::imin,
-                         (IndVal<double>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<double>::min())))
+SYCLBLAS_DEFINE_CONSTANT(
+    IndexValueTuple<double>, const_val::imax,
+    (IndexValueTuple<double>(std::numeric_limits<size_t>::max(),
+                             std::numeric_limits<double>::max())))
+SYCLBLAS_DEFINE_CONSTANT(
+    IndexValueTuple<double>, const_val::imin,
+    (IndexValueTuple<double>(std::numeric_limits<size_t>::max(),
+                             std::numeric_limits<double>::min())))
 }  // namespace blas
 
 /*!

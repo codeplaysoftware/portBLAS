@@ -212,12 +212,12 @@ template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
 IndexType _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
                  IncrementType _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  auto val_ptr1 = ex.template allocate<IndVal<T>>(1);
+  std::vector<IndexValueTuple<T>> rsT(1);
+  auto val_ptr1 = ex.template allocate<IndexValueTuple<T>>(1);
   _iamax(ex, _N, _vx, _incx, val_ptr1);
   ex.copy_to_host(val_ptr1, rsT.data(), 1);
-  ex.template deallocate<IndVal<T>>(val_ptr1);
-  return rsT[0].getInd();
+  ex.template deallocate<IndexValueTuple<T>>(val_ptr1);
+  return rsT[0].get_index();
 }
 
 /**
@@ -260,12 +260,12 @@ template <typename ExecutorType, typename T, typename IndexType,
           typename IncrementType>
 IndexType _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
                  IncrementType _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  auto val_ptr1 = ex.template allocate<IndVal<T>>(1);
+  std::vector<IndexValueTuple<T>> rsT(1);
+  auto val_ptr1 = ex.template allocate<IndexValueTuple<T>>(1);
   _iamin(ex, _N, _vx, _incx, val_ptr1);
   ex.copy_to_host(val_ptr1, rsT.data(), 1);
-  ex.template deallocate<IndVal<T>>(val_ptr1);
-  return rsT[0].getInd();
+  ex.template deallocate<IndexValueTuple<T>>(val_ptr1);
+  return rsT[0].get_index();
 }
 
 /**
