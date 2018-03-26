@@ -44,9 +44,10 @@ namespace blas {
  * @brief Implementation of the General Matrix Vector product.
  */
 template <typename ExecutorType, typename T>
-void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
-           T _alpha, T* _mA, size_t _lda, T* _vx, size_t _incx, T _beta, T* _vy,
-           size_t _incy) {
+cl::sycl::event _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M,
+                      size_t _N, T _alpha, T* _mA, size_t _lda, T* _vx,
+                      size_t _incx, T _beta, T* _vy, size_t _incy) {
+  cl::sycl::event event;
   _Trans = tolower(_Trans);
 
   if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c'))
@@ -83,9 +84,9 @@ void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
     auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
     auto assignOp = make_op<Assign>(my_vy, addOp);
 #ifdef BLAS_EXPERIMENTAL
-    ex.execute(assignOp, M);
+    event = ex.execute(assignOp, M);
 #else
-    ex.execute(assignOp);
+    event = ex.execute(assignOp);
 #endif                    // BLAS_EXPERIMENTAL
   } else if (OPT == 1) {  // Sure solution
 #ifdef VERBOSE
@@ -97,9 +98,9 @@ void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
     auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
     auto assignOp = make_op<Assign>(my_vy, addOp);
 #ifdef BLAS_EXPERIMENTAL
-    ex.execute(assignOp, M);
+    event = ex.execute(assignOp, M);
 #else
-    ex.execute(assignOp);
+    event = ex.execute(assignOp);
 #endif                    // BLAS_EXPERIMENTAL
   } else if (OPT == 2) {  // First improvement
 #ifdef VERBOSE
@@ -112,22 +113,19 @@ void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
     auto localSize = 32;  // NOT FINAL VALUE
     auto nWG = (M + localSize - 1) / localSize;
     auto gridSize = localSize * nThr * nWG;
-    ex.execute(prdRowMatVectOp, localSize * nThr, gridSize, localSize * nThr);
+    event = ex.execute(prdRowMatVectOp, localSize * nThr, gridSize,
+                       localSize * nThr);
   } else if (OPT == 3) {  // Unstable implementation
 #ifdef VERBOSE
     std::cout << "COLS_2" << std::endl;
 #endif  // VERBOSE
     auto nThr = 2;
-    // ContainerT valT1(nThr * M);
     auto val_ptr = ex.template allocate<T>(nThr * M);
     auto valT1 = ex.get_buffer(val_ptr);
     auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, my_vy);
     RHS mat1(valT1, M, nThr);
 #ifdef BLAS_EXPERIMENTAL
     auto val1 = RHS1(valT1, 0, 1, nThr * M);
-    //  auto mat1 = RHS(valT1, M, nThr); // has been created outside
-    //    auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, my_vy); it has
-    //    been created outside
     auto prdRowMatVectOp = make_prdRowMatVctMultShm(val1, my_mA, my_vx, nThr);
 #else
     auto prdRowMatVectOp = make_prdRowMatVctMultShm(mat1, my_mA, my_vx, nThr);
@@ -135,15 +133,16 @@ void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
     auto localSize = 32;  // NOT FINAL VALUE
     auto nWG = (M + localSize - 1) / localSize;
     auto gridSize = localSize * nThr * nWG;
-    ex.execute(prdRowMatVectOp, localSize, gridSize, (N + nThr - 1) / nThr);
+    event =
+        ex.execute(prdRowMatVectOp, localSize, gridSize, (N + nThr - 1) / nThr);
 #ifdef VERBOSE
     mat1.printH("MAT1");
 #endif  // VERBOSE
     auto addPrdOp = make_addPrdRowMatVctMultShm(my_vy, _alpha, mat1, scalOp1);
 #ifdef BLAS_EXPERIMENTAL
-    ex.execute(addPrdOp, M);
+    event = ex.execute(addPrdOp, M);
 #else
-    ex.execute(addPrdOp);
+    event = ex.execute(addPrdOp);
 #endif  // BLAS_EXPERIMENTAL
 #ifdef VERBOSE
     val1.printH("VAL1");
@@ -153,13 +152,15 @@ void _gemv(Executor<ExecutorType>& ex, char _Trans, size_t _M, size_t _N,
 #ifdef VERBOSE
   my_vy.printH("VY");
 #endif
+  return event;
 }
 
 /**** RANK 1 MODIFICATION ****/
 
 template <typename ExecutorType, typename T>
-void _ger(Executor<ExecutorType>& ex, size_t _M, size_t _N, T _alpha, T* _vx,
-          size_t _incx, T* _vy, size_t _incy, T* _mA, size_t _lda) {
+cl::sycl::event _ger(Executor<ExecutorType>& ex, size_t _M, size_t _N, T _alpha,
+                     T* _vx, size_t _incx, T* _vy, size_t _incy, T* _mA,
+                     size_t _lda) {
   int accessOpr = true;
   auto _mA_container = ex.get_buffer(_mA);
   using RHS =
@@ -182,10 +183,11 @@ void _ger(Executor<ExecutorType>& ex, size_t _M, size_t _N, T _alpha, T* _vx,
   auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, modifOp);
   auto addOp = make_op<BinaryOp, addOp2_struct>(my_mA, scalOp);
   auto assignOp = make_op<Assign>(my_mA, addOp);
-  ex.execute(assignOp);
+  auto event = ex.execute(assignOp);
 #ifdef VERBOSE
   my_vy.printH("VY");
 #endif
+  return event;
 }
 
 }  // namespace blas

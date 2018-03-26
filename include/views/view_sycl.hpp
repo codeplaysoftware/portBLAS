@@ -227,8 +227,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
 #endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write>();
+      auto hostPtr = data_.template get_access<cl::sycl::access::mode::read>();
       retVal = hostPtr[ind + disp_];
     }
 
@@ -265,8 +264,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
 #endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write>();
+      auto hostPtr = data_.template get_access<cl::sycl::access::mode::read>();
       retVal = hostPtr[ind + disp_];
     }
 
@@ -514,8 +512,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
     {
       // however for the host accessor it can be used as we did not use range
       // accessor here
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write>();
+      auto hostPtr = data_.template get_access<cl::sycl::access::mode::read>();
       retVal = hostPtr[ind + disp_];
     }
 
@@ -548,8 +545,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
 #endif  //__SYCL_DEVICE_ONLY__
     ScalarT retVal;
     {
-      auto hostPtr =
-          data_.template get_access<cl::sycl::access::mode::read_write>();
+      auto hostPtr = data_.template get_access<cl::sycl::access::mode::read>();
       retVal = hostPtr[ind + disp_];
     }
 
