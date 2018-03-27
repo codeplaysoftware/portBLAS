@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -35,7 +35,6 @@
 #include <operations/blas1_trees.hpp>
 
 namespace blas {
-
 /**
  * \brief AXPY constant times a vector plus a vector.
  *
@@ -47,24 +46,32 @@ namespace blas {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _axpy(Executor<ExecutorType> ex, int _N, T _alpha,
-           vector_view<T, ContainerT> _vx, int _incx,
-           vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _axpy(Executor<ExecutorType> &ex, IndexType _N, T _alpha,
+                      T *_vx, IncrementType _incx, T *_vy,
+                      IncrementType _incy) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vy_container = ex.get_buffer(_vy);
+  IndexType offset_y = ex.get_offset(_vy);
+  VectorView vy{vy_container, offset_y, _incy, _N};
 #ifdef VERBOSE
   std::cout << "alpha = " << _alpha << std::endl;
-  my_vx.printH("VX");
-  my_vy.printH("VY");
+  vx.printH("VX");
+  vy.printH("VY");
 #endif  //  VERBOSE
-  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, my_vx);
-  auto addOp = make_op<BinaryOp, addOp2_struct>(my_vy, scalOp);
-  auto assignOp = make_op<Assign>(my_vy, addOp);
-  ex.execute(assignOp);
+  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
+  auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
+  auto assignOp = make_op<Assign>(vy, addOp);
+  auto event = ex.execute(assignOp);
 #ifdef VERBOSE
-  my_vy.printH("VY");
+  vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -76,110 +83,30 @@ void _axpy(Executor<ExecutorType> ex, int _N, T _alpha,
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _copy(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-  auto assignOp2 = make_op<Assign>(my_vy, my_vx);
-  ex.execute(assignOp2);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-}
-
-/**
- * \brief SWAP interchanges two vectors
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vy  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _swap(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-  auto swapOp = make_op<DobleAssign>(my_vy, my_vx, my_vx, my_vy);
-  ex.execute(swapOp);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-}
-
-/**
- * \brief SCAL scales a vector by a constant
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _scal(Executor<ExecutorType> ex, int _N, T _alpha,
-           vector_view<T, ContainerT> _vx, int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  std::cout << "alpha = " << _alpha << std::endl;
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, my_vx);
-  auto assignOp = make_op<Assign>(my_vx, scalOp);
-  ex.execute(assignOp);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-}
-
-/**
- * \briefCompute the inner product of two vectors with extended
-    precision accumulation and result.
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vx  VectorView
- * @param _incy Increment in Y axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-       int _incx, vector_view<T, ContainerT> _vy, int _incy) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-#endif  //  VERBOSE
-  auto prdOp = make_op<BinaryOp, prdOp2_struct>(my_vx, my_vy);
-
-  auto localSize = 256;
-  auto nWG = 512;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAssignReduction(val1, prdOp, localSize, nWG * localSize);
-  ex.execute(assignOp1);
-
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _copy(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_vy, IncrementType _incy) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vy_container = ex.get_buffer(_vy);
+  IndexType offset_y = ex.get_offset(_vy);
+  VectorView vy{vy_container, offset_y, _incy, _N};
 
 #ifdef VERBOSE
-  std::cout << "val = " << val2.eval(0) << std::endl;
+  vx.printH("VX");
+  vy.printH("VY");
 #endif  //  VERBOSE
-  return val2.eval(0);
+  auto assignOp2 = make_op<Assign>(vy, vx);
+  auto event = ex.execute(assignOp2);
+#ifdef VERBOSE
+  vx.printH("VX");
+  vy.printH("VY");
+#endif  //  VERBOSE
+  return event;
 }
 
 /**
@@ -191,150 +118,63 @@ T _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _dot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-          int _incx, vector_view<T, ContainerT> _vy, int _incy,
-          vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                     IncrementType _incx, T *_vy, IncrementType _incy, T *_rs) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vy_container = ex.get_buffer(_vy);
+  IndexType offset_y = ex.get_offset(_vy);
+  VectorView vy{vy_container, offset_y, _incy, _N};
+  auto rs_container = ex.get_buffer(_rs);
+  IndexType offset_r = ex.get_offset(_rs);
+  VectorView rs{rs_container, offset_r, 1, 1};
 #ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
-  my_rs.printH("VR");
+  vx.printH("VX");
+  vy.printH("VY");
+  rs.printH("VR");
 #endif  //  VERBOSE
-  auto prdOp = make_op<BinaryOp, prdOp2_struct>(my_vx, my_vy);
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignOp1 =
-      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-#ifdef VERBOSE
-  my_rs.printH("VR");
-#endif  //  VERBOSE
-}
-
-/**
- * \brief NRM2 Returns the euclidian norm of a vector
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-        int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-  auto prdOp = make_op<UnaryOp, prdOp1_struct>(my_vx);
-
-  auto localSize = 256;
-  auto nWG = 512;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAssignReduction(val1, prdOp, localSize, localSize * nWG);
-  ex.execute(assignOp1);
-
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
-#ifdef VERBOSE
-  std::cout << "val = " << std::sqrt(val2.eval(0)) << std::endl;
-#endif  //  VERBOSE
-  return std::sqrt(val2.eval(0));
-}
-
-/**
- * \brief NRM2 Returns the euclidian norm of a vector
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _nrm2(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_rs.printH("VR");
-#endif  //  VERBOSE
-
-  auto prdOp = make_op<UnaryOp, prdOp1_struct>(my_vx);
-  auto localSize = 256;
-  auto nWG = 512;
-  auto assignOp1 =
-      make_addAssignReduction(my_rs, prdOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(my_rs);
-  auto assignOp2 = make_op<Assign>(my_rs, sqrtOp);
-  ex.execute(assignOp2);
-#ifdef VERBOSE
-  my_rs.printH("VR");
-#endif  //  VERBOSE
-}
-
-/**
- * \brief ASUM Takes the sum of the absolute values
- *
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-T _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-        int _incx) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-#endif  //  VERBOSE
-
-  auto localSize = 256;
-  auto nWG = 128;
-  ContainerT valT1(nWG);
-  auto val1 = vector_view<T, ContainerT>(valT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_addAbsAssignReduction(val1, my_vx, localSize, nWG * localSize);
-  ex.execute(assignOp1);
-
-  ContainerT valT2(1);
-  auto val2 = vector_view<T, ContainerT>(valT2, 0, 1, 1);
-  auto assignOp2 = make_addAbsAssignReduction(val2, val1, localSize, nWG);
-  ex.execute(assignOp2);
-
-#ifdef VERBOSE
-  std::cout << "val = " << val2.eval(0) << std::endl;
-#endif  //  VERBOSE
-  return val2.eval(0);
-}
-
-/**
- * \brief ASUM Takes the sum of the absolute values
- * @param Executor<ExecutorType> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-           int _incx, vector_view<T, ContainerT> _rs) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_rs = vector_view<T, ContainerT>(_rs, _rs.getDisp(), 1, 1);
-#ifdef VERBOSE
-  my_vx.printH("VX");
-  my_rs.printH("VR");
-#endif  //  VERBOSE
+  auto prdOp = make_op<BinaryOp, prdOp2_struct>(vx, vy);
+  // TODO: (Mehdi) read them from the device
   auto localSize = 256;
   auto nWG = 512;
   auto assignOp =
-      make_addAbsAssignReduction(my_rs, my_vx, localSize, localSize * nWG);
-  ex.reduce(assignOp);
+      make_addAssignReduction(rs, prdOp, localSize, localSize * nWG);
+  auto event = ex.reduce(assignOp);
 #ifdef VERBOSE
-  my_rs.printH("VR");
+  rs.printH("VR");
 #endif  //  VERBOSE
+  return event;
+}
+
+/**
+ * \brief Compute the inner product of two vectors with extended
+    precision accumulation and result.
+ *
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vx  VectorView
+ * @param _incy Increment in Y axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+T _dot(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx,
+       T *_vy, IncrementType _incy) {
+  auto val_ptr = ex.template allocate<T>(1);
+  auto res = std::vector<T>(1);
+  _dot(ex, _N, _vx, _incx, _vy, _incy, val_ptr);
+  ex.copy_to_host(val_ptr, res.data(), 1);
+  ex.template deallocate<T>(val_ptr);
+
+#ifdef VERBOSE
+  std::cout << "val = " << res << std::endl;
+#endif  //  VERBOSE
+  return res[0];
 }
 
 /**
@@ -342,30 +182,30 @@ void _asum(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-            int _incx, vector_view<I, ContainerI> _rs) {
-  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
-  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
+template <typename ExecutorType, typename T, typename I, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                       IncrementType _incx, I *_rs) {
+  using InputVectorType =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  using TupleVectorType =
+      vector_view<I, typename Executor<ExecutorType>::template ContainerT<I>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  InputVectorType vx{vx_container, offset_x, _incx, _N};
+  auto rs_container = ex.get_buffer(_rs);
+  IndexType offset_r = ex.get_offset(_rs);
+  TupleVectorType rs{rs_container, offset_r, 1, 1};
 #ifdef VERBOSE
-  my_vx.printH("VX");
+  vx.printH("VX");
 #endif  //  VERBOSE
+  // TODO: (Mehdi) take this value from device
   size_t localSize = 256, nWG = 512;
-  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG,
-                               IndVal<T>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<T>::min()));
-  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
-  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_maxIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto assignOp2 = make_maxIndAssignReduction(my_rs, val1, localSize, nWG);
-  ex.reduce(assignOp2);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
+  auto tupOp = TupleOp<InputVectorType>(vx);
+  auto assignOp =
+      make_maxIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
+  auto event = ex.reduce(assignOp);
+  return event;
 }
 
 /**
@@ -373,14 +213,16 @@ void _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
-  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
-  _iamax(ex, _N, _vx, _incx, rs);
-  return rs.eval(0).getInd();
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+IndexType _iamax(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                 IncrementType _incx) {
+  std::vector<IndexValueTuple<T>> rsT(1);
+  auto val_ptr1 = ex.template allocate<IndexValueTuple<T>>(1);
+  _iamax(ex, _N, _vx, _incx, val_ptr1);
+  ex.copy_to_host(val_ptr1, rsT.data(), 1);
+  ex.template deallocate<IndexValueTuple<T>>(val_ptr1);
+  return rsT[0].get_index();
 }
 
 /**
@@ -388,30 +230,31 @@ size_t _iamax(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT, typename I,
-          typename ContainerI>
-void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-            int _incx, vector_view<I, ContainerI> _rs) {
-  vector_view<T, ContainerT> my_vx(_vx, _vx.getDisp(), _incx, _N);
-  vector_view<I, ContainerI> my_rs(_rs, _rs.getDisp(), 1, 1);
+template <typename ExecutorType, typename T, typename I, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                       IncrementType _incx, I *_rs) {
+  using InputVectorType =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  using TupleVectorType =
+      vector_view<I, typename Executor<ExecutorType>::template ContainerT<I>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  InputVectorType vx{vx_container, offset_x, _incx, _N};
+  auto rs_container = ex.get_buffer(_rs);
+  IndexType offset_r = ex.get_offset(_rs);
+  TupleVectorType rs{rs_container, offset_r, 1, 1};
+
 #ifdef VERBOSE
-  my_vx.printH("VX");
+  vx.printH("VX");
 #endif  //  VERBOSE
+  // TODO: (Mehdi) read them from the device
   size_t localSize = 256, nWG = 512;
-  auto tupOp = TupleOp<vector_view<T, ContainerT>>(my_vx);
-  std::vector<IndVal<T>> valT1(nWG,
-                               IndVal<T>(std::numeric_limits<size_t>::max(),
-                                         std::numeric_limits<T>::max()));
-  cl::sycl::buffer<IndVal<T>, 1> bvalT1(valT1.data(), cl::sycl::range<1>{nWG});
-  BufferVectorView<IndVal<T>> val1(bvalT1, 0, 1, nWG);
-  auto assignOp1 =
-      make_minIndAssignReduction(val1, tupOp, localSize, localSize * nWG);
-  ex.reduce(assignOp1);
-  auto assignOp2 = make_minIndAssignReduction(my_rs, val1, localSize, nWG);
-  ex.reduce(assignOp2);
-#ifdef VERBOSE
-  std::cout << "ind = " << val1.eval(0).getInd() << std::endl;
-#endif  //  VERBOSE
+  auto tupOp = TupleOp<InputVectorType>(vx);
+  auto assignOp =
+      make_minIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
+  auto event = ex.reduce(assignOp);
+  return event;
 }
 
 /**
@@ -419,14 +262,181 @@ void _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-size_t _iamin(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-              int _incx) {
-  std::vector<IndVal<T>> rsT(1);
-  cl::sycl::buffer<IndVal<T>, 1> brsT(rsT.data(), cl::sycl::range<1>{1});
-  BufferVectorView<IndVal<T>> rs(brsT, 0, 1, 1);
-  _iamin(ex, _N, _vx, _incx, rs);
-  return rs.eval(0).getInd();
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+IndexType _iamin(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                 IncrementType _incx) {
+  std::vector<IndexValueTuple<T>> rsT(1);
+  auto val_ptr1 = ex.template allocate<IndexValueTuple<T>>(1);
+  _iamin(ex, _N, _vx, _incx, val_ptr1);
+  ex.copy_to_host(val_ptr1, rsT.data(), 1);
+  ex.template deallocate<IndexValueTuple<T>>(val_ptr1);
+  return rsT[0].get_index();
+}
+
+/**
+ * \brief SWAP interchanges two vectors
+ *
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vy  VectorView
+ * @param _incy Increment in Y axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _swap(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_vy, IncrementType _incy) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vy_container = ex.get_buffer(_vy);
+  IndexType offset_y = ex.get_offset(_vy);
+  VectorView vy{vy_container, offset_y, _incy, _N};
+#ifdef VERBOSE
+  vx.printH("VX");
+  vy.printH("VY");
+#endif  //  VERBOSE
+  auto swapOp = make_op<DobleAssign>(vy, vx, vx, vy);
+  auto event = ex.execute(swapOp);
+#ifdef VERBOSE
+  vx.printH("VX");
+  vy.printH("VY");
+#endif  //  VERBOSE
+  return event;
+}
+
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _scal(Executor<ExecutorType> &ex, IndexType _N, T _alpha,
+                      T *_vx, IncrementType _incx) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+#ifdef VERBOSE
+  std::cout << "alpha = " << _alpha << std::endl;
+  vx.printH("VX");
+#endif  //  VERBOSE
+  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
+  auto assignOp = make_op<Assign>(vx, scalOp);
+  auto event = ex.execute(assignOp);
+#ifdef VERBOSE
+  vx.printH("VX");
+#endif  //  VERBOSE
+  return event;
+}
+
+/**
+ * \brief NRM2 Returns the euclidian norm of a vector
+ *
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+T _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx) {
+  std::vector<T> rs(1, T(0));
+  auto _rs = ex.template allocate<T>(1);
+  auto rs_container = ex.get_buffer(_rs);
+  _nrm2(ex, _N, _vx, _incx, _rs);
+  ex.copy_to_host(_rs, rs.data(), 1);
+  ex.template deallocate<T>(_rs);
+  return rs[0];
+}
+
+/**
+ * \brief NRM2 Returns the euclidian norm of a vector
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _nrm2(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_rs) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vr_container = ex.get_buffer(_rs);
+  VectorView rs{vr_container, 0, 1, 1};
+#ifdef VERBOSE
+  vx.printH("VX");
+#endif  //  VERBOSE
+  auto prdOp = make_op<UnaryOp, prdOp1_struct>(vx);
+  // TODO: (Mehdi) read them from the deivce
+  auto localSize = 256;
+  auto nWG = 512;
+  auto assignOp =
+      make_addAssignReduction(rs, prdOp, localSize, localSize * nWG);
+  ex.reduce(assignOp);
+  auto sqrtOp = make_op<UnaryOp, sqtOp1_struct>(rs);
+  auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
+  auto event = ex.execute(assignOpFinal);
+  return event;
+}
+
+/**
+ * \brief ASUM Takes the sum of the absolute values
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _asum(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                      IncrementType _incx, T *_rs) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto rs_container = ex.get_buffer(_rs);
+  IndexType offset_r = ex.get_offset(_rs);
+  VectorView rs{rs_container, offset_r, 1, 1};
+
+#ifdef VERBOSE
+  vx.printH("VX");
+  rs.printH("VR");
+#endif  //  VERBOSE
+        // TODO: (Mehdi) read them from the device
+  auto localSize = 256;
+  auto nWG = 512;
+  auto assignOp =
+      make_addAbsAssignReduction(rs, vx, localSize, localSize * nWG);
+  auto event = ex.reduce(assignOp);
+#ifdef VERBOSE
+  rs.printH("VR");
+#endif  //  VERBOSE
+  return event;
+}
+
+/**
+ * \brief ASUM Takes the sum of the absolute values
+ *
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ */
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+T _asum(Executor<ExecutorType> &ex, IndexType _N, T *_vx, IncrementType _incx) {
+  std::vector<T> vR(1, T(0));
+  auto gpu_vR = ex.template allocate<T>(1);
+  ex.copy_to_device(vR.data(), gpu_vR, 1);
+  _asum(ex, _N, _vx, _incx, gpu_vR);
+  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.template deallocate<T>(gpu_vR);
+#ifdef VERBOSE
+  std::cout << "val = " << vR[0] << std::endl;
+#endif  //  VERBOSE
+  return vR[0];
 }
 
 /**
@@ -471,30 +481,170 @@ void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
  * @brief Consturcts given plane rotation
  * Not implemented.
  */
-template <typename ExecutorType, typename T, typename ContainerT>
-void _rot(Executor<ExecutorType> ex, int _N, vector_view<T, ContainerT> _vx,
-          int _incx, vector_view<T, ContainerT> _vy, int _incy, T _cos,
-          T _sin) {
-  auto my_vx = vector_view<T, ContainerT>(_vx, _vx.getDisp(), _incx, _N);
-  auto my_vy = vector_view<T, ContainerT>(_vy, _vy.getDisp(), _incy, _N);
+template <typename ExecutorType, typename T, typename IndexType,
+          typename IncrementType>
+cl::sycl::event _rot(Executor<ExecutorType> &ex, IndexType _N, T *_vx,
+                     IncrementType _incx, T *_vy, IncrementType _incy, T _cos,
+                     T _sin) {
+  using VectorView =
+      vector_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto vx_container = ex.get_buffer(_vx);
+  IndexType offset_x = ex.get_offset(_vx);
+  VectorView vx{vx_container, offset_x, _incx, _N};
+  auto vy_container = ex.get_buffer(_vy);
+  IndexType offset_y = ex.get_offset(_vy);
+  VectorView vy{vy_container, offset_y, _incy, _N};
 #ifdef VERBOSE
   std::cout << "cos = " << _cos << " , sin = " << _sin << std::endl;
-  my_vx.printH("VX");
-  my_vy.printH("VY");
+  vx.printH("VX");
+  vy.printH("VY");
 #endif  //  VERBOSE
-  auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_cos, my_vx);
-  auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_sin, my_vy);
-  auto scalOp3 = make_op<ScalarOp, prdOp2_struct>(-_sin, my_vx);
-  auto scalOp4 = make_op<ScalarOp, prdOp2_struct>(_cos, my_vy);
+  auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_cos, vx);
+  auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_sin, vy);
+  auto scalOp3 = make_op<ScalarOp, prdOp2_struct>(-_sin, vx);
+  auto scalOp4 = make_op<ScalarOp, prdOp2_struct>(_cos, vy);
   auto addOp12 = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
   auto addOp34 = make_op<BinaryOp, addOp2_struct>(scalOp3, scalOp4);
-  auto dobleAssignView = make_op<DobleAssign>(my_vx, my_vy, addOp12, addOp34);
-  ex.execute(dobleAssignView);
+  auto dobleAssignView = make_op<DobleAssign>(vx, vy, addOp12, addOp34);
+  auto event = ex.execute(dobleAssignView);
 #ifdef VERBOSE
-  my_vx.printH("VX");
-  my_vy.printH("VY");
+  vx.printH("VX");
+  vy.printH("VY");
 #endif  //  VERBOSE
+  return event;
 }
+
+// THIS ROUTINE IS UNVERIFIED AND HAS NOT BEEN TESTED
+#ifdef BLAS_EXPERIMENTAL
+template <typename T>
+void _rotmg(T &_d1, T &_d2, T &_x1, T &_y1, VectorSYCL<T> _param) {
+  T flag, h11, h12, h21, h22;
+  T p1, p2, q1, q2, temp, su;
+  T gam = 4096, gamsq = 16777216, rgamsq = 5.9604645e-8;
+
+  if (_d1 < constant<T, const_val::one>::value) {
+    // GO ZERO-H-D-AND-_X1..
+    flag = constant<T, const_val::m_one>::value;
+    h11 = constant<T, const_val::zero>::value;
+    h12 = constant<T, const_val::zero>::value;
+    h21 = constant<T, const_val::zero>::value;
+    h22 = constant<T, const_val::zero>::value;
+    _d1 = constant<T, const_val::zero>::value;
+    _d2 = constant<T, const_val::zero>::value;
+    _x1 = constant<T, const_val::zero>::value;
+  } else {
+    // CASE-SD1-NONNEGATIVE
+    p2 = _d2 * _y1;
+    if (p2 == constant<T, const_val::zero>::value) {
+      flag = constant<T, const_val::m_two>::value;
+      _param.eval(0) = flag;
+      return;
+    }
+    // REGULAR-CASE..
+    p1 = _d1 * _x1;
+    q2 = p2 * _y1;
+    q1 = p1 * _x1;
+    if (std::abs(q1) > std::abs(q2)) {
+      h21 = -_y1 / _x1;
+      h12 = p2 / p1;
+      su = constant<T, const_val::one>::value - (h12 * h21);
+      if (su > constant<T, const_val::zero>::value) {
+        flag = constant<T, const_val::zero>::value;
+        _d1 = _d1 / su;
+        _d2 = _d2 / su;
+        _x1 = _x1 / su;
+      }
+    } else {
+      if (q2 < constant<T, const_val::zero>::value) {
+        // GO zero-H-D-AND-_X1..
+        flag = constant<T, const_val::m_one>::value;
+        h11 = constant<T, const_val::zero>::value;
+        h12 = constant<T, const_val::zero>::value;
+        h21 = constant<T, const_val::zero>::value;
+        h22 = constant<T, const_val::zero>::value;
+        _d1 = constant<T, const_val::zero>::value;
+        _d2 = constant<T, const_val::zero>::value;
+        _x1 = constant<T, const_val::zero>::value;
+
+      } else {
+        flag = constant<T, const_val::one>::value;
+        h11 = p1 / p2;
+        h22 = _x1 / _y1;
+        su = constant<T, const_val::one>::value + (h11 * h22);
+        temp = _d2 / su;
+        _d2 = _d1 / su;
+        _d1 = temp;
+        _x1 = _y1 * su;
+        h12 = constant<T, const_val::zero>::value;
+        h21 = constant<T, const_val::zero>::value;
+        _d1 = constant<T, const_val::zero>::value;
+        _d2 = constant<T, const_val::zero>::value;
+        _x1 = constant<T, const_val::zero>::value;
+      }
+    }
+    // PROCEDURE..SCALE-CHECK
+    if (_d1 != constant<T, const_val::zero>::value) {
+      while ((_d1 < rgamsq) || (_d1 >= gamsq)) {
+        if (flag == constant<T, const_val::zero>::value) {
+          h11 = constant<T, const_val::one>::value;
+          h22 = constant<T, const_val::one>::value;
+          flag = constant<T, const_val::m_one>::value;
+        } else {
+          h21 = constant<T, const_val::m_one>::value;
+          h12 = constant<T, const_val::one>::value;
+          flag = constant<T, const_val::m_one>::value;
+        }
+        if (_d1 <= rgamsq) {
+          _d1 *= gam * gam;
+          _x1 /= gam;
+          h11 /= gam;
+          h12 /= gam;
+        } else {
+          _d1 /= gam * gam;
+          _x1 *= gam;
+          h11 *= gam;
+          h12 *= gam;
+        }
+      }
+    }
+    if (_d2 != constant<T, const_val::zero>::value) {
+      while ((_d2 < rgamsq) || (std::abs(_d2) >= gamsq)) {
+        if (flag == constant<T, const_val::zero>::value) {
+          h11 = constant<T, const_val::one>::value;
+          h22 = constant<T, const_val::one>::value;
+          flag = constant<T, const_val::m_one>::value;
+        } else {
+          h21 = constant<T, const_val::m_one>::value;
+          h12 = constant<T, const_val::one>::value;
+          flag = constant<T, const_val::m_one>::value;
+        }
+        if (std::abs(_d2) <= rgamsq) {
+          _d2 *= gam * gam;
+          h21 /= gam;
+          h22 /= gam;
+        } else {
+          _d2 /= gam * gam;
+          h21 *= gam;
+          h22 *= gam;
+        }
+      }
+    }
+  }
+  if (flag < constant<T, const_val::zero>::value) {
+    _param.eval(1) = h11;
+    _param.eval(2) = h21;
+    _param.eval(3) = h12;
+    _param.eval(4) = h22;
+  } else if (flag == constant<T, const_val::zero>::value) {
+    _param.eval(2) = h21;
+    _param.eval(3) = h12;
+  } else {
+    _param.eval(1) = h11;
+    _param.eval(4) = h22;
+  }
+  _param.eval(0) = flag;
+}
+#endif  // BLAS_EXPERIMENTAL
 
 }  // namespace blas
 

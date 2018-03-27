@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -160,7 +160,7 @@ struct Evaluate<ModifRank1<RHS1, RHS2, RHS3>> {
   static type convert_to(input_type v, cl::sycl::handler &h) {
     auto rhs1 = Evaluate<RHS1>::convert_to(v.r1, h);
     auto rhs2 = Evaluate<RHS2>::convert_to(v.r2, h);
-    auto rhs3 = Evaluate<RHS2>::convert_to(v.r3, h);
+    auto rhs3 = Evaluate<RHS3>::convert_to(v.r3, h);
     return type(rhs1, rhs2, rhs3);
   }
 };

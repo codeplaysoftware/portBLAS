@@ -19,18 +19,44 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename main.cpp
+ *  The following file is taken fro  Codeplay's ComputeCpp SDK,
+ *  commit no: cc2d59c.
+ *
+ *  pointer_alias.hpp
+ *
+ *  Description:
+ *    Alias functions that obtain a pointer of the given type from an
+ *    accessor.
+ *
+ * Authors:
+ *
+ *    Ruyman Reyes   Codeplay Software Ltd.
+ *    Mehdi Goli     Codeplay Software Ltd.
  *
  **************************************************************************/
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <CL/sycl.hpp>
 
-#include "blas_test_macros.hpp"
+#ifndef CL_SYCL_POINTER_ALIAS
+#define CL_SYCL_POINTER_ALIAS
 
-int main(int argc, char *argv[]) {
-  int seed = 12345;
-  srand(seed);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+namespace cl {
+namespace sycl {
+namespace codeplay {
+
+template <typename T, typename AccessorT>
+typename cl::sycl::global_ptr<T>::pointer_t get_device_ptr_as(AccessorT& acc) {
+  return reinterpret_cast<typename cl::sycl::global_ptr<T>::pointer_t>(
+      acc.get_pointer().get());
 }
+
+template <typename T, typename AccessorT>
+T* get_host_ptr_as(AccessorT& acc) {
+  return reinterpret_cast<T*>(acc.get_pointer());
+}
+
+}  // namespace codeplay
+}  // namespace sycl
+}  // namespace cl
+
+#endif  // CL_SYCL_POINTER_ALIAS

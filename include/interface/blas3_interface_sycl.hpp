@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -23,91 +23,112 @@
  *
  **************************************************************************/
 
-#ifndef BLAS3_INTERFACE_SYCL_HPP
-#define BLAS3_INTERFACE_SYCL_HPP
+#ifndef BLAS3_INTERFACE_SYCL_GEMM_HPP
+#define BLAS3_INTERFACE_SYCL_GEMM_HPP
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-// #define VERBOSE 1
 
 #include <executors/executor_sycl.hpp>
 #include <operations/blas3_trees.hpp>
 
 namespace blas {
 
-// dgemm (TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-
-template <typename ExecutorType, typename T, typename ContainerT>
-void _gemm(Executor<ExecutorType> ex, std::string _TransA, std::string _TransB,
-           size_t _M, size_t _N, size_t _K, T _alpha,
-           matrix_view<T, ContainerT> _mA, size_t _lda,
-           matrix_view<T, ContainerT> _mB, size_t _ldb, T _beta,
-           matrix_view<T, ContainerT> _mC, size_t _ldc) {
-  if ((_TransA[0] != 'n') && (_TransA[0] != 't') && (_TransA[0] != 'c') &&
-      (_TransA[0] != 'N') && (_TransA[0] != 'T') && (_TransA[0] != 'C') &&
-      (_TransB[0] != 'n') && (_TransB[0] != 't') && (_TransB[0] != 'c') &&
-      (_TransB[0] != 'N') && (_TransB[0] != 'T') && (_TransB[0] != 'C'))
-    std::cout << "Erroneous parameter" << std::endl;
-  bool accessOprA = ((_TransA[0] == 'n') || (_TransA[0] == 'N'));
-  bool accessOprB = ((_TransB[0] == 'n') || (_TransB[0] == 'N'));
-#ifdef BLAS_EXPERIMENTAL
-  printf("M = %ld , K = %ld , N = %ld\n", _M, _K, _N);
-  size_t M = (accessOpr ? _M : _N);
-  size_t N = (accessOpr ? _N : _M);
-#endif  // BLAS_EXPERIMENTAL
-  size_t M = _M;
-  size_t K = _K;
-  size_t N = _N;
-  auto my_mA = matrix_view<T, ContainerT>(_mA, (accessOprA) ? M : K,
-                                          (accessOprA) ? K : M, accessOprA,
-                                          _lda, _mA.getDisp());
-  auto my_mB = matrix_view<T, ContainerT>(_mB, (accessOprB) ? K : N,
-                                          (accessOprB) ? N : K, accessOprB,
-                                          _ldb, _mB.getDisp());
-#ifdef BLAS_EXPERIMENTAL
-  auto my_mB =
-      matrix_view<T, ContainerT>(_mB, _K, _N, accessOprB, _ldb, _mB.getDisp());
-#endif  // BLAS_EXPERIMENTAL
-  auto my_mC =
-      matrix_view<T, ContainerT>(_mC, _M, _N, true, _ldc, _mC.getDisp());
-#ifdef VERBOSE
-  std::cout << "alpha = " << _alpha << " , beta = " << _beta << std::endl;
-  my_mA.printH("MA");
-  my_mB.printH("MB");
-  my_mC.printH("MC");
-#endif  // VERBOSE
-  if (my_mA.getAccess() && my_mB.getAccess()) {
-    printf("A*B NO IMPLEMENTED\n");
-  } else if (my_mA.getAccess() && !(my_mB.getAccess())) {
-    printf("A*B^t NO IMPLEMENTED\n");
-  } else if (!(my_mA.getAccess()) && my_mB.getAccess()) {
-    // EFFICIENT IMPLEMENTATION FOR THE A^tB PRODUCT
-    // IN WHICH, A IS ACCESSED BY ROWS AND B BY COLUMNS.
-    // THUS, ALL THE THREADS COMPUTE A DOT PRODUCT MAKING
-    // A COALESCENT ACCESS TO THE DATA
-    auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, my_mC);
-#ifdef BLAS_EXPERIMENTAL
-    auto assignOp = make_op<Assign>(my_mC, scalOp1);
-    ex.execute(assignOp);
-#endif  // BLAS_EXPERIMENTAL
-    auto prdRowMatColMattOp = make_prdRowMatColMat(my_mA, my_mB);
-#ifdef BLAS_EXPERIMENTAL
-    auto assignOp = make_op<Assign>(my_mC, prdRowMatColMattOp);
-    ex.execute(assignOp);
-#endif  // BLAS_EXPERIMENTAL
-    auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, prdRowMatColMattOp);
-    auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
-    auto assignOp = make_op<Assign>(my_mC, addOp);
-    ex.execute(assignOp);
-  } else {
-    printf("A^t*B^t NO IMPLEMENTED\n");
+/*!
+ * @brief Select the correct transpose version of GemmFactory, depending on the
+ *        runtime values of transpose.
+ */
+template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
+          size_t ClSize, typename TileT, typename ExecutorType, typename T>
+cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
+                             bool _TransB, int _M, int _N, int _K, T _alpha,
+                             T* _A, int _lda, T* _B, int _ldb, T _beta, T* _C,
+                             int _ldc) {
+  cl::sycl::event event;
+  using RHS =
+      matrix_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
+  auto a_container = ex.get_buffer(_A);
+  RHS buffer_a(a_container, _M, _K, 0, _lda, ex.get_offset(_A));
+  auto b_container = ex.get_buffer(_B);
+  RHS buffer_b(b_container, _K, _N, 0, _ldb, ex.get_offset(_B));
+  auto c_container = ex.get_buffer(_C);
+  RHS buffer_c(c_container, _M, _N, 0, _ldc, ex.get_offset(_C));
+#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
+  if (_TransA == _trans_a && _TransB == _trans_b) {                            \
+    if (ex.has_local_memory()) {                                               \
+      auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
+                            _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
+                                                T(_alpha), T(_beta));          \
+      event = ex.gemm_executor(gemm);                                          \
+    } else {                                                                   \
+      auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>(          \
+          buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
+      event = ex.gemm_executor(gemm);                                          \
+    }                                                                          \
+    return event;                                                              \
   }
-#ifdef VERBOSE
-  my_mC.printH("MC");
-#endif  // VERBOSE
+
+  const bool NoTrans = false;
+  const bool Trans = true;
+
+  ENABLE_GEMM_TRANSPOSE(NoTrans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(Trans, NoTrans);
+  ENABLE_GEMM_TRANSPOSE(NoTrans, Trans);
+  ENABLE_GEMM_TRANSPOSE(Trans, Trans);
+
+#undef ENABLE_GEMM_TRANSPOSE
+  return event;
+}
+
+/*!
+ * @brief This is a top-level wrapper for GemmFactory, which provides a
+ *        "standard" BLAS gemm interface.
+ *
+ * See netlib.org/blas for details.
+ */
+template <typename ExecutorType, typename T>
+cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
+                      int _M, int _N, int _K, T _alpha, T* _A, int _lda, T* _B,
+                      int _ldb, T _beta, T* _C, int _ldc) {
+  _TransA = tolower(_TransA);
+  _TransB = tolower(_TransB);
+
+  if (_TransA != 'n' && _TransA != 't' && _TransA != 'c') {
+    throw std::invalid_argument("invalid _TransA");
+  } else if (_TransB != 'n' && _TransB != 't' && _TransB != 'c') {
+    throw std::invalid_argument("invalid _TransB");
+  }
+
+  bool _TrA = _TransA != 'n';
+  bool _TrB = _TransB != 'n';
+#define BIND_DATA_SIZE(_m, _n, _k) if (_M == (_m) && _N == (_n) && _K == (_k))
+
+#define BIND_DEFAULT
+
+#define TO_TPARAMS(_wg, _db, _tir, _tic, _twr, _twc)                       \
+  {                                                                        \
+    return _select_gemm<_wg, _db, false, false, 64,                        \
+                        Tile<_tir, _tic, _twr, _twc>>(                     \
+        ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, \
+        _ldc);                                                             \
+  }
+
+  if (ex.get_device_type() == Queue_Interface<SYCL>::device_type::INTELGPU) {
+    BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
+    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
+    BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
+  } else {
+    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
+    BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
+  }
+
+#undef BIND_DATA_SIZE
+#undef BIND_DEFAULT
+#undef TO_TPARAMS
 }
 
 }  // namespace blas

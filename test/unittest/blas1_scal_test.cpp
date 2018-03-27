@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -23,12 +23,12 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, scal_test)
 REGISTER_STRD(::RANDOM_STRD, scal_test)
@@ -36,14 +36,14 @@ REGISTER_PREC(float, 1e-4, scal_test)
 REGISTER_PREC(double, 1e-6, scal_test)
 REGISTER_PREC(long double, 1e-7, scal_test)
 
-TYPED_TEST(BLAS1_Test, scal_test) {
+TYPED_TEST(BLAS_Test, scal_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class scal_test;
 
   size_t size = TestClass::template test_size<test>();
-  size_t strd = TestClass::template test_strd<test>();
+  long strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
@@ -68,14 +68,13 @@ TYPED_TEST(BLAS1_Test, scal_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // vector scalar product vX * alpha with the result left in vX
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    _scal(ex, (size+strd-1)/strd, alpha, view_vX, strd);
-  }
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  _scal(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd);
+  ex.copy_to_host(gpu_vX, vX.data(), size);
   // check that the result is the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);
   }
+  ex.template deallocate<ScalarT>(gpu_vX);
 }

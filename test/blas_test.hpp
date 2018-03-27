@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas1_test.hpp
+ *  @filename blas_test.hpp
  *
  **************************************************************************/
 
-#ifndef BLAS1_TEST_HPP
-#define BLAS1_TEST_HPP
+#ifndef BLAS_TEST_HPP
+#define BLAS_TEST_HPP
 
 #include <cmath>
 #include <complex>
@@ -37,8 +37,11 @@
 #include <gtest/gtest.h>
 
 #include <interface/blas1_interface_sycl.hpp>
+#include <interface/blas2_interface_sycl.hpp>
+#include <interface/blas3_interface_sycl.hpp>
 
 #include "blas_test_macros.hpp"
+#include "system_reference_blas.hpp"
 
 using namespace blas;
 
@@ -77,21 +80,21 @@ struct blas_templ_struct {
 };
 // A "using" shortcut for the struct
 template <class ScalarT_, class ExecutorType_ = SYCL>
-using blas1_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
+using blas_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
 
 // the test class itself
 template <class B>
-class BLAS1_Test;
+class BLAS_Test;
 
 template <class ScalarT_, class ExecutorType_>
-class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
+class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
     : public ::testing::Test {
  public:
   using ScalarT = ScalarT_;
   using ExecutorType = ExecutorType_;
 
-  BLAS1_Test() = default;
-  virtual ~BLAS1_Test() = default;
+  BLAS_Test() = default;
+  virtual ~BLAS_Test() = default;
 
   virtual void SetUp() {}
   virtual void TearDown() {}
@@ -145,7 +148,8 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
     return option_prec<ScalarT, test>::value;
   }
 
-  template <typename DataType, typename value_type = typename DataType::value_type>
+  template <typename DataType,
+            typename value_type = typename DataType::value_type>
   static void set_rand(DataType &vec, size_t _N) {
     value_type left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
@@ -164,14 +168,14 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
 
   template <typename DataType,
             typename value_type = typename DataType::value_type>
-  static cl::sycl::buffer<value_type, 1> make_buffer(DataType &vec) {
-    return cl::sycl::buffer<value_type, 1>(vec.data(), vec.size());
+  static bufferT<value_type> make_buffer(DataType &vec) {
+    return bufferT<value_type>(vec.data(), vec.size() * sizeof(value_type));
   }
 
   template <typename value_type>
-  static vector_view<value_type, cl::sycl::buffer<value_type>> make_vview(
-      cl::sycl::buffer<value_type, 1> &buf) {
-    return vector_view<value_type, cl::sycl::buffer<value_type>>(buf);
+  static vector_view<value_type, bufferT<value_type>> make_vview(
+      bufferT<value_type> &buf) {
+    return vector_view<value_type, bufferT<value_type>>(buf);
   }
 
   template <typename DeviceSelector,
@@ -194,4 +198,4 @@ class BLAS1_Test<blas1_test_args<ScalarT_, ExecutorType_>>
   }
 };
 
-#endif /* end of include guard: BLAS1_TEST_HPP */
+#endif /* end of include guard: BLAS_TEST_HPP */

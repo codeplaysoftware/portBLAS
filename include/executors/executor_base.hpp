@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -25,6 +25,7 @@
 
 #ifndef EXECUTOR_BASE_HPP
 #define EXECUTOR_BASE_HPP
+#include <queue/queue_base.hpp>
 
 namespace blas {
 
@@ -41,11 +42,11 @@ class Executor {
  public:
   template <typename Tree>
   void execute(Tree t) = delete;
+  template <typename T>
+  inline T* allocate(size_t num_bytes);
+  template <typename T>
+  inline void* deallocate(T* p);
 };
-
-class Sequential {};
-class Parallel {};
-class SYCL {};
 
 /*! Executor<Sequential>.
  * @brief Template specialization for Sequential Execution.

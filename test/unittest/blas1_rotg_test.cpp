@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -23,29 +23,29 @@
  *
  **************************************************************************/
 
-#include "blas1_test.hpp"
+#include "blas_test.hpp"
 
-typedef ::testing::Types<blas1_test_args<float>, blas1_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
-TYPED_TEST_CASE(BLAS1_Test, BlasTypes);
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(2, rotg_test)
 REGISTER_STRD(1, rotg_test)
 REGISTER_PREC(float, 1e-4, rotg_test)
 REGISTER_PREC(double, 1e-7, rotg_test)
 
-TYPED_TEST(BLAS1_Test, rotg_test) {
+TYPED_TEST(BLAS_Test, rotg_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS1_Test<TypeParam>;
+  using TestClass = BLAS_Test<TypeParam>;
   using test = class rotg_test;
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   size_t size = TestClass::template test_size<test>();
-  size_t strd = TestClass::template test_strd<test>();
+  long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   std::vector<ScalarT> vX(size);
@@ -72,17 +72,19 @@ TYPED_TEST(BLAS1_Test, rotg_test) {
 
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  {
-    // checking _rotg with _rot and _dot
-    auto buf_vX = TestClass::make_buffer(vX);
-    auto buf_vY = TestClass::make_buffer(vY);
-    auto buf_res = TestClass::make_buffer(vR);
-    auto view_vX = TestClass::make_vview(buf_vX);
-    auto view_vY = TestClass::make_vview(buf_vY);
-    auto view_res = TestClass::make_vview(buf_res);
-    _rot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, _cos, _sin);
-    _dot(ex, (size+strd-1)/strd, view_vX, strd, view_vY, strd, view_res);
-  }
+
+  auto gpu_vX = ex.template allocate<ScalarT>(size);
+  auto gpu_vY = ex.template allocate<ScalarT>(size);
+  auto gpu_vR = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(vX.data(), gpu_vX, size);
+  ex.copy_to_device(vY.data(), gpu_vY, size);
+  ex.copy_to_device(vR.data(), gpu_vR, 1);
+  _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
+  _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
+  ex.copy_to_host(gpu_vR, vR.data(), 1);
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
+  ex.template deallocate<ScalarT>(gpu_vX);
+  ex.template deallocate<ScalarT>(gpu_vY);
+  ex.template deallocate<ScalarT>(gpu_vR);
 }

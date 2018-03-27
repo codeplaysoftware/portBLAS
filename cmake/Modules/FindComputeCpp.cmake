@@ -270,7 +270,7 @@ function(__build_spir targetName sourceFile binaryDir fileCounter)
   set(COMPUTECPP_DEVICE_COMPILER_FLAGS
     ${device_compiler_cxx_standard}
     ${COMPUTECPP_DEVICE_COMPILER_FLAGS}
-    ${COMPUTECPP_USER_FLAGS})
+  ${COMPUTECPP_USER_FLAGS})
   # Convert argument list format
   separate_arguments(COMPUTECPP_DEVICE_COMPILER_FLAGS)
 
