@@ -218,7 +218,7 @@ struct ExecTreeFunctor {
 usingSharedMem == false).
 */
 template <int usingSharedMem, typename Tree>
-static cl::sycl::event execute_tree(cl::sycl::queue &q_, Tree t,
+static cl::sycl::event execute_tree(cl::sycl::queue q_, Tree t,
                                     size_t _localSize, size_t _globalSize,
                                     size_t _shMem) {
   using value_type = typename shared_mem_type<usingSharedMem, Tree>::type;
@@ -251,8 +251,6 @@ class Executor<SYCL> {
   // This should be added up on request
   // bool is_pointer_mapper_owner;
   Queue_Interface<SYCL> q_interface;
-  // FIXME::To do(Mehdi) queue will be completely remove form executor
-  cl::sycl::queue q_;
 
  public:
   template <typename T>
@@ -261,9 +259,9 @@ class Executor<SYCL> {
    * @brief Constructs a SYCL executor using the given queue.
    * @param q A SYCL queue.
    */
-  Executor(cl::sycl::queue q) : q_interface(q), q_{q_interface.sycl_queue()} {};
+  Executor(cl::sycl::queue q) : q_interface(q){};
 
-  cl::sycl::queue sycl_queue() const { return q_; }
+  cl::sycl::queue sycl_queue() const { return q_interface.sycl_queue(); }
 
   inline Queue_Interface<SYCL>::device_type get_device_type() {
     return q_interface.get_device_type();
@@ -325,14 +323,13 @@ class Executor<SYCL> {
    */
   template <typename Tree>
   inline cl::sycl::event execute(Tree t) {
-    auto device = q_.get_device();
     const auto localSize = 128;
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    return execute_tree<using_shared_mem::disabled>(q_, t, localSize,
-                                                    globalSize, 0);
+    return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
+                                                    localSize, globalSize, 0);
   };
 
   /*!
@@ -341,13 +338,12 @@ class Executor<SYCL> {
    */
   template <typename Tree>
   cl::sycl::event execute(Tree t, size_t localSize) {
-    auto device = q_.get_device();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    return execute_tree<using_shared_mem::disabled>(q_, t, localSize,
-                                                    globalSize, 0);
+    return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
+                                                    localSize, globalSize, 0);
   };
 
   /*!
@@ -360,8 +356,8 @@ class Executor<SYCL> {
     auto localSize = _localSize;
     auto globalSize = _globalSize;
     auto shMem = _shMem;
-    return execute_tree<using_shared_mem::enabled>(q_, t, localSize, globalSize,
-                                                   shMem);
+    return execute_tree<using_shared_mem::enabled>(
+        q_interface.sycl_queue(), t, localSize, globalSize, shMem);
   }
 
   /*!
@@ -399,14 +395,16 @@ class Executor<SYCL> {
         auto localTree = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
                                     localSize, globalSize);
         event = execute_tree<using_shared_mem::enabled>(
-            q_, localTree, localSize, globalSize, sharedSize);
+            q_interface.sycl_queue(), localTree, localSize, globalSize,
+            sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
         event = execute_tree<using_shared_mem::enabled>(
-            q_, localTree, localSize, globalSize, sharedSize);
+            q_interface.sycl_queue(), localTree, localSize, globalSize,
+            sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -449,14 +447,16 @@ class Executor<SYCL> {
         auto localTree = input_type(((nWG == 1) ? lhs : opShMem1), rhs,
                                     localSize, globalSize);
         event = execute_tree<using_shared_mem::enabled>(
-            q_, localTree, localSize, globalSize, sharedSize);
+            q_interface.sycl_queue(), localTree, localSize, globalSize,
+            sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = blas::AssignReduction<oper_type, LHS_type, LHS_type>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
         event = execute_tree<using_shared_mem::enabled>(
-            q_, localTree, localSize, globalSize, sharedSize);
+            q_interface.sycl_queue(), localTree, localSize, globalSize,
+            sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -482,8 +482,8 @@ class Executor<SYCL> {
     return execute_tree<
         Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
                       using_shared_mem::disabled>::type>(
-        q_, gemm_tree, rng.get_local()[0], rng.get_global()[0],
-        Gemm::scratch_size);
+        q_interface.sycl_queue(), gemm_tree, rng.get_local()[0],
+        rng.get_global()[0], Gemm::scratch_size);
   }
 };
 
