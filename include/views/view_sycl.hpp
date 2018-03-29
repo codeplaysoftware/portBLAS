@@ -32,48 +32,59 @@
 
 namespace blas {
 
-template <typename ContainerT>
-struct get_size_struct {
-  static inline size_t get_size(ContainerT &c) { return c.size(); }
-};
-
-template <typename ContainerT>
-size_t get_size(ContainerT &c) {
-  return get_size_struct<ContainerT>::get_size(c);
-}
-
 template <typename ScalarT, int dim = 1,
           typename Allocator = cl::sycl::default_allocator<uint8_t>>
 using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
+
+template <typename ContainerT>
+struct get_size_struct {
+  static inline auto get_size(ContainerT &c) -> decltype(c.size()) {
+    return c.size();
+  }
+};
+
+template <typename ScalarT, int dim, typename Allocator>
+struct get_size_struct<bufferT<ScalarT, dim, Allocator>> {
+  static inline auto get_size(bufferT<ScalarT> &b) -> decltype(b.get_size()) {
+    return b.get_size();
+  }
+};
+
+template <typename ContainerT>
+auto get_size(ContainerT &c)
+    -> decltype(get_size_struct<ContainerT>::get_size(c)) {
+  return get_size_struct<ContainerT>::get_size(c);
+}
 
 template <typename ScalarT, int dim = 1,
           typename Allocator = cl::sycl::default_allocator<ScalarT>>
 using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>>;
 
-template <typename ScalarT, int dim, typename Allocator>
-struct get_size_struct<bufferT<ScalarT, dim, Allocator>> {
-  static inline size_t get_size(bufferT<ScalarT> &b) { return b.get_size(); }
-};
-
 /*! vector_view<ScalarT, bufferT<Scalar>>
  * @brief Specialization of the vector view to operate with buffers.
  * Note that the buffer class cannot be accessed on the host.
  */
-template <typename ScalarT, int dim, typename Allocator>
-struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
-  using ContainerT = bufferT<ScalarT, dim, Allocator>;
+template <typename ScalarT_, int dim, typename Allocator_, typename IndexType_,
+          typename IncrementType_>
+struct vector_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_,
+                   IncrementType_> {
+  using ScalarT = ScalarT_;
+  using ContainerT = bufferT<ScalarT, dim, Allocator_>;
+  using IndexType = IndexType_;
+  using IncrementType = IncrementType_;
+  using Self = vector_view<ScalarT, ContainerT, IndexType, IncrementType>;
   ContainerT &data_;
-  size_t size_data_;
-  size_t size_;
-  size_t disp_;
-  long strd_;  // never size_t, because it could negative
+  IndexType size_data_;
+  IndexType size_;
+  IndexType disp_;
+  IncrementType strd_;  // never size_t, because it could negative
 
   using value_type = ScalarT;
 
   /*! initialize.
    * Initializes the vector view with the information from.
    */
-  inline void initialize(size_t originalSize) {
+  inline void initialize(IndexType originalSize) {
     if (strd_ > 0) {
       auto sizeV = (size_data_ - disp_);
       auto quot = (sizeV + strd_ - 1) / strd_;  // ceiling
@@ -96,7 +107,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp = 0, long strd = 1)
+  vector_view(ContainerT &data, IndexType disp = 0, IncrementType strd = 1)
       : data_(data),
         size_data_(data_.get_size()),
         size_(data_.get_size() / sizeof(ScalarT)),
@@ -106,7 +117,8 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp, long strd, size_t size)
+  vector_view(ContainerT &data, IndexType disp, IncrementType strd,
+              IndexType size)
       : data_(data),
         size_data_(data_.get_size()),
         size_(0),
@@ -118,8 +130,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! vector_view.
    * See vector_view.
    */
-  vector_view(vector_view<ScalarT, ContainerT> opV, size_t disp, long strd,
-              size_t size)
+  vector_view(Self opV, IndexType disp, IncrementType strd, IndexType size)
       : data_(opV.getData()),
         size_data_(opV.getData().get_size()),
         size_(0),
@@ -136,77 +147,72 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! vector_view.
    * See vector_view.
    */
-  size_t getDataSize() { return size_data_; }
+  IndexType getDataSize() { return size_data_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  size_t getSize() { return size_; }
+  IndexType getSize() { return size_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  IndexType getDisp() { return disp_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  long getStrd() { return strd_; }
+  IncrementType getStrd() { return strd_; }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator+(size_t disp) {
+  Self operator+(IndexType disp) {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-          this->size_ - disp);
+      return Self(this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-          this->strd_, this->size_ - disp);
+      return Self(this->data_,
+                  this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
+                  this->strd_, this->size_ - disp);
   }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator()(size_t disp) {
+  Self operator()(IndexType disp) {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-          this->size_ - disp);
+      return Self(this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-          this->strd_, this->size_ - disp);
+      return Self(this->data_,
+                  this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
+                  this->strd_, this->size_ - disp);
   }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator*(long strd) {
-    return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                            this->strd_ * strd);
+  Self operator*(long strd) {
+    return Self(this->data_, this->disp_, this->strd_ * strd);
   }
 
   /*! vector_view.
    * See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator%(size_t size) {
+  Self operator%(IndexType size) {
     if (this->strd_ > 0) {
-      return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                              this->strd_, size);
+      return Self(this->data_, this->disp_, this->strd_, size);
     } else {
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
-          this->strd_, size);
+      return Self(this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
+                  this->strd_, size);
     }
   }
 
   /*! eval.
    * See vector_view::eval.
    */
-  ScalarT &eval(size_t i) {
+  ScalarT &eval(IndexType i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
@@ -244,7 +250,7 @@ struct vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! val.
    * @brief Allows printing information on the host.
    */
-  ScalarT val(size_t i) {
+  ScalarT val(IndexType i) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
@@ -300,26 +306,29 @@ using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;
  *  original specialization.
  * @tparam ScalarT Value type of the SYCL buffer.
  */
-template <typename ScalarT, int dim, typename Allocator>
-struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
-  using ContainerT = bufferT<ScalarT, dim, Allocator>;
+template <typename ScalarT_, int dim, typename Allocator_, typename IndexType_>
+struct matrix_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_> {
+  using ScalarT = ScalarT_;
+  using IndexType = IndexType_;
+  using ContainerT = bufferT<ScalarT, dim, Allocator_>;
+  using Self = matrix_view<ScalarT, ContainerT, IndexType>;
   // Information related to the data
   ContainerT &data_;
   int accessDev_;  // row-major or column-major value for the device/language.
-  size_t size_data_;  // real size of the data
+  IndexType size_data_;  // real size of the data
   // Information related to the operation
-  int accessOpr_;  // row-major or column-major.
-  size_t sizeR_;   // number of rows
-  size_t sizeC_;   // number of columns
-  size_t sizeL_;   // size of the leading dimension
-  size_t disp_;    // displacementt from the first element
+  int accessOpr_;    // row-major or column-major.
+  IndexType sizeR_;  // number of rows
+  IndexType sizeC_;  // number of columns
+  IndexType sizeL_;  // size of the leading dimension
+  IndexType disp_;   // displacementt from the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   using value_type = ScalarT;
 
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT &data, int accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT &data, int accessDev, IndexType sizeR, IndexType sizeC)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -334,7 +343,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT &data, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT &data, IndexType sizeR, IndexType sizeC)
       : data_(data),
         accessDev_(0),
         size_data_(data_.get_size()),
@@ -349,8 +358,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT &data, int accessDev, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(ContainerT &data, int accessDev, IndexType sizeR, IndexType sizeC,
+              int accessOpr, IndexType sizeL, IndexType disp)
       : data_(data),
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -363,8 +372,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(ContainerT &data, size_t sizeR, size_t sizeC, int accessOpr,
-              size_t sizeL, size_t disp)
+  matrix_view(ContainerT &data, IndexType sizeR, IndexType sizeC, int accessOpr,
+              IndexType sizeL, IndexType disp)
       : data_(data),
         accessDev_(0),
         size_data_(data_.get_size()),
@@ -377,8 +386,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
-              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(Self opM, int accessDev, IndexType sizeR, IndexType sizeC,
+              int accessOpr, IndexType sizeL, IndexType disp)
       : data_(opM.data_),
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -391,8 +400,8 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! matrix_view.
    * @brief See matrix_view.
    */
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(Self opM, IndexType sizeR, IndexType sizeC, int accessOpr,
+              IndexType sizeL, IndexType disp)
       : data_(opM.data_),
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -410,24 +419,24 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*!
    * @brief See matrix_view.
    */
-  size_t getDataSize() { return size_data_; }
+  IndexType getDataSize() { return size_data_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSize() { return sizeR_ * sizeC_; }
+  IndexType getSize() { return sizeR_ * sizeC_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeR() { return sizeR_; }
+  IndexType getSizeR() { return sizeR_; }
 
   /*!
    * @brief See matrix_view.
    */
-  size_t getSizeC() { return sizeC_; }
+  IndexType getSizeC() { return sizeC_; }
 
-  inline size_t getSizeL() { return sizeL_; }
+  inline IndexType getSizeL() { return sizeL_; }
 
   /*!
    * @brief See matrix_view.
@@ -447,12 +456,12 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*!
    * @brief See matrix_view.
    */
-  long getDisp() { return disp_; }
+  IndexType getDisp() { return disp_; }
 
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<ScalarT, ContainerT> operator+(size_t disp) {
+  Self operator+(IndexType disp) {
     return matrix_view<ScalarT, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
@@ -461,24 +470,24 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*!
    * @brief See matrix_view.
    */
-  matrix_view<ScalarT, ContainerT> operator()(size_t i, size_t j) {
+  Self operator()(IndexType i, IndexType j) {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
-      return matrix_view<ScalarT, ContainerT>(
-          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-          this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
+      return Self(this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
+                  this->accessOpr_, this->sizeL_,
+                  this->disp_ + i * this->sizeL_ + j);
     } else {
       // ACCESING BY COLUMNS
-      return matrix_view<ScalarT, ContainerT>(
-          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-          this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
+      return Self(this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
+                  this->accessOpr_, this->sizeL_,
+                  this->disp_ + i + this->sizeL_ * j);
     }
   }
 
   /*!
    * @brief See matrix_view.
    */
-  ScalarT &eval(size_t k) {  // -> decltype(data_[i]) {
+  ScalarT &eval(IndexType k) {  // -> decltype(data_[i]) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
@@ -491,7 +500,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*!
    * @brief See matrix_view.
    */
-  ScalarT &eval(size_t i, size_t j) {
+  ScalarT &eval(IndexType i, IndexType j) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor;
 
     if (!(accessDev_ ^ accessOpr_)) {
@@ -526,7 +535,7 @@ struct matrix_view<ScalarT, bufferT<ScalarT, dim, Allocator>> {
   /*! val.
    * @brief Used to print the values on the host.
    */
-  ScalarT val(size_t i, size_t j) {
+  ScalarT val(IndexType i, IndexType j) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
 
     if (!(accessDev_ ^ accessOpr_)) {
@@ -584,15 +593,18 @@ using accessorT =
  * @brief View of a vector with an accessor.
  * @tparam ScalarT Value type of accessor.
  */
-template <typename ScalarT>
-struct vector_view<ScalarT, accessorT<ScalarT>> {
+template <typename ScalarT_, typename IndexType_, typename IncrementType_>
+struct vector_view<ScalarT_, accessorT<ScalarT_>, IndexType_, IncrementType_> {
+  using ScalarT = ScalarT_;
+  using IndexType = IndexType_;
+  using IncrementType = IncrementType_;
   using ContainerT = accessorT<ScalarT>;
-
+  using Self = vector_view<ScalarT, ContainerT, IndexType, IncrementType>;
   ContainerT data_;
-  size_t size_data_;
-  size_t size_;
-  size_t disp_;
-  long strd_;  // never size_t, because it could negative
+  IndexType size_data_;
+  IndexType size_;
+  IndexType disp_;
+  IncrementType strd_;  // never size_t, because it could negative
 
   using value_type = ScalarT;
 
@@ -609,7 +621,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp)
+  vector_view(ContainerT &data, IndexType disp)
       : data_{data},
         size_data_(data_.get_size()),
         size_(data_.get_size()),
@@ -619,7 +631,8 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view(ContainerT &data, size_t disp, long strd, size_t size)
+  vector_view(ContainerT &data, IndexType disp, IncrementType strd,
+              IndexType size)
       : data_{data},
         size_data_(data_.get_size()),
         size_(0),
@@ -649,8 +662,7 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  vector_view(vector_view<ScalarT, ContainerT> &opV, size_t disp, long strd,
-              size_t size)
+  vector_view(Self &opV, IndexType disp, IncrementType strd, IndexType size)
       : data_{opV.getData()},
         size_data_(opV.getData().get_size()),
         size_(0),
@@ -685,75 +697,70 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
   /*!
    * @brief See vector_view.
    */
-  size_t getDataSize() { return size_data_; }
+  IndexType getDataSize() { return size_data_; }
 
   /*!
    * @brief See vector_view.
    */
-  size_t getSize() { return size_; }
+  IndexType getSize() { return size_; }
 
   /*!
    * @brief See vector_view.
    */
-  size_t getDisp() { return disp_; }
+  IndexType getDisp() { return disp_; }
 
   /*!
    * @brief See vector_view.
    */
-  long getStrd() { return strd_; }
+  IncrementType getStrd() { return strd_; }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator+(size_t disp) {
+  Self operator+(IndexType disp) {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-          this->size_ - disp);
+      return Self(this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-          this->strd_, this->size_ - disp);
+      return Self(this->data_,
+                  this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
+                  this->strd_, this->size_ - disp);
   }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator()(size_t disp) {
+  Self operator()(IndexType disp) {
     if (this->strd_ > 0)
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-          this->size_ - disp);
+      return Self(this->data_, this->disp_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
     else
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-          this->strd_, this->size_ - disp);
+      return Self(this->data_,
+                  this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
+                  this->strd_, this->size_ - disp);
   }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator*(long strd) {
-    return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                            this->strd_ * strd);
+  Self operator*(long strd) {
+    return Self(this->data_, this->disp_, this->strd_ * strd);
   }
 
   /*!
    * @brief See vector_view.
    */
-  vector_view<ScalarT, ContainerT> operator%(size_t size) {
+  Self operator%(IndexType size) {
     if (this->strd_ > 0) {
-      return vector_view<ScalarT, ContainerT>(this->data_, this->disp_,
-                                              this->strd_, size);
+      return Self(this->data_, this->disp_, this->strd_, size);
     } else {
-      return vector_view<ScalarT, ContainerT>(
-          this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
-          this->strd_, size);
+      return Self(this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
+                  this->strd_, size);
     }
   }
 
   /**** EVALUATING ****/
-  ScalarT &eval(size_t i) {
+  ScalarT &eval(IndexType i) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
@@ -797,25 +804,28 @@ struct vector_view<ScalarT, accessorT<ScalarT>> {
 /*!
  * @brief Specialization of an matrix_view with an accessor.
  */
-template <class ScalarT>
-struct matrix_view<ScalarT, accessorT<ScalarT>> {
+template <class ScalarT_, typename IndexType_>
+struct matrix_view<ScalarT_, accessorT<ScalarT_>, IndexType_> {
+  using ScalarT = ScalarT_;
+  using IndexType = IndexType_;
   using ContainerT = accessorT<ScalarT>;
+  using Self = matrix_view<ScalarT, ContainerT, IndexType>;
   // Information related to the data
   ContainerT data_;
-  int accessDev_;     // row-major or column-major value for the device/language
-  size_t size_data_;  // real size of the data
+  int accessDev_;  // row-major or column-major value for the device/language
+  IndexType size_data_;  // real size of the data
   // Information related to the operation
-  int accessOpr_;  // row-major or column-major
-  size_t sizeR_;   // number of rows
-  size_t sizeC_;   // number of columns
-  size_t sizeL_;   // size of the leading dimension
-  size_t disp_;    // displacementt od the first element
+  int accessOpr_;    // row-major or column-major
+  IndexType sizeR_;  // number of rows
+  IndexType sizeC_;  // number of columns
+  IndexType sizeL_;  // size of the leading dimension
+  IndexType disp_;   // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   using value_type = ScalarT;
 
   /**** CONSTRUCTORS ****/
 
-  matrix_view(ContainerT &data, int accessDev, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT &data, int accessDev, IndexType sizeR, IndexType sizeC)
       : data_{data},
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -827,7 +837,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
   }
 
-  matrix_view(ContainerT &data, size_t sizeR, size_t sizeC)
+  matrix_view(ContainerT &data, IndexType sizeR, IndexType sizeC)
       : data_{data},
         accessDev_(0),
         size_data_(data_.get_size()),
@@ -839,8 +849,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
   }
 
-  matrix_view(ContainerT &data, int accessDev, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(ContainerT &data, int accessDev, IndexType sizeR, IndexType sizeC,
+              int accessOpr, IndexType sizeL, IndexType disp)
       : data_{data},
         accessDev_(accessDev),
         size_data_(data_.get_size()),
@@ -850,8 +860,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(ContainerT &data, size_t sizeR, size_t sizeC, int accessOpr,
-              size_t sizeL, size_t disp)
+  matrix_view(ContainerT &data, IndexType sizeR, IndexType sizeC, int accessOpr,
+              IndexType sizeL, IndexType disp)
       : data_{data},
         accessDev_(0),
         size_data_(data_.get_size()),
@@ -861,8 +871,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, int accessDev, size_t sizeR,
-              size_t sizeC, int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(Self opM, int accessDev, IndexType sizeR, IndexType sizeC,
+              int accessOpr, IndexType sizeL, IndexType disp)
       : data_{opM.data_},
         accessDev_(accessDev),
         size_data_(opM.size_data_),
@@ -872,8 +882,8 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(matrix_view<ScalarT, ContainerT> opM, size_t sizeR, size_t sizeC,
-              int accessOpr, size_t sizeL, size_t disp)
+  matrix_view(Self opM, IndexType sizeR, IndexType sizeC, int accessOpr,
+              IndexType sizeL, IndexType disp)
       : data_{opM.data_},
         accessDev_(opM.accessDev_),
         size_data_(opM.size_data_),
@@ -886,15 +896,15 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   /**** RETRIEVING DATA ****/
   inline ContainerT &getData() { return data_; }
 
-  inline size_t getDataSize() { return size_data_; }
+  inline IndexType getDataSize() { return size_data_; }
 
-  inline size_t getSize() { return sizeR_ * sizeC_; }
+  inline IndexType getSize() { return sizeR_ * sizeC_; }
 
-  inline size_t getSizeL() { return sizeL_; }
+  inline IndexType getSizeL() { return sizeL_; }
 
-  inline size_t getSizeR() { return sizeR_; }
+  inline IndexType getSizeR() { return sizeR_; }
 
-  inline size_t getSizeC() { return sizeC_; }
+  inline IndexType getSizeC() { return sizeC_; }
 
   inline int getAccess() { return !(accessDev_ ^ accessOpr_); }
 
@@ -905,13 +915,13 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   inline long getDisp() { return disp_; }
 
   /**** OPERATORS ****/
-  matrix_view<ScalarT, ContainerT> operator+(size_t disp) {
+  matrix_view<ScalarT, ContainerT> operator+(IndexType disp) {
     return matrix_view<ScalarT, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
 
-  matrix_view<ScalarT, ContainerT> operator()(size_t i, size_t j) {
+  matrix_view<ScalarT, ContainerT> operator()(IndexType i, IndexType j) {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
       return matrix_view<ScalarT, ContainerT>(
@@ -926,7 +936,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
   }
 
   /**** EVALUATING ***/
-  inline ScalarT &eval(size_t k) {
+  inline ScalarT &eval(IndexType k) {
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
@@ -935,7 +945,7 @@ struct matrix_view<ScalarT, accessorT<ScalarT>> {
     return eval(i, j);
   }
 
-  inline ScalarT &eval(size_t i, size_t j) {  // -> decltype(data_[i]) {
+  inline ScalarT &eval(IndexType i, IndexType j) {  // -> decltype(data_[i]) {
     auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
     int accessMode = !(accessDev_ ^ accessOpr_);
 
