@@ -105,18 +105,18 @@ auto get_scalar(T &scl) -> decltype(DetectScalar<T>::get_scalar(scl)) {
  */
 template <class LHS, class RHS>
 struct Join {
+  using IndexType = typename RHS::IndexType;
+  using value_type = typename RHS::value_type;
   LHS l;
   RHS r;
-
-  using value_type = typename RHS::value_type;
 
   Join(LHS &_l, RHS _r) : l(_l), r(_r){};
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     l.eval(i);
     return r.eval(i);
   }
@@ -130,18 +130,18 @@ struct Join {
  */
 template <class LHS, class RHS>
 struct Assign {
+  using IndexType = typename LHS::IndexType;
+  using value_type = typename RHS::value_type;
   LHS l;
   RHS r;
-
-  using value_type = typename RHS::value_type;
 
   Assign(LHS &_l, RHS _r) : l(_l), r(_r){};
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto val = l.eval(i) = r.eval(i);
     return val;
   }
@@ -155,22 +155,21 @@ struct Assign {
  */
 template <class LHS1, class LHS2, class RHS1, class RHS2>
 struct DobleAssign {
+  using IndexType = typename LHS1::IndexType;
+  using value_type = typename RHS1::value_type;
   LHS1 l1;
   LHS2 l2;
   RHS1 r1;
   RHS2 r2;
-
- public:
-  using value_type = typename RHS1::value_type;
 
   DobleAssign(LHS1 &_l1, LHS2 &_l2, RHS1 _r1, RHS2 _r2)
       : l1(_l1), l2(_l2), r1(_r1), r2(_r2){};
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r2.getSize(); }
+  IndexType getSize() { return r2.getSize(); }
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto val1 = r1.eval(i);
     auto val2 = r2.eval(i);
     l1.eval(i) = val1;
@@ -189,14 +188,14 @@ struct DobleAssign {
  */
 template <typename Operator, typename SCL, typename RHS>
 struct ScalarOp {
+  using IndexType = typename RHS::IndexType;
   using value_type = typename RHS::value_type;
   SCL scl;
   RHS r;
-
   ScalarOp(SCL _scl, RHS &_r) : scl(_scl), r(_r){};
 
-  size_t getSize() { return r.getSize(); }
-  value_type eval(size_t i) {
+  IndexType getSize() { return r.getSize(); }
+  value_type eval(IndexType i) {
     return Operator::eval(internal::get_scalar(scl), r.eval(i));
   }
 
@@ -210,14 +209,14 @@ struct ScalarOp {
  */
 template <typename Operator, typename RHS>
 struct UnaryOp {
+  using IndexType = typename RHS::IndexType;
   using value_type = typename RHS::value_type;
   RHS r;
-
   UnaryOp(RHS &_r) : r(_r){};
 
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) { return Operator::eval(r.eval(i)); }
+  value_type eval(IndexType i) { return Operator::eval(r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -229,6 +228,7 @@ struct UnaryOp {
  */
 template <typename Operator, typename LHS, typename RHS>
 struct BinaryOp {
+  using IndexType = typename RHS::IndexType;
   using value_type = typename RHS::value_type;
   LHS l;
   RHS r;
@@ -237,9 +237,9 @@ struct BinaryOp {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) { return Operator::eval(l.eval(i), r.eval(i)); }
+  value_type eval(IndexType i) { return Operator::eval(l.eval(i), r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -251,14 +251,15 @@ struct BinaryOp {
  */
 template <typename RHS>
 struct TupleOp {
+  using IndexType = typename RHS::IndexType;
   using value_type = IndexValueTuple<typename RHS::value_type>;
   RHS r;
 
   TupleOp(RHS &_r) : r(_r) {}
 
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) { return value_type(i, r.eval(i)); }
+  value_type eval(IndexType i) { return value_type(i, r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
@@ -272,25 +273,26 @@ struct TupleOp {
 template <typename Operator, class LHS, class RHS>
 struct AssignReduction {
   using value_type = typename RHS::value_type;
+  using IndexType = typename RHS::IndexType;
   LHS l;
   RHS r;
-  size_t blqS;  // block  size
-  size_t grdS;  // grid  size
+  IndexType blqS;  // block  size
+  IndexType grdS;  // grid  size
 
-  AssignReduction(LHS &_l, RHS &_r, size_t _blqS, size_t _grdS)
+  AssignReduction(LHS &_l, RHS &_r, IndexType _blqS, IndexType _grdS)
       : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
 
-  size_t getSize() { return r.getSize(); }
+  IndexType getSize() { return r.getSize(); }
 
-  value_type eval(size_t i) {
-    size_t vecS = r.getSize();
-    size_t frs_thrd = 2 * blqS * i;
-    size_t lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd + blqS);
+  value_type eval(IndexType i) {
+    IndexType vecS = r.getSize();
+    IndexType frs_thrd = 2 * blqS * i;
+    IndexType lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd + blqS);
     // Reduction across the grid
     value_type val = Operator::init(r);
-    for (size_t j = frs_thrd; j < lst_thrd; j++) {
+    for (IndexType j = frs_thrd; j < lst_thrd; j++) {
       value_type local_val = Operator::init(r);
-      for (size_t k = j; k < vecS; k += 2 * grdS) {
+      for (IndexType k = j; k < vecS; k += 2 * grdS) {
         local_val = Operator::eval(local_val, r.eval(k));
         if (k + blqS < vecS) {
           local_val = Operator::eval(local_val, r.eval(k + blqS));
@@ -309,16 +311,16 @@ struct AssignReduction {
   }
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    size_t localid = ndItem.get_local(0);
-    size_t localSz = ndItem.get_local_range(0);
-    size_t groupid = ndItem.get_group(0);
+    IndexType localid = ndItem.get_local(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
 
-    size_t vecS = r.getSize();
-    size_t frs_thrd = 2 * groupid * localSz + localid;
+    IndexType vecS = r.getSize();
+    IndexType frs_thrd = 2 * groupid * localSz + localid;
 
     // Reduction across the grid
     value_type val = Operator::init(r);
-    for (size_t k = frs_thrd; k < vecS; k += 2 * grdS) {
+    for (IndexType k = frs_thrd; k < vecS; k += 2 * grdS) {
       val = Operator::eval(val, r.eval(k));
       if ((k + blqS < vecS)) {
         val = Operator::eval(val, r.eval(k + blqS));
@@ -330,7 +332,7 @@ struct AssignReduction {
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     // Reduction inside the block
-    for (size_t offset = localSz >> 1; offset > 0; offset >>= 1) {
+    for (IndexType offset = localSz >> 1; offset > 0; offset >>= 1) {
       if (localid < offset) {
         scratch[localid] =
             Operator::eval(scratch[localid], scratch[localid + offset]);
@@ -345,39 +347,39 @@ struct AssignReduction {
   }
 };
 
-template <typename Operator, typename LHS, typename RHS>
+template <typename Operator, typename LHS, typename RHS, typename IndexType>
 AssignReduction<Operator, LHS, RHS> make_AssignReduction(LHS &l, RHS &r,
-                                                         size_t blqS,
-                                                         size_t grdS) {
+                                                         IndexType blqS,
+                                                         IndexType grdS) {
   return AssignReduction<Operator, LHS, RHS>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_addAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+template <typename LHS, typename RHS, typename IndexType>
+auto make_addAssignReduction(LHS &l, RHS &r, IndexType blqS, IndexType grdS)
     -> decltype(make_AssignReduction<addOp2_struct>(l, r, blqS, grdS)) {
   return make_AssignReduction<addOp2_struct>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_prdAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+template <typename LHS, typename RHS, typename IndexType>
+auto make_prdAssignReduction(LHS &l, RHS &r, IndexType blqS, IndexType grdS)
     -> decltype(make_AssignReduction<prdOp2_struct>(l, r, blqS, grdS)) {
   return make_AssignReduction<prdOp2_struct>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_addAbsAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+template <typename LHS, typename RHS, typename IndexType>
+auto make_addAbsAssignReduction(LHS &l, RHS &r, IndexType blqS, IndexType grdS)
     -> decltype(make_AssignReduction<addAbsOp2_struct>(l, r, blqS, grdS)) {
   return make_AssignReduction<addAbsOp2_struct>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_maxIndAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+template <typename LHS, typename RHS, typename IndexType>
+auto make_maxIndAssignReduction(LHS &l, RHS &r, IndexType blqS, IndexType grdS)
     -> decltype(make_AssignReduction<maxIndOp2_struct>(l, r, blqS, grdS)) {
   return make_AssignReduction<maxIndOp2_struct>(l, r, blqS, grdS);
 }
 
-template <typename LHS, typename RHS>
-auto make_minIndAssignReduction(LHS &l, RHS &r, size_t blqS, size_t grdS)
+template <typename LHS, typename RHS, typename IndexType>
+auto make_minIndAssignReduction(LHS &l, RHS &r, IndexType blqS, IndexType grdS)
     -> decltype(make_AssignReduction<minIndOp2_struct>(l, r, blqS, grdS)) {
   return make_AssignReduction<minIndOp2_struct>(l, r, blqS, grdS);
 }
