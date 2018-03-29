@@ -42,11 +42,12 @@ namespace blas {
  */
 template <class RHS1, class RHS2>
 struct PrdRowMatVct {
+  using IndexType = typename RHS2::IndexType;
+  using value_type = typename RHS2::value_type;
+
   RHS1 r1;
   RHS2 r2;
   size_t mult;
-
-  using value_type = typename RHS2::value_type;
 
   PrdRowMatVct(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
@@ -78,8 +79,10 @@ PrdRowMatVct<RHS1, RHS2> make_prdRowMatVct(RHS1 &r1, RHS2 &r2) {
  */
 template <class LHS, class RHS1, class RHS2, class RHS3>
 struct PrdRowMatVctMult {
-  LHS l;
   using value_type = typename RHS2::value_type;
+  using IndexType = typename RHS2::IndexType;
+
+  LHS l;
   value_type scl;
 
   RHS1 r1;
@@ -161,12 +164,12 @@ PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3> make_prdRowMatVctMult(
  */
 template <class LHS, class RHS1, class RHS2>
 struct PrdRowMatVctMultShm {
+  using IndexType = typename RHS2::IndexType;
+  using value_type = typename RHS2::value_type;
   LHS l;
   RHS1 r1;
   RHS2 r2;
   size_t nThr;
-
-  using value_type = typename RHS2::value_type;
 
   PrdRowMatVctMultShm(LHS &_l, RHS1 &_r1, RHS2 &_r2, size_t _nThr)
       : l(_l), r1(_r1), r2(_r2), nThr{_nThr} {};
@@ -243,8 +246,8 @@ PrdRowMatVctMultShm<LHS, RHS1, RHS2> make_prdRowMatVctMultShm(LHS &l, RHS1 &r1,
  */
 template <class LHS, class RHS1, class RHS2>
 struct AddPrdRowMatVctMultShm {
+  using IndexType = typename RHS2::IndexType;
   using value_type = typename RHS2::value_type;
-
   LHS l;
   value_type scl;
   RHS1 r1;
@@ -283,11 +286,11 @@ AddPrdRowMatVctMultShm<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShm(
 // #define ORIGINAL_CODE 1
 template <class RHS1, class RHS2>
 struct RedRowMatVct {
+  using IndexType = typename RHS2::IndexType;
+  using value_type = typename RHS2::value_type;
   RHS1 r1;
   RHS2 r2;
   size_t warpSize;
-
-  using value_type = typename RHS2::value_type;
 
   RedRowMatVct(RHS1 &_r1, RHS2 &_r2, size_t _warpSize)
       : r1(_r1), r2(_r2), warpSize(_warpSize){};
@@ -403,11 +406,11 @@ RedRowMatVct<RHS1, RHS2> make_redRowMatVct(RHS1 &r1, RHS2 &r2,
  */
 template <class RHS1, class RHS2, class RHS3>
 struct ModifRank1 {
+  using IndexType = typename RHS2::IndexType;
+  using value_type = typename RHS2::value_type;
   RHS1 r1;
   RHS2 r2;
   RHS3 r3;
-
-  using value_type = typename RHS2::value_type;
 
   ModifRank1(RHS1 &_r1, RHS2 &_r2, RHS3 &_r3) : r1(_r1), r2(_r2), r3(_r3){};
 
