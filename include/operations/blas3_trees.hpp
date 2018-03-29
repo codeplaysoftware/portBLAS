@@ -68,7 +68,7 @@ template <typename RHS0, typename RHS1, int WgSize, bool TransA, bool TransB,
 class ReferenceGemmFactory {
  public:
   using value_type = T;
-
+  using IndexType = typename RHS0::IndexType;
   static constexpr int version = 2;
   static constexpr int wg_size = WgSize;
   static constexpr bool trans_a = TransA;
@@ -79,12 +79,12 @@ class ReferenceGemmFactory {
   RHS1 _C;
   T alpha;
   T beta;
-  size_t m;
-  size_t n;
-  size_t k;
-  size_t lda;
-  size_t ldb;
-  size_t ldc;
+  IndexType m;
+  IndexType n;
+  IndexType k;
+  IndexType lda;
+  IndexType ldb;
+  IndexType ldc;
 
   inline ReferenceGemmFactory(RHS0 A, RHS0 B, RHS1 C, T alpha, T beta)
       : _A(A),
@@ -104,24 +104,25 @@ class ReferenceGemmFactory {
            ", " + type_string<value_type>::get_value() + ">";
   }
 
-  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept {
+  static inline cl::sycl::nd_range<1> get_nd_range(IndexType m,
+                                                   IndexType n) noexcept {
     const cl::sycl::range<1> nwg((m * n - 1) / wg_size + 1);
     const cl::sycl::range<1> wgs(wg_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
-  inline size_t getSize() { return m * n; }
+  inline IndexType getSize() { return m * n; }
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
-    size_t item_id = id.get_global(0);
+    IndexType item_id = id.get_global(0);
     //  printf("B[%ld]= %f\n", item_id, B[item_id]);
     if (item_id >= m * n) {
       return;
     }
 
-    const int row = item_id % m;
-    const int col = item_id / m;
+    const IndexType row = item_id % m;
+    const IndexType col = item_id / m;
 
     A = A + row * (trans_a ? lda : 1);
     B = B + col * (trans_b ? 1 : ldb);
@@ -266,18 +267,19 @@ class GemmFactory {
  public:
   using tile_type = TileType;
   using value_type = T;
+  using IndexType = typename RHS1::IndexType;
   using Scratch = cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                                      cl::sycl::access::target::local>;
 
   static constexpr int version = 19;
 
   // enable easier access to tile dimensions
-  static constexpr int item_rows = tile_type::item_rows;
-  static constexpr int item_cols = tile_type::item_cols;
-  static constexpr int wg_rows = tile_type::wg_rows;
-  static constexpr int wg_cols = tile_type::wg_cols;
-  static constexpr int tl_rows = tile_type::tl_rows;
-  static constexpr int tl_cols = tile_type::tl_cols;
+  static constexpr IndexType item_rows = tile_type::item_rows;
+  static constexpr IndexType item_cols = tile_type::item_cols;
+  static constexpr IndexType wg_rows = tile_type::wg_rows;
+  static constexpr IndexType wg_cols = tile_type::wg_cols;
+  static constexpr IndexType tl_rows = tile_type::tl_rows;
+  static constexpr IndexType tl_cols = tile_type::tl_cols;
 
   static constexpr bool double_buffer = DoubleBuffer;
   static constexpr bool nbc_a = NbcA;
@@ -285,19 +287,19 @@ class GemmFactory {
   static constexpr bool trans_a = TransA;
   static constexpr bool trans_b = TransB;
 
-  static constexpr int cl_size = ClSize;
+  static constexpr IndexType cl_size = ClSize;
   //! @brief Number of elements which fit within a cache line.
-  static constexpr int cl_elems = cl_size / sizeof(T);
+  static constexpr IndexType cl_elems = cl_size / sizeof(T);
   //! @brief Number of work items within a work group
-  static constexpr int wg_size = wg_rows * wg_cols;
+  static constexpr IndexType wg_size = wg_rows * wg_cols;
   //! @brief Number of rows within a work-group level tile
-  static constexpr int block_rows = wg_rows * item_rows;
+  static constexpr IndexType block_rows = wg_rows * item_rows;
   //! @brief Number of columns within a work-group level tile
-  static constexpr int block_cols = wg_cols * item_cols;
+  static constexpr IndexType block_cols = wg_cols * item_cols;
   //! @brief Number of rows within a top-level tile
-  static constexpr int big_tile_rows = tl_rows * block_rows;
+  static constexpr IndexType big_tile_rows = tl_rows * block_rows;
   //! @brief Number of columns within a top-level tile
-  static constexpr int big_tile_cols = tl_cols * block_cols;
+  static constexpr IndexType big_tile_cols = tl_cols * block_cols;
 
   static_assert(wg_size % cl_elems == 0,
                 "Work group size should be a multiple "
@@ -316,12 +318,12 @@ class GemmFactory {
                 " --- this is ensured iff: item_cols | wg_rows");
 
   //! @brief leading dimension of block of A in scratchpad
-  static constexpr int ldsa = block_rows + nbc_a;
+  static constexpr IndexType ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in scratchpad
-  static constexpr int ldsb = cl_elems + nbc_b;
+  static constexpr IndexType ldsb = cl_elems + nbc_b;
   //! @brief size (in elements) of scratchpad (local) memory required by each
   //         work group
-  static constexpr int scratch_size =
+  static constexpr IndexType scratch_size =
       (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);
 
   RHS1 _A;
@@ -329,12 +331,12 @@ class GemmFactory {
   RHS2 _C;
   T alpha;
   T beta;
-  size_t m;
-  size_t n;
-  size_t k;
-  size_t lda;
-  size_t ldb;
-  size_t ldc;
+  IndexType m;
+  IndexType n;
+  IndexType k;
+  IndexType lda;
+  IndexType ldb;
+  IndexType ldc;
 
   inline GemmFactory(RHS1 A, RHS1 B, RHS2 C, T alpha, T beta)
       : _A(A),
@@ -371,7 +373,8 @@ class GemmFactory {
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  static inline cl::sycl::nd_range<1> get_nd_range(int m, int n) noexcept {
+  static inline cl::sycl::nd_range<1> get_nd_range(IndexType m,
+                                                   IndexType n) noexcept {
     const cl::sycl::range<1> nwg(((m - 1) / big_tile_rows + 1) *
                                  ((n - 1) / big_tile_cols + 1) * tl_rows *
                                  tl_cols);
@@ -510,13 +513,14 @@ class GemmFactory {
             typename InputPointerType, typename OutputPointerType,
             typename ScratchPointerType>
   static inline void compute_panel_gemm(
-      cl::sycl::nd_item<1> id, int item_id, int m, int mc, int n, int nc, int k,
-      T alpha, InputPointerType A, int lda, InputPointerType B, int ldb, T beta,
-      OutputPointerType C, int ldc, ScratchPointerType s1,
+      cl::sycl::nd_item<1> id, IndexType item_id, IndexType m, IndexType mc,
+      IndexType n, IndexType nc, IndexType k, T alpha, InputPointerType A,
+      IndexType lda, InputPointerType B, IndexType ldb, T beta,
+      OutputPointerType C, IndexType ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
       T (&reg_a)[item_rows], T &reg_b,
       T (&reg_res)[item_rows][item_cols]) noexcept {
-    int ofs = 1;
+    IndexType ofs = 1;
 
     while (k >= cl_elems) {
       extract_input_blocks<check_m_limit, check_n_limit, false>(
@@ -538,9 +542,9 @@ class GemmFactory {
     }
 
 #pragma unroll
-    for (int i = 0; i < item_cols; ++i) {
+    for (IndexType i = 0; i < item_cols; ++i) {
 #pragma unroll
-      for (int j = 0; j < item_rows; ++j) {
+      for (IndexType j = 0; j < item_rows; ++j) {
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
@@ -558,19 +562,20 @@ class GemmFactory {
    */
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename InputPointerType, typename ScratchPointerType>
-  static inline void extract_input_blocks(int item_id, int m, int n, int k,
-                                          InputPointerType A, int lda,
-                                          InputPointerType B, int ldb,
+  static inline void extract_input_blocks(IndexType item_id, IndexType m,
+                                          IndexType n, IndexType k,
+                                          InputPointerType A, IndexType lda,
+                                          InputPointerType B, IndexType ldb,
                                           ScratchPointerType sB,
                                           ScratchPointerType sA) noexcept {
     extract_block<check_m_limit, check_k_limit, trans_a, block_rows, cl_elems,
-                  ldsa>(item_id, A, lda, sA,
-                        [&](int ir, int cr) { return cr < m; },
-                        [&](int ic, int cc) { return cc < k - ic; });
+                  ldsa>(
+        item_id, A, lda, sA, [&](IndexType ir, IndexType cr) { return cr < m; },
+        [&](IndexType ic, IndexType cc) { return cc < k - ic; });
     extract_block<check_k_limit, check_n_limit, trans_b, cl_elems, block_cols,
                   ldsb>(item_id, B, ldb, sB,
-                        [&](int ir, int cr) { return cr < k - ir; },
-                        [&](int ic, int cc) { return cc < n; });
+                        [&](IndexType ir, IndexType cr) { return cr < k - ir; },
+                        [&](IndexType ic, IndexType cc) { return cc < n; });
   }
 
   /*!
@@ -603,19 +608,19 @@ class GemmFactory {
    * @param in_col  a predicate which checks whether a col index is within
    *                matrix bounds
    */
-  template <bool check_row_limit, bool check_col_limit, bool trans, int rows,
-            int cols, int lds, typename InputPointerType,
-            typename ScratchPointerType, typename RowPredicate,
-            typename ColPredicate>
+  template <bool check_row_limit, bool check_col_limit, bool trans,
+            IndexType rows, IndexType cols, IndexType lds,
+            typename InputPointerType, typename ScratchPointerType,
+            typename RowPredicate, typename ColPredicate>
   static inline typename std::enable_if<!trans>::type extract_block(
-      int item_id, InputPointerType ptr, int ld, ScratchPointerType scratch,
-      RowPredicate in_row, ColPredicate in_col) {
-    const int bs = rows * cols;
+      IndexType item_id, InputPointerType ptr, IndexType ld,
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
+    const IndexType bs = rows * cols;
 #pragma unroll
-    for (int i = 0; i < (bs - 1) / wg_size + 1; ++i) {
+    for (IndexType i = 0; i < (bs - 1) / wg_size + 1; ++i) {
       if (!do_check<((bs % wg_size) != 0)>(item_id + i * wg_size < bs))
         continue;
-      const int col_ofs = i * (wg_size / rows);
+      const IndexType col_ofs = i * (wg_size / rows);
       const bool in_range =
           do_check<check_row_limit>(in_row(item_id % rows, 0)) &&
           do_check<check_col_limit>(in_col(item_id / rows, col_ofs));
@@ -623,19 +628,19 @@ class GemmFactory {
     }
   }
 
-  template <bool check_row_limit, bool check_col_limit, bool trans, int rows,
-            int cols, int lds, typename InputPointerType,
-            typename ScratchPointerType, typename RowPredicate,
-            typename ColPredicate>
+  template <bool check_row_limit, bool check_col_limit, bool trans,
+            IndexType rows, IndexType cols, IndexType lds,
+            typename InputPointerType, typename ScratchPointerType,
+            typename RowPredicate, typename ColPredicate>
   static inline typename std::enable_if<trans>::type extract_block(
-      int item_id, InputPointerType ptr, int ld, ScratchPointerType scratch,
-      RowPredicate in_row, ColPredicate in_col) {
-    const int bs = rows * cols;
+      IndexType item_id, InputPointerType ptr, IndexType ld,
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
+    const IndexType bs = rows * cols;
 #pragma unroll
-    for (int i = 0; i < (bs - 1) / wg_size + 1; ++i) {
+    for (IndexType i = 0; i < (bs - 1) / wg_size + 1; ++i) {
       if (!do_check<((bs % wg_size) != 0)>(item_id + i * wg_size < bs))
         continue;
-      const int row_ofs = i * (wg_size / cols);
+      const IndexType row_ofs = i * (wg_size / cols);
       const bool in_range =
           do_check<check_row_limit>(in_row(item_id / cols, row_ofs)) &&
           do_check<check_col_limit>(in_col(item_id % cols, 0));
@@ -664,16 +669,16 @@ class GemmFactory {
     //       Seems that the small reduction of arithmetic operations does not
     //       amortize the cost of loading the larger kernel binary resulting
     //       from loop unrollment.
-    for (int i = 0; i < cl_elems; ++i) {
+    for (IndexType i = 0; i < cl_elems; ++i) {
 #pragma unroll
-      for (int j = 0; j < item_rows; ++j) {
+      for (IndexType j = 0; j < item_rows; ++j) {
         reg_a[j] = A[j * wg_rows];
       }
 #pragma unroll
-      for (int j = 0; j < item_cols; ++j) {
+      for (IndexType j = 0; j < item_cols; ++j) {
         reg_b = B[j * ldsb];
 #pragma unroll
-        for (int l = 0; l < item_rows; ++l) {
+        for (IndexType l = 0; l < item_rows; ++l) {
           reg_res[l][j] += reg_a[l] * reg_b;
         }
       }
@@ -698,22 +703,22 @@ class GemmFactory {
    * @param s  pointer to first memory block
    * @param ss  pointers to other memory blocks
    */
-  template <bool db, int o, int... os, typename P, typename... Ps>
+  template <bool db, IndexType o, IndexType... os, typename P, typename... Ps>
   static inline typename std::enable_if<db>::type sync_smem(
-      cl::sycl::nd_item<1> id, int &ofs_sign, P &s, Ps &... ss) noexcept {
+      cl::sycl::nd_item<1> id, IndexType &ofs_sign, P &s, Ps &... ss) noexcept {
     s = s + ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
 
   template <bool db>
   static inline typename std::enable_if<db>::type sync_smem(
-      cl::sycl::nd_item<1>, int &ofs_sign) noexcept {
+      cl::sycl::nd_item<1>, IndexType &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
-  template <bool db, int..., typename... Ps>
+  template <bool db, IndexType..., typename... Ps>
   static inline typename std::enable_if<!db>::type sync_smem(
-      cl::sycl::nd_item<1> id, int &, Ps &...) noexcept {
+      cl::sycl::nd_item<1> id, IndexType &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
 };
