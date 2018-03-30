@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas1_asum_test.cpp
+ *  @filename sycl_buffer_test.cpp
  *
  **************************************************************************/
 
@@ -30,20 +30,20 @@ typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-REGISTER_SIZE(::RANDOM_SIZE, asum_test)
-REGISTER_STRD(::RANDOM_STRD, asum_test)
-REGISTER_PREC(float, 1e-4, asum_test)
-REGISTER_PREC(double, 1e-6, asum_test)
-REGISTER_PREC(long double, 1e-7, asum_test)
+REGISTER_SIZE(::RANDOM_SIZE, sycl_buffer_test)
+REGISTER_STRD(::RANDOM_STRD, sycl_buffer_test)
+REGISTER_PREC(float, 1e-4, sycl_buffer_test)
+REGISTER_PREC(double, 1e-6, sycl_buffer_test)
+REGISTER_PREC(long double, 1e-7, sycl_buffer_test)
 
-TYPED_TEST(BLAS_Test, asum_test) {
+TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
-  using test = class asum_test;
+  using test = class sycl_buffer_test;
 
   size_t size = TestClass::template test_size<test>();
-  std::ptrdiff_t offset = 15;
+  std::ptrdiff_t offset = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
@@ -59,6 +59,7 @@ TYPED_TEST(BLAS_Test, asum_test) {
   Executor<ExecutorType> ex(q);
   auto a = sycl_buffer<ScalarT>(vX.data(), size);
   (a + offset).copy_to_host(ex, vR.data());
-  printf("vX[0] %f vs vR[0] %f\n", vX[offset], vR[0]);
-  ASSERT_NEAR(vX[offset], vR[0], prec);
+  for (auto i = 0; i < size; i++) {
+    ASSERT_NEAR(vX[i + offset], vR[i], prec);
+  }
 }
