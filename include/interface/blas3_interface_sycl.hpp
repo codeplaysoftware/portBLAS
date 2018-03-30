@@ -43,11 +43,13 @@ namespace blas {
  *        runtime values of transpose.
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          size_t ClSize, typename TileT, typename ExecutorType, typename T>
+          int ClSize, typename TileT, typename ExecutorType, typename T,
+          typename IndexType>
 cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
-                             bool _TransB, int _M, int _N, int _K, T _alpha,
-                             T* _A, int _lda, T* _B, int _ldb, T _beta, T* _C,
-                             int _ldc) {
+                             bool _TransB, IndexType _M, IndexType _N,
+                             IndexType _K, T _alpha, T* _A, IndexType _lda,
+                             T* _B, IndexType _ldb, T _beta, T* _C,
+                             IndexType _ldc) {
   cl::sycl::event event;
   using RHS =
       matrix_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
@@ -90,10 +92,11 @@ cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
  *
  * See netlib.org/blas for details.
  */
-template <typename ExecutorType, typename T>
+template <typename ExecutorType, typename T, typename IndexType>
 cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
-                      int _M, int _N, int _K, T _alpha, T* _A, int _lda, T* _B,
-                      int _ldb, T _beta, T* _C, int _ldc) {
+                      IndexType _M, IndexType _N, IndexType _K, T _alpha, T* _A,
+                      IndexType _lda, T* _B, IndexType _ldb, T _beta, T* _C,
+                      IndexType _ldc) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
