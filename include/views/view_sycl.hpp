@@ -214,7 +214,7 @@ struct vector_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_,
    */
   ScalarT &eval(IndexType i) {
     //  auto eval(size_t i) -> decltype(data_[i]) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;  // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -251,7 +251,7 @@ struct vector_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_,
    * @brief Allows printing information on the host.
    */
   ScalarT val(IndexType i) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -488,7 +488,7 @@ struct matrix_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_> {
    * @brief See matrix_view.
    */
   ScalarT &eval(IndexType k) {  // -> decltype(data_[i]) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;  // The disp has been integrated in range_accessor
     int access = (!(accessDev_ ^ accessOpr_));
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
@@ -501,7 +501,7 @@ struct matrix_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_> {
    * @brief See matrix_view.
    */
   ScalarT &eval(IndexType i, IndexType j) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor;
+    auto ind = disp_;  // The disp has been integrated in range_accessor;
 
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -536,7 +536,7 @@ struct matrix_view<ScalarT_, bufferT<ScalarT_, dim, Allocator_>, IndexType_> {
    * @brief Used to print the values on the host.
    */
   ScalarT val(IndexType i, IndexType j) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;  // The disp has been integrated in range_accessor
 
     if (!(accessDev_ ^ accessOpr_)) {
       ind += (sizeL_ * i) + j;
@@ -761,7 +761,7 @@ struct vector_view<ScalarT_, accessorT<ScalarT_>, IndexType_, IncrementType_> {
 
   /**** EVALUATING ****/
   ScalarT &eval(IndexType i) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;  // The disp has been integrated in range_accessor
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -946,7 +946,7 @@ struct matrix_view<ScalarT_, accessorT<ScalarT_>, IndexType_> {
   }
 
   inline ScalarT &eval(IndexType i, IndexType j) {  // -> decltype(data_[i]) {
-    auto ind = 0;  // disp_; // The disp has been integrated in range_accessor
+    auto ind = disp_;  // The disp has been integrated in range_accessor
     int accessMode = !(accessDev_ ^ accessOpr_);
 
     if (accessMode) {
