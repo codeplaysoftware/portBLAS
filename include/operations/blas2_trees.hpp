@@ -47,15 +47,15 @@ struct PrdRowMatVct {
 
   RHS1 r1;
   RHS2 r2;
-  size_t mult;
+  IndexType mult;
 
   PrdRowMatVct(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dim = r2.getSize();
 
     auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t j = 0; j < dim; j++) {
+    for (IndexType j = 0; j < dim; j++) {
       val += r1.eval(i, j) * r2.eval(j);
     }
     return val;
@@ -64,7 +64,7 @@ struct PrdRowMatVct {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
-  size_t getSize() { return r1.getSizeR(); }
+  IndexType getSize() { return r1.getSizeR(); }
 };
 
 template <class RHS1, class RHS2>
@@ -88,17 +88,17 @@ struct PrdRowMatVctMult {
   RHS1 r1;
   RHS2 r2;
   RHS3 r3;
-  size_t nThr;
+  IndexType nThr;
 
   PrdRowMatVctMult(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, RHS3 &_r3,
-                   size_t _nThr)
+                   IndexType _nThr)
       : l(_l), scl(_scl), r1(_r1), r2(_r2), r3(_r3), nThr{_nThr} {};
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dim = r2.getSize();
 
     auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t j = 0; j < dim; j++) {
+    for (IndexType j = 0; j < dim; j++) {
       val += r1.eval(i, j) * r2.eval(j);
     }
     l.eval(i) += scl * val;
@@ -107,22 +107,22 @@ struct PrdRowMatVctMult {
 
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    size_t localid = ndItem.get_local(0);
-    size_t localSz = ndItem.get_local_range(0);
-    size_t groupid = ndItem.get_group(0);
+    IndexType localid = ndItem.get_local(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
 
-    size_t dimR = r1.getSizeR();
-    size_t dimC = r1.getSizeC();
+    IndexType dimR = r1.getSizeR();
+    IndexType dimC = r1.getSizeC();
 
-    size_t rowSz = (localSz / nThr);  // number of rows per each workgroup
-    size_t rowid = groupid * rowSz + localid % rowSz;  // rowid of the thread
+    IndexType rowSz = (localSz / nThr);  // number of rows per each workgroup
+    IndexType rowid = groupid * rowSz + localid % rowSz;  // rowid of the thread
 
-    size_t colid = localid / rowSz;  // first column on which thread works
+    IndexType colid = localid / rowSz;  // first column on which thread works
 
     // Local computations
     auto val = iniAddOp1_struct::eval(r2.eval(0));
     if (rowid < dimR) {
-      for (size_t j = colid; j < dimC; j += nThr) {
+      for (IndexType j = colid; j < dimC; j += nThr) {
         val += r1.eval(rowid, j) * r2.eval(j);
       }
     }
@@ -132,7 +132,7 @@ struct PrdRowMatVctMult {
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     // Reduction inside the block
-    for (size_t offset = nThr >> 1; offset > 0; offset >>= 1) {
+    for (IndexType offset = nThr >> 1; offset > 0; offset >>= 1) {
       if ((rowid < dimR) && (colid < offset)) {
         scratch[localid] += scratch[localid + offset * rowSz];
       }
@@ -146,13 +146,13 @@ struct PrdRowMatVctMult {
     return val;
   }
 
-  size_t getSize() { return r1.getSizeR(); }
+  IndexType getSize() { return r1.getSizeR(); }
 };
 
-template <class LHS, class RHS1, class RHS2, class RHS3>
+template <class LHS, class RHS1, class RHS2, class RHS3, typename IndexType>
 PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3> make_prdRowMatVctMult(
     LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2, RHS3 &r3,
-    size_t nThr) {
+    IndexType nThr) {
   return PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3>(l, scl, r1, r2, r3, nThr);
 }
 
@@ -169,16 +169,16 @@ struct PrdRowMatVctMultShm {
   LHS l;
   RHS1 r1;
   RHS2 r2;
-  size_t nThr;
+  IndexType nThr;
 
-  PrdRowMatVctMultShm(LHS &_l, RHS1 &_r1, RHS2 &_r2, size_t _nThr)
+  PrdRowMatVctMultShm(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType _nThr)
       : l(_l), r1(_r1), r2(_r2), nThr{_nThr} {};
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dim = r2.getSize();
 
     auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t j = 0; j < dim; j++) {
+    for (IndexType j = 0; j < dim; j++) {
       val += r1.eval(i, j) * r2.eval(j);
     }
     l.eval(i) += val;
@@ -187,31 +187,32 @@ struct PrdRowMatVctMultShm {
 
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    size_t localid = ndItem.get_local(0);
-    size_t localSz = ndItem.get_local_range(0);
-    size_t groupid = ndItem.get_group(0);
-    size_t groupSz = ndItem.get_num_groups(0);
+    IndexType localid = ndItem.get_local(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_num_groups(0);
 
-    size_t dimR = r1.getSizeR();
-    size_t dimC = r1.getSizeC();
+    IndexType dimR = r1.getSizeR();
+    IndexType dimC = r1.getSizeC();
 
-    size_t blqSz = (groupSz + nThr - 1) / nThr;  // number of "real" workgroups
-    size_t blqidR = groupid % blqSz;  // 1st row id of the current workgroup
-    size_t blqidC = groupid / blqSz;  // col bloq id of the current workgroup
+    IndexType blqSz =
+        (groupSz + nThr - 1) / nThr;     // number of "real" workgroups
+    IndexType blqidR = groupid % blqSz;  // 1st row id of the current workgroup
+    IndexType blqidC = groupid / blqSz;  // col bloq id of the current workgroup
 
-    size_t rowSz =
+    IndexType rowSz =
         (dimR < localSz) ? dimR : localSz;  // number of rows per each workgroup
-    size_t colSz =
+    IndexType colSz =
         (dimC + nThr - 1) / nThr;  // number of columns per each thread
 
-    size_t rowid = blqidR * rowSz + localid;  // rowid of the current thread
-    size_t colid = blqidC * colSz;  // first column of the current thread
+    IndexType rowid = blqidR * rowSz + localid;  // rowid of the current thread
+    IndexType colid = blqidC * colSz;  // first column of the current thread
 
-    size_t k;
+    IndexType k;
 
     // Copying  to the scratch
     k = localid;
-    for (size_t j = colid + localid; j < colid + colSz; j += rowSz) {
+    for (IndexType j = colid + localid; j < colid + colSz; j += rowSz) {
       if ((rowid < dimR) && (j < dimC)) scratch[k] = r2.eval(j);
       k += rowSz;
     }
@@ -222,7 +223,7 @@ struct PrdRowMatVctMultShm {
     // Local computation
     auto val = iniAddOp1_struct::eval(r2.eval(0));
     k = 0;
-    for (size_t j = colid; j < colid + colSz; j++) {
+    for (IndexType j = colid; j < colid + colSz; j++) {
       if ((rowid < dimR) && (j < dimC)) val += r1.eval(rowid, j) * scratch[k++];
     }
     // The result is stored in lhs
@@ -231,13 +232,13 @@ struct PrdRowMatVctMultShm {
     return val;
   }
 
-  size_t getSize() { return r1.getSizeR(); }
+  IndexType getSize() { return r1.getSizeR(); }
 };
 
-template <class LHS, class RHS1, class RHS2>
+template <class LHS, class RHS1, class RHS2, typename IndexType>
 PrdRowMatVctMultShm<LHS, RHS1, RHS2> make_prdRowMatVctMultShm(LHS &l, RHS1 &r1,
                                                               RHS2 &r2,
-                                                              size_t nThr) {
+                                                              IndexType nThr) {
   return PrdRowMatVctMultShm<LHS, RHS1, RHS2>(l, r1, r2, nThr);
 }
 
@@ -256,11 +257,11 @@ struct AddPrdRowMatVctMultShm {
   AddPrdRowMatVctMultShm(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2)
       : l(_l), scl(_scl), r1(_r1), r2(_r2){};
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dimC = r1.getSizeC();
 
     auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t j = 0; j < dimC; j++) {
+    for (IndexType j = 0; j < dimC; j++) {
       val += r1.eval(i, j);
     }
     l.eval(i) = scl * val + r2.eval(i);
@@ -271,7 +272,7 @@ struct AddPrdRowMatVctMultShm {
     return eval(ndItem.get_global(0));
   }
 
-  size_t getSize() { return r1.getSizeR(); }
+  IndexType getSize() { return r1.getSizeR(); }
 };
 
 template <class LHS, class RHS1, class RHS2>
@@ -290,33 +291,33 @@ struct RedRowMatVct {
   using value_type = typename RHS2::value_type;
   RHS1 r1;
   RHS2 r2;
-  size_t warpSize;
+  IndexType warpSize;
 
-  RedRowMatVct(RHS1 &_r1, RHS2 &_r2, size_t _warpSize)
+  RedRowMatVct(RHS1 &_r1, RHS2 &_r2, IndexType _warpSize)
       : r1(_r1), r2(_r2), warpSize(_warpSize){};
 
 #if ORIGINAL_CODE
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dim = r2.getSize();
     value_type v[warpSize];
-    for (size_t w = 0; w < warpSize; w++) {
+    for (IndexType w = 0; w < warpSize; w++) {
       auto valWI = iniAddOp1_struct::eval(r2.eval(0));
-      for (size_t j = w; j < dim; j += warpSize) {
+      for (IndexType j = w; j < dim; j += warpSize) {
         valWI += r1.eval(i, j) * r2.eval(j);
       }
       v[w] = valWI;
     }
     auto valWG = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t w = 0; w < warpSize; w++) {
+    for (IndexType w = 0; w < warpSize; w++) {
       valWG += v[w];
     }
     return valWG;
   }
 #else
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto dim = r2.getSize();
     auto valWG = iniAddOp1_struct::eval(r2.eval(0));
-    for (size_t j = 0; j < dim; j++) {
+    for (IndexType j = 0; j < dim; j++) {
       valWG += r1.eval(i, j) * r2.eval(j);
     }
     return valWG;
@@ -330,45 +331,45 @@ struct RedRowMatVct {
 #if BLAS_EXPERIMENTAL
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    size_t Pieces = 2;
+    IndexType Pieces = 2;
 
-    size_t localid = ndItem.get_local(0);
-    size_t localSz = ndItem.get_local_range(0);
-    size_t groupid = ndItem.get_group(0);
-    size_t groupSz = ndItem.get_num_groups(0);
-    size_t globalid = ndItem.get_global(0);
-    size_t globalSz = ndItem.get_global_range(0);
+    IndexType localid = ndItem.get_local(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_num_groups(0);
+    IndexType globalid = ndItem.get_global(0);
+    IndexType globalSz = ndItem.get_global_range(0);
 
-    size_t dimR = r1.getSizeR();
-    size_t dimC = r1.getSizeC();
+    IndexType dimR = r1.getSizeR();
+    IndexType dimC = r1.getSizeC();
 
-    size_t blqSz = groupSz;  // number of workgroups
+    IndexType blqSz = groupSz;  // number of workgroups
     // row blq id of the current workgroup
-    size_t blqidR = (groupid + (Pieces * blqSz) - 1) / (Pieces * blqSz);
-    size_t blqidC =
+    IndexType blqidR = (groupid + (Pieces * blqSz) - 1) / (Pieces * blqSz);
+    IndexType blqidC =
         groupid % (Pieces * blqSz);  // 1st col id of the current workgroup
 
     // number of columns per each workgroup
-    size_t colSz = (dimC < (Pieces * localSz)) ? dimC : Pieces * localSz;
+    IndexType colSz = (dimC < (Pieces * localSz)) ? dimC : Pieces * localSz;
     // number of rows per each thread
-    size_t rowSz = (dimR + blqidR - 1) / blqidR;
+    IndexType rowSz = (dimR + blqidR - 1) / blqidR;
 
-    size_t colid = blqidC * colSz + localid;  // colid of the current thread
-    size_t rowid = blqidR * rowSz;            // first row of the current thread
+    IndexType colid = blqidC * colSz + localid;  // colid of the current thread
+    IndexType rowid = blqidR * rowSz;  // first row of the current thread
 
     value_type val;
 #if BLAS_EXPERIMENTAL
     // Local computations
     while (rowid < dimR) {
       auto val = iniAddOp1_struct::eval(r2.eval(0));
-      for (size_t j = colid; j < dimC; j += colSz) {
+      for (IndexType j = colid; j < dimC; j += colSz) {
         val += r1.eval(rowid, j) * r2.eval(j);
       }
       scratch[localid] = val;
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
       // Reduction inside the block
-      for (size_t offset = nThr >> 1; offset > 0; offset >>= 1) {
+      for (IndexType offset = nThr >> 1; offset > 0; offset >>= 1) {
         if ((rowid < dimR) && (colid < offset)) {
           scratch[localid] += scratch[localid + offset];
         }
@@ -392,12 +393,12 @@ struct RedRowMatVct {
     return eval(ndItem.get_global(0));
   }
 #endif  // BLAS_EXPERIMENTAL
-  size_t getSize() { return r1.getSizeR(); }
+  IndexType getSize() { return r1.getSizeR(); }
 };
 
-template <class RHS1, class RHS2>
+template <class RHS1, class RHS2, typename IndexType>
 RedRowMatVct<RHS1, RHS2> make_redRowMatVct(RHS1 &r1, RHS2 &r2,
-                                           size_t warpSize) {
+                                           IndexType warpSize) {
   return RedRowMatVct<RHS1, RHS2>(r1, r2, warpSize);
 }
 
@@ -414,7 +415,7 @@ struct ModifRank1 {
 
   ModifRank1(RHS1 &_r1, RHS2 &_r2, RHS3 &_r3) : r1(_r1), r2(_r2), r3(_r3){};
 
-  value_type eval(size_t i) {
+  value_type eval(IndexType i) {
     auto size = (r1.getAccess()) ? r1.getSizeC() : r1.getSizeR();
     auto row = (r1.getAccess()) ? (i / size) : (i % size);
     auto col = (r1.getAccess()) ? (i % size) : (i / size);
@@ -428,7 +429,7 @@ struct ModifRank1 {
     return eval(ndItem.get_global(0));
   }
 
-  size_t getSize() { return r1.getSize(); }
+  IndexType getSize() { return r1.getSize(); }
 };
 
 template <class RHS1, class RHS2, class RHS3>
