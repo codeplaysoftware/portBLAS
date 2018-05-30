@@ -43,8 +43,8 @@ TYPED_TEST(BLAS_Test, gemv_test) {
   size_t m = 125;
   size_t n = 127;
   size_t lda = m;
-  size_t incX = 1;
-  size_t incY = 1;
+  long incX = 1;
+  long incY = 1;
   const char* t_str = "n";  // Testing the no transpose matrix
   ScalarT prec = TestClass::template test_prec<test>();
   ScalarT alpha = ScalarT(1);
@@ -101,8 +101,8 @@ TYPED_TEST(BLAS_Test, gemv_test_transposed) {
   size_t m = 125;
   size_t n = 127;
   size_t lda = m;
-  size_t incX = 1;
-  size_t incY = 1;
+  long incX = 1;
+  long incY = 1;
   const char* t_str = "t";  // Testing the no transpose matrix
   ScalarT prec = TestClass::template test_prec<test>();
   ScalarT alpha = ScalarT(1);

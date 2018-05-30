@@ -139,6 +139,11 @@ class ReferenceGemmFactory {
 
     C[0] = alpha * reg_res + beta * C[0];
   }
+  void bind(cl::sycl::handler &h) {
+    _A.bind(h);
+    _B.bind(h);
+    _C.bind(h);
+  }
 };
 
 /*!
@@ -493,6 +498,12 @@ class GemmFactory {
           id, item_id, m, mc, n, nc, k, alpha, A, lda, B, ldb, beta, C, ldc, s1,
           s2, s3, s4, reg_a, reg_b, reg_res);
     }
+  }
+
+  void bind(cl::sycl::handler &h) {
+    _A.bind(h);
+    _B.bind(h);
+    _C.bind(h);
   }
 
  private:

@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_interface_sycl.hpp
+ *  @filename blas3_interface.hpp
  *
  **************************************************************************/
 
-#ifndef BLAS3_INTERFACE_SYCL_GEMM_HPP
-#define BLAS3_INTERFACE_SYCL_GEMM_HPP
+#ifndef BLAS3_INTERFACE_HPP
+#define BLAS3_INTERFACE_HPP
 
 #include <algorithm>
 #include <cctype>
@@ -43,35 +43,32 @@ namespace blas {
  *        runtime values of transpose.
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, typename ExecutorType, typename T,
+          int ClSize, typename TileT, typename Executor, typename ContainerT0,
+          typename ContainerT1, typename ContainerT2, typename T,
           typename IndexType>
-cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
-                             bool _TransB, IndexType _M, IndexType _N,
-                             IndexType _K, T _alpha, T* _A, IndexType _lda,
-                             T* _B, IndexType _ldb, T _beta, T* _C,
-                             IndexType _ldc) {
-  cl::sycl::event event;
-  using RHS =
-      matrix_view<T, typename Executor<ExecutorType>::template ContainerT<T>>;
-  auto a_container = ex.get_buffer(_A);
-  RHS buffer_a(a_container, _M, _K, 0, _lda, ex.get_offset(_A));
-  auto b_container = ex.get_buffer(_B);
-  RHS buffer_b(b_container, _K, _N, 0, _ldb, ex.get_offset(_B));
-  auto c_container = ex.get_buffer(_C);
-  RHS buffer_c(c_container, _M, _N, 0, _ldc, ex.get_offset(_C));
+typename Executor::Return_Type _select_gemm(
+    Executor& ex, bool _TransA, bool _TransB, IndexType _M, IndexType _N,
+    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
+    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
+  typename Executor::Return_Type ret;
+
+  auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, 0);
+  auto buffer_b = make_matrix_view(ex, _B, _K, _N, _ldb, 0);
+  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, 0);
+
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
     if (ex.has_local_memory()) {                                               \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
-      event = ex.gemm_executor(gemm);                                          \
+      ret = ex.gemm_executor(gemm);                                            \
     } else {                                                                   \
       auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>(          \
           buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
-      event = ex.gemm_executor(gemm);                                          \
+      ret = ex.gemm_executor(gemm);                                            \
     }                                                                          \
-    return event;                                                              \
+    return ret;                                                                \
   }
 
   const bool NoTrans = false;
@@ -83,7 +80,7 @@ cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
   ENABLE_GEMM_TRANSPOSE(Trans, Trans);
 
 #undef ENABLE_GEMM_TRANSPOSE
-  return event;
+  return ret;
 }
 
 /*!
@@ -92,11 +89,12 @@ cl::sycl::event _select_gemm(Executor<ExecutorType>& ex, bool _TransA,
  *
  * See netlib.org/blas for details.
  */
-template <typename ExecutorType, typename T, typename IndexType>
+template <typename ExecutorType, typename ContainerT0, typename ContainerT1,
+          typename ContainerT2, typename T, typename IndexType>
 cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
-                      IndexType _M, IndexType _N, IndexType _K, T _alpha, T* _A,
-                      IndexType _lda, T* _B, IndexType _ldb, T _beta, T* _C,
-                      IndexType _ldc) {
+                      IndexType _M, IndexType _N, IndexType _K, T _alpha,
+                      ContainerT0 _A, IndexType _lda, ContainerT1 _B,
+                      IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
@@ -136,4 +134,4 @@ cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
 
 }  // namespace blas
 
-#endif  // BLAS3_INTERFACE_SYCL_HPP
+#endif  // BLAS3_INTERFACE_HPP

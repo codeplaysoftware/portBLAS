@@ -24,7 +24,6 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-
 typedef ::testing::Types<blas_test_args<double>> BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
@@ -37,6 +36,52 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class iamax_test;
+
+  size_t size = TestClass::template test_size<test>();
+  long strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create a random vector vX
+  std::vector<ScalarT> vX(size);
+  TestClass::set_rand(vX, size);
+  // create a vector which will hold the result
+  std::vector<IndexValueTuple<ScalarT>> vI(
+      1, constant<IndexValueTuple<ScalarT>, const_val::imax>::value);
+
+  ScalarT max = ScalarT(0);
+  size_t imax = std::numeric_limits<size_t>::max();
+  // compute index and value of the element with biggest absolute value
+  for (size_t i = 0; i < size; i += strd) {
+    if (std::abs(vX[i]) > std::abs(max)) {
+      max = vX[i];
+      imax = i;
+    }
+  }
+  IndexValueTuple<ScalarT> res(imax, max);
+
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  auto gpu_vX = sycl_buffer<ScalarT>(vX, size);
+  auto gpu_vI = sycl_buffer<IndexValueTuple<ScalarT>>(size_t(1));
+  _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
+  gpu_vI.copy_to_host(ex, vI);
+  // check that the result value is the same
+  ASSERT_EQ(res.get_value(), vI[0].get_value());
+  // check that the result index is the same
+  ASSERT_EQ(res.get_index(), vI[0].get_index());
+}
+
+REGISTER_SIZE(::RANDOM_SIZE, iamax_test_vpr)
+REGISTER_STRD(1, iamax_test_vpr)
+
+TYPED_TEST(BLAS_Test, iamax_test_vpr) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+  using test = class iamax_test_vpr;
 
   size_t size = TestClass::template test_size<test>();
   long strd = TestClass::template test_strd<test>();

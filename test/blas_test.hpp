@@ -36,9 +36,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <interface/blas1_interface_sycl.hpp>
-#include <interface/blas2_interface_sycl.hpp>
-#include <interface/blas3_interface_sycl.hpp>
+#include "queue/sycl_buffer.hpp"
+
+#include <interface/blas1_interface.hpp>
+#include <interface/blas2_interface.hpp>
+#include <interface/blas3_interface.hpp>
 
 #include "blas_test_macros.hpp"
 #include "system_reference_blas.hpp"

@@ -43,6 +43,7 @@ expression.
 @tparam ValueT Type of each element fo the vector.
 @tparam ContainerT Type of the container that is stored inside.
 */
+
 template <class ValueT_, class ContainerT_, typename IndexType_ = size_t,
           typename IncrementType_ = long>
 struct vector_view {
@@ -503,6 +504,15 @@ struct matrix_view {
     }
     std::cout << " ]" << std::endl;
   }
+};
+
+template <typename Executor, typename T>
+struct ViewTypeTrace {
+  using ScalarT = typename RemoveAll<T>::Type;
+  using VectorView =
+      vector_view<ScalarT, typename Executor::template ContainerT<ScalarT>>;
+  using MatrixView =
+      matrix_view<ScalarT, typename Executor::template ContainerT<ScalarT>>;
 };
 
 }  // namespace blas

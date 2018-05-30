@@ -124,6 +124,10 @@ struct Join {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r.bind(h);
+  }
 };
 
 /** Assign.
@@ -144,6 +148,10 @@ struct Assign {
   value_type eval(IndexType i) {
     auto val = l.eval(i) = r.eval(i);
     return val;
+  }
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r.bind(h);
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
@@ -180,6 +188,12 @@ struct DobleAssign {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  inline void bind(cl::sycl::handler &h) {
+    l1.bind(h);
+    r1.bind(h);
+    l2.bind(h);
+    r2.bind(h);
+  }
 };
 
 /*!ScalarOp.
@@ -202,6 +216,7 @@ struct ScalarOp {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  inline void bind(cl::sycl::handler &h) { r.bind(h); }
 };
 
 /*! UnaryOp.
@@ -221,6 +236,7 @@ struct UnaryOp {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void bind(cl::sycl::handler &h) { r.bind(h); }
 };
 
 /*! BinaryOp.
@@ -244,6 +260,10 @@ struct BinaryOp {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r.bind(h);
+  }
 };
 
 /*! TupleOp.
@@ -264,11 +284,17 @@ struct TupleOp {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global(0));
   }
+  void bind(cl::sycl::handler &h) { r.bind(h); }
 };
 
+template <typename RHS>
+inline TupleOp<RHS> make_tuple_op(RHS &r) {
+  return TupleOp<RHS>(r);
+}
+
 /*! AssignReduction.
- * @brief Implements the reduction operation for assignments (in the form y = x)
- *  with y a scalar and x a subexpression tree.
+ * @brief Implements the reduction operation for assignments (in the form y
+ * = x) with y a scalar and x a subexpression tree.
  */
 template <typename Operator, class LHS, class RHS>
 struct AssignReduction {
@@ -344,6 +370,10 @@ struct AssignReduction {
       l.eval(groupid) = scratch[localid];
     }
     return l.eval(groupid);
+  }
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r.bind(h);
   }
 };
 

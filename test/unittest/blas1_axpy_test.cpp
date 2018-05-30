@@ -22,11 +22,62 @@
  *  @filename blas1_axpy_test.cpp
  *
  **************************************************************************/
-
 #include "blas_test.hpp"
-
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
     BlasTypes;
+
+TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+
+REGISTER_SIZE(::RANDOM_SIZE, axpy_test_buff)
+REGISTER_STRD(::RANDOM_STRD, axpy_test_buff)
+REGISTER_PREC(float, 1e-4, axpy_test_buff)
+REGISTER_PREC(double, 1e-6, axpy_test_buff)
+REGISTER_PREC(std::complex<float>, 1e-4, axpy_test_buff)
+REGISTER_PREC(std::complex<double>, 1e-6, axpy_test_buff)
+
+TYPED_TEST(BLAS_Test, axpy_test_buff) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+  using test = class axpy_test_buff;
+
+  size_t size = TestClass::template test_size<test>();
+  long strd = TestClass::template test_strd<test>();
+  ScalarT prec = TestClass::template test_prec<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // setting alpha to some value
+  ScalarT alpha(1.54);
+  // creating three vectors: vX, vY and vZ.
+  // the for loop will compute axpy for vX, vY
+  std::vector<ScalarT> vX(size);
+  std::vector<ScalarT> vY(size);
+  std::vector<ScalarT> vZ(size, 0);
+  TestClass::set_rand(vX, size);
+  TestClass::set_rand(vY, size);
+
+  // compute axpy in a for loop and put the result into vZ
+  for (size_t i = 0; i < size; ++i) {
+    if (i % strd == 0) {
+      vZ[i] = alpha * vX[i] + vY[i];
+    } else {
+      vZ[i] = vY[i];
+    }
+  }
+
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  auto gpu_vX = sycl_buffer<ScalarT>(vX, size);
+  auto gpu_vY = sycl_buffer<ScalarT>(vY, size);
+  _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  gpu_vY.copy_to_host(ex, vY);
+  // check that both results are the same
+  for (size_t i = 0; i < size; ++i) {
+    ASSERT_NEAR(vZ[i], vY[i], prec);
+  }
+}
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
@@ -42,6 +93,60 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class axpy_test;
+
+  size_t size = TestClass::template test_size<test>();
+  long strd = TestClass::template test_strd<test>();
+  ScalarT prec = TestClass::template test_prec<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // setting alpha to some value
+  ScalarT alpha(1.54);
+  // creating three vectors: vX, vY and vZ.
+  // the for loop will compute axpy for vX, vY
+  std::vector<ScalarT> vX(size);
+  std::vector<ScalarT> vY(size);
+  std::vector<ScalarT> vZ(size, 0);
+  TestClass::set_rand(vX, size);
+  TestClass::set_rand(vY, size);
+
+  // compute axpy in a for loop and put the result into vZ
+  for (size_t i = 0; i < size; ++i) {
+    if (i % strd == 0) {
+      vZ[i] = alpha * vX[i] + vY[i];
+    } else {
+      vZ[i] = vY[i];
+    }
+  }
+
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  auto gpu_vX =
+      sycl_buffer<ScalarT>(vX, size); 
+  auto gpu_vY = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(vY.data(), gpu_vY, size);
+  _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  ex.copy_to_host(gpu_vY, vY.data(), size);
+  // check that both results are the same
+  for (size_t i = 0; i < size; ++i) {
+    ASSERT_NEAR(vZ[i], vY[i], prec);
+  }
+  ex.template deallocate<ScalarT>(gpu_vY);
+}
+
+REGISTER_SIZE(::RANDOM_SIZE, axpy_test_vpr)
+REGISTER_STRD(::RANDOM_STRD, axpy_test_vpr)
+REGISTER_PREC(float, 1e-4, axpy_test_vpr)
+REGISTER_PREC(double, 1e-6, axpy_test_vpr)
+REGISTER_PREC(std::complex<float>, 1e-4, axpy_test_vpr)
+REGISTER_PREC(std::complex<double>, 1e-6, axpy_test_vpr)
+
+TYPED_TEST(BLAS_Test, axpy_test_vpr) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+  using test = class axpy_test_vpr;
 
   size_t size = TestClass::template test_size<test>();
   long strd = TestClass::template test_strd<test>();
