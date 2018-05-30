@@ -1,5 +1,5 @@
-#ifndef SYCL_MEMEORY
-#define SYCL_MEMEORY
+#ifndef SYCL_MEMORY
+#define SYCL_MEMORY
 #include <types/sycl_types.hpp>
 namespace blas {
 template <typename T>
@@ -50,7 +50,7 @@ class sycl_buffer {
       auto acc = get_range_access<cl::sycl::access::mode::write>(cgh);
       cgh.copy(data, acc);
     });
-    //event.wait();
+    // event.wait();
     return event;
   }
   template <typename Executor>
@@ -59,7 +59,7 @@ class sycl_buffer {
       auto acc = get_range_access<cl::sycl::access::mode::read>(cgh);
       cgh.copy(acc, data);
     });
-    //event.wait();
+    // event.wait();
     return event;
   }
 
@@ -69,7 +69,7 @@ class sycl_buffer {
       auto acc = get_range_access<cl::sycl::access::mode::write>(cgh);
       cgh.copy(data.data(), acc);
     });
-   // event.wait();
+    // event.wait();
     return event;
   }
   template <typename Executor>
@@ -78,7 +78,7 @@ class sycl_buffer {
       auto acc = get_range_access<cl::sycl::access::mode::read>(cgh);
       cgh.copy(acc, data.data());
     });
-  //  event.wait();
+    //  event.wait();
     return event;
   }
   template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
@@ -113,4 +113,4 @@ struct Reconstruct_Container<T, sycl_buffer<U>> {
 };
 
 }  // end namespace blas
-#endif  // SYCL_MEMEORY
+#endif  // SYCL_MEMORY
