@@ -17,7 +17,10 @@ class buffer_iterator {
   friend inline placeholder_accessor_t<scal_t, AcM> get_range_accessor(
       buffer_iterator<scal_t> buff_iterator);
 
-  buffer_iterator(const buff_t& buff_) : m_buffer(buff_), m_offset(0) {}
+  buffer_iterator(const buff_t& buff_, std::ptrdiff_t offset_)
+      : m_offset(offset_), m_buffer(buff_) {}
+
+  buffer_iterator(const buff_t& buff_) : buffer_iterator(buff_, 0) {}
 
   template <typename other_scalar_t>
   buffer_iterator(const buffer_iterator<other_scalar_t>& other)
@@ -67,9 +70,6 @@ class buffer_iterator {
   scalar_t* operator->() = delete;
 
  private:
-  buffer_iterator(buff_t buff_, std::ptrdiff_t offset_)
-      : m_offset(offset_), m_buffer(buff_) {}
-
   std::ptrdiff_t m_offset;
   buff_t m_buffer;
 };
