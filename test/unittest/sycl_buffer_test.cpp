@@ -24,7 +24,7 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include "queue/sycl_buffer.hpp"
+#include "queue/sycl_iterator.hpp"
 typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 
@@ -57,8 +57,8 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto a = sycl_buffer<ScalarT>(vX.data(), size);
-  (a + offset).copy_to_host(ex, vR.data());
+  auto a = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX.data(), size);
+  ex.copy_to_host((a + offset), vR.data());
   for (auto i = 0; i < size; i++) {
     ASSERT_NEAR(vX[i + offset], vR[i], prec);
   }

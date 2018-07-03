@@ -30,15 +30,13 @@
 
 #include <CL/sycl.hpp>
 
-//#include <executors/blas1_tree_executor.hpp>
-//#include <executors/blas2_tree_executor.hpp>
-//#include <executors/blas3_tree_executor.hpp>
 #include <executors/executor_base.hpp>
 #include <operations/blas1_trees.hpp>
 #include <operations/blas2_trees.hpp>
 #include <operations/blas3_trees.hpp>
+#include <queue/helper.hpp>
 #include <queue/queue_sycl.hpp>
-#include <queue/sycl_buffer.hpp>
+#include <queue/sycl_iterator.hpp>
 #include <types/sycl_types.hpp>
 #include <views/view_sycl.hpp>
 
@@ -123,9 +121,9 @@ the value type of the tree.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <int usingSharedMem, typename treeT>
+template <int usingSharedMem, typename tree_t>
 struct shared_mem_type {
-  using type = typename treeT::value_type;
+  using type = typename tree_t::value_type;
 };
 
 /*!
@@ -134,8 +132,8 @@ Specialised case for usingSharedMem == disabled, which defines the type as void.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <typename treeT>
-struct shared_mem_type<using_shared_mem::disabled, treeT> {
+template <typename tree_t>
+struct shared_mem_type<using_shared_mem::disabled, tree_t> {
   using type = void;
 };
 
@@ -144,10 +142,10 @@ struct shared_mem_type<using_shared_mem::disabled, treeT> {
 if enabled. Non-specialised case for usingSharedMem == enabled, which calls eval
 on the tree with the shared_memory as well as an index.
 @tparam usingSharedMem Enum class specifying whether shared memory is enabled.
-@tparam treeT Type of the tree.
+@tparam tree_t Type of the tree.
 @tparam sharedMemT Value type of the shared memory.
 */
-template <int usingSharedMem, typename treeT, typename sharedMemT>
+template <int usingSharedMem, typename tree_t, typename sharedMemT>
 struct tree {
   /*!
   @brief Static function that calls eval on a tree, passing the shared_memory
@@ -156,7 +154,7 @@ struct tree {
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static void eval(treeT &tree, shared_mem<sharedMemT, usingSharedMem> scratch,
+  static void eval(tree_t &tree, shared_mem<sharedMemT, usingSharedMem> scratch,
                    cl::sycl::nd_item<1> index) {
     tree.eval(scratch, index);
   }
@@ -167,18 +165,18 @@ struct tree {
 if enabled. Specialised case for usingSharedMem == false, which calls eval on
 the tree with the index only.
 @tparam usingSharedMem Enum class specifying whether shared memory is enabled.
-@tparam treeT Type of the tree.
+@tparam tree_t Type of the tree.
 @tparam sharedMemT Value type of the shared memory.
 */
-template <typename treeT, typename sharedMemT>
-struct tree<using_shared_mem::disabled, treeT, sharedMemT> {
+template <typename tree_t, typename sharedMemT>
+struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   /*!
   @brief Static function that calls eval on a tree, passing only the index.
   @param tree Tree object.
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static void eval(treeT &tree,
+  static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
     if ((index.get_global(0) < tree.getSize())) {  // FIXME:: this should move
@@ -303,7 +301,7 @@ class Executor<SYCL> {
   }
 
   template <typename T>
-  inline ptrdiff_t get_offset(sycl_buffer<T> buff) const {
+  inline ptrdiff_t get_offset(buffer_iterator<T> buff) const {
     return buff.get_offset();
   }
   /*  @brief Copying the data back to device
@@ -320,12 +318,16 @@ class Executor<SYCL> {
   /*  @brief Copying the data back to device
       @tparam T is the type of the data
       @param src is the host pointer we want to copy from.
-      @param dst is the sycl_buffer we want to copy to.
+      @param dst is the buffer_iterator we want to copy to.
       @param size is the number of elements to be copied
   */
   template <typename T>
-  inline void copy_to_device(T *src, sycl_buffer<T> dst, size_t) {
-    dst.copy_to_device(*this, src);
+  inline void copy_to_device(T *src, buffer_iterator<T> dst, size_t = 0) {
+    sycl_queue().submit([&](cl::sycl::handler &cgh) {
+      auto acc =
+          blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
+      cgh.copy(src, acc);
+    });
   }
   /*  @brief Copying the data back to device
       @tparam T is the type of the data
@@ -340,13 +342,17 @@ class Executor<SYCL> {
 
   /*  @brief Copying the data back to device
       @tparam T is the type of the data
-      @param src is the sycl_buffer we want to copy from.
+      @param src is the buffer_iterator we want to copy from.
       @param dst is the host pointer we want to copy to.
       @param size is the number of elements to be copied
   */
   template <typename T>
-  inline void copy_to_host(sycl_buffer<T> src, T *dst, size_t) {
-    src.copy_to_host(*this, dst);
+  inline void copy_to_host(buffer_iterator<T> src, T *dst, size_t = 0) {
+    sycl_queue().submit([&](cl::sycl::handler &cgh) {
+      auto acc =
+          blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
+      cgh.copy(acc, dst);
+    });
   }
 
   template <typename T,
@@ -356,8 +362,8 @@ class Executor<SYCL> {
   }
   template <typename T,
             cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  ContainerT<T, AcM> get_range_access(sycl_buffer<T> buff) {
-    return buff.template get_range_access<AcM>();
+  ContainerT<T, AcM> get_range_access(buffer_iterator<T> buff) {
+    return blas::get_range_accessor<AcM>(buff);
   }
   /*!
    * @brief Executes the tree without defining required shared memory.
@@ -407,8 +413,6 @@ class Executor<SYCL> {
   template <typename Op, typename LHS, typename RHS>
   cl::sycl::event reduce(AssignReduction<Op, LHS, RHS> t) {
     using Tree = AssignReduction<Op, LHS, RHS>;
-    using cont_type = sycl_buffer<typename LHS::value_type>;
-
     auto _N = t.getSize();
     auto localSize = t.blqS;
     // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF
@@ -421,9 +425,13 @@ class Executor<SYCL> {
 
     // Two accessors to local memory
     auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-    cont_type shMem1(sharedSize);
+    auto shMem1 =
+        blas::helper::make_sycl_iteator_buffer<typename LHS::value_type>(
+            sharedSize);
+    auto shMem2 =
+        blas::helper::make_sycl_iteator_buffer<typename LHS::value_type>(
+            sharedSize);
     auto opShMem1 = LHS(shMem1, 1, sharedSize);
-    cont_type shMem2(sharedSize);
     auto opShMem2 = LHS(shMem2, 1, sharedSize);
     cl::sycl::event event;
     bool frst = true;
@@ -455,12 +463,11 @@ class Executor<SYCL> {
   };
 
   /*!
-   * @brief Applies a reduction to a tree, receiving a scratch sycl_buffer.
+   * @brief Applies a reduction to a tree, receiving a scratch buffer_iterator.
    */
   template <typename Operator, typename LHS, typename RHS, typename Scratch>
   cl::sycl::event reduce(AssignReduction<Operator, LHS, RHS> t, Scratch scr) {
     using Tree = AssignReduction<Operator, LHS, RHS>;
-    using cont_type = sycl_buffer<typename LHS::value_type>;
     auto _N = t.getSize();
     auto localSize = t.blqS;
     // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF

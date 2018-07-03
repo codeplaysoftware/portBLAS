@@ -450,14 +450,14 @@ void _rotmg(T &_d1, T &_d2, T &_x1, T &_y1, VectorSYCL<T> _param) {
  */
 template <typename Executor, typename ContainerT0, typename ContainerT1,
           typename IndexType, typename IncrementType>
-typename ScalrType<ContainerT0>::ScalarT _dot(Executor &ex, IndexType _N,
-                                              ContainerT0 _vx,
-                                              IncrementType _incx,
-                                              ContainerT1 _vy,
-                                              IncrementType _incy) {
-  using T = typename ScalrType<ContainerT0>::ScalarT;
+typename scalar_type<ContainerT0>::ScalarT _dot(Executor &ex, IndexType _N,
+                                                ContainerT0 _vx,
+                                                IncrementType _incx,
+                                                ContainerT1 _vy,
+                                                IncrementType _incy) {
+  using T = typename scalar_type<ContainerT0>::ScalarT;
   auto res = std::vector<T>(1);
-  auto gpu_res = sycl_buffer<T>(static_cast<IndexType>(1));
+  auto gpu_res = helper::make_sycl_iteator_buffer<T>(static_cast<IndexType>(1));
   _dot(ex, _N, _vx, _incx, _vy, _incy, gpu_res);
   gpu_res.copy_to_host(ex, res.data());
   return res[0];
@@ -472,10 +472,11 @@ template <typename Executor, typename ContainerT, typename IndexType,
           typename IncrementType>
 IndexType _iamax(Executor &ex, IndexType _N, ContainerT _vx,
                  IncrementType _incx) {
-  using T = typename ScalrType<ContainerT>::ScalarT;
+  using T = typename scalar_type<ContainerT>::ScalarT;
   using IndValTuple = IndexValueTuple<T>;
   std::vector<IndValTuple> rsT(1);
-  auto gpu_res = sycl_buffer<IndValTuple>(static_cast<IndexType>(1));
+  auto gpu_res =
+      helper::make_sycl_iteator_buffer<IndValTuple>(static_cast<IndexType>(1));
   _iamax(ex, _N, _vx, _incx, gpu_res);
   gpu_res.copy_to_host(ex, rsT.data());
   return rsT[0].get_index();
@@ -490,10 +491,11 @@ template <typename Executor, typename ContainerT, typename IndexType,
           typename IncrementType>
 IndexType _iamin(Executor &ex, IndexType _N, ContainerT _vx,
                  IncrementType _incx) {
-  using T = typename ScalrType<ContainerT>::ScalarT;
+  using T = typename scalar_type<ContainerT>::ScalarT;
   using IndValTuple = IndexValueTuple<T>;
   std::vector<IndValTuple> rsT(1);
-  auto gpu_res = sycl_buffer<IndValTuple>(static_cast<IndexType>(1));
+  auto gpu_res =
+      helper::make_sycl_iteator_buffer<IndValTuple>(static_cast<IndexType>(1));
   _iamin(ex, _N, _vx, _incx, gpu_res);
   gpu_res.copy_to_host(ex, rsT.data());
   return rsT[0].get_index();
@@ -508,12 +510,12 @@ IndexType _iamin(Executor &ex, IndexType _N, ContainerT _vx,
  */
 template <typename Executor, typename ContainerT, typename IndexType,
           typename IncrementType>
-typename ScalrType<ContainerT>::ScalarT _asum(Executor &ex, IndexType _N,
-                                              ContainerT _vx,
-                                              IncrementType _incx) {
-  using T = typename ScalrType<ContainerT>::ScalarT;
+typename scalar_type<ContainerT>::ScalarT _asum(Executor &ex, IndexType _N,
+                                                ContainerT _vx,
+                                                IncrementType _incx) {
+  using T = typename scalar_type<ContainerT>::ScalarT;
   auto res = std::vector<T>(1, T(0));
-  auto gpu_res = sycl_buffer<T>(static_cast<IndexType>(1));
+  auto gpu_res = helper::make_sycl_iteator_buffer<T>(static_cast<IndexType>(1));
   _asum(ex, _N, _vx, _incx, gpu_res);
   gpu_res.copy_to_host(ex, res.data());
   return res[0];
@@ -528,12 +530,12 @@ typename ScalrType<ContainerT>::ScalarT _asum(Executor &ex, IndexType _N,
  */
 template <typename Executor, typename ContainerT, typename IndexType,
           typename IncrementType>
-typename ScalrType<ContainerT>::ScalarT _nrm2(Executor &ex, IndexType _N,
-                                              ContainerT _vx,
-                                              IncrementType _incx) {
-  using T = typename ScalrType<ContainerT>::ScalarT;
+typename scalar_type<ContainerT>::ScalarT _nrm2(Executor &ex, IndexType _N,
+                                                ContainerT _vx,
+                                                IncrementType _incx) {
+  using T = typename scalar_type<ContainerT>::ScalarT;
   auto res = std::vector<T>(1, T(0));
-  auto gpu_res = sycl_buffer<T>(static_cast<IndexType>(1));
+  auto gpu_res = helper::make_sycl_iteator_buffer<T>(static_cast<IndexType>(1));
   _nrm2(ex, _N, _vx, _incx, gpu_res);
   gpu_res.copy_to_host(ex, res.data());
   return res[0];

@@ -53,10 +53,10 @@ TYPED_TEST(BLAS_Test, copy_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = sycl_buffer<ScalarT>(vX, size);
-  auto gpu_vY = sycl_buffer<ScalarT>(size);
+  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  gpu_vY.copy_to_host(ex, vY);
+  ex.copy_to_host(gpu_vY, vY.data());
   // check that vX and vY are the same
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {

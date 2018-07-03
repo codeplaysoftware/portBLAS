@@ -28,14 +28,15 @@
 
 #include <CL/sycl.hpp>
 
-#include <queue/sycl_buffer.hpp>
+#include <queue/helper.hpp>
+#include <queue/sycl_iterator.hpp>
 #include <types/sycl_types.hpp>
 #include <views/operview_base.hpp>
 
 namespace blas {
 
 template <typename Executor, typename T>
-struct ViewTypeTrace<Executor, sycl_buffer<T>> {
+struct ViewTypeTrace<Executor, buffer_iterator<T>> {
   using VectorView = vector_view<T, typename Executor::template ContainerT<T>>;
   using MatrixView = matrix_view<T, typename Executor::template ContainerT<T>>;
 };
@@ -120,8 +121,8 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
         disp_(disp),
         strd_(1) {}
 
-  vector_view(sycl_buffer<ScalarT> data, IncrementType strd, IndexType size)
-      : vector_view(data.get_range_access(), data.get_offset(), strd, size) {}
+  vector_view(buffer_iterator<ScalarT> data, IncrementType strd, IndexType size)
+      : vector_view(get_range_accessor(data), data.get_offset(), strd, size) {}
   /*!
    * @brief See vector_view.
    */
@@ -255,7 +256,7 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
 
   /**** EVALUATING ****/
   ScalarT &eval(IndexType i) {
-    auto ind = disp_; 
+    auto ind = disp_;
     if (strd_ == 1) {
       ind += i;
     } else if (strd_ > 0) {
@@ -367,9 +368,9 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(sycl_buffer<ScalarT> data, IndexType sizeR, IndexType sizeC,
+  matrix_view(buffer_iterator<ScalarT> data, IndexType sizeR, IndexType sizeC,
               int accessOpr, IndexType sizeL)
-      : matrix_view(data.get_range_access(), sizeR, sizeC, accessOpr, sizeL,
+      : matrix_view(get_range_accessor(data), sizeR, sizeC, accessOpr, sizeL,
                     data.get_offset()) {}
 
   matrix_view(Self opM, int accessDev, IndexType sizeR, IndexType sizeC,

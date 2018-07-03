@@ -103,7 +103,7 @@ typename Executor::Return_Type _gemv(Executor& ex, char _Trans, IndexType _M,
   } else if (OPT == 3) {  // Unstable implementation
 
     IndexType nThr = 2;
-    auto valT1 = sycl_buffer<T>(nThr * M);
+    auto valT1 = blas::helper::make_sycl_iteator_buffer<T>(nThr * M);
     auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
     auto mat1 = make_matrix_view(ex, valT1, M, nThr, nThr, 1);
 

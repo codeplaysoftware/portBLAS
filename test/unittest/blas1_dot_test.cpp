@@ -65,11 +65,11 @@ TYPED_TEST(BLAS_Test, dot_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = sycl_buffer<ScalarT>(vX, size);
-  auto gpu_vY = sycl_buffer<ScalarT>(vY, size);
-  auto gpu_vR = sycl_buffer<ScalarT>(size_t(1));
+  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(vY, size);
+  auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  gpu_vR.copy_to_host(ex, vR);
+  ex.copy_to_host(gpu_vR, vR.data());
   ASSERT_NEAR(res, vR[0], prec);
 }
 

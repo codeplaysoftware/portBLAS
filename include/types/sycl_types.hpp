@@ -66,12 +66,12 @@ struct RemoveAll<const T *> {
 };
 
 template <typename ContainerT>
-struct ScalrType {
+struct scalar_type {
   using ScalarT = typename RemoveAll<ContainerT>::Type;
 };
 
 template <typename T, typename ContainerT>
-struct Reconstruct_Container {
+struct rebind_type {
   using type = RemoveAll<T> *;
 };
 

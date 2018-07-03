@@ -51,7 +51,7 @@ inline typename ViewTypeTrace<Executor, T>::VectorView make_vector_view(
 template <typename Executor, typename T, typename IncrementType,
           typename IndexType>
 inline typename ViewTypeTrace<Executor, T>::VectorView make_vector_view(
-    Executor &, sycl_buffer<T> buff, IncrementType inc, IndexType sz) {
+    Executor &, buffer_iterator<T> buff, IncrementType inc, IndexType sz) {
   using LeafNode = typename ViewTypeTrace<Executor, T>::VectorView;
   return LeafNode{buff, inc, sz};
 }
@@ -68,8 +68,8 @@ inline typename ViewTypeTrace<Executor, T>::MatrixView make_matrix_view(
 
 template <typename Executor, typename T, typename IndexType, typename Opertype>
 inline typename ViewTypeTrace<Executor, T>::MatrixView make_matrix_view(
-    Executor &ex, sycl_buffer<T> buff, IndexType m, IndexType n, IndexType lda,
-    Opertype accessOpr) {
+    Executor &ex, buffer_iterator<T> buff, IndexType m, IndexType n,
+    IndexType lda, Opertype accessOpr) {
   using LeafNode = typename ViewTypeTrace<Executor, T>::MatrixView;
   return LeafNode{buff, m, n, accessOpr, lda};
 }

@@ -64,10 +64,12 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = sycl_buffer<ScalarT>(vX, size);
-  auto gpu_vI = sycl_buffer<IndexValueTuple<ScalarT>>(size_t(1));
+  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vI =
+      blas::helper::make_sycl_iteator_buffer<IndexValueTuple<ScalarT>>(
+          size_t(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  gpu_vI.copy_to_host(ex, vI);
+  ex.copy_to_host(gpu_vI, vI.data());
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), vI[0].get_value());
   // check that the result index is the same
