@@ -53,6 +53,43 @@ TYPED_TEST(BLAS_Test, copy_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
+  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(size);
+  _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
+  ex.copy_to_host(gpu_vY, vY.data());
+  // check that vX and vY are the same
+  for (size_t i = 0; i < size; ++i) {
+    if (i % strd == 0) {
+      ASSERT_EQ(vX[i], vY[i]);
+    } else {
+      ASSERT_EQ(0, vY[i]);
+    }
+  }
+}
+
+REGISTER_SIZE(::RANDOM_SIZE, copy_test_vpr)
+REGISTER_STRD(::RANDOM_STRD, copy_test_vpr)
+
+TYPED_TEST(BLAS_Test, copy_test_vpr) {
+  using ScalarT = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+  using test = class copy_test_vpr;
+
+  size_t size = TestClass::template test_size<test>();
+  long strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  // create two vectors: vX and vY
+  std::vector<ScalarT> vX(size);
+  std::vector<ScalarT> vY(size, 0);
+  TestClass::set_rand(vX, size);
+
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.template allocate<ScalarT>(size);
   auto gpu_vY = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vX.data(), gpu_vX, size);

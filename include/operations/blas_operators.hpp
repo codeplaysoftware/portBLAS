@@ -84,20 +84,28 @@ struct strip_asp {
 };
 
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__COMPUTECPP__)
-#define GENERATE_STRIP_ASP(ENTRY_TYPE)                             \
-  template <>                                                      \
-  struct strip_asp<__attribute__((address_space(1))) ENTRY_TYPE> { \
-    typedef ENTRY_TYPE type;                                       \
-  };                                                               \
-                                                                   \
-  template <>                                                      \
-  struct strip_asp<__attribute__((address_space(2))) ENTRY_TYPE> { \
-    typedef ENTRY_TYPE type;                                       \
-  };                                                               \
-                                                                   \
-  template <>                                                      \
-  struct strip_asp<__attribute__((address_space(3))) ENTRY_TYPE> { \
-    typedef ENTRY_TYPE type;                                       \
+#define GENERATE_STRIP_ASP(ENTRY_TYPE)                                 \
+  template <>                                                          \
+  struct strip_asp<typename std::remove_pointer<                       \
+      typename cl::sycl::constant_ptr<ENTRY_TYPE>::pointer_t>::type> { \
+    typedef ENTRY_TYPE type;                                           \
+  };                                                                   \
+  template <>                                                          \
+  struct strip_asp<typename std::remove_pointer<                       \
+      typename cl::sycl::private_ptr<ENTRY_TYPE>::pointer_t>::type> {  \
+    typedef ENTRY_TYPE type;                                           \
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  struct strip_asp<typename std::remove_pointer<                       \
+      typename cl::sycl::local_ptr<ENTRY_TYPE>::pointer_t>::type> {    \
+    typedef ENTRY_TYPE type;                                           \
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  struct strip_asp<typename std::remove_pointer<                       \
+      typename cl::sycl::global_ptr<ENTRY_TYPE>::pointer_t>::type> {   \
+    typedef ENTRY_TYPE type;                                           \
   };
 
 GENERATE_STRIP_ASP(IndexValueTuple<double>)

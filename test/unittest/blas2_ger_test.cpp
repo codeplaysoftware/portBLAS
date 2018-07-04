@@ -43,8 +43,8 @@ TYPED_TEST(BLAS_Test, ger_test) {
   size_t m = 125;
   size_t n = 127;
   size_t lda = m;
-  size_t incX = 1;
-  size_t incY = 1;
+  long incX = 1;
+  long incY = 1;
   ScalarT prec = TestClass::template test_prec<test>();
   ScalarT alpha = ScalarT(3);
 

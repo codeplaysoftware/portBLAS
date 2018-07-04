@@ -29,6 +29,7 @@
 #include <queue/pointer_mapper.hpp>
 #include <queue/queue_base.hpp>
 #include <stdexcept>
+#include <types/sycl_types.hpp>
 namespace blas {
 
 template <>
@@ -96,12 +97,21 @@ class Queue_Interface<SYCL> {
   side buffer<T> and T are the same
   */
   template <typename T>
-  inline bufferT<T> get_buffer(T *ptr) const {
+  inline buffer_t<T> get_buffer(T *ptr) const {
     std::lock_guard<std::mutex> lock(mutex_);
     auto original_buffer = pointer_mapper.get_buffer(static_cast<void *>(ptr));
     auto typed_size = original_buffer.get_size() / sizeof(T);
     auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
     return buff;
+  }
+  template <typename T,
+            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
+  placeholder_accessor_t<T, AcM> get_range_access(T *vptr) {
+    auto buff_t = get_buffer(vptr);
+    auto offset = get_offset(vptr);
+    return placeholder_accessor_t<T, AcM>(
+        buff_t, cl::sycl::range<1>(buff_t.get_count() - offset),
+        cl::sycl::id<1>(offset));
   }
   /*
   @brief this function is to get the offset from the actual pointer

@@ -65,6 +65,11 @@ struct PrdRowMatVct {
     return eval(ndItem.get_global(0));
   }
   IndexType getSize() { return r1.getSizeR(); }
+
+  void bind(cl::sycl::handler &h) {
+    r1.bind(h);
+    r2.bind(h);
+  }
 };
 
 template <class RHS1, class RHS2>
@@ -147,6 +152,13 @@ struct PrdRowMatVctMult {
   }
 
   IndexType getSize() { return r1.getSizeR(); }
+
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r1.bind(h);
+    r2.bind(h);
+    r3.bind(h);
+  }
 };
 
 template <class LHS, class RHS1, class RHS2, class RHS3, typename IndexType>
@@ -233,6 +245,11 @@ struct PrdRowMatVctMultShm {
   }
 
   IndexType getSize() { return r1.getSizeR(); }
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r1.bind(h);
+    r2.bind(h);
+  }
 };
 
 template <class LHS, class RHS1, class RHS2, typename IndexType>
@@ -273,6 +290,12 @@ struct AddPrdRowMatVctMultShm {
   }
 
   IndexType getSize() { return r1.getSizeR(); }
+
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r1.bind(h);
+    r2.bind(h);
+  }
 };
 
 template <class LHS, class RHS1, class RHS2>
@@ -394,6 +417,11 @@ struct RedRowMatVct {
   }
 #endif  // BLAS_EXPERIMENTAL
   IndexType getSize() { return r1.getSizeR(); }
+
+  void bind(cl::sycl::handler &h) {
+    r1.bind(h);
+    r2.bind(h);
+  }
 };
 
 template <class RHS1, class RHS2, typename IndexType>
@@ -430,6 +458,12 @@ struct ModifRank1 {
   }
 
   IndexType getSize() { return r1.getSize(); }
+
+  void bind(cl::sycl::handler &h) {
+    r1.bind(h);
+    r2.bind(h);
+    r3.bind(h);
+  }
 };
 
 template <class RHS1, class RHS2, class RHS3>
