@@ -16,6 +16,9 @@ include(FindComputeCpp)
 
 message(STATUS "Searching for BLAS in ${BLAS_DIR}")
 
+# Hackily set this to see if it fixes it! 
+set(BLAS_DIR /tmp/OpenBLAS/build)
+
 include(FindBLAS)
 
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
