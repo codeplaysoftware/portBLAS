@@ -14,6 +14,8 @@ include(FindOpenCL)
 
 include(FindComputeCpp)
 
+message(STATUS "Searching for BLAS in ${BLAS_DIR}")
+
 include(FindBLAS)
 
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
