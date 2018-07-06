@@ -33,12 +33,6 @@ set_target_properties(libgmock PROPERTIES
 )
 set(GMOCK_LIB "${source_dir}/googlemock/include")
 
-set(BLA_STATIC on)
-set(BLA_VENDOR OpenBLAS)
-find_package(BLAS REQUIRED)
-include_directories(${BLAS_INCLUDE_DIRS})
-message(STATUS "Using BLAS library from ${BLAS_LIBRARIES}")
-
 if(VERBOSE)
   add_definitions(-DVERBOSE=VERBOSE)
 endif(VERBOSE)
