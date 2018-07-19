@@ -45,6 +45,7 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   size_t size = TestClass::template test_size<test>();
   std::ptrdiff_t offset = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
+  size_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);

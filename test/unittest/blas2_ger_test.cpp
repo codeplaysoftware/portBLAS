@@ -48,8 +48,6 @@ TYPED_TEST(BLAS_Test, ger_test) {
   ScalarT prec = TestClass::template test_prec<test>();
   ScalarT alpha = ScalarT(3);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   // Input matrix
   std::vector<ScalarT> a_v(m);
   // Input Vector

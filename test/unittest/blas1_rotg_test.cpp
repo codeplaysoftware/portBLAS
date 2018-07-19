@@ -41,9 +41,6 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class rotg_test;
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
   size_t size = TestClass::template test_size<test>();
   long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();

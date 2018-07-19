@@ -30,23 +30,19 @@ typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-REGISTER_PREC(float, 1e-4, gemm_test)
-REGISTER_PREC(double, 1e-8, gemm_test)
-REGISTER_PREC(long double, 1e-8, gemm_test)
-
-TYPED_TEST(BLAS_Test, gemm_test) {
+template <typename TypeParam> 
+void _gemm_test_impl(typename TypeParam::scalar_t prec, const char* ta_str, const char* tb_str) { 
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
-  using test = class gemm_test;
+
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};
   std::array<size_t, 2> dim_c = {127, 127};
-  ScalarT prec = TestClass::template test_prec<test>();
+
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   std::vector<ScalarT> a_m(dim_a[0] * dim_a[1]);
   std::vector<ScalarT> b_m(dim_b[0] * dim_b[1]);
   std::vector<ScalarT> c_m_gpu_result(dim_c[0] * dim_c[1], ScalarT(0));
@@ -59,8 +55,6 @@ TYPED_TEST(BLAS_Test, gemm_test) {
   auto m = dim_c[0];
   auto n = dim_c[1];
   auto k = dim_a[1];
-  const char* ta_str = "t";
-  const char* tb_str = "n";
   gemm(ta_str, tb_str, m, n, k, alpha, a_m.data(), lda, b_m.data(), ldb, beta,
        c_m_cpu.data(), m);
   SYCL_DEVICE_SELECTOR d;
@@ -82,3 +76,30 @@ TYPED_TEST(BLAS_Test, gemm_test) {
   ex.template deallocate<ScalarT>(m_b_gpu);
   ex.template deallocate<ScalarT>(m_c_gpu);
 }
+
+// Lightweight macro to make defining tests a little smoother.
+// as test is an incomplete type, we must declare and immediately use it
+// in this function as we cannot "pass" it down to _gemm_test_impl in any way
+#define _GEMM_TEST(name, ta_str, tb_str) \
+  REGISTER_PREC(float, 1e-4, name) \
+  REGISTER_PREC(double, 1e-8, name) \
+  REGISTER_PREC(long double, 1e-8, name) \
+  TYPED_TEST(BLAS_Test, name) { \
+    using test = class name; \
+    typename TypeParam::scalar_t prec =  \
+      BLAS_Test<TypeParam>::template test_prec<test>(); \
+    _gemm_test_impl<TypeParam>(prec, ta_str, tb_str); \
+  } \
+
+_GEMM_TEST(gemm_test_na_nb, "n", "n")
+
+_GEMM_TEST(gemm_test_ta_nb, "t", "n")
+_GEMM_TEST(gemm_test_na_tb, "n", "t")
+_GEMM_TEST(gemm_test_ta_tb, "t", "t")
+
+_GEMM_TEST(gemm_test_ca_nb, "c", "n")
+_GEMM_TEST(gemm_test_na_cb, "n", "c")
+_GEMM_TEST(gemm_test_ca_cb, "c", "c")
+
+_GEMM_TEST(gemm_test_ta_cb, "t", "c")
+_GEMM_TEST(gemm_test_ca_tb, "c", "t")
