@@ -179,9 +179,9 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if ((index.get_global(0) < tree.getSize())) {  // FIXME:: this should move
+    if ((index.get_global_id(0) < tree.getSize())) {  // FIXME:: this should move
                                                    // to the tree not the root
-      //  printf("Index %ld\n", index.get_global(0));
+      //  printf("Index %ld\n", index.get_global_id(0));
       tree.eval(index);
     }
   }
@@ -527,8 +527,8 @@ class Executor<SYCL> {
     return execute_tree<
         Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
                       using_shared_mem::disabled>::type>(
-        q_interface.sycl_queue(), gemm_tree, rng.get_local()[0],
-        rng.get_global()[0], Gemm::scratch_size);
+        q_interface.sycl_queue(), gemm_tree, rng.get_local_range()[0],
+        rng.get_global_range()[0], Gemm::scratch_size);
   }
 };
 

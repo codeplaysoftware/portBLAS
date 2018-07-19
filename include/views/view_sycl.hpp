@@ -275,7 +275,7 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
   }
 
   ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 
   /**** PRINTING ****/
@@ -460,7 +460,7 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
   }
 
   inline ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 
   void bind(cl::sycl::handler &h) { h.require(data_); }
