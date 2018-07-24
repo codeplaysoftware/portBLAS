@@ -1,6 +1,29 @@
 #! /bin/bash
 # Based heavily on build.sh from the SYCL Parallel STL
 
+function display_help() {
+
+cat <<EOT
+
+To use build.sh to compile sycl-blas with ComputeCpp:
+
+  ./build.sh "path/to/ComputeCpp"
+  (the path to ComputeCpp can be relative)
+
+  For example:
+  ./build.sh /home/user/ComputeCpp
+
+
+To use build.sh to compile sycl-blas with a specific blas installation (e.g. OpenBLAS):
+
+  ./build.sh "path/to/ComputeCpp" "path/to/blas"
+
+  For example:
+  ./build.sh /home/user/ComputeCpp /tmp/OpenBLAS/build
+
+EOT
+}
+
 # Useless to go on when an error occurs
 set -o errexit
 
@@ -8,7 +31,7 @@ set -o errexit
 trap display_help ERR
 
 # Get the absolute path of the COMPUTECPP_PACKAGE_ROOT_DIR, from arg $1
-if [ -z "$1"]
+if [ -z "$1" ]
   then 
   echo "No ComputeCPP Package specified."
   exit 1
@@ -21,11 +44,12 @@ fi
 if [ -z "$1" ]
   then
   echo "Using CMake to find a BLAS installation"
-  shift
 else
   echo "Using user specified OpenBLAS from $1"
   CMAKE_ARGS="$CMAKE_ARGS -DOPENBLAS_ROOT=$(readlink -f $1)"
 fi
+
+echo "Making args"
 
 CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release"
 
@@ -43,13 +67,12 @@ function mak {
 }
 
 function tst {
-    pushd build/tests
+    pushd build/test
     ctest -VV --timeout 60
     popd
 }
 
 function main {
-    # install_gmock
     configure
     mak
     tst
