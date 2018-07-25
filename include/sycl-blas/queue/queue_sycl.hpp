@@ -26,10 +26,10 @@
 #define QUEUE_SYCL_HPP
 
 #include <CL/sycl.hpp>
-#include <queue/pointer_mapper.hpp>
-#include <queue/queue_base.hpp>
+#include <sycl-blas/queue/pointer_mapper.hpp>
+#include <sycl-blas/queue/queue_base.hpp>
 #include <stdexcept>
-#include <types/sycl_types.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
 namespace blas {
 
 template <>

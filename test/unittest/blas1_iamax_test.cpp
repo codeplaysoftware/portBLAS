@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "blas_test.hpp"
+#include "../blas_test.hpp"
 typedef ::testing::Types<blas_test_args<double>> BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);

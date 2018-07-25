@@ -1,7 +1,7 @@
 #ifndef BLAS_HELPER_HPP
 #define BLAS_HELPER_HPP
-#include <queue/sycl_iterator.hpp>
-#include <types/sycl_types.hpp>
+#include <sycl-blas/queue/sycl_iterator.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
 
 namespace blas {
 namespace helper {

@@ -33,8 +33,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <executors/executor_sycl.hpp>
-#include <operations/blas3_trees.hpp>
+#include <sycl-blas/executors/executor_sycl.hpp>
+#include <sycl-blas/operations/blas3_trees.hpp>
 
 namespace blas {
 

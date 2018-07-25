@@ -41,7 +41,7 @@
   struct constant<type, indicator> {                   \
     static const type value;                           \
   };                                                   \
-  const type constant<type, indicator>::value = val;  // temporary work around
+  inline const type constant<type, indicator>::value = val;  // temporary work around
                                                       // for duplicator issue
                                                       // will be fixed int the
                                                       // next release

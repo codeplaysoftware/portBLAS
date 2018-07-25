@@ -1,43 +1,62 @@
-cmake_minimum_required (VERSION 3.2.2)
+cmake_minimum_required (VERSION 3.4.3)
+project(sycl-blas VERSION 0.1)
 
-project(sycl-blas)
+include(${CMAKE_BINARY_DIR}/conan_paths.cmake OPTIONAL)
+include(CTest)
 
-enable_testing()
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
+find_package(OpenCL REQUIRED)
+find_package(ComputeCpp REQUIRED)
+find_package(OpenBLAS REQUIRED)
 
-message(STATUS "Path to the SYCL implementation ")
-
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
-
-include(FindOpenCL)
-
-include(FindComputeCpp)
-
-include(FindBLAS)
-
-if (DEFINED OPENBLAS_ROOT)
-  # If OPENBLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
-  # libraries based on the explicit path given 
-  message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${OPENBLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${OPENBLAS_ROOT}/include/")
-else()
-  message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  set(BLA_STATIC on)
-  # If we want to use a specific BLAS vendor, we could set it here:
-  # by calling: set(BLA_VENDOR OpenBLAS) 
-  find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
-  message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
-endif()
-
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS
-    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -no-serial-memop -sycl-compress-name)
 
-include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY} ${BLAS_INCLUDE_DIRS})
+add_library(sycl-blas INTERFACE)
+target_include_directories(sycl-blas INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(sycl-blas INTERFACE OpenBLAS::OpenBLAS ComputeCpp::ComputeCpp)
 
-add_subdirectory(test)
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(test)
+endif()
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/sycl-blasConfigVersion.cmake"
+	VERSION ${sycl-blas_VERSION_MAJOR}
+	COMPATIBILITY ExactVersion
+)
+
+install(DIRECTORY include DESTINATION .)
+install(FILES
+	sycl-blasConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/sycl-blasConfigVersion.cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/Modules/FindOpenBLAS.cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/Modules/FindComputeCpp.cmake"
+	DESTINATION lib/sycl-blas
+)
+configure_file(sycl-blasConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/sycl-blasConfig.cmake"
+	COPYONLY
+)
+
+install(TARGETS sycl-blas EXPORT sycl-blas
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
+export(EXPORT sycl-blas
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/sycl-blas.cmake"
+	NAMESPACE sycl::
+)
+install(EXPORT sycl-blas
+	DESTINATION lib/sycl-blas
+	NAMESPACE sycl::
+)

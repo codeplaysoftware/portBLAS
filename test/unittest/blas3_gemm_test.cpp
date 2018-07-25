@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "blas_test.hpp"
+#include "../blas_test.hpp"
 
 class Normal {
   public:

@@ -25,7 +25,7 @@
 
 #ifndef EXECUTOR_BASE_HPP
 #define EXECUTOR_BASE_HPP
-#include <queue/queue_base.hpp>
+#include <sycl-blas/queue/queue_base.hpp>
 
 namespace blas {
 

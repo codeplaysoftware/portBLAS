@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#include "blas_test.hpp"
-#include "queue/sycl_iterator.hpp"
+#include "../blas_test.hpp"
+#include <sycl-blas/queue/sycl_iterator.hpp>
 typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
     BlasTypes;
 

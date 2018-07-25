@@ -25,7 +25,7 @@
 
 #include "blas_benchmark.hpp"
 
-#include <interface/blas1_interface.hpp>
+#include <sycl-blas/interface/blas1_interface.hpp>
 
 using namespace blas;
 

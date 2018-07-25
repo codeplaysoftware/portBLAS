@@ -1,6 +1,6 @@
 #ifndef BLAS_SYCL_ITERATOR_HPP
 #define BLAS_SYCL_ITERATOR_HPP
-#include <types/sycl_types.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
 namespace blas {
 template <typename T>
 class buffer_iterator {

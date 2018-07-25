@@ -32,7 +32,7 @@
 
 #include <CL/sycl.hpp>
 
-#include <operations/blas_constants.hpp>
+#include <sycl-blas/operations/blas_constants.hpp>
 
 namespace blas {
 

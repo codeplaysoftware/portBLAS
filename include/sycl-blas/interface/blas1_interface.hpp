@@ -31,10 +31,10 @@
 #include <stdexcept>
 #include <vector>
 
-#include <executors/executor_sycl.hpp>
-#include <interface/blas_interface_sycl.hpp>
-#include <operations/blas1_trees.hpp>
-#include <types/sycl_types.hpp>
+#include <sycl-blas/executors/executor_sycl.hpp>
+#include <sycl-blas/interface/blas_interface_sycl.hpp>
+#include <sycl-blas/operations/blas1_trees.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
 
 namespace blas {
 /**

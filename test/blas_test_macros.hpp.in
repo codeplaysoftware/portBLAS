@@ -23,15 +23,17 @@
  *
  **************************************************************************/
 
-#ifndef VERBOSE_HPP
-#define VERBOSE_HPP
+#ifndef SYCLBLAS_TEST_MACROS_HPP
+#define SYCLBLAS_TEST_MACROS_HPP
 
+#cmakedefine VERBOSE
 #ifdef VERBOSE
 #define DEBUG_PRINT(command) command
 #else
 #define DEBUG_PRINT(command)
 #endif /* ifdef VERBOSE */
 
+#cmakedefine SYCL_DEVICE
 #ifndef SYCL_DEVICE
 #define SYCL_DEVICE_SELECTOR cl::sycl::default_selector
 #else
@@ -42,4 +44,4 @@
 #undef EVALUATOR
 #endif /* ifndef SYCL_DEVICE */
 
-#endif /* end of include guard: VERBOSE_HPP */
+#endif /* end of include guard: SYCLBLAS_TEST_MACROS_HPP */

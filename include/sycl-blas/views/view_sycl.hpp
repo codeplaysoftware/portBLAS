@@ -28,10 +28,10 @@
 
 #include <CL/sycl.hpp>
 
-#include <queue/helper.hpp>
-#include <queue/sycl_iterator.hpp>
-#include <types/sycl_types.hpp>
-#include <views/operview_base.hpp>
+#include <sycl-blas/queue/helper.hpp>
+#include <sycl-blas/queue/sycl_iterator.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
+#include <sycl-blas/views/operview_base.hpp>
 
 namespace blas {
 

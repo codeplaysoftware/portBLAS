@@ -30,15 +30,15 @@
 
 #include <CL/sycl.hpp>
 
-#include <executors/executor_base.hpp>
-#include <operations/blas1_trees.hpp>
-#include <operations/blas2_trees.hpp>
-#include <operations/blas3_trees.hpp>
-#include <queue/helper.hpp>
-#include <queue/queue_sycl.hpp>
-#include <queue/sycl_iterator.hpp>
-#include <types/sycl_types.hpp>
-#include <views/view_sycl.hpp>
+#include <sycl-blas/executors/executor_base.hpp>
+#include <sycl-blas/operations/blas1_trees.hpp>
+#include <sycl-blas/operations/blas2_trees.hpp>
+#include <sycl-blas/operations/blas3_trees.hpp>
+#include <sycl-blas/queue/helper.hpp>
+#include <sycl-blas/queue/queue_sycl.hpp>
+#include <sycl-blas/queue/sycl_iterator.hpp>
+#include <sycl-blas/types/sycl_types.hpp>
+#include <sycl-blas/views/view_sycl.hpp>
 
 namespace blas {
 

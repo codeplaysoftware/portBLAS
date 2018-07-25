@@ -22,7 +22,7 @@
  *  @filename blas1_axpy_test.cpp
  *
  **************************************************************************/
-#include "blas_test.hpp"
+#include "../blas_test.hpp"
 typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
     BlasTypes;
 
