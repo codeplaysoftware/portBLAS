@@ -65,13 +65,15 @@ function configure {
 }
 
 function mak {
-    pushd build && make # -j$NPROC
+    # We currently have a bug whehn building the library in parallel on certain platforms. 
+    # Make sequentially instead.
+    pushd build && make
     popd
 }
 
 function tst {
     pushd build/test
-    ctest -VV --timeout 1200
+    ctest -VV --timeout 600
     popd
 }
 
