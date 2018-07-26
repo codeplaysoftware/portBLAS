@@ -32,6 +32,7 @@ TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 template <typename TypeParam> 
 void _gemm_test_impl(typename TypeParam::scalar_t prec, const char* ta_str, const char* tb_str) { 
+  DEBUG_PRINT(std::cout << "gemm test with transpositions: A: "<<ta_str<< ", B: " << tb_str << std::endl);
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
