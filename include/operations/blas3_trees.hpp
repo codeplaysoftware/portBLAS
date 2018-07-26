@@ -115,7 +115,7 @@ class ReferenceGemmFactory {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
-    IndexType item_id = id.get_global(0);
+    IndexType item_id = id.get_global_id(0);
     //  printf("B[%ld]= %f\n", item_id, B[item_id]);
     if (item_id >= m * n) {
       return;
@@ -431,8 +431,8 @@ class GemmFactory {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
-    const auto wg_id = id.get_group(0);
-    const auto item_id = id.get_local(0);
+    const auto wg_id = id.get_group_range(0);
+    const auto item_id = id.get_local_id(0);
     const auto tile_size = tl_rows * tl_cols;
     const auto tile_id = wg_id / tile_size;
     const auto tile_local_id = wg_id % tile_size;
@@ -444,7 +444,7 @@ class GemmFactory {
 
     /*  printf(" g_id %ld, tile_size %ld, tile_id %ld, tile_local_id %ld,
       tiles_per_col %ld, tile_row %ld, tile_col %ld, wg_row %ld, wg_col %ld\n",
-      id.get_global(0), tile_size, tile_id, tile_local_id, tiles_per_col,
+      id.get_global_id(0), tile_size, tile_id, tile_local_id, tiles_per_col,
       tile_row, tile_col, wg_row, wg_col );*/
     if (wg_row >= m || wg_col >= n) {
       return;

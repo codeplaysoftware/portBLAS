@@ -62,7 +62,7 @@ struct PrdRowMatVct {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   IndexType getSize() { return r1.getSizeR(); }
 
@@ -112,7 +112,7 @@ struct PrdRowMatVctMult {
 
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    IndexType localid = ndItem.get_local(0);
+    IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
 
@@ -199,10 +199,10 @@ struct PrdRowMatVctMultShm {
 
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    IndexType localid = ndItem.get_local(0);
+    IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_num_groups(0);
+    IndexType groupSz = ndItem.get_group_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
@@ -286,7 +286,7 @@ struct AddPrdRowMatVctMultShm {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 
   IndexType getSize() { return r1.getSizeR(); }
@@ -348,7 +348,7 @@ struct RedRowMatVct {
 #endif  // ORIGINAL_CODE
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 
 #if BLAS_EXPERIMENTAL
@@ -356,12 +356,12 @@ struct RedRowMatVct {
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
     IndexType Pieces = 2;
 
-    IndexType localid = ndItem.get_local(0);
+    IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_num_groups(0);
-    IndexType globalid = ndItem.get_global(0);
-    IndexType globalSz = ndItem.get_global_range(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType globalid = ndItem.get_global_id(0);
+    IndexType globalSz = ndItem.get_global_id_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
@@ -413,7 +413,7 @@ struct RedRowMatVct {
 
 #if BLAS_EXPERIMENTAL
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 #endif  // BLAS_EXPERIMENTAL
   IndexType getSize() { return r1.getSizeR(); }
@@ -454,7 +454,7 @@ struct ModifRank1 {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 
   IndexType getSize() { return r1.getSize(); }
