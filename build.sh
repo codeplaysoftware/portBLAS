@@ -36,7 +36,9 @@ if [ -z "$1" ]
   echo "No ComputeCPP Package specified."
   exit 1
 else
-  CMAKE_ARGS="$CMAKE_ARGS -DCOMPUTECPP_PACKAGE_ROOT_DIR=$(readlink -f $1)"
+  CCPPPACKAGE=$(readlink -f $1)
+  echo "ComputeCPP specified at: $CCPPPACKAGE"
+  CMAKE_ARGS="$CMAKE_ARGS -DCOMPUTECPP_PACKAGE_ROOT_DIR=$CCPPPACKAGE"
   shift
 fi
 
@@ -45,8 +47,9 @@ if [ -z "$1" ]
   then
   echo "Using CMake to find a BLAS installation"
 else
-  echo "Using user specified OpenBLAS from $1"
-  CMAKE_ARGS="$CMAKE_ARGS -DOPENBLAS_ROOT=$(readlink -f $1)"
+  OPENBLASROOT=$(readlink -f $1)
+  echo "User specified OpenBLAS at: $OPENBLASROOT"
+  CMAKE_ARGS="$CMAKE_ARGS -DOPENBLAS_ROOT=$OPENBLASROOT"
 fi
 
 echo "Making args"
@@ -62,7 +65,7 @@ function configure {
 }
 
 function mak {
-    pushd build && make -j$NPROC
+    pushd build # && make -j$NPROC
     popd
 }
 
