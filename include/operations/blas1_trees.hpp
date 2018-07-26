@@ -122,7 +122,7 @@ struct Join {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   void bind(cl::sycl::handler &h) {
     l.bind(h);
@@ -155,7 +155,7 @@ struct Assign {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
 };
 
@@ -186,7 +186,7 @@ struct DobleAssign {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   inline void bind(cl::sycl::handler &h) {
     l1.bind(h);
@@ -214,7 +214,7 @@ struct ScalarOp {
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   inline void bind(cl::sycl::handler &h) { r.bind(h); }
 };
@@ -234,7 +234,7 @@ struct UnaryOp {
   value_type eval(IndexType i) { return Operator::eval(r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   void bind(cl::sycl::handler &h) { r.bind(h); }
 };
@@ -258,7 +258,7 @@ struct BinaryOp {
   value_type eval(IndexType i) { return Operator::eval(l.eval(i), r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   void bind(cl::sycl::handler &h) {
     l.bind(h);
@@ -282,7 +282,7 @@ struct TupleOp {
   value_type eval(IndexType i) { return value_type(i, r.eval(i)); }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   void bind(cl::sycl::handler &h) { r.bind(h); }
 };
@@ -333,11 +333,11 @@ struct AssignReduction {
     return val;
   }
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global(0));
+    return eval(ndItem.get_global_id(0));
   }
   template <typename sharedT>
   value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    IndexType localid = ndItem.get_local(0);
+    IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
 
