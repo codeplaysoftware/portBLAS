@@ -54,10 +54,10 @@ CMD cd /sycl-blas && \
       ./build.sh --trisycl -DTRISYCL_INCLUDE_DIR=/tmp/triSYCL-master/include; \
     elif [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
       if [ "${TARGET}" = 'host' ]; then \
-        COMPUTECPP_TARGET="host" ./build.sh /tmp/ComputeCpp-latest; \
+        COMPUTECPP_TARGET="host" ./build.sh /tmp/ComputeCpp-latest /tmp/OpenBLAS/build; \
       else \
         /tmp/ComputeCpp-latest/bin/computecpp_info && \
-        COMPUTECPP_TARGET="intel:cpu" ./build.sh /tmp/ComputeCpp-latest; \
+        COMPUTECPP_TARGET="intel:cpu" ./build.sh /tmp/ComputeCpp-latest /tmp/OpenBLAS/build; \
       fi \
     else \
       echo "Unknown SYCL implementation ${SYCL_IMPL}"; return 1; \
