@@ -25,28 +25,91 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
+class Normal {
+  public:
+  static constexpr char const* str = "n";
+};
+// const std::string Normal::str = "n";
+
+class Transposed {
+  public:
+  static constexpr char const* str = "t";
+};
+// const std::string Transposed::str = "t";
+
+class Conjugate {
+  public:
+   static constexpr char const* str = "c";
+};
+// const std::string Conjugate::str = "c";
+
+
+
+template <class AT_ = Normal, class BT_ = Normal>
+struct MatrixFormats
+{
+  using a_format = AT_;
+  using b_format = BT_;
+};
+
+typedef ::testing::Types<
+    blas_test_args<float, MatrixFormats<Normal, Normal>>,
+
+    blas_test_args<float, MatrixFormats<Transposed, Normal>>,
+    blas_test_args<float, MatrixFormats<Normal, Transposed>>,
+    blas_test_args<float, MatrixFormats<Transposed, Transposed>>,
+
+    blas_test_args<float, MatrixFormats<Conjugate, Normal>>,
+    blas_test_args<float, MatrixFormats<Normal, Conjugate>>,
+    blas_test_args<float, MatrixFormats<Conjugate, Conjugate>>,
+
+    blas_test_args<float, MatrixFormats<Transposed, Conjugate>>,
+    blas_test_args<float, MatrixFormats<Conjugate, Transposed>>,
+
+    blas_test_args<double, MatrixFormats<Normal, Normal>>,
+
+    blas_test_args<double, MatrixFormats<Transposed, Normal>>,
+    blas_test_args<double, MatrixFormats<Normal, Transposed>>,
+    blas_test_args<double, MatrixFormats<Transposed, Transposed>>,
+
+    blas_test_args<double, MatrixFormats<Conjugate, Normal>>,
+    blas_test_args<double, MatrixFormats<Normal, Conjugate>>,
+    blas_test_args<double, MatrixFormats<Conjugate, Conjugate>>,
+
+    blas_test_args<double, MatrixFormats<Transposed, Conjugate>>,
+    blas_test_args<double, MatrixFormats<Conjugate, Transposed>>>
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-REGISTER_PREC(float, 1e-4, gemm_test)
-REGISTER_PREC(double, 1e-8, gemm_test)
-REGISTER_PREC(long double, 1e-8, gemm_test)
+REGISTER_PREC(float, 1e-4, gemm_default)
+REGISTER_PREC(double, 1e-8, gemm_default)
+REGISTER_PREC(long double, 1e-8, gemm_default)
+TYPED_TEST(BLAS_Test, gemm_default) {
+  using test = class gemm_default;
 
-TYPED_TEST(BLAS_Test, gemm_test) {
+
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
-  using test = class gemm_test;
+
+  using MatAType = typename TypeParam::metadata_t::a_format;
+  using MatBType = typename TypeParam::metadata_t::b_format;
+
+  ScalarT prec =
+    BLAS_Test<TypeParam>::template test_prec<test>();
+
+  const char* ta_str = MatAType::str;
+  const char* tb_str = MatBType::str;
+
+
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};
   std::array<size_t, 2> dim_c = {127, 127};
-  ScalarT prec = TestClass::template test_prec<test>();
+
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
   std::vector<ScalarT> a_m(dim_a[0] * dim_a[1]);
   std::vector<ScalarT> b_m(dim_b[0] * dim_b[1]);
   std::vector<ScalarT> c_m_gpu_result(dim_c[0] * dim_c[1], ScalarT(0));
@@ -59,8 +122,6 @@ TYPED_TEST(BLAS_Test, gemm_test) {
   auto m = dim_c[0];
   auto n = dim_c[1];
   auto k = dim_a[1];
-  const char* ta_str = "t";
-  const char* tb_str = "n";
   gemm(ta_str, tb_str, m, n, k, alpha, a_m.data(), lda, b_m.data(), ldb, beta,
        c_m_cpu.data(), m);
   SYCL_DEVICE_SELECTOR d;

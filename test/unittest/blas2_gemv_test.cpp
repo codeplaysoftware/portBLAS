@@ -50,8 +50,6 @@ TYPED_TEST(BLAS_Test, gemv_test) {
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   // Input matrix
   std::vector<ScalarT> a_m(m * n);
   // Input Vector
