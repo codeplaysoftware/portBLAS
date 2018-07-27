@@ -75,24 +75,26 @@ struct option_prec;
 
 // Wraps the above arguments into one template parameter.
 // We will treat template-specialized blas_templ_struct as a single class
-template <class ScalarT_, class ExecutorType_>
+template <class ScalarT_, class MetadataT_, class ExecutorType_>
 struct blas_templ_struct {
   using scalar_t = ScalarT_;
+  using metadata_t = MetadataT_;
   using executor_t = ExecutorType_;
 };
 // A "using" shortcut for the struct
-template <class ScalarT_, class ExecutorType_ = SYCL>
-using blas_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
+template <class ScalarT_, class MetadataT_ = void, class ExecutorType_ = SYCL>
+using blas_test_args = blas_templ_struct<ScalarT_, MetadataT_, ExecutorType_>;
 
 // the test class itself
 template <class B>
 class BLAS_Test;
 
-template <class ScalarT_, class ExecutorType_>
-class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
+template <class ScalarT_, class MetadataT_, class ExecutorType_>
+class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
     : public ::testing::Test {
  public:
   using ScalarT = ScalarT_;
+  using MetadataT = MetadataT_;
   using ExecutorType = ExecutorType_;
 
   BLAS_Test() = default;

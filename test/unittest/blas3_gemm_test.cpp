@@ -25,17 +25,84 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
+
+class Normal {
+  public:
+  static constexpr char const* str = "n";
+};
+// const std::string Normal::str = "n";
+
+class Transposed {
+  public:
+  static constexpr char const* str = "t";
+};
+// const std::string Transposed::str = "t";
+
+class Conjugate {
+  public:
+   static constexpr char const* str = "c";
+};
+// const std::string Conjugate::str = "c";
+
+
+
+template <class AT_ = Normal, class BT_ = Normal>
+struct MatrixFormats
+{
+  using a_format = AT_;
+  using b_format = BT_;
+};
+
+typedef ::testing::Types<
+    blas_test_args<float, MatrixFormats<Normal, Normal>>,
+
+    blas_test_args<float, MatrixFormats<Transposed, Normal>>,
+    blas_test_args<float, MatrixFormats<Normal, Transposed>>,
+    blas_test_args<float, MatrixFormats<Transposed, Transposed>>,
+
+    blas_test_args<float, MatrixFormats<Conjugate, Normal>>,
+    blas_test_args<float, MatrixFormats<Normal, Conjugate>>,
+    blas_test_args<float, MatrixFormats<Conjugate, Conjugate>>,
+
+    blas_test_args<float, MatrixFormats<Transposed, Conjugate>>,
+    blas_test_args<float, MatrixFormats<Conjugate, Transposed>>,
+
+    blas_test_args<double, MatrixFormats<Normal, Normal>>,
+
+    blas_test_args<double, MatrixFormats<Transposed, Normal>>,
+    blas_test_args<double, MatrixFormats<Normal, Transposed>>,
+    blas_test_args<double, MatrixFormats<Transposed, Transposed>>,
+
+    blas_test_args<double, MatrixFormats<Conjugate, Normal>>,
+    blas_test_args<double, MatrixFormats<Normal, Conjugate>>,
+    blas_test_args<double, MatrixFormats<Conjugate, Conjugate>>,
+
+    blas_test_args<double, MatrixFormats<Transposed, Conjugate>>,
+    blas_test_args<double, MatrixFormats<Conjugate, Transposed>>>
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-template <typename TypeParam> 
-void _gemm_test_impl(typename TypeParam::scalar_t prec, const char* ta_str, const char* tb_str) { 
-  DEBUG_PRINT(std::cout << "gemm test with transpositions: A: "<<ta_str<< ", B: " << tb_str << std::endl);
+REGISTER_PREC(float, 1e-4, gemm_default)
+REGISTER_PREC(double, 1e-8, gemm_default)
+REGISTER_PREC(long double, 1e-8, gemm_default)
+TYPED_TEST(BLAS_Test, gemm_default) {
+  using test = class gemm_default;
+
+
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
+
+  using MatAType = typename TypeParam::metadata_t::a_format;
+  using MatBType = typename TypeParam::metadata_t::b_format;
+
+  ScalarT prec =
+    BLAS_Test<TypeParam>::template test_prec<test>();
+
+  const char* ta_str = MatAType::str;
+  const char* tb_str = MatBType::str;
+
 
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};
@@ -77,30 +144,3 @@ void _gemm_test_impl(typename TypeParam::scalar_t prec, const char* ta_str, cons
   ex.template deallocate<ScalarT>(m_b_gpu);
   ex.template deallocate<ScalarT>(m_c_gpu);
 }
-
-// Lightweight macro to make defining tests a little smoother.
-// as test is an incomplete type, we must declare and immediately use it
-// in this function as we cannot "pass" it down to _gemm_test_impl in any way
-#define _GEMM_TEST(name, ta_str, tb_str) \
-  REGISTER_PREC(float, 1e-4, name) \
-  REGISTER_PREC(double, 1e-8, name) \
-  REGISTER_PREC(long double, 1e-8, name) \
-  TYPED_TEST(BLAS_Test, name) { \
-    using test = class name; \
-    typename TypeParam::scalar_t prec =  \
-      BLAS_Test<TypeParam>::template test_prec<test>(); \
-    _gemm_test_impl<TypeParam>(prec, ta_str, tb_str); \
-  } \
-
-_GEMM_TEST(gemm_test_na_nb, "n", "n")
-
-_GEMM_TEST(gemm_test_ta_nb, "t", "n")
-_GEMM_TEST(gemm_test_na_tb, "n", "t")
-_GEMM_TEST(gemm_test_ta_tb, "t", "t")
-
-_GEMM_TEST(gemm_test_ca_nb, "c", "n")
-_GEMM_TEST(gemm_test_na_cb, "n", "c")
-_GEMM_TEST(gemm_test_ca_cb, "c", "c")
-
-_GEMM_TEST(gemm_test_ta_cb, "t", "c")
-_GEMM_TEST(gemm_test_ca_tb, "c", "t")
