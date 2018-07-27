@@ -73,7 +73,7 @@ function mak {
 
 function tst {
     pushd build/test
-    ctest -VV --timeout 600
+    ctest -VV --timeout 1200
     popd
 }
 
