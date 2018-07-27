@@ -25,7 +25,6 @@
 
 #include "blas_test.hpp"
 
-
 class Normal {
   public:
   static constexpr char const* str = "n";
