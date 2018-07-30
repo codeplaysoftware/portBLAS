@@ -7,7 +7,6 @@ include(CTest)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
 find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
-find_package(OpenBLAS REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +19,7 @@ add_library(sycl-blas INTERFACE)
 target_include_directories(sycl-blas INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(sycl-blas INTERFACE OpenBLAS::OpenBLAS ComputeCpp::ComputeCpp)
+target_link_libraries(sycl-blas INTERFACE ComputeCpp::ComputeCpp)
 
 if(BUILD_TESTING)
   enable_testing()
@@ -39,7 +38,6 @@ install(DIRECTORY include DESTINATION .)
 install(FILES
 	sycl-blasConfig.cmake
 	"${CMAKE_CURRENT_BINARY_DIR}/sycl-blasConfigVersion.cmake"
-  "${PROJECT_SOURCE_DIR}/cmake/Modules/FindOpenBLAS.cmake"
   "${PROJECT_SOURCE_DIR}/cmake/Modules/FindComputeCpp.cmake"
 	DESTINATION lib/sycl-blas
 )

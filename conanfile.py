@@ -3,8 +3,8 @@ from conans import ConanFile, CMake
 class SYCLBLASConan(ConanFile):
     name = "sycl-blas"
     version = "0.1"
-    requires = "computecpp/0.9.1@codeplay/testing", "openblas/0.2.20@conan/stable"
-    build_requires= "gtest/1.8.0@bincrafters/stable"
+    requires = "computecpp/0.9.1@codeplay/testing"
+    build_requires= "gtest/1.8.0@bincrafters/stable", "openblas/0.2.20@conan/stable"
     generators = "cmake_paths"
     no_copy_source = True
     exports_sources = "*", "!build*/*", "!.git/*"
