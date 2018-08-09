@@ -383,12 +383,21 @@ class Executor<SYCL> {
    * @brief Executes the tree fixing the localSize but without defining required
    * shared memory.
    */
-  template <typename Tree>
-  cl::sycl::event execute(Tree t, size_t localSize) {
+  template <typename Tree, typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize) {
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
+    return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
+                                                    localSize, globalSize, 0);
+  };
 
+    /*!
+   * @brief Executes the tree fixing the localSize but without defining required
+   * shared memory.
+   */
+  template <typename Tree, typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize) {
     return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
                                                     localSize, globalSize, 0);
   };
@@ -397,12 +406,9 @@ class Executor<SYCL> {
    * @brief Executes the tree with specific local, global and shared memory
    * values.
    */
-  template <typename Tree>
-  cl::sycl::event execute(Tree t, size_t _localSize, size_t _globalSize,
-                          size_t _shMem) {
-    auto localSize = _localSize;
-    auto globalSize = _globalSize;
-    auto shMem = _shMem;
+  template <typename Tree , typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize,
+                          IndexType shMem) {
     return execute_tree<using_shared_mem::enabled>(
         q_interface.sycl_queue(), t, localSize, globalSize, shMem);
   }
