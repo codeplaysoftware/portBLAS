@@ -111,6 +111,11 @@ class ReferenceGemmFactory {
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
   inline IndexType getSize() { return m * n; }
+  //  inline __attribute__((always_inline))
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+    return ((ndItem.get_global_id(0) < getSize()));
+  }
+
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();

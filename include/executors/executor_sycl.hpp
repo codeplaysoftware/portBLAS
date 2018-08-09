@@ -179,9 +179,8 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if ((index.get_global_id(0) <
-         tree.getSize())) {  // FIXME:: this should move
-                             // to the tree not the root
+    if (tree.valid_thread(index)) {  // FIXME:: this should move
+                                     // to the tree not the root
       //  printf("Index %ld\n", index.get_global_id(0));
       tree.eval(index);
     }
@@ -381,8 +380,8 @@ class Executor<SYCL> {
   };
 
   /*!
-   * @brief Executes the tree fixing the localSize but without defining required
-   * shared memory.
+   * @brief Executes the tree fixing the localSize but without defining
+   * required shared memory.
    */
   template <typename Tree, typename IndexType>
   cl::sycl::event execute(Tree t, IndexType localSize) {
@@ -394,8 +393,8 @@ class Executor<SYCL> {
   };
 
   /*!
-   * @brief Executes the tree fixing the localSize but without defining required
-   * shared memory.
+   * @brief Executes the tree fixing the localSize but without defining
+   * required shared memory.
    */
   template <typename Tree, typename IndexType>
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize) {
@@ -470,7 +469,8 @@ class Executor<SYCL> {
   };
 
   /*!
-   * @brief Applies a reduction to a tree, receiving a scratch buffer_iterator.
+   * @brief Applies a reduction to a tree, receiving a scratch
+   * buffer_iterator.
    */
   template <typename Operator, typename LHS, typename RHS, typename Scratch>
   cl::sycl::event reduce(AssignReduction<Operator, LHS, RHS> t, Scratch scr) {
