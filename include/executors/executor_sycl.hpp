@@ -179,8 +179,9 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if ((index.get_global_id(0) < tree.getSize())) {  // FIXME:: this should move
-                                                   // to the tree not the root
+    if ((index.get_global_id(0) <
+         tree.getSize())) {  // FIXME:: this should move
+                             // to the tree not the root
       //  printf("Index %ld\n", index.get_global_id(0));
       tree.eval(index);
     }
@@ -392,7 +393,7 @@ class Executor<SYCL> {
                                                     localSize, globalSize, 0);
   };
 
-    /*!
+  /*!
    * @brief Executes the tree fixing the localSize but without defining required
    * shared memory.
    */
@@ -406,7 +407,7 @@ class Executor<SYCL> {
    * @brief Executes the tree with specific local, global and shared memory
    * values.
    */
-  template <typename Tree , typename IndexType>
+  template <typename Tree, typename IndexType>
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize,
                           IndexType shMem) {
     return execute_tree<using_shared_mem::enabled>(
