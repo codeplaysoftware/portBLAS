@@ -39,11 +39,6 @@
 namespace blas {
 namespace internal {
 
-/**** MATRIX VECTOR PRODUCT ****/
-// TO DO:: THIS MUST BE REMOVED AND  THE CURRECT VALUE SHOULD BE EXTRACTED FROM
-// THE DEVICE_GET_LOCAL_SIZE
-#define DEF_BLAS2_LOCALSZ 256
-
 /*! _gemv.
  * @brief Implementation of the General Matrix Vector product.
  */
@@ -72,7 +67,8 @@ typename Executor::Return_Type _gemv_impl(
 
   const IndexType interLoop = 1;
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
@@ -140,7 +136,8 @@ typename Executor::Return_Type _trmv_impl(
 
   const IndexType interLoop = 1;
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
@@ -254,7 +251,8 @@ typename Executor::Return_Type _symv_impl(
   const IndexType interLoop = 1;
 
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
   const IndexType n_rows_WG_R = (_n_rows_WG == 0) ? 1 : std::min(N, _n_rows_WG);
@@ -345,7 +343,8 @@ typename Executor::Return_Type _ger_impl(
   auto vy = make_vector_view(ex, _vy, _incy, N);
 
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
@@ -402,7 +401,8 @@ typename Executor::Return_Type _syr_impl(
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
@@ -471,7 +471,8 @@ typename Executor::Return_Type _syr2_impl(
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
   const IndexType localSize =
-      (_localSize == 0) ? DEF_BLAS2_LOCALSZ : _localSize;
+      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);

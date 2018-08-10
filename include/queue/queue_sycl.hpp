@@ -84,12 +84,43 @@ class Queue_Interface<SYCL> {
     std::lock_guard<std::mutex> lock(mutex_);
     cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), pointer_mapper);
   }
-  cl::sycl::queue sycl_queue() const { return q_; }
+  cl::sycl::queue queue() const { return q_; }
   ~Queue_Interface() {
     if (pointer_mapper_owner) {
       pointer_mapper.clear();
     }
   }
+
+  // This function returns the nearest power of 2 Work-group size which is <=
+  // maximum device workgroup size.
+  inline size_t get_rounded_power_of_two_work_group_size() const {
+    return get_power_of_two(get_work_group_size(), false);
+  }
+  // Force the systme not to set this to bigger than 256. As it can be
+  inline size_t get_work_group_size() const {
+    return std::min(
+        size_t(256),
+        q_.get_device()
+            .template get_info<cl::sycl::info::device::max_work_group_size>());
+  }
+
+  // This function returns the nearest power of 2
+  // if roundup is ture returns result>=wgsize
+  // else it return result <= wgsize
+  inline size_t get_power_of_two(size_t wGSize, bool rounUp) const {
+    if (rounUp) --wGSize;
+    wGSize |= (wGSize >> 1);
+    wGSize |= (wGSize >> 2);
+    wGSize |= (wGSize >> 4);
+    wGSize |= (wGSize >> 8);
+    wGSize |= (wGSize >> 16);
+#if defined(__x86_64__) || defined(_M_X64) || defined(__amd64) || \
+    defined(__aarch64__) || defined(_WIN64)
+    wGSize |= (wGSize >> 32);
+#endif
+    return ((!rounUp) ? (wGSize - (wGSize >> 1)) : ++wGSize);
+  }
+
   /*
   @brief this class is to return the dedicated buffer to the user
   @ tparam T is the type of the pointer
