@@ -60,7 +60,7 @@ typename Executor::Return_Type _gemv_impl(
   _Trans = tolower(_Trans);
 
   if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c'))
-    std::cout << "Erroneous parameter" << std::endl;
+    throw std::invalid_argument("Erroneous parameter");
   int accessOpr = (_Trans == 'n');
 
   IndexType M = (_Trans == 'n') ? _M : _N;
@@ -128,7 +128,7 @@ typename Executor::Return_Type _trmv_impl(
 
   if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c') && (_Uplo != 'u') &&
       (_Uplo != 'l') && (_Diag != 'u') && (_Diag != 'n')) {
-    std::cout << "Erroneous parameter" << std::endl;
+    throw std::invalid_argument("Erroneous parameter");
   }
 
   int accessOpr = (_Trans == 'n');
@@ -241,7 +241,7 @@ typename Executor::Return_Type _symv_impl(
   _Uplo = tolower(_Uplo);
 
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
-    std::cout << "Erroneous parameter" << std::endl;
+    throw std::invalid_argument("Erroneous parameter");
   }
   int accessOpr = 1;
   int triangOpr = (_Uplo == 'u');
