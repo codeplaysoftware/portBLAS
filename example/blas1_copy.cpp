@@ -42,10 +42,16 @@ int main(int argc, char const *argv[]) {
     }
   });
 
+  std::cout << "Built selector and queue" << std::endl;
+
   Executor<SYCL> ex(q);
+
+  std::cout << "Built executor" << std::endl;
 
   auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
   auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(size);
+
+  std::cout << "Built iterator buffers for vX and vY" << std::endl;
 
   try {
     _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
@@ -57,10 +63,17 @@ int main(int argc, char const *argv[]) {
     std::cout << " An exception " << std::endl;
   }
 
+  std::cout << "Copy command run" << std::endl;
+
   ex.copy_to_host(gpu_vY, vY.data());
+
+  std::cout << "Copied data to host" << std::endl;
   // check that vX and vY are the same
   for (size_t i = 0; i < size; ++i) {
     if (i % strd == 0) {
+      std::cout << "checking: vX[" << i << "] == vY[" << i << "]";
+      std::cout << " with values: [" << vX[i] << ", " << vY[i] << "]"
+                << std::endl;
       assert(vX[i] == vY[i]);
     } else {
       assert(0 == vY[i]);
