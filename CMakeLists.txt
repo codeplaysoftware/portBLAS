@@ -41,3 +41,5 @@ message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY} ${BLAS_INCLUDE_DIRS})
 
 add_subdirectory(test)
+
+add_subdirectory(example)
