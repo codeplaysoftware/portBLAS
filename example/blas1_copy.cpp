@@ -47,7 +47,16 @@ int main(int argc, char const *argv[]) {
   auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
   auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(size);
 
-  _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
+  try {
+    _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
+  } catch (cl::sycl::exception &e) {
+    std::cout << "E " << e.what() << std::endl;
+  } catch (std::exception &e) {
+    std::cout << "Standard Exception " << e.what() << std::endl;
+  } catch (...) {
+    std::cout << " An exception " << std::endl;
+  }
+
   ex.copy_to_host(gpu_vY, vY.data());
   // check that vX and vY are the same
   for (size_t i = 0; i < size; ++i) {
