@@ -66,9 +66,9 @@ typename Executor::Return_Type _gemv_impl(
   auto vy = make_vector_view(ex, _vy, _incy, M);
 
   const IndexType interLoop = 1;
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
@@ -135,9 +135,9 @@ typename Executor::Return_Type _trmv_impl(
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
   const IndexType interLoop = 1;
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
@@ -250,9 +250,9 @@ typename Executor::Return_Type _symv_impl(
 
   const IndexType interLoop = 1;
 
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
   const IndexType n_rows_WG_R = (_n_rows_WG == 0) ? 1 : std::min(N, _n_rows_WG);
@@ -342,9 +342,9 @@ typename Executor::Return_Type _ger_impl(
   auto vx = make_vector_view(ex, _vx, _incx, M);
   auto vy = make_vector_view(ex, _vy, _incy, N);
 
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
@@ -400,9 +400,9 @@ typename Executor::Return_Type _syr_impl(
   auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
@@ -470,9 +470,9 @@ typename Executor::Return_Type _syr2_impl(
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
-  const IndexType localSize =
-      (_localSize == 0) ? ex.get_rounded_power_of_two_work_group_size()
-                        : _localSize;
+  const IndexType localSize = (_localSize == 0)
+                                  ? ex.policy_handler().get_work_group_size()
+                                  : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
                                   ? ((mA.getAccess()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);

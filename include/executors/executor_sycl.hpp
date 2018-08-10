@@ -263,6 +263,8 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_interface(q){};
 
+  inline Queue_Interface<SYCL> &policy_handler() { return q_interface; }
+
   cl::sycl::queue queue() const { return q_interface.queue(); }
 
   inline Queue_Interface<SYCL>::device_type get_device_type() {
@@ -370,7 +372,7 @@ class Executor<SYCL> {
    */
   template <typename Tree>
   inline cl::sycl::event execute(Tree t) {
-    const auto localSize = 128;
+    const auto localSize = policy_handler().get_work_group_size();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
@@ -379,9 +381,6 @@ class Executor<SYCL> {
                                                     localSize, globalSize, 0);
   };
 
-  inline size_t get_work_group_size() const {
-    return q_interface.get_work_group_size();
-  }
   /*!
    * @brief Executes the tree fixing the localSize but without defining
    * required shared memory.

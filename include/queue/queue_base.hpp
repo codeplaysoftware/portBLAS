@@ -89,6 +89,36 @@ class Queue_Interface<Sequential> {
 };  // namespace blastemplate<classExecutionPolicy>classQueue_Interface
 
 template <>
-class Queue_Interface<Parallel> : Queue_Interface<Sequential> {};
+class Queue_Interface<Parallel> {
+  Queue_Interface() {}
+  /*
+  @brief This class is to determine whether or not the underlying device has
+  dedicated shared memory
+  */
+  inline bool has_local_memory() { return false; }
+  /*
+   @brief This class is used to allocated the a regin of memory on the device
+   @tparam T the type of the pointer
+   @param num_elements number of elements of the buffer
+  */
+  template <typename T>
+  inline T *allocate(size_t num_elements) const {
+    return std::malloc(num_elements * sizeof(T));
+  }
+  /*
+  @brief this class is to deallocate the provided region of memory on the device
+  @tparam T the type of the pointer
+  @param p the pointer to be deleted
+   */
+  template <typename T>
+  inline void deallocate(T *p) const {
+    std::free(p);
+  }
+
+  // This function returns Work-group size which is equal to  maximum device
+  // workgroup size.
+  inline size_t get_work_group_size() { return size_t(256); }
+};  // namespace blastemplate<classExecutionPolicy>classQueue_Interface
+
 }  // namespace blas
 #endif
