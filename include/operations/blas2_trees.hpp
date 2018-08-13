@@ -106,6 +106,8 @@ struct Gemv_Row {
 
   bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
 
+  // TODO (@JOSE) If this function is extra and it is not required please remove
+  // it.
   value_type eval(IndexType i) {  // NOT VERIFIED
     auto dim = r2.getSize();
 
