@@ -59,7 +59,9 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto a = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX.data(), size);
-  ex.copy_to_host((a + offset), vR.data());
+  auto event = ex.copy_to_host((a + offset), vR.data(), size - offset);
+  ex.sync(event);
+
   for (auto i = 0; i < size; i++) {
     ASSERT_NEAR(vX[i + offset], vR[i], prec);
   }

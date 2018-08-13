@@ -36,7 +36,6 @@
 #include <operations/blas3_trees.hpp>
 #include <queue/helper.hpp>
 #include <queue/queue_sycl.hpp>
-#include <queue/sycl_iterator.hpp>
 #include <types/sycl_types.hpp>
 #include <views/view_sycl.hpp>
 
@@ -265,8 +264,6 @@ class Executor<SYCL> {
 
   inline Queue_Interface<SYCL> &policy_handler() { return q_interface; }
 
-  cl::sycl::queue queue() const { return q_interface.queue(); }
-
   inline Queue_Interface<SYCL>::device_type get_device_type() {
     return q_interface.get_device_type();
   }
@@ -289,84 +286,70 @@ class Executor<SYCL> {
   @tparam bufferT<T> is the type of the buffer points to the data. on the host
   side buffer<T> and T are the same
   */
-  template <typename T>
-  inline bufferT<T> get_buffer(T *ptr) const {
+  template <typename ContainerT>
+  inline auto get_buffer(ContainerT ptr)
+      -> decltype(q_interface.get_buffer(ptr)) const {
     return q_interface.get_buffer(ptr);
   }
   /*
   @brief this function is to get the offset from the actual pointer
   @tparam T is the type of the pointer
   */
-  template <typename T>
-  inline ptrdiff_t get_offset(T *ptr) const {
+  template <typename ContainerT>
+  inline ptrdiff_t get_offset(ContainerT ptr) const {
     return q_interface.get_offset(ptr);
   }
 
-  template <typename T>
-  inline ptrdiff_t get_offset(buffer_iterator<T> buff) const {
-    return buff.get_offset();
-  }
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the device pointer we want to copy to.
+      @tparam ContainerT0 is the type of the src data
+      @tparam ContainerT1 is the type of the dst data
+      @param src is the host data we want to copy from.
+      @param dst is the device data we want to copy to.
       @param size is the number of elements to be copied
   */
-  template <typename T>
-  inline void copy_to_device(T *src, T *dst, size_t size) {
-    q_interface.copy_to_device(src, dst, size);
+  template <typename ContainerT0, typename ContainerT1>
+  inline auto copy_to_device(ContainerT0 src, ContainerT1 dst, size_t size)
+      -> decltype(q_interface.copy_to_device(src, dst, size)) {
+    return q_interface.copy_to_device(src, dst, size);
   }
 
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the buffer_iterator we want to copy to.
+      @tparam ContainerT0 is the type of the src data
+      @tparam ContainerT1 is the type of the dst data
+      @param src is the device data we want to copy from.
+      @param dst is the host data we want to copy to.
       @param size is the number of elements to be copied
   */
-  template <typename T>
-  inline void copy_to_device(T *src, buffer_iterator<T> dst, size_t = 0) {
-    queue().submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
-      cgh.copy(src, acc);
-    });
-  }
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the device pointer we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
-  */
-  template <typename T>
-  inline void copy_to_host(T *src, T *dst, size_t size) {
-    q_interface.copy_to_host(src, dst, size);
+  template <typename ContainerT0, typename ContainerT1>
+  inline auto copy_to_host(ContainerT0 src, ContainerT1 dst, size_t size)
+      -> decltype(q_interface.copy_to_host(src, dst, size)) {
+    return q_interface.copy_to_host(src, dst, size);
   }
 
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the buffer_iterator we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
+  /*  @brief Getting range accessor from the container
+      @tparam ContainerT0 is the type of the  data
+      @tparam AcM is the access mode
+      @param container is the  data we want to get range accessor
   */
-  template <typename T>
-  inline void copy_to_host(buffer_iterator<T> src, T *dst, size_t = 0) {
-    queue().submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
-      cgh.copy(acc, dst);
-    });
-  }
-
-  template <typename T,
+  template <typename ContainerT0,
             cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  ContainerT<T, AcM> get_range_access(T *vptr) {
-    return q_interface.template get_range_access<T, AcM>(vptr);
+  auto get_range_access(ContainerT0 container)
+      -> decltype(q_interface.template get_range_access<AcM>(container)) {
+    return q_interface.template get_range_access<AcM>(container);
   }
-  template <typename T,
-            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  ContainerT<T, AcM> get_range_access(buffer_iterator<T> buff) {
-    return blas::get_range_accessor<AcM>(buff);
+
+  /*  @brief waiting for a particular event
+      @param event is an instance of sycl::sycl::event
+  */
+  template <typename first_event_t, typename... next_event_t>
+  inline void sync(first_event_t first_event, next_event_t... next_events) {
+    q_interface.wait_for_events(first_event, next_events...);
   }
+
+  /*  @brief waiting for a sycl::queue.wait()
+   */
+  void inline sync() { q_interface.wait(); }
+
   /*!
    * @brief Executes the tree without defining required shared memory.
    */

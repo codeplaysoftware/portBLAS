@@ -71,7 +71,9 @@ TYPED_TEST(BLAS_Test, scal_test) {
   auto gpu_vX = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   _scal(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd);
-  ex.copy_to_host(gpu_vX, vX.data(), size);
+  auto event = ex.copy_to_host(gpu_vX, vX.data(), size);
+  ex.sync(event);
+
   // check that the result is the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);

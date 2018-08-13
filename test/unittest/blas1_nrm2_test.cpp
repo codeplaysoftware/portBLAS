@@ -72,7 +72,9 @@ TYPED_TEST(BLAS_Test, nrm2_test) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _nrm2(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   printf("offset :%ld , acutalsize %ld\n", (size + strd - 1) / strd, size);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.sync(event);
+
   // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);

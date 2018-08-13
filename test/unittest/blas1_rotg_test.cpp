@@ -78,7 +78,9 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.sync(event);
+
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);

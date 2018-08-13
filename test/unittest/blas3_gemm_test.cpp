@@ -26,28 +26,25 @@
 #include "blas_test.hpp"
 
 class Normal {
-  public:
+ public:
   static constexpr char const* str = "n";
 };
 // const std::string Normal::str = "n";
 
 class Transposed {
-  public:
+ public:
   static constexpr char const* str = "t";
 };
 // const std::string Transposed::str = "t";
 
 class Conjugate {
-  public:
-   static constexpr char const* str = "c";
+ public:
+  static constexpr char const* str = "c";
 };
 // const std::string Conjugate::str = "c";
 
-
-
 template <class AT_ = Normal, class BT_ = Normal>
-struct MatrixFormats
-{
+struct MatrixFormats {
   using a_format = AT_;
   using b_format = BT_;
 };
@@ -88,7 +85,6 @@ REGISTER_PREC(long double, 1e-8, gemm_default)
 TYPED_TEST(BLAS_Test, gemm_default) {
   using test = class gemm_default;
 
-
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
@@ -96,12 +92,10 @@ TYPED_TEST(BLAS_Test, gemm_default) {
   using MatAType = typename TypeParam::metadata_t::a_format;
   using MatBType = typename TypeParam::metadata_t::b_format;
 
-  ScalarT prec =
-    BLAS_Test<TypeParam>::template test_prec<test>();
+  ScalarT prec = BLAS_Test<TypeParam>::template test_prec<test>();
 
   const char* ta_str = MatAType::str;
   const char* tb_str = MatBType::str;
-
 
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};
@@ -135,7 +129,10 @@ TYPED_TEST(BLAS_Test, gemm_default) {
   ex.copy_to_device(c_m_gpu_result.data(), m_c_gpu, dim_c[0] * dim_c[1]);
   _gemm(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu, lda, m_b_gpu, ldb, beta,
         m_c_gpu, ldc);
-  ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), dim_c[0] * dim_c[1]);
+  auto event =
+      ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), dim_c[0] * dim_c[1]);
+  ex.sync(event);
+
   for (size_t i = 0; i < dim_c[0] * dim_c[1]; ++i) {
     ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
   }

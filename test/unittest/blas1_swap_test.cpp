@@ -63,8 +63,9 @@ TYPED_TEST(BLAS_Test, swap_test) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _swap(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  ex.copy_to_host(gpu_vX, vX.data(), size);
-  ex.copy_to_host(gpu_vY, vY.data(), size);
+  auto event0 = ex.copy_to_host(gpu_vX, vX.data(), size);
+  auto event1 = ex.copy_to_host(gpu_vY, vY.data(), size);
+  ex.sync(event0, event1);
   // check that new vX is equal to the copy of the original vY and
   // that new vY is equal to the copy of the original vX
   for (size_t i = 0; i < size; ++i) {

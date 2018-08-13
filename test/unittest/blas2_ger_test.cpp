@@ -74,7 +74,8 @@ TYPED_TEST(BLAS_Test, ger_test) {
   // SYCLger
   _ger(ex, m, n, alpha, v_a_gpu, incX, v_b_gpu, incY, m_c_gpu, m);
 
-  ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), m * n);
+  auto event = ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), m * n);
+  ex.sync(event);
 
   for (size_t i = 0; i < m * n; ++i) {
     ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
