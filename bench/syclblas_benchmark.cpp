@@ -58,8 +58,8 @@ class SyclBlasBenchmarker {
     auto in = ex.template allocate<ScalarT>(size);
     ex.copy_to_device(v1, in, size);
     flops = benchmark<>::measure(no_reps, size * 1, [&]() {
-      _scal(ex, size, alpha, in, 1);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _scal(ex, size, alpha, in, 1);
+      ex.sync(event);
     });
     ex.template deallocate<ScalarT>(in);
     release_data(v1);
@@ -78,8 +78,8 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v2, iny, size);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _axpy(ex, size, alpha, inx, 1, iny, 1);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -100,8 +100,8 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(&vr, inr, 1);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _asum(ex, size, inx, 1, inr);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _asum(ex, size, inx, 1, inr);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -119,8 +119,8 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v1, inx, size);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _nrm2(ex, size, inx, 1, inr);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _nrm2(ex, size, inx, 1, inr);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -141,8 +141,8 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v2, iny, size);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _dot(ex, size, inx, 1, iny, 1, inr);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _dot(ex, size, inx, 1, iny, 1, inr);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -162,8 +162,8 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v1, inx, size);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _iamax(ex, size, inx, 1, outI);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _iamax(ex, size, inx, 1, outI);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -181,8 +181,8 @@ class SyclBlasBenchmarker {
     double flops;
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _iamin(ex, size, inx, 1, outI);
-      ex.sycl_queue().wait_and_throw();
+      auto event = _iamin(ex, size, inx, 1, outI);
+      ex.sync(event);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -204,9 +204,9 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v2, iny, size);
 
     flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      _scal(ex, size, alpha, inx, 1);
-      _scal(ex, size, alpha, iny, 1);
-      ex.sycl_queue().wait_and_throw();
+      auto event0 = _scal(ex, size, alpha, inx, 1);
+      auto event1 = _scal(ex, size, alpha, iny, 1);
+      ex.sync(event0, event1);
     });
 
     ex.template deallocate<ScalarT>(inx);
@@ -231,10 +231,10 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v3, inz, size);
 
     flops = benchmark<>::measure(no_reps, size * 3, [&]() {
-      _scal(ex, size, alpha, inx, 1);
-      _scal(ex, size, alpha, iny, 1);
-      _scal(ex, size, alpha, inz, 1);
-      ex.sycl_queue().wait_and_throw();
+      auto event0 = _scal(ex, size, alpha, inx, 1);
+      auto event1 = _scal(ex, size, alpha, iny, 1);
+      auto event2 = _scal(ex, size, alpha, inz, 1);
+      ex.sync(event0, event1, event2);
     });
 
     release_data(v1);
@@ -272,10 +272,10 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(vdst3, indst3, size);
 
     flops = benchmark<>::measure(no_reps, size * 3 * 2, [&]() {
-      _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
-      _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
-      _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
-      ex.sycl_queue().wait_and_throw();
+      auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
+      auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
+      auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
+      ex.sync(event0, event1, event2);
     });
 
     ex.template deallocate<ScalarT>(insrc1);
@@ -310,13 +310,13 @@ class SyclBlasBenchmarker {
     ex.copy_to_device(v2, iny, size);
 
     flops = benchmark<>::measure(no_reps, size * 12, [&]() {
-      _axpy(ex, size, alpha, inx, 1, iny, 1);
-      _asum(ex, size, iny, 1, inr1);
-      _dot(ex, size, inx, 1, iny, 1, inr2);
-      _nrm2(ex, size, iny, 1, inr3);
-      _iamax(ex, size, iny, 1, inrI);
-      _dot(ex, size, inx, 1, iny, 1, inr4);
-      ex.sycl_queue().wait_and_throw();
+      auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
+      auto event1 = _asum(ex, size, iny, 1, inr1);
+      auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
+      auto event3 = _nrm2(ex, size, iny, 1, inr3);
+      auto event4 = _iamax(ex, size, iny, 1, inrI);
+      auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
+      ex.sync(event0, event1, event2, event3, event4, event5);
     });
 
     ex.template deallocate<ScalarT>(inx);
