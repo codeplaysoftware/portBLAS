@@ -63,6 +63,7 @@ typedef ::testing::Types<
     blas_test_args<float, MatrixFormats<Transposed, Conjugate>>,
     blas_test_args<float, MatrixFormats<Conjugate, Transposed>>,
 
+#ifndef NO_DOUBLE_SUPPORT
     blas_test_args<double, MatrixFormats<Normal, Normal>>,
 
     blas_test_args<double, MatrixFormats<Transposed, Normal>>,
@@ -74,7 +75,9 @@ typedef ::testing::Types<
     blas_test_args<double, MatrixFormats<Conjugate, Conjugate>>,
 
     blas_test_args<double, MatrixFormats<Transposed, Conjugate>>,
-    blas_test_args<double, MatrixFormats<Conjugate, Transposed>>>
+    blas_test_args<double, MatrixFormats<Conjugate, Transposed>>
+#endif
+    >
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);

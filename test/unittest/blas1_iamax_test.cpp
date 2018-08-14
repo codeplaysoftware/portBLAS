@@ -24,12 +24,20 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
+    BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
-
 REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
 REGISTER_STRD(1, iamax_test)
+REGISTER_PREC(float, 1e-4, iamax_test)
+REGISTER_PREC(double, 1e-6, iamax_test)
+REGISTER_PREC(long double, 1e-7, iamax_test)
 
 TYPED_TEST(BLAS_Test, iamax_test) {
   using ScalarT = typename TypeParam::scalar_t;
