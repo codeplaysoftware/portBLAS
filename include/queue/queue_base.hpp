@@ -94,12 +94,12 @@ template <>
 class Queue_Interface<Parallel> {
   Queue_Interface() {}
   /*
-  @brief This class is to determine whether or not the underlying device has
+  @brief This function is to determine whether or not the underlying device has
   dedicated shared memory
   */
   inline bool has_local_memory() { return false; }
   /*
-   @brief This function is used to allocated the a regin of memory on the device
+   @brief This function is used to allocate a region of memory on the device
    @tparam T the type of the pointer
    @param num_elements number of elements of the buffer
   */
@@ -108,7 +108,8 @@ class Queue_Interface<Parallel> {
     return std::malloc(num_elements * sizeof(T));
   }
   /*
-  @brief this class is to deallocate the provided region of memory on the device
+  @brief this function is to deallocate the provided region of memory on the
+  device
   @tparam T the type of the pointer
   @param p the pointer to be deleted
    */

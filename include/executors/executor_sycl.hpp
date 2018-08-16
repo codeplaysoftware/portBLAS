@@ -178,9 +178,7 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if (tree.valid_thread(index)) {  // FIXME:: this should move
-                                     // to the tree not the root
-      //  printf("Index %ld\n", index.get_global_id(0));
+    if (tree.valid_thread(index)) {
       tree.eval(index);
     }
   }
@@ -262,7 +260,9 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_interface(q){};
 
-  inline Queue_Interface<SYCL> &policy_handler() { return q_interface; }
+  inline Queue_Interface<SYCL> get_policy_handler() { return q_interface; }
+
+  cl::sycl::queue get_queue() const { return q_interface.get_queue(); }
 
   inline Queue_Interface<SYCL>::device_type get_device_type() {
     return q_interface.get_device_type();
@@ -355,12 +355,12 @@ class Executor<SYCL> {
    */
   template <typename Tree>
   inline cl::sycl::event execute(Tree t) {
-    const auto localSize = policy_handler().get_work_group_size();
+    const auto localSize = get_policy_handler().get_work_group_size();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -373,7 +373,7 @@ class Executor<SYCL> {
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -383,7 +383,7 @@ class Executor<SYCL> {
    */
   template <typename Tree, typename IndexType>
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize) {
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -395,7 +395,7 @@ class Executor<SYCL> {
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize,
                           IndexType shMem) {
     return execute_tree<using_shared_mem::enabled>(
-        q_interface.queue(), t, localSize, globalSize, shMem);
+        q_interface.get_queue(), t, localSize, globalSize, shMem);
   }
 
   /*!
@@ -433,15 +433,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Op, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -481,15 +483,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Operator, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -515,7 +519,7 @@ class Executor<SYCL> {
     return execute_tree<
         Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
                       using_shared_mem::disabled>::type>(
-        q_interface.queue(), gemm_tree, rng.get_local_range()[0],
+        q_interface.get_queue(), gemm_tree, rng.get_local_range()[0],
         rng.get_global_range()[0], Gemm::scratch_size);
   }
 };

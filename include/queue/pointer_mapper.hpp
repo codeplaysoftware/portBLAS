@@ -65,6 +65,9 @@ const sycl_acc_mode default_acc_mode = sycl_acc_mode::read_write;
 class PointerMapper {
  public:
   using base_ptr_t = std::uintptr_t;
+  // lock is used to make sure that the operation is safe when we are running it
+  // in a multi-threaded environment.
+  mutable std::mutex mutex_;
 
   /* Structure of a virtual pointer
    *
@@ -235,6 +238,7 @@ class PointerMapper {
             typename buffer_data_type = buffer_data_type_t>
   cl::sycl::buffer<buffer_data_type, 1, buffer_allocator> get_buffer(
       const virtual_pointer_t ptr) {
+    std::lock_guard<std::mutex> lock(mutex_);
     using buffer_t = cl::sycl::buffer<buffer_data_type, 1, buffer_allocator>;
 
     // get_node() returns a `buffer_mem`, so we need to cast it to a `buffer<>`.
@@ -280,6 +284,7 @@ class PointerMapper {
    * Returns the offset from the base address of this pointer.
    */
   inline std::ptrdiff_t get_offset(const virtual_pointer_t ptr) {
+    std::lock_guard<std::mutex> lock(mutex_);
     // The previous element to the lower bound is the node that
     // holds this memory address
     return (ptr - get_node(ptr)->first);
@@ -384,6 +389,7 @@ class PointerMapper {
    */
   template <bool ReUse = true>
   void remove_pointer(const virtual_pointer_t ptr) {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto node = this->get_node(ptr);
 
     node->second.m_free = true;
@@ -415,6 +421,7 @@ class PointerMapper {
    */
   template <class BufferT>
   virtual_pointer_t add_pointer_impl(BufferT b) {
+    std::lock_guard<std::mutex> lock(mutex_);
     virtual_pointer_t retVal = nullptr;
     size_t bufSize = b.get_count();
     pMapNode_t p{b, bufSize, false};

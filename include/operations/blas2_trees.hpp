@@ -45,9 +45,9 @@ struct AddSetColumns {
 
   AddSetColumns(RHS &_r) : r(_r){};
 
-  IndexType getSize() { return r.getSizeR(); }
+  inline IndexType getSize() const { return r.getSizeR(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -78,8 +78,6 @@ AddSetColumns<RHS> make_addSetColumns(RHS &r) {
 
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
 
-// #define GROUP_OF_ROWS 1 // Not useful for GEMV by rows
-
 template <unsigned int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           class LHS, class RHS1, class RHS2>
 struct Gemv_Row {
@@ -102,10 +100,12 @@ struct Gemv_Row {
         nWG_col(_nWG_col),
         shrMemSize(_shrMemSize){};
 
-  IndexType getSize() { return r1.getSize(); }
+  inline IndexType getSize() const { return r1.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
+  // TODO (@JOSE) If this function is extra and it is not required please remove
+  // it.
   value_type eval(IndexType i) {  // NOT VERIFIED
     auto dim = r2.getSize();
 
@@ -447,9 +447,9 @@ struct Gemv_Col {
         nWG_col(_nWG_col),
         shrMemSize(_shrMemSize){};
 
-  IndexType getSize() { return r1.getSizeR(); }
+  inline IndexType getSize() const { return r1.getSizeR(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   value_type eval(IndexType i) {
     auto dim = r2.getSize();
@@ -644,14 +644,14 @@ struct Ger_Row {
         nWG_col(_nWG_col),
         shrMemSize(_shrMemSize){};
 
-  IndexType getSize() { return r1.getSize(); }
+  inline IndexType getSize() const { return r1.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   value_type eval(IndexType i) {
-    auto size = (l.getAccess()) ? l.getSizeC() : l.getSizeR();
-    auto row = (l.getAccess()) ? (i / size) : (i % size);
-    auto col = (l.getAccess()) ? (i % size) : (i / size);
+    auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
+    auto row = (l.is_row_access()) ? (i / size) : (i % size);
+    auto col = (l.is_row_access()) ? (i % size) : (i / size);
 
     auto val = scl * r1.eval(row) * r2.eval(col);
 
@@ -876,14 +876,14 @@ struct Ger_Col {
         nWG_col(_nWG_col),
         shrMemSize(_shrMemSize){};
 
-  IndexType getSize() { return r1.getSize(); }
+  inline IndexType getSize() const { return r1.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   value_type eval(IndexType i) {
-    auto size = (l.getAccess()) ? l.getSizeC() : l.getSizeR();
-    auto row = (l.getAccess()) ? (i / size) : (i % size);
-    auto col = (l.getAccess()) ? (i % size) : (i / size);
+    auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
+    auto row = (l.is_row_access()) ? (i / size) : (i % size);
+    auto col = (l.is_row_access()) ? (i % size) : (i / size);
 
     auto val = scl * r1.eval(row) * r2.eval(col);
 

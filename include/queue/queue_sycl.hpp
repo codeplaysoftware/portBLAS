@@ -40,18 +40,22 @@ class Queue_Interface<SYCL> {
    * @brief SYCL queue for execution of trees.
    */
   cl::sycl::queue q_;
-  mutable cl::sycl::codeplay::PointerMapper pointer_mapper;
+  std::shared_ptr<cl::sycl::codeplay::PointerMapper> pointerMapperPtr_;
   bool pointer_mapper_owner;
   using generic_buffer_data_type = cl::sycl::codeplay::buffer_data_type_t;
-  // lock is used to make sure that the operation is safe when we are running it
-  // in a multi-threaded environment.
-  mutable std::mutex mutex_;
 
  public:
   enum device_type { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU };
 
   explicit Queue_Interface(cl::sycl::queue q)
-      : q_(q), pointer_mapper_owner(true) {}
+      : q_(q),
+        pointerMapperPtr_(std::shared_ptr<cl::sycl::codeplay::PointerMapper>(
+            new cl::sycl::codeplay::PointerMapper(),
+            [](cl::sycl::codeplay::PointerMapper *p) {
+              p->clear();
+              delete p;
+            })),
+        pointer_mapper_owner(true) {}
 
   const device_type get_device_type() const {
     auto dev = q_.get_device();
@@ -76,22 +80,15 @@ class Queue_Interface<SYCL> {
   }
   template <typename T>
   inline T *allocate(size_t num_elements) const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return static_cast<T *>(cl::sycl::codeplay::SYCLmalloc(
-        num_elements * sizeof(T), pointer_mapper));
+        num_elements * sizeof(T), *pointerMapperPtr_));
   }
 
   template <typename T>
   inline void deallocate(T *p) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), pointer_mapper);
+    cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), *pointerMapperPtr_);
   }
-  cl::sycl::queue queue() const { return q_; }
-  ~Queue_Interface() {
-    if (pointer_mapper_owner) {
-      pointer_mapper.clear();
-    }
-  }
+  cl::sycl::queue get_queue() const { return q_; }
 
   // This function returns the nearest power of 2 Work-group size which is <=
   // maximum device workgroup size.
@@ -131,8 +128,8 @@ class Queue_Interface<SYCL> {
   */
   template <typename T>
   inline buffer_t<T> get_buffer(T *ptr) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto original_buffer = pointer_mapper.get_buffer(static_cast<void *>(ptr));
+    auto original_buffer =
+        pointerMapperPtr_->get_buffer(static_cast<void *>(ptr));
     auto typed_size = original_buffer.get_size() / sizeof(T);
     auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
     return buff;
@@ -181,8 +178,8 @@ class Queue_Interface<SYCL> {
   */
   template <typename T>
   inline ptrdiff_t get_offset(T *ptr) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return (pointer_mapper.get_offset(static_cast<void *>(ptr)) / sizeof(T));
+    return (pointerMapperPtr_->get_offset(static_cast<void *>(ptr)) /
+            sizeof(T));
   }
   /*
   @brief this function is to get the offset from the actual pointer
@@ -200,8 +197,8 @@ class Queue_Interface<SYCL> {
   */
   template <typename T>
   cl::sycl::event copy_to_device(T *src, T *dst, size_t size) {
-    auto buffer = pointer_mapper.get_buffer(static_cast<void *>(dst));
-    auto offset = pointer_mapper.get_offset(static_cast<void *>(dst));
+    auto buffer = pointerMapperPtr_->get_buffer(static_cast<void *>(dst));
+    auto offset = pointerMapperPtr_->get_offset(static_cast<void *>(dst));
     auto event = q_.submit([&](cl::sycl::handler &cgh) {
       auto write_acc =
           buffer.template get_access<cl::sycl::access::mode::write,
@@ -241,9 +238,8 @@ class Queue_Interface<SYCL> {
   */
   template <typename T>
   cl::sycl::event copy_to_host(T *src, T *dst, size_t size) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto buffer = pointer_mapper.get_buffer(static_cast<void *>(src));
-    auto offset = pointer_mapper.get_offset(static_cast<void *>(src));
+    auto buffer = pointerMapperPtr_->get_buffer(static_cast<void *>(src));
+    auto offset = pointerMapperPtr_->get_offset(static_cast<void *>(src));
 
     auto event = q_.submit([&](cl::sycl::handler &cgh) {
       auto read_acc =
