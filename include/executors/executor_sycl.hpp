@@ -179,8 +179,7 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if (tree.valid_thread(index)) {  // FIXME (Mehdi):: this should move
-                                     // to the tree not the root
+    if (tree.valid_thread(index)) {
       tree.eval(index);
     }
   }

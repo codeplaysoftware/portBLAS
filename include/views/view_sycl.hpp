@@ -266,9 +266,8 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-      //    printf("(E) ind = %ld , size_data_ = %ld \n", ind, size_data_);
       // out of range access
-      //      throw std::invalid_argument("Out of range access");
+      throw std::invalid_argument("Out of range access");
     }
 #endif  //__SYCL_DEVICE_ONLY__
     return data_[ind];
