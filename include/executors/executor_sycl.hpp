@@ -262,9 +262,9 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_interface(q){};
 
-  inline Queue_Interface<SYCL> &policy_handler() { return q_interface; }
+  inline Queue_Interface<SYCL> get_policy_handler() { return q_interface; }
 
-  cl::sycl::queue queue() const { return q_interface.queue(); }
+  cl::sycl::queue get_queue() const { return q_interface.get_queue(); }
 
   inline Queue_Interface<SYCL>::device_type get_device_type() {
     return q_interface.get_device_type();
@@ -324,7 +324,7 @@ class Executor<SYCL> {
   */
   template <typename T>
   inline void copy_to_device(T *src, buffer_iterator<T> dst, size_t = 0) {
-    queue().submit([&](cl::sycl::handler &cgh) {
+    get_queue().submit([&](cl::sycl::handler &cgh) {
       auto acc =
           blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
       cgh.copy(src, acc);
@@ -349,7 +349,7 @@ class Executor<SYCL> {
   */
   template <typename T>
   inline void copy_to_host(buffer_iterator<T> src, T *dst, size_t = 0) {
-    queue().submit([&](cl::sycl::handler &cgh) {
+    get_queue().submit([&](cl::sycl::handler &cgh) {
       auto acc =
           blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
       cgh.copy(acc, dst);
@@ -371,12 +371,12 @@ class Executor<SYCL> {
    */
   template <typename Tree>
   inline cl::sycl::event execute(Tree t) {
-    const auto localSize = policy_handler().get_work_group_size();
+    const auto localSize = get_policy_handler().get_work_group_size();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -389,7 +389,7 @@ class Executor<SYCL> {
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -399,7 +399,7 @@ class Executor<SYCL> {
    */
   template <typename Tree, typename IndexType>
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize) {
-    return execute_tree<using_shared_mem::disabled>(q_interface.queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
@@ -411,7 +411,7 @@ class Executor<SYCL> {
   cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize,
                           IndexType shMem) {
     return execute_tree<using_shared_mem::enabled>(
-        q_interface.queue(), t, localSize, globalSize, shMem);
+        q_interface.get_queue(), t, localSize, globalSize, shMem);
   }
 
   /*!
@@ -449,15 +449,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Op, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -497,15 +499,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Operator, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.queue(), localTree, localSize, globalSize, sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -531,7 +535,7 @@ class Executor<SYCL> {
     return execute_tree<
         Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
                       using_shared_mem::disabled>::type>(
-        q_interface.queue(), gemm_tree, rng.get_local_range()[0],
+        q_interface.get_queue(), gemm_tree, rng.get_local_range()[0],
         rng.get_global_range()[0], Gemm::scratch_size);
   }
 };

@@ -110,9 +110,9 @@ class ReferenceGemmFactory {
     const cl::sycl::range<1> wgs(wg_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
-  inline IndexType getSize() { return m * n; }
-  //  inline __attribute__((always_inline))
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline IndexType getSize() const { return m * n; }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 

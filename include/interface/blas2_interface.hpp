@@ -54,8 +54,9 @@ typename Executor::Return_Type _gemv_impl(
   typename Executor::Return_Type ret;
   _Trans = tolower(_Trans);
 
-  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c'))
+  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
     throw std::invalid_argument("Erroneous parameter");
+  }
   int accessOpr = (_Trans == 'n');
 
   IndexType M = (_Trans == 'n') ? _M : _N;
@@ -66,14 +67,14 @@ typename Executor::Return_Type _gemv_impl(
   auto vy = make_vector_view(ex, _vy, _incy, M);
 
   const IndexType interLoop = 1;
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
-                                  ? ((mA.getAccess()) ? 1 : localSize)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
   const IndexType n_cols_WG = (_n_cols_WG == 0)
-                                  ? ((mA.getAccess()) ? N : localSize)
+                                  ? ((mA.is_row_access()) ? N : localSize)
                                   : std::min(N, _n_cols_WG);
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
@@ -82,14 +83,14 @@ typename Executor::Return_Type _gemv_impl(
   const IndexType globalSize = localSize * nWG_row * nWG_col;
 
   const IndexType scratchSize =
-      (mA.getAccess())
+      (mA.is_row_access())
           ? (((shrMemSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
           : nWG_col;
 
   auto valT1 = blas::helper::make_sycl_iteator_buffer<T>(M * scratchSize);
   auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, 0);
 
-  if (mA.getAccess()) {
+  if (mA.is_row_access()) {
     auto gemvR =
         make_Gemv_Row<interLoop>(mat1, mA, vx, nWG_row, nWG_col, shrMemSize);
     ret = ex.execute(gemvR, localSize, globalSize, shrMemSize);
@@ -135,21 +136,21 @@ typename Executor::Return_Type _trmv_impl(
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
   const IndexType interLoop = 1;
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
-                                  ? ((mA.getAccess()) ? 1 : localSize)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
   const IndexType n_cols_WG = (_n_cols_WG == 0)
-                                  ? ((mA.getAccess()) ? N : localSize)
+                                  ? ((mA.is_row_access()) ? N : localSize)
                                   : std::min(N, _n_cols_WG);
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
   const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
   const IndexType nWG_row = (N - 1) / n_rows_WG + 1;
   const IndexType scratchSize =
-      (mA.getAccess())
+      (mA.is_row_access())
           ? (((shrMemSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
           : nWG_col;
   const IndexType globalSize = localSize * nWG_row * nWG_col;
@@ -160,7 +161,7 @@ typename Executor::Return_Type _trmv_impl(
 
   typename Executor::Return_Type ret;
 
-  if (mA.getAccess()) {  // ROWS ACCESS
+  if (mA.is_row_access()) {  // ROWS ACCESS
     if (triangOpr == 1) {
       if (unitDiag == 1) {
         auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
@@ -250,9 +251,9 @@ typename Executor::Return_Type _symv_impl(
 
   const IndexType interLoop = 1;
 
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
   const IndexType n_rows_WG_R = (_n_rows_WG == 0) ? 1 : std::min(N, _n_rows_WG);
@@ -280,7 +281,7 @@ typename Executor::Return_Type _symv_impl(
   auto valTC = blas::helper::make_sycl_iteator_buffer<T>(N * scratchSize_C);
   auto matC = make_matrix_view(ex, valTC, N, scratchSize_C, scratchSize_C, 0);
 
-  if (mA.getAccess()) {  // ROWS ACCESS
+  if (mA.is_row_access()) {  // ROWS ACCESS
     if (triangOpr == 1) {
       auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
           matR, mA, vx, nWG_row_R, nWG_col_R, shrMemSize);
@@ -342,15 +343,15 @@ typename Executor::Return_Type _ger_impl(
   auto vx = make_vector_view(ex, _vx, _incx, M);
   auto vy = make_vector_view(ex, _vy, _incy, N);
 
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
-                                  ? ((mA.getAccess()) ? 1 : localSize)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
                                   : std::min(M, _n_rows_WG);
   ;
   const IndexType n_cols_WG = (_n_cols_WG == 0)
-                                  ? ((mA.getAccess()) ? N : localSize)
+                                  ? ((mA.is_row_access()) ? N : localSize)
                                   : std::min(N, _n_cols_WG);
   ;
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
@@ -361,7 +362,7 @@ typename Executor::Return_Type _ger_impl(
 
   typename Executor::Return_Type ret;
 
-  if (mA.getAccess()) {  // rowmajor
+  if (mA.is_row_access()) {  // rowmajor
     auto assignOp =
         make_Ger_Row(mA, _alpha, vx, vy, nWG_row, nWG_col, shrMemSize);
     ret = ex.execute(assignOp, localSize, globalSize, shrMemSize);
@@ -400,14 +401,14 @@ typename Executor::Return_Type _syr_impl(
   auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
-                                  ? ((mA.getAccess()) ? 1 : localSize)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
   const IndexType n_cols_WG = (_n_cols_WG == 0)
-                                  ? ((mA.getAccess()) ? N : localSize)
+                                  ? ((mA.is_row_access()) ? N : localSize)
                                   : std::min(N, _n_cols_WG);
   const IndexType shrMemSize = (_localSize == 0) ? localSize : _shrMemSize;
 
@@ -415,7 +416,7 @@ typename Executor::Return_Type _syr_impl(
   const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
   const IndexType globalSize = localSize * nWG_row * nWG_col;
 
-  if (mA.getAccess()) {  // ROWS ACCESS
+  if (mA.is_row_access()) {  // ROWS ACCESS
     if (triangOpr) {
       auto assignOp = make_Ger_Row<true, false, true, true>(
           mA, _alpha, vx, vx, nWG_row, nWG_col, shrMemSize);
@@ -470,14 +471,14 @@ typename Executor::Return_Type _syr2_impl(
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
-  const IndexType localSize = (_localSize == 0)
-                                  ? ex.policy_handler().get_work_group_size()
-                                  : _localSize;
+  const IndexType localSize =
+      (_localSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                        : _localSize;
   const IndexType n_rows_WG = (_n_rows_WG == 0)
-                                  ? ((mA.getAccess()) ? 1 : localSize)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
                                   : std::min(N, _n_rows_WG);
   const IndexType n_cols_WG = (_n_cols_WG == 0)
-                                  ? ((mA.getAccess()) ? N : localSize)
+                                  ? ((mA.is_row_access()) ? N : localSize)
                                   : std::min(N, _n_cols_WG);
   const IndexType shrMemSize = (_localSize == 0) ? 2 * localSize : _shrMemSize;
 
@@ -485,7 +486,7 @@ typename Executor::Return_Type _syr2_impl(
   const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
   const IndexType globalSize = localSize * nWG_row * nWG_col;
 
-  if (mA.getAccess()) {  // ROWS ACCESS
+  if (mA.is_row_access()) {  // ROWS ACCESS
     if (triangOpr) {
       auto assignOp = make_Ger_Row<false, false, true, true>(
           mA, _alpha, vx, vy, nWG_row, nWG_col, shrMemSize);
@@ -516,7 +517,7 @@ typename Executor::Return_Type inline _gemv(
     Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
     ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
     T _beta, ContainerT2 _vy, IncrementType _incy) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_gemv_impl(ex, _Trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
                               _beta, _vy, _incy);
@@ -528,7 +529,7 @@ typename Executor::Return_Type inline _trmv(Executor& ex, char _Uplo,
                                             IndexType _N, ContainerT0 _mA,
                                             IndexType _lda, ContainerT1 _vx,
                                             IncrementType _incx) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_trmv_impl(ex, _Uplo, _Trans, _Diag, _N, _mA, _lda, _vx,
                               _incx);
@@ -540,7 +541,7 @@ typename Executor::Return_Type inline _symv(
     Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _mA,
     IndexType _lda, ContainerT1 _vx, IncrementType _incx, T _beta,
     ContainerT2 _vy, IncrementType _incy) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_symv_impl(ex, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx,
                               _beta, _vy, _incy);
@@ -553,7 +554,7 @@ typename Executor::Return_Type inline _ger(Executor& ex, IndexType _M,
                                            ContainerT0 _vx, IncrementType _incx,
                                            ContainerT1 _vy, IncrementType _incy,
                                            ContainerT2 _mA, IndexType _lda) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_ger_impl(ex, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
                              _lda);
@@ -564,7 +565,7 @@ typename Executor::Return_Type inline _syr(Executor& ex, char _Uplo,
                                            IndexType _N, T _alpha,
                                            ContainerT0 _vx, IncrementType _incx,
                                            ContainerT1 _mA, IndexType _lda) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_syr_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
@@ -575,7 +576,7 @@ typename Executor::Return_Type inline _syr2(
     Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _vx,
     IncrementType _incx, ContainerT1 _vy, IncrementType _incy, ContainerT2 _mA,
     IndexType _lda) {
-  // TODO: Here we can use some heuristics to select bettern glonbal, locaL, and
+  // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_syr2_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
                               _mA, _lda);

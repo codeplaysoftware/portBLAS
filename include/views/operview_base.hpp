@@ -140,7 +140,7 @@ struct vector_view {
   /*!
    @brief Returns the size of the view
    */
-  IndexType getSize() { return size_; }
+  inline IndexType getSize() const { return size_; }
 
   /*!
    @brief Returns the stride of the view.
@@ -377,24 +377,26 @@ struct matrix_view {
   /*!
    * @brief Returns the data size
    */
-  IndexType getDataSize() { return size_data_; }
+  IndexType getDataSize() const { return size_data_; }
 
   /*!
    * @brief Returns the size of the view.
    */
-  IndexType getSize() { return sizeR_ * sizeC_; }
+  inline IndexType getSize() const { return sizeR_ * sizeC_; }
 
   /*! getSizeR.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  IndexType getSizeR() { return sizeR_; }
+  inline IndexType getSizeR() const { return sizeR_; }
 
 #if BLAS_EXPERIMENTAL
   // These implementationS are currently not working
-  IndexType getSizeR() { return getAccess() ? sizeR_ : sizeC_; }
-  IndexType getSizeR() { return accessOpr_ ? sizeR_ : sizeC_; }
+  inline IndexType getSizeR() const {
+    return is_row_access() s() ? sizeR_ : sizeC_;
+  }
+  inline IndexType getSizeR() const { return accessOpr_ ? sizeR_ : sizeC_; }
 #endif  // BLAS_EXPERIMENTAL
 
   /*! getSizeC.
@@ -402,34 +404,34 @@ struct matrix_view {
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  IndexType getSizeC() { return sizeC_; }
+  IndexType getSizeC() const { return sizeC_; }
 #if BLAS_EXPERIMENTAL
   // This implementations are currently not working
-  IndexType getSizeC() { return getAccess() ? sizeC_ : sizeR_; }
-  IndexType getSizeC() { return accessOpr_ ? sizeC_ : sizeR_; }
+  IndexType getSizeC() const { return is_row_access() s() ? sizeC_ : sizeR_; }
+  IndexType getSizeC() const { return accessOpr_ ? sizeC_ : sizeR_; }
 #endif  // BLAS_EXPERIMENTAL
 
-  /*! getAccess.
+  /*! is_row_access.
    * @brief Access mode for the view.
    * Combination of the device access vs the operation mode.
    */
-  int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  int is_row_access() const { return !(accessDev_ ^ accessOpr_); }
 
   /*! getAccessDev.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
-  int getAccessDev() { return accessDev_; }
+  int getAccessDev() const { return accessDev_; }
 
   /*! getAccessOpr.
    * @brief Returns the operation access mode
    * @return True: Normal access, False: Transpose
    */
-  int getAccessOpr() { return accessOpr_; }
+  int getAccessOpr() const { return accessOpr_; }
 
   /*! getDisp.
    * @brief get displacement from the origin.
    */
-  long getDisp() { return disp_; }
+  long getDisp() const { return disp_; }
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.

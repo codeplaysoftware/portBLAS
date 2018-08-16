@@ -114,10 +114,9 @@ struct Join {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  //  inline __attribute__((always_inline))
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -148,9 +147,9 @@ struct Assign {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -184,9 +183,9 @@ struct DobleAssign {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  IndexType getSize() { return r2.getSize(); }
+  inline IndexType getSize() const { return r2.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -221,9 +220,9 @@ struct ScalarOp {
   RHS r;
   ScalarOp(SCL _scl, RHS &_r) : scl(_scl), r(_r){};
 
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -247,9 +246,9 @@ struct UnaryOp {
   RHS r;
   UnaryOp(RHS &_r) : r(_r){};
 
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -275,9 +274,9 @@ struct BinaryOp {
 
   // PROBLEM: Only the RHS size is considered. If LHS size is different??
   // If it is smaller, eval function will crash
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
   value_type eval(IndexType i) { return Operator::eval(l.eval(i), r.eval(i)); }
@@ -302,9 +301,9 @@ struct TupleOp {
 
   TupleOp(RHS &_r) : r(_r) {}
 
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) {
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return ((ndItem.get_global_id(0) < getSize()));
   }
 
@@ -337,9 +336,9 @@ struct AssignReduction {
   AssignReduction(LHS &_l, RHS &_r, IndexType _blqS, IndexType _grdS)
       : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
 
-  IndexType getSize() { return r.getSize(); }
+  inline IndexType getSize() const { return r.getSize(); }
 
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) { return true; }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   value_type eval(IndexType i) {
     IndexType vecS = r.getSize();
