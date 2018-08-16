@@ -37,7 +37,6 @@ REGISTER_PREC(long double, 1e-8, gemm)
 TYPED_TEST(BLAS_Test, gemm) {
   using test = class gemm;
 
-
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
@@ -45,12 +44,10 @@ TYPED_TEST(BLAS_Test, gemm) {
   using MatAType = typename TypeParam::metadata_t::a_format;
   using MatBType = typename TypeParam::metadata_t::b_format;
 
-  ScalarT prec =
-    BLAS_Test<TypeParam>::template test_prec<test>();
+  ScalarT prec = BLAS_Test<TypeParam>::template test_prec<test>();
 
   const char* ta_str = MatAType::str;
   const char* tb_str = MatBType::str;
-
 
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};
