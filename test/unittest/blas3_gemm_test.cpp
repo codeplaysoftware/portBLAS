@@ -26,28 +26,25 @@
 #include "blas_test.hpp"
 
 class Normal {
-  public:
+ public:
   static constexpr char const* str = "n";
 };
 // const std::string Normal::str = "n";
 
 class Transposed {
-  public:
+ public:
   static constexpr char const* str = "t";
 };
 // const std::string Transposed::str = "t";
 
 class Conjugate {
-  public:
-   static constexpr char const* str = "c";
+ public:
+  static constexpr char const* str = "c";
 };
 // const std::string Conjugate::str = "c";
 
-
-
 template <class AT_ = Normal, class BT_ = Normal>
-struct MatrixFormats
-{
+struct MatrixFormats {
   using a_format = AT_;
   using b_format = BT_;
 };
@@ -88,7 +85,6 @@ REGISTER_PREC(long double, 1e-8, gemm_default)
 TYPED_TEST(BLAS_Test, gemm_default) {
   using test = class gemm_default;
 
-
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
@@ -96,12 +92,10 @@ TYPED_TEST(BLAS_Test, gemm_default) {
   using MatAType = typename TypeParam::metadata_t::a_format;
   using MatBType = typename TypeParam::metadata_t::b_format;
 
-  ScalarT prec =
-    BLAS_Test<TypeParam>::template test_prec<test>();
+  ScalarT prec = BLAS_Test<TypeParam>::template test_prec<test>();
 
   const char* ta_str = MatAType::str;
   const char* tb_str = MatBType::str;
-
 
   std::array<size_t, 2> dim_a = {127, 127};
   std::array<size_t, 2> dim_b = {127, 127};

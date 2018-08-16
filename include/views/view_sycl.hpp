@@ -409,60 +409,60 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   inline int is_row_access() const { return !(accessDev_ ^ accessOpr_); }
 
-  inline int getAccessDev() const { return accessDev_;}
+  inline int getAccessDev() const { return accessDev_; }
 
   inline int getAccessOpr() const { return accessOpr_; }
- 
+
   inline long getDisp() const { return disp_; }
 
-/**** OPERATORS ****/
-matrix_view<ScalarT, ContainerT> operator+(IndexType disp) {
-  return matrix_view<ScalarT, ContainerT>(
-      this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-      this->accessOpr_, this->sizeL_, this->disp_ + disp);
-}
-
-matrix_view<ScalarT, ContainerT> operator()(IndexType i, IndexType j) {
-  if (!(accessDev_ ^ accessOpr_)) {
-    // ACCESING BY ROWS
+  /**** OPERATORS ****/
+  matrix_view<ScalarT, ContainerT> operator+(IndexType disp) {
     return matrix_view<ScalarT, ContainerT>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-        this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
-  } else {
-    // ACCESING BY COLUMNS
-    return matrix_view<ScalarT, ContainerT>(
-        this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-        this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
+        this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
-}
 
-/**** EVALUATING ***/
-inline ScalarT &eval(IndexType k) {
-  int access = (!(accessDev_ ^ accessOpr_));
-  auto size = (access) ? sizeC_ : sizeR_;
-  auto i = (access) ? (k / size) : (k % size);
-  auto j = (access) ? (k % size) : (k / size);
-
-  return eval(i, j);
-}
-
-inline ScalarT &eval(IndexType i, IndexType j) {  // -> decltype(data_[i]) {
-  auto ind = disp_;
-  int accessMode = !(accessDev_ ^ accessOpr_);
-
-  if (accessMode) {
-    ind += (sizeL_ * i) + j;
-  } else {
-    ind += (sizeL_ * j) + i;
+  matrix_view<ScalarT, ContainerT> operator()(IndexType i, IndexType j) {
+    if (!(accessDev_ ^ accessOpr_)) {
+      // ACCESING BY ROWS
+      return matrix_view<ScalarT, ContainerT>(
+          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
+          this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
+    } else {
+      // ACCESING BY COLUMNS
+      return matrix_view<ScalarT, ContainerT>(
+          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
+          this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
+    }
   }
-  return data_[ind + disp_];
-}
 
-inline ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
-  return eval(ndItem.get_global_id(0));
-}
+  /**** EVALUATING ***/
+  inline ScalarT &eval(IndexType k) {
+    int access = (!(accessDev_ ^ accessOpr_));
+    auto size = (access) ? sizeC_ : sizeR_;
+    auto i = (access) ? (k / size) : (k % size);
+    auto j = (access) ? (k % size) : (k / size);
 
-void bind(cl::sycl::handler &h) { h.require(data_); }
+    return eval(i, j);
+  }
+
+  inline ScalarT &eval(IndexType i, IndexType j) {  // -> decltype(data_[i]) {
+    auto ind = disp_;
+    int accessMode = !(accessDev_ ^ accessOpr_);
+
+    if (accessMode) {
+      ind += (sizeL_ * i) + j;
+    } else {
+      ind += (sizeL_ * j) + i;
+    }
+    return data_[ind + disp_];
+  }
+
+  inline ScalarT &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  void bind(cl::sycl::handler &h) { h.require(data_); }
 };  // namespace blas
 
 }  // namespace blas
