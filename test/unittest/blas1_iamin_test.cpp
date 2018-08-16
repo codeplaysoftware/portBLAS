@@ -74,7 +74,7 @@ TYPED_TEST(BLAS_Test, iamin_test) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   IndexValueTuple<ScalarT> res2(vI[0]);
   // check that the result value is the same

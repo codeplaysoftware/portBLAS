@@ -48,8 +48,8 @@ class Executor {
   inline void* deallocate(T* p);
   inline Queue_Interface<ExecutionPolicy> get_policy_handler();
   template <typename first_event_t, typename... next_event_t>
-  void sync(first_event_t first_event, next_event_t... next_events);
-  void sync();
+  void wait(first_event_t first_event, next_event_t... next_events);
+  void wait();
 };
 
 /*! Executor<Sequential>.
@@ -74,8 +74,8 @@ class Executor<Sequential> {
     return q_interface;
   }
   template <typename first_event_t, typename... next_event_t>
-  void sync(first_event_t, next_event_t...) {}
-  void sync() {}
+  void wait(first_event_t, next_event_t...) {}
+  void wait() {}
 };
 
 /*! Executor<Parallel>.
@@ -97,8 +97,8 @@ class Executor<Parallel> {
   };
   inline Queue_Interface<Parallel> get_policy_handler() { return q_interface; }
   template <typename first_event_t, typename... next_event_t>
-  void sync(first_event_t, next_event_t...) {}
-  void sync() {}
+  void wait(first_event_t, next_event_t...) {}
+  void wait() {}
 };
 
 }  // namespace blas

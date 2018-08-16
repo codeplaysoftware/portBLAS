@@ -78,7 +78,7 @@ TYPED_TEST(BLAS_Test, nrm2_test) {
   _nrm2(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   printf("offset :%ld , acutalsize %ld\n", (size + strd - 1) / strd, size);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);

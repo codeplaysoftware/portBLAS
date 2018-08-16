@@ -342,13 +342,13 @@ class Executor<SYCL> {
       @param event is an instance of sycl::sycl::event
   */
   template <typename first_event_t, typename... next_event_t>
-  inline void sync(first_event_t first_event, next_event_t... next_events) {
+  inline void wait(first_event_t first_event, next_event_t... next_events) {
     q_interface.wait_for_events(first_event, next_events...);
   }
 
   /*  @brief waiting for a sycl::queue.wait()
    */
-  void inline sync() { q_interface.wait(); }
+  void inline wait() { q_interface.wait(); }
 
   /*!
    * @brief Executes the tree without defining required shared memory.

@@ -70,7 +70,7 @@ TYPED_TEST(BLAS_Test, asum_test) {
   auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
   ASSERT_NEAR(res, vR[0], prec);
 }
 
@@ -151,7 +151,7 @@ TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
@@ -196,7 +196,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
@@ -240,7 +240,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);

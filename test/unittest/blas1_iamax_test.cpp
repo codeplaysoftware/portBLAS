@@ -78,7 +78,7 @@ TYPED_TEST(BLAS_Test, iamax_test) {
           size_t(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), vI[0].get_value());
@@ -127,7 +127,7 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   IndexValueTuple<ScalarT> res2(vI[0]);
   // check that the result value is the same

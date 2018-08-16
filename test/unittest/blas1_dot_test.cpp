@@ -75,7 +75,7 @@ TYPED_TEST(BLAS_Test, dot_test) {
   auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   ASSERT_NEAR(res, vR[0], prec);
 }
@@ -124,7 +124,7 @@ TYPED_TEST(BLAS_Test, dot_test_vpr) {
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   ASSERT_NEAR(res, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);

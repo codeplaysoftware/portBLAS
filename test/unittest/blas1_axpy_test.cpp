@@ -78,7 +78,7 @@ TYPED_TEST(BLAS_Test, axpy_test_buff) {
   auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
@@ -134,7 +134,7 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
@@ -190,7 +190,7 @@ TYPED_TEST(BLAS_Test, axpy_test_vpr) {
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {

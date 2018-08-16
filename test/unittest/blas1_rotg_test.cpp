@@ -84,7 +84,7 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.sync(event);
+  ex.wait(event);
 
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
