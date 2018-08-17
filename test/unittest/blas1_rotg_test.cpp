@@ -25,7 +25,12 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
@@ -78,7 +83,9 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.wait(event);
+
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);

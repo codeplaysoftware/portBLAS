@@ -139,14 +139,15 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   _rot(ex, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
   _swap(ex, size, gpu_vX, strd, gpu_vY, strd);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.copy_to_host(gpu_vS, vS.data(), 1);
-  ex.copy_to_host(gpu_vT, vT.data(), 1);
-  ex.copy_to_host(gpu_vU, vU.data(), 1);
-  ex.copy_to_host(gpu_vImax, vImax.data(), 1);
-  ex.copy_to_host(gpu_vImin, vImin.data(), 1);
-  ex.copy_to_host(gpu_vX, vX.data(), size);
-  ex.copy_to_host(gpu_vY, vY.data(), size);
+  auto event0 = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event1 = ex.copy_to_host(gpu_vS, vS.data(), 1);
+  auto event2 = ex.copy_to_host(gpu_vT, vT.data(), 1);
+  auto event3 = ex.copy_to_host(gpu_vU, vU.data(), 1);
+  auto event4 = ex.copy_to_host(gpu_vImax, vImax.data(), 1);
+  auto event5 = ex.copy_to_host(gpu_vImin, vImin.data(), 1);
+  auto event6 = ex.copy_to_host(gpu_vX, vX.data(), size);
+  auto event7 = ex.copy_to_host(gpu_vY, vY.data(), size);
+  ex.wait(event0, event1, event2, event3, event4, event5, event6, event7);
 
   // because there is a lot of operations, it makes sense to set the precision
   // threshold

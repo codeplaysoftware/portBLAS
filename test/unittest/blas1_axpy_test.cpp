@@ -23,7 +23,12 @@
  *
  **************************************************************************/
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
@@ -72,7 +77,9 @@ TYPED_TEST(BLAS_Test, axpy_test_buff) {
   auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
   auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
-  ex.copy_to_host(gpu_vY, vY.data());
+  auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
+  ex.wait(event);
+
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vZ[i], vY[i], prec);
@@ -126,7 +133,9 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   auto gpu_vY = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
-  ex.copy_to_host(gpu_vY, vY.data(), size);
+  auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
+  ex.wait(event);
+
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vZ[i], vY[i], prec);
@@ -180,7 +189,9 @@ TYPED_TEST(BLAS_Test, axpy_test_vpr) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
-  ex.copy_to_host(gpu_vY, vY.data(), size);
+  auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
+  ex.wait(event);
+
   // check that both results are the same
   for (size_t i = 0; i < size; ++i) {
     ASSERT_NEAR(vZ[i], vY[i], prec);

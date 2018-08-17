@@ -28,8 +28,10 @@
 #include <CL/sycl.hpp>
 #include <queue/pointer_mapper.hpp>
 #include <queue/queue_base.hpp>
+#include <queue/sycl_iterator.hpp>
 #include <stdexcept>
 #include <types/sycl_types.hpp>
+
 namespace blas {
 
 template <>
@@ -132,8 +134,25 @@ class Queue_Interface<SYCL> {
     auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
     return buff;
   }
-  template <typename T,
-            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
+
+  /*
+  @brief this class is to return the dedicated buffer to the user
+  @ tparam T is the type of the buffer
+  @tparam buffer_iterator<T> is the type of the buffer that user can apply
+  arithmetic operation on the host side
+  */
+  template <typename T>
+  inline buffer_iterator<T> get_buffer(buffer_iterator<T> buff) const {
+    return buff;
+  }
+
+  /*  @brief Getting range accessor from the buffer created by virtual pointer
+      @tparam T is the type of the data
+      @tparam AcM is the access mode
+      @param container is the  data we want to get range accessor
+  */
+  template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
+            typename T>
   placeholder_accessor_t<T, AcM> get_range_access(T *vptr) {
     auto buff_t = get_buffer(vptr);
     auto offset = get_offset(vptr);
@@ -141,6 +160,18 @@ class Queue_Interface<SYCL> {
         buff_t, cl::sycl::range<1>(buff_t.get_count() - offset),
         cl::sycl::id<1>(offset));
   }
+
+  /*  @brief Getting range accessor from the buffer created by buffer iterator
+      @tparam T is the type of the data
+      @tparam AcM is the access mode
+      @param container is the  data we want to get range accessor
+  */
+  template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
+            typename T>
+  placeholder_accessor_t<T, AcM> get_range_access(buffer_iterator<T> buff) {
+    return blas::get_range_accessor<AcM>(buff);
+  }
+
   /*
   @brief this function is to get the offset from the actual pointer
   @tparam T is the type of the pointer
@@ -149,6 +180,14 @@ class Queue_Interface<SYCL> {
   inline ptrdiff_t get_offset(T *ptr) const {
     return (pointerMapperPtr_->get_offset(static_cast<void *>(ptr)) /
             sizeof(T));
+  }
+  /*
+  @brief this function is to get the offset from the actual pointer
+  @tparam T is the type of the buffer_iterator<T>
+  */
+  template <typename T>
+  inline ptrdiff_t get_offset(buffer_iterator<T> buff) const {
+    return buff.get_offset();
   }
   /*  @brief Copying the data back to device
       @tparam T is the type of the data
@@ -170,7 +209,25 @@ class Queue_Interface<SYCL> {
           static_cast<generic_buffer_data_type *>(static_cast<void *>(src)),
           write_acc);
     });
-    q_.wait();
+
+    return event;
+  }
+
+  /*  @brief Copying the data back to device
+    @tparam T is the type of the data
+    @param src is the host pointer we want to copy from.
+    @param dst is the buffer_iterator we want to copy to.
+    @param size is the number of elements to be copied
+*/
+  template <typename T>
+  inline cl::sycl::event copy_to_device(T *src, buffer_iterator<T> dst,
+                                        size_t = 0) {
+    auto event = q_.submit([&](cl::sycl::handler &cgh) {
+      auto acc =
+          blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
+      cgh.copy(src, acc);
+    });
+
     return event;
   }
   /*  @brief Copying the data back to device
@@ -183,8 +240,6 @@ class Queue_Interface<SYCL> {
   cl::sycl::event copy_to_host(T *src, T *dst, size_t size) {
     auto buffer = pointerMapperPtr_->get_buffer(static_cast<void *>(src));
     auto offset = pointerMapperPtr_->get_offset(static_cast<void *>(src));
-    q_.wait();  // FIXME: we should not have that when the size of the
-    //  buffer is 1. However there is an issue in CopmputeCpp-CE-V.0.6.1.
 
     auto event = q_.submit([&](cl::sycl::handler &cgh) {
       auto read_acc =
@@ -195,9 +250,40 @@ class Queue_Interface<SYCL> {
       cgh.copy(read_acc, static_cast<generic_buffer_data_type *>(
                              static_cast<void *>(dst)));
     });
-    q_.wait();
+
     return event;
   }
+  /*  @brief Copying the data back to device
+    @tparam T is the type of the data
+    @param src is the buffer_iterator we want to copy from.
+    @param dst is the host pointer we want to copy to.
+    @param size is the number of elements to be copied
+*/
+  template <typename T>
+  inline cl::sycl::event copy_to_host(buffer_iterator<T> src, T *dst,
+                                      size_t = 0) {
+    auto event = q_.submit([&](cl::sycl::handler &cgh) {
+      auto acc =
+          blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
+      cgh.copy(acc, dst);
+    });
+
+    return event;
+  }
+
+  /*  @brief waiting for a list of sycl events
+    @param first_event  and next_events are instances of sycl::sycl::event
+*/
+  template <typename first_event_t, typename... next_event_t>
+  void inline wait_for_events(first_event_t first_event,
+                              next_event_t... next_events) {
+    cl::sycl::event::wait({first_event, next_events...});
+  }
+
+  /*  @brief waiting for a sycl::queue.wait()
+   */
+  void inline wait() { q_.wait(); }
+
 };  // class Queue_Interface
 }  // namespace blas
 #endif  // QUEUE_SYCL_HPP
