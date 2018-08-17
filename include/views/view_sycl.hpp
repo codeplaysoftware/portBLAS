@@ -192,22 +192,22 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
   /*!
    * @brief See vector_view.
    */
-  IndexType getDataSize() { return size_data_; }
+  inline IndexType getDataSize() const { return size_data_; }
 
   /*!
    * @brief See vector_view.
    */
-  IndexType getSize() { return size_; }
+  inline IndexType getSize() const { return size_; }
 
   /*!
    * @brief See vector_view.
    */
-  IndexType getDisp() { return disp_; }
+  inline IndexType getDisp() const { return disp_; }
 
   /*!
    * @brief See vector_view.
    */
-  IncrementType getStrd() { return strd_; }
+  inline IncrementType getStrd() const { return strd_; }
 
   /*!
    * @brief See vector_view.
@@ -266,9 +266,8 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
     }
 #ifndef __SYCL_DEVICE_ONLY__
     if (ind >= size_data_) {
-      //    printf("(E) ind = %ld , size_data_ = %ld \n", ind, size_data_);
       // out of range access
-      //      throw std::invalid_argument("Out of range access");
+      throw std::invalid_argument("Out of range access");
     }
 #endif  //__SYCL_DEVICE_ONLY__
     return data_[ind];
@@ -398,23 +397,23 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
   /**** RETRIEVING DATA ****/
   inline ContainerT &getData() { return data_; }
 
-  inline IndexType getDataSize() { return size_data_; }
+  inline IndexType getDataSize() const { return size_data_; }
 
-  inline IndexType getSize() { return sizeR_ * sizeC_; }
+  inline IndexType getSize() const { return sizeR_ * sizeC_; }
 
-  inline IndexType getSizeL() { return sizeL_; }
+  inline IndexType getSizeL() const { return sizeL_; }
 
-  inline IndexType getSizeR() { return sizeR_; }
+  inline IndexType getSizeR() const { return sizeR_; }
 
-  inline IndexType getSizeC() { return sizeC_; }
+  inline IndexType getSizeC() const { return sizeC_; }
 
-  inline int getAccess() { return !(accessDev_ ^ accessOpr_); }
+  inline int is_row_access() const { return !(accessDev_ ^ accessOpr_); }
 
-  inline int getAccessDev() { return accessDev_; }
+  inline int getAccessDev() const { return accessDev_; }
 
-  inline int getAccessOpr() { return accessOpr_; }
+  inline int getAccessOpr() const { return accessOpr_; }
 
-  inline long getDisp() { return disp_; }
+  inline long getDisp() const { return disp_; }
 
   /**** OPERATORS ****/
   matrix_view<ScalarT, ContainerT> operator+(IndexType disp) {
@@ -464,7 +463,7 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
   }
 
   void bind(cl::sycl::handler &h) { h.require(data_); }
-};
+};  // namespace blas
 
 }  // namespace blas
 

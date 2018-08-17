@@ -46,6 +46,7 @@ class Executor {
   inline T* allocate(size_t num_bytes);
   template <typename T>
   inline void* deallocate(T* p);
+  inline Queue_Interface<ExecutionPolicy> get_policy_handler();
 };
 
 /*! Executor<Sequential>.
@@ -54,6 +55,9 @@ class Executor {
  */
 template <>
 class Executor<Sequential> {
+ private:
+  Queue_Interface<Sequential> q_interface;
+
  public:
   template <typename Tree>
   void execute(Tree t) {
@@ -62,6 +66,10 @@ class Executor<Sequential> {
       t.eval(i);
     }
   };
+
+  inline Queue_Interface<Sequential> get_policy_handler() {
+    return q_interface;
+  }
 };
 
 /*! Executor<Parallel>.
@@ -70,6 +78,8 @@ class Executor<Sequential> {
  */
 template <>
 class Executor<Parallel> {
+  Queue_Interface<Parallel> q_interface;
+
  public:
   template <typename Tree>
   void execute(Tree t) {
@@ -79,6 +89,7 @@ class Executor<Parallel> {
       t.eval(i);
     }
   };
+  inline Queue_Interface<Parallel> get_policy_handler() { return q_interface; }
 };
 
 }  // namespace blas

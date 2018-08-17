@@ -35,28 +35,31 @@
 
 namespace blas {
 
-/*! PrdRowMatVct.
- * @brief CLASSICAL DOT PRODUCT GEMV
- * Each thread computes a dot product, If
- * the matrix is column-major the accesses are coalescent.
- */
-template <class RHS1, class RHS2>
-struct PrdRowMatVct {
-  using IndexType = typename RHS2::IndexType;
-  using value_type = typename RHS2::value_type;
+/**** ADD A SET OF COLUMNS, 1 ROW PER THREAD ****/
+template <class RHS>
+struct AddSetColumns {
+  using value_type = typename RHS::value_type;
+  using IndexType = typename RHS::IndexType;
 
-  RHS1 r1;
-  RHS2 r2;
-  IndexType mult;
+  RHS r;
 
-  PrdRowMatVct(RHS1 &_r1, RHS2 &_r2) : r1(_r1), r2(_r2){};
+  AddSetColumns(RHS &_r) : r(_r){};
+
+  inline IndexType getSize() const { return r.getSizeR(); }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+    return ((ndItem.get_global_id(0) < getSize()));
+  }
 
   value_type eval(IndexType i) {
-    auto dim = r2.getSize();
+    auto dimR = r.getSizeR();
+    auto dimC = r.getSizeC();
 
-    auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (IndexType j = 0; j < dim; j++) {
-      val += r1.eval(i, j) * r2.eval(j);
+    auto val = iniAddOp1_struct::eval(r.eval(0));
+    if (i < dimR) {
+      for (IndexType j = 0; j < dimC; j++) {
+        val += r.eval(i, j);
+      }
     }
     return val;
   }
@@ -64,413 +67,1014 @@ struct PrdRowMatVct {
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
-  IndexType getSize() { return r1.getSizeR(); }
 
-  void bind(cl::sycl::handler &h) {
-    r1.bind(h);
-    r2.bind(h);
-  }
+  void bind(cl::sycl::handler &h) { r.bind(h); }
 };
 
-template <class RHS1, class RHS2>
-PrdRowMatVct<RHS1, RHS2> make_prdRowMatVct(RHS1 &r1, RHS2 &r2) {
-  return PrdRowMatVct<RHS1, RHS2>(r1, r2);
+template <class RHS>
+AddSetColumns<RHS> make_addSetColumns(RHS &r) {
+  return AddSetColumns<RHS>(r);
 }
 
-/** PrdRowMatVctMult
- * @brief MULTITHREAD DOT PRODUCT GEMV
- * P threads compute a dot product
- * If the matrix is column-major the accesses are coalescent.
- */
-template <class LHS, class RHS1, class RHS2, class RHS3>
-struct PrdRowMatVctMult {
+/**** GEMV BY ROWS M ROWS x N BLOCK ****/
+
+template <unsigned int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
+          class LHS, class RHS1, class RHS2>
+struct Gemv_Row {
   using value_type = typename RHS2::value_type;
   using IndexType = typename RHS2::IndexType;
 
   LHS l;
-  value_type scl;
-
   RHS1 r1;
   RHS2 r2;
-  RHS3 r3;
-  IndexType nThr;
+  IndexType nWG_row;
+  IndexType nWG_col;
+  IndexType shrMemSize;
 
-  PrdRowMatVctMult(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, RHS3 &_r3,
-                   IndexType _nThr)
-      : l(_l), scl(_scl), r1(_r1), r2(_r2), r3(_r3), nThr{_nThr} {};
+  Gemv_Row(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+           IndexType &_nWG_col, IndexType &_shrMemSize)
+      : l(_l),
+        r1(_r1),
+        r2(_r2),
+        nWG_row(_nWG_row),
+        nWG_col(_nWG_col),
+        shrMemSize(_shrMemSize){};
 
-  value_type eval(IndexType i) {
+  inline IndexType getSize() const { return r1.getSize(); }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
+
+  // TODO (@JOSE) If this function is extra and it is not required please remove
+  // it.
+  value_type eval(IndexType i) {  // NOT VERIFIED
     auto dim = r2.getSize();
 
     auto val = iniAddOp1_struct::eval(r2.eval(0));
     for (IndexType j = 0; j < dim; j++) {
-      val += r1.eval(i, j) * r2.eval(j);
+      auto prod = prdOp2_struct::eval(r1.eval(i, j), r2.eval(j));
+      val = addOp2_struct::eval(val, prod);
     }
-    l.eval(i) += scl * val;
-    return val;
+    return l.eval(i) = val;
   }
 
-  template <typename sharedT>
-  value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    IndexType localid = ndItem.get_local_id(0);
-    IndexType localSz = ndItem.get_local_range(0);
-    IndexType groupid = ndItem.get_group(0);
-
-    IndexType dimR = r1.getSizeR();
-    IndexType dimC = r1.getSizeC();
-
-    IndexType rowSz = (localSz / nThr);  // number of rows per each workgroup
-    IndexType rowid = groupid * rowSz + localid % rowSz;  // rowid of the thread
-
-    IndexType colid = localid / rowSz;  // first column on which thread works
-
-    // Local computations
-    auto val = iniAddOp1_struct::eval(r2.eval(0));
-    if (rowid < dimR) {
-      for (IndexType j = colid; j < dimC; j += nThr) {
-        val += r1.eval(rowid, j) * r2.eval(j);
-      }
-    }
-
-    scratch[localid] = val;
-    // This barrier is mandatory to be sure the data is on the shared memory
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
-    // Reduction inside the block
-    for (IndexType offset = nThr >> 1; offset > 0; offset >>= 1) {
-      if ((rowid < dimR) && (colid < offset)) {
-        scratch[localid] += scratch[localid + offset * rowSz];
-      }
-      // This barrier is mandatory to be sure the data are on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
-    }
-    // The result is stored in lhs
-    if ((rowid < dimR) && (colid == 0)) {
-      l.eval(rowid) = scl * scratch[localid] + r3.eval(rowid);
-    }
-    return val;
-  }
-
-  IndexType getSize() { return r1.getSizeR(); }
-
-  void bind(cl::sycl::handler &h) {
-    l.bind(h);
-    r1.bind(h);
-    r2.bind(h);
-    r3.bind(h);
-  }
-};
-
-template <class LHS, class RHS1, class RHS2, class RHS3, typename IndexType>
-PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3> make_prdRowMatVctMult(
-    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2, RHS3 &r3,
-    IndexType nThr) {
-  return PrdRowMatVctMult<LHS, RHS1, RHS2, RHS3>(l, scl, r1, r2, r3, nThr);
-}
-
-/*! PrdRowMatCvtMultShm.
- * @brief TWO KERNELS DOT PRODUCT GEMV
- * FIRST KERNEL: THE LOCAL COMPUTATIONS ARE MADE
- * The common data are copied to the scratch vector,
- * and later the computation begins.
- */
-template <class LHS, class RHS1, class RHS2>
-struct PrdRowMatVctMultShm {
-  using IndexType = typename RHS2::IndexType;
-  using value_type = typename RHS2::value_type;
-  LHS l;
-  RHS1 r1;
-  RHS2 r2;
-  IndexType nThr;
-
-  PrdRowMatVctMultShm(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType _nThr)
-      : l(_l), r1(_r1), r2(_r2), nThr{_nThr} {};
-
-  value_type eval(IndexType i) {
-    auto dim = r2.getSize();
-
-    auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (IndexType j = 0; j < dim; j++) {
-      val += r1.eval(i, j) * r2.eval(j);
-    }
-    l.eval(i) += val;
-    return val;
-  }
-
-  template <typename sharedT>
-  value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
     IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+    IndexType glbalSz = ndItem.get_global_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
-    IndexType blqSz =
-        (groupSz + nThr - 1) / nThr;     // number of "real" workgroups
-    IndexType blqidR = groupid % blqSz;  // 1st row id of the current workgroup
-    IndexType blqidC = groupid / blqSz;  // col bloq id of the current workgroup
-
-    IndexType rowSz =
-        (dimR < localSz) ? dimR : localSz;  // number of rows per each workgroup
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
     IndexType colSz =
-        (dimC + nThr - 1) / nThr;  // number of columns per each thread
+        (dimC < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize / localSz;
 
-    IndexType rowid = blqidR * rowSz + localid;  // rowid of the current thread
-    IndexType colid = blqidC * colSz;  // first column of the current thread
+    IndexType idWFR =
+        groupid / nWG_col;  // row bloq id of the current workgroup
+    IndexType idWFC = groupid % nWG_col;  // col blq id of the current workgroup
 
-    IndexType k;
+    IndexType dimWFC =
+        ((dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col)) * localSz;
 
-    // Copying  to the scratch
-    k = localid;
-    for (IndexType j = colid + localid; j < colid + colSz; j += rowSz) {
-      if ((rowid < dimR) && (j < dimC)) scratch[k] = r2.eval(j);
-      k += rowSz;
-    }
+    IndexType frs_row = idWFR * rowSz;
+    IndexType lst_row = std::min(dimR, frs_row + rowSz);
 
-    // This barrier is mandatory to be sure the data are on the shared memory
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    IndexType frs_col = idWFC * dimWFC + interLoop * localid;
+    IndexType lst_col = std::min(dimC, frs_col + dimWFC);
 
-    // Local computation
-    auto val = iniAddOp1_struct::eval(r2.eval(0));
-    k = 0;
-    for (IndexType j = colid; j < colid + colSz; j++) {
-      if ((rowid < dimR) && (j < dimC)) val += r1.eval(rowid, j) * scratch[k++];
-    }
-    // The result is stored in lhs
-    if (rowid < dimR) l.eval(rowid, blqidC) = val;
+    IndexType id_col_thr = idWFC * localSz + localid;
 
-    return val;
-  }
-
-  IndexType getSize() { return r1.getSizeR(); }
-  void bind(cl::sycl::handler &h) {
-    l.bind(h);
-    r1.bind(h);
-    r2.bind(h);
-  }
-};
-
-template <class LHS, class RHS1, class RHS2, typename IndexType>
-PrdRowMatVctMultShm<LHS, RHS1, RHS2> make_prdRowMatVctMultShm(LHS &l, RHS1 &r1,
-                                                              RHS2 &r2,
-                                                              IndexType nThr) {
-  return PrdRowMatVctMultShm<LHS, RHS1, RHS2>(l, r1, r2, nThr);
-}
-
-/*! AddPrdRowMatVctMultShm.
- * @brief SECOND KERNEL: REDUCTION OF THE LOCAL COMPUTATIONS
- */
-template <class LHS, class RHS1, class RHS2>
-struct AddPrdRowMatVctMultShm {
-  using IndexType = typename RHS2::IndexType;
-  using value_type = typename RHS2::value_type;
-  LHS l;
-  value_type scl;
-  RHS1 r1;
-  RHS2 r2;
-
-  AddPrdRowMatVctMultShm(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2)
-      : l(_l), scl(_scl), r1(_r1), r2(_r2){};
-
-  value_type eval(IndexType i) {
-    auto dimC = r1.getSizeC();
-
-    auto val = iniAddOp1_struct::eval(r2.eval(0));
-    for (IndexType j = 0; j < dimC; j++) {
-      val += r1.eval(i, j);
-    }
-    l.eval(i) = scl * val + r2.eval(i);
-    return val;
-  }
-
-  value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global_id(0));
-  }
-
-  IndexType getSize() { return r1.getSizeR(); }
-
-  void bind(cl::sycl::handler &h) {
-    l.bind(h);
-    r1.bind(h);
-    r2.bind(h);
-  }
-};
-
-template <class LHS, class RHS1, class RHS2>
-AddPrdRowMatVctMultShm<LHS, RHS1, RHS2> make_addPrdRowMatVctMultShm(
-    LHS &l, typename RHS1::value_type &scl, RHS1 &r1, RHS2 &r2) {
-  return AddPrdRowMatVctMultShm<LHS, RHS1, RHS2>(l, scl, r1, r2);
-}
-
-/*! RedRowMatVct.
- * @brief CLASSICAL AXPY GEMV
- */
-// #define ORIGINAL_CODE 1
-template <class RHS1, class RHS2>
-struct RedRowMatVct {
-  using IndexType = typename RHS2::IndexType;
-  using value_type = typename RHS2::value_type;
-  RHS1 r1;
-  RHS2 r2;
-  IndexType warpSize;
-
-  RedRowMatVct(RHS1 &_r1, RHS2 &_r2, IndexType _warpSize)
-      : r1(_r1), r2(_r2), warpSize(_warpSize){};
-
-#if ORIGINAL_CODE
-  value_type eval(IndexType i) {
-    auto dim = r2.getSize();
-    value_type v[warpSize];
-    for (IndexType w = 0; w < warpSize; w++) {
-      auto valWI = iniAddOp1_struct::eval(r2.eval(0));
-      for (IndexType j = w; j < dim; j += warpSize) {
-        valWI += r1.eval(i, j) * r2.eval(j);
+    value_type val = addOp2_struct::init(r2);
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP_OF ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
+    if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||
+        (!Lower &&
+         ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += localSz) {
+        l.eval(rowid, id_col_thr) = val;
       }
-      v[w] = valWI;
-    }
-    auto valWG = iniAddOp1_struct::eval(r2.eval(0));
-    for (IndexType w = 0; w < warpSize; w++) {
-      valWG += v[w];
-    }
-    return valWG;
-  }
+    } else {
+#ifdef GROUP_OF_ROWS
+      for (IndexType id_row = frs_row; (id_row < lst_row); id_row++) {
+        l.eval(id_row, id_col_thr) = val;
+      }
+#endif
+      if (interLoop == 1) {
+#ifdef GROUP_OF_ROWS
+        for (IndexType id_col = frs_col; id_col < lst_col; id_col += localSz) {
+          auto elm = r2.eval(id_col);
+          for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
+               row++, id_row++) {
+            if (Lower && Upper && Diag && !Unit) {
+              auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
+              l.eval(id_row, id_col_thr) =
+                  addOp2_struct::eval(l.eval(id_row, id_col_thr), prod);
+            } else {
+              if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
+                  (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
+                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
+                l.eval(id_row, id_col_thr) =
+                    addOp2_struct::eval(l.eval(id_row, id_col_thr), prod);
+              }
+              if (Diag && Unit && (id_row == id_col)) {
+                l.eval(id_row, id_col_thr) = addOp2_struct::eval(
+                    l.eval(id_row, id_col_thr), r1.eval(id_row, id_col));
+              }
+            }
+          }
+        }
 #else
-  value_type eval(IndexType i) {
-    auto dim = r2.getSize();
-    auto valWG = iniAddOp1_struct::eval(r2.eval(0));
-    for (IndexType j = 0; j < dim; j++) {
-      valWG += r1.eval(i, j) * r2.eval(j);
+        if (id_col_thr < dimC) {
+          for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
+               row++, id_row++) {
+            val = addOp2_struct::init(r2);
+            for (IndexType id_col = frs_col; id_col < lst_col;
+                 id_col += localSz) {
+              if (Lower && Upper && Diag && !Unit) {
+                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col),
+                                                r2.eval(id_col));
+                val = addOp2_struct::eval(val, prod);
+              } else {
+                if ((Lower &&
+                     ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
+                    (Upper &&
+                     (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
+                  auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col),
+                                                  r2.eval(id_col));
+                  val = addOp2_struct::eval(val, prod);
+                }
+                if (Diag && Unit && (id_row == id_col)) {
+                  val = addOp2_struct::eval(val, r1.eval(id_row, id_col));
+                }
+              }
+            }
+            l.eval(id_row, id_col_thr) = val;
+          }
+        }
+#endif
+      } else {
+        for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
+             row++, id_row++) {
+          val = addOp2_struct::init(r2);
+          for (IndexType id_col = frs_col; id_col < lst_col;
+               id_col += localSz * interLoop) {
+            auto lst_k_int = std::min(id_col + interLoop, lst_col);
+            for (IndexType k_int =
+                     ((Lower)
+                          ? id_col
+                          : std::max(row + ((!Diag || Unit) ? 1 : 0), id_col));
+                 k_int < ((Upper) ? lst_k_int
+                                  : std::min(row + ((!Diag || Unit) ? 0 : 1),
+                                             lst_k_int));
+                 k_int++) {
+              auto prod =
+                  prdOp2_struct::eval(r1.eval(id_row, k_int), r2.eval(k_int));
+              val = addOp2_struct::eval(val, prod);
+            }
+          }
+          l.eval(id_row, id_col_thr) = val;
+        }
+      }
     }
-    return valWG;
-  }
-#endif  // ORIGINAL_CODE
-
-  value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global_id(0));
+    return val;
   }
 
-#if BLAS_EXPERIMENTAL
   template <typename sharedT>
-  value_type eval(sharedT scratch, cl::sycl::nd_item<1> ndItem) {
-    IndexType Pieces = 2;
-
+  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
     IndexType groupSz = ndItem.get_group_range(0);
-    IndexType globalid = ndItem.get_global_id(0);
-    IndexType globalSz = ndItem.get_global_id_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+    IndexType glbalSz = ndItem.get_global_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
-    IndexType blqSz = groupSz;  // number of workgroups
-    // row blq id of the current workgroup
-    IndexType blqidR = (groupid + (Pieces * blqSz) - 1) / (Pieces * blqSz);
-    IndexType blqidC =
-        groupid % (Pieces * blqSz);  // 1st col id of the current workgroup
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
+    IndexType colSz =
+        (dimC < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize / localSz;
 
-    // number of columns per each workgroup
-    IndexType colSz = (dimC < (Pieces * localSz)) ? dimC : Pieces * localSz;
-    // number of rows per each thread
-    IndexType rowSz = (dimR + blqidR - 1) / blqidR;
+    IndexType idWFR =
+        groupid / nWG_col;  // row bloq id of the current workgroup
+    IndexType idWFC = groupid % nWG_col;  // col blq id of the current workgroup
+    IndexType dimWFC =
+        ((dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col)) * localSz;
 
-    IndexType colid = blqidC * colSz + localid;  // colid of the current thread
-    IndexType rowid = blqidR * rowSz;  // first row of the current thread
+    IndexType frs_row = idWFR * rowSz;
+    IndexType lst_row = std::min(dimR, frs_row + rowSz);
 
-    value_type val;
-#if BLAS_EXPERIMENTAL
-    // Local computations
-    while (rowid < dimR) {
-      auto val = iniAddOp1_struct::eval(r2.eval(0));
-      for (IndexType j = colid; j < dimC; j += colSz) {
-        val += r1.eval(rowid, j) * r2.eval(j);
-      }
-      scratch[localid] = val;
-      // This barrier is mandatory to be sure the data is on the shared memory
-      ndItem.barrier(cl::sycl::access::fence_space::local_space);
-      // Reduction inside the block
-      for (IndexType offset = nThr >> 1; offset > 0; offset >>= 1) {
-        if ((rowid < dimR) && (colid < offset)) {
-          scratch[localid] += scratch[localid + offset];
+    IndexType frs_col = idWFC * dimWFC + interLoop * localid;
+    IndexType lst_col = std::min(dimC, frs_col + dimWFC);
+
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
+    if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||
+        (!Lower &&
+         ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
+      if (localid == 0) {
+        value_type val = iniAddOp1_struct::eval(r2.eval(0));
+        for (IndexType rowid = frs_row; rowid < lst_row; rowid++) {
+          l.eval(rowid, idWFC) = val;
         }
-        // This barrier is mandatory to be sure the data are on the shared
-        // memory
-        ndItem.barrier(cl::sycl::access::fence_space::local_space);
       }
-      // The result is stored in lhs
-      if ((rowid < dimR) && (colid == 0)) {
-        l.eval(rowid, blqidC) = scl * scratch[localid] + r3.eval(rowid);
-      }
-      rowid += rowSz;
-    }
-#endif  // BLAS_EXPERIMENTAL
-    return val;
-  }
-#endif  // BLAS_EXPERIMENTAL
+    } else {
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += shrSz) {
+        value_type val = addOp2_struct::init(r2);
+        auto blqSz = std::min(shrSz, lst_row - rowid);
+#ifdef GROUP_OF_ROWS
+        for (IndexType row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
+          shrMem[row * localSz + localid] = val;
+        }
+#endif
+        if (interLoop == 1) {
+#ifdef GROUP_OF_ROWS
+          for (IndexType id_col = frs_col; id_col < lst_col;
+               id_col += localSz) {
+            auto elm = r2.eval(id_col);
+            for (IndexType row = 0, id_row = rowid; (row < blqSz);
+                 row++, id_row++) {
+              if (Lower && Upper && Diag && !Unit) {
+                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
+                shrMem[row * localSz + localid] =
+                    addOp2_struct::eval(shrMem[row * localSz + localid], prod);
+              } else {
+                if ((Lower &&
+                     ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
+                    (Upper &&
+                     (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
+                  auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
+                  shrMem[row * localSz + localid] = addOp2_struct::eval(
+                      shrMem[row * localSz + localid], prod);
+                }
+                if (Diag && Unit && (id_row == id_col)) {
+                  shrMem[row * localSz + localid] = addOp2_struct::eval(
+                      shrMem[row * localSz + localid], r1.eval(id_row, id_col));
+                }
+              }
+            }
+          }
+#else
+          for (IndexType row = 0, id_row = rowid; row < blqSz;
+               row++, id_row++) {
+            val = (Diag && Unit &&
+                   ((id_row >= frs_col) && (id_row < lst_col) &&
+                    (((id_row - frs_col) % localSz) == 0)))
+                      ? r1.eval(id_row, id_row)
+                      : addOp2_struct::init(r2);
+            for (IndexType id_col = frs_col; id_col < lst_col;
+                 id_col += localSz) {
+              if (Lower && Upper && Diag && !Unit) {
+                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col),
+                                                r2.eval(id_col));
+                val = addOp2_struct::eval(val, prod);
+              } else {
+                if ((Lower &&
+                     ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
+                    (Upper &&
+                     (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
+                  auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col),
+                                                  r2.eval(id_col));
+                  val = addOp2_struct::eval(val, prod);
+                }
+              }
+            }
+            shrMem[row * localSz + localid] = val;
+          }
+#endif
+        } else {
+          for (IndexType row = 0, id_row = rowid; row < blqSz;
+               row++, id_row++) {
+            val = addOp2_struct::init(r2);
+            for (IndexType id_col = frs_col; id_col < lst_col;
+                 id_col += localSz * interLoop) {
+              for (IndexType k_int = id_col;
+                   k_int < std::min(id_col + interLoop, lst_col); k_int++) {
+                if (Lower && Upper && Diag && !Unit) {
+                  auto prod = prdOp2_struct::eval(r1.eval(id_row, k_int),
+                                                  r2.eval(k_int));
+                  val = addOp2_struct::eval(val, prod);
+                } else {
+                  if ((Lower &&
+                       ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
+                      (Upper &&
+                       (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
+                    auto prod = prdOp2_struct::eval(r1.eval(id_row, k_int),
+                                                    r2.eval(k_int));
+                    val = addOp2_struct::eval(val, prod);
+                  }
+                  if (Diag && Unit && (id_row == id_col)) {
+                    val = addOp2_struct::eval(val, r1.eval(id_row, k_int));
+                  }
+                }
+              }
+            }
+            shrMem[row * localSz + localid] = val;
+          }
+        }
 
-#if BLAS_EXPERIMENTAL
-  value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global_id(0));
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        // Reduction inside the block
+        for (IndexType offset = localSz >> 1; offset > 0; offset >>= 1) {
+          if (localid < offset) {
+            for (IndexType row = 0, id_row = rowid; row < blqSz;
+                 row++, id_row++) {
+              shrMem[row * localSz + localid] =
+                  addOp2_struct::eval(shrMem[row * localSz + localid],
+                                      shrMem[row * localSz + localid + offset]);
+            }
+          }
+          // This barrier is mandatory to be sure the data are on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        }
+        if (localid == 0) {
+          for (IndexType row = 0, id_row = rowid; row < blqSz;
+               row++, id_row++) {
+            l.eval(id_row, idWFC) = shrMem[row * localSz];
+          }
+        }
+      }
+    }
+
+    return addOp2_struct::init(r2);
   }
-#endif  // BLAS_EXPERIMENTAL
-  IndexType getSize() { return r1.getSizeR(); }
 
   void bind(cl::sycl::handler &h) {
+    l.bind(h);
     r1.bind(h);
     r2.bind(h);
   }
 };
 
-template <class RHS1, class RHS2, typename IndexType>
-RedRowMatVct<RHS1, RHS2> make_redRowMatVct(RHS1 &r1, RHS2 &r2,
-                                           IndexType warpSize) {
-  return RedRowMatVct<RHS1, RHS2>(r1, r2, warpSize);
+template <unsigned int interLoop = 1, bool Lower = true, bool Diag = true,
+          bool Upper = true, bool Unit = false, typename LHS, typename RHS1,
+          typename RHS2>
+Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Row(
+    LHS &l, RHS1 &r1, RHS2 &r2, typename RHS2::IndexType nWG_row,
+    typename RHS2::IndexType nWG_col, typename RHS2::IndexType shrMemSize) {
+  return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2>(
+      l, r1, r2, nWG_row, nWG_col, shrMemSize);
 }
 
-/*! ModifRank1.
- * @brief RANK 1 UPDATE
- */
-template <class RHS1, class RHS2, class RHS3>
-struct ModifRank1 {
-  using IndexType = typename RHS2::IndexType;
+/**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
+
+// template <class LHS, class RHS1, class RHS2>
+template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS, class RHS1,
+          class RHS2>
+struct Gemv_Col {
   using value_type = typename RHS2::value_type;
+  using IndexType = typename RHS2::IndexType;
+  LHS l;
   RHS1 r1;
   RHS2 r2;
-  RHS3 r3;
+  IndexType nWG_row;
+  IndexType nWG_col;
+  IndexType shrMemSize;
 
-  ModifRank1(RHS1 &_r1, RHS2 &_r2, RHS3 &_r3) : r1(_r1), r2(_r2), r3(_r3){};
+  Gemv_Col(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+           IndexType &_nWG_col, IndexType &_shrMemSize)
+      : l(_l),
+        r1(_r1),
+        r2(_r2),
+        nWG_row(_nWG_row),
+        nWG_col(_nWG_col),
+        shrMemSize(_shrMemSize){};
+
+  inline IndexType getSize() const { return r1.getSizeR(); }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   value_type eval(IndexType i) {
-    auto size = (r1.getAccess()) ? r1.getSizeC() : r1.getSizeR();
-    auto row = (r1.getAccess()) ? (i / size) : (i % size);
-    auto col = (r1.getAccess()) ? (i % size) : (i / size);
+    auto dim = r2.getSize();
 
-    auto val = r2.eval(row) * r3.eval(col);
-
-    return val;
+    auto val = iniAddOp1_struct::eval(r2.eval(0));
+    for (IndexType j = 0; j < dim; j++) {
+      auto prod = prdOp2_struct::eval(r1.eval(i, j), r2.eval(j));
+      val = addOp2_struct::eval(val, prod);
+    }
+    return l.eval(i) = val;
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
-    return eval(ndItem.get_global_id(0));
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = r1.getSizeR();
+    IndexType dimC = r1.getSizeC();
+    IndexType colSz = (dimC + nWG_col - 1) / nWG_col;
+
+    IndexType idWFR = (groupid % nWG_row);
+    IndexType idWFC = (groupid / nWG_row);
+    IndexType dimWFR =
+        (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+
+    IndexType frs_row = idWFR * dimWFR + localid;
+    IndexType lst_row = std::min(dimR, frs_row + dimWFR);
+
+    IndexType frs_col = idWFC * colSz;
+    IndexType lst_col = std::min(dimC, frs_col + colSz);
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
+    if ((!Upper &&
+         ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
+        (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
+      auto val = iniAddOp1_struct::eval(r2.eval(0));
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += localSz) {
+        l.eval(rowid, idWFC) = val;
+      }
+    } else {
+      // The product is computed
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += localSz) {
+        // The initial value of val is different for the first iteration
+        auto val = (Diag && Unit && ((rowid >= frs_col) && (rowid < lst_col)))
+                       ? r1.eval(rowid, rowid)
+                       : iniAddOp1_struct::eval(r2.eval(0));
+        for (IndexType id_col =
+                 ((Lower)
+                      ? frs_col
+                      : std::max(rowid + ((!Diag || Unit) ? 1 : 0), frs_col));
+             id_col <
+             ((Upper) ? lst_col
+                      : std::min(rowid + ((!Diag || Unit) ? 0 : 1), lst_col));
+             id_col++) {
+          auto prod =
+              prdOp2_struct::eval(r1.eval(rowid, id_col), r2.eval(id_col));
+          val = addOp2_struct::eval(val, prod);
+        }
+        // The result is stored in the correct component
+        l.eval(rowid, idWFC) = val;
+      }
+    }
+
+    return l.eval(frs_row, idWFC);
   }
 
-  IndexType getSize() { return r1.getSize(); }
+  template <typename sharedT>
+  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = r1.getSizeR();
+    IndexType dimC = r1.getSizeC();
+
+    IndexType rowSz = (dimR < localSz) ? dimR : localSz;
+    IndexType colSz = (dimC + nWG_col - 1) / nWG_col;
+    IndexType idWFR = (groupid % nWG_row);
+    IndexType idWFC = (groupid / nWG_row);
+    IndexType dimWFR =
+        (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+
+    IndexType frs_row = idWFR * dimWFR + localid;
+    IndexType lst_row = std::min(dimR, frs_row + dimWFR);
+
+    IndexType frs_col = idWFC * colSz;
+    IndexType lst_col = std::min(dimC, frs_col + colSz);
+
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
+    if ((!Upper &&
+         ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
+        (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
+      auto val = iniAddOp1_struct::eval(r2.eval(0));
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += localSz) {
+        l.eval(rowid, idWFC) = val;
+      }
+    } else {
+      // The computation are made in blocks of shrMemSize elements
+      for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
+        if (colid > frs_col)
+          // This barrier is mandatory to be sure the data is on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        auto blqSz = std::min(shrMemSize, lst_col - colid);
+        // Copy a block of elements of vector r2 to the shared memory,
+        // executing the expresion tree if it is needed
+        for (IndexType col = localid; (col < blqSz); col += localSz) {
+          shrMem[col] = r2.eval(colid + col);
+        }
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        // The product is computed
+        for (IndexType rowid = frs_row; rowid < lst_row; rowid += localSz) {
+          // The initial value of val is different for the first iteration
+          auto val =
+              ((colid == frs_col) ? iniAddOp1_struct::eval(r2.eval(0))
+                                  : l.eval(rowid, idWFC)) +
+              ((Diag && Unit && ((rowid >= colid) && (rowid < colid + blqSz)))
+                   ? r1.eval(rowid, rowid)
+                   : iniAddOp1_struct::eval(r2.eval(0)));
+          for (IndexType id_col = colid, col = 0; col < blqSz;
+               id_col++, col++) {
+            if (Lower && Upper && Diag && !Unit) {
+              auto prod =
+                  prdOp2_struct::eval(r1.eval(rowid, id_col), shrMem[col]);
+              val = addOp2_struct::eval(val, prod);
+            } else {
+              if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= rowid)) ||
+                  (Upper && (id_col >= (rowid + ((!Diag || Unit) ? 1 : 0))))) {
+                auto prod =
+                    prdOp2_struct::eval(r1.eval(rowid, id_col), shrMem[col]);
+                val = addOp2_struct::eval(val, prod);
+              }
+            }
+          }
+          // The result is stored in the correct component
+          l.eval(rowid, idWFC) = val;
+        }
+      }
+    }
+    return l.eval(frs_row, idWFC);
+  }
 
   void bind(cl::sycl::handler &h) {
+    l.bind(h);
     r1.bind(h);
     r2.bind(h);
-    r3.bind(h);
   }
 };
 
-template <class RHS1, class RHS2, class RHS3>
-ModifRank1<RHS1, RHS2, RHS3> make_modifRank1(RHS1 &r1, RHS2 &r2, RHS3 &r3) {
-  return ModifRank1<RHS1, RHS2, RHS3>(r1, r2, r3);
+// template <class LHS, class RHS1, class RHS2>
+template <bool Lower = true, bool Diag = true, bool Upper = true,
+          bool Unit = false, class LHS, class RHS1, class RHS2>
+Gemv_Col<Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Col(
+    LHS &l, RHS1 &r1, RHS2 &r2, typename RHS2::IndexType nWG_row,
+    typename RHS2::IndexType nWG_col, typename RHS2::IndexType shrMemSize) {
+  return Gemv_Col<Lower, Diag, Upper, Unit, LHS, RHS1, RHS2>(
+      l, r1, r2, nWG_row, nWG_col, shrMemSize);
 }
 
+/**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
+// template <class LHS, class RHS1, class RHS2>
+template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
+          class RHS2>
+struct Ger_Row {
+  using value_type = typename RHS2::value_type;
+  using IndexType = typename RHS2::IndexType;
+  LHS l;
+  RHS1 r1;
+  RHS2 r2;
+  IndexType nWG_row;
+  IndexType nWG_col;
+  IndexType shrMemSize;
+
+  value_type scl;
+
+  Ger_Row(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+          IndexType &_nWG_col, IndexType &_shrMemSize)
+      : l(_l),
+        scl(_scl),
+        r1(_r1),
+        r2(_r2),
+        nWG_row(_nWG_row),
+        nWG_col(_nWG_col),
+        shrMemSize(_shrMemSize){};
+
+  inline IndexType getSize() const { return r1.getSize(); }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
+
+  value_type eval(IndexType i) {
+    auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
+    auto row = (l.is_row_access()) ? (i / size) : (i % size);
+    auto col = (l.is_row_access()) ? (i % size) : (i / size);
+
+    auto val = scl * r1.eval(row) * r2.eval(col);
+
+    return l.eval(i) += val;
+  }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = l.getSizeR();
+    IndexType dimC = l.getSizeC();
+
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
+    IndexType colSz =
+        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize;
+
+    IndexType idWFR = (groupid % nWG_row);
+    IndexType idWFC = (groupid / nWG_row);
+    IndexType dimWFC =
+        (dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col) * localSz;
+
+    IndexType frs_row = idWFR * rowSz;
+    IndexType lst_row = std::min(dimR, frs_row + rowSz);
+
+    IndexType frs_col = idWFC * dimWFC + localid;
+    IndexType lst_col = std::min(dimC, frs_col + dimWFC);
+
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
+    if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||
+        (!Lower &&
+         ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
+      ;
+    } else if (Single) {
+      for (IndexType colid = frs_col; colid < lst_col; colid += localSz) {
+        auto val = scl * r2.eval(colid);
+        for (IndexType id_row = frs_row, row = 0; id_row < lst_row;
+             id_row++, row++) {
+          if (Lower && Upper && Diag) {
+            l.eval(id_row, colid) += r1.eval(id_row) * val;
+          } else {
+            if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
+              l.eval(id_row, colid) += r1.eval(id_row) * val;
+            }
+          }
+        }
+      }
+    } else {
+      for (IndexType colid = frs_col; colid < lst_col; colid += localSz) {
+        auto val1 = scl * r1.eval(colid);
+        auto val2 = scl * r2.eval(colid);
+        for (IndexType id_row = frs_row, row = 0; id_row < lst_row;
+             id_row++, row++) {
+          if (Lower && Upper && Diag) {
+            l.eval(id_row, colid) +=
+                r1.eval(id_row) * val2 + val1 * r2.eval(id_row);
+          } else {
+            if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
+              l.eval(id_row, colid) +=
+                  r1.eval(id_row) * val2 + r2.eval(id_row) * val1;
+            }
+          }
+        }
+      }
+    }
+
+    return l.eval(frs_row, frs_col);
+  }
+
+  template <typename sharedT>
+  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = l.getSizeR();
+    IndexType dimC = l.getSizeC();
+
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
+    IndexType colSz =
+        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize;
+
+    IndexType idWFR = (groupid % nWG_row);
+    IndexType idWFC = (groupid / nWG_row);
+    IndexType dimWFC =
+        (dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col) * localSz;
+
+    IndexType frs_row = idWFR * rowSz;
+    IndexType lst_row = std::min(dimR, frs_row + rowSz);
+
+    IndexType frs_col = idWFC * dimWFC + localid;
+    IndexType lst_col = std::min(dimC, frs_col + dimWFC);
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
+    if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||
+        (!Lower &&
+         ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
+      ;
+    } else if (Single) {
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += shrSz) {
+        if (rowid > frs_row)
+          // This barrier is mandatory to be sure the data is on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        auto blqSz = std::min(shrSz, lst_row - rowid);
+        for (IndexType row = localid, id_row = rowid + localid; (row < blqSz);
+             row += localSz, id_row += localSz) {
+          shrMem[row] = scl * r1.eval(id_row);
+        }
+
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        for (IndexType colid = frs_col; (colid < lst_col); colid += localSz) {
+          auto val = r2.eval(colid);
+          for (IndexType id_row = rowid, row = 0; row < blqSz;
+               id_row++, row++) {
+            if (Lower && Upper && Diag) {
+              l.eval(id_row, colid) += shrMem[row] * val;
+            } else {
+              if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                  (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
+                l.eval(id_row, colid) += shrMem[row] * val;
+              }
+            }
+          }
+        }
+      }
+    } else {
+      auto shrSz1 = (shrSz / 2);
+      for (IndexType rowid = frs_row; rowid < lst_row; rowid += shrSz) {
+        if (rowid > frs_row)
+          // This barrier is mandatory to be sure the data is on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        auto blqSz = std::min(shrSz1, lst_row - rowid);
+        for (IndexType row = localid, id_row = rowid + localid; (row < blqSz);
+             row += localSz, id_row += localSz) {
+          shrMem[row] = scl * r1.eval(id_row);
+          shrMem[shrSz1 + row] = scl * r2.eval(id_row);
+        }
+
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        for (IndexType colid = frs_col; (colid < lst_col); colid += localSz) {
+          auto val1 = r1.eval(colid);
+          auto val2 = r2.eval(colid);
+          for (IndexType id_row = rowid, row = 0; row < blqSz;
+               id_row++, row++) {
+            if (Lower && Upper && Diag) {
+              l.eval(id_row, colid) +=
+                  shrMem[row] * val2 + shrMem[shrSz1 + row] * val1;
+            } else {
+              if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                  (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
+                l.eval(id_row, colid) +=
+                    shrMem[row] * val2 + shrMem[shrSz1 + row] * val1;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return shrMem[0];
+  }
+
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r1.bind(h);
+    r2.bind(h);
+  }
+};
+
+template <bool Single = true, bool Lower = true, bool Diag = true,
+          bool Upper = true, class LHS, class RHS1, class RHS2>
+Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2> make_Ger_Row(
+    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2,
+    typename RHS2::IndexType nWG_row, typename RHS2::IndexType nWG_col,
+    typename RHS2::IndexType shrMemSize) {
+  return Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>(
+      l, scl, r1, r2, nWG_row, nWG_col, shrMemSize);
+}
+
+/**** GER BY COLUMNS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
+// template <class LHS, class RHS1, class RHS2>
+template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
+          class RHS2>
+struct Ger_Col {
+  using value_type = typename RHS2::value_type;
+  using IndexType = typename RHS2::IndexType;
+
+  LHS l;
+  RHS1 r1;
+  RHS2 r2;
+  IndexType nWG_row;
+  IndexType nWG_col;
+  IndexType shrMemSize;
+
+  value_type scl;
+
+  Ger_Col(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+          IndexType &_nWG_col, IndexType &_shrMemSize)
+      : l(_l),
+        scl(_scl),
+        r1(_r1),
+        r2(_r2),
+        nWG_row(_nWG_row),
+        nWG_col(_nWG_col),
+        shrMemSize(_shrMemSize){};
+
+  inline IndexType getSize() const { return r1.getSize(); }
+
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
+
+  value_type eval(IndexType i) {
+    auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
+    auto row = (l.is_row_access()) ? (i / size) : (i % size);
+    auto col = (l.is_row_access()) ? (i % size) : (i / size);
+
+    auto val = scl * r1.eval(row) * r2.eval(col);
+
+    return l.eval(i) += val;
+  }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = l.getSizeR();
+    IndexType dimC = l.getSizeC();
+
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
+    IndexType colSz =
+        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize;
+
+    IndexType idWFR =
+        groupid % nWG_row;  // row bloq id of the current workgroup
+    IndexType idWFC = groupid / nWG_row;  // col blq id of the current workgroup
+    IndexType dimWFR =
+        (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+
+    IndexType frs_row = idWFR * dimWFR + localid;
+    IndexType lst_row = std::min(dimR, frs_row + dimWFR);
+
+    IndexType frs_col = idWFC * colSz;
+    IndexType lst_col = std::min(dimC, frs_col + colSz);
+    if ((!Upper &&
+         ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
+        (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
+      ;
+    } else if (Single) {
+      for (IndexType id_row = frs_row; id_row < lst_row; id_row += localSz) {
+        auto val = scl * r1.eval(id_row);
+        for (IndexType id_col =
+                 ((Lower) ? frs_col
+                          : std::max(id_row + ((!Diag) ? 1 : 0), frs_col));
+             id_col < ((Upper) ? lst_col
+                               : std::min(id_row + ((!Diag) ? 0 : 1), lst_col));
+             id_col++) {
+          l.eval(id_row, id_col) += val * r2.eval(id_col);
+        }
+      }
+    } else {
+      for (IndexType id_row = frs_row; id_row < lst_row; id_row += localSz) {
+        auto val1 = scl * r1.eval(id_row);
+        auto val2 = scl * r2.eval(id_row);
+        for (IndexType id_col =
+                 ((Lower) ? frs_col
+                          : std::max(id_row + ((!Diag) ? 1 : 0), frs_col));
+             id_col < ((Upper) ? lst_col
+                               : std::min(id_row + ((!Diag) ? 0 : 1), lst_col));
+             id_col++) {
+          l.eval(id_row, id_col) +=
+              val1 * r2.eval(id_col) + val2 * r1.eval(id_col);
+        }
+      }
+    }
+
+    return l.eval(frs_row, frs_col);
+  }
+
+  template <typename sharedT>
+  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+    IndexType localid = ndItem.get_local_id(0);
+    IndexType localSz = ndItem.get_local_range(0);
+    IndexType groupid = ndItem.get_group(0);
+    IndexType groupSz = ndItem.get_group_range(0);
+    IndexType glbalid = ndItem.get_global_id(0);
+
+    IndexType dimR = l.getSizeR();
+    IndexType dimC = l.getSizeC();
+
+    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
+    IndexType colSz =
+        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+    IndexType shrSz = shrMemSize;
+
+    IndexType idWFR =
+        groupid % nWG_row;  // row bloq id of the current workgroup
+    IndexType idWFC = groupid / nWG_row;  // col blq id of the current workgroup
+    IndexType dimWFR =
+        (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+
+    IndexType frs_row = idWFR * dimWFR + localid;
+    IndexType lst_row = std::min(dimR, frs_row + dimWFR);
+
+    IndexType frs_col = idWFC * colSz;
+    IndexType lst_col = std::min(dimC, frs_col + colSz);
+    // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
+    // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
+    if ((!Upper &&
+         ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
+        (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
+      ;
+    } else if (Single) {
+      // The computation are made in blocks of shrMemSize elements
+      for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
+        if (colid > frs_col)
+          // This barrier is mandatory to be sure the data is on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        auto blqSz = std::min(shrMemSize, lst_col - colid);
+
+        for (IndexType col = localid; (col < blqSz); col += localSz) {
+          shrMem[col] = scl * r2.eval(colid + col);
+        }
+
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        for (IndexType id_row = frs_row; id_row < lst_row; id_row += localSz) {
+          auto val = r1.eval(id_row);
+          for (IndexType id_col = colid, col = 0; col < blqSz;
+               id_col++, col++) {
+            if (Lower && Upper && Diag) {
+              l.eval(id_row, id_col) += val * shrMem[col];
+            } else {
+              if ((Lower && ((id_col + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                  (Upper && (id_col >= (id_row + ((!Diag) ? 1 : 0))))) {
+                l.eval(id_row, id_col) += val * shrMem[col];
+              }
+            }
+          }
+        }
+      }
+    } else {
+      auto shrSz1 = (shrMemSize / 2);
+      // The computation are made in blocks of shrMemSize/shrSz1 elements
+      for (IndexType colid = frs_col; colid < lst_col; colid += shrSz1) {
+        if (colid > frs_col)
+          // This barrier is mandatory to be sure the data is on the shared
+          // memory
+          ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        auto blqSz = std::min(shrSz1, lst_col - colid);
+
+        for (IndexType col = localid; (col < blqSz); col += localSz) {
+          shrMem[col] = scl * r1.eval(colid + col);
+          shrMem[shrSz1 + col] = scl * r2.eval(colid + col);
+        }
+
+        // This barrier is mandatory to be sure the data is on the shared memory
+        ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+        for (IndexType id_row = frs_row; id_row < lst_row; id_row += localSz) {
+          auto val1 = r1.eval(id_row);
+          auto val2 = r2.eval(id_row);
+          for (IndexType id_col = colid, col = 0; col < blqSz;
+               id_col++, col++) {
+            if (Lower && Upper && Diag) {
+              l.eval(id_row, id_col) +=
+                  val1 * shrMem[shrSz1 + col] + val2 * shrMem[col];
+            } else {
+              if ((Lower && ((id_col + ((!Diag) ? 1 : 0)) <= id_row)) ||
+                  (Upper && (id_col >= (id_row + ((!Diag) ? 1 : 0))))) {
+                l.eval(id_row, id_col) +=
+                    val1 * shrMem[shrSz1 + col] + val2 * shrMem[col];
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return shrMem[0];
+  }
+
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    r1.bind(h);
+    r2.bind(h);
+  }
+};
+
+// template <class LHS, class RHS1, class RHS2>
+template <bool Single = true, bool Lower = true, bool Diag = true,
+          bool Upper = true, class LHS, class RHS1, class RHS2>
+Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2> make_Ger_Col(
+    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2,
+    typename RHS2::IndexType nWG_row, typename RHS2::IndexType nWG_col,
+    typename RHS2::IndexType shrMemSize) {
+  return Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>(
+      l, scl, r1, r2, nWG_row, nWG_col, shrMemSize);
+}
 }  // namespace blas
 
 #endif  // BLAS2_TREES_HPP
