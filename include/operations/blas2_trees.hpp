@@ -539,10 +539,11 @@ struct Gemv_Col {
     } else {
       // The computation are made in blocks of shrMemSize elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        }
         auto blqSz = std::min(shrMemSize, lst_col - colid);
         // Copy a block of elements of vector r2 to the shared memory,
         // executing the expresion tree if it is needed
@@ -950,10 +951,11 @@ struct Ger_Col {
     } else if (Single) {
       // The computation are made in blocks of shrMemSize elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
+        }
         auto blqSz = std::min(shrMemSize, lst_col - colid);
 
         for (IndexType col = localid; (col < blqSz); col += localSz) {
@@ -982,11 +984,11 @@ struct Ger_Col {
       auto shrSz1 = (shrMemSize >> 1);
       // The computation are made in blocks of shrMemSize/shrSz1 elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrSz1) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
+        }
         auto blqSz = std::min(shrSz1, lst_col - colid);
 
         for (IndexType col = localid; (col < blqSz); col += localSz) {
