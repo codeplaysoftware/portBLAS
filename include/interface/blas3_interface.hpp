@@ -39,7 +39,7 @@
 namespace blas {
 
 #ifndef WGSIZE
-#define VGSIZE 128
+#define WGSIZE 128
 #endif
 /*!
  * @brief Select the correct transpose version of GemmFactory, depending on the
