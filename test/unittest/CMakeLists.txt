@@ -26,7 +26,6 @@ file(GLOB SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
 
   # Blas 3 tests
-  # ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nn_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nt_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nc_test.cpp
