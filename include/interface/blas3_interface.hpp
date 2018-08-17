@@ -38,6 +38,9 @@
 
 namespace blas {
 
+#ifndef WGSIZE
+#define WGSIZE 128
+#endif
 /*!
  * @brief Select the correct transpose version of GemmFactory, depending on the
  *        runtime values of transpose.
@@ -117,7 +120,7 @@ cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
         ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, \
         _ldc);                                                             \
   }
-
+#ifndef NAIVEGEMM
   if (ex.get_device_type() == Queue_Interface<SYCL>::device_type::INTELGPU) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
@@ -126,6 +129,9 @@ cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
   }
+#else
+  BIND_DEFAULT TO_TPARAMS(WGSIZE, false, 8, 8, 8, 8);
+#endif
 
 #undef BIND_DATA_SIZE
 #undef BIND_DEFAULT

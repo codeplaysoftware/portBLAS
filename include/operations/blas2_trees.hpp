@@ -121,17 +121,11 @@ struct Gemv_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
-    IndexType glbalSz = ndItem.get_global_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
-    IndexType colSz =
-        (dimC < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
-    IndexType shrSz = shrMemSize / localSz;
 
     IndexType idWFR =
         groupid / nWG_col;  // row bloq id of the current workgroup
@@ -248,16 +242,11 @@ struct Gemv_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
-    IndexType glbalSz = ndItem.get_global_range(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
-    IndexType colSz =
-        (dimC < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
     IndexType shrSz = shrMemSize / localSz;
 
     IndexType idWFR =
@@ -466,8 +455,6 @@ struct Gemv_Col {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
@@ -524,13 +511,10 @@ struct Gemv_Col {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
-    IndexType rowSz = (dimR < localSz) ? dimR : localSz;
     IndexType colSz = (dimC + nWG_col - 1) / nWG_col;
     IndexType idWFR = (groupid % nWG_row);
     IndexType idWFC = (groupid / nWG_row);
@@ -555,11 +539,11 @@ struct Gemv_Col {
     } else {
       // The computation are made in blocks of shrMemSize elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
+        }
         auto blqSz = std::min(shrMemSize, lst_col - colid);
         // Copy a block of elements of vector r2 to the shared memory,
         // executing the expresion tree if it is needed
@@ -662,16 +646,11 @@ struct Ger_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = l.getSizeR();
     IndexType dimC = l.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
-    IndexType colSz =
-        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
-    IndexType shrSz = shrMemSize;
 
     IndexType idWFR = (groupid % nWG_row);
     IndexType idWFC = (groupid / nWG_row);
@@ -733,15 +712,11 @@ struct Ger_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = l.getSizeR();
     IndexType dimC = l.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
-    IndexType colSz =
-        (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
     IndexType shrSz = shrMemSize;
 
     IndexType idWFR = (groupid % nWG_row);
@@ -766,7 +741,6 @@ struct Ger_Row {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
         auto blqSz = std::min(shrSz, lst_row - rowid);
         for (IndexType row = localid, id_row = rowid + localid; (row < blqSz);
              row += localSz, id_row += localSz) {
@@ -792,13 +766,12 @@ struct Ger_Row {
         }
       }
     } else {
-      auto shrSz1 = (shrSz / 2);
+      auto shrSz1 = (shrSz >> 1);
       for (IndexType rowid = frs_row; rowid < lst_row; rowid += shrSz) {
         if (rowid > frs_row)
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
         auto blqSz = std::min(shrSz1, lst_row - rowid);
         for (IndexType row = localid, id_row = rowid + localid; (row < blqSz);
              row += localSz, id_row += localSz) {
@@ -894,16 +867,12 @@ struct Ger_Col {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = l.getSizeR();
     IndexType dimC = l.getSizeC();
 
-    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
     IndexType colSz =
         (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
-    IndexType shrSz = shrMemSize;
 
     IndexType idWFR =
         groupid % nWG_row;  // row bloq id of the current workgroup
@@ -956,27 +925,22 @@ struct Ger_Col {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    IndexType groupSz = ndItem.get_group_range(0);
-    IndexType glbalid = ndItem.get_global_id(0);
 
     IndexType dimR = l.getSizeR();
     IndexType dimC = l.getSizeC();
 
-    IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
     IndexType colSz =
         (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
-    IndexType shrSz = shrMemSize;
 
     IndexType idWFR =
         groupid % nWG_row;  // row bloq id of the current workgroup
-    IndexType idWFC = groupid / nWG_row;  // col blq id of the current workgroup
     IndexType dimWFR =
         (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
 
     IndexType frs_row = idWFR * dimWFR + localid;
     IndexType lst_row = std::min(dimR, frs_row + dimWFR);
 
-    IndexType frs_col = idWFC * colSz;
+    IndexType frs_col = (groupid / nWG_row) * colSz;
     IndexType lst_col = std::min(dimC, frs_col + colSz);
     // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
     // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
@@ -987,11 +951,11 @@ struct Ger_Col {
     } else if (Single) {
       // The computation are made in blocks of shrMemSize elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrMemSize) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
+        }
         auto blqSz = std::min(shrMemSize, lst_col - colid);
 
         for (IndexType col = localid; (col < blqSz); col += localSz) {
@@ -1017,14 +981,14 @@ struct Ger_Col {
         }
       }
     } else {
-      auto shrSz1 = (shrMemSize / 2);
+      auto shrSz1 = (shrMemSize >> 1);
       // The computation are made in blocks of shrMemSize/shrSz1 elements
       for (IndexType colid = frs_col; colid < lst_col; colid += shrSz1) {
-        if (colid > frs_col)
+        if (colid > frs_col) {
           // This barrier is mandatory to be sure the data is on the shared
           // memory
           ndItem.barrier(cl::sycl::access::fence_space::local_space);
-
+        }
         auto blqSz = std::min(shrSz1, lst_col - colid);
 
         for (IndexType col = localid; (col < blqSz); col += localSz) {
