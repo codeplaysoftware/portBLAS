@@ -2,8 +2,11 @@
 #include "../blas3_matrix_formats.hpp"
 
 typedef ::testing::Types<
-    blas_test_args<float, MatrixFormats<Normal, Conjugate>>,
+    blas_test_args<float, MatrixFormats<Normal, Conjugate>>
+    #ifndef NO_DOUBLE_SUPPORT
+    ,
     blas_test_args<double, MatrixFormats<Normal, Conjugate>>
+    #endif
     > BlasTypes;
 
 #define BlasTypes BlasTypes

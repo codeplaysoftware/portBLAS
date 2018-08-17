@@ -25,7 +25,12 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double>>
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
@@ -77,7 +82,9 @@ TYPED_TEST(BLAS_Test, gemv_test) {
   // SYCLGEMV
   _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
         incY);
-  ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), m);
+  auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), m);
+  ex.wait(event);
+
   for (size_t i = 0; i < m; ++i) {
     ASSERT_NEAR(c_v_gpu_result[i], c_v_cpu[i], prec);
   }
@@ -133,7 +140,9 @@ TYPED_TEST(BLAS_Test, gemv_test_transposed) {
   // SYCLGEMV
   _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
         incY);
-  ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), n);
+  auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), n);
+  ex.wait(event);
+
   for (size_t i = 0; i < n; ++i) {
     ASSERT_NEAR(c_v_gpu_result[i], c_v_cpu[i], prec);
   }

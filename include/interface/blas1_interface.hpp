@@ -103,9 +103,9 @@ typename Executor::Return_Type _dot(Executor &ex, IndexType _N, ContainerT0 _vx,
   auto rs = make_vector_view(ex, _rs, static_cast<IncrementType>(1),
                              static_cast<IndexType>(1));
   auto prdOp = make_op<BinaryOp, prdOp2_struct>(vx, vy);
-  // TODO: (Mehdi) read them from the device
-  auto localSize = 256;
-  auto nWG = 512;
+
+  auto localSize = ex.get_policy_handler().get_work_group_size();
+  auto nWG = 2 * localSize;
   auto assignOp =
       make_addAssignReduction(rs, prdOp, localSize, localSize * nWG);
   auto ret = ex.reduce(assignOp);
@@ -126,9 +126,9 @@ typename Executor::Return_Type _asum(Executor &ex, IndexType _N,
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto rs = make_vector_view(ex, _rs, static_cast<IncrementType>(1),
                              static_cast<IndexType>(1));
-  // TODO: (Mehdi) read them from the device
-  auto localSize = 256;
-  auto nWG = 512;
+
+  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto nWG = 2 * localSize;
   auto assignOp =
       make_addAbsAssignReduction(rs, vx, localSize, localSize * nWG);
   auto ret = ex.reduce(assignOp);
@@ -148,8 +148,8 @@ typename Executor::Return_Type _iamax(Executor &ex, IndexType _N,
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto rs = make_vector_view(ex, _rs, static_cast<IncrementType>(1),
                              static_cast<IndexType>(1));
-  // TODO: (Mehdi) take this value from device
-  size_t localSize = 256, nWG = 512;
+  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
   auto assignOp =
       make_maxIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
@@ -171,8 +171,8 @@ typename Executor::Return_Type _iamin(Executor &ex, IndexType _N,
   auto rs = make_vector_view(ex, _rs, static_cast<IncrementType>(1),
                              static_cast<IndexType>(1));
 
-  // TODO: (Mehdi) read them from the device
-  size_t localSize = 256, nWG = 512;
+  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
   auto assignOp =
       make_minIndAssignReduction(rs, tupOp, localSize, localSize * nWG);
@@ -234,9 +234,9 @@ typename Executor::Return_Type _nrm2(Executor &ex, IndexType _N,
   auto rs = make_vector_view(ex, _rs, static_cast<IncrementType>(1),
                              static_cast<IndexType>(1));
   auto prdOp = make_op<UnaryOp, prdOp1_struct>(vx);
-  // TODO: (Mehdi) read them from the deivce
-  auto localSize = 256;
-  auto nWG = 512;
+
+  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto nWG = 2 * localSize;
   auto assignOp =
       make_addAssignReduction(rs, prdOp, localSize, localSize * nWG);
   ex.reduce(assignOp);

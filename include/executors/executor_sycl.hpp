@@ -36,7 +36,6 @@
 #include <operations/blas3_trees.hpp>
 #include <queue/helper.hpp>
 #include <queue/queue_sycl.hpp>
-#include <queue/sycl_iterator.hpp>
 #include <types/sycl_types.hpp>
 #include <views/view_sycl.hpp>
 
@@ -179,10 +178,7 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   static void eval(tree_t &tree,
                    shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
                    cl::sycl::nd_item<1> index) {
-    if ((index.get_global_id(0) <
-         tree.getSize())) {  // FIXME:: this should move
-                             // to the tree not the root
-      //  printf("Index %ld\n", index.get_global_id(0));
+    if (tree.valid_thread(index)) {
       tree.eval(index);
     }
   }
@@ -264,7 +260,9 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_interface(q){};
 
-  cl::sycl::queue sycl_queue() const { return q_interface.sycl_queue(); }
+  inline Queue_Interface<SYCL> get_policy_handler() { return q_interface; }
+
+  cl::sycl::queue get_queue() const { return q_interface.get_queue(); }
 
   inline Queue_Interface<SYCL>::device_type get_device_type() {
     return q_interface.get_device_type();
@@ -288,124 +286,116 @@ class Executor<SYCL> {
   @tparam bufferT<T> is the type of the buffer points to the data. on the host
   side buffer<T> and T are the same
   */
-  template <typename T>
-  inline bufferT<T> get_buffer(T *ptr) const {
+  template <typename ContainerT>
+  inline auto get_buffer(ContainerT ptr)
+      -> decltype(q_interface.get_buffer(ptr)) const {
     return q_interface.get_buffer(ptr);
   }
   /*
   @brief this function is to get the offset from the actual pointer
   @tparam T is the type of the pointer
   */
-  template <typename T>
-  inline ptrdiff_t get_offset(T *ptr) const {
+  template <typename ContainerT>
+  inline ptrdiff_t get_offset(ContainerT ptr) const {
     return q_interface.get_offset(ptr);
   }
 
-  template <typename T>
-  inline ptrdiff_t get_offset(buffer_iterator<T> buff) const {
-    return buff.get_offset();
-  }
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the device pointer we want to copy to.
+      @tparam ContainerT0 is the type of the src data
+      @tparam ContainerT1 is the type of the dst data
+      @param src is the host data we want to copy from.
+      @param dst is the device data we want to copy to.
       @param size is the number of elements to be copied
   */
-  template <typename T>
-  inline void copy_to_device(T *src, T *dst, size_t size) {
-    q_interface.copy_to_device(src, dst, size);
+  template <typename ContainerT0, typename ContainerT1>
+  inline auto copy_to_device(ContainerT0 src, ContainerT1 dst, size_t size)
+      -> decltype(q_interface.copy_to_device(src, dst, size)) {
+    return q_interface.copy_to_device(src, dst, size);
   }
 
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the buffer_iterator we want to copy to.
+      @tparam ContainerT0 is the type of the src data
+      @tparam ContainerT1 is the type of the dst data
+      @param src is the device data we want to copy from.
+      @param dst is the host data we want to copy to.
       @param size is the number of elements to be copied
   */
-  template <typename T>
-  inline void copy_to_device(T *src, buffer_iterator<T> dst, size_t = 0) {
-    sycl_queue().submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
-      cgh.copy(src, acc);
-    });
-  }
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the device pointer we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
-  */
-  template <typename T>
-  inline void copy_to_host(T *src, T *dst, size_t size) {
-    q_interface.copy_to_host(src, dst, size);
+  template <typename ContainerT0, typename ContainerT1>
+  inline auto copy_to_host(ContainerT0 src, ContainerT1 dst, size_t size)
+      -> decltype(q_interface.copy_to_host(src, dst, size)) {
+    return q_interface.copy_to_host(src, dst, size);
   }
 
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the buffer_iterator we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
+  /*  @brief Getting range accessor from the container
+      @tparam ContainerT0 is the type of the  data
+      @tparam AcM is the access mode
+      @param container is the  data we want to get range accessor
   */
-  template <typename T>
-  inline void copy_to_host(buffer_iterator<T> src, T *dst, size_t = 0) {
-    sycl_queue().submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
-      cgh.copy(acc, dst);
-    });
-  }
-
-  template <typename T,
+  template <typename ContainerT0,
             cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  ContainerT<T, AcM> get_range_access(T *vptr) {
-    return q_interface.template get_range_access<T, AcM>(vptr);
+  auto get_range_access(ContainerT0 container)
+      -> decltype(q_interface.template get_range_access<AcM>(container)) {
+    return q_interface.template get_range_access<AcM>(container);
   }
-  template <typename T,
-            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  ContainerT<T, AcM> get_range_access(buffer_iterator<T> buff) {
-    return blas::get_range_accessor<AcM>(buff);
+
+  /*  @brief waiting for a particular event
+      @param event is an instance of sycl::sycl::event
+  */
+  template <typename first_event_t, typename... next_event_t>
+  inline void wait(first_event_t first_event, next_event_t... next_events) {
+    q_interface.wait_for_events(first_event, next_events...);
   }
+
+  /*  @brief waiting for a sycl::queue.wait()
+   */
+  void inline wait() { q_interface.wait(); }
+
   /*!
    * @brief Executes the tree without defining required shared memory.
    */
   template <typename Tree>
   inline cl::sycl::event execute(Tree t) {
-    const auto localSize = 128;
+    const auto localSize = get_policy_handler().get_work_group_size();
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
 
-    return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
   /*!
-   * @brief Executes the tree fixing the localSize but without defining required
-   * shared memory.
+   * @brief Executes the tree fixing the localSize but without defining
+   * required shared memory.
    */
-  template <typename Tree>
-  cl::sycl::event execute(Tree t, size_t localSize) {
+  template <typename Tree, typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize) {
     auto _N = t.getSize();
     auto nWG = (_N + localSize - 1) / localSize;
     auto globalSize = nWG * localSize;
-
-    return execute_tree<using_shared_mem::disabled>(q_interface.sycl_queue(), t,
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
                                                     localSize, globalSize, 0);
   };
 
   /*!
-   * @brief Executes the tree with specific local, global and shared memory
-   * values.
+   * @brief Executes the tree fixing the localSize but without defining
+   * required shared memory.
    */
-  template <typename Tree>
-  cl::sycl::event execute(Tree t, size_t _localSize, size_t _globalSize,
-                          size_t _shMem) {
-    auto localSize = _localSize;
-    auto globalSize = _globalSize;
-    auto shMem = _shMem;
+  template <typename Tree, typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize) {
+    return execute_tree<using_shared_mem::disabled>(q_interface.get_queue(), t,
+                                                    localSize, globalSize, 0);
+  };
+
+  /*!
+   * @brief Executes the tree with specific local, global and shared
+   * memory values.
+   */
+  template <typename Tree, typename IndexType>
+  cl::sycl::event execute(Tree t, IndexType localSize, IndexType globalSize,
+                          IndexType shMem) {
     return execute_tree<using_shared_mem::enabled>(
-        q_interface.sycl_queue(), t, localSize, globalSize, shMem);
+        q_interface.get_queue(), t, localSize, globalSize, shMem);
   }
 
   /*!
@@ -443,17 +433,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.sycl_queue(), localTree, localSize, globalSize,
-            sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Op, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.sycl_queue(), localTree, localSize, globalSize,
-            sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -464,7 +454,8 @@ class Executor<SYCL> {
   };
 
   /*!
-   * @brief Applies a reduction to a tree, receiving a scratch buffer_iterator.
+   * @brief Applies a reduction to a tree, receiving a scratch
+   * buffer_iterator.
    */
   template <typename Operator, typename LHS, typename RHS, typename Scratch>
   cl::sycl::event reduce(AssignReduction<Operator, LHS, RHS> t, Scratch scr) {
@@ -492,17 +483,17 @@ class Executor<SYCL> {
         // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
         auto localTree =
             Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.sycl_queue(), localTree, localSize, globalSize,
-            sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       } else {
         // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
         auto localTree = AssignReduction<Operator, LHS, LHS>(
             ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
             (even ? opShMem1 : opShMem2), localSize, globalSize);
-        event = execute_tree<using_shared_mem::enabled>(
-            q_interface.sycl_queue(), localTree, localSize, globalSize,
-            sharedSize);
+        event = execute_tree<using_shared_mem::enabled>(q_interface.get_queue(),
+                                                        localTree, localSize,
+                                                        globalSize, sharedSize);
       }
       _N = nWG;
       nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -528,7 +519,7 @@ class Executor<SYCL> {
     return execute_tree<
         Choose_policy<Gemm::version == 19, using_shared_mem::enabled,
                       using_shared_mem::disabled>::type>(
-        q_interface.sycl_queue(), gemm_tree, rng.get_local_range()[0],
+        q_interface.get_queue(), gemm_tree, rng.get_local_range()[0],
         rng.get_global_range()[0], Gemm::scratch_size);
   }
 };

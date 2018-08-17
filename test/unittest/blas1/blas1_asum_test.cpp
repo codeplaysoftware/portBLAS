@@ -25,7 +25,12 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>, blas_test_args<double> >
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
     BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
@@ -64,7 +69,8 @@ TYPED_TEST(BLAS_Test, asum_test) {
   auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
   auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data());
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.wait(event);
   ASSERT_NEAR(res, vR[0], prec);
 }
 
@@ -144,7 +150,9 @@ TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.wait(event);
+
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);
@@ -187,7 +195,9 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data(), 1);
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.wait(event);
+
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);
@@ -229,7 +239,9 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
-  ex.copy_to_host(gpu_vR, vR.data());
+  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
+  ex.wait(event);
+
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
   ex.template deallocate<ScalarT>(gpu_vX);

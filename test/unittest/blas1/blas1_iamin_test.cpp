@@ -25,7 +25,13 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas_test_args<float>
+#ifndef NO_DOUBLE_SUPPORT
+                         ,
+                         blas_test_args<double>
+#endif
+                         >
+    BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
@@ -67,7 +73,8 @@ TYPED_TEST(BLAS_Test, iamin_test) {
   auto gpu_vI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  ex.copy_to_host(gpu_vI, vI.data(), 1);
+  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
+  ex.wait(event);
 
   IndexValueTuple<ScalarT> res2(vI[0]);
   // check that the result value is the same

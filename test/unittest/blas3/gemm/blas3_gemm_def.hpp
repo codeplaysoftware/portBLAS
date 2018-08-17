@@ -81,7 +81,10 @@ TYPED_TEST(BLAS_Test, gemm) {
   ex.copy_to_device(c_m_gpu_result.data(), m_c_gpu, dim_c[0] * dim_c[1]);
   _gemm(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu, lda, m_b_gpu, ldb, beta,
         m_c_gpu, ldc);
-  ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), dim_c[0] * dim_c[1]);
+  auto event =
+      ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(), dim_c[0] * dim_c[1]);
+  ex.wait(event);
+
   for (size_t i = 0; i < dim_c[0] * dim_c[1]; ++i) {
     ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
   }

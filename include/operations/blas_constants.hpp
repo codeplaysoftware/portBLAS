@@ -160,6 +160,14 @@ SYCLBLAS_DEFINE_CONSTANT(
     IndexValueTuple<double>, const_val::imin,
     (IndexValueTuple<double>(std::numeric_limits<size_t>::max(),
                              std::numeric_limits<double>::min())))
+SYCLBLAS_DEFINE_CONSTANT(
+    IndexValueTuple<float>, const_val::imax,
+    (IndexValueTuple<float>(std::numeric_limits<size_t>::max(),
+                            std::numeric_limits<float>::max())))
+SYCLBLAS_DEFINE_CONSTANT(
+    IndexValueTuple<float>, const_val::imin,
+    (IndexValueTuple<float>(std::numeric_limits<size_t>::max(),
+                            std::numeric_limits<float>::min())))
 }  // namespace blas
 
 /*!
