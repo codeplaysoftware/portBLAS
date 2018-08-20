@@ -48,16 +48,16 @@ if(NO_DOUBLE_SUPPORT)
 endif()
 
 # If the user has specified a specific workgroup size for tests, pass that on to the compiler
-if(WGSIZE)
-  add_definitions(-DWGSIZE=${WGSIZE})
-  list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -DWGSIZE=${WGSIZE})
+if(WG_SIZE)
+  add_definitions(-DWG_SIZE=${WG_SIZE})
+  list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -DWG_SIZE=${WG_SIZE})
 endif()
 
 # If the user has specified that we should use naive gemm, enable that
-option(NAIVEGEMM "Default to naive GEMM implementations" off)
-if(NAIVEGEMM)
-  add_definitions(-DNAIVEGEMM)
-  list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -DNAIVEGEMM)
+option(NAIVE_GEMM "Default to naive GEMM implementations" off)
+if(NAIVE_GEMM)
+  add_definitions(-DNAIVE_GEMM)
+  list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -DNAIVE_GEMM)
 endif()
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY} ${BLAS_INCLUDE_DIRS})
