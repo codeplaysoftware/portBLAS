@@ -19,71 +19,23 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_gemm_test.cpp
+ *  @filename blas3_gemm_test.hpp
  *
  **************************************************************************/
 
 #include "blas_test.hpp"
 
-class Normal {
- public:
-  static constexpr char const* str = "n";
-};
-// const std::string Normal::str = "n";
-
-class Transposed {
- public:
-  static constexpr char const* str = "t";
-};
-// const std::string Transposed::str = "t";
-
-class Conjugate {
- public:
-  static constexpr char const* str = "c";
-};
-// const std::string Conjugate::str = "c";
-
-template <class AT_ = Normal, class BT_ = Normal>
-struct MatrixFormats {
-  using a_format = AT_;
-  using b_format = BT_;
-};
-
-typedef ::testing::Types<
-    blas_test_float<MatrixFormats<Normal, Normal>>,
-
-    blas_test_float<MatrixFormats<Transposed, Normal>>,
-    blas_test_float<MatrixFormats<Normal, Transposed>>,
-    blas_test_float<MatrixFormats<Transposed, Transposed>>,
-
-    blas_test_float<MatrixFormats<Conjugate, Normal>>,
-    blas_test_float<MatrixFormats<Normal, Conjugate>>,
-    blas_test_float<MatrixFormats<Conjugate, Conjugate>>,
-
-    blas_test_float<MatrixFormats<Transposed, Conjugate>>,
-    blas_test_float<MatrixFormats<Conjugate, Transposed>>,
-    blas_test_double<MatrixFormats<Normal, Normal>>,
-
-    blas_test_double<MatrixFormats<Transposed, Normal>>,
-    blas_test_double<MatrixFormats<Normal, Transposed>>,
-    blas_test_double<MatrixFormats<Transposed, Transposed>>,
-
-    blas_test_double<MatrixFormats<Conjugate, Normal>>,
-    blas_test_double<MatrixFormats<Normal, Conjugate>>,
-    blas_test_double<MatrixFormats<Conjugate, Conjugate>>,
-
-    blas_test_double<MatrixFormats<Transposed, Conjugate>>,
-    blas_test_double<MatrixFormats<Conjugate, Transposed>>
-    >
-    BlasTypes;
+#ifndef BlasTypes 
+    #error "BlasTypes not defined before including blas3_gemm_def.hpp"
+#endif 
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-REGISTER_PREC(float, 1e-4, gemm_default)
-REGISTER_PREC(double, 1e-8, gemm_default)
-REGISTER_PREC(long double, 1e-8, gemm_default)
-TYPED_TEST(BLAS_Test, gemm_default) {
-  using test = class gemm_default;
+REGISTER_PREC(float, 1e-4, gemm)
+REGISTER_PREC(double, 1e-8, gemm)
+REGISTER_PREC(long double, 1e-8, gemm)
+TYPED_TEST(BLAS_Test, gemm) {
+  using test = class gemm;
 
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;

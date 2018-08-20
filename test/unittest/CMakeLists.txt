@@ -9,20 +9,35 @@ include_directories(${SYCLBLAS_TEST})
 
 # compiling tests
 file(GLOB SYCL_UNITTEST_SRCS
-  ${SYCLBLAS_UNITTEST}/blas1_copy_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_swap_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_axpy_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_scal_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_asum_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_dot_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_nrm2_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_rotg_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_iamax_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1_iamin_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2_gemv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2_ger_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3_gemm_test.cpp
-  ${SYCLBLAS_UNITTEST}/sycl_buffer_test.cpp
+  # Blas 1 tests
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
+
+  # Blas 2 tests
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
+
+  # Blas 3 tests
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nn_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nt_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nc_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tn_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tt_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tc_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_cc_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_cn_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_ct_test.cpp
+
+  # Blas buffer tests
+  ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
