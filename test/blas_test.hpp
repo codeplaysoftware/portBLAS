@@ -81,9 +81,26 @@ struct blas_templ_struct {
   using metadata_t = MetadataT_;
   using executor_t = ExecutorType_;
 };
-// A "using" shortcut for the struct
+
+// "Using" shortcuts for the struct, with #ifndef guard for double
+
+// A "default" using shortcut
 template <class ScalarT_, class MetadataT_ = void, class ExecutorType_ = SYCL>
 using blas_test_args = blas_templ_struct<ScalarT_, MetadataT_, ExecutorType_>;
+
+// specialisation for float
+template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+using blas_test_float = blas_templ_struct<float, MetadataT_, ExecutorType_>;
+
+// specialisation (with define guard) for double
+// #define NO_DOUBLE_SUPPORT
+#ifndef NO_DOUBLE_SUPPORT
+  template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+  using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
+#else 
+  template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+  using blas_test_double = ::testing::internal::None;
+#endif
 
 // the test class itself
 template <class B>

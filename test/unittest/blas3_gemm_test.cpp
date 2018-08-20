@@ -50,33 +50,30 @@ struct MatrixFormats {
 };
 
 typedef ::testing::Types<
-    blas_test_args<float, MatrixFormats<Normal, Normal>>,
+    blas_test_float<MatrixFormats<Normal, Normal>>,
 
-    blas_test_args<float, MatrixFormats<Transposed, Normal>>,
-    blas_test_args<float, MatrixFormats<Normal, Transposed>>,
-    blas_test_args<float, MatrixFormats<Transposed, Transposed>>,
+    blas_test_float<MatrixFormats<Transposed, Normal>>,
+    blas_test_float<MatrixFormats<Normal, Transposed>>,
+    blas_test_float<MatrixFormats<Transposed, Transposed>>,
 
-    blas_test_args<float, MatrixFormats<Conjugate, Normal>>,
-    blas_test_args<float, MatrixFormats<Normal, Conjugate>>,
-    blas_test_args<float, MatrixFormats<Conjugate, Conjugate>>,
+    blas_test_float<MatrixFormats<Conjugate, Normal>>,
+    blas_test_float<MatrixFormats<Normal, Conjugate>>,
+    blas_test_float<MatrixFormats<Conjugate, Conjugate>>,
 
-    blas_test_args<float, MatrixFormats<Transposed, Conjugate>>,
-    blas_test_args<float, MatrixFormats<Conjugate, Transposed>>
-#ifndef NO_DOUBLE_SUPPORT
-    ,
-    blas_test_args<double, MatrixFormats<Normal, Normal>>,
+    blas_test_float<MatrixFormats<Transposed, Conjugate>>,
+    blas_test_float<MatrixFormats<Conjugate, Transposed>>,
+    blas_test_double<MatrixFormats<Normal, Normal>>,
 
-    blas_test_args<double, MatrixFormats<Transposed, Normal>>,
-    blas_test_args<double, MatrixFormats<Normal, Transposed>>,
-    blas_test_args<double, MatrixFormats<Transposed, Transposed>>,
+    blas_test_double<MatrixFormats<Transposed, Normal>>,
+    blas_test_double<MatrixFormats<Normal, Transposed>>,
+    blas_test_double<MatrixFormats<Transposed, Transposed>>,
 
-    blas_test_args<double, MatrixFormats<Conjugate, Normal>>,
-    blas_test_args<double, MatrixFormats<Normal, Conjugate>>,
-    blas_test_args<double, MatrixFormats<Conjugate, Conjugate>>,
+    blas_test_double<MatrixFormats<Conjugate, Normal>>,
+    blas_test_double<MatrixFormats<Normal, Conjugate>>,
+    blas_test_double<MatrixFormats<Conjugate, Conjugate>>,
 
-    blas_test_args<double, MatrixFormats<Transposed, Conjugate>>,
-    blas_test_args<double, MatrixFormats<Conjugate, Transposed>>
-#endif
+    blas_test_double<MatrixFormats<Transposed, Conjugate>>,
+    blas_test_double<MatrixFormats<Conjugate, Transposed>>
     >
     BlasTypes;
 

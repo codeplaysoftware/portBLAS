@@ -25,11 +25,8 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<float>
-#ifndef NO_DOUBLE_SUPPORT
-                         ,
-                         blas_test_args<double>
-#endif
+typedef ::testing::Types<blas_test_float<>,
+                         blas_test_double<>
                          >
     BlasTypes;
 
