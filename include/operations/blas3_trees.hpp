@@ -436,7 +436,7 @@ class GemmFactory {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
-    const auto wg_id = id.get_group_range(0);
+    const auto wg_id = id.get_group(0);
     const auto item_id = id.get_local_id(0);
     const auto tile_size = tl_rows * tl_cols;
     const auto tile_id = wg_id / tile_size;
