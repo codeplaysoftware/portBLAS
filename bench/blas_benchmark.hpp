@@ -62,17 +62,13 @@ ScalarT *new_const_data(size_t size, ScalarT value = 0) {
 #define release_data(ptr) delete[](ptr);
 
 template <typename ScalarT>
-auto default_initialiser =
-    [](ScalarT x) -> ScalarT { return 1e-3 * ((rand() % 2000) - 1000); };
-
-template <typename ScalarT,
-          typename Functor = decltype(default_initialiser<ScalarT>)>
 std::vector<ScalarT> random_data(
-    size_t size, bool initialized = true,
-    Functor initialiser = default_initialiser<ScalarT>) {
+    size_t size, bool initialized = true) {
+  auto default_initialiser =
+    [](ScalarT x) -> ScalarT { return 1e-3 * ((rand() % 2000) - 1000); };
   std::vector<ScalarT> v = std::vector<ScalarT>(size);
   if (initialized) {
-    std::transform(v.begin(), v.end(), v.begin(), initialiser);
+    std::transform(v.begin(), v.end(), v.begin(), default_initialiser);
   }
   return v;
 }
