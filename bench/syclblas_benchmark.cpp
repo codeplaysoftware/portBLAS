@@ -26,6 +26,8 @@
 #include "blas_benchmark.hpp"
 
 #include <interface/blas1_interface.hpp>
+#include <interface/blas2_interface.hpp>
+#include <interface/blas3_interface.hpp>
 
 using namespace blas;
 
@@ -330,6 +332,54 @@ class SyclBlasBenchmarker {
     release_data(v2);
     return flops;
   }
+
+  BENCHMARK_FUNCTION(gemm_nn) {
+    using ScalarT = TypeParam;
+
+    size_t m_size = size * size;
+
+    auto lda = size;
+    auto ldb = size;
+    auto ldc = size;
+
+    auto m = size;
+    auto n = size;
+    auto k = size;
+
+    char const *t_a = "n";
+    char const *t_b = "n";
+
+    ScalarT alpha = ScalarT(1);
+    ScalarT beta = ScalarT(1);
+    // make two square matrices of size N * N
+    std::vector<ScalarT> a = random_data<ScalarT>(m_size);
+    std::vector<ScalarT> b = random_data<ScalarT>(m_size);
+    std::vector<ScalarT> c = const_data<ScalarT>(m_size, 0);
+
+    auto a_gpu = ex.template allocate<ScalarT>(m_size);
+    auto b_gpu = ex.template allocate<ScalarT>(m_size);
+    auto c_gpu = ex.template allocate<ScalarT>(m_size);
+
+    ex.copy_to_device(a.data(), a_gpu, m_size);
+    ex.copy_to_device(b.data(), b_gpu, m_size);
+    ex.copy_to_device(c.data(), c_gpu, m_size);
+
+    double flops = benchmark<>::measure(no_reps, m_size * 4, [&]() {
+      auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+                         beta, c_gpu, ldc);
+      ex.wait(event);
+    });
+
+    auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
+
+    ex.wait(event);
+
+    ex.template deallocate<ScalarT>(a_gpu);
+    ex.template deallocate<ScalarT>(b_gpu);
+    ex.template deallocate<ScalarT>(c_gpu);
+
+    return flops;
+  }
 };
 
 BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 24, 10);
@@ -341,10 +391,11 @@ BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>);
+BENCHMARK_REGISTER_FUNCTION("gemm_nn_float", gemm_nn<float>);
 
 #ifndef NO_DOUBLE_SUPPORT
 BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);
@@ -357,5 +408,6 @@ BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
 BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>);
 BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>);
 BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>);
+BENCHMARK_REGISTER_FUNCTION("gemm_nn_double", gemm_nn<double>);
 #endif
 BENCHMARK_MAIN_END();

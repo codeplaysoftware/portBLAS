@@ -30,12 +30,14 @@
 #ifndef BLAS_BENCHMARK_HPP
 #define BLAS_BENCHMARK_HPP
 
+#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <unistd.h>
 #include <utility>
+#include <vector>
 
 template <typename ScalarT>
 ScalarT *new_data(size_t size, bool initialized = true) {
@@ -47,7 +49,40 @@ ScalarT *new_data(size_t size, bool initialized = true) {
   }
   return v;
 }
+
+template <typename ScalarT>
+ScalarT *new_const_data(size_t size, ScalarT value = 0) {
+  ScalarT *v = new ScalarT[size];
+  for (size_t i = 0; i < size; ++i) {
+    v[i] = value;
+  }
+  return v;
+}
+
 #define release_data(ptr) delete[](ptr);
+
+template <typename ScalarT>
+auto default_initialiser =
+    [](ScalarT x) -> ScalarT { return 1e-3 * ((rand() % 2000) - 1000); };
+
+template <typename ScalarT,
+          typename Functor = decltype(default_initialiser<ScalarT>)>
+std::vector<ScalarT> random_data(
+    size_t size, bool initialized = true,
+    Functor initialiser = default_initialiser<ScalarT>) {
+  std::vector<ScalarT> v = std::vector<ScalarT>(size);
+  if (initialized) {
+    std::transform(v.begin(), v.end(), v.begin(), initialiser);
+  }
+  return v;
+}
+
+template <typename ScalarT>
+std::vector<ScalarT> const_data(size_t size, ScalarT const_value = 0) {
+  std::vector<ScalarT> v = std::vector<ScalarT>(size);
+  std::fill(v.begin(), v.end(), const_value);
+  return v;
+}
 
 template <typename time_units_t_ = std::chrono::nanoseconds,
           typename ClockT = std::chrono::system_clock>
