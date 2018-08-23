@@ -23,8 +23,9 @@
  *
  **************************************************************************/
 
-#include "blas_benchmark.hpp"
+#include "../blas_benchmark.hpp"
 
+#include <interface/blas1_interface.hpp>
 #include <interface/blas2_interface.hpp>
 
 using namespace blas;

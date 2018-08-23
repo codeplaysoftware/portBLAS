@@ -35,6 +35,15 @@ message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
 
-add_executable(syclblas_benchmarks syclblas_benchmark.cpp)
-set_property(TARGET syclblas_benchmarks PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(syclblas_benchmarks ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas_benchmark.cpp)
+add_executable(syclblas_benchmarks_level1 syclblas/syclblas_benchmark_level1.cpp)
+set_property(TARGET syclblas_benchmarks_level1 PROPERTY CXX_STANDARD 11)
+add_sycl_to_target(syclblas_benchmarks_level1 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp)
+
+add_executable(syclblas_benchmarks_level2 syclblas/syclblas_benchmark_level2.cpp)
+set_property(TARGET syclblas_benchmarks_level2 PROPERTY CXX_STANDARD 11)
+add_sycl_to_target(syclblas_benchmarks_level2 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp)
+
+
+add_executable(syclblas_benchmarks_level3 syclblas/syclblas_benchmark_level3.cpp)
+set_property(TARGET syclblas_benchmarks_level3 PROPERTY CXX_STANDARD 11)
+add_sycl_to_target(syclblas_benchmarks_level3 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp)
