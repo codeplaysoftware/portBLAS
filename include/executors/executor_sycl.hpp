@@ -244,10 +244,14 @@ static cl::sycl::event execute_tree(cl::sycl::queue q_, Tree t,
  */
 template <>
 class Executor<SYCL> {
-  Queue_Interface<SYCL> q_interface;
+ public:
+  using Queue_Interface_Type = Queue_Interface<SYCL>;
+  using Return_Type = cl::sycl::event;
+
+ private:
+  Queue_Interface_Type q_interface;
 
  public:
-  using Return_Type = cl::sycl::event;
   template <
       typename T,
       cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
@@ -260,11 +264,11 @@ class Executor<SYCL> {
    */
   Executor(cl::sycl::queue q) : q_interface(q){};
 
-  inline Queue_Interface<SYCL> get_policy_handler() { return q_interface; }
+  inline Queue_Interface_Type get_policy_handler() { return q_interface; }
 
   cl::sycl::queue get_queue() const { return q_interface.get_queue(); }
 
-  inline Queue_Interface<SYCL>::device_type get_device_type() {
+  inline Queue_Interface_Type::device_type get_device_type() {
     return q_interface.get_device_type();
   }
 

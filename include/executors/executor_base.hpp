@@ -40,13 +40,15 @@ namespace blas {
 template <class ExecutionPolicy>
 class Executor {
  public:
+  using Queue_Interface_Type = Queue_Interface<ExecutionPolicy>;
+  using Return_Type = void;
   template <typename Tree>
   void execute(Tree t) = delete;
   template <typename T>
   inline T* allocate(size_t num_bytes);
   template <typename T>
   inline void* deallocate(T* p);
-  inline Queue_Interface<ExecutionPolicy> get_policy_handler();
+  inline Queue_Interface_Type get_policy_handler();
   template <typename first_event_t, typename... next_event_t>
   void wait(first_event_t first_event, next_event_t... next_events);
   void wait();
@@ -58,8 +60,12 @@ class Executor {
  */
 template <>
 class Executor<Sequential> {
+ public:
+  using Queue_Interface_Type = Queue_Interface<Sequential>;
+  using Return_Type = void;
+
  private:
-  Queue_Interface<Sequential> q_interface;
+  Queue_Interface_Type q_interface;
 
  public:
   template <typename Tree>
@@ -70,9 +76,7 @@ class Executor<Sequential> {
     }
   };
 
-  inline Queue_Interface<Sequential> get_policy_handler() {
-    return q_interface;
-  }
+  inline Queue_Interface_Type get_policy_handler() { return q_interface; }
   template <typename first_event_t, typename... next_event_t>
   void wait(first_event_t, next_event_t...) {}
   void wait() {}
@@ -84,7 +88,12 @@ class Executor<Sequential> {
  */
 template <>
 class Executor<Parallel> {
-  Queue_Interface<Parallel> q_interface;
+ public:
+  using Queue_Interface_Type = Queue_Interface<Parallel>;
+  using Return_Type = void;
+
+ private:
+  Queue_Interface_Type q_interface;
 
  public:
   template <typename Tree>
@@ -95,7 +104,7 @@ class Executor<Parallel> {
       t.eval(i);
     }
   };
-  inline Queue_Interface<Parallel> get_policy_handler() { return q_interface; }
+  inline Queue_Interface_Type get_policy_handler() { return q_interface; }
   template <typename first_event_t, typename... next_event_t>
   void wait(first_event_t, next_event_t...) {}
   void wait() {}

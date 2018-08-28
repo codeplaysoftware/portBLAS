@@ -58,10 +58,14 @@ typename Executor::Return_Type _select_gemm(
   auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, 0);
   auto buffer_b = make_matrix_view(ex, _B, _K, _N, _ldb, 0);
   auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, 0);
-
+#ifndef NAIVE_GEMM
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
-    if (ex.has_local_memory()) {                                               \
+    if (ex.has_local_memory() &&                                               \
+        (ex.get_device_type() !=                                               \
+         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) &&   \
+        (ex.get_device_type() !=                                               \
+         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU)) {   \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
@@ -73,7 +77,15 @@ typename Executor::Return_Type _select_gemm(
     }                                                                          \
     return ret;                                                                \
   }
-
+#else
+#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                   \
+  if (_TransA == _trans_a && _TransB == _trans_b) {                 \
+    auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>( \
+        buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));         \
+    ret = ex.gemm_executor(gemm);                                   \
+    return ret;                                                     \
+  }
+#endif
   const bool NoTrans = false;
   const bool Trans = true;
 
@@ -92,12 +104,12 @@ typename Executor::Return_Type _select_gemm(
  *
  * See netlib.org/blas for details.
  */
-template <typename ExecutorType, typename ContainerT0, typename ContainerT1,
+template <typename Executor, typename ContainerT0, typename ContainerT1,
           typename ContainerT2, typename T, typename IndexType>
-cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
-                      IndexType _M, IndexType _N, IndexType _K, T _alpha,
-                      ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-                      IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
+cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
+                      IndexType _N, IndexType _K, T _alpha, ContainerT0 _A,
+                      IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
+                      ContainerT2 _C, IndexType _ldc) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
@@ -121,10 +133,16 @@ cl::sycl::event _gemm(Executor<ExecutorType>& ex, char _TransA, char _TransB,
         _ldc);                                                             \
   }
 #ifndef NAIVE_GEMM
-  if (ex.get_device_type() == Queue_Interface<SYCL>::device_type::INTELGPU) {
+  if (ex.get_device_type() ==
+      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
+  } else if ((ex.get_device_type() == Executor::Queue_Interface_Type::
+                                          device_type::SYCL_RCAR_CVENGINE) &&
+             (ex.get_device_type() == Executor::Queue_Interface_Type::
+                                          device_type::SYCL_RCAR_HOST_CPU)) {
+    BIND_DEFAULT TO_TPARAMS(32, false, 8, 8, 8, 8);
   } else {
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
