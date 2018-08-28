@@ -51,7 +51,7 @@ class SyclBlasBenchmarker {
           }),
         ex(q) {}
 
-  BENCHMARK_FUNCTION(gemm_nn) {
+  template <class TypeParam> double gemm_nn(size_t no_reps, size_t size) {
     using ScalarT = TypeParam;
 
     size_t m_size = size * size;
@@ -99,7 +99,7 @@ class SyclBlasBenchmarker {
     return flops;
   }
 
-  BENCHMARK_FUNCTION(gemm_tn) {
+  template <class TypeParam> double gemm_tn(size_t no_reps, size_t size) {
     using ScalarT = TypeParam;
 
     size_t m_size = size * size;
@@ -147,7 +147,7 @@ class SyclBlasBenchmarker {
     return flops;
   }
 
-  BENCHMARK_FUNCTION(gemm_nt) {
+  template <class TypeParam> double gemm_nt(size_t no_reps, size_t size) {
     using ScalarT = TypeParam;
 
     size_t m_size = size * size;
@@ -196,7 +196,7 @@ class SyclBlasBenchmarker {
   }
 };
 
-BENCHMARK_MAIN_BEGIN(1 << 1, 1 << 13, 10);
+BENCHMARK_MAIN_BEGIN( range(1 << 1, 1 << 13, 1<<1) , 10);
 SyclBlasBenchmarker<SYCL> blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("gemm_nn_float", gemm_nn<float>);

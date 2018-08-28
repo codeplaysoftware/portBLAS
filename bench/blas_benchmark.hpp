@@ -39,6 +39,8 @@
 #include <utility>
 #include <vector>
 
+#include "range.hpp"
+
 template <typename ScalarT>
 ScalarT *new_data(size_t size, bool initialized = true) {
   ScalarT *v = new ScalarT[size];
@@ -131,6 +133,7 @@ struct benchmark {
   }
 };
 
+// why on earth do we need this??
 #define BENCHMARK_FUNCTION(NAME) \
   template <class TypeParam>     \
   double NAME(size_t no_reps, size_t size)
@@ -138,21 +141,21 @@ struct benchmark {
 /** BENCHMARK_MAIN.
  * The main entry point of a benchmark
  */
-#define BENCHMARK_MAIN_BEGIN(STEP_SIZE_PARAM, NUM_STEPS, REPS) \
+#define BENCHMARK_MAIN_BEGIN(RANGE_PARAM, REPS) \
   int main(int argc, char *argv[]) {                           \
     benchmark<>::output_headers();                             \
+    auto _range =  (RANGE_PARAM);                           \
     const unsigned num_reps = (REPS);                          \
-    const unsigned step_size = (STEP_SIZE_PARAM);              \
-    const unsigned max_elems = step_size * (NUM_STEPS);        \
     {
 #define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                          \
-  for (size_t nelems = step_size; nelems < max_elems; nelems *= step_size) { \
+  for (auto params = _range.yield(); !_range.finished(); params =_range.yield()) { \
     const std::string short_name = NAME;                                     \
-    auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
-    benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
+    auto flops = blasbenchmark.FUNCTION(num_reps, params);                   \
+    benchmark<>::output_data(short_name, params, num_reps, flops);           \
   }
 #define BENCHMARK_MAIN_END() \
   }                          \
   }
+
 
 #endif /* end of include guard: BLAS_BENCHMARK_HPP */
