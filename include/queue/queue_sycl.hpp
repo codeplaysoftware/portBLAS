@@ -45,7 +45,15 @@ class Queue_Interface<SYCL> {
   using generic_buffer_data_type = cl::sycl::codeplay::buffer_data_type_t;
 
  public:
-  enum device_type { UNSUPPORTED_DEVICE, INTELGPU, AMDGPU };
+  enum device_type {
+    SYCL_CPU,
+    SYCL_HOST,
+    SYCL_UNSUPPORTED_DEVICE,
+    SYCL_INTEL_GPU,
+    SYCL_AMD_GPU,
+    SYCL_RCAR_CVENGINE,
+    SYCL_RCAR_HOST_CPU
+  };
 
   explicit Queue_Interface(cl::sycl::queue q)
       : q_(q),
@@ -62,14 +70,24 @@ class Queue_Interface<SYCL> {
     auto platform = dev.get_platform();
     auto plat_name =
         platform.template get_info<cl::sycl::info::platform::name>();
+    auto device_type =
+        dev.template get_info<cl::sycl::info::device::device_type>();
     std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
                    ::tolower);
-    if (plat_name.find("amd") != std::string::npos && dev.is_gpu()) {
-      return AMDGPU;
-    } else if (plat_name.find("intel") != std::string::npos && dev.is_gpu()) {
-      return INTELGPU;
+    if (plat_name.find("amd") != std::string::npos &&
+        device_type == cl::sycl::info::device_type::gpu) {
+      return SYCL_AMD_GPU;
+    } else if (plat_name.find("intel") != std::string::npos &&
+               device_type == cl::sycl::info::device_type::gpu) {
+      return SYCL_INTEL_GPU;
+    } else if (plat_name.find("computeaorta") != std::string::npos &&
+               device_type == cl::sycl::info::device_type::accelerator) {
+      return SYCL_RCAR_CVENGINE;
+    } else if (plat_name.find("computeaorta") != std::string::npos &&
+               device_type == cl::sycl::info::device_type::cpu) {
+      return SYCL_RCAR_HOST_CPU;
     } else {
-      return UNSUPPORTED_DEVICE;
+      return SYCL_UNSUPPORTED_DEVICE;
     }
     throw std::runtime_error("couldn't find device");
   }
