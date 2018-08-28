@@ -64,10 +64,10 @@ ScalarT *new_const_data(size_t size, ScalarT value = 0) {
 #define release_data(ptr) delete[](ptr);
 
 template <typename ScalarT>
-std::vector<ScalarT> random_data(
-    size_t size, bool initialized = true) {
-  auto default_initialiser =
-    [](ScalarT x) -> ScalarT { return 1e-3 * ((rand() % 2000) - 1000); };
+std::vector<ScalarT> random_data(size_t size, bool initialized = true) {
+  auto default_initialiser = [](ScalarT x) -> ScalarT {
+    return 1e-3 * ((rand() % 2000) - 1000);
+  };
   std::vector<ScalarT> v = std::vector<ScalarT>(size);
   if (initialized) {
     std::transform(v.begin(), v.end(), v.begin(), default_initialiser);
@@ -142,20 +142,49 @@ struct benchmark {
  * The main entry point of a benchmark
  */
 #define BENCHMARK_MAIN_BEGIN(RANGE_PARAM, REPS) \
-  int main(int argc, char *argv[]) {                           \
-    benchmark<>::output_headers();                             \
-    auto _range =  (RANGE_PARAM);                           \
-    const unsigned num_reps = (REPS);                          \
+  int main(int argc, char *argv[]) {            \
+    benchmark<>::output_headers();              \
+    auto _range = (RANGE_PARAM);                \
+    const unsigned num_reps = (REPS);           \
     {
-#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                          \
-  for (auto params = _range.yield(); !_range.finished(); params =_range.yield()) { \
-    const std::string short_name = NAME;                                     \
-    auto flops = blasbenchmark.FUNCTION(num_reps, params);                   \
-    benchmark<>::output_data(short_name, params, num_reps, flops);           \
+#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                \
+  for (auto params = _range.yield(); !_range.finished();           \
+       params = _range.yield()) {                                  \
+    const std::string short_name = NAME;                           \
+    auto flops = blasbenchmark.FUNCTION(num_reps, params);         \
+    benchmark<>::output_data(short_name, params, num_reps, flops); \
   }
 #define BENCHMARK_MAIN_END() \
   }                          \
   }
 
+/** BENCHMARK_MAIN.
+ * The main entry point of a benchmark
+ */
+#define BENCHMARK_MAIN(NAME, FUNCTION, RANGE_PARAM, REPS)                \
+  int main(int argc, char *argv[]) {                                     \
+    cl::sycl::queue q(cl::sycl::default_selector(),                      \
+                      [=](cl::sycl::exception_list eL) {                 \
+                        for (auto &e : eL) {                             \
+                          try {                                          \
+                            std::rethrow_exception(e);                   \
+                          } catch (cl::sycl::exception & e) {            \
+                            std::cout << " E " << e.what() << std::endl; \
+                          } catch (...) {                                \
+                            std::cout << " An exception " << std::endl;  \
+                          }                                              \
+                        }                                                \
+                      }) Executor<SYCL>                                  \
+        ex(q);                                                           \
+    benchmark<>::output_headers();                                       \
+    auto _range = (RANGE_PARAM);                                         \
+    const unsigned num_reps = (REPS);                                    \
+    for (auto size = _range.yield(); !_range.finished();                 \
+         size = range.yield()) {                                         \
+      const std::string short_name = NAME;                               \
+      auto time = FUNCTION(ex, num_reps, params);                        \
+      benchmark<>::output_data(short_name, params, num_reps, flops);     \
+    }                                                                    \
+  }
 
 #endif /* end of include guard: BLAS_BENCHMARK_HPP */

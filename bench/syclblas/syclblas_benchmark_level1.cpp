@@ -334,6 +334,9 @@ class SyclBlasBenchmarker {
 
 BENCHMARK_MAIN_BEGIN(range(1 << 1, 1 << 24, 1 << 1 ), 10);
 SyclBlasBenchmarker<SYCL> blasbenchmark;
+std::vector<function...> floats = {};;
+std::vector<function...> doubles = {};;
+
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
 BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>);
