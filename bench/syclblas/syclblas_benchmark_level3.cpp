@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "../blas_benchmark.hpp"
+// #include "../blas_benchmark.hpp"
 #include "../blas_benchmark2.hpp"
 
 #include <interface/blas1_interface.hpp>
@@ -31,182 +31,63 @@
 
 using namespace blas;
 
-template <typename ExecutorType = SYCL>
-class SyclBlasBenchmarker {
-  cl::sycl::queue q;
-  Executor<ExecutorType> ex;
+BENCHMARK(gemm) {
+  using ScalarT = ElemT;
 
- public:
-  SyclBlasBenchmarker()
-      : q(cl::sycl::default_selector(),
-          [=](cl::sycl::exception_list eL) {
-            for (auto &e : eL) {
-              try {
-                std::rethrow_exception(e);
-              } catch (cl::sycl::exception &e) {
-                std::cout << " E " << e.what() << std::endl;
-              } catch (...) {
-                std::cout << " An exception " << std::endl;
-              }
-            }
-          }),
-        ex(q) {}
+  size_t m_size =
+      std::get<0>(params) * std::get<1>(params) * std::get<2>(params);
 
-  template <class TypeParam> double gemm_nn(size_t no_reps, size_t size) {
-    using ScalarT = TypeParam;
+  size_t m = std::get<0>(params);
+  size_t k = std::get<1>(params);
+  size_t n = std::get<2>(params);
+  
+  std::cout << "Got sizes: (" << m << "," << k << ") (" << k<< "," << n << ") (" << m << "," <<n << ")" << std::endl;
 
-    size_t m_size = size * size;
+  char const *t_a = "n";
+  char const *t_b = "n";
 
-    auto lda = size;
-    auto ldb = size;
-    auto ldc = size;
+  size_t lda = m;
+  size_t ldb = n; 
+  size_t ldc = m; 
 
-    auto m = size;
-    auto n = size;
-    auto k = size;
+  ScalarT alpha = ScalarT(1);
+  ScalarT beta = ScalarT(1);
+  // // make two square matrices of size m*n and n*k
+  std::vector<ScalarT> a = random_data<ScalarT>(m * k);
+  std::vector<ScalarT> b = random_data<ScalarT>(k * n);
+  std::vector<ScalarT> c = const_data<ScalarT>(m * n, 0);
 
-    char const *t_a = "n";
-    char const *t_b = "n";
+  auto a_gpu = ex.template allocate<ScalarT>(m * k);
+  auto b_gpu = ex.template allocate<ScalarT>(k * n);
+  auto c_gpu = ex.template allocate<ScalarT>(m * n);
 
-    ScalarT alpha = ScalarT(1);
-    ScalarT beta = ScalarT(1);
-    // make two square matrices of size N * N
-    std::vector<ScalarT> a = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> b = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> c = const_data<ScalarT>(m_size, 0);
+  ex.copy_to_device(a.data(), a_gpu, m * k);
+  ex.copy_to_device(b.data(), b_gpu, k * n);
+  ex.copy_to_device(c.data(), c_gpu, m * n);
 
-    auto a_gpu = ex.template allocate<ScalarT>(m_size);
-    auto b_gpu = ex.template allocate<ScalarT>(m_size);
-    auto c_gpu = ex.template allocate<ScalarT>(m_size);
-
-    ex.copy_to_device(a.data(), a_gpu, m_size);
-    ex.copy_to_device(b.data(), b_gpu, m_size);
-    ex.copy_to_device(c.data(), c_gpu, m_size);
-
-    double flops = benchmark<>::measure(no_reps, m_size * 4, [&]() {
-      auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                         beta, c_gpu, ldc);
-      ex.wait(event);
-    });
-
-    auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
-
+  double flops = benchmark<>::measure(reps, m_size * 4, [&]() {
+    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+                       beta, c_gpu, lda);
     ex.wait(event);
+  });
 
-    ex.template deallocate<ScalarT>(a_gpu);
-    ex.template deallocate<ScalarT>(b_gpu);
-    ex.template deallocate<ScalarT>(c_gpu);
+  std::cout << " Got : " << flops << " Flops! " << std::endl;
 
-    return flops;
-  }
+  auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
 
-  template <class TypeParam> double gemm_tn(size_t no_reps, size_t size) {
-    using ScalarT = TypeParam;
+  ex.wait(event);
 
-    size_t m_size = size * size;
+  ex.template deallocate<ScalarT>(a_gpu);
+  ex.template deallocate<ScalarT>(b_gpu);
+  ex.template deallocate<ScalarT>(c_gpu);
 
-    auto lda = size;
-    auto ldb = size;
-    auto ldc = size;
+  return flops;
+}
 
-    auto m = size;
-    auto n = size;
-    auto k = size;
+SUITE(ADD(gemm))
 
-    char const *t_a = "t";
-    char const *t_b = "n";
+auto three_d_range =
+    nd_range(size_range(10, 1000, 10), size_range(10, 1000, 10),
+             size_range(10, 1000, 10));
 
-    ScalarT alpha = ScalarT(1);
-    ScalarT beta = ScalarT(1);
-    // make two square matrices of size N * N
-    std::vector<ScalarT> a = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> b = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> c = const_data<ScalarT>(m_size, 0);
-
-    auto a_gpu = ex.template allocate<ScalarT>(m_size);
-    auto b_gpu = ex.template allocate<ScalarT>(m_size);
-    auto c_gpu = ex.template allocate<ScalarT>(m_size);
-
-    ex.copy_to_device(a.data(), a_gpu, m_size);
-    ex.copy_to_device(b.data(), b_gpu, m_size);
-    ex.copy_to_device(c.data(), c_gpu, m_size);
-
-    double flops = benchmark<>::measure(no_reps, m_size * 4, [&]() {
-      auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                         beta, c_gpu, ldc);
-      ex.wait(event);
-    });
-
-    auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
-
-    ex.wait(event);
-
-    ex.template deallocate<ScalarT>(a_gpu);
-    ex.template deallocate<ScalarT>(b_gpu);
-    ex.template deallocate<ScalarT>(c_gpu);
-
-    return flops;
-  }
-
-  template <class TypeParam> double gemm_nt(size_t no_reps, size_t size) {
-    using ScalarT = TypeParam;
-
-    size_t m_size = size * size;
-
-    auto lda = size;
-    auto ldb = size;
-    auto ldc = size;
-
-    auto m = size;
-    auto n = size;
-    auto k = size;
-
-    char const *t_a = "n";
-    char const *t_b = "t";
-
-    ScalarT alpha = ScalarT(1);
-    ScalarT beta = ScalarT(1);
-    // make two square matrices of size N * N
-    std::vector<ScalarT> a = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> b = random_data<ScalarT>(m_size);
-    std::vector<ScalarT> c = const_data<ScalarT>(m_size, 0);
-
-    auto a_gpu = ex.template allocate<ScalarT>(m_size);
-    auto b_gpu = ex.template allocate<ScalarT>(m_size);
-    auto c_gpu = ex.template allocate<ScalarT>(m_size);
-
-    ex.copy_to_device(a.data(), a_gpu, m_size);
-    ex.copy_to_device(b.data(), b_gpu, m_size);
-    ex.copy_to_device(c.data(), c_gpu, m_size);
-
-    double flops = benchmark<>::measure(no_reps, m_size * 4, [&]() {
-      auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                         beta, c_gpu, ldc);
-      ex.wait(event);
-    });
-
-    auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
-
-    ex.wait(event);
-
-    ex.template deallocate<ScalarT>(a_gpu);
-    ex.template deallocate<ScalarT>(b_gpu);
-    ex.template deallocate<ScalarT>(c_gpu);
-
-    return flops;
-  }
-};
-
-BENCHMARK_MAIN_BEGIN( range(1 << 1, 1 << 13, 1<<1) , 10);
-SyclBlasBenchmarker<SYCL> blasbenchmark;
-
-BENCHMARK_REGISTER_FUNCTION("gemm_nn_float", gemm_nn<float>);
-BENCHMARK_REGISTER_FUNCTION("gemm_tn_float", gemm_tn<float>);
-BENCHMARK_REGISTER_FUNCTION("gemm_nt_float", gemm_nt<float>);
-
-#ifndef NO_DOUBLE_SUPPORT
-BENCHMARK_REGISTER_FUNCTION("gemm_nn_double", gemm_nn<double>);
-BENCHMARK_REGISTER_FUNCTION("gemm_tn_double", gemm_tn<double>);
-BENCHMARK_REGISTER_FUNCTION("gemm_nt_double", gemm_nt<double>);
-#endif
-BENCHMARK_MAIN_END();
+BENCHMARK_MAIN(three_d_range, 10)

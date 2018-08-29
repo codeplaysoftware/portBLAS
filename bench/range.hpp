@@ -41,6 +41,7 @@ public:
   typedef T elem_t;
   SizeRange(T _low, T _high, T _mult)
       : v(_low), low(_low), high(_high), mult(_mult) {}
+  SizeRange(const SizeRange& sr) : v(sr.v), low(sr.low), high(sr.high), mult(sr.mult) {}
   T peek() { return v; }
   T yield() {
     T r = v;   // cache the current value
@@ -67,6 +68,8 @@ public:
   typedef T elem_t;
   ValueRange(std::vector<T> _vals) : vals(_vals), iter(vals.begin()) {}
   ValueRange(std::initializer_list<T> l) : vals(l), iter(vals.begin()) {}
+  ValueRange(const ValueRange& vr) : vals(vr.vals), iter(vals.begin()) {}
+
   T peek() { return *iter; }
   T yield() { return *iter++; }
   bool finished() {
@@ -155,33 +158,33 @@ public:
 /**
  * Utility range constructors.
  */
-
-template <typename T> SizeRange<T> range(T low, T high, T mult) {
+template<typename T>
+SizeRange<T> size_range(T low, T high, T mult) {
   return SizeRange<T>(low, high, mult);
 }
 
 template <typename Vect>
-ValueRange<typename Vect::value_type> range(Vect vals) {
+ValueRange<typename Vect::value_type> value_range(Vect vals) {
   return ValueRange<typename Vect::value_type>(vals);
 }
 
 template <typename T> 
-ValueRange<T> range(std::initializer_list<T> l) { 
+ValueRange<T> value_range(std::initializer_list<T> l) { 
   return ValueRange<T>(l); 
 }
 
 template <typename Range1, typename Range2>
-Range2D<Range1, Range2> range(Range1 r1, Range2 r2) {
+Range2D<Range1, Range2> nd_range(Range1 r1, Range2 r2) {
   return Range2D<Range1, Range2>(r1, r2);
 }
 
 template <typename Range1, typename Range2, typename Range3>
-Range3D<Range1, Range2, Range3> range(Range1 r1, Range2 r2, Range3 r3) {
+Range3D<Range1, Range2, Range3> nd_range(Range1 r1, Range2 r2, Range3 r3) {
   return Range3D<Range1, Range2, Range3>(r1, r2, r3);
 }
 
 template <typename Range1, typename Range2, typename Range3, typename Range4>
-Range4D<Range1, Range2, Range3, Range4> range(Range1 r1, Range2 r2, Range3 r3,
+Range4D<Range1, Range2, Range3, Range4> nd_range(Range1 r1, Range2 r2, Range3 r3,
                                               Range4 r4) {
   return Range4D<Range1, Range2, Range3, Range4>(r1, r2, r3, r4);
 }

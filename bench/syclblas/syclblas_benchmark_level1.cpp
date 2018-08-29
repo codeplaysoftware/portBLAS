@@ -332,7 +332,7 @@ class SyclBlasBenchmarker {
   }
 };
 
-BENCHMARK_MAIN_BEGIN(range(1 << 1, 1 << 24, 1 << 1 ), 10);
+BENCHMARK_MAIN_BEGIN(size_range(1 << 1, 1 << 24, 1 << 1 ), 10);
 SyclBlasBenchmarker<SYCL> blasbenchmark;
 
 BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);

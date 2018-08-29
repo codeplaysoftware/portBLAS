@@ -34,11 +34,22 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <unistd.h>
 #include <utility>
 #include <vector>
 
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <unistd.h>
+#include <utility>
+#include <vector>
+
+#include "cli_device_selector.hpp"
 #include "range.hpp"
 
 template <typename ScalarT>
@@ -175,55 +186,56 @@ struct benchmark_arguments {
   }
 };
 
-
-
-template <typename T> 
+template <typename T, typename ExecutorT, typename ParamT>
 class benchmark_instance {
-public: 
-  virtual void run() = 0;
+ public:
+  virtual const char* name() = 0;
+  virtual double run(ParamT params, unsigned int reps, ExecutorT ex) = 0;
 };
 
-template <typename T>
-class empty : public benchmark_instance<T>{
-public: 
-  empty() {} 
-  void run() {}
+template <typename T, typename ExecutorT, typename ParamT>
+class empty : public benchmark_instance<T, ExecutorT, ParamT> {
+  const char* _name = "null";
+
+ public:
+  empty() {}
+  const char* name() { return _name; }
+  double run(ParamT params, unsigned int reps, ExecutorT ex) { return 0.0; }
 };
 
-#define BENCHMARK(bench_name) \
-  template <typename ElemT> \
-  class benchmark_##bench_name##_class_ : public benchmark_instance<ElemT> \
-  { \
-    const char* _name = #bench_name ; \
-    public: \
-    benchmark_##bench_name##_class_() {} ; \
-    const char* name() { return _name; }; \
-    const char* type() { return typeid(ElemT).name(); } \
-    void run(); \
-  }; \
-  template <typename ElemT> \
-  void benchmark_##bench_name##_class_<ElemT>::run() \
+#define BENCHMARK(bench_name)                                            \
+  template <typename ElemT, typename ExecutorT, typename ParamT>         \
+  class benchmark_##bench_name##_class_                                  \
+      : public benchmark_instance<ElemT, ExecutorT, ParamT> {            \
+    const char* _name = #bench_name;                                     \
+                                                                         \
+   public:                                                               \
+    benchmark_##bench_name##_class_(){};                                 \
+    const char* name() { return _name; };                                \
+    const char* type() { return typeid(ElemT).name(); }                  \
+    double run(ParamT params, unsigned int reps, ExecutorT ex);          \
+  };                                                                     \
+  template <typename ElemT, typename ExecutorT, typename ParamT>         \
+  double benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run( \
+      ParamT params, unsigned int reps, ExecutorT ex)
 
-#define ADD(name) (new benchmark_##name##_class_<ElemT>),
+#define ADD(name) (new benchmark_##name##_class_<ElemT, ExecutorT, ParamT>),
 
-#define SUITE(List) \
-  template <typename ElemT> \
-  std::vector<benchmark_instance<ElemT>*> benchmarks() { \
-  return std::vector<benchmark_instance<ElemT>*>({ \
-    List \
-    new empty<ElemT> \
-  }); } \
+#define SUITE(List)                                                    \
+  template <typename ElemT, typename ExecutorT, typename ParamT>       \
+  std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>           \
+  benchmark_suite() {                                                  \
+    return std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>( \
+        {List new empty<ElemT, ExecutorT, ParamT>});                   \
+  }
 
 template <typename TimeT = std::chrono::microseconds,
           typename ClockT = std::chrono::system_clock>
 struct benchmark {
-  typedef TimeT time_units_t;
-  /**
-   * @fn    duration
-   * @brief Returns the duration (in chrono's type system) of the elapsed time
-   */
+  // typedef TimeT time_units_t;
+
   template <typename F, typename... Args>
-  static TimeT duration(unsigned numReps, F func, Args&&... args) {
+  static double measure(size_t numReps, size_t flops, F func, Args&&... args) {
     TimeT dur = TimeT::zero();
 
     // warm up to avoid benchmarking data transfer
@@ -231,17 +243,38 @@ struct benchmark {
       func(std::forward<Args>(args)...);
     }
 
-
-    unsigned reps = 0;
-    for (; reps < numReps; reps++) {
+    for (size_t reps = 0; reps < numReps; reps++) {
       auto start = ClockT::now();
-
       func(std::forward<Args>(args)...);
-
-      dur += std::chrono::duration_cast<TimeT>(ClockT::now() - start);
+      auto end = ClockT::now();
+      dur += std::chrono::duration_cast<TimeT>(end - start);
     }
-    return dur / reps;
+    return (double(flops) * numReps) / (dur.count() * 1e-9);
   }
+
+  /**
+   * @fn    duration
+   * @brief Returns the duration (in chrono's type system) of the elapsed time
+   */
+  // template <typename F, typename... Args>
+  // static TimeT duration(unsigned numReps, F func, Args&&... args) {
+  //   TimeT dur = TimeT::zero();
+
+  //   // warm up to avoid benchmarking data transfer
+  //   for (int i = 0; i < 5; ++i) {
+  //     func(std::forward<Args>(args)...);
+  //   }
+
+  //   unsigned reps = 0;
+  //   for (; reps < numReps; reps++) {
+  //     auto start = ClockT::now();
+
+  //     func(std::forward<Args>(args)...);
+
+  //     dur += std::chrono::duration_cast<TimeT>(ClockT::now() - start);
+  //   }
+  //   return dur / reps;
+  // }
 
   /* output_data.
    * Prints to the stderr Bench name, input size and execution time.
@@ -260,59 +293,45 @@ struct benchmark {
   }
 };
 
-/** BENCHMARK_MAIN.
- * The main entry point of a benchmark
- */
-#define BENCHMARK_MAIN(NAME, FUNCTION, STEP_SIZE_PARAM, NUM_STEPS, REPS)      \
-  int main(int argc, char* argv[]) {                                          \
-    benchmark_arguments ba(argc, argv);                                       \
-    if (!ba.validProgramOptions) {                                            \
-      return 1;                                                               \
-    }                                                                         \
-    cli_device_selector cds(ba.device_vendor, ba.device_type);                \
-    const unsigned NUM_REPS = REPS;                                           \
-    const unsigned STEP_SIZE = STEP_SIZE_PARAM;                               \
-    const unsigned MAX_ELEMS = STEP_SIZE * (NUM_STEPS);                       \
-    for (size_t nelems = STEP_SIZE; nelems < MAX_ELEMS; nelems *= STEP_SIZE) {   \
-      const std::string short_name = NAME;                                    \
-      auto time = FUNCTION(NUM_REPS, nelems, cds);                            \
-      benchmark<>::output_data(short_name, nelems, time, ba.requestedOutput); \
-    }                                                                         \
-  }
-
-template <typename ElemT, typename ExecutorType = SYCL> 
-void run_benchmark(benchmark_instance<T> *b, Range _range, const unsigned reps, Executor<ExecutorType> ex) { 
-    for (auto params = _range.yield(); !_range.finished();             
-         params = range.yield()) {                                     
-      const std::string short_name = std::string(b->name());                           
-      auto time = b->run(ex, reps, params);
-      benchmark<>::output_data(short_name, 3, time); 
-    }                                                                
-}
-
-/** BENCHMARK_MAIN.
- * The main entry point of a benchmark
- */
-template <typename Suite, typename ExecutorType = SYCL>
-int main_impl(Suite benchmark_suite, Range range_param, const unsigned reps, Executor<ExecutorType> ex) { 
-  auto benchmarks = benchmark_suite<float>();
-  for(auto b : benchmarks) { 
-      run_benchmark(b, range_param, reps, ex);
+template <typename ElemT, typename Ex, typename ParamT>
+void run_benchmark(benchmark_instance<ElemT, Ex, ParamT>* b,
+                   Range<ParamT>* _range, const unsigned reps, Ex ex,
+                   output_type output = output_type::STDOUT) {
+  for (auto params = _range->yield(); !_range->finished();
+       params = _range->yield()) {
+    const std::string short_name = std::string(b->name());
+    auto time = b->run(params, reps, ex);
+    // benchmark<>::output_data(short_name, 3, time);
   }
 }
 
-#define BENCHMARK_MAIN(BENCHMARK_SUITE, RANGE_PARAM, REPS)                \
-  int main(int argc, char *argv[]) {                                     \
-    benchmark_arguments ba(argc, argv);                                       \
-    if (!ba.validProgramOptions) {                                            \
-      return 1;                                                               \
-    }                                                                         \
-    cli_device_selector cds(ba.device_vendor, ba.device_type);                \
-    cl::sycl::queue q(cds); \
-    Executor<SYCL> ex(q); \
-    return main_impl(BENCHMARK_SUITE,(RANGE_PARAM), (REPS), ex); \
+// forward declare benchmark_suite
+template <typename ElemT, typename ExecutorT, typename ParamT>
+std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*> benchmark_suite();
+/** BENCHMARK_MAIN.
+ * The main entry point of a benchmark
+ */
+
+template <typename Ex, typename ParamT>
+int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
+              output_type output = output_type::STDOUT) {
+  auto benchmarks = benchmark_suite<float, Ex, ParamT>();
+  for (auto b : benchmarks) {
+    run_benchmark(b, range_param, reps, ex, output);
   }
+  return 0;
+}
 
-
+#define BENCHMARK_MAIN(RANGE_PARAM, REPS)                             \
+  int main(int argc, char* argv[]) {                                  \
+    benchmark_arguments ba(argc, argv);                               \
+    if (!ba.validProgramOptions) {                                    \
+      return 1;                                                       \
+    }                                                                 \
+    cli_device_selector cds(ba.device_vendor, ba.device_type);        \
+    cl::sycl::queue q(cds);                                           \
+    Executor<SYCL> ex(q);                                             \
+    return main_impl((&RANGE_PARAM), (REPS), ex, ba.requestedOutput); \
+  }
 
 #endif /* end of include guard: BLAS_BENCHMARK_HPP */
