@@ -31,28 +31,35 @@
 
 using namespace blas;
 
-BENCHMARK(gemm) {
+NAMEDEF(blas_level_3) {
+  std::ostringstream oss; 
+  oss << short_name() << "_" << 
+    std::get<0>(params) << "_" <<
+    std::get<1>(params) << "_" <<
+    std::get<2>(params) << "_" <<
+    std::get<3>(params) << "_" <<
+    std::get<4>(params);
+  return oss.str();
+}
+
+BENCHMARK(gemm, blas_level_3) {
   using ScalarT = ElemT;
-
-  size_t m_size =
-      std::get<0>(params) * std::get<1>(params) * std::get<2>(params);
-
+  
   size_t m = std::get<0>(params);
   size_t k = std::get<1>(params);
   size_t n = std::get<2>(params);
+  char const *t_a = std::get<3>(params);
+  char const *t_b = std::get<4>(params);
+
+  size_t n_flop = ((m*k) * n) + (k*n) + (m*n) ;
   
-  std::cout << "Got sizes: (" << m << "," << k << ") (" << k<< "," << n << ") (" << m << "," <<n << ")" << std::endl;
-
-  char const *t_a = "n";
-  char const *t_b = "n";
-
-  size_t lda = m;
-  size_t ldb = n; 
+  size_t lda = t_a[0] == 'n' ? m : k;
+  size_t ldb = t_b[0] == 'n' ? k : n; 
   size_t ldc = m; 
 
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
-  // // make two square matrices of size m*n and n*k
+
   std::vector<ScalarT> a = random_data<ScalarT>(m * k);
   std::vector<ScalarT> b = random_data<ScalarT>(k * n);
   std::vector<ScalarT> c = const_data<ScalarT>(m * n, 0);
@@ -65,15 +72,13 @@ BENCHMARK(gemm) {
   ex.copy_to_device(b.data(), b_gpu, k * n);
   ex.copy_to_device(c.data(), c_gpu, m * n);
 
-  double flops = benchmark<>::measure(reps, m_size * 4, [&]() {
+  double flops = benchmark<>::measure(reps, n_flop, [&]() {
     auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_gpu, lda);
     ex.wait(event);
   });
 
-  std::cout << " Got : " << flops << " Flops! " << std::endl;
-
-  auto event = ex.copy_to_host(c_gpu, c.data(), m_size);
+  auto event = ex.copy_to_host(c_gpu, c.data(), m*n);
 
   ex.wait(event);
 
@@ -86,8 +91,10 @@ BENCHMARK(gemm) {
 
 SUITE(ADD(gemm))
 
-auto three_d_range =
-    nd_range(size_range(10, 1000, 10), size_range(10, 1000, 10),
-             size_range(10, 1000, 10));
+auto gemm_range =
+    nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
+             size_range(2, 1024, 2), value_range({"n"}),
+             value_range({"n", "t", "c"})
+             );
 
-BENCHMARK_MAIN(three_d_range, 10)
+BENCHMARK_MAIN(gemm_range, 10)
