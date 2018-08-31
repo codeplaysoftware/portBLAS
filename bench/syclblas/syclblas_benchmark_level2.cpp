@@ -23,37 +23,19 @@
  *
  **************************************************************************/
 
-#include "../blas_benchmark.hpp"
+#include "../blas_benchmark2.hpp"
 
 #include <interface/blas1_interface.hpp>
 #include <interface/blas2_interface.hpp>
 
 using namespace blas;
 
-template <typename ExecutorType = SYCL>
-class SyclBlasBenchmarker {
-  cl::sycl::queue q;
-  Executor<ExecutorType> ex;
+BENCHMARK_NAME_FORMAT(blas_level_2) {
+  return std::string("No benchmarks!");
+}
 
- public:
-  SyclBlasBenchmarker()
-      : q(cl::sycl::default_selector(),
-          [=](cl::sycl::exception_list eL) {
-            for (auto &e : eL) {
-              try {
-                std::rethrow_exception(e);
-              } catch (cl::sycl::exception &e) {
-                std::cout << " E " << e.what() << std::endl;
-              } catch (...) {
-                std::cout << " An exception " << std::endl;
-              }
-            }
-          }),
-        ex(q) {}
+SUITE()
 
-};
+auto level_2_ranges = size_range(2, 1024, 2);
 
-BENCHMARK_MAIN_BEGIN(size_range(1 << 1, 1 << 13, 1<<1), 10);
-SyclBlasBenchmarker<SYCL> blasbenchmark;
-
-BENCHMARK_MAIN_END();
+BENCHMARK_MAIN(level_2_ranges, 10)

@@ -23,339 +23,311 @@
  *
  **************************************************************************/
 
-#include "../blas_benchmark.hpp"
+#include "../blas_benchmark2.hpp"
 
 #include <interface/blas1_interface.hpp>
 
 using namespace blas;
 
-template <typename ExecutorType = SYCL>
-class SyclBlasBenchmarker {
-  cl::sycl::queue q;
-  Executor<ExecutorType> ex;
+BENCHMARK_NAME_FORMAT(blas_level_1) {
+  std::ostringstream fname;
+  fname << name() << "_" << params;
+  return fname.str();
+}
 
- public:
-  SyclBlasBenchmarker()
-      : q(cl::sycl::default_selector(),
-          [=](cl::sycl::exception_list eL) {
-            for (auto &e : eL) {
-              try {
-                std::rethrow_exception(e);
-              } catch (cl::sycl::exception &e) {
-                std::cout << " E " << e.what() << std::endl;
-              } catch (...) {
-                std::cout << " An exception " << std::endl;
-              }
-            }
-          }),
-        ex(q) {}
+BENCHMARK(scal_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-  BENCHMARK_FUNCTION(scal_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT alpha(2.4367453465);
-    double flops;
-    auto in = ex.template allocate<ScalarT>(size);
-    ex.copy_to_device(v1, in, size);
-    flops = benchmark<>::measure(no_reps, size * 1, [&]() {
-      auto event = _scal(ex, size, alpha, in, 1);
-      ex.wait(event);
-    });
-    ex.template deallocate<ScalarT>(in);
-    release_data(v1);
-    return flops;
-  }
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  ScalarT alpha(2.4367453465);
 
-  BENCHMARK_FUNCTION(axpy_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT *v2 = new_data<ScalarT>(size);
-    ScalarT alpha(2.4367453465);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto iny = ex.template allocate<ScalarT>(size);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(v2, iny, size);
+  auto in = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(v1.data(), in, size);
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 1, [&]() {
+        auto event = _scal(ex, size, alpha, in, 1);
+        ex.wait(event);
+      });
+  ex.template deallocate<ScalarT>(in);
+  return flops;
+}
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
-      ex.wait(event);
-    });
+BENCHMARK(axpy_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(iny);
-    release_data(v1);
-    release_data(v2);
-    return flops;
-  }
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
+  ScalarT alpha(2.4367453465);
 
-  BENCHMARK_FUNCTION(asum_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT vr;
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto inr = ex.template allocate<ScalarT>(1);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(&vr, inr, 1);
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto iny = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(v2.data(), iny, size);
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _asum(ex, size, inx, 1, inr);
-      ex.wait(event);
-    });
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
+        ex.wait(event);
+      });
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(inr);
-    release_data(v1);
-    return flops;
-  }
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(iny);
+  return flops;
+}
 
-  BENCHMARK_FUNCTION(nrm2_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto inr = ex.template allocate<ScalarT>(1);
-    ex.copy_to_device(v1, inx, size);
+BENCHMARK(asum_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _nrm2(ex, size, inx, 1, inr);
-      ex.wait(event);
-    });
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  ScalarT vr;
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(inr);
-    release_data(v1);
-    return flops;
-  }
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto inr = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(&vr, inr, 1);
 
-  BENCHMARK_FUNCTION(dot_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT *v2 = new_data<ScalarT>(size);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto iny = ex.template allocate<ScalarT>(size);
-    auto inr = ex.template allocate<ScalarT>(1);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(v2, iny, size);
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _asum(ex, size, inx, 1, inr);
+        ex.wait(event);
+      });
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _dot(ex, size, inx, 1, iny, 1, inr);
-      ex.wait(event);
-    });
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(inr);
+  return flops;
+}
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(iny);
-    ex.template deallocate<ScalarT>(inr);
-    release_data(v1);
-    release_data(v2);
-    return flops;
-  }
+BENCHMARK(nrm2_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-  BENCHMARK_FUNCTION(iamax_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
-    ex.copy_to_device(v1, inx, size);
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _iamax(ex, size, inx, 1, outI);
-      ex.wait(event);
-    });
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto inr = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(v1.data(), inx, size);
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
-    release_data(v1);
-    return flops;
-  }
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _nrm2(ex, size, inx, 1, inr);
+        ex.wait(event);
+      });
 
-  BENCHMARK_FUNCTION(iamin_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
-    ex.copy_to_device(v1, inx, size);
-    double flops;
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(inr);
+  return flops;
+}
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event = _iamin(ex, size, inx, 1, outI);
-      ex.wait(event);
-    });
+BENCHMARK(dot_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
-    release_data(v1);
-    return flops;
-  }
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
 
-  BENCHMARK_FUNCTION(scal2op_bench) {
-    using ScalarT = TypeParam;
-    ScalarT alpha(2.4367453465);
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT *v2 = new_data<ScalarT>(size);
-    double flops;
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto iny = ex.template allocate<ScalarT>(size);
+  auto inr = ex.template allocate<ScalarT>(1);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(v2.data(), iny, size);
 
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto iny = ex.template allocate<ScalarT>(size);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(v2, iny, size);
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _dot(ex, size, inx, 1, iny, 1, inr);
+        ex.wait(event);
+      });
 
-    flops = benchmark<>::measure(no_reps, size * 2, [&]() {
-      auto event0 = _scal(ex, size, alpha, inx, 1);
-      auto event1 = _scal(ex, size, alpha, iny, 1);
-      ex.wait(event0, event1);
-    });
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(iny);
+  ex.template deallocate<ScalarT>(inr);
+  return flops;
+}
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(iny);
-    release_data(v1);
-    release_data(v2);
-    return flops;
-  }
+BENCHMARK(iamax_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-  BENCHMARK_FUNCTION(scal3op_bench) {
-    using ScalarT = TypeParam;
-    ScalarT alpha(2.4367453465);
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT *v2 = new_data<ScalarT>(size);
-    ScalarT *v3 = new_data<ScalarT>(size);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto iny = ex.template allocate<ScalarT>(size);
-    auto inz = ex.template allocate<ScalarT>(size);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(v2, iny, size);
-    ex.copy_to_device(v3, inz, size);
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
-    flops = benchmark<>::measure(no_reps, size * 3, [&]() {
-      auto event0 = _scal(ex, size, alpha, inx, 1);
-      auto event1 = _scal(ex, size, alpha, iny, 1);
-      auto event2 = _scal(ex, size, alpha, inz, 1);
-      ex.wait(event0, event1, event2);
-    });
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  ex.copy_to_device(v1.data(), inx, size);
 
-    release_data(v1);
-    release_data(v2);
-    release_data(v3);
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(iny);
-    ex.template deallocate<ScalarT>(inz);
-    return flops;
-  }
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _iamax(ex, size, inx, 1, outI);
+        ex.wait(event);
+      });
 
-  BENCHMARK_FUNCTION(axpy3op_bench) {
-    using ScalarT = TypeParam;
-    std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
-                                     3.78164387328};
-    ScalarT *vsrc1 = new_data<ScalarT>(size);
-    ScalarT *vsrc2 = new_data<ScalarT>(size);
-    ScalarT *vsrc3 = new_data<ScalarT>(size);
-    ScalarT *vdst1 = new_data<ScalarT>(size);
-    ScalarT *vdst2 = new_data<ScalarT>(size);
-    ScalarT *vdst3 = new_data<ScalarT>(size);
-    double flops;
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
+  return flops;
+}
 
-    auto insrc1 = ex.template allocate<ScalarT>(size);
-    auto indst1 = ex.template allocate<ScalarT>(size);
-    auto insrc2 = ex.template allocate<ScalarT>(size);
-    auto indst2 = ex.template allocate<ScalarT>(size);
-    auto insrc3 = ex.template allocate<ScalarT>(size);
-    auto indst3 = ex.template allocate<ScalarT>(size);
-    ex.copy_to_device(vsrc1, insrc1, size);
-    ex.copy_to_device(vdst1, indst1, size);
-    ex.copy_to_device(vsrc2, insrc2, size);
-    ex.copy_to_device(vdst2, indst2, size);
-    ex.copy_to_device(vsrc3, insrc3, size);
-    ex.copy_to_device(vdst3, indst3, size);
+BENCHMARK(iamin_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-    flops = benchmark<>::measure(no_reps, size * 3 * 2, [&]() {
-      auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
-      auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
-      auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
-      ex.wait(event0, event1, event2);
-    });
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  ex.copy_to_device(v1.data(), inx, size);
 
-    ex.template deallocate<ScalarT>(insrc1);
-    ex.template deallocate<ScalarT>(indst1);
-    ex.template deallocate<ScalarT>(insrc2);
-    ex.template deallocate<ScalarT>(indst2);
-    ex.template deallocate<ScalarT>(insrc3);
-    ex.template deallocate<ScalarT>(indst3);
-    release_data(vsrc1);
-    release_data(vsrc2);
-    release_data(vsrc3);
-    release_data(vdst1);
-    release_data(vdst2);
-    release_data(vdst3);
-    return flops;
-  }
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event = _iamin(ex, size, inx, 1, outI);
+        ex.wait(event);
+      });
 
-  BENCHMARK_FUNCTION(blas1_bench) {
-    using ScalarT = TypeParam;
-    ScalarT *v1 = new_data<ScalarT>(size);
-    ScalarT *v2 = new_data<ScalarT>(size);
-    ScalarT alpha(3.135345123);
-    double flops;
-    auto inx = ex.template allocate<ScalarT>(size);
-    auto iny = ex.template allocate<ScalarT>(size);
-    auto inr1 = ex.template allocate<ScalarT>(1);
-    auto inr2 = ex.template allocate<ScalarT>(1);
-    auto inr3 = ex.template allocate<ScalarT>(1);
-    auto inr4 = ex.template allocate<ScalarT>(1);
-    auto inrI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
-    ex.copy_to_device(v1, inx, size);
-    ex.copy_to_device(v2, iny, size);
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
+  return flops;
+}
 
-    flops = benchmark<>::measure(no_reps, size * 12, [&]() {
-      auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
-      auto event1 = _asum(ex, size, iny, 1, inr1);
-      auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
-      auto event3 = _nrm2(ex, size, iny, 1, inr3);
-      auto event4 = _iamax(ex, size, iny, 1, inrI);
-      auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
-      ex.wait(event0, event1, event2, event3, event4, event5);
-    });
+BENCHMARK(scal2op_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
 
-    ex.template deallocate<ScalarT>(inx);
-    ex.template deallocate<ScalarT>(iny);
-    ex.template deallocate<ScalarT>(inr1);
-    ex.template deallocate<ScalarT>(inr2);
-    ex.template deallocate<ScalarT>(inr3);
-    ex.template deallocate<ScalarT>(inr4);
-    ex.template deallocate<IndexValueTuple<ScalarT>>(inrI);
-    release_data(v1);
-    release_data(v2);
-    return flops;
-  }
-};
+  ScalarT alpha(2.4367453465);
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
 
-BENCHMARK_MAIN_BEGIN(size_range(1 << 1, 1 << 24, 1 << 1 ), 10);
-SyclBlasBenchmarker<SYCL> blasbenchmark;
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto iny = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(v2.data(), iny, size);
 
-BENCHMARK_REGISTER_FUNCTION("scal_float", scal_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("axpy_float", axpy_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("asum_float", asum_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("nrm2_float", nrm2_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("dot_float", dot_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("scal2op_float", scal2op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("iamax_float", iamax_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("scal3op_float", scal3op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("axpy3op_float", axpy3op_bench<float>);
-BENCHMARK_REGISTER_FUNCTION("blas1_float", blas1_bench<float>);
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() {
+        auto event0 = _scal(ex, size, alpha, inx, 1);
+        auto event1 = _scal(ex, size, alpha, iny, 1);
+        ex.wait(event0, event1);
+      });
 
-#ifndef NO_DOUBLE_SUPPORT
-BENCHMARK_REGISTER_FUNCTION("scal_double", scal_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("axpy_double", axpy_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("asum_double", asum_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("nrm2_double", nrm2_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("dot_double", dot_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("iamax_double", iamax_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("scal2op_double", scal2op_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("scal3op_double", scal3op_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("axpy3op_double", axpy3op_bench<double>);
-BENCHMARK_REGISTER_FUNCTION("blas1_double", blas1_bench<double>);
-#endif
-BENCHMARK_MAIN_END();
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(iny);
+  return flops;
+}
+
+BENCHMARK(scal3op_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
+
+  ScalarT alpha(2.4367453465);
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v3 = benchmark<>::random_data<ScalarT>(size);
+
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto iny = ex.template allocate<ScalarT>(size);
+  auto inz = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(v2.data(), iny, size);
+  ex.copy_to_device(v3.data(), inz, size);
+
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 3, [&]() {
+        auto event0 = _scal(ex, size, alpha, inx, 1);
+        auto event1 = _scal(ex, size, alpha, iny, 1);
+        auto event2 = _scal(ex, size, alpha, inz, 1);
+        ex.wait(event0, event1, event2);
+      });
+
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(iny);
+  ex.template deallocate<ScalarT>(inz);
+  return flops;
+}
+
+BENCHMARK(axpy3op_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
+
+  std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
+                                   3.78164387328};
+  std::vector<ScalarT> vsrc1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> vsrc2 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> vsrc3 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> vdst1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> vdst2 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> vdst3 = benchmark<>::random_data<ScalarT>(size);
+
+  auto insrc1 = ex.template allocate<ScalarT>(size);
+  auto indst1 = ex.template allocate<ScalarT>(size);
+  auto insrc2 = ex.template allocate<ScalarT>(size);
+  auto indst2 = ex.template allocate<ScalarT>(size);
+  auto insrc3 = ex.template allocate<ScalarT>(size);
+  auto indst3 = ex.template allocate<ScalarT>(size);
+  ex.copy_to_device(vsrc1.data(), insrc1, size);
+  ex.copy_to_device(vdst1.data(), indst1, size);
+  ex.copy_to_device(vsrc2.data(), insrc2, size);
+  ex.copy_to_device(vdst2.data(), indst2, size);
+  ex.copy_to_device(vsrc3.data(), insrc3, size);
+  ex.copy_to_device(vdst3.data(), indst3, size);
+
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 3 * 2, [&]() {
+        auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
+        auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
+        auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
+        ex.wait(event0, event1, event2);
+      });
+
+  ex.template deallocate<ScalarT>(insrc1);
+  ex.template deallocate<ScalarT>(indst1);
+  ex.template deallocate<ScalarT>(insrc2);
+  ex.template deallocate<ScalarT>(indst2);
+  ex.template deallocate<ScalarT>(insrc3);
+  ex.template deallocate<ScalarT>(indst3);
+  return flops;
+}
+
+BENCHMARK(blas1_bench, blas_level_1) {
+  using ScalarT = ElemT;
+  size_t size = params;
+
+  std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
+  std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
+  ScalarT alpha(3.135345123);
+
+  auto inx = ex.template allocate<ScalarT>(size);
+  auto iny = ex.template allocate<ScalarT>(size);
+  auto inr1 = ex.template allocate<ScalarT>(1);
+  auto inr2 = ex.template allocate<ScalarT>(1);
+  auto inr3 = ex.template allocate<ScalarT>(1);
+  auto inr4 = ex.template allocate<ScalarT>(1);
+  auto inrI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  ex.copy_to_device(v1.data(), inx, size);
+  ex.copy_to_device(v2.data(), iny, size);
+
+  benchmark<>::flops_units_t flops =
+      benchmark<>::measure(reps, size * 12, [&]() {
+        auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
+        auto event1 = _asum(ex, size, iny, 1, inr1);
+        auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
+        auto event3 = _nrm2(ex, size, iny, 1, inr3);
+        auto event4 = _iamax(ex, size, iny, 1, inrI);
+        auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
+        ex.wait(event0, event1, event2, event3, event4, event5);
+      });
+
+  ex.template deallocate<ScalarT>(inx);
+  ex.template deallocate<ScalarT>(iny);
+  ex.template deallocate<ScalarT>(inr1);
+  ex.template deallocate<ScalarT>(inr2);
+  ex.template deallocate<ScalarT>(inr3);
+  ex.template deallocate<ScalarT>(inr4);
+  ex.template deallocate<IndexValueTuple<ScalarT>>(inrI);
+  return flops;
+}
+
+SUITE(ADD(scal_bench), ADD(axpy_bench), ADD(asum_bench), ADD(nrm2_bench),
+      ADD(dot_bench), ADD(scal2op_bench), ADD(iamax_bench), ADD(scal3op_bench),
+      ADD(axpy3op_bench), ADD(blas1_bench))
+
+auto blas1_range = size_range(1 << 1, 1 << 24, 1 << 1);
+
+BENCHMARK_MAIN(blas1_range, 10);

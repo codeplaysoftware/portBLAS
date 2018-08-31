@@ -54,26 +54,6 @@
 #include "cli_device_selector.hpp"
 #include "range.hpp"
 
-template <typename ScalarT>
-std::vector<ScalarT> random_data(size_t size, bool initialized = true) {
-  auto default_initialiser = [](ScalarT x) -> ScalarT {
-    // eeeeugh
-    return 1e-3 * ((rand() % 2000) - 1000);
-  };
-  std::vector<ScalarT> v = std::vector<ScalarT>(size);
-  if (initialized) {
-    std::transform(v.begin(), v.end(), v.begin(), default_initialiser);
-  }
-  return v;
-}
-
-template <typename ScalarT>
-std::vector<ScalarT> const_data(size_t size, ScalarT const_value = 0) {
-  std::vector<ScalarT> v = std::vector<ScalarT>(size);
-  std::fill(v.begin(), v.end(), const_value);
-  return v;
-}
-
 /**
  * output_type
  */
@@ -188,65 +168,41 @@ struct benchmark_arguments {
   }
 };
 
-template <typename T, typename ExecutorT, typename ParamT>
-class benchmark_instance {
- public:
-  virtual const std::string short_name() = 0;
-  virtual const std::string name(ParamT params) = 0;
-  virtual double run(ParamT params, unsigned int reps, ExecutorT ex) = 0;
-};
+template <typename TimeT = std::chrono::microseconds,
+          typename ClockT = std::chrono::system_clock, typename FlopsT = double>
+struct benchmark {
+  typedef TimeT time_units_t;
+  typedef FlopsT flops_units_t;
 
-#define NAMEDEF(suite_name)                                            \
-  template <typename ElemT, typename ExecutorT, typename ParamT>       \
-  class benchmark_##suite_name##_class_                                \
-      : public benchmark_instance<ElemT, ExecutorT, ParamT> {          \
-   public:                                                             \
-    benchmark_##suite_name##_class_(){};                               \
-    const std::string short_name();                                    \
-    const std::string name(ParamT params);                             \
-    const char* type() { return typeid(ElemT).name(); }                \
-    double run(ParamT params, unsigned int reps, ExecutorT ex);        \
-  };                                                                   \
-  template <typename ElemT, typename ExecutorT, typename ParamT>       \
-  const std::string                                                    \
-      benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT>::name( \
-          ParamT params)
-
-#define BENCHMARK(bench_name, suite_name)                                  \
-  template <typename ElemT, typename ExecutorT, typename ParamT>           \
-  class benchmark_##bench_name##_class_                                    \
-      : public benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT> { \
-    const char* _name = #bench_name;                                       \
-                                                                           \
-   public:                                                                 \
-    benchmark_##bench_name##_class_(){};                                   \
-    const std::string short_name() { return std::string(_name); }          \
-    const char* type() { return typeid(ElemT).name(); }                    \
-    double run(ParamT params, unsigned int reps, ExecutorT ex);            \
-  };                                                                       \
-  template <typename ElemT, typename ExecutorT, typename ParamT>           \
-  double benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run(   \
-      ParamT params, unsigned int reps, ExecutorT ex)
-
-#define ADD(name) (new benchmark_##name##_class_<ElemT, ExecutorT, ParamT>),
-
-#define SUITE(...)                                                     \
-  template <typename ElemT, typename ExecutorT, typename ParamT>       \
-  std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>           \
-  benchmark_suite() {                                                  \
-    return std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>( \
-        {__VA_ARGS__});                                                \
+  template <typename ScalarT>
+  static std::vector<ScalarT> random_data(size_t size,
+                                          bool initialized = true) {
+    auto default_initialiser = [](ScalarT x) -> ScalarT {
+      // eeeeugh
+      return 1e-3 * ((rand() % 2000) - 1000);
+    };
+    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+    if (initialized) {
+      std::transform(v.begin(), v.end(), v.begin(), default_initialiser);
+    }
+    return v;
   }
 
-// {List new empty<ElemT, ExecutorT, ParamT>});                   \
+  template <typename ScalarT>
+  static std::vector<ScalarT> const_data(size_t size, ScalarT const_value = 0) {
+    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+    std::fill(v.begin(), v.end(), const_value);
+    return v;
+  }
 
-template <typename TimeT = std::chrono::microseconds,
-          typename ClockT = std::chrono::system_clock>
-struct benchmark {
-  // typedef TimeT time_units_t;
-
+  /**
+   * @fn    duration
+   * @brief Returns the average number of flops across numReps runs of the
+   * function F, which performs n_fl_ops floating point operations.
+   */
   template <typename F, typename... Args>
-  static double measure(size_t numReps, size_t flops, F func, Args&&... args) {
+  static FlopsT measure(size_t numReps, size_t n_fl_ops, F func,
+                        Args&&... args) {
     TimeT dur = TimeT::zero();
 
     // warm up to avoid benchmarking data transfer
@@ -256,95 +212,166 @@ struct benchmark {
 
     for (size_t reps = 0; reps < numReps; reps++) {
       auto start = ClockT::now();
+
       func(std::forward<Args>(args)...);
-      auto end = ClockT::now();
-      dur += std::chrono::duration_cast<TimeT>(end - start);
+
+      dur += std::chrono::duration_cast<TimeT>(ClockT::now() - start);
     }
-    return (double(flops) * numReps) / (dur.count() * 1e-9);
+
+    // convert the time to flop/s based on the number of fl_ops that the
+    // function performs
+    return (FlopsT(n_fl_ops) * numReps) / (dur.count() * 1e-9);
   }
 
-  /**
-   * @fn    duration
-   * @brief Returns the duration (in chrono's type system) of the elapsed time
-   */
-  // template <typename F, typename... Args>
-  // static TimeT duration(unsigned numReps, F func, Args&&... args) {
-  //   TimeT dur = TimeT::zero();
+  static constexpr const size_t text_name_length = 50;
+  static constexpr const size_t text_iterations_length = 15;
+  static constexpr const size_t text_flops_length = 10;
 
-  //   // warm up to avoid benchmarking data transfer
-  //   for (int i = 0; i < 5; ++i) {
-  //     func(std::forward<Args>(args)...);
-  //   }
+  static std::string align_left(const std::string& text, size_t len,
+                                size_t offset = 0) {
+    return text + std::string((len < text.length() + offset)
+                                  ? offset
+                                  : len - text.length(),
+                              ' ');
+  }
 
-  //   unsigned reps = 0;
-  //   for (; reps < numReps; reps++) {
-  //     auto start = ClockT::now();
+  static void output_headers() {
+    std::cerr << align_left("Test", text_name_length)
+              << align_left("Iterations", text_iterations_length)
+              << align_left("Performance", text_flops_length) << std::endl;
+  }
 
-  //     func(std::forward<Args>(args)...);
-
-  //     dur += std::chrono::duration_cast<TimeT>(ClockT::now() - start);
-  //   }
-  //   return dur / reps;
-  // }
-
-  /* output_data.
-   * Prints to the stderr Bench name, input size and execution time.
-   */
-  // static void output_data(const std::string& short_name, int num_elems,
-  //                         TimeT dur, output_type output =
-  //                         output_type::STDOUT) {
-  //   if (output == output_type::STDOUT) {
-  //     std::cerr << short_name << "  " << num_elems << " " << dur.count()
-  //               << std::endl;
-  //   } else if (output == output_type::CSV) {
-  //     std::cerr << short_name << "," << num_elems << "," << dur.count()
-  //               << std::endl;
-  //   } else {
-  //     std::cerr << " Incorrect output " << std::endl;
-  //   }
-  // }
-
-  static void output_data(const std::string& short_name, int size, int no_reps,
-                          double flops) {
-    std::cout << (short_name) << "_" << (std::to_string(no_reps))
-              << " :: " << (std::to_string(flops * 1e-6)) << " "
+  static void output_data(const std::string& name, int no_reps, double flops) {
+    std::cerr << align_left(name, text_name_length)
+              << align_left(std::to_string(no_reps), text_iterations_length)
+              << align_left(std::to_string(flops * 1e-6), text_flops_length, 1)
               << "MFlops" << std::endl;
   }
 };
 
+/** benchmark_instance
+ * A given benchmark instance/type/function. This supertype defines the methods
+ * that every benchmark instance needs to provice.
+ */
+
+template <typename T, typename ExecutorT, typename ParamT>
+class benchmark_instance {
+ public:
+  virtual const std::string name() = 0;
+  virtual const std::string format_name(ParamT params) = 0;
+  virtual benchmark<>::flops_units_t run(ParamT params, unsigned int reps,
+                                         ExecutorT ex) = 0;
+};
+
+/** BENCHMARK_NAME_FORMAT
+ * Define how we want to print names for a given benchmark suite
+ */
+
+#define BENCHMARK_NAME_FORMAT(suite_name)                                     \
+  template <typename ElemT, typename ExecutorT, typename ParamT>              \
+  class benchmark_##suite_name##_class_                                       \
+      : public benchmark_instance<ElemT, ExecutorT, ParamT> {                 \
+   public:                                                                    \
+    benchmark_##suite_name##_class_(){};                                      \
+    const std::string name();                                                 \
+    const std::string format_name(ParamT params);                             \
+    const char* type() { return typeid(ElemT).name(); }                       \
+    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,          \
+                                   ExecutorT ex);                             \
+  };                                                                          \
+  template <typename ElemT, typename ExecutorT, typename ParamT>              \
+  const std::string                                                           \
+      benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT>::format_name( \
+          ParamT params)
+
+/** BENCHMARK
+ * Declare a particular benchmark/instance.
+ */
+#define BENCHMARK(bench_name, suite_name)                                  \
+  template <typename ElemT, typename ExecutorT, typename ParamT>           \
+  class benchmark_##bench_name##_class_                                    \
+      : public benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT> { \
+    const char* _name = #bench_name;                                       \
+                                                                           \
+   public:                                                                 \
+    benchmark_##bench_name##_class_(){};                                   \
+    const std::string name() { return std::string(_name); }                \
+    const char* type() { return typeid(ElemT).name(); }                    \
+    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,       \
+                                   ExecutorT ex);                          \
+  };                                                                       \
+  template <typename ElemT, typename ExecutorT, typename ParamT>           \
+  benchmark<>::flops_units_t                                               \
+      benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run(      \
+          ParamT params, unsigned int reps, ExecutorT ex)
+
+/** ADD
+ * Add a particular benchmark to a suite of benchmarks.
+ */
+#define ADD(name) (new benchmark_##name##_class_<ElemT, ExecutorT, ParamT>)
+
+/** SUITE
+ * Define a suite of benchmarks.
+ */
+#define SUITE(...)                                                     \
+  template <typename ElemT, typename ExecutorT, typename ParamT>       \
+  std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>           \
+  benchmark_suite() {                                                  \
+    return std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*>( \
+        {__VA_ARGS__});                                                \
+  }
+
+/** run_benchmark
+ * Run a single benchmark instance, and iterate over the parameter range
+ * generator to generate parameters for the instance.
+ */
 template <typename ElemT, typename Ex, typename ParamT>
 void run_benchmark(benchmark_instance<ElemT, Ex, ParamT>* b,
                    Range<ParamT>* _range, const unsigned reps, Ex ex,
                    output_type output = output_type::STDOUT) {
-  // for (auto params = _range->yield(); !_range->finished();
-  // params = _range->yield()) {  }
-
   while (1) {
     auto params = _range->yield();
-    const std::string short_name = std::string(b->name(params));
-    auto time = b->run(params, reps, ex);
-    benchmark<>::output_data(short_name, 100, reps, time);
+    auto flops = b->run(params, reps, ex);
+    const std::string name = b->format_name(params);
+
+    benchmark<>::output_data(name, reps, flops);
+
     if (_range->finished()) break;
   }
 }
 
-// forward declare benchmark_suite
+/** benchmark_suite
+ * The definition (for a given suite) of the function that produces a list of
+ * benchmarks. Forward declared so that we can use it in this header.
+ */
 template <typename ElemT, typename ExecutorT, typename ParamT>
 std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*> benchmark_suite();
-/** BENCHMARK_MAIN.
- * The main entry point of a benchmark
- */
 
+/** main_impl
+ * The main implementaiton of the benchmark main. This is separated out so that
+ * we can include #ifdef statements to check for double support.
+ */
 template <typename Ex, typename ParamT>
 int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
               output_type output = output_type::STDOUT) {
-  auto benchmarks = benchmark_suite<float, Ex, ParamT>();
-  for (auto b : benchmarks) {
+  auto fbenchmarks = benchmark_suite<float, Ex, ParamT>();
+  for (auto b : fbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);
   }
+
+#ifndef NO_DOUBLE_SUPPORT
+  auto dbenchmarks = benchmark_suite<float, Ex, ParamT>();
+  for (auto b : dbenchmarks) {
+    run_benchmark(b, range_param, reps, ex, output);
+  }
+#endif
+
   return 0;
 }
 
+/** BENCHMARK_MAIN.
+ * The main entry point of a benchmark
+ */
 #define BENCHMARK_MAIN(RANGE_PARAM, REPS)                             \
   int main(int argc, char* argv[]) {                                  \
     benchmark_arguments ba(argc, argv);                               \
