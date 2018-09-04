@@ -89,8 +89,8 @@ BENCHMARK(gemm, blas_level_3) {
 
 SUITE(ADD(gemm))
 
-auto gemm_range = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
-                           size_range(2, 1024, 2), value_range({"n"}),
-                           value_range({"n", "t", "c"}));
+auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
+                               size_range(2, 1024, 2), value_range({"n"}),
+                               value_range({"n", "t", "c"}));
 
-BENCHMARK_MAIN(gemm_range, 10)
+BENCHMARK_MAIN(level_3_ranges, 10)
