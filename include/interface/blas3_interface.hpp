@@ -61,11 +61,7 @@ typename Executor::Return_Type _select_gemm(
 #ifndef NAIVE_GEMM
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
-    if (ex.has_local_memory() &&                                               \
-        (ex.get_device_type() !=                                               \
-         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) &&   \
-        (ex.get_device_type() !=                                               \
-         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU)) {   \
+    if (ex.has_local_memory()) {                                               \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
@@ -133,20 +129,36 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
         _ldc);                                                             \
   }
 #ifndef NAIVE_GEMM
+
+#if defined(DYNAMIC)
   if (ex.get_device_type() ==
-      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU) {
+      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU)
+#endif
+#if defined(DYNAMIC) || defined(INTEL_GPU)
+  {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
-  } else if ((ex.get_device_type() == Executor::Queue_Interface_Type::
-                                          device_type::SYCL_RCAR_CVENGINE) &&
-             (ex.get_device_type() == Executor::Queue_Interface_Type::
-                                          device_type::SYCL_RCAR_HOST_CPU)) {
-    BIND_DEFAULT TO_TPARAMS(32, false, 8, 8, 8, 8);
-  } else {
+  }
+#endif
+
+#if defined(DYNAMIC)
+  else if ((ex.get_device_type() ==
+            Executor::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) ||
+           (ex.get_device_type() ==
+            Executor::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU))
+#endif
+#if defined(DYNAMIC) || defined(RCAR)
+  {
+    BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 4, 4);
+  }
+#endif
+#if defined(DYNAMIC)
+  else {
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
   }
+#endif
 #else
   BIND_DEFAULT TO_TPARAMS(WG_SIZE, false, 8, 8, 8, 8);
 #endif
