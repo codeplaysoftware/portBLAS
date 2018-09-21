@@ -42,9 +42,9 @@ BENCHMARK_NAME_FORMAT(blas_level_3) {
 BENCHMARK(gemm, blas_level_3) {
   using ScalarT = ElemT;
 
-  size_t m = std::get<0>(params);
-  size_t k = std::get<1>(params);
-  size_t n = std::get<2>(params);
+  const size_t m = std::get<0>(params);
+  const size_t k = std::get<1>(params);
+  const size_t n = std::get<2>(params);
   char const *t_a = std::get<3>(params);
   char const *t_b = std::get<4>(params);
 

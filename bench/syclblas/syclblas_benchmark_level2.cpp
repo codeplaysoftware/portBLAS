@@ -90,9 +90,7 @@ BENCHMARK(gemv, blas_level_2) {
 
 SUITE(ADD(gemv))
 
-// TODO: This doesn't seem to work with transposed matrices?
-// Is it a problem with the routine, or the inputs?
 auto level_2_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
-                               value_range({"n", "t"}));
+                               value_range({"n", "t", "c"}));
 
 BENCHMARK_MAIN(level_2_ranges, 10)
