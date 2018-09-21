@@ -139,7 +139,7 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
                                           device_type::SYCL_RCAR_CVENGINE) ||
              (ex.get_device_type() == Executor::Queue_Interface_Type::
                                           device_type::SYCL_RCAR_HOST_CPU)) {
-    BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 4, 4);
+    BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 8, 4);
   } else {
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
@@ -149,7 +149,7 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
   BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
   BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
 #elif defined(RCAR)
-  BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 4, 4);
+  BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 8, 4);
 #else  // any other specified devices
   BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
   BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
