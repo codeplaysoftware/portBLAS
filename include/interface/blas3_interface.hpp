@@ -129,35 +129,30 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
         _ldc);                                                             \
   }
 #ifndef NAIVE_GEMM
-
 #if defined(DYNAMIC)
   if (ex.get_device_type() ==
-      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU)
-#endif
-#if defined(DYNAMIC) || defined(INTEL_GPU)
-  {
+      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
-  }
-#endif
-
-#if defined(DYNAMIC)
-  else if ((ex.get_device_type() ==
-            Executor::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) ||
-           (ex.get_device_type() ==
-            Executor::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU))
-#endif
-#if defined(DYNAMIC) || defined(RCAR)
-  {
+  } else if ((ex.get_device_type() == Executor::Queue_Interface_Type::
+                                          device_type::SYCL_RCAR_CVENGINE) ||
+             (ex.get_device_type() == Executor::Queue_Interface_Type::
+                                          device_type::SYCL_RCAR_HOST_CPU)) {
     BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 4, 4);
-  }
-#endif
-#if defined(DYNAMIC)
-  else {
+  } else {
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
     BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
   }
+#elif defined(INTEL_GPU)
+  BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
+  BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
+  BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
+#elif defined(RCAR)
+  BIND_DEFAULT TO_TPARAMS(16, false, 4, 4, 4, 4);
+#else  // any other specified devices
+  BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
+  BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
 #endif
 #else
   BIND_DEFAULT TO_TPARAMS(WG_SIZE, false, 8, 8, 8, 8);

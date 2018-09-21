@@ -66,7 +66,7 @@ message(STATUS "TARGET is defined")
     message(STATUS "${TARGET} device is chosen")
     add_definitions(-DINTEL_GPU)
     list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -DINTEL_GPU)
-  # If the user has specified  RCAR as a target bnackend the optimisation for all other device will be disabled
+  # If the user has specified  RCAR as a target backend the optimisation for all other device will be disabled
   elseif(${TARGET} STREQUAL "RCAR")
     message(STATUS "${TARGET} device is chosen")
     add_definitions(-DRCAR)
