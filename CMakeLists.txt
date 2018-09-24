@@ -62,6 +62,4 @@ endif()
 
 include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY} ${BLAS_INCLUDE_DIRS})
 
-add_subdirectory(bench)
-
 add_subdirectory(test)
