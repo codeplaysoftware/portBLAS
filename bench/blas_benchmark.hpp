@@ -30,16 +30,12 @@
 #ifndef BLAS_BENCHMARK_HPP
 #define BLAS_BENCHMARK_HPP
 
-#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <unistd.h>
 #include <utility>
-#include <vector>
-
-#include "range.hpp"
 
 template <typename ScalarT>
 ScalarT *new_data(size_t size, bool initialized = true) {
@@ -51,7 +47,6 @@ ScalarT *new_data(size_t size, bool initialized = true) {
   }
   return v;
 }
-
 #define release_data(ptr) delete[](ptr);
 
 template <typename time_units_t_ = std::chrono::nanoseconds,
@@ -112,18 +107,18 @@ struct benchmark {
 /** BENCHMARK_MAIN.
  * The main entry point of a benchmark
  */
-#define BENCHMARK_MAIN_BEGIN(RANGE_PARAM, REPS) \
-  int main(int argc, char *argv[]) {            \
-    benchmark<>::output_headers();              \
-    auto _range = (RANGE_PARAM);                \
-    const unsigned num_reps = (REPS);           \
+#define BENCHMARK_MAIN_BEGIN(STEP_SIZE_PARAM, NUM_STEPS, REPS) \
+  int main(int argc, char *argv[]) {                           \
+    benchmark<>::output_headers();                             \
+    const unsigned num_reps = (REPS);                          \
+    const unsigned step_size = (STEP_SIZE_PARAM);              \
+    const unsigned max_elems = step_size * (NUM_STEPS);        \
     {
-#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                \
-  for (auto params = _range.yield(); !_range.finished();           \
-       params = _range.yield()) {                                  \
-    const std::string short_name = NAME;                           \
-    auto flops = blasbenchmark.FUNCTION(num_reps, params);         \
-    benchmark<>::output_data(short_name, params, num_reps, flops); \
+#define BENCHMARK_REGISTER_FUNCTION(NAME, FUNCTION)                          \
+  for (size_t nelems = step_size; nelems < max_elems; nelems *= step_size) { \
+    const std::string short_name = NAME;                                     \
+    auto flops = blasbenchmark.FUNCTION(num_reps, nelems);                   \
+    benchmark<>::output_data(short_name, nelems, num_reps, flops);           \
   }
 #define BENCHMARK_MAIN_END() \
   }                          \

@@ -27,8 +27,8 @@
 
 // https://github.com/KhronosGroup/SyclParallelSTL/blob/master/benchmarks/benchmark.h
 
-#ifndef BLAS_BENCHMARK_HPP
-#define BLAS_BENCHMARK_HPP
+#ifndef BLAS_BENCHMARK2_HPP
+#define BLAS_BENCHMARK2_HPP
 
 #include <algorithm>
 #include <chrono>
@@ -168,7 +168,7 @@ struct benchmark_arguments {
   }
 };
 
-template <typename TimeT = std::chrono::microseconds,
+template <typename TimeT = std::chrono::nanoseconds,
           typename ClockT = std::chrono::system_clock, typename FlopsT = double>
 struct benchmark {
   typedef TimeT time_units_t;
@@ -220,7 +220,9 @@ struct benchmark {
 
     // convert the time to flop/s based on the number of fl_ops that the
     // function performs
-    return (FlopsT(n_fl_ops) * numReps) / (dur.count() * 1e-9);
+    return (FlopsT(n_fl_ops) * numReps) /
+           std::chrono::duration_cast<std::chrono::duration<double>>(dur)
+               .count();
   }
 
   static constexpr const size_t text_name_length = 50;
@@ -235,17 +237,32 @@ struct benchmark {
                               ' ');
   }
 
-  static void output_headers() {
-    std::cerr << align_left("Test", text_name_length)
-              << align_left("Iterations", text_iterations_length)
-              << align_left("Performance", text_flops_length) << std::endl;
+  static void output_headers(output_type output = output_type::STDOUT) {
+    if (output == output_type::STDOUT) {
+      std::cerr << align_left("Benchmark", text_name_length)
+                << align_left("Iterations", text_iterations_length)
+                << align_left("Performance", text_flops_length) << std::endl;
+    } else if (output == output_type::CSV) {
+      std::cerr << "benchmark, "
+                << "iterations, "
+                << "performance (mflop/s)" << std::endl;
+    }
   }
 
-  static void output_data(const std::string& name, int no_reps, double flops) {
-    std::cerr << align_left(name, text_name_length)
-              << align_left(std::to_string(no_reps), text_iterations_length)
-              << align_left(std::to_string(flops * 1e-6), text_flops_length, 1)
-              << "MFlops" << std::endl;
+  static void output_data(const std::string& name, int no_reps, double flops,
+                          output_type output = output_type::STDOUT) {
+    if (output == output_type::STDOUT) {
+      std::cerr << align_left(name, text_name_length)
+                << align_left(std::to_string(no_reps), text_iterations_length)
+                << align_left(std::to_string(flops * 1e-6), text_flops_length,
+                              1)
+                << "MFlops" << std::endl;
+    } else if (output == output_type::CSV) {
+      std::cerr << name << ", " << std::to_string(no_reps) << ", "
+                << std::to_string(flops * 1e-6) << std::endl;
+    } else {
+      std::cerr << "Unknown output type!" << std::endl;
+    }
   }
 };
 
@@ -267,42 +284,42 @@ class benchmark_instance {
  * Define how we want to print names for a given benchmark suite
  */
 
-#define BENCHMARK_NAME_FORMAT(suite_name)                                     \
-  template <typename ElemT, typename ExecutorT, typename ParamT>              \
-  class benchmark_##suite_name##_class_                                       \
-      : public benchmark_instance<ElemT, ExecutorT, ParamT> {                 \
-   public:                                                                    \
-    benchmark_##suite_name##_class_(){};                                      \
-    const std::string name();                                                 \
-    const std::string format_name(ParamT params);                             \
-    const char* type() { return typeid(ElemT).name(); }                       \
-    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,          \
-                                   ExecutorT ex);                             \
-  };                                                                          \
-  template <typename ElemT, typename ExecutorT, typename ParamT>              \
-  const std::string                                                           \
-      benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT>::format_name( \
-          ParamT params)
+#define BENCHMARK_NAME_FORMAT(suite_name)                            \
+  template <typename ElemT, typename ExecutorT, typename ParamT>     \
+  class benchmark_##suite_name##_suite_class                         \
+      : public benchmark_instance<ElemT, ExecutorT, ParamT> {        \
+   public:                                                           \
+    benchmark_##suite_name##_suite_class(){};                        \
+    const std::string name() = 0;                                    \
+    const std::string format_name(ParamT params);                    \
+    const char* type() { return typeid(ElemT).name(); }              \
+    benchmark<>::flops_units_t run(ParamT params, unsigned int reps, \
+                                   ExecutorT ex) = 0;                \
+  };                                                                 \
+  template <typename ElemT, typename ExecutorT, typename ParamT>     \
+  const std::string benchmark_##suite_name##_suite_class<            \
+      ElemT, ExecutorT, ParamT>::format_name(ParamT params)
 
 /** BENCHMARK
  * Declare a particular benchmark/instance.
  */
-#define BENCHMARK(bench_name, suite_name)                                  \
-  template <typename ElemT, typename ExecutorT, typename ParamT>           \
-  class benchmark_##bench_name##_class_                                    \
-      : public benchmark_##suite_name##_class_<ElemT, ExecutorT, ParamT> { \
-    const char* _name = #bench_name;                                       \
-                                                                           \
-   public:                                                                 \
-    benchmark_##bench_name##_class_(){};                                   \
-    const std::string name() { return std::string(_name); }                \
-    const char* type() { return typeid(ElemT).name(); }                    \
-    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,       \
-                                   ExecutorT ex);                          \
-  };                                                                       \
-  template <typename ElemT, typename ExecutorT, typename ParamT>           \
-  benchmark<>::flops_units_t                                               \
-      benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run(      \
+#define BENCHMARK(bench_name, suite_name)                             \
+  template <typename ElemT, typename ExecutorT, typename ParamT>      \
+  class benchmark_##bench_name##_class_                               \
+      : public benchmark_##suite_name##_suite_class<ElemT, ExecutorT, \
+                                                    ParamT> {         \
+    const char* _name = #bench_name;                                  \
+                                                                      \
+   public:                                                            \
+    benchmark_##bench_name##_class_(){};                              \
+    const std::string name() { return std::string(_name); }           \
+    const char* type() { return typeid(ElemT).name(); }               \
+    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,  \
+                                   ExecutorT ex);                     \
+  };                                                                  \
+  template <typename ElemT, typename ExecutorT, typename ParamT>      \
+  benchmark<>::flops_units_t                                          \
+      benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run( \
           ParamT params, unsigned int reps, ExecutorT ex)
 
 /** ADD
@@ -329,12 +346,13 @@ template <typename ElemT, typename Ex, typename ParamT>
 void run_benchmark(benchmark_instance<ElemT, Ex, ParamT>* b,
                    Range<ParamT>* _range, const unsigned reps, Ex ex,
                    output_type output = output_type::STDOUT) {
+  benchmark<>::output_headers(output);
   while (1) {
     auto params = _range->yield();
     auto flops = b->run(params, reps, ex);
     const std::string name = b->format_name(params);
 
-    benchmark<>::output_data(name, reps, flops);
+    benchmark<>::output_data(name, reps, flops, output);
 
     if (_range->finished()) break;
   }

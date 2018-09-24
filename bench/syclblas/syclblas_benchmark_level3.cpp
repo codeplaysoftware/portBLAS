@@ -48,7 +48,7 @@ BENCHMARK(gemm, blas_level_3) {
   char const *t_a = std::get<3>(params);
   char const *t_b = std::get<4>(params);
 
-  size_t n_fl_ops = ((m * k) * n) + (k * n) + (m * n);
+  size_t n_fl_ops = (2 * m * n * k); 
 
   size_t lda = t_a[0] == 'n' ? m : k;
   size_t ldb = t_b[0] == 'n' ? k : n;
