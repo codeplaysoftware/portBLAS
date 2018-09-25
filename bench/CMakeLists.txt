@@ -61,7 +61,6 @@ add_sycl_to_target(
     SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
 )
 
-
 add_executable(syclblas_benchmarks_level3 syclblas/syclblas_benchmark_level3.cpp)
 set_property(TARGET syclblas_benchmarks_level3 PROPERTY CXX_STANDARD 11)
 add_sycl_to_target(
