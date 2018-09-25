@@ -30,7 +30,7 @@ set -o errexit
 # Minimal emergency case to display the help message whatever happens
 trap display_help ERR
 
-# Get the absolute path of the COMPUTECPP_PACKAGE_ROOT_DIR, from arg $1
+# Get the absolute path of the ComputeCpp_DIR, from arg $1
 if [ -z "$1" ]
   then 
   echo "No ComputeCPP Package specified."
@@ -38,7 +38,7 @@ if [ -z "$1" ]
 else
   CCPPPACKAGE=$(readlink -f $1)
   echo "ComputeCPP specified at: $CCPPPACKAGE"
-  CMAKE_ARGS="$CMAKE_ARGS -DCOMPUTECPP_PACKAGE_ROOT_DIR=$CCPPPACKAGE"
+  CMAKE_ARGS="$CMAKE_ARGS -DComputeCpp_DIR=$CCPPPACKAGE"
   shift
 fi
 
