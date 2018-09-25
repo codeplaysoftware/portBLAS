@@ -8,7 +8,6 @@ set(SYCLBLAS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules")
 
 include(FindOpenCL)
-include(FindComputeCpp)
 
 # Manually search for CLBLAST
 # if (DEFINED CLBLAST_ROOT) 
@@ -50,16 +49,25 @@ include(FindComputeCpp)
 
 add_executable(syclblas_benchmarks_level1 syclblas/syclblas_benchmark_level1.cpp)
 set_property(TARGET syclblas_benchmarks_level1 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(syclblas_benchmarks_level1 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp)
+add_sycl_to_target(
+    TARGET syclblas_benchmarks_level1
+    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp
+)
 
 add_executable(syclblas_benchmarks_level2 syclblas/syclblas_benchmark_level2.cpp)
 set_property(TARGET syclblas_benchmarks_level2 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(syclblas_benchmarks_level2 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp)
+add_sycl_to_target(
+    TARGET syclblas_benchmarks_level2
+    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
+)
 
 
 add_executable(syclblas_benchmarks_level3 syclblas/syclblas_benchmark_level3.cpp)
 set_property(TARGET syclblas_benchmarks_level3 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(syclblas_benchmarks_level3 ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp)
+add_sycl_to_target(
+    TARGET syclblas_benchmarks_level3
+    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
+)
 
 set(COMPUTECPP_DEVICE_COMPILER_FLAGS "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
