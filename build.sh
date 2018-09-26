@@ -65,9 +65,7 @@ function configure {
 }
 
 function mak {
-    # We currently have a bug whehn building the library in parallel on certain platforms. 
-    # Make sequentially instead.
-    pushd build && make
+    pushd build && make -j$NPROC
     popd
 }
 
