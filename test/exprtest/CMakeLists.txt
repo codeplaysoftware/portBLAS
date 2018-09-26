@@ -19,8 +19,12 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   set(test_exec, ${blas_test})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
+  add_dependencies(${test_exec} libgtest libgmock)
   target_link_libraries(${test_exec} PUBLIC libgtest libgmock ${BLAS_LIBRARIES})
-  add_sycl_to_target(${test_exec} ${CMAKE_CURRENT_BINARY_DIR} ${blas_test})
+  add_sycl_to_target(
+    TARGET ${test_exec}
+    SOURCES main.cpp ${blas_test}
+  )
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")
 endforeach()
