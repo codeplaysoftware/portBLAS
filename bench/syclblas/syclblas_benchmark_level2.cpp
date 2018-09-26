@@ -90,7 +90,7 @@ BENCHMARK(gemv, blas_level_2) {
 
 SUITE(ADD(gemv))
 
-auto level_2_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
+auto level_2_ranges = nd_range(size_range(2, 16384, 2), size_range(2, 16384, 2),
                                value_range({"n", "t", "c"}));
 
 BENCHMARK_MAIN(level_2_ranges, 10)

@@ -8,6 +8,7 @@ set(SYCLBLAS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules")
 
 include(FindOpenCL)
+# include(FindComputeCpp)
 
 # Manually search for CLBLAST
 # if (DEFINED CLBLAST_ROOT) 
