@@ -389,6 +389,7 @@ class GemmFactory {
                                  ((n - 1) / big_tile_cols + 1) * tl_rows *
                                  tl_cols);
     const cl::sycl::range<1> wgs(wg_size);
+#ifdef VERBOSE
     std::cout << " M: " << m << " , N " << n
               << " , big_tile_rows: " << big_tile_rows
               << " , big_tile_cols: " << big_tile_cols
@@ -396,6 +397,7 @@ class GemmFactory {
               << ((m - 1) / big_tile_rows + 1) * ((n - 1) / big_tile_cols + 1) *
                      tl_rows * tl_cols
               << std::endl;
+#endif
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
