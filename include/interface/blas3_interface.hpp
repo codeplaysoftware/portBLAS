@@ -61,11 +61,7 @@ typename Executor::Return_Type _select_gemm(
 #ifndef NAIVE_GEMM
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
-    if (ex.has_local_memory() &&                                               \
-        (ex.get_device_type() !=                                               \
-         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) &&   \
-        (ex.get_device_type() !=                                               \
-         Executor::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU)) {   \
+    if (ex.has_local_memory()) {                                               \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
@@ -124,31 +120,70 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
 #define BIND_DATA_SIZE(_m, _n, _k) if (_M == (_m) && _N == (_n) && _K == (_k))
 
 #define BIND_DEFAULT
-
-#define TO_TPARAMS(_wg, _db, _tir, _tic, _twr, _twc)                       \
+  /*
+   * @tparam _tir  the number of rows processed by each work item
+   * @tparam _tic  the number of columns processed by each work item
+   * @tparam _twr  the number of item-level tiles within each column of
+   *                 block-level tile
+   * @tparam _twc  the number of item-level tiles within each row of
+   *                 block-level tile
+   * @tparam _wg the total number of work-groupsize for the naive algorithm. It
+   * is only used for the naive algorithm.
+   * @tparam _clsize  the size of the cache line of the architecture in bytes
+   *                 (If the value passed in is smaller than the actual cache
+   *                 line size, some values fetched will be wasted, which can
+   *                 significantly reduce performance. It can be set to a
+   *                 multiple of the physical cache line size. In this case, it
+   *                 will significantly increase scratchpad memory usage, but
+   *                 will result in fewer local barriers.)
+   * Note:
+   * _tir * _twr must be equal to _tic * _twc.
+   * This is ensured iff: (item_rows | wg_cols)  and  (item_cols | wg_rows)
+   * _clsize cannot be bigger than _twr * _twc * sizeof(T)
+   */
+#define TO_TPARAMS(_wg, _db, _clsize, _tir, _tic, _twr, _twc)              \
   {                                                                        \
-    return _select_gemm<_wg, _db, false, false, 64,                        \
+    return _select_gemm<_wg, _db, false, false, _clsize,                   \
                         Tile<_tir, _tic, _twr, _twc>>(                     \
         ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, \
         _ldc);                                                             \
   }
 #ifndef NAIVE_GEMM
+#if defined(DYNAMIC)
   if (ex.get_device_type() ==
       Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU) {
-    BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 4, 4, 16, 16);
-    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 2, 2, 8, 8);
-    BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 8, 8);
+    BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 64, 4, 4, 16, 16);
+    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 64, 2, 2, 8, 8);
+    BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 8, 8);
   } else if ((ex.get_device_type() == Executor::Queue_Interface_Type::
-                                          device_type::SYCL_RCAR_CVENGINE) &&
+                                          device_type::SYCL_RCAR_CVENGINE) ||
              (ex.get_device_type() == Executor::Queue_Interface_Type::
                                           device_type::SYCL_RCAR_HOST_CPU)) {
-    BIND_DEFAULT TO_TPARAMS(32, false, 8, 8, 8, 8);
+    if (_M < 512 && _N < 512) {
+      BIND_DEFAULT TO_TPARAMS(32, false, 128, 4, 8, 8, 4);
+    } else {
+      BIND_DEFAULT TO_TPARAMS(32, false, 128, 8, 4, 4, 8);
+    }
   } else {
-    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 1, 1, 16, 16);
-    BIND_DEFAULT TO_TPARAMS(128, false, 8, 8, 16, 16);
+    BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 64, 1, 1, 16, 16);
+    BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 16, 16);
   }
+#elif defined(INTEL_GPU)
+  BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 64, 4, 4, 16, 16);
+  BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 64, 2, 2, 8, 8);
+  BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 8, 8);
+#elif defined(RCAR)
+  if (_M < 512 && _N < 512) {
+    BIND_DEFAULT TO_TPARAMS(32, false, 128, 4, 8, 8, 4);
+  } else {
+    BIND_DEFAULT TO_TPARAMS(32, false, 128, 8, 4, 4, 8);
+  }
+#else  // any other specified devices
+  BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, true, 64, 1, 1, 16, 16);
+  BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 16, 16);
+#endif
 #else
-  BIND_DEFAULT TO_TPARAMS(WG_SIZE, false, 8, 8, 8, 8);
+  BIND_DEFAULT TO_TPARAMS(WG_SIZE, false, 64, 8, 8, 8, 8);
 #endif
 
 #undef BIND_DATA_SIZE

@@ -4,11 +4,12 @@ find_package(PkgConfig)
 
 message(STATUS "Path to the SYCL implementation ")
 
-set(SYCLBLAS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules")
+set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
 
 include(FindOpenCL)
-# include(FindComputeCpp)
+include(FindComputeCpp)
+include(ConfigureSYCLBLAS)
 
 # Manually search for CLBLAST
 # if (DEFINED CLBLAST_ROOT) 
@@ -69,7 +70,4 @@ add_sycl_to_target(
     SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
 )
 
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
-
-include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY})
+include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS})

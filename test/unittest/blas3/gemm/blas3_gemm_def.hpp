@@ -25,9 +25,9 @@
 
 #include "blas_test.hpp"
 
-#ifndef BlasTypes 
-    #error "BlasTypes not defined before including blas3_gemm_def.hpp"
-#endif 
+#ifndef BlasTypes
+#error "BlasTypes not defined before including blas3_gemm_def.hpp"
+#endif
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
