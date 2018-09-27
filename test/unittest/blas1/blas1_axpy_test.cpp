@@ -71,8 +71,8 @@ TYPED_TEST(BLAS_Test, axpy_test_buff) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
-  auto gpu_vY = blas::helper::make_sycl_iteator_buffer<ScalarT>(vY, size);
+  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
+  auto gpu_vY = blas::helper::make_sycl_iterator_buffer<ScalarT>(vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
   ex.wait(event);
@@ -126,7 +126,7 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
   auto gpu_vY = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
