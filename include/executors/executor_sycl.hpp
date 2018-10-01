@@ -421,10 +421,10 @@ class Executor<SYCL> {
     // Two accessors to local memory
     auto sharedSize = ((nWG < localSize) ? localSize : nWG);
     auto shMem1 =
-        blas::helper::make_sycl_iteator_buffer<typename LHS::value_type>(
+        blas::helper::make_sycl_iterator_buffer<typename LHS::value_type>(
             sharedSize);
     auto shMem2 =
-        blas::helper::make_sycl_iteator_buffer<typename LHS::value_type>(
+        blas::helper::make_sycl_iterator_buffer<typename LHS::value_type>(
             sharedSize);
     auto opShMem1 = LHS(shMem1, 1, sharedSize);
     auto opShMem2 = LHS(shMem2, 1, sharedSize);
