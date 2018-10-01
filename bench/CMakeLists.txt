@@ -39,11 +39,11 @@ if (CLBLAST_FOUND)
   include_directories(${CLBLAST_INCLUDE_DIRS})
   link_directories(${CLBLAST_LIBRARY_DIRS})
   
-  add_executable(clblast_benchmarks clblast_benchmark2.cpp)
-  set_property(TARGET clblast_benchmarks PROPERTY CXX_STANDARD 11)
+  add_executable(clblast_benchmark_level1 clblast/clblast_benchmark_level1.cpp)
+  set_property(TARGET clblast_benchmark_level1 PROPERTY CXX_STANDARD 11)
   
-  target_link_libraries(clblast_benchmarks PUBLIC ${CLBLAST_LIBRARIES})
-  target_link_libraries(clblast_benchmarks PUBLIC ${OpenCL_LIBRARIES})
+  target_link_libraries(clblast_benchmark_level1 PUBLIC ${CLBLAST_LIBRARIES})
+  target_link_libraries(clblast_benchmark_level1 PUBLIC ${OpenCL_LIBRARIES})
 endif()
 
 # # Manually search for CLBLAS_ROOT

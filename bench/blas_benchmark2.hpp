@@ -410,7 +410,8 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     if (!ba.validProgramOptions) {                                    \
       return 1;                                                       \
     }                                                                 \
-    Context ctx;                \
+    OpenCLDeviceSelector oclds(ba.device_vendor, ba.device_type); \
+    Context ctx(oclds);                \
     return main_impl((&RANGE_PARAM), (REPS), &ctx, ba.requestedOutput); \
   }
 

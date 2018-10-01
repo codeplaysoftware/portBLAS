@@ -30,15 +30,17 @@
 
 #include <CL/cl.h>
 
-/* We don't want to return exceptions in destructors. #define them out for now. */
+/* We don't want to return exceptions in destructors. #define them out for now.
+ */
 void show_error(std::string err_str) {
-  std::cerr << "Got error that we would otherwise have thrown: " << err_str << std::endl;
+  std::cerr << "Got error that we would otherwise have thrown: " << err_str
+            << std::endl;
 }
 
 #ifdef THROW_EXCEPTIONS
-#define do_error throw std::runtime_error 
-#else 
-#define do_error show_error 
+#define do_error throw std::runtime_error
+#else
+#define do_error show_error
 #endif
 
 char *getCLErrorString(cl_int err) {
@@ -140,9 +142,10 @@ char *getCLErrorString(cl_int err) {
   }
 }
 
-class DeviceSelector {
-  std::string m_vendor_name;
-  std::string m_device_type;
+class OpenCLDeviceSelector {
+  cl_device_id best_device = NULL;
+  cl_platform_id best_platform = NULL;
+  int best_score = 0;
 
   static cl_device_type match_device_type(std::string requested) {
     if (requested.empty()) return CL_DEVICE_TYPE_ALL;
@@ -153,53 +156,52 @@ class DeviceSelector {
     if (requested == "accel") return CL_DEVICE_TYPE_ACCELERATOR;
     if (requested == "*" || requested == "any") return CL_DEVICE_TYPE_ALL;
 
-    return CL_DEVICE_TYPE_ALL;
+    return CL_DEVICE_TYPE_DEFAULT;
   }
 
- public:
-  // cli_device_selector(std::string vendor_name, std::string device_type)
-  //     : cl::sycl::device_selector(),
-  //       m_vendor_name(vendor_name),
-  //       m_device_type(device_type) {}
+  static int score_platform(std::string requested, cl_platform_id platform) {
+    const size_t str_size = 1024 * sizeof(char);
+    char *str = (char *)malloc(str_size);
+    std::string name;
 
-  // int operator()(const cl::sycl::device &device) const {
-  //   int score = 0;
+    cl_int status =
+        clGetPlatformInfo(platform, CL_PLATFORM_NAME, str_size, str, NULL);
+    if (status != CL_SUCCESS) {
+      free(str);
+      do_error("Failure in clGetPlatformInfo");
+    } else {
+      name = std::string(str);
+      free(str);
+    }
 
-  //   // Score the device type...
-  //   cl::sycl::info::device_type dtype =
-  //       device.get_info<cl::sycl::info::device::device_type>();
-  //   cl::sycl::info::device_type rtype = match_device_type(m_device_type);
-  //   if (rtype == dtype || rtype == cl::sycl::info::device_type::all) {
-  //     score += 2;
-  //   } else if (rtype == cl::sycl::info::device_type::automatic) {
-  //     score += 1;
-  //   } else {
-  //     score -= 2;
-  //   }
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    int score;
+    if (name.find(requested) != std::string::npos && !requested.empty()) {
+      score = 2;
+    } else if (requested == "*" || requested.empty()) {
+      score = 1;
+    } else {
+      score = -2;
+    }
+    return score;
+  }
 
-  //   // score the vendor name
-  //   cl::sycl::platform plat = device.get_platform();
-  //   std::string name = plat.template
-  //   get_info<cl::sycl::info::platform::name>(); std::transform(name.begin(),
-  //   name.end(), name.begin(), ::tolower); if (name.find(m_vendor_name) !=
-  //   std::string::npos &&
-  //       !m_vendor_name.empty()) {
-  //     score += 2;
-  //   } else if (m_vendor_name == "*" || m_vendor_name.empty()) {
-  //     score += 1;
-  //   } else {
-  //     score -= 2;
-  //   }
-  //   return score;
-  // }
-};
-
-class Context {
-  cl_platform_id platform = NULL;
-  cl_device_id device = NULL;
-  cl_context context = NULL;
-  cl_command_queue command_queue = NULL;
-  bool is_active = false;
+  static int score_device(std::string requested, cl_device_id device) {
+    // Get the requested device type:
+    cl_device_type req_type = match_device_type(requested);
+    cl_device_type dev_type;
+    cl_int status = clGetDeviceInfo(device, CL_DEVICE_TYPE,
+                                    sizeof(cl_device_type), &dev_type, NULL);
+    int score;
+    if (req_type == dev_type || req_type == CL_DEVICE_TYPE_ALL) {
+      score = 2;
+    } else if (req_type == CL_DEVICE_TYPE_DEFAULT) {
+      score = 1;
+    } else {
+      score = -2;
+    }
+    return score;
+  }
 
   static cl_uint get_platform_count() {
     cl_uint num_platforms;
@@ -208,17 +210,6 @@ class Context {
       do_error("failure in clGetPlatformIDs");
     }
     return num_platforms;
-  }
-
-  static cl_platform_id get_platform_id(size_t platform_id = 0) {
-    cl_uint num_platforms = get_platform_count();
-    cl_platform_id platforms[num_platforms];
-    cl_int status = clGetPlatformIDs(num_platforms, platforms, NULL);
-    if (status != CL_SUCCESS) {
-      do_error("failure in clGetPlatformIDs");
-    }
-    cl_platform_id platform = platforms[platform_id];
-    return platform;
   }
 
   static cl_uint get_device_count(cl_platform_id plat) {
@@ -231,22 +222,65 @@ class Context {
     return num_devices;
   }
 
-  static cl_device_id get_device_id(cl_platform_id plat, size_t device_id = 0) {
-    cl_uint num_devices = get_device_count(plat);
-    cl_device_id devices[num_devices];
-    cl_int status =
-        clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, num_devices, devices, NULL);
+ public:
+  OpenCLDeviceSelector(std::string vendor, std::string type) {
+    // Get the number of platforms, and a list of IDs
+    cl_uint num_platforms = get_platform_count();
+    cl_platform_id platforms[num_platforms];
+    cl_int status = clGetPlatformIDs(num_platforms, platforms, NULL);
     if (status != CL_SUCCESS) {
-      do_error("failure in clGetDeviceIDs");
+      do_error("failure in clGetPlatformIDs");
     }
-    cl_device_id device = devices[device_id];
-    return device;
+
+    // Iterate over the platforms, and then over each of the devices.
+    for (cl_uint platform_id = 0; platform_id < num_platforms; platform_id++) {
+      // get the specific ID, and score it.
+      cl_platform_id platform = platforms[platform_id];
+      int platform_score = score_platform(vendor, platform);
+
+      // Get devices, etc.
+      cl_uint num_devices = get_device_count(platform);
+      cl_device_id devices[num_devices];
+      cl_int status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices,
+                                     devices, NULL);
+      if (status != CL_SUCCESS) {
+        do_error("failure in clGetDeviceIDs");
+      }
+
+      // Iterate over the device_ids, and score the combo:
+      for (cl_uint device_id = 0; device_id < num_devices; device_id++) {
+        cl_device_id device = devices[device_id];
+        int device_score = score_device(type, device);
+        // SCORE!
+        int score = platform_score + device_score;
+        if (score > best_score) {
+          best_score = score;
+          best_device = device;
+          best_platform = platform;
+        }
+      }
+    }
+
+    if (best_platform == NULL || best_device == NULL) {
+      do_error("No platform or device selected, maybe none match?");
+    }
   }
 
+  cl_device_id device() { return best_device; }
+  cl_platform_id platform() { return best_platform; }
+};
+
+class Context {
+  cl_platform_id platform = NULL;
+  cl_device_id device = NULL;
+  cl_context context = NULL;
+  cl_command_queue command_queue = NULL;
+  bool is_active = false;
+
  public:
-  Context(size_t plat_id = 0, size_t dev_id = 0) {
-    platform = get_platform_id(plat_id);
-    device = get_device_id(platform, dev_id);
+  Context(OpenCLDeviceSelector oclds = OpenCLDeviceSelector("*", "*")) {
+    platform = oclds.platform();
+    device = oclds.device();
     create();
   }
 
