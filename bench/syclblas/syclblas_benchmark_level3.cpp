@@ -93,4 +93,4 @@ auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
                                size_range(2, 1024, 2), value_range({"n"}),
                                value_range({"n", "t", "c"}));
 
-BENCHMARK_MAIN(level_3_ranges, 10)
+SYCL_BENCHMARK_MAIN(level_3_ranges, 10)

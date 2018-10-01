@@ -330,4 +330,4 @@ SUITE(ADD(scal_bench), ADD(axpy_bench), ADD(asum_bench), ADD(nrm2_bench),
 
 auto blas1_range = size_range(1 << 1, 1 << 24, 1 << 1);
 
-BENCHMARK_MAIN(blas1_range, 10);
+SYCL_BENCHMARK_MAIN(blas1_range, 10);

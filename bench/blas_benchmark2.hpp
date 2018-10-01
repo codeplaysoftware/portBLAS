@@ -52,6 +52,7 @@
 #include <sstream>
 
 #include "cli_device_selector.hpp"
+#include "clwrap.hpp"
 #include "range.hpp"
 
 /**
@@ -346,12 +347,12 @@ template <typename ElemT, typename Ex, typename ParamT>
 void run_benchmark(benchmark_instance<ElemT, Ex, ParamT>* b,
                    Range<ParamT>* _range, const unsigned reps, Ex ex,
                    output_type output = output_type::STDOUT) {
-  benchmark<>::output_headers(output);
+  
   while (1) {
     auto params = _range->yield();
     auto flops = b->run(params, reps, ex);
     const std::string name = b->format_name(params);
-
+    
     benchmark<>::output_data(name, reps, flops, output);
 
     if (_range->finished()) break;
@@ -372,13 +373,14 @@ std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*> benchmark_suite();
 template <typename Ex, typename ParamT>
 int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
               output_type output = output_type::STDOUT) {
+  benchmark<>::output_headers(output);
   auto fbenchmarks = benchmark_suite<float, Ex, ParamT>();
   for (auto b : fbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);
   }
 
 #ifndef NO_DOUBLE_SUPPORT
-  auto dbenchmarks = benchmark_suite<float, Ex, ParamT>();
+  auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
   for (auto b : dbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);
   }
@@ -387,10 +389,10 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
   return 0;
 }
 
-/** BENCHMARK_MAIN.
+/** SYCL_BENCHMARK_MAIN.
  * The main entry point of a benchmark
  */
-#define BENCHMARK_MAIN(RANGE_PARAM, REPS)                             \
+#define SYCL_BENCHMARK_MAIN(RANGE_PARAM, REPS)                        \
   int main(int argc, char* argv[]) {                                  \
     benchmark_arguments ba(argc, argv);                               \
     if (!ba.validProgramOptions) {                                    \
@@ -400,6 +402,16 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     cl::sycl::queue q(cds);                                           \
     Executor<SYCL> ex(q);                                             \
     return main_impl((&RANGE_PARAM), (REPS), ex, ba.requestedOutput); \
+  }
+
+#define CLBLAST_BENCHMARK_MAIN(RANGE_PARAM, REPS)                    \
+  int main(int argc, char* argv[]) {                                  \
+    benchmark_arguments ba(argc, argv);                               \
+    if (!ba.validProgramOptions) {                                    \
+      return 1;                                                       \
+    }                                                                 \
+    Context ctx;                \
+    return main_impl((&RANGE_PARAM), (REPS), &ctx, ba.requestedOutput); \
   }
 
 #endif /* end of include guard: BLAS_BENCHMARK_HPP */
