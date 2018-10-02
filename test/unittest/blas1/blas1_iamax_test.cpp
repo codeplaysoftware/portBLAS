@@ -69,9 +69,9 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
   auto gpu_vI =
-      blas::helper::make_sycl_iteator_buffer<IndexValueTuple<ScalarT>>(
+      blas::helper::make_sycl_iterator_buffer<IndexValueTuple<ScalarT>>(
           size_t(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
