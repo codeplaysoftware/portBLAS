@@ -30,13 +30,13 @@
 #define __INTEL_CPU_SELECTOR__
 
 #include <CL/sycl.hpp>
-#include <string>
 #include <iostream>
+#include <string>
 
 /** class cli_device_selector.
-* @brief Looks for an INTEL cpu among the available CPUs.
-* if it finds an INTEL CPU it will return an 1, otherwise it returns a -1.
-*/
+ * @brief Looks for an INTEL cpu among the available CPUs.
+ * if it finds an INTEL CPU it will return an 1, otherwise it returns a -1.
+ */
 class cli_device_selector : public cl::sycl::device_selector {
   std::string m_vendor_name;
   std::string m_device_type;
