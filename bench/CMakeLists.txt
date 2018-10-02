@@ -43,6 +43,12 @@ if (CLBLAST_FOUND)
   
   target_link_libraries(clblast_benchmark_level1 PUBLIC ${CLBLAST_LIBRARIES})
   target_link_libraries(clblast_benchmark_level1 PUBLIC ${OpenCL_LIBRARIES})
+
+  add_executable(clblast_benchmark_level2 clblast/clblast_benchmark_level2.cpp)
+  set_property(TARGET clblast_benchmark_level2 PROPERTY CXX_STANDARD 11)
+  
+  target_link_libraries(clblast_benchmark_level2 PUBLIC ${CLBLAST_LIBRARIES})
+  target_link_libraries(clblast_benchmark_level2 PUBLIC ${OpenCL_LIBRARIES})
 endif()
 
 # Manually search for CLBLAS_ROOT

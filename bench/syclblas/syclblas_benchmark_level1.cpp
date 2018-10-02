@@ -31,7 +31,7 @@ using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_1) {
   std::ostringstream fname;
-  fname << name() << "_" << params;
+  fname << typeid(ElemT).name() << "_" << name() << "_" << params;
   return fname.str();
 }
 
@@ -324,10 +324,7 @@ BENCHMARK(blas1, syclblas_level_1) {
   return flops;
 }
 
-SUITE(ADD(scal), ADD(axpy), ADD(asum), ADD(nrm2),
-      ADD(dot), ADD(scal2op), ADD(iamax), ADD(scal3op),
-      ADD(axpy3op), ADD(blas1))
+SUITE(ADD(scal), ADD(axpy), ADD(asum), ADD(nrm2), ADD(dot), ADD(scal2op),
+      ADD(iamax), ADD(scal3op), ADD(axpy3op), ADD(blas1))
 
-auto blas1_range = size_range(1 << 1, 1 << 24, 1 << 1);
-
-SYCL_BENCHMARK_MAIN(blas1_range, 10);
+SYCL_BENCHMARK_MAIN(default_ranges::level_1, 10);

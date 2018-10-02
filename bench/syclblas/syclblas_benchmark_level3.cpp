@@ -47,7 +47,7 @@ BENCHMARK(gemm, syclblas_level_3) {
   char const *t_a = std::get<3>(params);
   char const *t_b = std::get<4>(params);
 
-  size_t n_fl_ops = (2 * m * n * k); 
+  size_t n_fl_ops = (2 * m * n * k);
 
   size_t lda = t_a[0] == 'n' ? m : k;
   size_t ldb = t_b[0] == 'n' ? k : n;
@@ -88,8 +88,4 @@ BENCHMARK(gemm, syclblas_level_3) {
 
 SUITE(ADD(gemm))
 
-auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
-                               size_range(2, 1024, 2), value_range({"n", "t", "c"}),
-                               value_range({"n", "t", "c"}));
-
-SYCL_BENCHMARK_MAIN(level_3_ranges, 10)
+SYCL_BENCHMARK_MAIN(default_ranges::level_3, 10)
