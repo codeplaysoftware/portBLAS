@@ -30,13 +30,13 @@
 
 #include "../blas_benchmark.hpp"
 
-BENCHMARK_NAME_FORMAT(clblast) {
+BENCHMARK_NAME_FORMAT(clblast_level_1) {
   std::ostringstream fname;
   fname << typeid(ElemT).name() << "_" << name() << "_" << params;
   return fname.str();
 }
 
-BENCHMARK(scal_bench, clblast) {
+BENCHMARK(scal, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -57,7 +57,7 @@ BENCHMARK(scal_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(axpy_bench, clblast) {
+BENCHMARK(axpy, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -81,7 +81,7 @@ BENCHMARK(axpy_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(asum_bench, clblast) {
+BENCHMARK(asum, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -102,7 +102,7 @@ BENCHMARK(asum_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(nrm2_bench, clblast) {
+BENCHMARK(nrm2, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -124,7 +124,7 @@ BENCHMARK(nrm2_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(dot_bench, clblast) {
+BENCHMARK(dot, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -148,7 +148,7 @@ BENCHMARK(dot_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(iamax_bench, clblast) {
+BENCHMARK(iamax, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -171,7 +171,7 @@ BENCHMARK(iamax_bench, clblast) {
 }
 
 // not supported at current release yet
-BENCHMARK(iamin_bench, clblast) {
+BENCHMARK(iamin, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -193,7 +193,7 @@ BENCHMARK(iamin_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(scal2op_bench, clblast) {
+BENCHMARK(scal2op, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -218,7 +218,7 @@ BENCHMARK(scal2op_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(scal3op_bench, clblast) {
+BENCHMARK(scal3op, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -248,7 +248,7 @@ BENCHMARK(scal3op_bench, clblast) {
   return flops;
 }
 
-BENCHMARK(axpy3op_bench, clblast) {
+BENCHMARK(axpy3op, clblast_level_1) {
   using ScalarT = ElemT;
   size_t size = params;
   double flops;
@@ -275,9 +275,9 @@ BENCHMARK(axpy3op_bench, clblast) {
   return flops;
 }
 
-SUITE(ADD(scal_bench), ADD(axpy_bench), ADD(nrm2_bench), ADD(dot_bench),
-      ADD(iamax_bench), ADD(iamin_bench), ADD(scal2op_bench),
-      ADD(scal3op_bench), ADD(axpy3op_bench))
+SUITE(ADD(scal), ADD(axpy), ADD(nrm2), ADD(dot),
+      ADD(iamax), ADD(iamin), ADD(scal2op),
+      ADD(scal3op), ADD(axpy3op))
 
 auto clblast_range = size_range(2, 16384, 2);
 

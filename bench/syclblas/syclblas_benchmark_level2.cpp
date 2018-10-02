@@ -29,14 +29,14 @@
 
 using namespace blas;
 
-BENCHMARK_NAME_FORMAT(blas_level_2) {
+BENCHMARK_NAME_FORMAT(syclblas_level_2) {
   std::ostringstream fname;
   fname << name() << "_" << std::get<0>(params) << "_" << std::get<1>(params)
         << "_" << std::get<2>(params);
   return fname.str();
 }
 
-BENCHMARK(gemv, blas_level_2) {
+BENCHMARK(gemv, syclblas_level_2) {
   using ScalarT = ElemT;
 
   size_t m = std::get<0>(params);

@@ -260,4 +260,17 @@ Range5D<Range1, Range2, Range3, Range4, Range5> nd_range(Range1 r1, Range2 r2,
   return Range5D<Range1, Range2, Range3, Range4, Range5>(r1, r2, r3, r4, r5);
 }
 
+namespace default_ranges {
+  auto level_1 = size_range(1 << 1, 1 << 24, 1 << 1);
+
+  auto level_2 = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
+                               value_range({"n", "t", "c"}));
+
+  auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
+                               size_range(2, 1024, 2), value_range({"n", "t", "c"}),
+                               value_range({"n", "t", "c"}));
+
+
+}
+
 #endif  // include guard
