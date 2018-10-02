@@ -88,7 +88,7 @@ typename Executor::Return_Type _gemv_impl(
           ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
           : nWG_col;
 
-  auto valT1 = blas::helper::make_sycl_iteator_buffer<T>(M * scratchSize);
+  auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(M * scratchSize);
   auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, 0);
 
   if (mA.is_row_access()) {
@@ -158,7 +158,7 @@ typename Executor::Return_Type _trmv_impl(
   const IndexType globalSize = localSize * nWG_row * nWG_col;
 
   using T = typename scalar_type<ContainerT0>::ScalarT;
-  auto valT1 = blas::helper::make_sycl_iteator_buffer<T>(N * scratchSize);
+  auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize);
   auto mat1 = make_matrix_view(ex, valT1, N, scratchSize, scratchSize, 0);
 
   typename Executor::Return_Type ret;
@@ -280,12 +280,12 @@ typename Executor::Return_Type _symv_impl(
   const IndexType scratchSize_R =
       ((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col_R;
 
-  auto valTR = blas::helper::make_sycl_iteator_buffer<T>(N * scratchSize_R);
+  auto valTR = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize_R);
   auto matR = make_matrix_view(ex, valTR, N, scratchSize_R, scratchSize_R, 0);
 
   const IndexType scratchSize_C = nWG_col_C;
 
-  auto valTC = blas::helper::make_sycl_iteator_buffer<T>(N * scratchSize_C);
+  auto valTC = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize_C);
   auto matC = make_matrix_view(ex, valTC, N, scratchSize_C, scratchSize_C, 0);
 
   if (mA.is_row_access()) {  // ROWS ACCESS

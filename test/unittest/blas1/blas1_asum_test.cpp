@@ -64,8 +64,8 @@ TYPED_TEST(BLAS_Test, asum_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
-  auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
+  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
+  auto gpu_vR = blas::helper::make_sycl_iterator_buffer<ScalarT>(size_t(1));
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
   ex.wait(event);
@@ -104,9 +104,9 @@ TYPED_TEST(BLAS_Test, asum_test_auto_return) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
-    auto gpu_vX = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX, size);
+    auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
     auto gpu_vR =
-        blas::helper::make_sycl_iteator_buffer<ScalarT>(vR, size_t(1));
+        blas::helper::make_sycl_iterator_buffer<ScalarT>(vR, size_t(1));
     _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   }
   ASSERT_NEAR(res, vR[0], prec);
@@ -189,7 +189,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
+  auto gpu_vR = blas::helper::make_sycl_iterator_buffer<ScalarT>(size_t(1));
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
@@ -233,7 +233,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vR = blas::helper::make_sycl_iteator_buffer<ScalarT>(size_t(1));
+  auto gpu_vR = blas::helper::make_sycl_iterator_buffer<ScalarT>(size_t(1));
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
