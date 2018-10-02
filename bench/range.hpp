@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename syclblas_benchmark.cpp
+ *  @filename range.hpp
  *
  **************************************************************************/
 
