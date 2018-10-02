@@ -72,7 +72,7 @@ BENCHMARK(gemm, blas_level_3) {
   benchmark<>::flops_units_t flops =
       benchmark<>::measure(reps, n_fl_ops, [&]() {
         auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                           ldb, beta, c_gpu, lda);
+                           ldb, beta, c_gpu, ldc);
         ex.wait(event);
       });
 
@@ -90,7 +90,7 @@ BENCHMARK(gemm, blas_level_3) {
 SUITE(ADD(gemm))
 
 auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
-                               size_range(2, 1024, 2), value_range({"n"}),
+                               size_range(2, 1024, 2), value_range({"n", "t", "c"}),
                                value_range({"n", "t", "c"}));
 
 BENCHMARK_MAIN(level_3_ranges, 10)
