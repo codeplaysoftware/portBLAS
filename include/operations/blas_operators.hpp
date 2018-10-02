@@ -147,9 +147,7 @@ SYCLBLAS_DEFINE_UNARY_OPERATOR(iniPrdOp1_struct,
                                (constant<R, const_val::one>::value))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(posOp1_struct, (r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(negOp1_struct, (-r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(
-    sqtOp1_struct,
-    (static_cast<double>(cl::sycl::sqrt(static_cast<double>(r)))))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(sqtOp1_struct, (cl::sycl::sqrt(r)))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(tupOp1_struct, r)
 SYCLBLAS_DEFINE_UNARY_OPERATOR(addOp1_struct, (r + r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(prdOp1_struct, (r * r))

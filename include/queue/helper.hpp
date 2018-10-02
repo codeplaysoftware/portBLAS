@@ -6,7 +6,7 @@
 namespace blas {
 namespace helper {
 template <typename scalar_t, typename index_t>
-inline blas::buffer_iterator<scalar_t> make_sycl_iteator_buffer(scalar_t* data,
+inline blas::buffer_iterator<scalar_t> make_sycl_iterator_buffer(scalar_t* data,
                                                                 index_t size) {
   using buff_t =
       blas::buffer_t<scalar_t, 1, cl::sycl::default_allocator<scalar_t>>;
@@ -15,7 +15,7 @@ inline blas::buffer_iterator<scalar_t> make_sycl_iteator_buffer(scalar_t* data,
 }
 
 template <typename scalar_t, typename index_t>
-inline buffer_iterator<scalar_t> make_sycl_iteator_buffer(
+inline buffer_iterator<scalar_t> make_sycl_iterator_buffer(
     std::vector<scalar_t>& data, index_t size) {
   using buff_t =
       blas::buffer_t<scalar_t, 1, cl::sycl::default_allocator<scalar_t>>;
@@ -24,14 +24,14 @@ inline buffer_iterator<scalar_t> make_sycl_iteator_buffer(
 }
 
 template <typename scalar_t, typename index_t>
-inline blas::buffer_iterator<scalar_t> make_sycl_iteator_buffer(index_t size) {
+inline blas::buffer_iterator<scalar_t> make_sycl_iterator_buffer(index_t size) {
   using buff_t =
       blas::buffer_t<scalar_t, 1, cl::sycl::default_allocator<scalar_t>>;
   return blas::buffer_iterator<scalar_t>{buff_t{cl::sycl::range<1>{size}}};
 }
 
 template <typename scalar_t, typename index_t>
-inline blas::buffer_iterator<scalar_t> make_sycl_iteator_buffer(
+inline blas::buffer_iterator<scalar_t> make_sycl_iterator_buffer(
     blas::buffer_t<scalar_t, 1, cl::sycl::default_allocator<scalar_t>> buff_) {
   return blas::buffer_iterator<scalar_t>{buff_};
 }
