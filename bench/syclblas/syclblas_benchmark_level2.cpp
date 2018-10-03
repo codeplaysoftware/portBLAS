@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "../blas_benchmark.hpp"
+#include "../common/blas_benchmark.hpp"
 
 #include <interface/blas2_interface.hpp>
 

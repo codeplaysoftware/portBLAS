@@ -28,7 +28,7 @@
 
 #include <clblast.h>
 
-#include "../blas_benchmark.hpp"
+#include "../common/blas_benchmark.hpp"
 
 BENCHMARK_NAME_FORMAT(clblast_level_2) {
   std::ostringstream fname;
