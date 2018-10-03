@@ -39,9 +39,9 @@ BENCHMARK_NAME_FORMAT(syclblas_level_2) {
 BENCHMARK(gemv, syclblas_level_2) {
   using ScalarT = ElemT;
 
-  size_t m = std::get<0>(params);
-  size_t n = std::get<1>(params);
-  const char* t_str = std::get<2>(params);
+  const char* t_str = std::get<0>(params);
+  const size_t m = std::get<1>(params);
+  const size_t n = std::get<2>(params);
 
   size_t vlen = t_str[0] == 'n' ? n : m;
   size_t rlen = t_str[0] == 'n' ? m : n;

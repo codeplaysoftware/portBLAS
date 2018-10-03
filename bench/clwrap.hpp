@@ -37,8 +37,6 @@ void show_error(std::string err_str) {
             << std::endl;
 }
 
-#define THROW_EXCEPTIONS
-
 #ifdef THROW_EXCEPTIONS
 #define do_error throw std::runtime_error
 #else

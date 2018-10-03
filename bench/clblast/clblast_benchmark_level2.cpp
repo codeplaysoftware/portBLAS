@@ -42,9 +42,9 @@ BENCHMARK_NAME_FORMAT(clblast_level_2) {
 BENCHMARK(gemv, clblast_level_2) {
   using ScalarT = ElemT;
 
-  size_t m = std::get<0>(params);
-  size_t n = std::get<1>(params);
-  const char* t_str = std::get<2>(params);
+  const char* t_str = std::get<0>(params);
+  const size_t m = std::get<1>(params);
+  const size_t n = std::get<2>(params);
 
   size_t vlen = t_str[0] == 'n' ? n : m;
   size_t rlen = t_str[0] == 'n' ? m : n;
@@ -55,21 +55,19 @@ BENCHMARK(gemv, clblast_level_2) {
   long incX = 1;
   long incY = 1;
 
-  // decide on the layout.
-  // To be consistent with the sycl-blas, we should be:
-  // Column major if t_str == 'n'
-  // Row major otherwise
-  // We may need to change more parameters here..
+  // Specify the layout. As with GEMM, this needs to be kColMajor, and results
+  // in errors otherwise. It may be that this is incorrect (especially for
+  // performance reasons), so may need to be revisited.
   auto layout = clblast::Layout::kColMajor;
-    // t_str[0] == 'n' ? clblast::Layout::kColMajor : clblast::Layout::kRowMajor;
+
 
   // specify the transposition.
   clblast::Transpose a_transpose;
-  if(t_str[0] == 'n') { 
+  if (t_str[0] == 'n') {
     a_transpose = clblast::Transpose::kNo;
-  } else if(t_str[0] == 't') { 
+  } else if (t_str[0] == 't') {
     a_transpose = clblast::Transpose::kYes;
-  } else if(t_str[0] == 'c') { 
+  } else if (t_str[0] == 'c') {
     a_transpose = clblast::Transpose::kConjugate;
   } else {
     throw std::runtime_error("Got invalid transpose parameter!");
@@ -92,8 +90,8 @@ BENCHMARK(gemv, clblast_level_2) {
   benchmark<>::flops_units_t flops =
       benchmark<>::measure(reps, n_fl_ops, [&]() {
         clblast::Gemv<ScalarT>(layout, a_transpose, m, n, alpha, a_m.dev(), 0,
-                               lda, b_v.dev(), 0, incX, beta, c_v.dev(), 0, incY,
-                               (*ex)._queue(), &event._cl());
+                               lda, b_v.dev(), 0, incX, beta, c_v.dev(), 0,
+                               incY, (*ex)._queue(), &event._cl());
         event.wait();
         event.release();
       });

@@ -32,20 +32,20 @@ using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_3) {
   std::ostringstream fname;
-  fname << name() << "_" << std::get<0>(params) << "_" << std::get<1>(params)
-        << "_" << std::get<2>(params) << "_" << std::get<3>(params) << "_"
-        << std::get<4>(params);
+  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+        << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
+        << std::get<3>(params) << "_" << std::get<4>(params);
   return fname.str();
 }
 
 BENCHMARK(gemm, syclblas_level_3) {
   using ScalarT = ElemT;
 
-  const size_t m = std::get<0>(params);
-  const size_t k = std::get<1>(params);
-  const size_t n = std::get<2>(params);
-  char const *t_a = std::get<3>(params);
-  char const *t_b = std::get<4>(params);
+  char const *t_a = std::get<0>(params);
+  char const *t_b = std::get<1>(params);
+  const size_t m = std::get<2>(params);
+  const size_t k = std::get<3>(params);
+  const size_t n = std::get<4>(params);
 
   size_t n_fl_ops = (2 * m * n * k);
 
