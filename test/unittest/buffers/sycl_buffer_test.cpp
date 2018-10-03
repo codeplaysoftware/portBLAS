@@ -63,7 +63,7 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto a = blas::helper::make_sycl_iteator_buffer<ScalarT>(vX.data(), size);
+  auto a = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX.data(), size);
   auto event = ex.copy_to_host((a + offset), vR.data(), size - offset);
   ex.wait(event);
 
