@@ -31,5 +31,3 @@ endif()
 include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${BLAS_INCLUDE_DIRS})
 
 add_subdirectory(test)
-
-add_subdirectory(bench)

@@ -34,7 +34,7 @@
 #include <interface/blas_interface_sycl.hpp>
 
 #include <executors/executor_sycl.hpp>
-#include <operations/blas1_trees.hpp>
+#include <operations/blas2_trees.hpp>
 
 namespace blas {
 namespace internal {
