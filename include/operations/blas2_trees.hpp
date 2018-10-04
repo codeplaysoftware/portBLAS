@@ -26,11 +26,6 @@
 #ifndef BLAS2_TREES_HPP
 #define BLAS2_TREES_HPP
 
-#include <stdexcept>
-#include <vector>
-#include <operations/blas_operators.hpp>
-#include <views/view_sycl.hpp>
-
 #include "blas2/gemv.hpp"
 #include "blas2/ger.hpp"
 

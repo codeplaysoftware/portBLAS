@@ -26,6 +26,11 @@
 #ifndef GER_HPP
 #define GER_HPP
 
+#include <stdexcept>
+#include <vector>
+#include <operations/blas_operators.hpp>
+#include <views/view_sycl.hpp>
+
 namespace blas {
 
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/

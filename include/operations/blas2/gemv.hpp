@@ -26,6 +26,11 @@
 #ifndef GEMV_HPP
 #define GEMV_HPP
 
+#include <stdexcept>
+#include <vector>
+#include <operations/blas_operators.hpp>
+#include <views/view_sycl.hpp>
+
 namespace blas {
 
 /**** ADD A SET OF COLUMNS, 1 ROW PER THREAD ****/
