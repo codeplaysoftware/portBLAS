@@ -19,24 +19,27 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename syclblas_benchmark.cpp
+ *  @filename clblast_benchmark.cpp
  *
  **************************************************************************/
 
+#include <complex>
+#include <vector>
+
+#include <clblast.h>
+
 #include "../common/blas_benchmark.hpp"
 
-#include <interface/blas2_interface.hpp>
-
-using namespace blas;
-
-BENCHMARK_NAME_FORMAT(syclblas_level_2) {
+BENCHMARK_NAME_FORMAT(clblast_level_2) {
   std::ostringstream fname;
   fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
         << "_" << std::get<1>(params) << "_" << std::get<2>(params);
   return fname.str();
+
+  return fname.str();
 }
 
-BENCHMARK(gemv, syclblas_level_2) {
+BENCHMARK(gemv, clblast_level_2) {
   using ScalarT = ElemT;
 
   const char* t_str = std::get<0>(params);
@@ -52,49 +55,50 @@ BENCHMARK(gemv, syclblas_level_2) {
   long incX = 1;
   long incY = 1;
 
+  // Specify the layout. As with GEMM, this needs to be kColMajor, and results
+  // in errors otherwise. It may be that this is incorrect (especially for
+  // performance reasons), so may need to be revisited.
+  auto layout = clblast::Layout::kColMajor;
+
+
+  // specify the transposition.
+  clblast::Transpose a_transpose;
+  if (t_str[0] == 'n') {
+    a_transpose = clblast::Transpose::kNo;
+  } else if (t_str[0] == 't') {
+    a_transpose = clblast::Transpose::kYes;
+  } else if (t_str[0] == 'c') {
+    a_transpose = clblast::Transpose::kConjugate;
+  } else {
+    throw std::runtime_error("Got invalid transpose parameter!");
+  }
+
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
-
   // Input matrix
-  std::vector<ScalarT> a_m = benchmark<>::random_data<ScalarT>(m * n);
+  size_t msize = m * n;
+  std::vector<ScalarT> a_m_host = benchmark<>::random_data<ScalarT>(msize);
+  MemBuffer<ScalarT> a_m(*ex, a_m_host.data(), msize);
   // Input Vector
-  std::vector<ScalarT> b_v = benchmark<>::random_data<ScalarT>(vlen);
+  std::vector<ScalarT> b_v_host = benchmark<>::random_data<ScalarT>(vlen);
+  MemBuffer<ScalarT> b_v(*ex, b_v_host.data(), vlen);
   // output Vector
-  std::vector<ScalarT> c_v_gpu_result =
-      benchmark<>::const_data<ScalarT>(rlen, 0);
+  std::vector<ScalarT> c_v_host = benchmark<>::const_data<ScalarT>(rlen, 0);
+  MemBuffer<ScalarT> c_v(*ex, c_v_host.data(), rlen);
 
-  auto m_a_gpu = ex.template allocate<ScalarT>(m * n);
-  auto v_b_gpu = ex.template allocate<ScalarT>(vlen);
-  auto v_c_gpu = ex.template allocate<ScalarT>(rlen);
-  ex.copy_to_device(a_m.data(), m_a_gpu, m * n);
-  ex.copy_to_device(b_v.data(), v_b_gpu, vlen);
-  ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
-
+  Event event;
   benchmark<>::flops_units_t flops =
       benchmark<>::measure(reps, n_fl_ops, [&]() {
-        auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
-                           beta, v_c_gpu, incY);
-        ex.wait(event);
+        clblast::Gemv<ScalarT>(layout, a_transpose, m, n, alpha, a_m.dev(), 0,
+                               lda, b_v.dev(), 0, incX, beta, c_v.dev(), 0,
+                               incY, (*ex)._queue(), &event._cl());
+        event.wait();
+        event.release();
       });
-
-  auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), rlen);
-
-  ex.wait(event);
-
-  ex.template deallocate<ScalarT>(m_a_gpu);
-  ex.template deallocate<ScalarT>(v_b_gpu);
-  ex.template deallocate<ScalarT>(v_c_gpu);
 
   return flops;
 }
 
 SUITE(ADD(gemv))
 
-<<<<<<< HEAD
-auto level_2_ranges = nd_range(size_range(2, 16384, 2), size_range(2, 16384, 2),
-                               value_range({"n", "t", "c"}));
-
-BENCHMARK_MAIN(level_2_ranges, 10)
-=======
-SYCL_BENCHMARK_MAIN(default_ranges::level_2, 10)
->>>>>>> benchmark-integration
+CLBLAST_BENCHMARK_MAIN(default_ranges::level_2, 10)

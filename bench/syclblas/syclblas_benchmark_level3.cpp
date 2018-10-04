@@ -23,32 +23,31 @@
  *
  **************************************************************************/
 
-// #include "../blas_benchmark.hpp"
-#include "../blas_benchmark2.hpp"
+#include "../common/blas_benchmark.hpp"
 
 #include <interface/blas1_interface.hpp>
 #include <interface/blas3_interface.hpp>
 
 using namespace blas;
 
-BENCHMARK_NAME_FORMAT(blas_level_3) {
+BENCHMARK_NAME_FORMAT(syclblas_level_3) {
   std::ostringstream fname;
-  fname << name() << "_" << std::get<0>(params) << "_" << std::get<1>(params)
-        << "_" << std::get<2>(params) << "_" << std::get<3>(params) << "_"
-        << std::get<4>(params);
+  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+        << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
+        << std::get<3>(params) << "_" << std::get<4>(params);
   return fname.str();
 }
 
-BENCHMARK(gemm, blas_level_3) {
+BENCHMARK(gemm, syclblas_level_3) {
   using ScalarT = ElemT;
 
-  const size_t m = std::get<0>(params);
-  const size_t k = std::get<1>(params);
-  const size_t n = std::get<2>(params);
-  char const *t_a = std::get<3>(params);
-  char const *t_b = std::get<4>(params);
+  char const *t_a = std::get<0>(params);
+  char const *t_b = std::get<1>(params);
+  const size_t m = std::get<2>(params);
+  const size_t k = std::get<3>(params);
+  const size_t n = std::get<4>(params);
 
-  size_t n_fl_ops = (2 * m * n * k); 
+  size_t n_fl_ops = (2 * m * n * k);
 
   size_t lda = t_a[0] == 'n' ? m : k;
   size_t ldb = t_b[0] == 'n' ? k : n;
@@ -89,8 +88,4 @@ BENCHMARK(gemm, blas_level_3) {
 
 SUITE(ADD(gemm))
 
-auto level_3_ranges = nd_range(size_range(2, 1024, 2), size_range(2, 1024, 2),
-                               size_range(2, 1024, 2), value_range({"n", "t", "c"}),
-                               value_range({"n", "t", "c"}));
-
-BENCHMARK_MAIN(level_3_ranges, 10)
+SYCL_BENCHMARK_MAIN(default_ranges::level_3, 10)

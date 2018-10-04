@@ -23,14 +23,14 @@
  *
  **************************************************************************/
 
-#include "blas_benchmark.hpp"
+#include "../common/blas_benchmark.hpp"
 
 #include <complex>
 #include <vector>
 
 #include <clBLAS.h>
 
-#include "clwrap.hpp"
+#include "../common/clwrap.hpp"
 
 #define CLBLAS_FUNCTION(postfix)                          \
   template <typename T>                                   \
