@@ -44,8 +44,8 @@ expression.
 @tparam ContainerT Type of the container that is stored inside.
 */
 
-template <class ValueT_, class ContainerT_, typename IndexType_ = size_t,
-          typename IncrementType_ = long>
+template <class ValueT_, class ContainerT_, typename IndexType_ = int,
+          typename IncrementType_ = int>
 struct vector_view {
   using ValueT = ValueT_;
   using ContainerT = ContainerT_;
@@ -231,7 +231,7 @@ struct vector_view {
 @tparam ValueT Value type of the container.
 @tparam ContainerT Type of the container.
  */
-template <class ValueT_, class ContainerT_, typename IndexType_ = size_t>
+template <class ValueT_, class ContainerT_, typename IndexType_ = int>
 struct matrix_view {
   // Information related to the data
   using ValueT = ValueT_;
@@ -508,13 +508,16 @@ struct matrix_view {
   }
 };
 
-template <typename Executor, typename T>
+template <typename Executor, typename T, typename IndexType = int,
+          typename IncrementType = int>
 struct ViewTypeTrace {
   using ScalarT = typename RemoveAll<T>::Type;
   using VectorView =
-      vector_view<ScalarT, typename Executor::template ContainerT<ScalarT>>;
+      vector_view<ScalarT, typename Executor::template ContainerT<ScalarT>,
+                  IndexType, IncrementType>;
   using MatrixView =
-      matrix_view<ScalarT, typename Executor::template ContainerT<ScalarT>>;
+      matrix_view<ScalarT, typename Executor::template ContainerT<ScalarT>,
+                  IndexType>;
 };
 
 }  // namespace blas

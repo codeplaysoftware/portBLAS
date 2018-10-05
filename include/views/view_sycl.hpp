@@ -35,10 +35,13 @@
 
 namespace blas {
 
-template <typename Executor, typename T>
-struct ViewTypeTrace<Executor, buffer_iterator<T>> {
-  using VectorView = vector_view<T, typename Executor::template ContainerT<T>>;
-  using MatrixView = matrix_view<T, typename Executor::template ContainerT<T>>;
+template <typename Executor, typename T, typename IndexType,
+          typename IncrementType>
+struct ViewTypeTrace<Executor, buffer_iterator<T>, IndexType, IncrementType> {
+  using VectorView = vector_view<T, typename Executor::template ContainerT<T>,
+                                 IndexType, IncrementType>;
+  using MatrixView =
+      matrix_view<T, typename Executor::template ContainerT<T>, IndexType>;
 };
 
 template <typename ScalarT, int dim = 1,

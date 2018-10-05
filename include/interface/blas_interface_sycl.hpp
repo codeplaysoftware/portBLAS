@@ -40,37 +40,40 @@ namespace blas {
 
 template <typename Executor, typename T, typename IncrementType,
           typename IndexType>
-inline typename ViewTypeTrace<Executor, T>::VectorView make_vector_view(
-    Executor &ex, T *vptr, IncrementType inc, IndexType sz) {
+inline typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView
+make_vector_view(Executor &ex, T *vptr, IncrementType inc, IndexType sz) {
   auto container = ex.get_range_access(vptr);
   IndexType offset = ex.get_offset(vptr);
-  using LeafNode = typename ViewTypeTrace<Executor, T>::VectorView;
+  using LeafNode =
+      typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView;
   return LeafNode{container, offset, inc, sz};
 }
 
 template <typename Executor, typename T, typename IncrementType,
           typename IndexType>
-inline typename ViewTypeTrace<Executor, T>::VectorView make_vector_view(
-    Executor &, buffer_iterator<T> buff, IncrementType inc, IndexType sz) {
-  using LeafNode = typename ViewTypeTrace<Executor, T>::VectorView;
+inline typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView
+make_vector_view(Executor &, buffer_iterator<T> buff, IncrementType inc,
+                 IndexType sz) {
+  using LeafNode =
+      typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView;
   return LeafNode{buff, inc, sz};
 }
 
 template <typename Executor, typename T, typename IndexType, typename Opertype>
-inline typename ViewTypeTrace<Executor, T>::MatrixView make_matrix_view(
-    Executor &ex, T *vptr, IndexType m, IndexType n, IndexType lda,
-    Opertype accessOpr) {
-  using LeafNode = typename ViewTypeTrace<Executor, T>::MatrixView;
+inline typename ViewTypeTrace<Executor, T, IndexType>::MatrixView
+make_matrix_view(Executor &ex, T *vptr, IndexType m, IndexType n, IndexType lda,
+                 Opertype accessOpr) {
+  using LeafNode = typename ViewTypeTrace<Executor, T, IndexType>::MatrixView;
   auto container = ex.get_range_access(vptr);
   IndexType offset = ex.get_offset(vptr);
   return LeafNode{container, m, n, accessOpr, lda, offset};
 }
 
 template <typename Executor, typename T, typename IndexType, typename Opertype>
-inline typename ViewTypeTrace<Executor, T>::MatrixView make_matrix_view(
-    Executor &ex, buffer_iterator<T> buff, IndexType m, IndexType n,
-    IndexType lda, Opertype accessOpr) {
-  using LeafNode = typename ViewTypeTrace<Executor, T>::MatrixView;
+inline typename ViewTypeTrace<Executor, T, IndexType>::MatrixView
+make_matrix_view(Executor &ex, buffer_iterator<T> buff, IndexType m,
+                 IndexType n, IndexType lda, Opertype accessOpr) {
+  using LeafNode = typename ViewTypeTrace<Executor, T, IndexType>::MatrixView;
   return LeafNode{buff, m, n, accessOpr, lda};
 }
 
