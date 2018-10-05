@@ -119,8 +119,10 @@ struct Gemv_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-
+    
+    // Get the number of rows of the matrix
     IndexType dimR = r1.getSizeR();
+    // 
     IndexType dimC = r1.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
@@ -150,12 +152,21 @@ struct Gemv_Row {
         l.eval(rowid, id_col_thr) = val;
       }
     } else {
+
+
+
 #ifdef GROUP_OF_ROWS
       for (IndexType id_row = frs_row; (id_row < lst_row); id_row++) {
         l.eval(id_row, id_col_thr) = val;
       }
 #endif
+
+
+
+
       if (interLoop == 1) {
+
+
 #ifdef GROUP_OF_ROWS
         for (IndexType id_col = frs_col; id_col < lst_col; id_col += localSz) {
           auto elm = r2.eval(id_col);
@@ -208,6 +219,8 @@ struct Gemv_Row {
           }
         }
 #endif
+
+
       } else {
         // There's an implied question mark after each of these comments. 
         // They are just attempts to understand the code! 
@@ -248,6 +261,21 @@ struct Gemv_Row {
     return val;
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+  /* 
+    Evaluate using shared memory.
+  */
   template <typename sharedT>
   value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
     IndexType localid = ndItem.get_local_id(0);
@@ -413,6 +441,18 @@ struct Gemv_Row {
   }
 };
 
+/*!
+ @brief Generator/factory for row-based GEMV trees. 
+ 
+ make_Gemv_Row(
+    LHS &l,
+    RHS1 &r1,
+    RHS2 &r2,
+    typename RHS2::IndexType nWG_row,
+    typename RHS2::IndexType nWG_col,
+    typename RHS2::IndexType shrMemSize
+ )
+ */
 template <unsigned int interLoop = 1, bool Lower = true, bool Diag = true,
           bool Upper = true, bool Unit = false, typename LHS, typename RHS1,
           typename RHS2>
@@ -422,6 +462,47 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Row(
   return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2>(
       l, r1, r2, nWG_row, nWG_col, shrMemSize);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
 
