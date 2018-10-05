@@ -172,7 +172,7 @@ inline bool do_check<false>(bool) {
 
 /*!
  * @brief NoLocalGemmFactory is a template class whose instantiations provide
- *        different implementations of the GEMM device function where the is no
+ *        different implementations of the GEMM kernel where the is no
  * local memory available on the device.
  *
  * To use the function, each item of a kernel launched with nd_range given by
@@ -184,7 +184,7 @@ inline bool do_check<false>(bool) {
  *                 line size, some values fetched will be wasted, which can
  *                 significantly reduce performance. It can be set to a
  *                 multiple of the physical cache line size. In this case, it
- *                 will significantly increase scratchpad memory usage, but
+ *                 will significantly increase local memory usage, but
  *                 will result in fewer local barriers.)
  * @tparam TileType  determines the size of the local, work group, and top
  *                   level tiles to use, see Tile
@@ -202,34 +202,34 @@ class NoLocalGemmFactory {
   static constexpr int version = 3;
   static constexpr int scratch_size = 0;
 
-  //! @brief The number of rows processed by each work item
+  /*! @brief The number of rows processed by each work item */
   static constexpr IndexType item_rows = tile_type::item_rows;
-  //! @brief The number of cols processed by each work item
+  /*! @brief The number of cols processed by each work item */
   static constexpr IndexType item_cols = tile_type::item_cols;
-  //! @brief The number of work items in each row of work group
+  /*! @brief The number of work items in each row of work group */
   static constexpr IndexType wg_rows = tile_type::wg_rows;
-  // ! @brief The number of work items in each column of work group
+  /*! @brief The number of work items in each column of work group */
   static constexpr IndexType wg_cols = tile_type::wg_cols;
-  //! @brief Number of rows within a work-group level tile
+  /*! @brief Number of rows within a work-group level tile */
   static constexpr IndexType block_rows = wg_rows * item_rows;
-  //! @brief Number of columns within a work-group level tile
+  /*! @brief Number of columns within a work-group level tile */
   static constexpr IndexType block_cols = wg_cols * item_cols;
-  // ! @brief The size of tile processed by a work-group
+  /*! @brief The size of tile processed by a work-group */
   static constexpr IndexType tile_size = block_rows * block_cols;
-  //! @brief A boolean parameter represents wheather or not matrix A is
-  //! transposed
+  /*! @brief A boolean parameter represents wheather or not matrix A is
+   * transposed */
   static constexpr bool trans_a = TransA;
-  //! @brief A boolean parameter represents wheather or not matrix B is
-  //! transposed
+  /*! @brief A boolean parameter represents wheather or not matrix B is
+   * transposed */
   static constexpr bool trans_b = TransB;
-  //! @brief The device cacheline size
+  /*! @brief The device cacheline size */
   static constexpr IndexType cl_size = ClSize;
-  //! @brief Number of elements which fit within a cache line.
+  /*! @brief Number of elements which fit within a cache line. */
   static constexpr IndexType cl_elems = cl_size / sizeof(T);
-  //! @brief Number of work items within a work group
+  /*! @brief Number of work items within a work group. */
   static constexpr IndexType wg_size = wg_rows * wg_cols;
 
-  static_assert(wg_cols * item_rows == item_cols * wg_rows,
+  static_assert(wg_cols * item_cols == item_rows * wg_rows,
                 "Work group size should be a multiple "
                 "of the number of rows in a block\n"
                 " --- this is ensured iff: item_rows | wg_cols");
@@ -283,37 +283,47 @@ class NoLocalGemmFactory {
     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
-    const auto tile_per_row = ((m - 1) / block_rows) + 1;
+    const auto number_of_block_per_row = ((m - 1) / block_rows) + 1;
 
+    /* linear work group id */
     const auto wg_id = id.get_group(0);
+    /*linear work item id*/
     const auto item_id = id.get_local_id(0);
-    const auto tile_id_row = wg_id % tile_per_row;
-    const auto tile_id_col = wg_id / tile_per_row;
+    /* row tile id  per work group */
+    const auto tile_id_row = wg_id % number_of_block_per_row;
+    /* column tile id per work group */
+    const auto tile_id_col = wg_id / number_of_block_per_row;
+    /* work item id per row */
     const auto local_item_id_row = item_id % wg_rows;
+    /* work item id per column */
     const auto local_item_id_col = item_id / wg_rows;
+    /* the start position of the tile-row per work group */
     const auto wg_row = tile_id_row * block_rows;
+    /* the start position of the tile-column per work group */
     const auto wg_col = tile_id_col * block_cols;
+    /* 2D register array used to store the result C*/
     value_type reg_res[item_rows][item_cols] = {};
+    /* temporary register array used to prefetch columns of A*/
     value_type reg_a[item_rows];
+    /* temporary register used to prefetch elements of B*/
     value_type reg_b[item_cols];
 
-    /*! @brief exiting from any threads outside of the m and n boundary */
+    /* Exiting from any threads outside of the m and n boundary */
     if ((local_item_id_row + wg_row >= m) ||
         (local_item_id_col + wg_col >= n)) {
       return;
     }
-    /*!
-     * @brief
+    /*
      * The ma and na are used to adjust the start position of each work-item for
      * A, B and C matrices.
      */
-    int ma = (local_item_id_row + wg_row);
-    int na = (local_item_id_col + wg_col);
+    int dim_m_a_start = (local_item_id_row + wg_row);
+    int dim_n_b_start = (local_item_id_col + wg_col);
 
     /*! @brief Adjusting the start position of A, B , and C */
-    A = A + ma * (trans_a ? lda : 1);
-    B = B + na * (trans_b ? 1 : ldb);
-    C = C + ma + (na * ldc);
+    A = A + dim_m_a_start * (trans_a ? lda : 1);
+    B = B + dim_n_b_start * (trans_b ? 1 : ldb);
+    C = C + dim_m_a_start + (dim_n_b_start * ldc);
 
     /*!
      * @brief is_internal_block_m and is_internal_block_n is used to distinguish
@@ -323,56 +333,66 @@ class NoLocalGemmFactory {
     const bool is_internal_block_m = (m - wg_row >= block_rows);
     const bool is_internal_block_n = (n - wg_col >= block_cols);
 
-    /*!
-     * @brief The following lambdas: boundary_check_m, boundary_check_n, and
+    /*
+     * The following lambdas: boundary_check_m, boundary_check_n, and
      * boundary_check_c  are used to check the A, B , and C boundaries
      * respectively.
      */
-    auto boundary_check_m = [&](int ma) { return ma < m; };
-    auto boundary_check_n = [&](int na) { return na < n; };
-    auto boundary_check_c = [&](int mc, int nc) { return (mc < m && nc < n); };
+    auto boundary_check_m = [&](int dim_m_a_start) {
+      return dim_m_a_start < m;
+    };
+    auto boundary_check_n = [&](int dim_n_b_start) {
+      return dim_n_b_start < n;
+    };
+    auto boundary_check_c = [&](int dim_m_c_start, int dim_n_c_start) {
+      return (dim_m_c_start < m && dim_n_c_start < n);
+    };
 
-    /*!
-     * @brief computing the gemm block
-     * */
+    /*
+     * computing the gemm block
+     */
     while (k > 0) {
-      /*!
-       * @brief Loading a corresponding block of matrix A into reg_a
+      /*
+       * Loading a corresponding block of matrix A into reg_a
        */
       (is_internal_block_m)
-          ? load<item_rows, wg_rows, false>(A, reg_a, (trans_a ? lda : 1), ma,
-                                            boundary_check_m)
-          : load<item_rows, wg_rows, true>(A, reg_a, (trans_a ? lda : 1), ma,
-                                           boundary_check_m);
-      /*!
-       * @brief Loading a corresponding block of matrix B into reg_b
+          ? load<item_rows, wg_rows, false>(A, reg_a, (trans_a ? lda : 1),
+                                            dim_m_a_start, boundary_check_m)
+          : load<item_rows, wg_rows, true>(A, reg_a, (trans_a ? lda : 1),
+                                           dim_m_a_start, boundary_check_m);
+      /*
+       * Loading a corresponding block of matrix B into reg_b
        */
       (is_internal_block_n)
-          ? load<item_cols, wg_cols, false>(B, reg_b, (trans_b ? 1 : ldb), na,
-                                            boundary_check_n)
-          : load<item_cols, wg_cols /* less performance 1*/, true>(
-                B, reg_b, (trans_b ? 1 : ldb), na, boundary_check_n);
+          ? load<item_cols, wg_cols, false>(B, reg_b, (trans_b ? 1 : ldb),
+                                            dim_n_b_start, boundary_check_n)
+          : load<item_cols, wg_cols, true>(B, reg_b, (trans_b ? 1 : ldb),
+                                           dim_n_b_start, boundary_check_n);
 
-      /*!
-       * @brief Computing a the partial GEMM for the loaded block of reg_a andd
+      /*
+       * Computing a the partial GEMM for the loaded block of reg_a andd
        * reg_b and adding the result into reg_res
        */
       compute_block_gemm_no_shared(reg_a, reg_b, reg_res);
-      /*!
-       * @brief moving forward to the next block
+      /*
+       * Moving forward to the next block
        */
       --k;
       A = A + (trans_a ? 1 : lda);
       B = B + (trans_b ? ldb : 1);
     }
-    /*!
-     * @brief Storing the reg_res into C matrix
+    /*
+     *  Storing the reg_res into C matrix
      */
     (is_internal_block_m && is_internal_block_n)
-        ? store<false>(C, reg_res, alpha, beta, ldc, ma, na, boundary_check_c)
-        : store<true>(C, reg_res, alpha, beta, ldc, ma, na, boundary_check_c);
+        ? store<false>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
+                       dim_n_b_start, boundary_check_c)
+        : store<true>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
+                      dim_n_b_start, boundary_check_c);
   }
-
+  /*!
+   * @brief binding the placeholder accessors to the SYCL command group handler
+   * @param h: SYCL command group handler. */
   void bind(cl::sycl::handler &h) {
     _A.bind(h);
     _B.bind(h);
@@ -427,7 +447,7 @@ class NoLocalGemmFactory {
     for (int j = 0; j < item_cols; j++) {
 #pragma unroll
       for (int i = 0; i < item_rows; i++) {
-        reg_res[i][j] = cl::sycl::mad(reg_a[i], reg_b[j], reg_res[i][j]);
+        reg_res[i][j] = reg_res[i][j] + reg_a[i] * reg_b[j];
       }
     }
   }
@@ -446,19 +466,18 @@ class NoLocalGemmFactory {
    * @param alpha and beta are scalars used in GEMM computation
    * @param ldc is the leading dimension of C
    * @param mc and nc are indices, used to check the boundary of C
-
    */
   template <bool check_block, typename PointerType, typename check_boundary>
   static inline void store(PointerType C, T (&reg_res)[item_rows][item_cols],
                            const T &alpha, const T &beta, const IndexType &ldc,
-                           int mc, int nc,
+                           int dim_m_c_start, int dim_n_c_start,
                            const check_boundary &chk_boundary) noexcept {
 #pragma unroll
     for (int j = 0; j < item_cols; j++) {
 #pragma unroll
       for (int i = 0; i < item_rows; i++) {
-        if (do_check<check_block>(
-                chk_boundary(mc + i * wg_rows, nc + j * wg_cols))) {
+        if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
+                                               dim_n_c_start + j * wg_cols))) {
           C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
         }
       }
@@ -746,13 +765,6 @@ class GemmFactory {
     const auto tile_col = (tile_id / tiles_per_col) * tl_cols;
     const auto wg_row = (tile_row + tile_local_id % tl_rows) * block_rows;
     const auto wg_col = (tile_col + tile_local_id / tl_rows) * block_rows;
-
-    /*printf(
-        "g_id %ld, tile_size %ld, tile_id %ld, tile_local_id %ld, "
-        "tiles_per_col %ld, tile_row %ld, tile_col %ld, wg_row %ld, wg_col "
-        "%ld\n",
-        id.get_global_id(0), tile_size, tile_id, tile_local_id, tiles_per_col,
-        tile_row, tile_col, wg_row, wg_col);*/
 
     if (wg_row >= m || wg_col >= n) {
       return;
