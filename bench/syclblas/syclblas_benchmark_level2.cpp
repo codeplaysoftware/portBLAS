@@ -38,17 +38,18 @@ BENCHMARK_NAME_FORMAT(syclblas_level_2) {
 
 BENCHMARK(gemv, syclblas_level_2) {
   using ScalarT = ElemT;
+  using IndexType = unsigned int;
 
   const char* t_str = std::get<0>(params);
-  const size_t m = std::get<1>(params);
-  const size_t n = std::get<2>(params);
+  const IndexType m = std::get<1>(params);
+  const IndexType n = std::get<2>(params);
 
-  size_t vlen = t_str[0] == 'n' ? n : m;
-  size_t rlen = t_str[0] == 'n' ? m : n;
+  IndexType vlen = t_str[0] == 'n' ? n : m;
+  IndexType rlen = t_str[0] == 'n' ? m : n;
 
   size_t n_fl_ops = m * n * 2;
 
-  size_t lda = m;
+  IndexType lda = m;
   long incX = 1;
   long incY = 1;
 
