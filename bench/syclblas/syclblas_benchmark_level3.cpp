@@ -32,7 +32,7 @@ using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_3) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
         << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
         << std::get<3>(params) << "_" << std::get<4>(params);
   return fname.str();
@@ -54,8 +54,8 @@ BENCHMARK(gemm, syclblas_level_3) {
   IndexType ldb = t_b[0] == 'n' ? k : n;
   IndexType ldc = m;
 
-  ScalarT alpha = ScalarT(1);
-  ScalarT beta = ScalarT(1);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
+  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
 
   std::vector<ScalarT> a = benchmark<>::random_data<ScalarT>(m * k);
   std::vector<ScalarT> b = benchmark<>::random_data<ScalarT>(k * n);

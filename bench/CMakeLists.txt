@@ -19,7 +19,7 @@ file(GLOB SYCL_BENCHMARK_SRCS
 )
 foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
   get_filename_component(sycl_bench_exec ${syclblas_benchmark} NAME_WE)
-  set(sycl_bench_exec, ${syclblas_benchmark})
+  set(TARGET sycl_bench_exec ${syclblas_benchmark})
   add_executable(${sycl_bench_exec} ${syclblas_benchmark})
   set_property(TARGET ${sycl_bench_exec} PROPERTY CXX_STANDARD 11)
   add_sycl_to_target(
@@ -29,13 +29,14 @@ foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
 endforeach()
 include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS})
 
-# Try and also build clBLAST benchmarks.
-# Manually search for CLBLAST
+# Try and also build CLBlast benchmarks.
+# Check to see if we've been passed an explicit path. 
 if (DEFINED CLBLAST_ROOT) 
   message(STATUS "CLBlast root specified as : ${CLBLAST_ROOT}")
   set(CMAKE_PREFIX_PATH ${CLBLAST_ROOT})
 else() 
   # set a default path if not specified
+  message(STATUS "CLBlast root not specified by user, searching default path /usr/lib/clblast")
   set(CMAKE_PREFIX_PATH "/usr/lib/clblast")
 endif()
 pkg_search_module(CLBLAST required clblast)
@@ -43,6 +44,7 @@ pkg_check_modules(CLBLAST clblast)
 
 # If found, add the clblast benchmarks.
 if (CLBLAST_FOUND)
+  message(STATUS "CLBlast found!")
   message(STATUS "CLBlast headers: ${CLBLAST_INCLUDE_DIRS}")
   message(STATUS "CLBlast libraries: ${CLBLAST_LIBRARY_DIRS}")
 
@@ -57,7 +59,7 @@ if (CLBLAST_FOUND)
 
   foreach(clblast_benchmark ${CLBLAST_BENCHMARK_SRCS})
     get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
-    set(clblast_bench_exec, ${clblast_benchmark})
+    set(TARGET clblast_bench_exec ${clblast_benchmark})
     add_executable(${clblast_bench_exec} ${clblast_benchmark})
     set_property(TARGET ${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
     target_link_libraries(${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})

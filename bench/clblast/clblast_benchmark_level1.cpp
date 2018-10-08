@@ -32,15 +32,16 @@
 
 BENCHMARK_NAME_FORMAT(clblast_level_1) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << params;
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << params;
   return fname.str();
 }
 
 BENCHMARK(scal, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
-  ScalarT alpha(2.4367453465);
+  // Alpha 
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   std::vector<ScalarT> buf1_host = benchmark<>::random_data<ScalarT>(size);
   MemBuffer<ScalarT> buf1(*ex, buf1_host.data(), size);
@@ -59,9 +60,9 @@ BENCHMARK(scal, clblast_level_1) {
 
 BENCHMARK(axpy, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   std::vector<ScalarT> buf1_host = benchmark<>::random_data<ScalarT>(size);
   MemBuffer<ScalarT, CL_MEM_WRITE_ONLY> buf1(*ex, buf1_host.data(), size);
@@ -83,7 +84,7 @@ BENCHMARK(axpy, clblast_level_1) {
 
 BENCHMARK(asum, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   ScalarT vr;
   std::vector<ScalarT> buf1_host = benchmark<>::random_data<ScalarT>(size);
@@ -104,7 +105,7 @@ BENCHMARK(asum, clblast_level_1) {
 
 BENCHMARK(nrm2, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   ScalarT vr;
 
@@ -126,7 +127,7 @@ BENCHMARK(nrm2, clblast_level_1) {
 
 BENCHMARK(dot, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   ScalarT vr;
   std::vector<ScalarT> buf1_host = benchmark<>::const_data<ScalarT>(size);
@@ -150,7 +151,7 @@ BENCHMARK(dot, clblast_level_1) {
 
 BENCHMARK(iamax, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   int vi;
   auto buf1_host = benchmark<>::const_data<ScalarT>(size);
@@ -173,7 +174,7 @@ BENCHMARK(iamax, clblast_level_1) {
 // not supported at current release yet
 BENCHMARK(iamin, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   int vi;
   auto buf1_host = benchmark<>::random_data<ScalarT>(size);
@@ -195,9 +196,9 @@ BENCHMARK(iamin, clblast_level_1) {
 
 BENCHMARK(scal2op, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   auto buf1_host = benchmark<>::random_data<ScalarT>(size);
   auto buf2_host = benchmark<>::random_data<ScalarT>(size);
 
@@ -220,9 +221,9 @@ BENCHMARK(scal2op, clblast_level_1) {
 
 BENCHMARK(scal3op, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto buf1_host = benchmark<>::random_data<ScalarT>(size);
   auto buf2_host = benchmark<>::random_data<ScalarT>(size);
@@ -250,7 +251,7 @@ BENCHMARK(scal3op, clblast_level_1) {
 
 BENCHMARK(axpy3op, clblast_level_1) {
   using ScalarT = ElemT;
-  size_t size = params;
+  const size_t size = params;
 
   ScalarT alphas[] = {1.78426458744, 2.187346575843, 3.78164387328};
   size_t offsets[] = {0, size, size * 2};

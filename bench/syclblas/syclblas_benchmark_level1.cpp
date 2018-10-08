@@ -31,17 +31,17 @@ using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_1) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << params;
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << params;
   return fname.str();
 }
 
 BENCHMARK(scal, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto in = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(v1.data(), in, size);
@@ -57,11 +57,11 @@ BENCHMARK(scal, syclblas_level_1) {
 BENCHMARK(axpy, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto inx = ex.template allocate<ScalarT>(size);
   auto iny = ex.template allocate<ScalarT>(size);
@@ -82,7 +82,7 @@ BENCHMARK(axpy, syclblas_level_1) {
 BENCHMARK(asum, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   ScalarT vr;
@@ -106,7 +106,7 @@ BENCHMARK(asum, syclblas_level_1) {
 BENCHMARK(nrm2, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
@@ -128,7 +128,7 @@ BENCHMARK(nrm2, syclblas_level_1) {
 BENCHMARK(dot, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
@@ -154,7 +154,7 @@ BENCHMARK(dot, syclblas_level_1) {
 BENCHMARK(iamax, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
@@ -176,7 +176,7 @@ BENCHMARK(iamax, syclblas_level_1) {
 BENCHMARK(iamin, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   auto inx = ex.template allocate<ScalarT>(size);
@@ -197,9 +197,9 @@ BENCHMARK(iamin, syclblas_level_1) {
 BENCHMARK(scal2op, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
 
@@ -223,9 +223,9 @@ BENCHMARK(scal2op, syclblas_level_1) {
 BENCHMARK(scal3op, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v3 = benchmark<>::random_data<ScalarT>(size);
@@ -254,7 +254,7 @@ BENCHMARK(scal3op, syclblas_level_1) {
 BENCHMARK(axpy3op, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
                                    3.78164387328};
@@ -298,11 +298,11 @@ BENCHMARK(axpy3op, syclblas_level_1) {
 BENCHMARK(blas1, syclblas_level_1) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
-  IndexType size = params;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(3.135345123);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto inx = ex.template allocate<ScalarT>(size);
   auto iny = ex.template allocate<ScalarT>(size);

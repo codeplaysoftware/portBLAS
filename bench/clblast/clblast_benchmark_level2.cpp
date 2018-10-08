@@ -32,7 +32,7 @@
 
 BENCHMARK_NAME_FORMAT(clblast_level_2) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
         << "_" << std::get<1>(params) << "_" << std::get<2>(params);
   return fname.str();
 
@@ -73,8 +73,8 @@ BENCHMARK(gemv, clblast_level_2) {
     throw std::runtime_error("Got invalid transpose parameter!");
   }
 
-  ScalarT alpha = ScalarT(1);
-  ScalarT beta = ScalarT(1);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
+  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
   // Input matrix
   size_t msize = m * n;
   std::vector<ScalarT> a_m_host = benchmark<>::random_data<ScalarT>(msize);

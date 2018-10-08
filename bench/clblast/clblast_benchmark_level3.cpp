@@ -32,7 +32,7 @@
 
 BENCHMARK_NAME_FORMAT(clblast_level_3) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
         << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
         << std::get<3>(params) << "_" << std::get<4>(params);
   return fname.str();
@@ -76,8 +76,8 @@ BENCHMARK(gemm, clblast_level_3) {
   clblast::Transpose a_transpose = translate_transposition(t_a);
   clblast::Transpose b_transpose = translate_transposition(t_b);
 
-  ScalarT alpha = ScalarT(1);
-  ScalarT beta = ScalarT(1);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
+  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
 
   size_t a_size = m * k;
   std::vector<ScalarT> a_host = benchmark<>::random_data<ScalarT>(a_size);

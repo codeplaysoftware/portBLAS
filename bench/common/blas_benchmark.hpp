@@ -48,6 +48,32 @@
 #include "clwrap.hpp"
 #include "range.hpp"
 
+/**
+ * @fn type_string
+ * @brief Generate a string describing the type T. Currently only supports `float` and `double`.
+ * 
+ * This function uses C++ template specialisation to dispatch the correct variant of `type_string`. 
+ * e.g. calling: 
+ *    `type_string<Float>()`
+ * will return "float", while calling: 
+ *    `type_string<Int>()`
+ * will return "unknown"
+ */
+template <typename T>
+const inline std::string type_string() {
+  return "unknown";
+}
+
+template <>
+const inline std::string type_string<float>() {
+  return "float";
+}
+
+template <>
+const inline std::string type_string<double>() {
+  return "double";
+}
+
 template <typename TimeT = std::chrono::nanoseconds,
           typename ClockT = std::chrono::system_clock, typename FlopsT = double>
 struct benchmark {
@@ -73,6 +99,15 @@ struct benchmark {
     std::vector<ScalarT> v = std::vector<ScalarT>(size);
     std::fill(v.begin(), v.end(), const_value);
     return v;
+  }
+
+  /**
+   * @fn random_scalar
+   * @brief Generates a random scalar value, using an arbitrary low quality algorithm.
+   */
+  template <typename ScalarT>
+  static ScalarT random_scalar() {
+    return 1e-3 * ((rand() % 2000) - 1000);
   }
 
   /**
@@ -108,6 +143,15 @@ struct benchmark {
   static constexpr const size_t text_name_length = 50;
   static constexpr const size_t text_iterations_length = 15;
   static constexpr const size_t text_flops_length = 10;
+
+  /**
+   * @fn typestr
+   * @brief Print the type of a given type T. Currently only supports `float` and `double`.
+   */
+  template<typename T>
+  static std::string typestr() {
+    return type_string<T>();
+  }
 
   static std::string align_left(const std::string& text, size_t len,
                                 size_t offset = 0) {
