@@ -67,19 +67,19 @@ typename Executor::Return_Type _select_gemm(
                                                 T(_alpha), T(_beta));          \
       ret = ex.gemm_executor(gemm);                                            \
     } else {                                                                   \
-      auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>(          \
+      auto gemm = make_gemm_no_local_mem<ClSize, TileT, _trans_a, _trans_b>(   \
           buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
       ret = ex.gemm_executor(gemm);                                            \
     }                                                                          \
     return ret;                                                                \
   }
 #else
-#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                   \
-  if (_TransA == _trans_a && _TransB == _trans_b) {                 \
-    auto gemm = make_gemm_no_local_mem<WgSize, _trans_a, _trans_b>( \
-        buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));         \
-    ret = ex.gemm_executor(gemm);                                   \
-    return ret;                                                     \
+#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                \
+  if (_TransA == _trans_a && _TransB == _trans_b) {              \
+    auto gemm = make_gemm_reference<WgSize, _trans_a, _trans_b>( \
+        buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));      \
+    ret = ex.gemm_executor(gemm);                                \
+    return ret;                                                  \
   }
 #endif
   const bool NoTrans = false;
@@ -92,7 +92,7 @@ typename Executor::Return_Type _select_gemm(
 
 #undef ENABLE_GEMM_TRANSPOSE
   return ret;
-}
+}  // namespace blas
 
 /*!
  * @brief This is a top-level wrapper for GemmFactory, which provides a
@@ -171,7 +171,7 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
 #elif defined(INTEL_GPU)
   BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 64, 4, 4, 16, 16);
   BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 64, 2, 2, 8, 8);
-  BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 8, 8);
+  BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 16, 16);
 #elif defined(RCAR)
   if (_M < 512 && _N < 512) {
     BIND_DEFAULT TO_TPARAMS(32, false, 128, 4, 8, 8, 4);
