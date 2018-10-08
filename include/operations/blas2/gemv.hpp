@@ -33,7 +33,10 @@
 
 namespace blas {
 
-/**** ADD A SET OF COLUMNS, 1 ROW PER THREAD ****/
+/**
+ * @struct AddSetColumns
+ * @brief Tree node representing a column sum (reduction?) - i.e. summing a row, with one row per thread
+ */
 template <class RHS>
 struct AddSetColumns {
   using value_type = typename RHS::value_type;
@@ -69,13 +72,20 @@ struct AddSetColumns {
   void bind(cl::sycl::handler &h) { r.bind(h); }
 };
 
+/**
+ * @fn make_addSetColumns
+ * @brief Constructs an AddSetColumns structure. 
+ */
 template <class RHS>
 AddSetColumns<RHS> make_addSetColumns(RHS &r) {
   return AddSetColumns<RHS>(r);
 }
 
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
-
+/**
+ * @struct Gemv_Row
+ * @brief Tree node representing a row-based/row-parallel generalised matrix vector multiplication. 
+ */
 template <unsigned int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           class LHS, class RHS1, class RHS2>
 struct Gemv_Row {
@@ -152,45 +162,7 @@ struct Gemv_Row {
         l.eval(rowid, id_col_thr) = val;
       }
     } else {
-
-
-
-#ifdef GROUP_OF_ROWS
-      for (IndexType id_row = frs_row; (id_row < lst_row); id_row++) {
-        l.eval(id_row, id_col_thr) = val;
-      }
-#endif
-
-
-
-
       if (interLoop == 1) {
-
-
-#ifdef GROUP_OF_ROWS
-        for (IndexType id_col = frs_col; id_col < lst_col; id_col += localSz) {
-          auto elm = r2.eval(id_col);
-          for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
-               row++, id_row++) {
-            if (Lower && Upper && Diag && !Unit) {
-              auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
-              l.eval(id_row, id_col_thr) =
-                  addOp2_struct::eval(l.eval(id_row, id_col_thr), prod);
-            } else {
-              if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
-                  (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
-                l.eval(id_row, id_col_thr) =
-                    addOp2_struct::eval(l.eval(id_row, id_col_thr), prod);
-              }
-              if (Diag && Unit && (id_row == id_col)) {
-                l.eval(id_row, id_col_thr) = addOp2_struct::eval(
-                    l.eval(id_row, id_col_thr), r1.eval(id_row, id_col));
-              }
-            }
-          }
-        }
-#else
         if (id_col_thr < dimC) {
           for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
                row++, id_row++) {
@@ -218,9 +190,6 @@ struct Gemv_Row {
             l.eval(id_row, id_col_thr) = val;
           }
         }
-#endif
-
-
       } else {
         // There's an implied question mark after each of these comments. 
         // They are just attempts to understand the code! 
@@ -282,9 +251,11 @@ struct Gemv_Row {
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
 
+    // Get the dimensions of the row and column
     IndexType dimR = r1.getSizeR();
     IndexType dimC = r1.getSizeC();
 
+    // 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
     IndexType shrSz = shrMemSize / localSz;
 
@@ -315,39 +286,7 @@ struct Gemv_Row {
       for (IndexType rowid = frs_row; rowid < lst_row; rowid += shrSz) {
         value_type val = addOp2_struct::init(r2);
         auto blqSz = std::min(shrSz, lst_row - rowid);
-#ifdef GROUP_OF_ROWS
-        for (IndexType row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
-          shrMem[row * localSz + localid] = val;
-        }
-#endif
         if (interLoop == 1) {
-#ifdef GROUP_OF_ROWS
-          for (IndexType id_col = frs_col; id_col < lst_col;
-               id_col += localSz) {
-            auto elm = r2.eval(id_col);
-            for (IndexType row = 0, id_row = rowid; (row < blqSz);
-                 row++, id_row++) {
-              if (Lower && Upper && Diag && !Unit) {
-                auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
-                shrMem[row * localSz + localid] =
-                    addOp2_struct::eval(shrMem[row * localSz + localid], prod);
-              } else {
-                if ((Lower &&
-                     ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
-                    (Upper &&
-                     (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                  auto prod = prdOp2_struct::eval(r1.eval(id_row, id_col), elm);
-                  shrMem[row * localSz + localid] = addOp2_struct::eval(
-                      shrMem[row * localSz + localid], prod);
-                }
-                if (Diag && Unit && (id_row == id_col)) {
-                  shrMem[row * localSz + localid] = addOp2_struct::eval(
-                      shrMem[row * localSz + localid], r1.eval(id_row, id_col));
-                }
-              }
-            }
-          }
-#else
           for (IndexType row = 0, id_row = rowid; row < blqSz;
                row++, id_row++) {
             val = (Diag && Unit &&
@@ -374,7 +313,6 @@ struct Gemv_Row {
             }
             shrMem[row * localSz + localid] = val;
           }
-#endif
         } else {
           for (IndexType row = 0, id_row = rowid; row < blqSz;
                row++, id_row++) {
@@ -506,7 +444,10 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Row(
 
 /**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
 
-// template <class LHS, class RHS1, class RHS2>
+/**
+ * @struct Gemv_Col
+ * @brief Tree node representing a Gemv, with parallel expressed across columns * 
+ */
 template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS, class RHS1,
           class RHS2>
 struct Gemv_Col {
