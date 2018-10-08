@@ -73,13 +73,6 @@ auto get_size(ContainerT &c)
   return get_size_struct<ContainerT>::get_size(c);
 }
 
-/*template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<ScalarT>>
-using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>>;
-
-template <typename ScalarT>
-using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;*/
-
 /*!
  * @brief Alias to a read_write host accessor.
  */
