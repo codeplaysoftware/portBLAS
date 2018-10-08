@@ -40,40 +40,40 @@ namespace blas {
 
 template <typename Executor, typename T, typename IncrementType,
           typename IndexType>
-inline typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView
+inline typename VectorViewTypeTrace<Executor, T, IndexType, IncrementType>::Type
 make_vector_view(Executor &ex, T *vptr, IncrementType inc, IndexType sz) {
   auto container = ex.get_range_access(vptr);
   IndexType offset = ex.get_offset(vptr);
   using LeafNode =
-      typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView;
+      typename VectorViewTypeTrace<Executor, T, IndexType, IncrementType>::Type;
   return LeafNode{container, offset, inc, sz};
 }
 
 template <typename Executor, typename T, typename IncrementType,
           typename IndexType>
-inline typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView
+inline typename VectorViewTypeTrace<Executor, T, IndexType, IncrementType>::Type
 make_vector_view(Executor &, buffer_iterator<T> buff, IncrementType inc,
                  IndexType sz) {
   using LeafNode =
-      typename ViewTypeTrace<Executor, T, IndexType, IncrementType>::VectorView;
+      typename VectorViewTypeTrace<Executor, T, IndexType, IncrementType>::Type;
   return LeafNode{buff, inc, sz};
 }
 
 template <typename Executor, typename T, typename IndexType, typename Opertype>
-inline typename ViewTypeTrace<Executor, T, IndexType>::MatrixView
+inline typename MatrixViewTypeTrace<Executor, T, IndexType>::Type
 make_matrix_view(Executor &ex, T *vptr, IndexType m, IndexType n, IndexType lda,
                  Opertype accessOpr) {
-  using LeafNode = typename ViewTypeTrace<Executor, T, IndexType>::MatrixView;
+  using LeafNode = typename MatrixViewTypeTrace<Executor, T, IndexType>::Type;
   auto container = ex.get_range_access(vptr);
   IndexType offset = ex.get_offset(vptr);
   return LeafNode{container, m, n, accessOpr, lda, offset};
 }
 
 template <typename Executor, typename T, typename IndexType, typename Opertype>
-inline typename ViewTypeTrace<Executor, T, IndexType>::MatrixView
+inline typename MatrixViewTypeTrace<Executor, T, IndexType>::Type
 make_matrix_view(Executor &ex, buffer_iterator<T> buff, IndexType m,
                  IndexType n, IndexType lda, Opertype accessOpr) {
-  using LeafNode = typename ViewTypeTrace<Executor, T, IndexType>::MatrixView;
+  using LeafNode = typename MatrixViewTypeTrace<Executor, T, IndexType>::Type;
   return LeafNode{buff, m, n, accessOpr, lda};
 }
 

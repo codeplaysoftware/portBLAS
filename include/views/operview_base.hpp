@@ -44,8 +44,8 @@ expression.
 @tparam ContainerT Type of the container that is stored inside.
 */
 
-template <class ValueT_, class ContainerT_, typename IndexType_ = int,
-          typename IncrementType_ = int>
+template <class ValueT_, class ContainerT_, typename IndexType_,
+          typename IncrementType_>
 struct vector_view {
   using ValueT = ValueT_;
   using ContainerT = ContainerT_;
@@ -209,8 +209,9 @@ struct vector_view {
     return data_[ind];
   }
 
-  template <class X, class Y>
-  friend std::ostream &operator<<(std::ostream &stream, vector_view<X, Y> opvS);
+  template <class X, class Y, typename IndxT, typename IncrT>
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  vector_view<X, Y, IndxT, IncrT> opvS);
 
   void printH(const char *name) {
     int frst = 1;
@@ -231,7 +232,7 @@ struct vector_view {
 @tparam ValueT Value type of the container.
 @tparam ContainerT Type of the container.
  */
-template <class ValueT_, class ContainerT_, typename IndexType_ = int>
+template <class ValueT_, class ContainerT_, typename IndexType_>
 struct matrix_view {
   // Information related to the data
   using ValueT = ValueT_;
@@ -508,14 +509,19 @@ struct matrix_view {
   }
 };
 
-template <typename Executor, typename T, typename IndexType = int,
-          typename IncrementType = int>
-struct ViewTypeTrace {
+template <typename Executor, typename T, typename IndexType,
+          typename IncrementType>
+struct VectorViewTypeTrace {
   using ScalarT = typename RemoveAll<T>::Type;
-  using VectorView =
+  using Type =
       vector_view<ScalarT, typename Executor::template ContainerT<ScalarT>,
                   IndexType, IncrementType>;
-  using MatrixView =
+};
+
+template <typename Executor, typename T, typename IndexType>
+struct MatrixViewTypeTrace {
+  using ScalarT = typename RemoveAll<T>::Type;
+  using Type =
       matrix_view<ScalarT, typename Executor::template ContainerT<ScalarT>,
                   IndexType>;
 };

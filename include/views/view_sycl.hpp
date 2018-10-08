@@ -37,10 +37,15 @@ namespace blas {
 
 template <typename Executor, typename T, typename IndexType,
           typename IncrementType>
-struct ViewTypeTrace<Executor, buffer_iterator<T>, IndexType, IncrementType> {
-  using VectorView = vector_view<T, typename Executor::template ContainerT<T>,
-                                 IndexType, IncrementType>;
-  using MatrixView =
+struct VectorViewTypeTrace<Executor, buffer_iterator<T>, IndexType,
+                           IncrementType> {
+  using Type = vector_view<T, typename Executor::template ContainerT<T>,
+                           IndexType, IncrementType>;
+};
+
+template <typename Executor, typename T, typename IndexType>
+struct MatrixViewTypeTrace<Executor, buffer_iterator<T>, IndexType> {
+  using Type =
       matrix_view<T, typename Executor::template ContainerT<T>, IndexType>;
 };
 
@@ -68,12 +73,12 @@ auto get_size(ContainerT &c)
   return get_size_struct<ContainerT>::get_size(c);
 }
 
-template <typename ScalarT, int dim = 1,
+/*template <typename ScalarT, int dim = 1,
           typename Allocator = cl::sycl::default_allocator<ScalarT>>
 using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>>;
 
 template <typename ScalarT>
-using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;
+using BufferMatrixView = matrix_view<ScalarT, bufferT<ScalarT>>;*/
 
 /*!
  * @brief Alias to a read_write host accessor.
@@ -281,8 +286,9 @@ struct vector_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_, IncrementType_> {
   }
 
   /**** PRINTING ****/
-  template <class X, class Y>
-  friend std::ostream &operator<<(std::ostream &stream, vector_view<X, Y> opvS);
+  template <class X, class Y, typename IndxT, typename IncrT>
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  vector_view<X, Y, IndxT, IncrT> opvS);
 
   void printH(const char *name) {
     int frst = 1;
@@ -419,21 +425,22 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
   inline long getDisp() const { return disp_; }
 
   /**** OPERATORS ****/
-  matrix_view<ScalarT, ContainerT> operator+(IndexType disp) {
-    return matrix_view<ScalarT, ContainerT>(
+  matrix_view<ScalarT, ContainerT, IndexType_> operator+(IndexType disp) {
+    return matrix_view<ScalarT, ContainerT, IndexType_>(
         this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
         this->accessOpr_, this->sizeL_, this->disp_ + disp);
   }
 
-  matrix_view<ScalarT, ContainerT> operator()(IndexType i, IndexType j) {
+  matrix_view<ScalarT, ContainerT, IndexType_> operator()(IndexType i,
+                                                          IndexType j) {
     if (!(accessDev_ ^ accessOpr_)) {
       // ACCESING BY ROWS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<ScalarT, ContainerT, IndexType_>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
     } else {
       // ACCESING BY COLUMNS
-      return matrix_view<ScalarT, ContainerT>(
+      return matrix_view<ScalarT, ContainerT, IndexType_>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
           this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
     }

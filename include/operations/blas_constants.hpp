@@ -42,10 +42,7 @@
   struct constant<type, indicator> {                   \
     static const type value;                           \
   };                                                   \
-  const type constant<type, indicator>::value = val;  // temporary work around
-                                                      // for duplicator issue
-                                                      // will be fixed int the
-                                                      // next release
+  const type constant<type, indicator>::value = val;
 
 namespace blas {
 
@@ -162,11 +159,7 @@ SYCLBLAS_DEFINE_CONSTANT(
   };                                                                           \
   const IndexValueTuple<data_type, index_type>                                 \
       constant<IndexValueTuple<data_type, index_type>, indicator>::value =     \
-          IndexValueTuple<data_type, index_type>(                              \
-              index_value, data_value);  // temporary work around
-                                         // for duplicator issue
-                                         // will be fixed int the
-                                         // next release
+          IndexValueTuple<data_type, index_type>(index_value, data_value);
 
 #define INDEX_TYPE_CONSTANT(data_type, index_type) \
   SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \

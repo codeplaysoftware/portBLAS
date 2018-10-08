@@ -175,8 +175,8 @@ inline bool do_check<false>(bool) {
  *        different implementations of the GEMM kernel where the is no
  * local memory available on the device.
  *
- * To use the function, each item of a kernel launched with nd_range given by
- * NoLocalGemmFactory::get_nd_range() should call eval().
+ * To use the function, each item of a kernel dispatched with an nd_range given
+ * by NoLocalGemmFactory::get_nd_range() should call eval().
  *
  * @tparam ClSize  the size of the cache line of the architecture
  *                 This parameter has been reserved for further optimisation
