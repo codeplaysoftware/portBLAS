@@ -84,34 +84,48 @@ struct strip_asp {
 };
 
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__COMPUTECPP__)
-#define GENERATE_STRIP_ASP(ENTRY_TYPE)                                 \
+#define GENERATE_STRIP_ASP(entry_type, pointer_type)                   \
   template <>                                                          \
   struct strip_asp<typename std::remove_pointer<                       \
-      typename cl::sycl::constant_ptr<ENTRY_TYPE>::pointer_t>::type> { \
-    typedef ENTRY_TYPE type;                                           \
-  };                                                                   \
-  template <>                                                          \
-  struct strip_asp<typename std::remove_pointer<                       \
-      typename cl::sycl::private_ptr<ENTRY_TYPE>::pointer_t>::type> {  \
-    typedef ENTRY_TYPE type;                                           \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct strip_asp<typename std::remove_pointer<                       \
-      typename cl::sycl::local_ptr<ENTRY_TYPE>::pointer_t>::type> {    \
-    typedef ENTRY_TYPE type;                                           \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct strip_asp<typename std::remove_pointer<                       \
-      typename cl::sycl::global_ptr<ENTRY_TYPE>::pointer_t>::type> {   \
-    typedef ENTRY_TYPE type;                                           \
+      typename cl::sycl::pointer_type<entry_type>::pointer_t>::type> { \
+    typedef entry_type type;                                           \
   };
 
-GENERATE_STRIP_ASP(IndexValueTuple<double>)
-GENERATE_STRIP_ASP(IndexValueTuple<float>)
-GENERATE_STRIP_ASP(double)
-GENERATE_STRIP_ASP(float)
+#define GENERATE_STRIP_ASP_LOCATION(data_type) \
+  GENERATE_STRIP_ASP(data_type, constant_ptr)  \
+  GENERATE_STRIP_ASP(data_type, private_ptr)   \
+  GENERATE_STRIP_ASP(data_type, local_ptr)     \
+  GENERATE_STRIP_ASP(data_type, global_ptr)
+
+GENERATE_STRIP_ASP_LOCATION(double)
+GENERATE_STRIP_ASP_LOCATION(float)
+#undef GENERATE_STRIP_ASP_LOCATION
+#undef GENERATE_STRIP_ASP
+
+#define GENERATE_STRIP_ASP_TUPLE(data_type, value_type, pointer_type)  \
+  template <>                                                          \
+  struct strip_asp<                                                    \
+      typename std::remove_pointer<typename cl::sycl::pointer_type<    \
+          IndexValueTuple<data_type, value_type>>::pointer_t>::type> { \
+    typedef IndexValueTuple<data_type, value_type> type;               \
+  };
+
+#define INDEX_VALUE_STRIP_ASP_LOCATION(data_type, index_type)   \
+  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, constant_ptr) \
+  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, private_ptr)  \
+  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, local_ptr)    \
+  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, global_ptr)
+
+INDEX_VALUE_STRIP_ASP_LOCATION(float, int)
+INDEX_VALUE_STRIP_ASP_LOCATION(float, long)
+INDEX_VALUE_STRIP_ASP_LOCATION(float, unsigned int)
+INDEX_VALUE_STRIP_ASP_LOCATION(float, unsigned long)
+INDEX_VALUE_STRIP_ASP_LOCATION(double, int)
+INDEX_VALUE_STRIP_ASP_LOCATION(double, long)
+INDEX_VALUE_STRIP_ASP_LOCATION(double, unsigned int)
+INDEX_VALUE_STRIP_ASP_LOCATION(double, unsigned long)
+#undef INDEX_VALUE_STRIP_ASP_LOCATION
+#undef GENERATE_STRIP_ASP_TUPLE
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
 /**
@@ -120,7 +134,8 @@ GENERATE_STRIP_ASP(float)
  * SYCL 1.2 defines different functions for abs for floating point
  * and integer numbers, following the OpenCL convention.
  * To choose the appropriate one we use this template specialization
- * that is enabled for floating point to use fabs, and abs for everything else.
+ * that is enabled for floating point to use fabs, and abs for everything
+ * else.
  */
 struct syclblas_abs {
   template <typename Type>

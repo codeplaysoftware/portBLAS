@@ -95,11 +95,11 @@ using blas_test_float = blas_templ_struct<float, MetadataT_, ExecutorType_>;
 // specialisation (with define guard) for double
 // #define NO_DOUBLE_SUPPORT
 #ifndef NO_DOUBLE_SUPPORT
-  template <class MetadataT_ = void, class ExecutorType_ = SYCL>
-  using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
-#else 
-  template <class MetadataT_ = void, class ExecutorType_ = SYCL>
-  using blas_test_double = ::testing::internal::None;
+template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
+#else
+template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+using blas_test_double = ::testing::internal::None;
 #endif
 
 // the test class itself
@@ -191,12 +191,6 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
             typename value_type = typename DataType::value_type>
   static bufferT<value_type> make_buffer(DataType &vec) {
     return bufferT<value_type>(vec.data(), vec.size() * sizeof(value_type));
-  }
-
-  template <typename value_type>
-  static vector_view<value_type, bufferT<value_type>> make_vview(
-      bufferT<value_type> &buf) {
-    return vector_view<value_type, bufferT<value_type>>(buf);
   }
 
   template <typename DeviceSelector,

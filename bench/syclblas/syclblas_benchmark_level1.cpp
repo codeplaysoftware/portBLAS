@@ -159,7 +159,7 @@ BENCHMARK(iamax, syclblas_level_1) {
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
   auto inx = ex.template allocate<ScalarT>(size);
-  auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  auto outI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(v1.data(), inx, size);
 
   benchmark<>::flops_units_t flops =
@@ -169,7 +169,7 @@ BENCHMARK(iamax, syclblas_level_1) {
       });
 
   ex.template deallocate<ScalarT>(inx);
-  ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
+  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(outI);
   return flops;
 }
 
@@ -180,7 +180,7 @@ BENCHMARK(iamin, syclblas_level_1) {
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   auto inx = ex.template allocate<ScalarT>(size);
-  auto outI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  auto outI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(v1.data(), inx, size);
 
   benchmark<>::flops_units_t flops =
@@ -190,7 +190,7 @@ BENCHMARK(iamin, syclblas_level_1) {
       });
 
   ex.template deallocate<ScalarT>(inx);
-  ex.template deallocate<IndexValueTuple<ScalarT>>(outI);
+  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(outI);
   return flops;
 }
 
@@ -310,7 +310,7 @@ BENCHMARK(blas1, syclblas_level_1) {
   auto inr2 = ex.template allocate<ScalarT>(1);
   auto inr3 = ex.template allocate<ScalarT>(1);
   auto inr4 = ex.template allocate<ScalarT>(1);
-  auto inrI = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  auto inrI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(v2.data(), iny, size);
 
@@ -331,7 +331,7 @@ BENCHMARK(blas1, syclblas_level_1) {
   ex.template deallocate<ScalarT>(inr2);
   ex.template deallocate<ScalarT>(inr3);
   ex.template deallocate<ScalarT>(inr4);
-  ex.template deallocate<IndexValueTuple<ScalarT>>(inrI);
+  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(inrI);
   return flops;
 }
 
