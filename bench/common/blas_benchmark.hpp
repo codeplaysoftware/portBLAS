@@ -60,18 +60,21 @@
  * will return "unknown"
  */
 template <typename T>
-const inline std::string type_string() {
-  return "unknown";
+const inline std::string& type_string() {
+  static const std::string str = "unknown";
+  return str;
 }
 
 template <>
-const inline std::string type_string<float>() {
-  return "float";
+const inline std::string& type_string<float>() {
+  static const std::string str = "float";
+  return str;
 }
 
 template <>
-const inline std::string type_string<double>() {
-  return "double";
+const inline std::string& type_string<double>() {
+  static const std::string str = "double";
+  return str;
 }
 
 template <typename TimeT = std::chrono::nanoseconds,
