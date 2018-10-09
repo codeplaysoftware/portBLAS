@@ -58,6 +58,7 @@ typename Executor::Return_Type _gemv_impl(
   if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
     throw std::invalid_argument("Erroneous parameter");
   }
+
   int accessOpr = (_Trans == 'n');
 
   IndexType M = (_Trans == 'n') ? _M : _N;
@@ -101,10 +102,89 @@ typename Executor::Return_Type _gemv_impl(
     ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
   }
 
+  // beta * y
   auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
+  // Finish the mv?
   auto addMOp = make_addSetColumns(mat1);
+  // (..) * alpha
   auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, addMOp);
+  // add up
   auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
+  // assign the result to
+  auto assignOp = make_op<Assign>(vy, addOp);
+  ret = ex.execute(assignOp, localSize);
+  return ret;
+}
+
+// Another definition of GEMV
+template <typename Executor, typename IndexType, typename T,
+          typename ContainerT0, typename ContainerT1, typename IncrementType,
+          typename ContainerT2>
+typename Executor::Return_Type _gemv_impl(
+    Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
+    ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
+    T _beta, ContainerT2 _vy, IncrementType _incy,
+    IndexType OptimisedLocalSize = 0, IndexType OptimisedScratchPadSize = 0,
+    IndexType Optimised_n_rows_WG = 0, IndexType Optimised_n_cols_WG = 0) {
+  typename Executor::Return_Type ret;
+  _Trans = tolower(_Trans);
+
+  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
+    throw std::invalid_argument("Erroneous parameter");
+  }
+
+  int accessOpr = (_Trans == 'n');
+
+  IndexType M = (_Trans == 'n') ? _M : _N;
+  IndexType N = (_Trans == 'n') ? _N : _M;
+
+  auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
+  auto vx = make_vector_view(ex, _vx, _incx, N);
+  auto vy = make_vector_view(ex, _vy, _incy, M);
+
+  const IndexType interLoop = 1;
+  const IndexType localSize =
+      (OptimisedLocalSize == 0) ? ex.get_policy_handler().get_work_group_size()
+                                : OptimisedLocalSize;
+  const IndexType n_rows_WG = (Optimised_n_rows_WG == 0)
+                                  ? ((mA.is_row_access()) ? 1 : localSize)
+                                  : std::min(M, Optimised_n_rows_WG);
+  const IndexType n_cols_WG = (Optimised_n_cols_WG == 0)
+                                  ? ((mA.is_row_access()) ? N : localSize)
+                                  : std::min(N, Optimised_n_cols_WG);
+  const IndexType scratchPadSize =
+      (OptimisedLocalSize == 0) ? localSize : OptimisedScratchPadSize;
+
+  const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
+  const IndexType nWG_row = (M - 1) / n_rows_WG + 1;
+  const IndexType globalSize = localSize * nWG_row * nWG_col;
+
+  const IndexType scratchSize =
+      (mA.is_row_access())
+          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
+          : nWG_col;
+
+  auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(M * scratchSize);
+  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, 0);
+
+  if (mA.is_row_access()) {
+    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWG_row, nWG_col,
+                                          scratchPadSize);
+    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
+  } else {
+    auto gemvC = make_Gemv_Col(mat1, mA, vx, nWG_row, nWG_col, scratchPadSize);
+    ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+  }
+
+  // beta * y
+  auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
+  // Finish the mv?
+  auto addMOp = make_addSetColumns(mat1);
+  // (..) * alpha
+  auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, addMOp);
+  // add up
+  auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
+  // assign the result to
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = ex.execute(assignOp, localSize);
   return ret;
