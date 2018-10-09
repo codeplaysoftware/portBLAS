@@ -32,7 +32,7 @@ using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_3) {
   std::ostringstream fname;
-  fname << typeid(ElemT).name() << "_" << name() << "_" << std::get<0>(params)
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
         << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
         << std::get<3>(params) << "_" << std::get<4>(params);
   return fname.str();
@@ -40,21 +40,22 @@ BENCHMARK_NAME_FORMAT(syclblas_level_3) {
 
 BENCHMARK(gemm, syclblas_level_3) {
   using ScalarT = ElemT;
+  using IndexType = unsigned int; 
 
   char const *t_a = std::get<0>(params);
   char const *t_b = std::get<1>(params);
-  const size_t m = std::get<2>(params);
-  const size_t k = std::get<3>(params);
-  const size_t n = std::get<4>(params);
+  const IndexType m = std::get<2>(params);
+  const IndexType k = std::get<3>(params);
+  const IndexType n = std::get<4>(params);
 
   size_t n_fl_ops = (2 * m * n * k);
 
-  size_t lda = t_a[0] == 'n' ? m : k;
-  size_t ldb = t_b[0] == 'n' ? k : n;
-  size_t ldc = m;
+  IndexType lda = t_a[0] == 'n' ? m : k;
+  IndexType ldb = t_b[0] == 'n' ? k : n;
+  IndexType ldc = m;
 
-  ScalarT alpha = ScalarT(1);
-  ScalarT beta = ScalarT(1);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
+  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
 
   std::vector<ScalarT> a = benchmark<>::random_data<ScalarT>(m * k);
   std::vector<ScalarT> b = benchmark<>::random_data<ScalarT>(k * n);
