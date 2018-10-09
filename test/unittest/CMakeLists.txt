@@ -53,4 +53,6 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   )
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")
+  install(TARGETS ${test_exec} RUNTIME DESTINATION bin)
+
 endforeach()

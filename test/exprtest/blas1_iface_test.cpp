@@ -25,11 +25,11 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas_test_float<>, blas_test_double<>> BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
-REGISTER_SIZE(::RANDOM_SIZE, interface1_test)
+REGISTER_SIZE(1023, interface1_test)
 REGISTER_STRD(1, interface1_test)
 REGISTER_PREC(float, 1e-4, interface1_test)
 REGISTER_PREC(double, 1e-6, interface1_test)
