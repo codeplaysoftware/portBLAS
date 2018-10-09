@@ -23,25 +23,25 @@
  *
  **************************************************************************/
 
-#include "../blas_benchmark2.hpp"
+#include "../common/blas_benchmark.hpp"
 
 #include <interface/blas1_interface.hpp>
 
 using namespace blas;
 
-BENCHMARK_NAME_FORMAT(blas_level_1) {
+BENCHMARK_NAME_FORMAT(syclblas_level_1) {
   std::ostringstream fname;
-  fname << name() << "_" << params;
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << params;
   return fname.str();
 }
 
-BENCHMARK(scal_bench, blas_level_1) {
+BENCHMARK(scal, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto in = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(v1.data(), in, size);
@@ -54,14 +54,14 @@ BENCHMARK(scal_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(axpy_bench, blas_level_1) {
+BENCHMARK(axpy, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto inx = ex.template allocate<ScalarT>(size);
   auto iny = ex.template allocate<ScalarT>(size);
@@ -79,10 +79,10 @@ BENCHMARK(axpy_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(asum_bench, blas_level_1) {
+BENCHMARK(asum, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   ScalarT vr;
@@ -103,10 +103,10 @@ BENCHMARK(asum_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(nrm2_bench, blas_level_1) {
+BENCHMARK(nrm2, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
@@ -125,11 +125,10 @@ BENCHMARK(nrm2_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(dot_bench, blas_level_1) {
+BENCHMARK(dot, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
@@ -152,10 +151,10 @@ BENCHMARK(dot_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(iamax_bench, blas_level_1) {
+BENCHMARK(iamax, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
 
@@ -174,10 +173,10 @@ BENCHMARK(iamax_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(iamin_bench, blas_level_1) {
+BENCHMARK(iamin, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   auto inx = ex.template allocate<ScalarT>(size);
@@ -195,12 +194,12 @@ BENCHMARK(iamin_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(scal2op_bench, blas_level_1) {
+BENCHMARK(scal2op, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
 
@@ -221,12 +220,12 @@ BENCHMARK(scal2op_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(scal3op_bench, blas_level_1) {
+BENCHMARK(scal3op, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
-  ScalarT alpha(2.4367453465);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v3 = benchmark<>::random_data<ScalarT>(size);
@@ -252,10 +251,10 @@ BENCHMARK(scal3op_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(axpy3op_bench, blas_level_1) {
+BENCHMARK(axpy3op, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
                                    3.78164387328};
@@ -296,14 +295,14 @@ BENCHMARK(axpy3op_bench, blas_level_1) {
   return flops;
 }
 
-BENCHMARK(blas1_bench, blas_level_1) {
+BENCHMARK(blas1, syclblas_level_1) {
   using ScalarT = ElemT;
-  using IndexType = int;
-  IndexType size = params;
+  using IndexType = unsigned int;
+  const IndexType size = params;
 
   std::vector<ScalarT> v1 = benchmark<>::random_data<ScalarT>(size);
   std::vector<ScalarT> v2 = benchmark<>::random_data<ScalarT>(size);
-  ScalarT alpha(3.135345123);
+  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   auto inx = ex.template allocate<ScalarT>(size);
   auto iny = ex.template allocate<ScalarT>(size);
@@ -336,10 +335,7 @@ BENCHMARK(blas1_bench, blas_level_1) {
   return flops;
 }
 
-SUITE(ADD(scal_bench), ADD(axpy_bench), ADD(asum_bench), ADD(nrm2_bench),
-      ADD(dot_bench), ADD(scal2op_bench), ADD(iamax_bench), ADD(scal3op_bench),
-      ADD(axpy3op_bench), ADD(blas1_bench))
+SUITE(ADD(scal), ADD(axpy), ADD(asum), ADD(nrm2), ADD(dot), ADD(scal2op),
+      ADD(iamax), ADD(scal3op), ADD(axpy3op), ADD(blas1))
 
-auto blas1_range = size_range(1 << 1, 1 << 24, 1 << 1);
-
-BENCHMARK_MAIN(blas1_range, 10);
+SYCL_BENCHMARK_MAIN(default_ranges::level_1, 10);
