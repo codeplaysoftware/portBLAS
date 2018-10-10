@@ -120,7 +120,7 @@ typename Executor::Return_Type _gemv_impl(
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
-typename Executor::Return_Type _gemv_impl(
+typename Executor::Return_Type _gemv_naive_impl(
     Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
     ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
     T _beta, ContainerT2 _vy, IncrementType _incy,
