@@ -29,7 +29,4 @@
 #include "blas2/gemv.hpp"
 #include "blas2/ger.hpp"
 
-
-
-
 #endif  // BLAS2_TREES_HPP

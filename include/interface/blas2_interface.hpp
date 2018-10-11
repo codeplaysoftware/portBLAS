@@ -35,13 +35,14 @@
 
 #include <executors/executor_sycl.hpp>
 #include <operations/blas2_trees.hpp>
+#include <types/transpositions.hpp>
 
 namespace blas {
 namespace internal {
 
 /*! _gemv.
  * @brief Implementation of the General Matrix Vector product.
- * 
+ *
  */
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
@@ -117,26 +118,42 @@ typename Executor::Return_Type _gemv_impl(
 }
 
 // Another definition of GEMV
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
+template <typename Executor,       // The type of the executor (e.g. sycl, etc)
+          typename IndexType,      // The index type for iteration
+          typename T,              // the type of elements in the matrix/vector
+          typename ContainerT0,    // Matrix type
+          typename ContainerT1,    // Vector type
+          typename IncrementType,  // Increment type for X/Y
+          typename ContainerT2     // Vector type
+          >
 typename Executor::Return_Type _gemv_naive_impl(
-    Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
-    ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
-    T _beta, ContainerT2 _vy, IncrementType _incy,
-    IndexType OptimisedLocalSize = 0, IndexType OptimisedScratchPadSize = 0,
-    IndexType Optimised_n_rows_WG = 0, IndexType Optimised_n_cols_WG = 0) {
+    Executor& ex,         // The executor upon which to run gemv
+    char _Trans,          // Transposition status of the matrix
+    IndexType _M,         // Dimension M
+    IndexType _N,         // Dimension N
+    T _alpha,             // Alpha
+    ContainerT0 _mA,      // The matrix
+    IndexType _lda,       // The leading dimension size of mA
+    ContainerT1 _vx,      // The vector
+    IncrementType _incx,  // the increment of elements in the vector
+    T _beta,              // beta
+    ContainerT2 _vy,      // vector y, and also the result destination
+    IncrementType _incy,  // the increment of elements in y
+    IndexType OptimisedLocalSize = 0,  // The best local size for this platform
+    IndexType OptimisedScratchPadSize = 0,  // the best size of the scratchpad
+    IndexType Optimised_n_rows_WG = 0,  // The best number of rows per workgroup
+    IndexType Optimised_n_cols_WG = 0   // best columns, as above
+) {
+  // Declare a return value.
   typename Executor::Return_Type ret;
-  _Trans = tolower(_Trans);
 
-  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
-    throw std::invalid_argument("Erroneous parameter");
-  }
+  // Pattern match on the character based API into a better type.
+  Transposition trans(_Trans);
 
-  int accessOpr = (_Trans == 'n');
+  int accessOpr = trans.isNormal();
 
-  IndexType M = (_Trans == 'n') ? _M : _N;
-  IndexType N = (_Trans == 'n') ? _N : _M;
+  IndexType M = trans.isNormal() ? _M : _N;
+  IndexType N = trans.isNormal() ? _N : _M;
 
   auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
   auto vx = make_vector_view(ex, _vx, _incx, N);
@@ -604,47 +621,49 @@ typename Executor::Return_Type _syr2_impl(
 }  // namespace internal
 
 /*!
- @brief Generalised matrix vector product with rectangular non-symmetric matrices. 
- 
- Generalised matrix vector product with rectangular non-symmetric matrices, i.e. computing 
- the mathematical operation: 
+ @brief Generalised matrix vector product with rectangular non-symmetric
+ matrices.
+
+ Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
+ computing the mathematical operation:
 
  y = alpha*A*x + beta*y
 
- See the netlib blas interface documentation for more details of the high level interface: 
-     http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
+ See the netlib blas interface documentation for more details of the high level
+ interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
- _gemv(
-    Executor& ex,        -- Executor (sycl, parallel, serial, etc)
-    char _Trans,         -- The transposition of the matrix parameter ("n","t","c")
-    IndexType _M,        -- The size of dimension M of the matrix (rows)
-    IndexType _N,        -- The size of dimension N of the matrix (columns)
-    T _alpha,            -- Scalar parameter Alpha
-    ContainerT0 _mA,     -- An array (LDA,N), with the first m*n elements containing the matrix
-    IndexType _lda,      -- Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,     -- An array of dimension at least: (1+(n-1)*abs(incx)) when trans = 'n'
-                                                            (1+(m-1)*abs(incx)) otherwise
-                            containing the vector "x"
-    IncrementType _incx, -- The increment for elements in x, which must be nonzero
-    T _beta,             -- Scalar parameter Beta
-    ContainerT2 _vy,     -- An array of dimension at least: (1+(m-1)*abs(incy)) when trans = "n"
-                                                            (1+(n-1)*abs(incy)) otherwise
-                            containing the vector "y" (if beta is nonzero). When finished, 
-                            y is overwritten with the updated vector. 
-    IncrementType _incy  -- The increment for elements in y, which must be nonzero.
-  ) 
  */
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
 typename Executor::Return_Type inline _gemv(
-    Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
-    ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
-    T _beta, ContainerT2 _vy, IncrementType _incy) {
-  // TODO: Here we can use some heuristics to select localn global, local, and
-  // scratch size per device
+    Executor& ex,         // Executor (sycl, parallel, serial, etc)
+    char _Trans,          // The transposition of the matrix ('n', 't', 'c')
+    IndexType _M,         // The size of dimension M of the matrix (rows)
+    IndexType _N,         // The size of dimension N of the matrix (columns)
+    T _alpha,             // Scalar parameter Alpha
+    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
+    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
+    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
+                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                          // containing the vector "x"
+    IncrementType _incx,  // The increment for elements in x (nonzero).
+    T _beta,              // Scalar parameter Beta
+    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
+                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+    // containing the vector "y" (if beta is nonzero). When
+    // finished, y is overwritten with the updated vector.
+    IncrementType _incy  // The increment for elements in y (nonzero).
+) {
+// TODO: Here we can use some heuristics to select localn global, local, and
+// scratch size per device
+#ifdef NAIVE_GEMV
+  return internal::_gemv_naive_impl(ex, _Trans, _M, _N, _alpha, _mA, _lda, _vx,
+                                    _incx, _beta, _vy, _incy);
+#else
   return internal::_gemv_impl(ex, _Trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
                               _beta, _vy, _incy);
+#endif
 }
 template <typename Executor, typename IndexType, typename ContainerT0,
           typename ContainerT1, typename IncrementType>
