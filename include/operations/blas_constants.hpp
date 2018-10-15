@@ -28,6 +28,7 @@
 
 #include <complex>
 #include <limits>
+#include <utility>
 
 /*!
 @def Macro used to define a specialization of the constant template struct.
@@ -41,25 +42,22 @@
   struct constant<type, indicator> {                   \
     static const type value;                           \
   };                                                   \
-  const type constant<type, indicator>::value = val;  // temporary work around
-                                                      // for duplicator issue
-                                                      // will be fixed int the
-                                                      // next release
+  const type constant<type, indicator>::value = val;
 
 namespace blas {
 
 /*!
 @brief Container for a scalar value and an index.
 */
-template <typename ScalarT>
+template <typename ScalarT, typename IndexType>
 struct IndexValueTuple {
   using value_type = ScalarT;
-  size_t ind;
   value_type val;
+  IndexType ind;
 
-  constexpr explicit IndexValueTuple(size_t _ind, value_type _val)
-      : ind(_ind), val(_val){};
-  size_t get_index() const { return ind; }
+  constexpr explicit IndexValueTuple(IndexType _ind, value_type _val)
+      : val(_val), ind(_ind){};
+  IndexType get_index() const { return ind; }
   value_type get_value() const { return val; }
 };
 
@@ -152,22 +150,36 @@ SYCLBLAS_DEFINE_CONSTANT(
     std::complex<double>, const_val::min,
     (std::complex<double>(std::numeric_limits<double>::min(),
                           std::numeric_limits<double>::min())))
-SYCLBLAS_DEFINE_CONSTANT(
-    IndexValueTuple<double>, const_val::imax,
-    (IndexValueTuple<double>(std::numeric_limits<size_t>::max(),
-                             std::numeric_limits<double>::max())))
-SYCLBLAS_DEFINE_CONSTANT(
-    IndexValueTuple<double>, const_val::imin,
-    (IndexValueTuple<double>(std::numeric_limits<size_t>::max(),
-                             std::numeric_limits<double>::min())))
-SYCLBLAS_DEFINE_CONSTANT(
-    IndexValueTuple<float>, const_val::imax,
-    (IndexValueTuple<float>(std::numeric_limits<size_t>::max(),
-                            std::numeric_limits<float>::max())))
-SYCLBLAS_DEFINE_CONSTANT(
-    IndexValueTuple<float>, const_val::imin,
-    (IndexValueTuple<float>(std::numeric_limits<size_t>::max(),
-                            std::numeric_limits<float>::min())))
+
+#define SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(data_type, index_type, indicator, \
+                                             index_value, data_value)          \
+  template <>                                                                  \
+  struct constant<IndexValueTuple<data_type, index_type>, indicator> {         \
+    static const IndexValueTuple<data_type, index_type> value;                 \
+  };                                                                           \
+  const IndexValueTuple<data_type, index_type>                                 \
+      constant<IndexValueTuple<data_type, index_type>, indicator>::value =     \
+          IndexValueTuple<data_type, index_type>(index_value, data_value);
+
+#define INDEX_TYPE_CONSTANT(data_type, index_type) \
+  SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \
+      data_type, index_type, const_val::imax,      \
+      (std::numeric_limits<index_type>::max()),    \
+      (std::numeric_limits<data_type>::max()))     \
+  SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \
+      data_type, index_type, const_val::imin,      \
+      (std::numeric_limits<index_type>::max()),    \
+      (std::numeric_limits<data_type>::min()))
+
+INDEX_TYPE_CONSTANT(float, int)
+INDEX_TYPE_CONSTANT(float, long)
+INDEX_TYPE_CONSTANT(float, unsigned int)
+INDEX_TYPE_CONSTANT(float, unsigned long)
+INDEX_TYPE_CONSTANT(double, int)
+INDEX_TYPE_CONSTANT(double, long)
+INDEX_TYPE_CONSTANT(double, unsigned int)
+INDEX_TYPE_CONSTANT(double, unsigned long)
+
 }  // namespace blas
 
 /*!

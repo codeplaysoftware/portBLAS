@@ -25,11 +25,12 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_args<double>> BlasTypes;
+typedef ::testing::Types<blas_test_float<>, blas_test_double<>> BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
-
-REGISTER_SIZE(::RANDOM_SIZE, interface1_test)
+// The register size has been reduced in order to make sure that the output
+// result range is within the IEEE 754-1985 standard for floating-point numbers.
+REGISTER_SIZE(1023, interface1_test)
 REGISTER_STRD(1, interface1_test)
 REGISTER_PREC(float, 1e-4, interface1_test)
 REGISTER_PREC(double, 1e-6, interface1_test)
@@ -39,9 +40,9 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
-
-  size_t size = TestClass::template test_size<test>();
-  long strd = TestClass::template test_strd<test>();
+  using IndexType = int;
+  IndexType size = TestClass::template test_size<test>();
+  IndexType strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
@@ -56,7 +57,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   TestClass::set_rand(vZ, size);
 
   // the values will first be computed in a for loop:
-  size_t imax = 0, imin = 0;
+  IndexType imax = 0, imin = 0;
   ScalarT asum(0);
   const ScalarT alpha(0.432);
   ScalarT dot(0);
@@ -68,7 +69,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   ScalarT _cos(0);
   ScalarT _sin(0);
   ScalarT giv(0);
-  for (size_t i = 0; i < size; i += strd) {
+  for (int i = 0; i < size; i += strd) {
     ScalarT &x = vX[i];
     ScalarT &y = vY[i];
     ScalarT &z = vZ[i];
@@ -112,10 +113,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   // for dot after _rot
   std::vector<ScalarT> vU(1);
   // for iamax/iamin
-  std::vector<IndexValueTuple<ScalarT>> vImax(
-      1, constant<IndexValueTuple<ScalarT>, const_val::imax>::value);
-  std::vector<IndexValueTuple<ScalarT>> vImin(
-      1, constant<IndexValueTuple<ScalarT>, const_val::imin>::value);
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vImax(
+      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value);
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vImin(
+      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
@@ -126,8 +127,8 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   auto gpu_vS = ex.template allocate<ScalarT>(1);
   auto gpu_vT = ex.template allocate<ScalarT>(1);
   auto gpu_vU = ex.template allocate<ScalarT>(1);
-  auto gpu_vImax = ex.template allocate<IndexValueTuple<ScalarT>>(1);
-  auto gpu_vImin = ex.template allocate<IndexValueTuple<ScalarT>>(1);
+  auto gpu_vImax = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
+  auto gpu_vImin = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
@@ -175,6 +176,6 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   ex.template deallocate<ScalarT>(gpu_vS);
   ex.template deallocate<ScalarT>(gpu_vT);
   ex.template deallocate<ScalarT>(gpu_vU);
-  ex.template deallocate<IndexValueTuple<ScalarT>>(gpu_vImax);
-  ex.template deallocate<IndexValueTuple<ScalarT>>(gpu_vImin);
+  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImax);
+  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImin);
 }

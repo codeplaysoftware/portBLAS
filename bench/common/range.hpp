@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) 2018 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename syclblas_benchmark.cpp
+ *  @filename range.hpp
  *
  **************************************************************************/
 
@@ -259,5 +259,17 @@ Range5D<Range1, Range2, Range3, Range4, Range5> nd_range(Range1 r1, Range2 r2,
                                                          Range5 r5) {
   return Range5D<Range1, Range2, Range3, Range4, Range5>(r1, r2, r3, r4, r5);
 }
+
+namespace default_ranges {
+auto level_1 = size_range(1 << 1, 1 << 24, 1 << 1);
+
+auto level_2 = nd_range(value_range({"n", "t", "c"}), size_range(2, 2 << 14, 2),
+                        size_range(2, 2 << 14, 2));
+
+auto level_3 = nd_range(value_range({"n", "t", "c"}),
+                        value_range({"n", "t", "c"}), size_range(2, 2 << 10, 2),
+                        size_range(2, 2 << 10, 2), size_range(2, 2 << 10, 2));
+
+}  // namespace default_ranges
 
 #endif  // include guard

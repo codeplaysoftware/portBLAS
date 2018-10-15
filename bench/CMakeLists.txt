@@ -11,63 +11,60 @@ include(FindOpenCL)
 include(FindComputeCpp)
 include(ConfigureSYCLBLAS)
 
-# Manually search for CLBLAST
-# if (DEFINED CLBLAST_ROOT) 
-#   set(CMAKE_PREFIX_PATH ${CLBLAST_ROOT})
-# else() 
-#   set(CMAKE_PREFIX_PATH "/usr/lib/clblast")
-# endif()
-
-# pkg_search_module(CLBLAST clblast)
-# pkg_check_modules(CLBLAST clblast)
-
-# if (CLBLAST_FOUND)
-#   add_executable(clblast_benchmarks clblast_benchmark.cpp)
-#   set_property(TARGET clblast_benchmarks PROPERTY CXX_STANDARD 11)
-#   include_directories(${CLBLAST_INCLUDE_DIRS})
-#   target_link_libraries(clblast_benchmarks PUBLIC ${CLBLAST_LIBRARIES})
-#   target_link_libraries(clblast_benchmarks PUBLIC ${OpenCL_LIBRARIES})
-# endif()
-
-# # Manually search for CLBLAS_ROOT
-# if (DEFINED CLBLAS_ROOT) 
-#   set(CMAKE_PREFIX_PATH ${CLBLAS_ROOT})
-# else ()
-#   set(CMAKE_PREFIX_PATH "/usr/lib/clblas")
-# endif()
-
-# pkg_search_module(CLBLAS clBLAS)
-# pkg_check_modules(CLBLAS clBLAS)
-
-# if (CLBLAS_FOUND)
-#   pkg_search_module(CLBLAS OPTIONAL clBLAS)
-#   pkg_check_modules(CLBLAS clBLAS OPTIONAL)
-#   add_executable(clblas_benchmarks clblas_benchmark.cpp)
-#   set_property(TARGET clblas_benchmarks PROPERTY CXX_STANDARD 11)
-#   include_directories(${CLBLAS_INCLUDE_DIRS})
-#   target_link_libraries(clblas_benchmarks ${CLBLAS_LIBRARIES})
-#   target_link_libraries(clblas_benchmarks ${OpenCL_LIBRARIES})
-# endif(CLBLAS_FOUND)
-
-add_executable(syclblas_benchmarks_level1 syclblas/syclblas_benchmark_level1.cpp)
-set_property(TARGET syclblas_benchmarks_level1 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(
-    TARGET syclblas_benchmarks_level1
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp
+# Add syclblas benchmarks.
+file(GLOB SYCL_BENCHMARK_SRCS
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
 )
-
-add_executable(syclblas_benchmarks_level2 syclblas/syclblas_benchmark_level2.cpp)
-set_property(TARGET syclblas_benchmarks_level2 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(
-    TARGET syclblas_benchmarks_level2
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
-)
-
-add_executable(syclblas_benchmarks_level3 syclblas/syclblas_benchmark_level3.cpp)
-set_property(TARGET syclblas_benchmarks_level3 PROPERTY CXX_STANDARD 11)
-add_sycl_to_target(
-    TARGET syclblas_benchmarks_level3
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
-)
-
+foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
+  get_filename_component(sycl_bench_exec ${syclblas_benchmark} NAME_WE)
+  set(TARGET sycl_bench_exec ${syclblas_benchmark})
+  add_executable(${sycl_bench_exec} ${syclblas_benchmark})
+  set_property(TARGET ${sycl_bench_exec} PROPERTY CXX_STANDARD 11)
+  add_sycl_to_target(
+    TARGET ${sycl_bench_exec}
+    SOURCES ${syclblas_benchmark}
+  )
+endforeach()
 include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS})
+
+# Try and also build CLBlast benchmarks.
+# Check to see if we've been passed an explicit path. 
+if (DEFINED CLBLAST_ROOT) 
+  message(STATUS "CLBlast root specified as : ${CLBLAST_ROOT}")
+  set(CMAKE_PREFIX_PATH ${CLBLAST_ROOT})
+else() 
+  # set a default path if not specified
+  message(STATUS "CLBlast root not specified by user, searching default path /usr/lib/clblast")
+  set(CMAKE_PREFIX_PATH "/usr/lib/clblast")
+endif()
+pkg_search_module(CLBLAST required clblast)
+pkg_check_modules(CLBLAST clblast)
+
+# If found, add the clblast benchmarks.
+if (CLBLAST_FOUND)
+  message(STATUS "CLBlast found!")
+  message(STATUS "CLBlast headers: ${CLBLAST_INCLUDE_DIRS}")
+  message(STATUS "CLBlast libraries: ${CLBLAST_LIBRARY_DIRS}")
+
+  include_directories(${CLBLAST_INCLUDE_DIRS})
+  link_directories(${CLBLAST_LIBRARY_DIRS})
+
+  file(GLOB CLBLAST_BENCHMARK_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level1.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level3.cpp
+  )
+
+  foreach(clblast_benchmark ${CLBLAST_BENCHMARK_SRCS})
+    get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
+    set(TARGET clblast_bench_exec ${clblast_benchmark})
+    add_executable(${clblast_bench_exec} ${clblast_benchmark})
+    set_property(TARGET ${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
+    target_link_libraries(${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
+    target_link_libraries(${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
+  endforeach()
+else()
+  message(STATUS "CLBlast not found, only building benchmarks for syclblas")
+endif()
