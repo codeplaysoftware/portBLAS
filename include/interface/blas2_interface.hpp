@@ -35,7 +35,7 @@
 
 #include <executors/executor_sycl.hpp>
 #include <operations/blas2_trees.hpp>
-#include <types/transpositions.hpp>
+#include <types/transposition_types.hpp>
 
 namespace blas {
 namespace internal {
@@ -48,22 +48,22 @@ template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
 typename Executor::Return_Type _gemv_impl(
-    Executor& ex, char _Trans, IndexType _M, IndexType _N, T _alpha,
+    Executor& ex, Transposition _Trans, IndexType _M, IndexType _N, T _alpha,
     ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
     T _beta, ContainerT2 _vy, IncrementType _incy,
     IndexType OptimisedLocalSize = 0, IndexType OptimisedScratchPadSize = 0,
     IndexType Optimised_n_rows_WG = 0, IndexType Optimised_n_cols_WG = 0) {
   typename Executor::Return_Type ret;
-  _Trans = tolower(_Trans);
+  // _Trans = tolower(_Trans);
 
-  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
-    throw std::invalid_argument("Erroneous parameter");
-  }
+  // if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c')) {
+  //   throw std::invalid_argument("Erroneous parameter");
+  // }
 
-  int accessOpr = (_Trans == 'n');
+  Access accessOpr = Access(_Trans);
 
-  IndexType M = (_Trans == 'n') ? _M : _N;
-  IndexType N = (_Trans == 'n') ? _N : _M;
+  IndexType M = (_Trans.isNormal()) ? _M : _N;
+  IndexType N = (_Trans.isNormal()) ? _N : _M;
 
   auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
   auto vx = make_vector_view(ex, _vx, _incx, N);
@@ -92,7 +92,7 @@ typename Executor::Return_Type _gemv_impl(
           : nWG_col;
 
   auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(M * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, 0);
+  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, Access::ColMajor());
 
   if (mA.is_row_access()) {
     auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWG_row, nWG_col,
@@ -128,7 +128,7 @@ template <typename Executor,       // The type of the executor (e.g. sycl, etc)
           >
 typename Executor::Return_Type _gemv_naive_impl(
     Executor& ex,         // The executor upon which to run gemv
-    char _Trans,          // Transposition status of the matrix
+    Transposition _Trans,          // Transposition status of the matrix
     IndexType _M,         // Dimension M
     IndexType _N,         // Dimension N
     T _alpha,             // Alpha
@@ -147,63 +147,63 @@ typename Executor::Return_Type _gemv_naive_impl(
   // Declare a return value.
   typename Executor::Return_Type ret;
 
-  // Pattern match on the character based API into a better type.
-  Transposition trans(_Trans);
+  // Work out the access pattern for the data, based on the transposition. 
+  Access accessOpr(_Trans);
+  
+  // row major if isNormal?
 
-  int accessOpr = trans.isNormal();
+  // IndexType M = trans.isNormal() ? _M : _N;
+  // IndexType N = trans.isNormal() ? _N : _M;
 
-  IndexType M = trans.isNormal() ? _M : _N;
-  IndexType N = trans.isNormal() ? _N : _M;
+  // auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
+  // auto vx = make_vector_view(ex, _vx, _incx, N);
+  // auto vy = make_vector_view(ex, _vy, _incy, M);
 
-  auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
-  auto vy = make_vector_view(ex, _vy, _incy, M);
+  // const IndexType interLoop = 1;
+  // const IndexType localSize =
+  //     (OptimisedLocalSize == 0) ? ex.get_policy_handler().get_work_group_size()
+  //                               : OptimisedLocalSize;
+  // const IndexType n_rows_WG = (Optimised_n_rows_WG == 0)
+  //                                 ? ((mA.is_row_access()) ? 1 : localSize)
+  //                                 : std::min(M, Optimised_n_rows_WG);
+  // const IndexType n_cols_WG = (Optimised_n_cols_WG == 0)
+  //                                 ? ((mA.is_row_access()) ? N : localSize)
+  //                                 : std::min(N, Optimised_n_cols_WG);
+  // const IndexType scratchPadSize =
+  //     (OptimisedLocalSize == 0) ? localSize : OptimisedScratchPadSize;
 
-  const IndexType interLoop = 1;
-  const IndexType localSize =
-      (OptimisedLocalSize == 0) ? ex.get_policy_handler().get_work_group_size()
-                                : OptimisedLocalSize;
-  const IndexType n_rows_WG = (Optimised_n_rows_WG == 0)
-                                  ? ((mA.is_row_access()) ? 1 : localSize)
-                                  : std::min(M, Optimised_n_rows_WG);
-  const IndexType n_cols_WG = (Optimised_n_cols_WG == 0)
-                                  ? ((mA.is_row_access()) ? N : localSize)
-                                  : std::min(N, Optimised_n_cols_WG);
-  const IndexType scratchPadSize =
-      (OptimisedLocalSize == 0) ? localSize : OptimisedScratchPadSize;
+  // const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
+  // const IndexType nWG_row = (M - 1) / n_rows_WG + 1;
+  // const IndexType globalSize = localSize * nWG_row * nWG_col;
 
-  const IndexType nWG_col = (N - 1) / n_cols_WG + 1;
-  const IndexType nWG_row = (M - 1) / n_rows_WG + 1;
-  const IndexType globalSize = localSize * nWG_row * nWG_col;
+  // const IndexType scratchSize =
+  //     (mA.is_row_access())
+  //         ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
+  //         : nWG_col;
 
-  const IndexType scratchSize =
-      (mA.is_row_access())
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col)
-          : nWG_col;
+  // auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(M * scratchSize);
+  // auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, Access::ColMajor());
 
-  auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(M * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize, 0);
+  // if (mA.is_row_access()) {
+  //   auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWG_row, nWG_col,
+  //                                         scratchPadSize);
+  //   ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
+  // } else {
+  //   auto gemvC = make_Gemv_Col(mat1, mA, vx, nWG_row, nWG_col, scratchPadSize);
+  //   ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+  // }
 
-  if (mA.is_row_access()) {
-    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWG_row, nWG_col,
-                                          scratchPadSize);
-    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-  } else {
-    auto gemvC = make_Gemv_Col(mat1, mA, vx, nWG_row, nWG_col, scratchPadSize);
-    ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
-  }
-
-  // beta * y
-  auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
-  // Finish the mv?
-  auto addMOp = make_addSetColumns(mat1);
-  // (..) * alpha
-  auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, addMOp);
-  // add up
-  auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
-  // assign the result to
-  auto assignOp = make_op<Assign>(vy, addOp);
-  ret = ex.execute(assignOp, localSize);
+  // // beta * y
+  // auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
+  // // Finish the mv?
+  // auto addMOp = make_addSetColumns(mat1);
+  // // (..) * alpha
+  // auto scalOp2 = make_op<ScalarOp, prdOp2_struct>(_alpha, addMOp);
+  // // add up
+  // auto addOp = make_op<BinaryOp, addOp2_struct>(scalOp1, scalOp2);
+  // // assign the result to
+  // auto assignOp = make_op<Assign>(vy, addOp);
+  // ret = ex.execute(assignOp, localSize);
   return ret;
 }
 
@@ -214,21 +214,20 @@ typename Executor::Return_Type _gemv_naive_impl(
 template <typename Executor, typename IndexType, typename ContainerT0,
           typename ContainerT1, typename IncrementType>
 typename Executor::Return_Type _trmv_impl(
-    Executor& ex, char _Uplo, char _Trans, char _Diag, IndexType _N,
+    Executor& ex, char _Uplo, Transposition _Trans, char _Diag, IndexType _N,
     ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
     IndexType OptimisedLocalSize = 0, IndexType OptimisedScratchPadSize = 0,
     IndexType Optimised_n_rows_WG = 0, IndexType Optimised_n_cols_WG = 0) {
-  _Trans = tolower(_Trans);
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
-  if ((_Trans != 'n') && (_Trans != 't') && (_Trans != 'c') && (_Uplo != 'u') &&
+  if ((_Uplo != 'u') &&
       (_Uplo != 'l') && (_Diag != 'u') && (_Diag != 'n')) {
     throw std::invalid_argument("Erroneous parameter");
   }
 
-  int accessOpr = (_Trans == 'n');
-  int triangOpr = (accessOpr) ? (_Uplo == 'u') : (_Uplo == 'l');
+  Access accessOpr(_Trans);
+  int triangOpr = (accessOpr.isRowMajor()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   IndexType N = _N;
   auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
@@ -257,7 +256,7 @@ typename Executor::Return_Type _trmv_impl(
 
   using T = typename scalar_type<ContainerT0>::ScalarT;
   auto valT1 = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, N, scratchSize, scratchSize, 0);
+  auto mat1 = make_matrix_view(ex, valT1, N, scratchSize, scratchSize, Access::ColMajor());
 
   typename Executor::Return_Type ret;
 
@@ -341,13 +340,13 @@ typename Executor::Return_Type _symv_impl(
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
-  int accessOpr = 1;
+  Access accessOpr = Access::RowMajor();
   int triangOpr = (_Uplo == 'u');
   IndexType N = _N;
   auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
   auto vx = make_vector_view(ex, _vx, _incx, N);
   auto vy = make_vector_view(ex, _vy, _incy, N);
-  auto mAT = make_matrix_view(ex, _mA, N, N, _lda, int(0));
+  auto mAT = make_matrix_view(ex, _mA, N, N, _lda, Access::ColMajor());
 
   const IndexType interLoop = 1;
 
@@ -379,12 +378,12 @@ typename Executor::Return_Type _symv_impl(
       ((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWG_col_R;
 
   auto valTR = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize_R);
-  auto matR = make_matrix_view(ex, valTR, N, scratchSize_R, scratchSize_R, 0);
+  auto matR = make_matrix_view(ex, valTR, N, scratchSize_R, scratchSize_R, Access::ColMajor());
 
   const IndexType scratchSize_C = nWG_col_C;
 
   auto valTC = blas::helper::make_sycl_iterator_buffer<T>(N * scratchSize_C);
-  auto matC = make_matrix_view(ex, valTC, N, scratchSize_C, scratchSize_C, 0);
+  auto matC = make_matrix_view(ex, valTC, N, scratchSize_C, scratchSize_C, Access::ColMajor());
 
   if (mA.is_row_access()) {  // ROWS ACCESS
     if (triangOpr == 1) {
@@ -444,8 +443,7 @@ typename Executor::Return_Type _ger_impl(
     IndexType Optimised_n_cols_WG = 0) {
   IndexType M = _M;
   IndexType N = _N;
-  int accessOpr = 1;
-  auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
+  auto mA = make_matrix_view(ex, _mA, M, N, _lda, Access::RowMajor());
   auto vx = make_vector_view(ex, _vx, _incx, M);
   auto vy = make_vector_view(ex, _vy, _incy, N);
 
@@ -502,10 +500,10 @@ typename Executor::Return_Type _syr_impl(
     IndexType OptimisedLocalSize = 0, IndexType OptimisedScratchPadSize = 0,
     IndexType Optimised_n_rows_WG = 0, IndexType Optimised_n_cols_WG = 0) {
   _Uplo = tolower(_Uplo);
-  int accessOpr = true;
+
   int triangOpr = (_Uplo == 'u');
   IndexType N = _N;
-  auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
+  auto mA = make_matrix_view(ex, _mA, N, N, _lda, Access::RowMajor());
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
   const IndexType localSize =
@@ -572,11 +570,10 @@ typename Executor::Return_Type _syr2_impl(
     IndexType Optimised_n_cols_WG = 0) {
   _Uplo = tolower(_Uplo);
 
-  int accessOpr = true;
   int triangOpr = (_Uplo == 'u');
   IndexType N = _N;
 
-  auto mA = make_matrix_view(ex, _mA, _N, _N, _lda, accessOpr);
+  auto mA = make_matrix_view(ex, _mA, _N, _N, _lda, Access::RowMajor());
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
@@ -657,14 +654,50 @@ typename Executor::Return_Type inline _gemv(
 ) {
 // TODO: Here we can use some heuristics to select localn global, local, and
 // scratch size per device
-#ifdef NAIVE_GEMV
-  return internal::_gemv_naive_impl(ex, _Trans, _M, _N, _alpha, _mA, _lda, _vx,
-                                    _incx, _beta, _vy, _incy);
-#else
-  return internal::_gemv_impl(ex, _Trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
+  return internal::_gemv_impl(ex, Transposition(_Trans), _M, _N, _alpha, _mA, _lda, _vx, _incx,
                               _beta, _vy, _incy);
-#endif
 }
+
+/*!
+ @brief Generalised matrix vector product with rectangular non-symmetric
+ matrices.
+
+ Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
+ computing the mathematical operation:
+
+ y = alpha*A*x + beta*y
+
+ See the netlib blas interface documentation for more details of the high level
+ interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
+
+ */
+template <typename Executor, typename IndexType, typename T,
+          typename ContainerT0, typename ContainerT1, typename IncrementType,
+          typename ContainerT2>
+typename Executor::Return_Type inline _gemv_naive(
+    Executor& ex,         // Executor (sycl, parallel, serial, etc)
+    char _Trans,          // The transposition of the matrix ('n', 't', 'c')
+    IndexType _M,         // The size of dimension M of the matrix (rows)
+    IndexType _N,         // The size of dimension N of the matrix (columns)
+    T _alpha,             // Scalar parameter Alpha
+    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
+    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
+    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
+                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                          // containing the vector "x"
+    IncrementType _incx,  // The increment for elements in x (nonzero).
+    T _beta,              // Scalar parameter Beta
+    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
+                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+    // containing the vector "y" (if beta is nonzero). When
+    // finished, y is overwritten with the updated vector.
+    IncrementType _incy  // The increment for elements in y (nonzero).
+) {
+  return internal::_gemv_naive_impl(ex, Transposition(_Trans), _M, _N, _alpha, _mA, _lda, _vx,
+                                    _incx, _beta, _vy, _incy);
+}
+
+
 template <typename Executor, typename IndexType, typename ContainerT0,
           typename ContainerT1, typename IncrementType>
 typename Executor::Return_Type inline _trmv(Executor& ex, char _Uplo,
@@ -674,7 +707,7 @@ typename Executor::Return_Type inline _trmv(Executor& ex, char _Uplo,
                                             IncrementType _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return internal::_trmv_impl(ex, _Uplo, _Trans, _Diag, _N, _mA, _lda, _vx,
+  return internal::_trmv_impl(ex, _Uplo, Transposition(_Trans), _Diag, _N, _mA, _lda, _vx,
                               _incx);
 }
 template <typename Executor, typename IndexType, typename T,

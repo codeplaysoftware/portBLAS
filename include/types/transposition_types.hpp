@@ -22,14 +22,17 @@
  *
  **************************************************************************/
 
+#ifndef TRANSPOSITION_TYPES_HPP
+#define TRANSPOSITION_TYPES_HPP
+
 #include <stdexcept>
 
 /**
- * @enum NTC
+ * @enum Trans
  * @brief The possible transposition options for a matrix, expressed
  * algebraically.
  */
-enum class NTC : char { Normal = 'n', Transposed = 't', Conjugate = 'c' };
+enum class Trans : char { Normal = 'n', Transposed = 't', Conjugate = 'c' };
 
 /**
  * @class Transposition
@@ -39,29 +42,31 @@ enum class NTC : char { Normal = 'n', Transposed = 't', Conjugate = 'c' };
  */
 class Transposition {
  private:
-  NTC trans;
+  Trans trans;
 
  public:
   Transposition(char x) {
     char lx = tolower(x);
     switch (lx) {
       case 'n':
-        trans = NTC::Normal;
+        trans = Trans::Normal;
         break;
       case 't':
-        trans = NTC::Transposed;
+        trans = Trans::Transposed;
         break;
       case 'c':
-        trans = NTC::Conjugate;
+        trans = Trans::Conjugate;
         break;
       default:
         throw std::invalid_argument("Invalid transposition argument");
     }
   }
 
-  NTC& get() { return trans; }
+  Trans& get() { return trans; }
 
-  bool isNormal() { return (trans == NTC::Normal); }
-  bool isTransposed() { return (trans == NTC::Transposed); }
-  bool isConjugate() { return (trans == NTC::Conjugate); }
+  bool isNormal() { return (trans == Trans::Normal); }
+  bool isTransposed() { return (trans == Trans::Transposed); }
+  bool isConjugate() { return (trans == Trans::Conjugate); }
 };
+
+#endif  // TRANSPOSITION_TYPES_HPP

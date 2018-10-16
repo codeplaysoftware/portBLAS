@@ -55,9 +55,9 @@ typename Executor::Return_Type _select_gemm(
     IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
   typename Executor::Return_Type ret;
 
-  auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, 0);
-  auto buffer_b = make_matrix_view(ex, _B, _K, _N, _ldb, 0);
-  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, 0);
+  auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, Access::ColMajor());
+  auto buffer_b = make_matrix_view(ex, _B, _K, _N, _ldb, Access::ColMajor());
+  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::ColMajor());
 #ifndef NAIVE_GEMM
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
