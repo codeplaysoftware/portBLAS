@@ -138,6 +138,14 @@ struct benchmark {
 
     // convert the time to flop/s based on the number of fl_ops that the
     // function performs
+    std::cout << "n_fl_ops: " << FlopsT(n_fl_ops) << std::endl;
+    std::cout << "n_fl_ops * numReps: " << FlopsT(n_fl_ops)*numReps << std::endl;
+    std::cout << "std::chrono::duration_cast<std::chrono::duration<double>>(dur).count(): " << std::chrono::duration_cast<std::chrono::duration<double>>(dur)
+               .count() << std::endl;
+    std::cout << "Overall: " << (FlopsT(n_fl_ops) * numReps) /
+           std::chrono::duration_cast<std::chrono::duration<double>>(dur)
+               .count() << std::endl;
+
     return (FlopsT(n_fl_ops) * numReps) /
            std::chrono::duration_cast<std::chrono::duration<double>>(dur)
                .count();
@@ -304,12 +312,12 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     run_benchmark(b, range_param, reps, ex, output);
   }
 
-#ifndef NO_DOUBLE_SUPPORT
-  auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
-  for (auto b : dbenchmarks) {
-    run_benchmark(b, range_param, reps, ex, output);
-  }
-#endif
+// #ifndef NO_DOUBLE_SUPPORT
+//   auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
+//   for (auto b : dbenchmarks) {
+//     run_benchmark(b, range_param, reps, ex, output);
+//   }
+// #endif
 
   return 0;
 }
