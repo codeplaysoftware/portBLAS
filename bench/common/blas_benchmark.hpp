@@ -50,14 +50,12 @@
 
 /**
  * @fn type_string
- * @brief Generate a string describing the type T. Currently only supports `float` and `double`.
- * 
- * This function uses C++ template specialisation to dispatch the correct variant of `type_string`. 
- * e.g. calling: 
- *    `type_string<Float>()`
- * will return "float", while calling: 
- *    `type_string<Int>()`
- * will return "unknown"
+ * @brief Generate a string describing the type T. Currently only supports
+ * `float` and `double`.
+ *
+ * This function uses C++ template specialisation to dispatch the correct
+ * variant of `type_string`. e.g. calling: `type_string<Float>()` will return
+ * "float", while calling: `type_string<Int>()` will return "unknown"
  */
 template <typename T>
 const inline std::string& type_string() {
@@ -106,11 +104,25 @@ struct benchmark {
 
   /**
    * @fn random_scalar
-   * @brief Generates a random scalar value, using an arbitrary low quality algorithm.
+   * @brief Generates a random scalar value, using an arbitrary low quality
+   * algorithm.
    */
   template <typename ScalarT>
   static ScalarT random_scalar() {
     return 1e-3 * ((rand() % 2000) - 1000);
+  }
+
+  /**
+   * @fn timef
+   * @brief Calculates the time spent executing the function func
+   */
+  template <typename F, typename... Args>
+  static TimeT timef(F func, Args&&... args) {
+    auto start = ClockT::now();
+
+    func(std::forward<Args>(args)...);
+
+    return std::chrono::duration_cast<TimeT>(ClockT::now() - start);
   }
 
   /**
@@ -129,23 +141,11 @@ struct benchmark {
     }
 
     for (size_t reps = 0; reps < numReps; reps++) {
-      auto start = ClockT::now();
-
-      func(std::forward<Args>(args)...);
-
-      dur += std::chrono::duration_cast<TimeT>(ClockT::now() - start);
+      dur += benchmark<>::timef(func, std::forward<Args>(args)...);
     }
 
     // convert the time to flop/s based on the number of fl_ops that the
     // function performs
-    std::cout << "n_fl_ops: " << FlopsT(n_fl_ops) << std::endl;
-    std::cout << "n_fl_ops * numReps: " << FlopsT(n_fl_ops)*numReps << std::endl;
-    std::cout << "std::chrono::duration_cast<std::chrono::duration<double>>(dur).count(): " << std::chrono::duration_cast<std::chrono::duration<double>>(dur)
-               .count() << std::endl;
-    std::cout << "Overall: " << (FlopsT(n_fl_ops) * numReps) /
-           std::chrono::duration_cast<std::chrono::duration<double>>(dur)
-               .count() << std::endl;
-
     return (FlopsT(n_fl_ops) * numReps) /
            std::chrono::duration_cast<std::chrono::duration<double>>(dur)
                .count();
@@ -157,9 +157,10 @@ struct benchmark {
 
   /**
    * @fn typestr
-   * @brief Print the type of a given type T. Currently only supports `float` and `double`.
+   * @brief Print the type of a given type T. Currently only supports `float`
+   * and `double`.
    */
-  template<typename T>
+  template <typename T>
   static std::string typestr() {
     return type_string<T>();
   }
@@ -312,12 +313,12 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     run_benchmark(b, range_param, reps, ex, output);
   }
 
-// #ifndef NO_DOUBLE_SUPPORT
-//   auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
-//   for (auto b : dbenchmarks) {
-//     run_benchmark(b, range_param, reps, ex, output);
-//   }
-// #endif
+  // #ifndef NO_DOUBLE_SUPPORT
+  //   auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
+  //   for (auto b : dbenchmarks) {
+  //     run_benchmark(b, range_param, reps, ex, output);
+  //   }
+  // #endif
 
   return 0;
 }

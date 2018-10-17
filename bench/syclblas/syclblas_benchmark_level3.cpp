@@ -25,23 +25,24 @@
 
 #include "../common/blas_benchmark.hpp"
 
+#include <cstdint>
 #include <interface/blas1_interface.hpp>
 #include <interface/blas3_interface.hpp>
-#include <cstdint>
 
 using namespace blas;
 
 BENCHMARK_NAME_FORMAT(syclblas_level_3) {
   std::ostringstream fname;
-  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
-        << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
-        << std::get<3>(params) << "_" << std::get<4>(params);
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_"
+        << std::get<0>(params) << "_" << std::get<1>(params) << "_"
+        << std::get<2>(params) << "_" << std::get<3>(params) << "_"
+        << std::get<4>(params);
   return fname.str();
 }
 
 BENCHMARK(gemm, syclblas_level_3) {
   using ScalarT = ElemT;
-  using IndexType = unsigned int; 
+  using IndexType = unsigned int;
 
   char const *t_a = std::get<0>(params);
   char const *t_b = std::get<1>(params);
@@ -49,20 +50,8 @@ BENCHMARK(gemm, syclblas_level_3) {
   const IndexType k = std::get<3>(params);
   const IndexType n = std::get<4>(params);
 
-  size_t _m = (size_t) m; 
-  size_t _n = (size_t) n; 
-  size_t _k = (size_t) k; 
-
-  size_t n_fl_ops = (2 * _m * _n * _k);
-  std::cout << "m * n = " << (_m*_n) << std::endl;
-  std::cout << "n * k = " << (_n*_k) << std::endl;
-  std::cout << "m * k = " << (_m*_k) << std::endl;
-  std::cout << "m * n * k = " << (_m*_n*_k) << std::endl;
-  unsigned long n_fl_ops_ul = (2 * _m * _n * _k);
-  uint64_t n_fl_ops_i64 = (2 * _m * _n * _k);
-  std::cout << "n_fl_ops (size_t) = " << n_fl_ops << std::endl;
-  std::cout << "n_fl_ops_ul (unsigned long) = " << n_fl_ops_ul << std::endl;
-  std::cout << "n_fl_ops_i64 (uint64_t) = " << n_fl_ops_i64 << std::endl;
+  size_t n_fl_ops = (static_cast<size_t>(2) * static_cast<size_t>(m) *
+                     static_cast<size_t>(n) * static_cast<size_t>(k));
 
   IndexType lda = t_a[0] == 'n' ? m : k;
   IndexType ldb = t_b[0] == 'n' ? k : n;
