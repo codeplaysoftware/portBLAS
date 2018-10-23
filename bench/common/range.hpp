@@ -77,7 +77,8 @@ class SizeRange : public Range<T> {
     return r;   // return
   }
   bool finished() {
-    bool _finished = v >= high;
+    // Ranges are *inclusive*
+    bool _finished = v > high;
     // act like a resettable latch - this allows us to iterate over a range
     // again once we've finished it - particularly useful for multidimensional ranges
     if (_finished) {
@@ -324,9 +325,9 @@ auto level_3 = concat_ranges(
     nd_range(value_range({"n", "t", "c"}), value_range({"n", "t", "c"}),
              size_range(512, 4096, 2), size_range(512, 4096, 2),
              size_range(512, 4096, 2)),
-    value_range({std::make_tuple("n", "n", 52900, 3136, 3),
-                 std::make_tuple("n", "n", 13225, 147, 64),
-                 std::make_tuple("n", "n", 147, 13225, 64)}));
+    value_range({std::make_tuple("n", "n", 8192, 8192, 8192),
+                 std::make_tuple("t", "n", 8192, 8192, 8192),
+                 std::make_tuple("n", "t", 8192, 8192, 8192)}));
 
 }  // namespace default_ranges
 
