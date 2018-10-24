@@ -32,18 +32,36 @@
 #include <views/view_sycl.hpp>
 
 namespace blas {
-template <class Output_T, class MA_T, class VX_T>
-struct NaiveGemv {
-  using value_type = typename VX_T::value_type;
-  using IndexType = typename VX_T::IndexType;
 
-  Output_T l;
-  MA_T r1;
-  VX_T r2;
-  IndexType nWG_row;
-  IndexType nWG_col;
-  IndexType shrMemSize;
+template <class Output_t, class Matrix_t, class Vector_t>
+struct NaiveGemv {
+  using value_type = typename Vector_t::value_type;
+  using IndexType = typename Vector_t::IndexType;
+
+  Output_t l;
+  Matrix_t matrix;
+  Vector_t vector;
+
+  NaiveGemv(Output_t &_l, Matrix_t &_matrix, Vector_t &_vector, IndexType &_nWgRow, IndexType &_nWgCol, IndexType &_sharedMemSize):
+    l(_l), matrix(_matrix), vector(_vector) {};
+
+    value_type eval(IndexType i) { 
+        auto dim = vector.getSize();
+
+        // initialise val to the correct type.
+        auto val = iniAddOp1_struct::eval(vector.eval(0));
+
+        // value_type val = {};
+
+        for (IndexType j = 0; j < dim; j++) { 
+            auto prod = prdOp2_struct::eval(matrix.eval(i,j), vector.eval(j));
+            val = addOp2_struct::eval(val, prod); 
+        }
+        return l.eval(i) = val; 
+    }
 };
+
+template <typename Output_t, typename Matrix_t, typename Vector_t> make_naive_gemm(Output_t &l, Matrix_t &matrix, Vector_t &vector, typename )
 
 }  // namespace blas
 

@@ -52,7 +52,7 @@ namespace blas {
 /*!
 @brief Macro for defining a binary operator.
 @param name Name of the operator.
-@param inital Initial value used in the init function of the oeprator.
+@param inital Initial value used in the init function of the operator.
 @param expr Return expression of the eval function of the operator.
 */
 #define SYCLBLAS_DEFINE_BINARY_OPERATOR(name, initial, expr)          \
