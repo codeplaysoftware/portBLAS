@@ -87,19 +87,19 @@ AddSetColumns<RHS> make_addSetColumns(RHS &r) {
  * @brief Tree node representing a row-based/row-parallel generalised matrix vector multiplication. 
  */
 template <unsigned int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class RHS1, class RHS2>
+          class LHS, class mA_T, class vX_T>
 struct Gemv_Row {
-  using value_type = typename RHS2::value_type;
-  using IndexType = typename RHS2::IndexType;
+  using value_type = typename vX_T::value_type;
+  using IndexType = typename vX_T::IndexType;
 
   LHS l;
-  RHS1 r1;
-  RHS2 r2;
+  mA_T r1;
+  vX_T r2;
   IndexType nWG_row;
   IndexType nWG_col;
   IndexType shrMemSize;
 
-  Gemv_Row(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+  Gemv_Row(LHS &_l, mA_T &_r1, vX_T &_r2, IndexType &_nWG_row,
            IndexType &_nWG_col, IndexType &_shrMemSize)
       : l(_l),
         r1(_r1),
@@ -384,20 +384,20 @@ struct Gemv_Row {
  
  make_Gemv_Row(
     LHS &l,
-    RHS1 &r1,
-    RHS2 &r2,
-    typename RHS2::IndexType nWG_row,
-    typename RHS2::IndexType nWG_col,
-    typename RHS2::IndexType shrMemSize
+    mA_T &r1,
+    vX_T &r2,
+    typename vX_T::IndexType nWG_row,
+    typename vX_T::IndexType nWG_col,
+    typename vX_T::IndexType shrMemSize
  )
  */
 template <unsigned int interLoop = 1, bool Lower = true, bool Diag = true,
-          bool Upper = true, bool Unit = false, typename LHS, typename RHS1,
-          typename RHS2>
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Row(
-    LHS &l, RHS1 &r1, RHS2 &r2, typename RHS2::IndexType nWG_row,
-    typename RHS2::IndexType nWG_col, typename RHS2::IndexType shrMemSize) {
-  return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2>(
+          bool Upper = true, bool Unit = false, typename LHS, typename mA_T,
+          typename vX_T>
+Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, mA_T, vX_T> make_Gemv_Row(
+    LHS &l, mA_T &r1, vX_T &r2, typename vX_T::IndexType nWG_row,
+    typename vX_T::IndexType nWG_col, typename vX_T::IndexType shrMemSize) {
+  return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, mA_T, vX_T>(
       l, r1, r2, nWG_row, nWG_col, shrMemSize);
 }
 
@@ -448,19 +448,19 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Row(
  * @struct Gemv_Col
  * @brief Tree node representing a Gemv, with parallel expressed across columns * 
  */
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS, class RHS1,
-          class RHS2>
+template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS, class mA_T,
+          class vX_T>
 struct Gemv_Col {
-  using value_type = typename RHS2::value_type;
-  using IndexType = typename RHS2::IndexType;
+  using value_type = typename vX_T::value_type;
+  using IndexType = typename vX_T::IndexType;
   LHS l;
-  RHS1 r1;
-  RHS2 r2;
+  mA_T r1;
+  vX_T r2;
   IndexType nWG_row;
   IndexType nWG_col;
   IndexType shrMemSize;
 
-  Gemv_Col(LHS &_l, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
+  Gemv_Col(LHS &_l, mA_T &_r1, vX_T &_r2, IndexType &_nWG_row,
            IndexType &_nWG_col, IndexType &_shrMemSize)
       : l(_l),
         r1(_r1),
@@ -625,13 +625,13 @@ struct Gemv_Col {
   }
 };
 
-// template <class LHS, class RHS1, class RHS2>
+// template <class LHS, class mA_T, class vX_T>
 template <bool Lower = true, bool Diag = true, bool Upper = true,
-          bool Unit = false, class LHS, class RHS1, class RHS2>
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, RHS1, RHS2> make_Gemv_Col(
-    LHS &l, RHS1 &r1, RHS2 &r2, typename RHS2::IndexType nWG_row,
-    typename RHS2::IndexType nWG_col, typename RHS2::IndexType shrMemSize) {
-  return Gemv_Col<Lower, Diag, Upper, Unit, LHS, RHS1, RHS2>(
+          bool Unit = false, class LHS, class mA_T, class vX_T>
+Gemv_Col<Lower, Diag, Upper, Unit, LHS, mA_T, vX_T> make_Gemv_Col(
+    LHS &l, mA_T &r1, vX_T &r2, typename vX_T::IndexType nWG_row,
+    typename vX_T::IndexType nWG_col, typename vX_T::IndexType shrMemSize) {
+  return Gemv_Col<Lower, Diag, Upper, Unit, LHS, mA_T, vX_T>(
       l, r1, r2, nWG_row, nWG_col, shrMemSize);
 }
 

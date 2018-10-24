@@ -26,17 +26,25 @@
 #ifndef GEMV_NAIVE_HPP
 #define GEMV_NAIVE_HPP
 
+#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
-#include <operations/blas_operators.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
-template <class RHS> 
-struct NaiveBlas {
+template <class Output_T, class MA_T, class VX_T>
+struct NaiveGemv {
+  using value_type = typename VX_T::value_type;
+  using IndexType = typename VX_T::IndexType;
 
+  Output_T l;
+  MA_T r1;
+  VX_T r2;
+  IndexType nWG_row;
+  IndexType nWG_col;
+  IndexType shrMemSize;
 };
 
-}
+}  // namespace blas
 
-#endif // GEMV_NAIVE_HPP
+#endif  // GEMV_NAIVE_HPP
