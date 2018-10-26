@@ -178,15 +178,18 @@ typename Executor::Return_Type _gemv_naive_impl(
   auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize,
                                Access::ColMajor());
 
-  if (mA.is_row_access()) {
-    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
-                                          scratchPadSize);
-    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-  } else {
-    auto gemvC =
-        make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
-  }
+  //   if (mA.is_row_access()) {
+  //     auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow,
+  //     nWGPerCol,
+  //                                           scratchPadSize);
+  //     ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
+  //   } else {
+  //     auto gemvC =
+  //         make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+  //     ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+  //   }
+  auto naiveGemv = make_naive_gemv(mat1, mA, vx);
+  ret = ex.execute(naiveGemv, localSize, globalSize);
 
   // beta * y
   auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);

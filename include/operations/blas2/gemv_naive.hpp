@@ -42,26 +42,56 @@ struct NaiveGemv {
   Matrix_t matrix;
   Vector_t vector;
 
-  NaiveGemv(Output_t &_l, Matrix_t &_matrix, Vector_t &_vector, IndexType &_nWgRow, IndexType &_nWgCol, IndexType &_sharedMemSize):
-    l(_l), matrix(_matrix), vector(_vector) {};
+  NaiveGemv(Output_t &_l, Matrix_t &_matrix, Vector_t &_vector)
+      : l(_l), matrix(_matrix), vector(_vector){};
 
-    value_type eval(IndexType i) { 
-        auto dim = vector.getSize();
+  inline IndexType getSize() const { return vector.getSizeR(); }
 
-        // initialise val to the correct type.
-        auto val = iniAddOp1_struct::eval(vector.eval(0));
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+    return ndItem.get_global_id(0) < matrix.getSizeR();
+  }
 
-        // value_type val = {};
+  value_type eval(IndexType i) {
+    auto dim = vector.getSize();
 
-        for (IndexType j = 0; j < dim; j++) { 
-            auto prod = prdOp2_struct::eval(matrix.eval(i,j), vector.eval(j));
-            val = addOp2_struct::eval(val, prod); 
-        }
-        return l.eval(i) = val; 
+    // initialise val to the correct type.
+    auto val = iniAddOp1_struct::eval(vector.eval(0));
+
+    // value_type val = {};
+
+    for (IndexType j = 0; j < dim; j++) {
+      auto prod = prdOp2_struct::eval(matrix.eval(i, j), vector.eval(j));
+      val = addOp2_struct::eval(val, prod);
     }
+    return l.eval(i) = val;
+  }
+
+  value_type eval(cl::sycl::nd_item<1> ndItem) {
+    IndexType globalId = ndItem.get_global_id(0);
+    IndexType globalSize = ndItem.get_global_range(0);
+
+    value_type acc = 0;
+    for (IndexType j = 0; j < vector.getSize(); j++) {
+      acc += vector.eval(j) * matrix.eval(globalId, j);
+    }
+    l.eval(globalId) = acc;
+
+    return acc;
+  }
+
+  void bind(cl::sycl::handler &h) {
+    l.bind(h);
+    matrix.bind(h);
+    vector.bind(h);
+  }
 };
 
-template <typename Output_t, typename Matrix_t, typename Vector_t> make_naive_gemm(Output_t &l, Matrix_t &matrix, Vector_t &vector, typename )
+template <typename Output_t, typename Matrix_t, typename Vector_t>
+NaiveGemv<Output_t, Matrix_t, Vector_t> make_naive_gemv(Output_t &l,
+                                                        Matrix_t &matrix,
+                                                        Vector_t &vector) {
+  return NaiveGemv<Output_t, Matrix_t, Vector_t>(l, matrix, vector);
+}
 
 }  // namespace blas
 
