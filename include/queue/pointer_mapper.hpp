@@ -51,9 +51,8 @@ using sycl_acc_mode = cl::sycl::access::mode;
  * Default values for template arguments
  */
 using buffer_data_type_t = uint8_t;
-using buffer_allocator_base_t = cl::sycl::buffer_allocator<buffer_data_type_t>;
-using buffer_allocator_default_t =
-    cl::sycl::default_allocator<buffer_data_type_t>;
+using buffer_allocator_base_t = cl::sycl::buffer_allocator;
+using buffer_allocator_default_t = cl::sycl::default_allocator;
 const sycl_acc_target default_acc_target = sycl_acc_target::global_buffer;
 const sycl_acc_mode default_acc_mode = sycl_acc_mode::read_write;
 
