@@ -617,25 +617,26 @@ typename Executor::Return_Type _syr2_impl(
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
-typename Executor::Return_Type inline _gemv(
-    Executor& ex,         // Executor (sycl, parallel, serial, etc)
-    char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
+[[deprecated("Replaced by _gemv")]]
+    typename Executor::Return_Type inline _gemv_jose(
+        Executor& ex,     // Executor (sycl, parallel, serial, etc)
+        char _trans,      // The transposition of the matrix ('n', 't', 'c')
+        IndexType _M,     // The size of dimension M of the matrix (rows)
+        IndexType _N,     // The size of dimension N of the matrix (columns)
+        T _alpha,         // Scalar parameter Alpha
+        ContainerT0 _mA,  // An array (LDA,N), with the first m*n elements
+        IndexType _lda,   // Specifies the first dimension of a, max(1, m)
+        ContainerT1 _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
                           // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
                           // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
+        IncrementType _incx,  // The increment for elements in x (nonzero).
+        T _beta,              // Scalar parameter Beta
+        ContainerT2 _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
                           // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
-) {
+        // containing the vector "y" (if beta is nonzero). When
+        // finished, y is overwritten with the updated vector.
+        IncrementType _incy  // The increment for elements in y (nonzero).
+    ) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_gemv_impl(ex, Transposition(_trans), _M, _N, _alpha, _mA,
@@ -658,7 +659,7 @@ typename Executor::Return_Type inline _gemv(
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
-typename Executor::Return_Type inline _gemv_naive(
+typename Executor::Return_Type inline _gemv(
     Executor& ex,         // Executor (sycl, parallel, serial, etc)
     char _trans,          // The transposition of the matrix ('n', 't', 'c')
     IndexType _M,         // The size of dimension M of the matrix (rows)
