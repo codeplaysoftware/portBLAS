@@ -26,7 +26,7 @@
 #define QUEUE_SYCL_HPP
 
 #include <CL/sycl.hpp>
-#include <queue/pointer_mapper.hpp>
+#include <computecpp-sdk/include/vptr/virtual_ptr.hpp>
 #include <queue/queue_base.hpp>
 #include <queue/sycl_iterator.hpp>
 #include <stdexcept>

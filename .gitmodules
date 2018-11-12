@@ -1,0 +1,3 @@
+[submodule "include/computecpp-sdk"]
+	path = include/computecpp-sdk
+	url = git@github.com:codeplaysoftware/computecpp-sdk.git

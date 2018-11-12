@@ -5,10 +5,11 @@ project(sycl-blas)
 enable_testing()
 
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/computecpp-sdk/cmake/Modules)
 
-include(FindOpenCL)
-include(FindComputeCpp)
+find_package(OpenCL REQUIRED)
+find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
 
 include(FindBLAS)
