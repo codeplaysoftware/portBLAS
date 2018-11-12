@@ -8,8 +8,8 @@ set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/computecpp-sdk/cmake/Modules)
 
-find_package(OpenCL REQUIRED)
-find_package(ComputeCpp REQUIRED)
+include(FindOpenCL)
+include(FindComputeCpp)
 include(ConfigureSYCLBLAS)
 
 include(FindBLAS)
