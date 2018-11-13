@@ -7,7 +7,7 @@ class buffer_iterator {
  public:
   using scalar_t = T;
   using self_t = buffer_iterator<scalar_t>;
-  using buff_t = buffer_t<scalar_t, 1, cl::sycl::default_allocator<scalar_t>>;
+  using buff_t = buffer_t<scalar_t, 1>;
 
   template <cl::sycl::access::mode AcM, typename scal_t>
   friend inline SyclAccessor<scal_t, AcM> get_range_accessor(

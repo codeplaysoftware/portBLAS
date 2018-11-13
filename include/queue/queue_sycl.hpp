@@ -26,11 +26,11 @@
 #define QUEUE_SYCL_HPP
 
 #include <CL/sycl.hpp>
-#include <queue/pointer_mapper.hpp>
 #include <queue/queue_base.hpp>
 #include <queue/sycl_iterator.hpp>
 #include <stdexcept>
 #include <types/sycl_types.hpp>
+#include <vptr/virtual_ptr.hpp>
 
 namespace blas {
 

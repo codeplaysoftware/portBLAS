@@ -4,11 +4,13 @@ find_package(PkgConfig)
 
 message(STATUS "Path to the SYCL implementation ")
 
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/include)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/cmake/Modules)
 
-include(FindOpenCL)
-include(FindComputeCpp)
+find_package(OpenCL REQUIRED)
+find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
 
 # Add syclblas benchmarks.
@@ -28,7 +30,7 @@ foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
   )
   install(TARGETS ${sycl_bench_exec} RUNTIME DESTINATION bin)
 endforeach()
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS})
+include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
 # Try and also build CLBlast benchmarks.
 # Check to see if we've been passed an explicit path. 
