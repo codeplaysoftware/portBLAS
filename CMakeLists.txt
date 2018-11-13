@@ -4,11 +4,13 @@ project(sycl-blas)
 
 enable_testing()
 
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules)
 
-include(FindOpenCL)
-include(FindComputeCpp)
+find_package(OpenCL REQUIRED)
+find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
 
 include(FindBLAS)
@@ -28,6 +30,6 @@ else()
   message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
 endif()
 
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${BLAS_INCLUDE_DIRS})
+include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${BLAS_INCLUDE_DIRS})
 
 add_subdirectory(test)

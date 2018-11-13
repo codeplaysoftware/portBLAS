@@ -4,9 +4,8 @@
 
 namespace blas {
 
-template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<uint8_t>>
-using buffer_t = cl::sycl::buffer<ScalarT, dim, Allocator>;
+template <typename ScalarT, int dim = 1>
+using buffer_t = cl::sycl::buffer<ScalarT, dim>;
 template <
     typename ScalarT,
     cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
