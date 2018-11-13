@@ -4,6 +4,7 @@ find_package(PkgConfig)
 
 message(STATUS "Path to the SYCL implementation ")
 
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../modules/computecpp-sdk/include)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../include/computecpp-sdk/cmake/Modules)
@@ -28,7 +29,7 @@ foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
     SOURCES ${syclblas_benchmark}
   )
 endforeach()
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS})
+include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
 # Try and also build CLBlast benchmarks.
 # Check to see if we've been passed an explicit path. 
