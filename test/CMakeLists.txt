@@ -7,10 +7,17 @@ include(ExternalProject)
 set(SYCLBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 
+if(CMAKE_CROSSCOMPILING)
+    set(cmake_toolchain
+      "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+       )
+     message(STATUS "Crossing : ${cmake_toolchain}")
+endif()
 ExternalProject_Add(
   gtest
   URL https://github.com/google/googletest/archive/release-1.8.0.zip
   PREFIX ${SYCLBLAS_TEST_INCLUDE}/gtest
+  CMAKE_ARGS ${cmake_toolchain}
   INSTALL_COMMAND ""
 )
 

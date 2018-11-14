@@ -50,9 +50,8 @@ struct MatrixViewTypeTrace<Executor, buffer_iterator<T>, IndexType> {
       matrix_view<T, typename Executor::template ContainerT<T>, IndexType>;
 };
 
-template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<uint8_t>>
-using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
+template <typename ScalarT, int dim = 1>
+using bufferT = cl::sycl::buffer<ScalarT, dim>;
 
 template <typename ContainerT>
 struct get_size_struct {
@@ -61,8 +60,8 @@ struct get_size_struct {
   }
 };
 
-template <typename ScalarT, int dim, typename Allocator>
-struct get_size_struct<bufferT<ScalarT, dim, Allocator>> {
+template <typename ScalarT, int dim>
+struct get_size_struct<bufferT<ScalarT, dim>> {
   static inline auto get_size(bufferT<ScalarT> &b) -> decltype(b.get_size()) {
     return b.get_size();
   }

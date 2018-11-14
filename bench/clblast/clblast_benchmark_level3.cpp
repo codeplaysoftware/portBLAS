@@ -32,9 +32,10 @@
 
 BENCHMARK_NAME_FORMAT(clblast_level_3) {
   std::ostringstream fname;
-  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
-        << "_" << std::get<1>(params) << "_" << std::get<2>(params) << "_"
-        << std::get<3>(params) << "_" << std::get<4>(params);
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_"
+        << std::get<0>(params) << "_" << std::get<1>(params) << "_"
+        << std::get<2>(params) << "_" << std::get<3>(params) << "_"
+        << std::get<4>(params);
   return fname.str();
 }
 
@@ -61,7 +62,8 @@ BENCHMARK(gemm, clblast_level_3) {
   const size_t k = std::get<3>(params);
   const size_t n = std::get<4>(params);
 
-  size_t n_fl_ops = (2 * m * n * k);
+  size_t n_fl_ops = (static_cast<size_t>(2) * static_cast<size_t>(m) *
+                     static_cast<size_t>(n) * static_cast<size_t>(k));
 
   size_t lda = t_a[0] == 'n' ? m : k;
   size_t ldb = t_b[0] == 'n' ? k : n;

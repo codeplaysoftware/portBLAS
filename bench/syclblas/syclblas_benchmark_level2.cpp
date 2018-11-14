@@ -48,7 +48,8 @@ BENCHMARK(gemv, syclblas_level_2) {
   IndexType vlen = t_str[0] == 'n' ? n : m;
   IndexType rlen = t_str[0] == 'n' ? m : n;
 
-  size_t n_fl_ops = m * n * 2;
+  size_t n_fl_ops =
+      static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
   IndexType lda = m;
   long incX = 1;
