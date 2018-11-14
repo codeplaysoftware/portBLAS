@@ -28,6 +28,7 @@ foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
     TARGET ${sycl_bench_exec}
     SOURCES ${syclblas_benchmark}
   )
+  install(TARGETS ${sycl_bench_exec} RUNTIME DESTINATION bin)
 endforeach()
 include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
@@ -66,6 +67,7 @@ if (CLBLAST_FOUND)
     set_property(TARGET ${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
     target_link_libraries(${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
     target_link_libraries(${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
+    install(TARGETS ${clblast_bench_exec} RUNTIME DESTINATION bin)
   endforeach()
 else()
   message(STATUS "CLBlast not found, only building benchmarks for syclblas")
