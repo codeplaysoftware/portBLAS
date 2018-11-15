@@ -56,7 +56,8 @@ struct Gemv {
 
     value_type acc = 0;
     for (IndexType j = 0; j < vector.getSize(); j++) {
-      acc = cl::sycl::mad(vector.eval(i), matrix.eval(i, j), acc);
+      // acc += vector.eval(j) * matrix.eval(i, j);
+      acc = cl::sycl::mad(vector.eval(j), matrix.eval(i, j), acc);
     }
     return l.eval(i) = acc;
   }
