@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemv_naive.hpp
+ *  @filename gemv.hpp
  *
  **************************************************************************/
 
-#ifndef GEMV_NAIVE_HPP
-#define GEMV_NAIVE_HPP
+#ifndef GEMV_HPP
+#define GEMV_HPP
 
 #include <operations/blas_operators.hpp>
 #include <stdexcept>
@@ -85,12 +85,11 @@ struct Gemv {
 };
 
 template <typename Output_t, typename Matrix_t, typename Vector_t>
-Gemv<Output_t, Matrix_t, Vector_t> make_naive_gemv(Output_t &l,
-                                                   Matrix_t &matrix,
-                                                   Vector_t &vector) {
+Gemv<Output_t, Matrix_t, Vector_t> make_gemv(Output_t &l, Matrix_t &matrix,
+                                             Vector_t &vector) {
   return Gemv<Output_t, Matrix_t, Vector_t>(l, matrix, vector);
 }
 
 }  // namespace blas
 
-#endif  // GEMV_NAIVE_HPP
+#endif  // GEMV_HPP

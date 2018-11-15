@@ -19,23 +19,24 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemv.hpp
+ *  @filename gemv_legacy.hpp
  *
  **************************************************************************/
 
-#ifndef GEMV_HPP
-#define GEMV_HPP
+#ifndef GEMV_LEGACY_HPP
+#define GEMV_LEGACY_HPP
 
+#include <operations/blas_operators.hpp>
 #include <stdexcept>
 #include <vector>
-#include <operations/blas_operators.hpp>
 #include <views/view_sycl.hpp>
 
 namespace blas {
 
 /**
  * @struct AddSetColumns
- * @brief Tree node representing a column sum (reduction?) - i.e. summing a row, with one row per thread
+ * @brief Tree node representing a column sum (reduction?) - i.e. summing a row,
+ * with one row per thread
  */
 template <class RHS>
 struct AddSetColumns {
@@ -74,7 +75,7 @@ struct AddSetColumns {
 
 /**
  * @fn make_addSetColumns
- * @brief Constructs an AddSetColumns structure. 
+ * @brief Constructs an AddSetColumns structure.
  */
 template <class RHS>
 AddSetColumns<RHS> make_addSetColumns(RHS &r) {
@@ -84,7 +85,8 @@ AddSetColumns<RHS> make_addSetColumns(RHS &r) {
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
 /**
  * @struct Gemv_Row
- * @brief Tree node representing a row-based/row-parallel generalised matrix vector multiplication. 
+ * @brief Tree node representing a row-based/row-parallel generalised matrix
+ * vector multiplication.
  */
 template <unsigned int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           class LHS, class Matrix_t, class Vector_t>
@@ -129,10 +131,10 @@ struct Gemv_Row {
     IndexType localid = ndItem.get_local_id(0);
     IndexType localSz = ndItem.get_local_range(0);
     IndexType groupid = ndItem.get_group(0);
-    
+
     // Get the number of rows of the matrix
     IndexType dimR = matrix.getSizeR();
-    // 
+    //
     IndexType dimC = matrix.getSizeC();
 
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
@@ -192,19 +194,20 @@ struct Gemv_Row {
           }
         }
       } else {
-        // There's an implied question mark after each of these comments. 
-        // They are just attempts to understand the code! 
+        // There's an implied question mark after each of these comments.
+        // They are just attempts to understand the code!
         // Iterate over rows of the matrix
         for (IndexType row = 0, id_row = frs_row; (id_row < lst_row);
              row++, id_row++) {
           // initialise an add node, with vector, the vector
-          // we need to initialise it, as otherwise the type will change during execution! 
+          // we need to initialise it, as otherwise the type will change during
+          // execution!
           val = addOp2_struct::init(vector);
           // Iterate across blocks of columns, in chunks of localSz * interLoop
           for (IndexType id_col = frs_col; id_col < lst_col;
                id_col += localSz * interLoop) {
             // If the row length isn't a multiple of localSz * interLoop
-            // we need to go for fewer columns. Pick the min. 
+            // we need to go for fewer columns. Pick the min.
             auto lst_k_int = std::min(id_col + interLoop, lst_col);
             // Handle lower diagonal etc
             for (IndexType k_int =
@@ -215,11 +218,11 @@ struct Gemv_Row {
                                   : std::min(row + ((!Diag || Unit) ? 0 : 1),
                                              lst_k_int));
                  k_int++) {
-              // calculate the product between the row and the vector. 
-              auto prod =
-                  prdOp2_struct::eval(matrix.eval(id_row, k_int), vector.eval(k_int));
+              // calculate the product between the row and the vector.
+              auto prod = prdOp2_struct::eval(matrix.eval(id_row, k_int),
+                                              vector.eval(k_int));
               // add that to val?
-              // Reassignment! 
+              // Reassignment!
               val = addOp2_struct::eval(val, prod);
             }
           }
@@ -231,7 +234,7 @@ struct Gemv_Row {
     return val;
   }
 
-  /* 
+  /*
     Evaluate using shared memory.
   */
   template <typename sharedT>
@@ -244,7 +247,7 @@ struct Gemv_Row {
     IndexType dimR = matrix.getSizeR();
     IndexType dimC = matrix.getSizeC();
 
-    // 
+    //
     IndexType rowSz = (dimR + nWG_row - 1) / nWG_row;
     IndexType shrSz = shrMemSize / localSz;
 
@@ -369,8 +372,8 @@ struct Gemv_Row {
 };
 
 /*!
- @brief Generator/factory for row-based GEMV trees. 
- 
+ @brief Generator/factory for row-based GEMV trees.
+
  make_Gemv_Row(
     LHS &l,
     Matrix_t &matrix,
@@ -383,62 +386,24 @@ struct Gemv_Row {
 template <unsigned int interLoop = 1, bool Lower = true, bool Diag = true,
           bool Upper = true, bool Unit = false, typename LHS, typename Matrix_t,
           typename Vector_t>
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t> make_Gemv_Row(
-    LHS &l, Matrix_t &matrix, Vector_t &vector, typename Vector_t::IndexType nWG_row,
-    typename Vector_t::IndexType nWG_col, typename Vector_t::IndexType shrMemSize) {
+Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>
+make_Gemv_Row(LHS &l, Matrix_t &matrix, Vector_t &vector,
+              typename Vector_t::IndexType nWG_row,
+              typename Vector_t::IndexType nWG_col,
+              typename Vector_t::IndexType shrMemSize) {
   return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>(
       l, matrix, vector, nWG_row, nWG_col, shrMemSize);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
 
 /**
  * @struct Gemv_Col
- * @brief Tree node representing a Gemv, with parallel expressed across columns * 
+ * @brief Tree node representing a Gemv, with parallel expressed across columns
+ * *
  */
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS, class Matrix_t,
-          class Vector_t>
+template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
+          class Matrix_t, class Vector_t>
 struct Gemv_Col {
   using value_type = typename Vector_t::value_type;
   using IndexType = typename Vector_t::IndexType;
@@ -516,8 +481,8 @@ struct Gemv_Col {
              ((Upper) ? lst_col
                       : std::min(rowid + ((!Diag || Unit) ? 0 : 1), lst_col));
              id_col++) {
-          auto prod =
-              prdOp2_struct::eval(matrix.eval(rowid, id_col), vector.eval(id_col));
+          auto prod = prdOp2_struct::eval(matrix.eval(rowid, id_col),
+                                          vector.eval(id_col));
           val = addOp2_struct::eval(val, prod);
         }
         // The result is stored in the correct component
@@ -593,8 +558,8 @@ struct Gemv_Col {
             } else {
               if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= rowid)) ||
                   (Upper && (id_col >= (rowid + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod =
-                    prdOp2_struct::eval(matrix.eval(rowid, id_col), shrMem[col]);
+                auto prod = prdOp2_struct::eval(matrix.eval(rowid, id_col),
+                                                shrMem[col]);
                 val = addOp2_struct::eval(val, prod);
               }
             }
@@ -618,11 +583,12 @@ struct Gemv_Col {
 template <bool Lower = true, bool Diag = true, bool Upper = true,
           bool Unit = false, class LHS, class Matrix_t, class Vector_t>
 Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t> make_Gemv_Col(
-    LHS &l, Matrix_t &matrix, Vector_t &vector, typename Vector_t::IndexType nWG_row,
-    typename Vector_t::IndexType nWG_col, typename Vector_t::IndexType shrMemSize) {
+    LHS &l, Matrix_t &matrix, Vector_t &vector,
+    typename Vector_t::IndexType nWG_row, typename Vector_t::IndexType nWG_col,
+    typename Vector_t::IndexType shrMemSize) {
   return Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>(
       l, matrix, vector, nWG_row, nWG_col, shrMemSize);
 }
 
-} // namespace blas
+}  // namespace blas
 #endif

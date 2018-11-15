@@ -146,18 +146,18 @@ TYPED_TEST(BLAS_Test, gemv_test_transposed) {
 }
 
 // ***********************
-// Testing jose's versions:
+// Testing legacy versions:
 // ***********************
 
-REGISTER_PREC(float, 1e-4, jose_gemv_test)
-REGISTER_PREC(double, 1e-8, jose_gemv_test)
-REGISTER_PREC(long double, 1e-8, jose_gemv_test)
+REGISTER_PREC(float, 1e-4, gemv_test_legacy)
+REGISTER_PREC(double, 1e-8, gemv_test_legacy)
+REGISTER_PREC(long double, 1e-8, gemv_test_legacy)
 
-TYPED_TEST(BLAS_Test, jose_gemv_test) {
+TYPED_TEST(BLAS_Test, gemv_test_legacy) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
-  using test = class jose_gemv_test;
+  using test = class gemv_test_legacy;
 
   size_t m = 125;
   size_t n = 127;
@@ -194,8 +194,8 @@ TYPED_TEST(BLAS_Test, jose_gemv_test) {
   ex.copy_to_device(b_v.data(), v_b_gpu, n);
   ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, m);
   // SYCLGEMV
-  _gemv_jose(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
-             incY);
+  _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
+               v_c_gpu, incY);
   auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), m);
   ex.wait(event);
 
@@ -208,15 +208,15 @@ TYPED_TEST(BLAS_Test, jose_gemv_test) {
   ex.template deallocate<ScalarT>(v_c_gpu);
 }
 
-REGISTER_PREC(float, 1e-4, jose_gemv_test_transposed)
-REGISTER_PREC(double, 1e-8, jose_gemv_test_transposed)
-REGISTER_PREC(long double, 1e-8, jose_gemv_test_transposed)
+REGISTER_PREC(float, 1e-4, gemv_test_legacy_transposed)
+REGISTER_PREC(double, 1e-8, gemv_test_legacy_transposed)
+REGISTER_PREC(long double, 1e-8, gemv_test_legacy_transposed)
 
-TYPED_TEST(BLAS_Test, jose_gemv_test_transposed) {
+TYPED_TEST(BLAS_Test, gemv_test_legacy_transposed) {
   using ScalarT = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
-  using test = class jose_gemv_test_transposed;
+  using test = class gemv_test_legacy_transposed;
 
   size_t m = 125;
   size_t n = 127;
@@ -253,8 +253,8 @@ TYPED_TEST(BLAS_Test, jose_gemv_test_transposed) {
   ex.copy_to_device(b_v.data(), v_b_gpu, m);
   ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, n);
   // SYCLGEMV
-  _gemv_jose(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
-             incY);
+  _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
+               v_c_gpu, incY);
   auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), n);
   ex.wait(event);
 

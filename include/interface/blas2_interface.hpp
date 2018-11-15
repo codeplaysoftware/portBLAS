@@ -123,7 +123,7 @@ template <typename Executor,       // The type of the executor (e.g. sycl, etc)
           typename IncrementType,  // Increment type for X/Y
           typename ContainerT2     // Vector type
           >
-typename Executor::Return_Type _gemv_naive_impl(
+typename Executor::Return_Type _gemv_impl(
     Executor& ex,                   // The executor upon which to run gemv
     Transposition _trans,           // Transposition status of the matrix
     IndexType _M,                   // Dimension M
@@ -184,8 +184,8 @@ typename Executor::Return_Type _gemv_naive_impl(
   auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize,
                                Access::ColMajor());
 
-  auto naiveGemv = make_naive_gemv(mat1, mA, vx);
-  ret = ex.execute(naiveGemv, localSize, globalSize);
+  auto gemv = make_gemv(mat1, mA, vx);
+  ret = ex.execute(gemv, localSize, globalSize);
 
   // beta * y
   auto scalOp1 = make_op<ScalarOp, prdOp2_struct>(_beta, vy);
@@ -624,7 +624,7 @@ template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
 [[deprecated("Replaced by _gemv")]]
-    typename Executor::Return_Type inline _gemv_jose(
+    typename Executor::Return_Type inline _gemv_legacy(
         Executor& ex,     // Executor (sycl, parallel, serial, etc)
         char _trans,      // The transposition of the matrix ('n', 't', 'c')
         IndexType _M,     // The size of dimension M of the matrix (rows)
@@ -684,8 +684,8 @@ typename Executor::Return_Type inline _gemv(
     // finished, y is overwritten with the updated vector.
     IncrementType _incy  // The increment for elements in y (nonzero).
 ) {
-  return internal::_gemv_naive_impl(ex, Transposition(_trans), _M, _N, _alpha,
-                                    _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+  return internal::_gemv_impl(ex, Transposition(_trans), _M, _N, _alpha, _mA,
+                              _lda, _vx, _incx, _beta, _vy, _incy);
 }
 
 template <typename Executor, typename IndexType, typename ContainerT0,

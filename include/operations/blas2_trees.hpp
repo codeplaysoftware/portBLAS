@@ -27,7 +27,7 @@
 #define BLAS2_TREES_HPP
 
 #include "blas2/gemv.hpp"
-#include "blas2/gemv_deprecated.hpp"
+#include "blas2/gemv_legacy.hpp"
 #include "blas2/ger.hpp"
 
 #endif  // BLAS2_TREES_HPP
