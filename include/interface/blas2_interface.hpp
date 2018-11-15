@@ -145,6 +145,12 @@ typename Executor::Return_Type _gemv_naive_impl(
 
   Access accessOpr = Access(_trans);
 
+  if (!accessOpr.isRowMajor()) {
+    return _gemv_impl(ex, _trans, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta,
+                      _vy, _incy, _localSize, _scratchPadSize, _nRowsWG,
+                      _nColsWG);
+  }
+
   IndexType M = (_trans.isNormal()) ? _M : _N;
   IndexType N = (_trans.isNormal()) ? _N : _M;
 
