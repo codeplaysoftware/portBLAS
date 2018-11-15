@@ -17,6 +17,7 @@ include(ConfigureSYCLBLAS)
 file(GLOB SYCL_BENCHMARK_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2_legacy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
 )
 foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})

@@ -29,7 +29,7 @@
 
 using namespace blas;
 
-BENCHMARK_NAME_FORMAT(syclblas_level_2) {
+BENCHMARK_NAME_FORMAT(syclblas_level_2_legacy) {
   std::ostringstream fname;
   fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_"
         << std::get<0>(params) << "_" << std::get<1>(params) << "_"
@@ -37,7 +37,7 @@ BENCHMARK_NAME_FORMAT(syclblas_level_2) {
   return fname.str();
 }
 
-BENCHMARK(gemv, syclblas_level_2) {
+BENCHMARK(gemv, syclblas_level_2_legacy) {
   using ScalarT = ElemT;
   using IndexType = unsigned int;
 
@@ -48,8 +48,7 @@ BENCHMARK(gemv, syclblas_level_2) {
   IndexType vlen = t_str[0] == 'n' ? n : m;
   IndexType rlen = t_str[0] == 'n' ? m : n;
 
-  size_t n_fl_ops =
-      static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
+  size_t n_fl_ops = m * n * 2;
 
   IndexType lda = m;
   long incX = 1;
@@ -75,8 +74,8 @@ BENCHMARK(gemv, syclblas_level_2) {
 
   benchmark<>::flops_units_t flops =
       benchmark<>::measure(reps, n_fl_ops, [&]() {
-        auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
-                           beta, v_c_gpu, incY);
+        auto event = _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu,
+                                  incX, beta, v_c_gpu, incY);
         ex.wait(event);
       });
 
