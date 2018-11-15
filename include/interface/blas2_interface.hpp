@@ -47,7 +47,7 @@ namespace internal {
 template <typename Executor, typename IndexType, typename T,
           typename ContainerT0, typename ContainerT1, typename IncrementType,
           typename ContainerT2>
-typename Executor::Return_Type _gemv_impl(
+typename Executor::Return_Type _gemv_legacy_impl(
     Executor& ex, Transposition _trans, IndexType _M, IndexType _N, T _alpha,
     ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx,
     T _beta, ContainerT2 _vy, IncrementType _incy, IndexType _localSize = 0,
@@ -146,9 +146,9 @@ typename Executor::Return_Type _gemv_impl(
   Access accessOpr = Access(_trans);
 
   if (!accessOpr.isRowMajor()) {
-    return _gemv_impl(ex, _trans, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta,
-                      _vy, _incy, _localSize, _scratchPadSize, _nRowsWG,
-                      _nColsWG);
+    return _gemv_legacy_impl(ex, _trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
+                             _beta, _vy, _incy, _localSize, _scratchPadSize,
+                             _nRowsWG, _nColsWG);
   }
 
   IndexType M = (_trans.isNormal()) ? _M : _N;
@@ -645,8 +645,8 @@ template <typename Executor, typename IndexType, typename T,
     ) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return internal::_gemv_impl(ex, Transposition(_trans), _M, _N, _alpha, _mA,
-                              _lda, _vx, _incx, _beta, _vy, _incy);
+  return internal::_gemv_legacy_impl(ex, Transposition(_trans), _M, _N, _alpha,
+                                     _mA, _lda, _vx, _incx, _beta, _vy, _incy);
 }
 
 /*!

@@ -54,27 +54,16 @@ struct Gemv {
   value_type eval(IndexType i) {
     auto dim = vector.getSize();
 
-    // initialise val to the correct type.
-    auto val = iniAddOp1_struct::eval(vector.eval(0));
-
-    for (IndexType j = 0; j < dim; j++) {
-      auto prod = prdOp2_struct::eval(matrix.eval(i, j), vector.eval(j));
-      val = addOp2_struct::eval(val, prod);
+    value_type acc = 0;
+    for (IndexType j = 0; j < vector.getSize(); j++) {
+      acc += vector.eval(j) * matrix.eval(i, j);
     }
-    return l.eval(i) = val;
+    return l.eval(i) = acc;
   }
 
   value_type eval(cl::sycl::nd_item<1> ndItem) {
     IndexType globalId = ndItem.get_global_id(0);
-    IndexType globalSize = ndItem.get_global_range(0);
-
-    value_type acc = 0;
-    for (IndexType j = 0; j < vector.getSize(); j++) {
-      acc += vector.eval(j) * matrix.eval(globalId, j);
-    }
-    l.eval(globalId) = acc;
-
-    return acc;
+    return eval(globalId);
   }
 
   void bind(cl::sycl::handler &h) {
