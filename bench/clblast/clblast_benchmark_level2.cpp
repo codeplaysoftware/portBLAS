@@ -32,8 +32,9 @@
 
 BENCHMARK_NAME_FORMAT(clblast_level_2) {
   std::ostringstream fname;
-  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_" << std::get<0>(params)
-        << "_" << std::get<1>(params) << "_" << std::get<2>(params);
+  fname << benchmark<>::typestr<ElemT>() << "_" << name() << "_"
+        << std::get<0>(params) << "_" << std::get<1>(params) << "_"
+        << std::get<2>(params);
   return fname.str();
 
   return fname.str();
@@ -49,7 +50,8 @@ BENCHMARK(gemv, clblast_level_2) {
   size_t vlen = t_str[0] == 'n' ? n : m;
   size_t rlen = t_str[0] == 'n' ? m : n;
 
-  size_t n_fl_ops = m * n * 2;
+  size_t n_fl_ops =
+      static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
   size_t lda = m;
   long incX = 1;
@@ -59,7 +61,6 @@ BENCHMARK(gemv, clblast_level_2) {
   // in errors otherwise. It may be that this is incorrect (especially for
   // performance reasons), so may need to be revisited.
   auto layout = clblast::Layout::kColMajor;
-
 
   // specify the transposition.
   clblast::Transpose a_transpose;

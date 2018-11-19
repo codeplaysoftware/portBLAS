@@ -174,8 +174,9 @@ build the project.
 Setup
 -----------------
 
-1. Create a build directory
-2. Run `CMake` fro the build directory:
+1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s), such as the computecpp-sdk. 
+2. Create a build directory
+3. Run `CMake` from the build directory:
 
 ```
 $ cd build; cmake ../ -DComputeCpp_DIR=/path/to/computecpp

@@ -31,6 +31,7 @@
 #include <queue/helper.hpp>
 #include <queue/sycl_iterator.hpp>
 #include <types/sycl_types.hpp>
+#include <types/access_types.hpp>
 #include <views/operview_base.hpp>
 
 namespace blas {
@@ -49,9 +50,8 @@ struct MatrixViewTypeTrace<Executor, buffer_iterator<T>, IndexType> {
       matrix_view<T, typename Executor::template ContainerT<T>, IndexType>;
 };
 
-template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<uint8_t>>
-using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
+template <typename ScalarT, int dim = 1>
+using bufferT = cl::sycl::buffer<ScalarT, dim>;
 
 template <typename ContainerT>
 struct get_size_struct {
@@ -60,8 +60,8 @@ struct get_size_struct {
   }
 };
 
-template <typename ScalarT, int dim, typename Allocator>
-struct get_size_struct<bufferT<ScalarT, dim, Allocator>> {
+template <typename ScalarT, int dim>
+struct get_size_struct<bufferT<ScalarT, dim>> {
   static inline auto get_size(bufferT<ScalarT> &b) -> decltype(b.get_size()) {
     return b.get_size();
   }
@@ -310,10 +310,15 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
   using Self = matrix_view<ScalarT, ContainerT, IndexType>;
   // Information related to the data
   ContainerT data_;
-  int accessDev_;  // row-major or column-major value for the device/language
+  // int accessDev_;  // row-major or column-major value for the device/language
+
+  Access deviceAccess_; 
+  Access operationAccess_; 
+  Access overallAccess_;
+
   IndexType size_data_;  // real size of the data
   // Information related to the operation
-  int accessOpr_;    // row-major or column-major
+  // int accessOpr_;    // row-major or column-major
   IndexType sizeR_;  // number of rows
   IndexType sizeC_;  // number of columns
   IndexType sizeL_;  // size of the leading dimension
@@ -323,74 +328,80 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   /**** CONSTRUCTORS ****/
 
-  matrix_view(ContainerT data, int accessDev, IndexType sizeR, IndexType sizeC)
+  matrix_view(ContainerT data, Access accessDev, IndexType sizeR, IndexType sizeC)
       : data_{data},
-        accessDev_(accessDev),
+        deviceAccess_(accessDev),
+        operationAccess_(Access::RowMajor()), 
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(data_.get_size()),
-        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
         disp_(0) {
-    sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
+    sizeL_ = overallAccess_.isRowMajor() ? sizeC_ : sizeR_;
   }
 
   matrix_view(ContainerT data, IndexType sizeR, IndexType sizeC)
       : data_{data},
-        accessDev_(0),
+        deviceAccess_(Access::ColMajor()), 
+        operationAccess_(Access::RowMajor()), 
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(data_.get_size()),
-        accessOpr_(1),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(0),
         disp_(0) {
-    sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
+    sizeL_ = Access(deviceAccess_, operationAccess_).isRowMajor() ? sizeC_ : sizeR_;
   }
 
-  matrix_view(ContainerT data, int accessDev, IndexType sizeR, IndexType sizeC,
-              int accessOpr, IndexType sizeL, IndexType disp)
+  matrix_view(ContainerT data, Access accessDev, IndexType sizeR, IndexType sizeC,
+              Access accessOpr, IndexType sizeL, IndexType disp)
       : data_{data},
-        accessDev_(accessDev),
+        deviceAccess_(accessDev),
+        operationAccess_(accessOpr),
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(data_.get_size()),
-        accessOpr_(accessOpr),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(ContainerT data, IndexType sizeR, IndexType sizeC, int accessOpr,
+  matrix_view(ContainerT data, IndexType sizeR, IndexType sizeC, Access accessOpr,
               IndexType sizeL, IndexType disp)
       : data_{data},
-        accessDev_(0),
+        deviceAccess_(Access::ColMajor()), 
+        operationAccess_(accessOpr),
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(data_.get_size()),
-        accessOpr_(accessOpr),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(sizeL),
         disp_(disp) {}
 
   matrix_view(buffer_iterator<ScalarT> data, IndexType sizeR, IndexType sizeC,
-              int accessOpr, IndexType sizeL)
+              Access accessOpr, IndexType sizeL)
       : matrix_view(get_range_accessor(data), sizeR, sizeC, accessOpr, sizeL,
                     data.get_offset()) {}
 
-  matrix_view(Self opM, int accessDev, IndexType sizeR, IndexType sizeC,
-              int accessOpr, IndexType sizeL, IndexType disp)
+  matrix_view(Self opM, Access accessDev, IndexType sizeR, IndexType sizeC,
+              Access accessOpr, IndexType sizeL, IndexType disp)
       : data_{opM.data_},
-        accessDev_(accessDev),
+        deviceAccess_(accessDev),
+        operationAccess_(opM.operationAccess_, accessOpr),
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(opM.size_data_),
-        accessOpr_(!(opM.accessOpr_ ^ accessOpr)),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(sizeL),
         disp_(disp) {}
 
-  matrix_view(Self opM, IndexType sizeR, IndexType sizeC, int accessOpr,
+  matrix_view(Self opM, IndexType sizeR, IndexType sizeC, Access accessOpr,
               IndexType sizeL, IndexType disp)
       : data_{opM.data_},
-        accessDev_(opM.accessDev_),
+        deviceAccess_(opM.accessDev_),
+        operationAccess_(opM.operationAccess_, accessOpr),
+        overallAccess_(deviceAccess_, operationAccess_),
         size_data_(opM.size_data_),
-        accessOpr_(!(opM.accessOpr_ ^ accessOpr)),
         sizeR_(sizeR),
         sizeC_(sizeC),
         sizeL_(sizeL),
@@ -409,11 +420,11 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   inline IndexType getSizeC() const { return sizeC_; }
 
-  inline int is_row_access() const { return !(accessDev_ ^ accessOpr_); }
+  inline bool is_row_access() const { return overallAccess_.isRowMajor(); }
 
-  inline int getAccessDev() const { return accessDev_; }
+  inline Access getAccessDev() const { return deviceAccess_; }
 
-  inline int getAccessOpr() const { return accessOpr_; }
+  inline Access getAccessOpr() const { return operationAccess_; }
 
   inline long getDisp() const { return disp_; }
 
@@ -426,7 +437,7 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   matrix_view<ScalarT, ContainerT, IndexType_> operator()(IndexType i,
                                                           IndexType j) {
-    if (!(accessDev_ ^ accessOpr_)) {
+    if (overallAccess_.isRowMajor()) {
       // ACCESING BY ROWS
       return matrix_view<ScalarT, ContainerT, IndexType_>(
           this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
@@ -441,7 +452,7 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   /**** EVALUATING ***/
   inline ScalarT &eval(IndexType k) {
-    int access = (!(accessDev_ ^ accessOpr_));
+    bool access = overallAccess_.isRowMajor();
     auto size = (access) ? sizeC_ : sizeR_;
     auto i = (access) ? (k / size) : (k % size);
     auto j = (access) ? (k % size) : (k / size);
@@ -451,9 +462,8 @@ struct matrix_view<ScalarT_, PaccessorT<ScalarT_>, IndexType_> {
 
   inline ScalarT &eval(IndexType i, IndexType j) {  // -> decltype(data_[i]) {
     auto ind = disp_;
-    int accessMode = !(accessDev_ ^ accessOpr_);
 
-    if (accessMode) {
+    if (overallAccess_.isRowMajor()) {
       ind += (sizeL_ * i) + j;
     } else {
       ind += (sizeL_ * j) + i;
