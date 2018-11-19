@@ -145,9 +145,10 @@ class Queue_Interface<SYCL> {
   side buffer<T> and T are the same
   */
   template <typename T>
-  inline buffer_t<T> get_buffer(T *ptr) const {
+  inline cl::sycl::buffer<T, 1,  cl::sycl::detail::aligned_mem::aligned_allocator<unsigned char>> get_buffer(T *ptr) const {
+    using pointer_t = typename std::remove_const<T>::type*;
     auto original_buffer =
-        pointerMapperPtr_->get_buffer(static_cast<void *>(ptr));
+        pointerMapperPtr_->get_buffer(static_cast<void *>(const_cast<pointer_t>(ptr)));
     auto typed_size = original_buffer.get_size() / sizeof(T);
     auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
     return buff;
@@ -195,8 +196,8 @@ class Queue_Interface<SYCL> {
   @tparam T is the type of the pointer
   */
   template <typename T>
-  inline ptrdiff_t get_offset(T *ptr) const {
-    return (pointerMapperPtr_->get_offset(static_cast<void *>(ptr)) /
+  inline ptrdiff_t get_offset(const T *ptr) const {
+    return (pointerMapperPtr_->get_offset(static_cast<const void *>(ptr)) /
             sizeof(T));
   }
   /*
@@ -214,7 +215,7 @@ class Queue_Interface<SYCL> {
       @param size is the number of elements to be copied
   */
   template <typename T>
-  cl::sycl::event copy_to_device(T *src, T *dst, size_t size) {
+  cl::sycl::event copy_to_device(const T *src, T *dst, size_t size) {
     auto buffer = pointerMapperPtr_->get_buffer(static_cast<void *>(dst));
     auto offset = pointerMapperPtr_->get_offset(static_cast<void *>(dst));
     auto event = q_.submit([&](cl::sycl::handler &cgh) {
@@ -224,7 +225,7 @@ class Queue_Interface<SYCL> {
               cgh, cl::sycl::range<1>(size * sizeof(T)),
               cl::sycl::id<1>(offset));
       cgh.copy(
-          static_cast<generic_buffer_data_type *>(static_cast<void *>(src)),
+          static_cast<generic_buffer_data_type *>(static_cast<void *>(const_cast<T*>(src))),
           write_acc);
     });
 
