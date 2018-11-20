@@ -121,7 +121,6 @@ class ReferenceGemmFactory {
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
     IndexType item_id = id.get_global_id(0);
-    //  printf("B[%ld]= %f\n", item_id, B[item_id]);
     if (item_id >= m * n) {
       return;
     }
@@ -347,7 +346,12 @@ class NoLocalGemmFactory {
     auto boundary_check_c = [&](int dim_m_c_start, int dim_n_c_start) {
       return (dim_m_c_start < m && dim_n_c_start < n);
     };
-
+    // computing the ld for A and B
+    const auto ld_a = (trans_a ? lda : 1);
+    const auto ld_b = (trans_b ? 1 : ldb);
+    // computing the next element for a and b;
+    const auto A_ptr_index = ld_a * wg_rows;
+    const auto B_ptr_index = ld_b * wg_cols;
     /*
      * computing the gemm block
      */
@@ -356,18 +360,18 @@ class NoLocalGemmFactory {
        * Loading a corresponding block of matrix A into reg_a
        */
       (is_internal_block_m)
-          ? load<item_rows, wg_rows, false>(A, reg_a, (trans_a ? lda : 1),
+          ? load<item_rows, wg_rows, false>(A, reg_a, A_ptr_index,
                                             dim_m_a_start, boundary_check_m)
-          : load<item_rows, wg_rows, true>(A, reg_a, (trans_a ? lda : 1),
-                                           dim_m_a_start, boundary_check_m);
+          : load<item_rows, wg_rows, true>(A, reg_a, A_ptr_index, dim_m_a_start,
+                                           boundary_check_m);
       /*
        * Loading a corresponding block of matrix B into reg_b
        */
       (is_internal_block_n)
-          ? load<item_cols, wg_cols, false>(B, reg_b, (trans_b ? 1 : ldb),
+          ? load<item_cols, wg_cols, false>(B, reg_b, B_ptr_index,
                                             dim_n_b_start, boundary_check_n)
-          : load<item_cols, wg_cols, true>(B, reg_b, (trans_b ? 1 : ldb),
-                                           dim_n_b_start, boundary_check_n);
+          : load<item_cols, wg_cols, true>(B, reg_b, B_ptr_index, dim_n_b_start,
+                                           boundary_check_n);
 
       /*
        * Computing a the partial GEMM for the loaded block of reg_a andd
@@ -378,8 +382,8 @@ class NoLocalGemmFactory {
        * Moving forward to the next block
        */
       --k;
-      A = A + (trans_a ? 1 : lda);
-      B = B + (trans_b ? ldb : 1);
+      A = A + ld_a;
+      B = B + ld_b;
     }
     /*
      *  Storing the reg_res into C matrix
@@ -428,8 +432,8 @@ class NoLocalGemmFactory {
 #pragma unroll
     for (int i = 0; i < item_size; i++) {
       reg[i] = do_check<check_block>(chk_boundary(index)) ? ptr[0] : T(0);
-      ptr = ptr + (next_element * ld);
-      index = index + next_element;
+      ptr += ld;
+      index += next_element;
     }
   }
 
@@ -785,7 +789,6 @@ class GemmFactory {
     const auto nc = n - col;
 
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
-
     B = B +
         (trans_b
              ? (item_id / block_cols) * ldb + (wg_col + item_id % block_cols)
