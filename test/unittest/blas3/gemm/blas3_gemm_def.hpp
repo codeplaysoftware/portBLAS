@@ -53,9 +53,9 @@ TYPED_TEST(BLAS_Test, gemm) {
   auto _TransB = tolower(*tb_str);
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
-  std::array<size_t, 2> dim_a = {125, 19};
-  std::array<size_t, 2> dim_b = {19, 127};
-  std::array<size_t, 2> dim_c = {125, 127};
+  std::array<int, 2> dim_a = {125, 19};
+  std::array<int, 2> dim_b = {19, 129};
+  std::array<int, 2> dim_c = {125, 129};
 
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
@@ -66,12 +66,12 @@ TYPED_TEST(BLAS_Test, gemm) {
   std::vector<ScalarT> c_m_cpu(dim_c[0] * dim_c[1], ScalarT(0));
   TestClass::set_rand(a_m, dim_a[0] * dim_a[1]);
   TestClass::set_rand(b_m, dim_b[0] * dim_b[1]);
-  auto lda = (_TrA) ? dim_a[1] : dim_a[0];
-  auto ldb = (_TrB) ? dim_b[1] : dim_b[0];
-  auto ldc = dim_c[0];
-  auto m = dim_c[0];
-  auto n = dim_c[1];
-  auto k = dim_a[1];
+  int lda = (_TrA) ? dim_a[1] : dim_a[0];
+  int ldb = (_TrB) ? dim_b[1] : dim_b[0];
+  int ldc = dim_c[0];
+  int m = dim_c[0];
+  int n = dim_c[1];
+  int k = dim_a[1];
   gemm(ta_str, tb_str, m, n, k, alpha, a_m.data(), lda, b_m.data(), ldb, beta,
        c_m_cpu.data(), m);
   SYCL_DEVICE_SELECTOR d;
@@ -90,11 +90,7 @@ TYPED_TEST(BLAS_Test, gemm) {
   ex.wait(event);
 
   for (size_t i = 0; i < dim_c[0] * dim_c[1]; ++i) {
-    if (std::fabs(c_m_gpu_result[i] - c_m_cpu[i]) > prec) {
-      std::cout << "GPU [" << i << "] = " << c_m_gpu_result[i] << "VS CPU ["
-                << i << "] = " << c_m_cpu[i] << std::endl;
-    }
-    // ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
+    ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
   }
   ex.template deallocate<ScalarT>(m_a_gpu);
   ex.template deallocate<ScalarT>(m_b_gpu);

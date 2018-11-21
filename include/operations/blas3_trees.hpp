@@ -48,6 +48,17 @@ ENABLE_TYPE_STRING(double)
 
 #undef ENABLE_TYPE_STRING
 
+/*Converting unsigned type  for index in GEMM to a signed type, as it can cause
+ * incorrect result for GEMM, since it relies on pointer arithmetic*/
+template <typename IndexType>
+struct IndexTypePromotion {
+  using type = IndexType;
+};
+template <>
+struct IndexTypePromotion<size_t> {
+  using type = int;
+};
+
 /*!
  * @brief This factory generates reference GEMM implementations.
  *
@@ -68,7 +79,7 @@ template <typename RHS0, typename RHS1, int WgSize, bool TransA, bool TransB,
 class ReferenceGemmFactory {
  public:
   using value_type = T;
-  using IndexType = typename RHS0::IndexType;
+  using IndexType = typename IndexTypePromotion<typename RHS0::IndexType>::type;
   static constexpr int version = 2;
   static constexpr int wg_size = WgSize;
   static constexpr bool trans_a = TransA;
@@ -346,12 +357,10 @@ class NoLocalGemmFactory {
     auto boundary_check_c = [&](int dim_m_c_start, int dim_n_c_start) {
       return (dim_m_c_start < m && dim_n_c_start < n);
     };
-    // computing the ld for A and B
-    const auto ld_a = (trans_a ? lda : 1);
-    const auto ld_b = (trans_b ? 1 : ldb);
+
     // computing the next element for a and b;
-    const auto A_ptr_index = ld_a * wg_rows;
-    const auto B_ptr_index = ld_b * wg_cols;
+    const auto A_ptr_index = (trans_a ? lda : 1) * wg_rows;
+    const auto B_ptr_index = (trans_b ? 1 : ldb) * wg_cols;
     /*
      * computing the gemm block
      */
@@ -382,8 +391,8 @@ class NoLocalGemmFactory {
        * Moving forward to the next block
        */
       --k;
-      A = A + ld_a;
-      B = B + ld_b;
+      A = A + (trans_a ? 1 : lda);
+      B = B + (trans_b ? ldb : 1);
     }
     /*
      *  Storing the reg_res into C matrix
@@ -598,7 +607,7 @@ class GemmFactory {
  public:
   using tile_type = TileType;
   using value_type = T;
-  using IndexType = typename RHS1::IndexType;
+  using IndexType = typename IndexTypePromotion<typename RHS1::IndexType>::type;
   using Scratch = cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                                      cl::sycl::access::target::local>;
 
