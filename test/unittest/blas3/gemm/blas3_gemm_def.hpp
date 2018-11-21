@@ -93,9 +93,6 @@ TYPED_TEST(BLAS_Test, gemm) {
         ex.wait(event);
 
         for (size_t i = 0; i < dim_c[0] * dim_c[1]; ++i) {
-          /* if (std::fabs(c_m_gpu_result[i] - c_m_cpu[i]) > prec)
-             std::cout << "i :" << i << ", SYCL : " << c_m_gpu_result[i]
-                       << ", CPU :" << c_m_cpu[i] << std::endl;*/
           ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
         }
         ex.template deallocate<ScalarT>(m_a_gpu);
