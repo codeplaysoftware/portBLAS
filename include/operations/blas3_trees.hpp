@@ -123,9 +123,7 @@ class ReferenceGemmFactory {
   }
   inline IndexType getSize() const { return m * n; }
 
-  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return ((ndItem.get_global_id(0) < getSize()));
-  }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
     auto A = _A.getData().get_pointer().get();
@@ -285,9 +283,7 @@ class NoLocalGemmFactory {
 
   inline IndexType getSize() const { return m * n; }
 
-  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return ((ndItem.get_global_id(0) < getSize()));
-  }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
     auto A = _A.getData().get_pointer().get();
@@ -837,6 +833,7 @@ class GemmFactory {
     _B.bind(h);
     _C.bind(h);
   }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
  private:
   /*!
