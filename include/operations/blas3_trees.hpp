@@ -115,9 +115,9 @@ class ReferenceGemmFactory {
   inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     IndexType item_id = id.get_global_id(0);
     if (item_id >= m * n) {
       return;
@@ -279,9 +279,10 @@ class NoLocalGemmFactory {
   inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
+
     const auto number_of_block_per_row = ((m - 1) / block_rows) + 1;
 
     /* linear work group id */
@@ -754,9 +755,9 @@ class GemmFactory {
   inline void eval(shared_mem scratch_acc, cl::sycl::nd_item<1> id) noexcept {
     auto scratch = scratch_acc.localAcc.get_pointer().get();
     using ScratchPointerType = decltype(scratch);
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     const auto wg_id = id.get_group(0);
     const auto item_id = id.get_local_id(0);
     const auto tile_size = tl_rows * tl_cols;
