@@ -58,15 +58,25 @@ TYPED_TEST(BLAS_Test, gemm) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  for (int i = 11; i < 131; i += 13) {
-    for (int j = 11; j < 131; j += 17) {
-      for (int l = 11; l < 131; l += 21) {
-        std::array<int, 2> dim_a = {i, l};
-        std::array<int, 2> dim_b = {l, j};
-        std::array<int, 2> dim_c = {i, j};
 
-        std::vector<ScalarT> a_m(dim_a[0] * dim_a[1], ScalarT(1));
-        std::vector<ScalarT> b_m(dim_b[0] * dim_b[1], ScalarT(1));
+  int m_sizes[] = {2,   11,  14,  31,  39,  63,  64,   65,   127,
+                   129, 255, 257, 511, 512, 513, 1023, 1024, 1025};
+
+  int n_sizes[] = {2,   11,  14,  31,  39,  63,  64,   65,   127,
+                   129, 255, 257, 511, 512, 513, 1023, 1024, 1025};
+
+  int k_sizes[] = {2,   11,  14,  31,  39,  63,  64,  65,   95,   96,
+                   127, 129, 255, 257, 511, 512, 513, 1023, 1024, 1025};
+
+  for (int i = 0; i < 18; i++) {
+    for (int j = 0; j < 18; j++) {
+      for (int l = 0; l < 20; l++) {
+        std::array<int, 2> dim_a = {m_sizes[i], k_sizes[l]};
+        std::array<int, 2> dim_b = {k_sizes[l], n_sizes[j]};
+        std::array<int, 2> dim_c = {m_sizes[i], n_sizes[j]};
+
+        std::vector<ScalarT> a_m(dim_a[0] * dim_a[1]);
+        std::vector<ScalarT> b_m(dim_b[0] * dim_b[1]);
         std::vector<ScalarT> c_m_gpu_result(dim_c[0] * dim_c[1], ScalarT(0));
         std::vector<ScalarT> c_m_cpu(dim_c[0] * dim_c[1], ScalarT(0));
         TestClass::set_rand(a_m, dim_a[0] * dim_a[1]);
@@ -92,7 +102,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                                      dim_c[0] * dim_c[1]);
         ex.wait(event);
 
-        for (size_t i = 0; i < dim_c[0] * dim_c[1]; ++i) {
+        for (int i = 0; i < dim_c[0] * dim_c[1]; ++i) {
           ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
         }
         ex.template deallocate<ScalarT>(m_a_gpu);

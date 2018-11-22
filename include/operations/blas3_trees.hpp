@@ -267,8 +267,12 @@ class NoLocalGemmFactory {
         ldb(_B.getSizeL()),
         ldc(_C.getSizeL()) {}
 
+  /*!
+   * @brief Get the type of this NoLocalGemmFactory as a human readable string.
+   */
   static inline std::string get_type_string() noexcept {
-    return std::string("NoLocalGemmFactory<") + std::to_string(wg_size) + ", " +
+    return std::string("NoLocalGemmFactory<") + std::to_string(cl_size) + ", " +
+           tile_type::get_type_string() + ", " +
            type_string<value_type>::get_value() + ">";
   }
 

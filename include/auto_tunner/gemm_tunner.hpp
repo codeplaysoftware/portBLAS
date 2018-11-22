@@ -231,16 +231,7 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep) {
   NoLocalGemmFactory<data_t, data_t, cls,        \
                      Tile<_tir, _tic, _twr, _twc, _ttr, _ttc>, ta, tb, E>
   test<TARG(8, 8, 8, 8, 1, 1)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 2, 2)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 4, 4)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 8, 8)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 16, 16)>(rep, ARG);
-
   test<TARG(8, 8, 16, 16, 1, 1)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 2, 2)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 4, 4)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 8, 8)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 16, 16)>(rep, ARG);
 
 #undef TARG
 

@@ -34,6 +34,7 @@
 #include <vector>
 
 #include <executors/executor_sycl.hpp>
+#include <interface/blas_interface_sycl.hpp>
 #include <operations/blas3_trees.hpp>
 
 namespace blas {
@@ -61,7 +62,7 @@ typename Executor::Return_Type _select_gemm(
 #ifndef NAIVE_GEMM
 #define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                              \
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
-    if (ex.has_local_memory() && _M >= 16 && _N >= 16) {                       \
+    if (ex.has_local_memory()) {                                               \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
                             _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
                                                 T(_alpha), T(_beta));          \
