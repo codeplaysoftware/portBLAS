@@ -61,10 +61,11 @@ TYPED_TEST(BLAS_Test, gemm) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   int batch_sizes[] = {1,
-                       2,
-                       11
+                       5
 #ifdef AGGRESSIVE_TEST
                        ,
+                       11,
+                       2,
                        13,
                        31,
                        39,

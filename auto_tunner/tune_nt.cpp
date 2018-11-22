@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2017 Codeplay Software Limited
+ *  Copyright (C) 2018 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -19,13 +19,13 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_test_tb.cpp
+ *  @filename tune_nt.cpp
  *
  **************************************************************************/
 
 #include <cstdlib>
 
-#include "auto_tunner/gemm_tunner.hpp"
+#include "auto_tunner/gemm_tuner.hpp"
 
 int main(int argc, char *argv[]) {
   if (argc != 5) {
