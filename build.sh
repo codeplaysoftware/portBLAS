@@ -65,7 +65,7 @@ function configure {
 }
 
 function mak {
-    pushd build && make -j$NPROC
+    pushd build && make VERBOSE=1 -j$NPROC
     popd
 }
 
