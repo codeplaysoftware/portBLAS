@@ -1,7 +1,7 @@
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
 set(COMPUTECPP_DEVICE_COMPILER_FLAGS
-    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -Xclang -cl-mad-enable -O3")
+    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -Xclang -cl-mad-enable -O3 -fsycl-split-modules=32")
 message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 # Check to see if we've disabled double support in the tests
