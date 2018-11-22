@@ -48,17 +48,6 @@ ENABLE_TYPE_STRING(double)
 
 #undef ENABLE_TYPE_STRING
 
-/*Converting unsigned type  for index in GEMM to a signed type, as it can cause
- * incorrect result for GEMM, since it relies on pointer arithmetic*/
-template <typename IndexType>
-struct IndexTypePromotion {
-  using type = IndexType;
-};
-template <>
-struct IndexTypePromotion<size_t> {
-  using type = int;
-};
-
 /*!
  * @brief This factory generates reference GEMM implementations.
  *
@@ -79,7 +68,7 @@ template <typename RHS0, typename RHS1, int WgSize, bool TransA, bool TransB,
 class ReferenceGemmFactory {
  public:
   using value_type = T;
-  using IndexType = typename IndexTypePromotion<typename RHS0::IndexType>::type;
+  using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
   static constexpr int version = 2;
   static constexpr int wg_size = WgSize;
   static constexpr bool trans_a = TransA;
@@ -206,7 +195,7 @@ template <typename RHS0, typename RHS1, int ClSize, typename tile_type,
 class NoLocalGemmFactory {
  public:
   using value_type = T;
-  using IndexType = typename RHS0::IndexType;
+  using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
   static constexpr int version = 3;
   static constexpr int scratch_size = 0;
 
@@ -607,7 +596,7 @@ class GemmFactory {
  public:
   using tile_type = TileType;
   using value_type = T;
-  using IndexType = typename IndexTypePromotion<typename RHS1::IndexType>::type;
+  using IndexType = typename std::make_signed<typename RHS1::IndexType>::type;
   using Scratch = cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                                      cl::sycl::access::target::local>;
 
