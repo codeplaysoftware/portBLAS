@@ -25,7 +25,7 @@
 
 #include <cstdlib>
 
-#include "auto_tunner/gemm_tuner.hpp"
+#include "auto_tuner/gemm_tuner.hpp"
 
 int main(int argc, char *argv[]) {
   if (argc != 5) {
