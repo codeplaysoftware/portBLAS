@@ -32,6 +32,7 @@
 #include <numeric>
 
 #include <interface/blas3_interface.hpp>
+#include <interface/blas_interface_sycl.hpp>
 
 template <typename T, typename RndEngine>
 std::vector<T> gen_matrix(int m, int n, T lo, T hi, RndEngine rnd) {
@@ -203,7 +204,7 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep) {
 
 #define ARG m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, ldc, refC, ex
 
-  const int cls = 64;     // size of cache line in bytes
+  // const int cls = 64;     // size of cache line in bytes
   const bool db = false;  // use double buffer
   const bool ba = false;  // avoid bank conflicts for A
   const bool bb = false;  // avoid bank conflicts for B
@@ -211,32 +212,90 @@ void run_gemm_tests(int seed, int m, int k, int n, int rep) {
   const bool tb = TransB;
   using data_t = typename MatrixViewTypeTrace<Executor<SYCL>, E, int>::Type;
 
-#define TARG(_tir, _tic, _twr, _twc, _ttr, _ttc) \
-  GemmFactory<data_t, data_t, db, ba, bb, cls,   \
+#define TARGLOCAL(_cls, _tir, _tic, _twr, _twc, _ttr, _ttc) \
+  GemmFactory<data_t, data_t, db, ba, bb, _cls,             \
               Tile<_tir, _tic, _twr, _twc, _ttr, _ttc>, ta, tb, E>
-  test<TARG(8, 8, 8, 8, 1, 1)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 2, 2)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 4, 4)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 8, 8)>(rep, ARG);
-  test<TARG(8, 8, 8, 8, 16, 16)>(rep, ARG);
 
-  test<TARG(8, 8, 16, 16, 1, 1)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 2, 2)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 4, 4)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 8, 8)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 16, 16)>(rep, ARG);
-#undef TARG
+#define TARGNOLOCAL(_cls, _tir, _tic, _twr, _twc)                              \
+  NoLocalGemmFactory<data_t, data_t, _cls, Tile<_tir, _tic, _twr, _twc, 1, 1>, \
+                     ta, tb, E>
+  if ((ex.get_device_type() !=
+       Executor<SYCL>::Queue_Interface_Type::device_type::SYCL_RCAR_CVENGINE) &&
+      (ex.get_device_type() !=
+       Executor<SYCL>::Queue_Interface_Type::device_type::SYCL_RCAR_HOST_CPU)) {
+#if !defined(RCAR)
+    test<TARGLOCAL(64, 8, 8, 8, 8, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 8, 8, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 8, 8, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 8, 8, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 8, 8, 16, 16)>(rep, ARG);
 
-#define TARG(_tir, _tic, _twr, _twc, _ttr, _ttc) \
-  NoLocalGemmFactory<data_t, data_t, cls,        \
-                     Tile<_tir, _tic, _twr, _twc, _ttr, _ttc>, ta, tb, E>
-  test<TARG(8, 8, 8, 8, 1, 1)>(rep, ARG);
-  test<TARG(8, 8, 16, 16, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 16, 16, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 16, 16, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 16, 16, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 16, 16, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 8, 16, 16, 16, 16)>(rep, ARG);
 
-#undef TARG
+    test<TARGNOLOCAL(64, 8, 8, 8, 8)>(rep, ARG);
+    test<TARGNOLOCAL(64, 8, 8, 16, 16)>(rep, ARG);
 
-  test_syclblas(rep, *ta_str, *tb_str, ARG);
+    test<TARGLOCAL(128, 8, 8, 8, 8, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 8, 8, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 8, 8, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 8, 8, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 8, 8, 16, 16)>(rep, ARG);
 
-  test<ReferenceGemmFactory<data_t, data_t, 128, ta, tb, E>>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 16, 16, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 16, 16, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 16, 16, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 16, 16, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 8, 16, 16, 16, 16)>(rep, ARG);
+
+    test<TARGNOLOCAL(128, 8, 8, 8, 8)>(rep, ARG);
+    test<TARGNOLOCAL(128, 8, 8, 16, 16)>(rep, ARG);
+
+    test_syclblas(rep, *ta_str, *tb_str, ARG);
+
+    test<ReferenceGemmFactory<data_t, data_t, 128, ta, tb, E>>(rep, ARG);
+#endif
+  } else {
+#if defined(RCAR)
+    test<TARGLOCAL(64, 4, 8, 8, 4, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(64, 4, 8, 8, 4, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(64, 4, 8, 8, 4, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(64, 4, 8, 8, 4, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(64, 4, 8, 8, 4, 16, 16)>(rep, ARG);
+
+    test<TARGLOCAL(64, 8, 4, 4, 8, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 4, 4, 8, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 4, 4, 8, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 4, 4, 8, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(64, 8, 4, 4, 8, 16, 16)>(rep, ARG);
+
+    test<TARGNOLOCAL(64, 4, 8, 8, 4)>(rep, ARG);
+    test<TARGNOLOCAL(64, 8, 4, 4, 8)>(rep, ARG);
+
+    test<TARGLOCAL(128, 4, 8, 8, 4, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(128, 4, 8, 8, 4, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(128, 4, 8, 8, 4, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(128, 4, 8, 8, 4, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(128, 4, 8, 8, 4, 16, 16)>(rep, ARG);
+
+    test<TARGLOCAL(128, 8, 4, 4, 8, 1, 1)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 4, 4, 8, 2, 2)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 4, 4, 8, 4, 4)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 4, 4, 8, 8, 8)>(rep, ARG);
+    test<TARGLOCAL(128, 8, 4, 4, 8, 16, 16)>(rep, ARG);
+
+    test<TARGNOLOCAL(128, 4, 8, 8, 4)>(rep, ARG);
+    test<TARGNOLOCAL(128, 8, 4, 4, 8)>(rep, ARG);
+
+    test_syclblas(rep, *ta_str, *tb_str, ARG);
+
+    test<ReferenceGemmFactory<data_t, data_t, 32, ta, tb, E>>(rep, ARG);
+#endif  // defined R
+  }
+#undef TARGLOCAL
+#undef TARGNOLOCAL
 #undef ARG
 }
