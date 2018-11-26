@@ -126,9 +126,9 @@ class ReferenceGemmFactory {
   inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     IndexType item_id = id.get_global_id(0);
     if (item_id >= m * n) {
       return;
@@ -150,7 +150,11 @@ class ReferenceGemmFactory {
       B = B + (trans_b ? ldb : 1);
     }
 
-    C[0] = alpha * reg_res + beta * C[0];
+    if(beta == 0) {
+      C[0] = alpha * reg_res;
+    } else {
+      C[0] = alpha * reg_res + beta * C[0];
+    }
   }
 
   void bind(cl::sycl::handler &h) {
@@ -286,9 +290,12 @@ class NoLocalGemmFactory {
   inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+//    auto A = _A.getData().get_pointer().get();
+//    auto B = _B.getData().get_pointer().get();
+//    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     const auto number_of_block_per_row = ((m - 1) / block_rows) + 1;
 
     /* linear work group id */
@@ -487,7 +494,11 @@ class NoLocalGemmFactory {
       for (int i = 0; i < item_rows; i++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
                                                dim_n_c_start + j * wg_cols))) {
-          C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
+          if (0 == beta) {
+            C[i * wg_rows] = alpha * reg_res[i][j];
+          } else {
+            C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
+          }
         }
       }
       C = C + (wg_cols * ldc);
@@ -761,9 +772,13 @@ class GemmFactory {
   inline void eval(shared_mem scratch_acc, cl::sycl::nd_item<1> id) noexcept {
     auto scratch = scratch_acc.localAcc.get_pointer().get();
     using ScratchPointerType = decltype(scratch);
-    auto A = _A.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
+/*     auto A = _A.getData().get_pointer().get();
     auto B = _B.getData().get_pointer().get();
     auto C = _C.getData().get_pointer().get();
+    */
     const auto wg_id = id.get_group(0);
     const auto item_id = id.get_local_id(0);
     const auto tile_size = tl_rows * tl_cols;
@@ -888,7 +903,11 @@ class GemmFactory {
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          if (0 == beta) {
+            C[j * wg_rows] = alpha * reg_res[j][i];
+          } else {
+            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          }
         }
       }
       C = C + ldc;

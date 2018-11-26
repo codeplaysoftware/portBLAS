@@ -228,6 +228,7 @@ class Queue_Interface<SYCL> {
           static_cast<generic_buffer_data_type *>(static_cast<void *>(const_cast<T*>(src))),
           write_acc);
     });
+    event.wait();
 
     return event;
   }
@@ -246,6 +247,7 @@ class Queue_Interface<SYCL> {
           blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh);
       cgh.copy(src, acc);
     });
+    event.wait();
 
     return event;
   }
@@ -269,6 +271,7 @@ class Queue_Interface<SYCL> {
       cgh.copy(read_acc, static_cast<generic_buffer_data_type *>(
                              static_cast<void *>(dst)));
     });
+    event.wait();
 
     return event;
   }
@@ -286,6 +289,7 @@ class Queue_Interface<SYCL> {
           blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh);
       cgh.copy(acc, dst);
     });
+    event.wait();
 
     return event;
   }
