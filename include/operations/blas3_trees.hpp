@@ -139,10 +139,11 @@ class ReferenceGemmFactory {
       B = B + (trans_b ? ldb : 1);
     }
     // the check is required to prevent nan propagation
-    if (beta != value_type(0))
-      C[0] = alpha * reg_res + beta * C[0];
-    else
+    if (beta == 0) {
       C[0] = alpha * reg_res;
+    } else {
+      C[0] = alpha * reg_res + beta * C[0];
+    }
   }
 
   void bind(cl::sycl::handler &h) {
@@ -485,10 +486,11 @@ class NoLocalGemmFactory {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
                                                dim_n_c_start + j * wg_cols))) {
           // the check is required to prevent nan propagation
-          if (beta != value_type(0))
+          if (0 == beta) {
             C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
-          else
+          } else {
             C[i * wg_rows] = alpha * reg_res[i][j];
+          }
         }
       }
       C = C + (wg_cols * ldc);
@@ -890,10 +892,11 @@ class GemmFactory {
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
           // the check is required to prevent nan propagation
-          if (beta != value_type(0))
-            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
-          else
+          if (0 == beta) {
             C[j * wg_rows] = alpha * reg_res[j][i];
+          } else {
+            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          }
         }
       }
       C = C + ldc;
