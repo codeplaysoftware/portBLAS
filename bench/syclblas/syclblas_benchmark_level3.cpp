@@ -76,6 +76,17 @@ BENCHMARK(gemm, syclblas_level_3) {
         auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
                            ldb, beta, c_gpu, ldc);
         ex.wait(event);
+
+        auto start_time = event.template get_profiling_info<
+            cl::sycl::info::event_profiling::command_start>();
+
+        auto end_time = event.template get_profiling_info<
+            cl::sycl::info::event_profiling::command_end>();
+
+        auto delta = end_time - start_time;
+
+        std::cout << "\t\t\t\t\tKernel time:\t" << delta << "\t\t ns"
+                  << std::endl;
       });
 
   auto event = ex.copy_to_host(c_gpu, c.data(), m * n);

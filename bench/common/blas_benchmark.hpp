@@ -141,7 +141,13 @@ struct benchmark {
     }
 
     for (size_t reps = 0; reps < numReps; reps++) {
-      dur += benchmark<>::timef(func, std::forward<Args>(args)...);
+      auto exec_time = benchmark<>::timef(func, std::forward<Args>(args)...);
+      std::cout << "\t\t\t\t\tExec time:\t\t"
+                << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                       exec_time)
+                       .count()
+                << "\t ns" << std::endl;
+      dur += exec_time;
     }
 
     // convert the time to flop/s based on the number of fl_ops that the
@@ -150,19 +156,10 @@ struct benchmark {
     //  std::chrono::duration_cast<std::chrono::duration<double>>(dur)
     //  .count();
     // Just report the average time for now
-    // std::cout
-    //     << "duration : "
-    //     << std::chrono::duration_cast<std::chrono::milliseconds>(dur).count()
-    //     << std::endl;
-
-    // std::cout << "numReps: " << numReps << std::endl;
-
     auto ttt =
         (double)(std::chrono::duration_cast<std::chrono::nanoseconds>(dur)
                      .count()) /
         (double)numReps;
-
-    // std::cout << "ttt: " << ttt << std::endl;
 
     return ttt;
   }
@@ -342,16 +339,16 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
 /** SYCL_BENCHMARK_MAIN.
  * The main entry point of a SYCL-BLAS benchmark
  */
-#define SYCL_BENCHMARK_MAIN(RANGE_PARAM, REPS)                        \
-  int main(int argc, char* argv[]) {                                  \
-    benchmark_arguments ba(argc, argv);                               \
-    if (!ba.validProgramOptions) {                                    \
-      return 1;                                                       \
-    }                                                                 \
-    cli_device_selector cds(ba.device_vendor, ba.device_type);        \
-    cl::sycl::queue q(cds);                                           \
-    Executor<SYCL> ex(q);                                             \
-    return main_impl((&RANGE_PARAM), (REPS), ex, ba.requestedOutput); \
+#define SYCL_BENCHMARK_MAIN(RANGE_PARAM, REPS)                               \
+  int main(int argc, char* argv[]) {                                         \
+    benchmark_arguments ba(argc, argv);                                      \
+    if (!ba.validProgramOptions) {                                           \
+      return 1;                                                              \
+    }                                                                        \
+    cli_device_selector cds(ba.device_vendor, ba.device_type);               \
+    cl::sycl::queue q(cds, {cl::sycl::property::queue::enable_profiling()}); \
+    Executor<SYCL> ex(q);                                                    \
+    return main_impl((&RANGE_PARAM), (REPS), ex, ba.requestedOutput);        \
   }
 
 /** CLBLAST_BENCHMARK_MAIN
