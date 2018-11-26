@@ -91,4 +91,6 @@ BENCHMARK(gemm, syclblas_level_3) {
 
 SUITE(ADD(gemm))
 
-SYCL_BENCHMARK_MAIN(default_ranges::level_3, 10)
+auto fixedranged = value_range({std::make_tuple("n", "n", 64, 64, 12544)});
+
+SYCL_BENCHMARK_MAIN(fixedranged, 10)

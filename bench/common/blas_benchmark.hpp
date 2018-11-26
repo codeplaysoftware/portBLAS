@@ -136,7 +136,7 @@ struct benchmark {
     TimeT dur = TimeT::zero();
 
     // warm up to avoid benchmarking data transfer
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 15; ++i) {
       func(std::forward<Args>(args)...);
     }
 
@@ -146,9 +146,25 @@ struct benchmark {
 
     // convert the time to flop/s based on the number of fl_ops that the
     // function performs
-    return (FlopsT(n_fl_ops) * numReps) /
-           std::chrono::duration_cast<std::chrono::duration<double>>(dur)
-               .count();
+    // return (FlopsT(n_fl_ops) * numReps) /
+    //  std::chrono::duration_cast<std::chrono::duration<double>>(dur)
+    //  .count();
+    // Just report the average time for now
+    // std::cout
+    //     << "duration : "
+    //     << std::chrono::duration_cast<std::chrono::milliseconds>(dur).count()
+    //     << std::endl;
+
+    // std::cout << "numReps: " << numReps << std::endl;
+
+    auto ttt =
+        (double)(std::chrono::duration_cast<std::chrono::nanoseconds>(dur)
+                     .count()) /
+        (double)numReps;
+
+    // std::cout << "ttt: " << ttt << std::endl;
+
+    return ttt;
   }
 
   static constexpr const size_t text_name_length = 50;
@@ -181,7 +197,7 @@ struct benchmark {
     } else if (output == output_type::CSV) {
       std::cerr << "benchmark, "
                 << "iterations, "
-                << "performance (mflop/s)" << std::endl;
+                << "performance (nanoseconds)" << std::endl;
     }
   }
 
@@ -190,12 +206,12 @@ struct benchmark {
     if (output == output_type::STDOUT) {
       std::cerr << align_left(name, text_name_length)
                 << align_left(std::to_string(no_reps), text_iterations_length)
-                << align_left(std::to_string(flops * 1e-6), text_flops_length,
-                              1)
-                << "MFlops" << std::endl;
+                << align_left(std::to_string(flops /* 1e-6*/),
+                              text_flops_length, 1)
+                << "nanoseconds" << std::endl;
     } else if (output == output_type::CSV) {
       std::cerr << name << ", " << std::to_string(no_reps) << ", "
-                << std::to_string(flops * 1e-6) << std::endl;
+                << std::to_string(flops /* 1e-6*/) << std::endl;
     } else {
       std::cerr << "Unknown output type!" << std::endl;
     }
@@ -313,12 +329,12 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     run_benchmark(b, range_param, reps, ex, output);
   }
 
-  #ifndef NO_DOUBLE_SUPPORT
-    auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
-    for (auto b : dbenchmarks) {
-      run_benchmark(b, range_param, reps, ex, output);
-    }
-  #endif
+#ifndef NO_DOUBLE_SUPPORT
+  auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
+  for (auto b : dbenchmarks) {
+    run_benchmark(b, range_param, reps, ex, output);
+  }
+#endif
 
   return 0;
 }
