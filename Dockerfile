@@ -20,9 +20,9 @@ RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 RUN apt-get -yq update
 
 # Clang 5.0
-RUN if [ "${c_compiler}" = 'clang-5.0' ]; then apt-get install -yq             \
+RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-     clang-5.0 libomp-dev; fi
+     clang-6.0 libomp-dev; fi
 
 # GCC 7
 RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
