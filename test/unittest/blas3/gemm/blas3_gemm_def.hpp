@@ -49,9 +49,11 @@ TYPED_TEST(BLAS_Test, gemm) {
   const char* ta_str = MatAType::str;
   const char* tb_str = MatBType::str;
 
-  std::array<size_t, 2> dim_a = {127, 127};
-  std::array<size_t, 2> dim_b = {127, 127};
-  std::array<size_t, 2> dim_c = {127, 127};
+  // 64, 64, 12544
+
+  std::array<size_t, 2> dim_a = {64, 64};
+  std::array<size_t, 2> dim_b = {64, 64};
+  std::array<size_t, 2> dim_c = {64, 12544};
 
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
