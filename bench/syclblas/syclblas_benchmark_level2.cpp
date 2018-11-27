@@ -73,22 +73,12 @@ BENCHMARK(gemv, syclblas_level_2) {
   ex.copy_to_device(b_v.data(), v_b_gpu, vlen);
   ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, n_fl_ops, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, n_fl_ops, [&]() -> cl::sycl::event {
         auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
                            beta, v_c_gpu, incY);
         ex.wait(event);
-
-        auto start_time = event.template get_profiling_info<
-            cl::sycl::info::event_profiling::command_start>();
-
-        auto end_time = event.template get_profiling_info<
-            cl::sycl::info::event_profiling::command_end>();
-
-        auto delta = end_time - start_time;
-
-        std::cout << "\t\t\t\t\tKernel time:\t" << delta << "\t\t ns"
-                  << std::endl;
+        return event;
       });
 
   auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), rlen);

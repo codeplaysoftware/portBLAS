@@ -94,14 +94,13 @@ BENCHMARK(gemm, clblast_level_3) {
   MemBuffer<ScalarT> c(*ex, c_host.data(), c_size);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, n_fl_ops, [&]() {
-        clblast::Gemm<ScalarT>(layout, a_transpose, b_transpose, m, n, k, alpha,
-                               a.dev(), 0, lda, b.dev(), 0, ldb, beta, c.dev(),
-                               0, ldc, (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, n_fl_ops, [&]() {
+    clblast::Gemm<ScalarT>(layout, a_transpose, b_transpose, m, n, k, alpha,
+                           a.dev(), 0, lda, b.dev(), 0, ldb, beta, c.dev(), 0,
+                           ldc, (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }

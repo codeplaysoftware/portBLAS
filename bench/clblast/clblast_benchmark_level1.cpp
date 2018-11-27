@@ -40,20 +40,19 @@ BENCHMARK(scal, clblast_level_1) {
   using ScalarT = ElemT;
   const size_t size = params;
 
-  // Alpha 
+  // Alpha
   ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
 
   std::vector<ScalarT> buf1_host = benchmark<>::random_data<ScalarT>(size);
   MemBuffer<ScalarT> buf1(*ex, buf1_host.data(), size);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 1, [&]() {
-        clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
-                               &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 1, [&]() {
+    clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
+                           &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -71,13 +70,12 @@ BENCHMARK(axpy, clblast_level_1) {
   MemBuffer<ScalarT> buf2(*ex, buf2_host.data(), size);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Axpy<ScalarT>(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0, 1,
-                               (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Axpy<ScalarT>(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0, 1,
+                           (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -92,13 +90,12 @@ BENCHMARK(asum, clblast_level_1) {
   MemBuffer<ScalarT, CL_MEM_READ_ONLY> bufr(*ex, &vr, 1);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Asum<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
-                               (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Asum<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
+                           (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -114,13 +111,12 @@ BENCHMARK(nrm2, clblast_level_1) {
   MemBuffer<ScalarT, CL_MEM_READ_ONLY> bufr(*ex, &vr, 1);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Nrm2<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
-                               (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Nrm2<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
+                           (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -138,13 +134,12 @@ BENCHMARK(dot, clblast_level_1) {
   MemBuffer<ScalarT, CL_MEM_READ_ONLY> bufr(*ex, &vr, 1);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Dot<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1, buf2.dev(),
-                              0, 1, (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Dot<ScalarT>(size, bufr.dev(), 0, buf1.dev(), 0, 1, buf2.dev(), 0,
+                          1, (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -160,13 +155,12 @@ BENCHMARK(iamax, clblast_level_1) {
   MemBuffer<int, CL_MEM_READ_ONLY> buf_i(*ex, &vi, 1);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Amax<ScalarT>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
-                               (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Amax<ScalarT>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
+                           (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -183,13 +177,12 @@ BENCHMARK(iamin, clblast_level_1) {
   MemBuffer<int> buf_i(*ex, &vi, 1);
 
   Event event;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Amin<ScalarT>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
-                               (*ex)._queue(), &event._cl());
-        event.wait();
-        event.release();
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Amin<ScalarT>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
+                           (*ex)._queue(), &event._cl());
+    event.wait();
+    return event;
+  });
 
   return flops;
 }
@@ -206,15 +199,15 @@ BENCHMARK(scal2op, clblast_level_1) {
   MemBuffer<ScalarT> buf2(*ex, buf2_host.data(), size);
 
   Event event1, event2;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
-        clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
-                               &event1._cl());
-        clblast::Scal<ScalarT>(size, alpha, buf2.dev(), 0, 1, (*ex)._queue(),
-                               &event2._cl());
-        Event::wait({event1, event2});
-        Event::release({event1, event2});
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 2, [&]() {
+    clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
+                           &event1._cl());
+    clblast::Scal<ScalarT>(size, alpha, buf2.dev(), 0, 1, (*ex)._queue(),
+                           &event2._cl());
+    Event::wait({event1, event2});
+    Event::release({event1});
+    return event2;
+  });
 
   return flops;
 }
@@ -234,17 +227,17 @@ BENCHMARK(scal3op, clblast_level_1) {
   MemBuffer<ScalarT> buf3(*ex, buf3_host.data(), size);
 
   Event event1, event2, event3;
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 3, [&]() {
-        clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
-                               &event1._cl());
-        clblast::Scal<ScalarT>(size, alpha, buf2.dev(), 0, 1, (*ex)._queue(),
-                               &event2._cl());
-        clblast::Scal<ScalarT>(size, alpha, buf3.dev(), 0, 1, (*ex)._queue(),
-                               &event3._cl());
-        Event::wait({event1, event2, event3});
-        Event::release({event1, event2, event3});
-      });
+  benchmark<>::datapoint_t flops = benchmark<>::measure(reps, size * 3, [&]() {
+    clblast::Scal<ScalarT>(size, alpha, buf1.dev(), 0, 1, (*ex)._queue(),
+                           &event1._cl());
+    clblast::Scal<ScalarT>(size, alpha, buf2.dev(), 0, 1, (*ex)._queue(),
+                           &event2._cl());
+    clblast::Scal<ScalarT>(size, alpha, buf3.dev(), 0, 1, (*ex)._queue(),
+                           &event3._cl());
+    Event::wait({event1, event2, event3});
+    Event::release({event1, event2});
+    return event3;
+  });
 
   return flops;
 }
@@ -264,14 +257,14 @@ BENCHMARK(axpy3op, clblast_level_1) {
   MemBuffer<ScalarT> bufdst(*ex, bufdst_host.data(), size * 3);
 
   Event event;
-  benchmark<>::flops_units_t flops =
+  benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 3 * 2, [&]() {
         clblast::AxpyBatched<ScalarT>(size, alphas, bufsrc.dev(), offsets, 1,
                                       bufdst.dev(), offsets, 1, 3,
                                       (*ex)._queue(), &event._cl());
+        event.wait();
+        return event;
       });
-  event.wait();
-  event.release();
 
   return flops;
 }

@@ -75,32 +75,149 @@ const inline std::string& type_string<double>() {
   return str;
 }
 
+/**
+ * @fn time_event
+ * @brief inspects an event to calculate how long it took (start/end times).
+ * Overloaded to support sycl and opencl.
+ */
+inline cl_ulong time_event(cl::sycl::event e) {
+  // get start and ed times
+  cl_ulong start_time = e.template get_profiling_info<
+      cl::sycl::info::event_profiling::command_start>();
+
+  cl_ulong end_time = e.template get_profiling_info<
+      cl::sycl::info::event_profiling::command_end>();
+
+  // return the delta
+  return (end_time - start_time);
+}
+
+inline cl_ulong time_event(Event e) {
+  // get start and end times
+  cl_ulong start_time, end_time;
+  bool all_ok = true;
+  // declare a lambda to check the result of the calls
+  auto check_call = [&](cl_int status) {
+    switch (status) {
+      case CL_SUCCESS:
+        return;
+        break;
+      case CL_PROFILING_INFO_NOT_AVAILABLE:
+        std::cerr << "The opencl queue has not been configured with profiling "
+                     "information! "
+                  << std::endl;
+        break;
+      case CL_INVALID_VALUE:
+        std::cerr << "param_name is not valid, or size of param is < "
+                     "param_value_size in profiling call!"
+                  << std::endl;
+        break;
+      case CL_INVALID_EVENT:
+        std::cerr << "event is invalid in profiling call " << std::endl;
+        break;
+      case CL_OUT_OF_RESOURCES:
+        std::cerr << "cl_out_of_resources in profiling call" << std::endl;
+        break;
+      case CL_OUT_OF_HOST_MEMORY:
+        std::cerr << "cl_out_of_host_memory in profiling call" << std::endl;
+        break;
+    }
+    // If we've reached this point, something's gone wrong - set the error flag
+    all_ok = false;
+  };
+  check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_START,
+                                     sizeof(cl_ulong), &start_time, NULL));
+  check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_START,
+                                     sizeof(cl_ulong), &end_time, NULL));
+  e.release();
+  // return the delta
+  if (all_ok) {
+    return (end_time - start_time);
+  } else {
+    return (cl_ulong)(-1);
+  }
+}
+
+/**
+ * @struct datapoint
+ * @brief Represents a datapoint for a given benchmark/parameter
+ * combination.
+ *
+ *
+ */
+
+struct datapoint {
+  typedef double ExecTimeT;
+  typedef cl_ulong KernelTimeT;
+
+  ExecTimeT _mean_exec_time;
+  KernelTimeT _mean_kernel_time;
+
+  datapoint(ExecTimeT mean_exec_time, KernelTimeT mean_kernel_time)
+      : _mean_exec_time(mean_exec_time), _mean_kernel_time(mean_kernel_time) {}
+
+  // Constant values denoting the maximum length of columns, for nice alignment
+  static constexpr const size_t text_name_length = 50;
+  static constexpr const size_t text_iterations_length = 15;
+  static constexpr const size_t text_flops_length = 10;
+
+  static constexpr const size_t columns = 4;
+
+  static inline std::string align_left(const std::string& text, size_t len,
+                                       size_t offset = 0) {
+    return text + std::string((len < text.length() + offset)
+                                  ? offset
+                                  : len - text.length(),
+                              ' ');
+  }
+
+  static inline void output_array(std::array<std::string, columns> values,
+                                  output_type output = output_type::STDOUT) {
+    static constexpr const size_t column_widths[columns] = {50, 15, 20, 20};
+    for (int i = 0; i < columns; i++) {
+      if (output == output_type::STDOUT) {
+        // If we're just printing columns, align them
+        std::cerr << align_left(values[i], column_widths[i]);
+      } else if (output == output_type::CSV) {
+        // Otherwise, output the value, optionally prepended by a comma
+        if (i != 0) std::cerr << ", ";
+        std::cerr << values[i];
+      } else {
+        std::cerr << "Unknown output type!" << std::endl;
+      }
+    }
+    std::cerr << std::endl;
+  }
+
+  static void output_headers(output_type output = output_type::STDOUT) {
+    static const std::array<std::string, columns> column_names = {
+        "Benchmark", "Iterations", "Mean total time", "Mean kernel time"};
+    output_array(column_names, output);
+  }
+
+  void output_data(const std::string& name, int no_reps,
+                   output_type output = output_type::STDOUT) {
+    std::array<std::string, columns> data = {name, std::to_string(no_reps),
+                                             std::to_string(_mean_exec_time),
+                                             std::to_string(_mean_kernel_time)};
+    output_array(data, output);
+  }
+};
+
+/**
+ * @struct benchmark
+ * @brief Utility methods and orchestration for a benchmark suite
+ *
+ *
+ *
+ *
+ */
 template <typename TimeT = std::chrono::nanoseconds,
           typename ClockT = std::chrono::system_clock, typename FlopsT = double>
 struct benchmark {
   typedef TimeT time_units_t;
   typedef FlopsT flops_units_t;
-
-  template <typename ScalarT>
-  static std::vector<ScalarT> random_data(size_t size,
-                                          bool initialized = true) {
-    auto default_initialiser = [](ScalarT x) -> ScalarT {
-      // eeeeugh
-      return 1e-3 * ((rand() % 2000) - 1000);
-    };
-    std::vector<ScalarT> v = std::vector<ScalarT>(size);
-    if (initialized) {
-      std::transform(v.begin(), v.end(), v.begin(), default_initialiser);
-    }
-    return v;
-  }
-
-  template <typename ScalarT>
-  static std::vector<ScalarT> const_data(size_t size, ScalarT const_value = 0) {
-    std::vector<ScalarT> v = std::vector<ScalarT>(size);
-    std::fill(v.begin(), v.end(), const_value);
-    return v;
-  }
+  typedef datapoint datapoint_t;
 
   /**
    * @fn random_scalar
@@ -108,8 +225,37 @@ struct benchmark {
    * algorithm.
    */
   template <typename ScalarT>
-  static ScalarT random_scalar() {
+  static inline ScalarT random_scalar() {
     return 1e-3 * ((rand() % 2000) - 1000);
+  }
+
+  /**
+   * @fn random_data
+   * @brief Generates a random vector of scalar values, using an arbitrary low
+   * quality algorithm.
+   */
+  template <typename ScalarT>
+  static inline std::vector<ScalarT> random_data(size_t size,
+                                                 bool initialized = true) {
+    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+    if (initialized) {
+      std::transform(v.begin(), v.end(), v.begin(), [](ScalarT x) -> ScalarT {
+        return random_scalar<ScalarT>();
+      });
+    }
+    return v;
+  }
+
+  /**
+   * @fn const_data
+   * @brief Generates a vector of constant values, of a given length.
+   */
+  template <typename ScalarT>
+  static inline std::vector<ScalarT> const_data(size_t size,
+                                                ScalarT const_value = 0) {
+    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+    std::fill(v.begin(), v.end(), const_value);
+    return v;
   }
 
   /**
@@ -117,12 +263,21 @@ struct benchmark {
    * @brief Calculates the time spent executing the function func
    */
   template <typename F, typename... Args>
-  static TimeT timef(F func, Args&&... args) {
+  static std::tuple<TimeT, cl_ulong> timef(F func, Args&&... args) {
     auto start = ClockT::now();
 
-    func(std::forward<Args>(args)...);
+    auto event = func(std::forward<Args>(args)...);
 
-    return std::chrono::duration_cast<TimeT>(ClockT::now() - start);
+    auto end = ClockT::now();
+
+    auto overall_time = end - start;
+    cl_ulong event_time = time_event(event);
+
+    std::cout << "\t\t\t\tOverall Time: \t\t" << overall_time.count()
+              << std::endl;
+    std::cout << "\t\t\t\tKernel Time : \t\t" << event_time << std::endl;
+
+    return std::make_tuple(overall_time, event_time);
   }
 
   /**
@@ -131,23 +286,21 @@ struct benchmark {
    * function F, which performs n_fl_ops floating point operations.
    */
   template <typename F, typename... Args>
-  static FlopsT measure(size_t numReps, size_t n_fl_ops, F func,
-                        Args&&... args) {
-    TimeT dur = TimeT::zero();
+  static datapoint_t measure(size_t numReps, size_t n_fl_ops, F func,
+                             Args&&... args) {
+    TimeT overall_duration = TimeT::zero();
+    cl_ulong kernel_duration = 0;
 
     // warm up to avoid benchmarking data transfer
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 5; ++i) {
       func(std::forward<Args>(args)...);
     }
 
     for (size_t reps = 0; reps < numReps; reps++) {
       auto exec_time = benchmark<>::timef(func, std::forward<Args>(args)...);
-      std::cout << "\t\t\t\t\tExec time:\t\t"
-                << std::chrono::duration_cast<std::chrono::nanoseconds>(
-                       exec_time)
-                       .count()
-                << "\t ns" << std::endl;
-      dur += exec_time;
+
+      overall_duration += std::get<0>(exec_time);
+      kernel_duration += std::get<1>(exec_time);
     }
 
     // convert the time to flop/s based on the number of fl_ops that the
@@ -155,18 +308,18 @@ struct benchmark {
     // return (FlopsT(n_fl_ops) * numReps) /
     //  std::chrono::duration_cast<std::chrono::duration<double>>(dur)
     //  .count();
+
     // Just report the average time for now
-    auto ttt =
-        (double)(std::chrono::duration_cast<std::chrono::nanoseconds>(dur)
+    auto mean_overall_duration =
+        (double)(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                     overall_duration)
                      .count()) /
         (double)numReps;
 
-    return ttt;
-  }
+    auto mean_kernel_duration = kernel_duration / numReps;
 
-  static constexpr const size_t text_name_length = 50;
-  static constexpr const size_t text_iterations_length = 15;
-  static constexpr const size_t text_flops_length = 10;
+    return datapoint(mean_overall_duration, mean_kernel_duration);
+  }
 
   /**
    * @fn typestr
@@ -176,42 +329,6 @@ struct benchmark {
   template <typename T>
   static std::string typestr() {
     return type_string<T>();
-  }
-
-  static std::string align_left(const std::string& text, size_t len,
-                                size_t offset = 0) {
-    return text + std::string((len < text.length() + offset)
-                                  ? offset
-                                  : len - text.length(),
-                              ' ');
-  }
-
-  static void output_headers(output_type output = output_type::STDOUT) {
-    if (output == output_type::STDOUT) {
-      std::cerr << align_left("Benchmark", text_name_length)
-                << align_left("Iterations", text_iterations_length)
-                << align_left("Performance", text_flops_length) << std::endl;
-    } else if (output == output_type::CSV) {
-      std::cerr << "benchmark, "
-                << "iterations, "
-                << "performance (nanoseconds)" << std::endl;
-    }
-  }
-
-  static void output_data(const std::string& name, int no_reps, double flops,
-                          output_type output = output_type::STDOUT) {
-    if (output == output_type::STDOUT) {
-      std::cerr << align_left(name, text_name_length)
-                << align_left(std::to_string(no_reps), text_iterations_length)
-                << align_left(std::to_string(flops /* 1e-6*/),
-                              text_flops_length, 1)
-                << "nanoseconds" << std::endl;
-    } else if (output == output_type::CSV) {
-      std::cerr << name << ", " << std::to_string(no_reps) << ", "
-                << std::to_string(flops /* 1e-6*/) << std::endl;
-    } else {
-      std::cerr << "Unknown output type!" << std::endl;
-    }
   }
 };
 
@@ -225,28 +342,28 @@ class benchmark_instance {
  public:
   virtual const std::string name() = 0;
   virtual const std::string format_name(ParamT params) = 0;
-  virtual benchmark<>::flops_units_t run(ParamT params, unsigned int reps,
-                                         ExecutorT ex) = 0;
+  virtual benchmark<>::datapoint_t run(ParamT params, unsigned int reps,
+                                       ExecutorT ex) = 0;
 };
 
 /** BENCHMARK_NAME_FORMAT
  * Define how we want to print names for a given benchmark suite
  */
 
-#define BENCHMARK_NAME_FORMAT(suite_name)                            \
-  template <typename ElemT, typename ExecutorT, typename ParamT>     \
-  class benchmark_##suite_name##_suite_class                         \
-      : public benchmark_instance<ElemT, ExecutorT, ParamT> {        \
-   public:                                                           \
-    benchmark_##suite_name##_suite_class(){};                        \
-    const std::string name() = 0;                                    \
-    const std::string format_name(ParamT params);                    \
-    const char* type() { return typeid(ElemT).name(); }              \
-    benchmark<>::flops_units_t run(ParamT params, unsigned int reps, \
-                                   ExecutorT ex) = 0;                \
-  };                                                                 \
-  template <typename ElemT, typename ExecutorT, typename ParamT>     \
-  const std::string benchmark_##suite_name##_suite_class<            \
+#define BENCHMARK_NAME_FORMAT(suite_name)                          \
+  template <typename ElemT, typename ExecutorT, typename ParamT>   \
+  class benchmark_##suite_name##_suite_class                       \
+      : public benchmark_instance<ElemT, ExecutorT, ParamT> {      \
+   public:                                                         \
+    benchmark_##suite_name##_suite_class(){};                      \
+    const std::string name() = 0;                                  \
+    const std::string format_name(ParamT params);                  \
+    const char* type() { return typeid(ElemT).name(); }            \
+    benchmark<>::datapoint_t run(ParamT params, unsigned int reps, \
+                                 ExecutorT ex) = 0;                \
+  };                                                               \
+  template <typename ElemT, typename ExecutorT, typename ParamT>   \
+  const std::string benchmark_##suite_name##_suite_class<          \
       ElemT, ExecutorT, ParamT>::format_name(ParamT params)
 
 /** BENCHMARK
@@ -263,11 +380,11 @@ class benchmark_instance {
     benchmark_##bench_name##_class_(){};                              \
     const std::string name() { return std::string(_name); }           \
     const char* type() { return typeid(ElemT).name(); }               \
-    benchmark<>::flops_units_t run(ParamT params, unsigned int reps,  \
-                                   ExecutorT ex);                     \
+    benchmark<>::datapoint_t run(ParamT params, unsigned int reps,    \
+                                 ExecutorT ex);                       \
   };                                                                  \
   template <typename ElemT, typename ExecutorT, typename ParamT>      \
-  benchmark<>::flops_units_t                                          \
+  benchmark<>::datapoint_t                                            \
       benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run( \
           ParamT params, unsigned int reps, ExecutorT ex)
 
@@ -297,10 +414,10 @@ void run_benchmark(benchmark_instance<ElemT, Ex, ParamT>* b,
                    output_type output = output_type::STDOUT) {
   while (1) {
     auto params = _range->yield();
-    auto flops = b->run(params, reps, ex);
+    auto res = b->run(params, reps, ex);
     const std::string name = b->format_name(params);
 
-    benchmark<>::output_data(name, reps, flops, output);
+    res.output_data(name, reps, output);
 
     if (_range->finished()) break;
   }
@@ -320,7 +437,7 @@ std::vector<benchmark_instance<ElemT, ExecutorT, ParamT>*> benchmark_suite();
 template <typename Ex, typename ParamT>
 int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
               output_type output = output_type::STDOUT) {
-  benchmark<>::output_headers(output);
+  datapoint::output_headers(output);
   auto fbenchmarks = benchmark_suite<float, Ex, ParamT>();
   for (auto b : fbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);
