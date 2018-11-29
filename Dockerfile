@@ -19,15 +19,15 @@ RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
 
-# Clang 4.0
-RUN if [ "${c_compiler}" = 'clang-4.0' ]; then apt-get install -yq             \
+# Clang 6.0
+RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-     clang-4.0 libomp-dev; fi
+     clang-6.0 libomp-dev; fi
 
-# GCC 6
-RUN if [ "${c_compiler}" = 'gcc-6' ]; then apt-get install -yq                 \
+# GCC 7
+RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-    g++-6 gcc-6; fi
+    g++-7 gcc-7; fi
 
 # OpenCL ICD Loader
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \

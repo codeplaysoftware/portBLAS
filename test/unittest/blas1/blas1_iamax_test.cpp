@@ -48,9 +48,10 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   // create a random vector vX
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
+  constexpr auto val =
+      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(
-      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value);
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
 
   ScalarT max = ScalarT(0);
   IndexType imax = std::numeric_limits<IndexType>::max();
@@ -98,9 +99,10 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   // create a random vector vX
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
+  constexpr auto val =
+      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(
-      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value);
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
 
   ScalarT max = ScalarT(0);
   IndexType imax = std::numeric_limits<IndexType>::max();

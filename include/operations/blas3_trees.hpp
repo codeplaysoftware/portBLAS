@@ -68,7 +68,7 @@ template <typename RHS0, typename RHS1, int WgSize, bool TransA, bool TransB,
 class ReferenceGemmFactory {
  public:
   using value_type = T;
-  using IndexType = typename RHS0::IndexType;
+  using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
   static constexpr int version = 2;
   static constexpr int wg_size = WgSize;
   static constexpr bool trans_a = TransA;
@@ -112,16 +112,13 @@ class ReferenceGemmFactory {
   }
   inline IndexType getSize() const { return m * n; }
 
-  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return ((ndItem.get_global_id(0) < getSize()));
-  }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     IndexType item_id = id.get_global_id(0);
-    //  printf("B[%ld]= %f\n", item_id, B[item_id]);
     if (item_id >= m * n) {
       return;
     }
@@ -141,8 +138,13 @@ class ReferenceGemmFactory {
       A = A + (trans_a ? 1 : lda);
       B = B + (trans_b ? ldb : 1);
     }
-
-    C[0] = alpha * reg_res + beta * C[0];
+    // when C is uninitialized the element of the C can be NaN, and Nan*0
+    // will be NaN
+    if (beta == 0) {
+      C[0] = alpha * reg_res;
+    } else {
+      C[0] = alpha * reg_res + beta * C[0];
+    }
   }
 
   void bind(cl::sycl::handler &h) {
@@ -198,7 +200,7 @@ template <typename RHS0, typename RHS1, int ClSize, typename tile_type,
 class NoLocalGemmFactory {
  public:
   using value_type = T;
-  using IndexType = typename RHS0::IndexType;
+  using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
   static constexpr int version = 3;
   static constexpr int scratch_size = 0;
 
@@ -259,8 +261,12 @@ class NoLocalGemmFactory {
         ldb(_B.getSizeL()),
         ldc(_C.getSizeL()) {}
 
+  /*!
+   * @brief Get the type of this NoLocalGemmFactory as a human readable string.
+   */
   static inline std::string get_type_string() noexcept {
-    return std::string("NoLocalGemmFactory<") + std::to_string(wg_size) + ", " +
+    return std::string("NoLocalGemmFactory<") + std::to_string(cl_size) + ", " +
+           tile_type::get_type_string() + ", " +
            type_string<value_type>::get_value() + ">";
   }
 
@@ -275,14 +281,13 @@ class NoLocalGemmFactory {
 
   inline IndexType getSize() const { return m * n; }
 
-  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return ((ndItem.get_global_id(0) < getSize()));
-  }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
   inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
+
     const auto number_of_block_per_row = ((m - 1) / block_rows) + 1;
 
     /* linear work group id */
@@ -348,6 +353,9 @@ class NoLocalGemmFactory {
       return (dim_m_c_start < m && dim_n_c_start < n);
     };
 
+    // computing the next element for a and b;
+    const auto A_ptr_index = (trans_a ? lda : 1) * wg_rows;
+    const auto B_ptr_index = (trans_b ? 1 : ldb) * wg_cols;
     /*
      * computing the gemm block
      */
@@ -356,18 +364,18 @@ class NoLocalGemmFactory {
        * Loading a corresponding block of matrix A into reg_a
        */
       (is_internal_block_m)
-          ? load<item_rows, wg_rows, false>(A, reg_a, (trans_a ? lda : 1),
+          ? load<item_rows, wg_rows, false>(A, reg_a, A_ptr_index,
                                             dim_m_a_start, boundary_check_m)
-          : load<item_rows, wg_rows, true>(A, reg_a, (trans_a ? lda : 1),
-                                           dim_m_a_start, boundary_check_m);
+          : load<item_rows, wg_rows, true>(A, reg_a, A_ptr_index, dim_m_a_start,
+                                           boundary_check_m);
       /*
        * Loading a corresponding block of matrix B into reg_b
        */
       (is_internal_block_n)
-          ? load<item_cols, wg_cols, false>(B, reg_b, (trans_b ? 1 : ldb),
+          ? load<item_cols, wg_cols, false>(B, reg_b, B_ptr_index,
                                             dim_n_b_start, boundary_check_n)
-          : load<item_cols, wg_cols, true>(B, reg_b, (trans_b ? 1 : ldb),
-                                           dim_n_b_start, boundary_check_n);
+          : load<item_cols, wg_cols, true>(B, reg_b, B_ptr_index, dim_n_b_start,
+                                           boundary_check_n);
 
       /*
        * Computing a the partial GEMM for the loaded block of reg_a andd
@@ -428,8 +436,8 @@ class NoLocalGemmFactory {
 #pragma unroll
     for (int i = 0; i < item_size; i++) {
       reg[i] = do_check<check_block>(chk_boundary(index)) ? ptr[0] : T(0);
-      ptr = ptr + (next_element * ld);
-      index = index + next_element;
+      ptr += ld;
+      index += next_element;
     }
   }
 
@@ -478,7 +486,13 @@ class NoLocalGemmFactory {
       for (int i = 0; i < item_rows; i++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
                                                dim_n_c_start + j * wg_cols))) {
-          C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
+          // when C is uninitialized the element of the C can be NaN, and Nan*0
+          // will be NaN
+          if (0 == beta) {
+            C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
+          } else {
+            C[i * wg_rows] = alpha * reg_res[i][j];
+          }
         }
       }
       C = C + (wg_cols * ldc);
@@ -594,7 +608,7 @@ class GemmFactory {
  public:
   using tile_type = TileType;
   using value_type = T;
-  using IndexType = typename RHS1::IndexType;
+  using IndexType = typename std::make_signed<typename RHS1::IndexType>::type;
   using Scratch = cl::sycl::accessor<T, 1, cl::sycl::access::mode::read_write,
                                      cl::sycl::access::target::local>;
 
@@ -752,9 +766,9 @@ class GemmFactory {
   inline void eval(shared_mem scratch_acc, cl::sycl::nd_item<1> id) noexcept {
     auto scratch = scratch_acc.localAcc.get_pointer().get();
     using ScratchPointerType = decltype(scratch);
-    auto A = _A.getData().get_pointer().get();
-    auto B = _B.getData().get_pointer().get();
-    auto C = _C.getData().get_pointer().get();
+    auto A = _A.getData().get_pointer().get() + _A.getDisp();
+    auto B = _B.getData().get_pointer().get() + _B.getDisp();
+    auto C = _C.getData().get_pointer().get() + _C.getDisp();
     const auto wg_id = id.get_group(0);
     const auto item_id = id.get_local_id(0);
     const auto tile_size = tl_rows * tl_cols;
@@ -785,7 +799,6 @@ class GemmFactory {
     const auto nc = n - col;
 
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
-
     B = B +
         (trans_b
              ? (item_id / block_cols) * ldb + (wg_col + item_id % block_cols)
@@ -825,6 +838,7 @@ class GemmFactory {
     _B.bind(h);
     _C.bind(h);
   }
+  inline bool valid_thread(cl::sycl::nd_item<1> ndItem) const { return true; }
 
  private:
   /*!
@@ -879,7 +893,13 @@ class GemmFactory {
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          // when C is uninitialized the element of the C can be NaN, and Nan*0
+          // will be NaN
+          if (0 == beta) {
+            C[j * wg_rows] = alpha * reg_res[j][i];
+          } else {
+            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          }
         }
       }
       C = C + ldc;

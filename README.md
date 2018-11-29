@@ -162,11 +162,11 @@ of multiple BLAS operations.
 Requirements
 ----------------
 
-SYCL-BLAS is designed to work with any SYCL 1.2 implementation. 
+SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation. 
 We do not use any OpenCL interoperability, hence, the code is pure C++.
-The project is developed using (ComputeCpp CE Edition 0.1.2)[http://www.computecpp.com]
- using Ubuntu 14.04 on Intel OpenCL CPU and AMD GPU.
-In order to build the sources, GCC 4.8.4 or higher is required. 
+The project is developed using (ComputeCpp CE Edition 1.0.2)[http://www.computecpp.com]
+ using Ubuntu 16.04 on Intel OpenCL CPU and AMD GPU.
+In order to build the sources, GCC 5.4 or higher is required. 
 The build system is CMake version 3.2.2 or higher.
 We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
 build the project.
