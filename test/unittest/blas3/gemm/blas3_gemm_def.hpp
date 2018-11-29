@@ -62,7 +62,7 @@ TYPED_TEST(BLAS_Test, gemm) {
   Executor<ExecutorType> ex(q);
   int batch_sizes[] = {1,
                        5
-#ifdef AGGRESSIVE_TEST
+#ifdef STRESS_TESTING
                        ,
                        11,
                        2,
@@ -92,7 +92,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                    129,
                    255,
                    513
-#ifdef AGGRESSIVE_TEST
+#ifdef STRESS_TESTING
                    ,
                    2,
                    14,
@@ -115,7 +115,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                    127,
                    257,
                    511
-#ifdef AGGRESSIVE_TEST
+#ifdef STRESS_TESTING
                    ,
                    2,
                    11,
@@ -138,7 +138,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                    129,
                    253,
                    519
-#ifdef AGGRESSIVE_TEST
+#ifdef STRESS_TESTING
                    ,
                    65,
                    14,
@@ -189,6 +189,7 @@ TYPED_TEST(BLAS_Test, gemm) {
               ex.template allocate<ScalarT>(dim_c[0] * dim_c[1] * batch_size);
 
           for (int bs = 0; bs < batch_size; bs++) {
+            // system gemm implementation
             gemm(ta_str, tb_str, m, n, k, alpha, a_m.data() + (bs * m * k), lda,
                  b_m.data() + (bs * n * k), ldb, beta,
                  c_m_cpu.data() + (bs * m * n), m);
@@ -199,6 +200,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                               dim_b[0] * dim_b[1]);
             ex.copy_to_device(c_m_gpu_result.data() + (bs * m * n),
                               m_c_gpu + (bs * m * n), dim_c[0] * dim_c[1]);
+            // SYCL BLAS GEMM implementation
             _gemm(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu + (bs * m * k),
                   lda, m_b_gpu + (bs * n * k), ldb, beta,
                   m_c_gpu + (bs * m * n), ldc);

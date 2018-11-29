@@ -19,7 +19,7 @@ RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
 
-# Clang 5.0
+# Clang 6.0
 RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
      clang-6.0 libomp-dev; fi
