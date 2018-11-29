@@ -142,8 +142,6 @@ inline cl_ulong time_event(Event e) {
  * @struct datapoint
  * @brief Represents a datapoint for a given benchmark/parameter
  * combination.
- *
- *
  */
 
 struct datapoint {
@@ -208,8 +206,6 @@ struct datapoint {
     // intervals, or between flops and gigaflops - we can just compute Flop/Ns
     // directly.
     auto _mean_overall_flops = (double)(_n_fl_ops) / _mean_overall_time.count();
-
-    // calculate flop/s for kernel
     auto _mean_kernel_flops = (double)(_n_fl_ops) / _mean_kernel_time.count();
 
     std::array<std::string, columns> data = {
@@ -227,10 +223,6 @@ struct datapoint {
 /**
  * @struct benchmark
  * @brief Utility methods and orchestration for a benchmark suite
- *
- *
- *
- *
  */
 template <typename TimeT = std::chrono::duration<double, std::nano>,
           typename ClockT = std::chrono::system_clock, typename FlopsT = double>
