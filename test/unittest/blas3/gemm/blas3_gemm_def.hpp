@@ -29,8 +29,6 @@
 #error "BlasTypes not defined before including blas3_gemm_def.hpp"
 #endif
 
-#define array_size(array) sizeof(array) / sizeof(array[0])
-
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_PREC(float, 1e-4, gemm)
@@ -60,109 +58,30 @@ TYPED_TEST(BLAS_Test, gemm) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  int batch_sizes[] = {1,
-                       5
 #ifdef STRESS_TESTING
-                       ,
-                       11,
-                       2,
-                       13,
-                       31,
-                       39,
-                       63,
-                       64,
-                       65,
-                       127,
-                       129,
-                       255,
-                       257,
-                       511,
-                       512,
-                       513,
-                       1023,
-                       1024,
-                       1025
+  std::array<int, 20> batch_sizes = {1,   5,   11,  2,    13,   31,  39,
+                                     63,  64,  65,  127,  129,  255, 257,
+                                     511, 512, 513, 1023, 1024, 1025};
+  std::array<int, 18> m_sizes = {11,  33,  65,   129,  255, 513, ,
+                                 2,   14,  39,   63,   64,  127, 257,
+                                 511, 512, 1023, 1024, 1025};
+  std::array<int, 18> n_sizes = {14, 39, 63,  127, 257, 511, 2,    11,   31,
+                                 64, 65, 129, 255, 512, 513, 1023, 1024, 1025};
+  std::array<int, 21> k_sizes[] = {2,   33,  67,  129, 253,  519,  65,
+                                   14,  11,  31,  39,  64,   95,   96,
+                                   127, 257, 511, 512, 1023, 1024, 1025};
+#else
+  std::array<int, 2> batch_sizes = {1, 5};
+  std::array<int, 6> m_sizes = {11, 33, 65, 129, 255, 513};
+  std::array<int, 6> n_sizes = {14, 39, 63, 127, 257, 511};
+  std::array<int, 6> k_sizes = {2, 33, 67, 129, 253, 519};
 #endif
 
-  };
-
-  int m_sizes[] = {11,
-                   33,
-                   65,
-                   129,
-                   255,
-                   513
-#ifdef STRESS_TESTING
-                   ,
-                   2,
-                   14,
-                   39,
-                   63,
-                   64,
-                   127,
-                   257,
-                   511,
-                   512,
-                   1023,
-                   1024,
-                   1025
-#endif
-  };
-
-  int n_sizes[] = {14,
-                   39,
-                   63,
-                   127,
-                   257,
-                   511
-#ifdef STRESS_TESTING
-                   ,
-                   2,
-                   11,
-                   31,
-                   64,
-                   65,
-                   129,
-                   255,
-                   512,
-                   513,
-                   1023,
-                   1024,
-                   1025
-#endif
-  };
-
-  int k_sizes[] = {2,
-                   33,
-                   67,
-                   129,
-                   253,
-                   519
-#ifdef STRESS_TESTING
-                   ,
-                   65,
-                   14,
-                   11,
-                   31,
-                   39,
-                   64,
-                   95,
-                   96,
-                   127,
-                   257,
-                   511,
-                   512,
-                   1023,
-                   1024,
-                   1025
-#endif
-  };
-
-  for (int p = 0; p < array_size(batch_sizes); p++) {
+  for (int p = 0; p < batch_sizes.size(); p++) {
     int batch_size = batch_sizes[p];
-    for (int i = 0; i < array_size(m_sizes); i++) {
-      for (int j = 0; j < array_size(n_sizes); j++) {
-        for (int l = 0; l < array_size(k_sizes); l++) {
+    for (int i = 0; i < m_sizes.size(); i++) {
+      for (int j = 0; j < n_sizes.size(); j++) {
+        for (int l = 0; l < k_sizes.size(); l++) {
           std::array<int, 2> dim_a = {m_sizes[i], k_sizes[l]};
           std::array<int, 2> dim_b = {k_sizes[l], n_sizes[j]};
           std::array<int, 2> dim_c = {m_sizes[i], n_sizes[j]};

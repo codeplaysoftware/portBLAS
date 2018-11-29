@@ -138,7 +138,7 @@ class ReferenceGemmFactory {
       A = A + (trans_a ? 1 : lda);
       B = B + (trans_b ? ldb : 1);
     }
-    // when C is uninitialized the element of the C can be NaN. and Nan*0
+    // when C is uninitialized the element of the C can be NaN, and Nan*0
     // will be NaN
     if (beta == 0) {
       C[0] = alpha * reg_res;
@@ -486,7 +486,7 @@ class NoLocalGemmFactory {
       for (int i = 0; i < item_rows; i++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
                                                dim_n_c_start + j * wg_cols))) {
-          // when C is uninitialized the element of the C can be NaN. and Nan*0
+          // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
           if (0 == beta) {
             C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
@@ -893,7 +893,7 @@ class GemmFactory {
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          // when C is uninitialized the element of the C can be NaN. and Nan*0
+          // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
           if (0 == beta) {
             C[j * wg_rows] = alpha * reg_res[j][i];
