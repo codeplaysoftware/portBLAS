@@ -40,9 +40,8 @@
 #define SYCLBLAS_DEFINE_CONSTANT(type, indicator, val) \
   template <>                                          \
   struct constant<type, indicator> {                   \
-    static const type value;                           \
-  };                                                   \
-  const type constant<type, indicator>::value = val;
+    constexpr static const type value = val;           \
+  };
 
 namespace blas {
 
@@ -155,11 +154,9 @@ SYCLBLAS_DEFINE_CONSTANT(
                                              index_value, data_value)          \
   template <>                                                                  \
   struct constant<IndexValueTuple<data_type, index_type>, indicator> {         \
-    static const IndexValueTuple<data_type, index_type> value;                 \
-  };                                                                           \
-  const IndexValueTuple<data_type, index_type>                                 \
-      constant<IndexValueTuple<data_type, index_type>, indicator>::value =     \
-          IndexValueTuple<data_type, index_type>(index_value, data_value);
+    static constexpr IndexValueTuple<data_type, index_type> value =            \
+        IndexValueTuple<data_type, index_type>(index_value, data_value);       \
+  };
 
 #define INDEX_TYPE_CONSTANT(data_type, index_type) \
   SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \
