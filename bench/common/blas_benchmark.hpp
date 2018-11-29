@@ -147,21 +147,22 @@ inline cl_ulong time_event(Event e) {
  */
 
 struct datapoint {
-  typedef double ExecTimeT;
-  typedef cl_ulong KernelTimeT;
+  typedef std::chrono::duration<double, std::nano> OverallTimeT;
+  typedef std::chrono::duration<double, std::nano> KernelTimeT;
+  typedef size_t FlopT;
 
-  ExecTimeT _mean_exec_time;
+  OverallTimeT _mean_overall_time;
   KernelTimeT _mean_kernel_time;
+  FlopT _n_fl_ops;
 
-  datapoint(ExecTimeT mean_exec_time, KernelTimeT mean_kernel_time)
-      : _mean_exec_time(mean_exec_time), _mean_kernel_time(mean_kernel_time) {}
+  datapoint(OverallTimeT mean_exec_time, KernelTimeT mean_kernel_time,
+            FlopT n_fl_ops)
+      : _mean_overall_time(mean_exec_time),
+        _mean_kernel_time(mean_kernel_time),
+        _n_fl_ops(n_fl_ops) {}
 
-  // Constant values denoting the maximum length of columns, for nice alignment
-  static constexpr const size_t text_name_length = 50;
-  static constexpr const size_t text_iterations_length = 15;
-  static constexpr const size_t text_flops_length = 10;
-
-  static constexpr const size_t columns = 4;
+  // Constant number of columns that we want to output.
+  static constexpr const size_t columns = 7;
 
   static inline std::string align_left(const std::string& text, size_t len,
                                        size_t offset = 0) {
@@ -173,7 +174,8 @@ struct datapoint {
 
   static inline void output_array(std::array<std::string, columns> values,
                                   output_type output = output_type::STDOUT) {
-    static constexpr const size_t column_widths[columns] = {50, 15, 20, 20};
+    static constexpr const size_t column_widths[columns] = {50, 20, 20, 20,
+                                                            20, 20, 20};
     for (int i = 0; i < columns; i++) {
       if (output == output_type::STDOUT) {
         // If we're just printing columns, align them
@@ -191,15 +193,33 @@ struct datapoint {
 
   static void output_headers(output_type output = output_type::STDOUT) {
     static const std::array<std::string, columns> column_names = {
-        "Benchmark", "Iterations", "Mean total time", "Mean kernel time"};
+        "Benchmark",         "Iterations",          "FP Ops",
+        "Overall time (ns)", "Overall perf (gf/s)", "Kernel time (ns)",
+        "Kernel perf (gf/s)"};
     output_array(column_names, output);
   }
 
   void output_data(const std::string& name, int no_reps,
                    output_type output = output_type::STDOUT) {
-    std::array<std::string, columns> data = {name, std::to_string(no_reps),
-                                             std::to_string(_mean_exec_time),
-                                             std::to_string(_mean_kernel_time)};
+    // Calculate GFlop/s overall, and for the kernel.
+    // As it turns out, Flop/Ns (i.e. floating point operations per nanosecond)
+    // is the same as GFlops/S (i.e. billion floating point operations per
+    // second), so we don't need to do any duration casts between time
+    // intervals, or between flops and gigaflops - we can just compute Flop/Ns
+    // directly.
+    auto _mean_overall_flops = (double)(_n_fl_ops) / _mean_overall_time.count();
+
+    // calculate flop/s for kernel
+    auto _mean_kernel_flops = (double)(_n_fl_ops) / _mean_kernel_time.count();
+
+    std::array<std::string, columns> data = {
+        name,
+        std::to_string(no_reps),
+        std::to_string(_n_fl_ops),
+        std::to_string(_mean_overall_time.count()),
+        std::to_string(_mean_overall_flops),
+        std::to_string(_mean_kernel_time.count()),
+        std::to_string(_mean_kernel_flops)};
     output_array(data, output);
   }
 };
@@ -212,7 +232,7 @@ struct datapoint {
  *
  *
  */
-template <typename TimeT = std::chrono::nanoseconds,
+template <typename TimeT = std::chrono::duration<double, std::nano>,
           typename ClockT = std::chrono::system_clock, typename FlopsT = double>
 struct benchmark {
   typedef TimeT time_units_t;
@@ -263,7 +283,7 @@ struct benchmark {
    * @brief Calculates the time spent executing the function func
    */
   template <typename F, typename... Args>
-  static std::tuple<TimeT, cl_ulong> timef(F func, Args&&... args) {
+  static std::tuple<TimeT, TimeT> timef(F func, Args&&... args) {
     auto start = ClockT::now();
 
     auto event = func(std::forward<Args>(args)...);
@@ -271,11 +291,9 @@ struct benchmark {
     auto end = ClockT::now();
 
     auto overall_time = end - start;
-    cl_ulong event_time = time_event(event);
 
-    std::cout << "\t\t\t\tOverall Time: \t\t" << overall_time.count()
-              << std::endl;
-    std::cout << "\t\t\t\tKernel Time : \t\t" << event_time << std::endl;
+    // Cast from a clulong to a double based time interval
+    TimeT event_time = static_cast<TimeT>(time_event(event));
 
     return std::make_tuple(overall_time, event_time);
   }
@@ -289,7 +307,7 @@ struct benchmark {
   static datapoint_t measure(size_t numReps, size_t n_fl_ops, F func,
                              Args&&... args) {
     TimeT overall_duration = TimeT::zero();
-    cl_ulong kernel_duration = 0;
+    TimeT kernel_duration = TimeT::zero();
 
     // warm up to avoid benchmarking data transfer
     for (int i = 0; i < 5; ++i) {
@@ -303,22 +321,15 @@ struct benchmark {
       kernel_duration += std::get<1>(exec_time);
     }
 
-    // convert the time to flop/s based on the number of fl_ops that the
-    // function performs
-    // return (FlopsT(n_fl_ops) * numReps) /
-    //  std::chrono::duration_cast<std::chrono::duration<double>>(dur)
-    //  .count();
+    // calculate the average overall time
+    TimeT mean_overall_duration =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(overall_duration) /
+        numReps;
 
-    // Just report the average time for now
-    auto mean_overall_duration =
-        (double)(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                     overall_duration)
-                     .count()) /
-        (double)numReps;
+    // calculate the average kernel event time
+    TimeT mean_kernel_duration = kernel_duration / numReps;
 
-    auto mean_kernel_duration = kernel_duration / numReps;
-
-    return datapoint(mean_overall_duration, mean_kernel_duration);
+    return datapoint(mean_overall_duration, mean_kernel_duration, n_fl_ops);
   }
 
   /**
