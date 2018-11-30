@@ -55,14 +55,31 @@ typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
                                      ContainerT1 &_vy, IncrementType _incy) {
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
+  cl::sycl::event ret;
 
-  std::cout << "vx size: " << vx.size() << std::endl;
-  std::cout << "vy size: " << vy.size() << std::endl;
+  auto tmp = make_vector_view()
 
-  auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
-  auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
-  auto assignOp = make_op<Assign>(vy, addOp);
-  auto ret = ex.execute(assignOp);
+                 std::cout
+             << "vx size: " << vx.size_ << std::endl;
+  std::cout << "vy size: " << vy.size_ << std::endl;
+
+  auto tile_size = 128;
+  auto tiles = (vx.size_ / tile_size) + 1;
+  for (int i = 0; i < tiles; i++) {
+    // Make on chip buffer ??
+    // Copy to on chip buffer ??
+    // Perfrom
+    auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
+    auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
+    auto assignOp = make_op<Assign>(vy, addOp);
+    ret = ex.execute(assignOp);
+    // Copy back into buffer.
+  }
+
+  // auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
+  // auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
+  // auto assignOp = make_op<Assign>(vy, addOp);
+  // auto ret = ex.execute(assignOp);
   return ret;
 }
 
