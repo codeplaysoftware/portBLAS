@@ -121,9 +121,12 @@ inline cl_ulong time_event(Event e) {
       case CL_OUT_OF_HOST_MEMORY:
         std::cerr << "cl_out_of_host_memory in profiling call" << std::endl;
         break;
+      default:
+        // If we've reached this point, something's gone wrong - set the error
+        // flag
+        all_ok = false;
+        break;
     }
-    // If we've reached this point, something's gone wrong - set the error flag
-    all_ok = false;
   };
   check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_START,
                                      sizeof(cl_ulong), &start_time, NULL));
@@ -134,7 +137,8 @@ inline cl_ulong time_event(Event e) {
   if (all_ok) {
     return (end_time - start_time);
   } else {
-    return (cl_ulong)(-1);
+    // Return a really big number to show that we've failed.
+    return 0xFFFFFFFFFFFFFFFF;
   }
 }
 
@@ -205,8 +209,10 @@ struct datapoint {
     // second), so we don't need to do any duration casts between time
     // intervals, or between flops and gigaflops - we can just compute Flop/Ns
     // directly.
-    auto _mean_overall_flops = (double)(_n_fl_ops) / _mean_overall_time.count();
-    auto _mean_kernel_flops = (double)(_n_fl_ops) / _mean_kernel_time.count();
+    auto _mean_overall_flops =
+        static_cast<double>(_n_fl_ops) / _mean_overall_time.count();
+    auto _mean_kernel_flops =
+        static_cast<double>(_n_fl_ops) / _mean_kernel_time.count();
 
     std::array<std::string, columns> data = {
         name,
