@@ -56,6 +56,9 @@ typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
+  std::cout << "vx size: " << vx.size() << std::endl;
+  std::cout << "vy size: " << vy.size() << std::endl;
+
   auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
   auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
   auto assignOp = make_op<Assign>(vy, addOp);
