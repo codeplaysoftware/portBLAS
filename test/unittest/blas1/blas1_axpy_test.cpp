@@ -23,10 +23,7 @@
  *
  **************************************************************************/
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_float<>,
-                         blas_test_double<>
-                         >
-    BlasTypes;
+typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 

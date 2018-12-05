@@ -97,9 +97,10 @@ class Queue_Interface<SYCL> {
             cl::sycl::info::local_mem_type::local);
   }
   template <typename T>
-  inline T *allocate(size_t num_elements) const {
+  inline T *allocate(size_t num_elements,
+                     const cl::sycl::property_list &pList = {}) const {
     return static_cast<T *>(cl::sycl::codeplay::SYCLmalloc(
-        num_elements * sizeof(T), *pointerMapperPtr_));
+        num_elements * sizeof(T), *pointerMapperPtr_, pList));
   }
 
   template <typename T>
@@ -173,6 +174,7 @@ class Queue_Interface<SYCL> {
   template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
             typename T>
   placeholder_accessor_t<T, AcM> get_range_access(T *vptr) {
+    std::cout << "get_range_access of T vptr" << std::endl;
     auto buff_t = get_buffer(vptr);
     auto offset = get_offset(vptr);
     return placeholder_accessor_t<T, AcM>(
@@ -188,6 +190,7 @@ class Queue_Interface<SYCL> {
   template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
             typename T>
   placeholder_accessor_t<T, AcM> get_range_access(buffer_iterator<T> buff) {
+    std::cout << "get_range_access of buffer_iterator" << std::endl;
     return blas::get_range_accessor<AcM>(buff);
   }
 
