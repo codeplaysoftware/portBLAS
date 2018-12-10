@@ -48,70 +48,81 @@ namespace blas {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename T, typename IndexType, typename IncrementType>
+template <int TileSize = 256, bool Tiled = true, typename Executor,
+          typename ContainerT0, typename ContainerT1, typename T,
+          typename IndexType, typename IncrementType>
 typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
                                      ContainerT0 &_vx, IncrementType _incx,
                                      ContainerT1 &_vy, IncrementType _incy) {
-  // In the tests, this is a vector view, wrapped around a buffer_iterator,
-  // wrapped around a buffer
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
-
   cl::sycl::event ret;
 
-  auto tile_size = 256;
-
-  // Create sycl buffers for the tiles
-  cl::sycl::buffer<T, 1> vx_tile{cl::sycl::range<1>(tile_size)};
-  cl::sycl::buffer<T, 1> vy_tile{cl::sycl::range<1>(tile_size)};
-
-  // For now, only use a tile if:
-  //   - _N `mod` tile_size == 0
-  //   - tile_size `mod` _incx == 0
+  // For now, only use the tiled version when:
+  //   - _N `mod` TileSize == 0
+  //   - TileSize `mod` _incx == 0
   //   - _incx == _incy
+  //   - (sizeof(ElemT) * TileSize ) < _N (see SYCL copy bug)
   // Otherwise, fall back to the "default" axpy
-  if ((_N % tile_size == 0) && (tile_size % _incx == 0) && (_incx == _incy)) {
-    std::cout << "Running tiled version " << std::endl;
-    for (int i = 0; i < _N; i += tile_size * _incx) {
-      // Create accessors to both the x and y vectors, with an offset of i
-      auto vx_acc = ex.get_range_access(_vx + i);
-      auto vy_acc = ex.get_range_access(_vy + i);
+  if (Tiled && (_N % TileSize == 0) && (TileSize % _incx == 0) &&
+      (_incx == _incy) && ((sizeof(T) * TileSize) < _N)) {
+    auto vx = ex.get_buffer(_vx).get_buffer();
+    auto vy = ex.get_buffer(_vy).get_buffer();
 
+    // Create sycl buffers for the tiles
+    cl::sycl::buffer<T, 1> vx_tile(cl::sycl::range<1>{TileSize});
+    cl::sycl::buffer<T, 1> vy_tile(cl::sycl::range<1>{TileSize});
+
+    // Make vector views to the tiles, so that we can use the standard ops
+    auto vx_tile_iterator_buffer =
+        helper::make_sycl_iterator_buffer<T, IndexType>(vx_tile);
+    auto vy_tile_iterator_buffer =
+        helper::make_sycl_iterator_buffer<T, IndexType>(vy_tile);
+    auto vx_tile_view =
+        make_vector_view(ex, vx_tile_iterator_buffer, 1, TileSize);
+    auto vy_tile_view =
+        make_vector_view(ex, vy_tile_iterator_buffer, 1, TileSize);
+
+    for (int i = 0; i < _N; i += TileSize) {
       // Copy from _vx and _vy into vx_tile and vy_tile
-      ex.get_queue().submit([&](cl::sycl::handler &cgh) {
-        // Get accessors to the tiles, and copy from the vectors into them
-        cl::sycl::accessor<T, 1, cl::sycl::access::mode::write,
-                           cl::sycl::access::target::global_buffer>
-            vx_tile_acc(vx_tile, cgh, cl::sycl::range<1>(tile_size),
-                        cl::sycl::id<1>(0));
-        cgh.copy(vx_acc, vx_tile_acc);
-
-        cl::sycl::accessor<T, 1, cl::sycl::access::mode::write,
-                           cl::sycl::access::target::global_buffer>
-            vy_tile_acc(vy_tile, cgh, cl::sycl::range<1>(tile_size),
-                        cl::sycl::id<1>(0));
-        cgh.copy(vy_acc, vy_tile_acc);
+      ret = ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+        auto vx_tile_acc =
+            vx_tile.template get_access<cl::sycl::access::mode::write>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(0));
+        auto vx_range_acc =
+            vx.template get_access<cl::sycl::access::mode::read>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(i));
+        cgh.copy(vx_range_acc, vx_tile_acc);
       });
 
-      // Run the operations on this tile
-      auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
-      auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
-      auto assignOp = make_op<Assign>(vy, addOp);
+      ret = ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+        auto vy_tile_acc =
+            vy_tile.template get_access<cl::sycl::access::mode::write>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(0));
+        auto vy_range_acc =
+            vy.template get_access<cl::sycl::access::mode::read>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(i));
+        cgh.copy(vy_range_acc, vy_tile_acc);
+      });
+
+      auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx_tile_view);
+      auto addOp = make_op<BinaryOp, addOp2_struct>(vy_tile_view, scalOp);
+      auto assignOp = make_op<Assign>(vy_tile_view, addOp);
       ret = ex.execute(assignOp);
 
       // Copy from vy_tile_acc into _vy
-      ex.get_queue().submit([&](cl::sycl::handler &cgh) {
-        // Get accessors to the tiles, and copy from the vectors into them
-        cl::sycl::accessor<T, 1, cl::sycl::access::mode::write,
-                           cl::sycl::access::target::global_buffer>
-            vy_tile_acc(vy_tile, cgh, cl::sycl::range<1>(tile_size),
-                        cl::sycl::id<1>(0));
-        cgh.copy(vy_acc, vy_tile_acc);
+      ret = ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+        auto vy_tile_acc =
+            vy_tile.template get_access<cl::sycl::access::mode::read>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(0));
+        auto vy_range_acc =
+            vy.template get_access<cl::sycl::access::mode::write>(
+                cgh, cl::sycl::range<1>(TileSize), cl::sycl::id<1>(i));
+        cgh.copy(vy_tile_acc, vy_range_acc);
       });
     }
+
   } else {
-    std::cout << "Running old version " << std::endl;
+    auto vx = make_vector_view(ex, _vx, _incx, _N);
+    auto vy = make_vector_view(ex, _vy, _incy, _N);
     auto scalOp = make_op<ScalarOp, prdOp2_struct>(_alpha, vx);
     auto addOp = make_op<BinaryOp, addOp2_struct>(vy, scalOp);
     auto assignOp = make_op<Assign>(vy, addOp);

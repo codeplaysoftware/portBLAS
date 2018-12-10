@@ -69,6 +69,8 @@ class buffer_iterator {
 
   scalar_t* operator->() = delete;
 
+  const buff_t& get_buffer() const { return m_buffer; }
+
  private:
   std::ptrdiff_t m_offset;
   buff_t m_buffer;

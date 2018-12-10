@@ -146,13 +146,17 @@ class Queue_Interface<SYCL> {
   side buffer<T> and T are the same
   */
   template <typename T>
-  inline buffer_t<T> get_buffer(T *ptr) const {
+  inline buffer_iterator<T> get_buffer(T *ptr) const {
     using pointer_t = typename std::remove_const<T>::type *;
     auto original_buffer = pointerMapperPtr_->get_buffer(
         static_cast<void *>(const_cast<pointer_t>(ptr)));
+    auto original_offset = pointerMapperPtr_->get_offset(static_cast<void *>(
+                               const_cast<pointer_t>(ptr))) /
+                           sizeof(T);
     auto typed_size = original_buffer.get_size() / sizeof(T);
+
     auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
-    return buff;
+    return buffer_iterator<T>(buff, original_offset);
   }
 
   /*
@@ -174,12 +178,7 @@ class Queue_Interface<SYCL> {
   template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
             typename T>
   placeholder_accessor_t<T, AcM> get_range_access(T *vptr) {
-    std::cout << "get_range_access of T vptr" << std::endl;
-    auto buff_t = get_buffer(vptr);
-    auto offset = get_offset(vptr);
-    return placeholder_accessor_t<T, AcM>(
-        buff_t, cl::sycl::range<1>(buff_t.get_count() - offset),
-        cl::sycl::id<1>(offset));
+    return get_range_access(get_buffer(vptr));
   }
 
   /*  @brief Getting range accessor from the buffer created by buffer iterator
@@ -190,7 +189,6 @@ class Queue_Interface<SYCL> {
   template <cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
             typename T>
   placeholder_accessor_t<T, AcM> get_range_access(buffer_iterator<T> buff) {
-    std::cout << "get_range_access of buffer_iterator" << std::endl;
     return blas::get_range_accessor<AcM>(buff);
   }
 
