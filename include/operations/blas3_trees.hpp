@@ -489,9 +489,9 @@ class NoLocalGemmFactory {
           // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
           if (0 == beta) {
-            C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
-          } else {
             C[i * wg_rows] = alpha * reg_res[i][j];
+          } else {
+            C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
           }
         }
       }
