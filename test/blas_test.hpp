@@ -180,24 +180,6 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
 
   template <typename DataType,
             typename value_type = typename DataType::value_type>
-  static void set_const(DataType &vec, size_t _N, value_type c) {
-    for (size_t i = 0; i < _N; ++i) {
-      vec[i] = c;
-    }
-  }
-
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
-  static void set_monotonic(DataType &vec, size_t _N, value_type increment) {
-    value_type v = value_type(0);
-    for (size_t i = 0; i < _N; ++i) {
-      vec[i] = v;
-      v += increment;
-    }
-  }
-
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
   static void print_cont(const DataType &vec, size_t _N,
                          std::string name = "vector") {
     std::cout << name << ": ";

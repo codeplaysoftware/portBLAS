@@ -48,7 +48,7 @@ namespace blas {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template <int TileSize = 256, bool Tiled = true, typename Executor,
+template <size_t TileSize = 256, bool Tiled = true, typename Executor,
           typename ContainerT0, typename ContainerT1, typename T,
           typename IndexType, typename IncrementType>
 typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
@@ -60,7 +60,7 @@ typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
   //   - _N `mod` TileSize == 0
   //   - TileSize `mod` _incx == 0
   //   - _incx == _incy
-  //   - (sizeof(ElemT) * TileSize ) < _N (see SYCL copy bug)
+  //   - (sizeof(ElemT) * TileSize ) < _N (see ComputeCPP copy bug)
   // Otherwise, fall back to the "default" axpy
   if (Tiled && (_N % TileSize == 0) && (TileSize % _incx == 0) &&
       (_incx == _incy) && ((sizeof(T) * TileSize) < _N)) {
@@ -81,7 +81,7 @@ typename Executor::Return_Type _axpy(Executor &ex, IndexType _N, T _alpha,
     auto vy_tile_view =
         make_vector_view(ex, vy_tile_iterator_buffer, 1, TileSize);
 
-    for (int i = 0; i < _N; i += TileSize) {
+    for (size_t i = 0; i < _N; i += TileSize) {
       // Copy from _vx and _vy into vx_tile and vy_tile
       ret = ex.get_queue().submit([&](cl::sycl::handler &cgh) {
         auto vx_tile_acc =

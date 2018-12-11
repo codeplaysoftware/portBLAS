@@ -201,11 +201,11 @@ TYPED_TEST(BLAS_Test, axpy_test_vpr) {
 // would require some interface overloading work that isn't currently scheduled
 // or planned for.
 // Currently, tests using the virtual pointer provided by the computecpp-sdk
-// will fail, as there is a bug in theruntime that incorrectly calculates sizes
-// during copies when a buffer is reinterpreted from an untyped buffer
-// (SYCLE-270). Tests using the virtual pointer, DISABLED_axpy_test_tiled, and
-// DISABLED_axpy_test_vpr_tiled, are disabled as they are currently expected to
-// fail because of said bug.
+// will fail, as there is a bug in the ComputeCpp runtime that incorrectly
+// calculates sizes during copies when a buffer is reinterpreted from an untyped
+// buffer (SYCLE-270). Tests using the virtual pointer,
+// DISABLED_axpy_test_tiled, and DISABLED_axpy_test_vpr_tiled, are disabled as
+// they are currently expected to fail because of said bug.
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 REGISTER_SIZE(256, axpy_test_buff_tiled)
@@ -222,6 +222,8 @@ TYPED_TEST(BLAS_Test, axpy_test_buff_tiled) {
   using test = class axpy_test_buff_tiled;
 
   size_t size = TestClass::template test_size<test>();
+  constexpr const size_t tile_size =
+      8;  // use a constant tile size that we know works.
   long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
@@ -251,7 +253,8 @@ TYPED_TEST(BLAS_Test, axpy_test_buff_tiled) {
   Executor<ExecutorType> ex(q);
   auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
   auto gpu_vY = blas::helper::make_sycl_iterator_buffer<ScalarT>(vY, size);
-  _axpy<8>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  _axpy<tile_size>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY,
+                   strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
   ex.wait(event);
 
@@ -276,6 +279,8 @@ TYPED_TEST(BLAS_Test, DISABLED_axpy_test_tiled) {
   using test = class DISABLED_axpy_test_tiled;
 
   size_t size = TestClass::template test_size<test>();
+  constexpr const size_t tile_size =
+      8;  // use a constant tile size that we know works.
   long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
@@ -306,7 +311,8 @@ TYPED_TEST(BLAS_Test, DISABLED_axpy_test_tiled) {
   auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
   auto gpu_vY = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
-  _axpy<8>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  _axpy<tile_size>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY,
+                   strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
   ex.wait(event);
 
@@ -332,6 +338,8 @@ TYPED_TEST(BLAS_Test, DISABLED_axpy_test_vpr_tiled) {
   using test = class DISABLED_axpy_test_vpr_tiled;
 
   size_t size = TestClass::template test_size<test>();
+  constexpr const size_t tile_size =
+      8;  // use a constant tile size that we know works.
   long strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
@@ -363,7 +371,8 @@ TYPED_TEST(BLAS_Test, DISABLED_axpy_test_vpr_tiled) {
   auto gpu_vY = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(vX.data(), gpu_vX, size);
   ex.copy_to_device(vY.data(), gpu_vY, size);
-  _axpy<8>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
+  _axpy<tile_size>(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY,
+                   strd);
   auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
   ex.wait(event);
 
