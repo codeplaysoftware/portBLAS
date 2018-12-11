@@ -113,10 +113,12 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   // for dot after _rot
   std::vector<ScalarT> vU(1);
   // for iamax/iamin
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vImax(
-      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value);
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vImin(
-      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value);
+  constexpr auto max_val =
+      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vImax(1, max_val);
+  constexpr auto min_val =
+      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value;
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vImin(1, min_val);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);

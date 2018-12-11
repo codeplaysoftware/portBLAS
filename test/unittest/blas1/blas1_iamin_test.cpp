@@ -46,8 +46,9 @@ TYPED_TEST(BLAS_Test, iamin_test) {
 
   std::vector<ScalarT> vX(size);
   TestClass::set_rand(vX, size);
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(
-      1, constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value);
+  constexpr auto val =
+      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value;
+  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
 
   // compute iamin of vX into res with a for loop
   ScalarT min = std::numeric_limits<ScalarT>::max();
