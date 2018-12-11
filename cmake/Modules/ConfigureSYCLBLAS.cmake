@@ -4,9 +4,6 @@ list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -no-serial-memop)
 list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -Xclang)
 list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -cl-mad-enable)
 list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -O3)
-# set(COMPUTECPP_DEVICE_COMPILER_FLAGS
-#     "-no-serial-memop -Xclang -cl-mad-enable -O3 ${COMPUTECPP_DEVICE_COMPILER_FLAGS} ")
-# message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 # Check to see if we've disabled double support in the tests
 option(NO_DOUBLE_SUPPORT "Disable double support when testing." off)
