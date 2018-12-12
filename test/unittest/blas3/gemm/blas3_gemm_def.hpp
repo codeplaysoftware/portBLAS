@@ -53,6 +53,7 @@ TYPED_TEST(BLAS_Test, gemm) {
   auto _TransB = tolower(*tb_str);
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
+
   ScalarT alpha = ScalarT(1);
   ScalarT beta = ScalarT(1);
   SYCL_DEVICE_SELECTOR d;

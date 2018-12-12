@@ -291,7 +291,8 @@ class Context {
     if (status != CL_SUCCESS) {
       do_error("failure to create context");
     }
-    command_queue = clCreateCommandQueue(context, device, 0, &status);
+    command_queue = clCreateCommandQueue(context, device,
+                                         CL_QUEUE_PROFILING_ENABLE, &status);
     if (status != CL_SUCCESS) {
       do_error("failure to create command queue");
     }
