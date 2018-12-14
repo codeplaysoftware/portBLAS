@@ -1,8 +1,7 @@
 
 # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS
-    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -Xclang -cl-mad-enable -O3")
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+# COMPUTECPP_USER_FLAGS are used when calling add_sycl_to_target
+list(APPEND COMPUTECPP_USER_FLAGS -no-serial-memop -Xclang -cl-mad-enable -O3)
 
 # Check to see if we've disabled double support in the tests
 option(NO_DOUBLE_SUPPORT "Disable double support when testing." off)

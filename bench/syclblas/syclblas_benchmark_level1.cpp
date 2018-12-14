@@ -45,10 +45,11 @@ BENCHMARK(scal, syclblas_level_1) {
 
   auto in = ex.template allocate<ScalarT>(size);
   ex.copy_to_device(v1.data(), in, size);
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 1, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 1, [&]() -> cl::sycl::event {
         auto event = _scal(ex, size, alpha, in, 1);
         ex.wait(event);
+        return event;
       });
   ex.template deallocate<ScalarT>(in);
   return flops;
@@ -68,10 +69,11 @@ BENCHMARK(axpy, syclblas_level_1) {
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(v2.data(), iny, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -92,10 +94,11 @@ BENCHMARK(asum, syclblas_level_1) {
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(&vr, inr, 1);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _asum(ex, size, inx, 1, inr);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -114,10 +117,11 @@ BENCHMARK(nrm2, syclblas_level_1) {
   auto inr = ex.template allocate<ScalarT>(1);
   ex.copy_to_device(v1.data(), inx, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _nrm2(ex, size, inx, 1, inr);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -139,10 +143,11 @@ BENCHMARK(dot, syclblas_level_1) {
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(v2.data(), iny, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _dot(ex, size, inx, 1, iny, 1, inr);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -162,10 +167,11 @@ BENCHMARK(iamax, syclblas_level_1) {
   auto outI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(v1.data(), inx, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _iamax(ex, size, inx, 1, outI);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -183,10 +189,11 @@ BENCHMARK(iamin, syclblas_level_1) {
   auto outI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
   ex.copy_to_device(v1.data(), inx, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _iamin(ex, size, inx, 1, outI);
         ex.wait(event);
+        return event;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -208,11 +215,12 @@ BENCHMARK(scal2op, syclblas_level_1) {
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(v2.data(), iny, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event0 = _scal(ex, size, alpha, inx, 1);
         auto event1 = _scal(ex, size, alpha, iny, 1);
         ex.wait(event0, event1);
+        return event1;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -237,12 +245,13 @@ BENCHMARK(scal3op, syclblas_level_1) {
   ex.copy_to_device(v2.data(), iny, size);
   ex.copy_to_device(v3.data(), inz, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 3, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 3, [&]() -> cl::sycl::event {
         auto event0 = _scal(ex, size, alpha, inx, 1);
         auto event1 = _scal(ex, size, alpha, iny, 1);
         auto event2 = _scal(ex, size, alpha, inz, 1);
         ex.wait(event0, event1, event2);
+        return event2;
       });
 
   ex.template deallocate<ScalarT>(inx);
@@ -278,12 +287,13 @@ BENCHMARK(axpy3op, syclblas_level_1) {
   ex.copy_to_device(vsrc3.data(), insrc3, size);
   ex.copy_to_device(vdst3.data(), indst3, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 3 * 2, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 3 * 2, [&]() -> cl::sycl::event {
         auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
         auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
         auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
         ex.wait(event0, event1, event2);
+        return event2;
       });
 
   ex.template deallocate<ScalarT>(insrc1);
@@ -314,8 +324,8 @@ BENCHMARK(blas1, syclblas_level_1) {
   ex.copy_to_device(v1.data(), inx, size);
   ex.copy_to_device(v2.data(), iny, size);
 
-  benchmark<>::flops_units_t flops =
-      benchmark<>::measure(reps, size * 12, [&]() {
+  benchmark<>::datapoint_t flops =
+      benchmark<>::measure(reps, size * 12, [&]() -> cl::sycl::event {
         auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
         auto event1 = _asum(ex, size, iny, 1, inr1);
         auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
@@ -323,6 +333,7 @@ BENCHMARK(blas1, syclblas_level_1) {
         auto event4 = _iamax(ex, size, iny, 1, inrI);
         auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
         ex.wait(event0, event1, event2, event3, event4, event5);
+        return event5;
       });
 
   ex.template deallocate<ScalarT>(inx);
