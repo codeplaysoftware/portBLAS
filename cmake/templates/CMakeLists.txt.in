@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.2.2)
 
+# This file is copied into the build directory in order to build googletest
+# See the guidelines at the URL below for a more detailed explanation
+# https://github.com/google/googletest/blob/master/googletest/README.md
+
 project(googletest-download NONE)
 
 include(ExternalProject)
