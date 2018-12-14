@@ -45,8 +45,8 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   set(test_exec, ${blas_test})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
-  add_dependencies(${test_exec} libgtest libgmock)
-  target_link_libraries(${test_exec} PUBLIC libgtest libgmock ${BLAS_LIBRARIES})
+  add_dependencies(${test_exec} gtest_main)
+  target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES})
   add_sycl_to_target(
     TARGET ${test_exec}
     SOURCES ${blas_test}
