@@ -26,6 +26,7 @@
 #ifndef BLAS_TEST_HPP
 #define BLAS_TEST_HPP
 
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <cstdlib>
@@ -33,7 +34,6 @@
 #include <iostream>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "queue/sycl_iterator.hpp"
