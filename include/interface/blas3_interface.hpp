@@ -201,7 +201,7 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
                       IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
                       ContainerT2 _C, IndexType _ldc) {
   return _gemm_impl(ex, _TransA, _TransB, _M, _N, _K, _alpha, _A, _lda, _B,
-                    _ldb, _beta, _C, _ldc, 1);
+                    _ldb, _beta, _C, _ldc, IndexType(1));
 }
 
 template <typename Executor, typename ContainerT0, typename ContainerT1,

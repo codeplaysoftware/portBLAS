@@ -19,6 +19,7 @@ file(GLOB SYCL_BENCHMARK_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2_legacy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_batch.cpp
 )
 foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
   get_filename_component(sycl_bench_exec ${syclblas_benchmark} NAME_WE)

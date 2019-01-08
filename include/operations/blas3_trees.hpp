@@ -336,8 +336,8 @@ class NoLocalGemmFactory {
      * The ma and na are used to adjust the start position of each work-item for
      * A, B and C matrices.
      */
-    int dim_m_a_start = (local_item_id_row + wg_row);
-    int dim_n_b_start = (local_item_id_col + wg_col);
+    const IndexType dim_m_a_start = (local_item_id_row + wg_row);
+    const IndexType dim_n_b_start = (local_item_id_col + wg_col);
 
     /*! @brief Adjusting the start position of A, B , and C */
     orig_A += dim_m_a_start * (trans_a ? lda : 1);
@@ -357,50 +357,70 @@ class NoLocalGemmFactory {
      * boundary_check_c  are used to check the A, B , and C boundaries
      * respectively.
      */
-    auto boundary_check_m = [&](int dim_m_a_start) {
+    auto boundary_check_m = [&](IndexType dim_m_a_start) {
       return dim_m_a_start < m;
     };
-    auto boundary_check_n = [&](int dim_n_b_start) {
+    auto boundary_check_n = [&](IndexType dim_n_b_start) {
       return dim_n_b_start < n;
     };
-    auto boundary_check_c = [&](int dim_m_c_start, int dim_n_c_start) {
+    auto boundary_check_c = [&](IndexType dim_m_c_start,
+                                IndexType dim_n_c_start) {
       return (dim_m_c_start < m && dim_n_c_start < n);
     };
 
     // computing the next element for a and b;
     const auto A_ptr_index = (trans_a ? lda : 1) * wg_rows;
     const auto B_ptr_index = (trans_b ? 1 : ldb) * wg_cols;
+    /* temporary register array used to prefetch columns of A*/
+    value_type reg_a[item_rows];
+    /* temporary register used to prefetch elements of B*/
+    value_type reg_b[item_cols];
     /*
-     * computing the gemm block
+     * computing the gemm panel
      */
+    if ((is_internal_block_m == true) && (is_internal_block_n == true)) {
+      compute_gemm_no_shared_pannel<false>(
+          orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
+          dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
+          boundary_check_n, boundary_check_c, reg_a, reg_b);
+    } else {
+      compute_gemm_no_shared_pannel<true>(
+          orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
+          dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
+          boundary_check_n, boundary_check_c, reg_a, reg_b);
+    }
+  }
+  template <bool need_check_boundary, typename A_t, typename B_t, typename C_t,
+            typename check_boundary_m_t, typename check_boundary_n_t,
+            typename check_boundary_c_t>
+  void inline compute_gemm_no_shared_pannel(
+      A_t orig_A, B_t orig_B, C_t orig_C, const IndexType &a_size,
+      const IndexType &b_size, const IndexType &c_size,
+      const IndexType &dim_m_a_start, const IndexType &dim_n_b_start,
+      const IndexType &A_ptr_index, const IndexType &B_ptr_index,
+      const check_boundary_m_t &boundary_check_m,
+      const check_boundary_n_t &boundary_check_n,
+      const check_boundary_c_t &boundary_check_c, T (&reg_a)[item_rows],
+      T (&reg_b)[item_cols]) noexcept {
     do {
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
+      // auto dim_m_a_start = orig_dim_m_a_start;
+      // auto dim_n_b_start = orig_dim_n_b_start;
       /* 2D register array used to store the result C*/
       value_type reg_res[item_rows][item_cols] = {};
-      /* temporary register array used to prefetch columns of A*/
-      value_type reg_a[item_rows];
-      /* temporary register used to prefetch elements of B*/
-      value_type reg_b[item_cols];
-
       while (k > 0) {
         /*
          * Loading a corresponding block of matrix A into reg_a
          */
-        (is_internal_block_m)
-            ? load<item_rows, wg_rows, false>(A, reg_a, A_ptr_index,
-                                              dim_m_a_start, boundary_check_m)
-            : load<item_rows, wg_rows, true>(A, reg_a, A_ptr_index,
-                                             dim_m_a_start, boundary_check_m);
+        load<item_rows, wg_rows, need_check_boundary>(
+            A, reg_a, A_ptr_index, dim_m_a_start, boundary_check_m);
         /*
          * Loading a corresponding block of matrix B into reg_b
          */
-        (is_internal_block_n)
-            ? load<item_cols, wg_cols, false>(B, reg_b, B_ptr_index,
-                                              dim_n_b_start, boundary_check_n)
-            : load<item_cols, wg_cols, true>(B, reg_b, B_ptr_index,
-                                             dim_n_b_start, boundary_check_n);
+        load<item_cols, wg_cols, need_check_boundary>(
+            B, reg_b, B_ptr_index, dim_n_b_start, boundary_check_n);
 
         /*
          * Computing a the partial GEMM for the loaded block of reg_a andd
@@ -417,22 +437,19 @@ class NoLocalGemmFactory {
       /*
        *  Storing the reg_res into C matrix
        */
-      (is_internal_block_m && is_internal_block_n)
-          ? store<false>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
-                         dim_n_b_start, boundary_check_c)
-          : store<true>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
-                        dim_n_b_start, boundary_check_c);
+      store<need_check_boundary>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
+                                 dim_n_b_start, boundary_check_c);
+
       orig_A += a_size;
       orig_B += b_size;
       orig_C += c_size;
       k = _A.getSizeC();
       m_batch_size--;
-      dim_m_a_start = (local_item_id_row + wg_row);
-      dim_n_b_start = (local_item_id_col + wg_col);
     } while (m_batch_size > 0);
   }
   /*!
-   * @brief binding the placeholder accessors to the SYCL command group handler
+   * @brief binding the placeholder accessors to the SYCL command group
+   * handler
    * @param h: SYCL command group handler. */
   void bind(cl::sycl::handler &h) {
     _A.bind(h);
@@ -464,7 +481,7 @@ class NoLocalGemmFactory {
   template <IndexType item_size, IndexType next_element, bool check_block,
             typename PointerType, typename check_boundary>
   static inline void load(PointerType ptr, T (&reg)[item_size],
-                          const IndexType &ld, int index,
+                          const IndexType &ld, IndexType index,
                           const check_boundary &chk_boundary) noexcept {
 #pragma unroll
     for (int i = 0; i < item_size; i++) {
@@ -511,7 +528,8 @@ class NoLocalGemmFactory {
   template <bool check_block, typename PointerType, typename check_boundary>
   static inline void store(PointerType C, T (&reg_res)[item_rows][item_cols],
                            const T &alpha, const T &beta, const IndexType &ldc,
-                           int dim_m_c_start, int dim_n_c_start,
+                           const IndexType &dim_m_c_start,
+                           const IndexType &dim_n_c_start,
                            const check_boundary &chk_boundary) noexcept {
 #pragma unroll
     for (int j = 0; j < item_cols; j++) {
