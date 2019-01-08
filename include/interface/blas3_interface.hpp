@@ -53,7 +53,8 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
 typename Executor::Return_Type _select_gemm(
     Executor& ex, bool _TransA, bool _TransB, IndexType _M, IndexType _N,
     IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
+    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc,
+    IndexType batch_size) {
   typename Executor::Return_Type ret;
 
   auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, Access::ColMajor());
@@ -64,23 +65,23 @@ typename Executor::Return_Type _select_gemm(
   if (_TransA == _trans_a && _TransB == _trans_b) {                            \
     if (ex.has_local_memory()) {                                               \
       auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, \
-                            _trans_a, _trans_b>(buffer_a, buffer_b, buffer_c,  \
-                                                T(_alpha), T(_beta));          \
+                            _trans_a, _trans_b>(                               \
+          buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta), batch_size);      \
       ret = ex.gemm_executor(gemm);                                            \
     } else {                                                                   \
       auto gemm = make_gemm_no_local_mem<ClSize, TileT, _trans_a, _trans_b>(   \
-          buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));                  \
+          buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta), batch_size);      \
       ret = ex.gemm_executor(gemm);                                            \
     }                                                                          \
     return ret;                                                                \
   }
 #else
-#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                \
-  if (_TransA == _trans_a && _TransB == _trans_b) {              \
-    auto gemm = make_gemm_reference<WgSize, _trans_a, _trans_b>( \
-        buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta));      \
-    ret = ex.gemm_executor(gemm);                                \
-    return ret;                                                  \
+#define ENABLE_GEMM_TRANSPOSE(_trans_a, _trans_b)                       \
+  if (_TransA == _trans_a && _TransB == _trans_b) {                     \
+    auto gemm = make_gemm_reference<WgSize, _trans_a, _trans_b>(        \
+        buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta), batch_size); \
+    ret = ex.gemm_executor(gemm);                                       \
+    return ret;                                                         \
   }
 #endif
   const bool NoTrans = false;
@@ -103,10 +104,11 @@ typename Executor::Return_Type _select_gemm(
  */
 template <typename Executor, typename ContainerT0, typename ContainerT1,
           typename ContainerT2, typename T, typename IndexType>
-cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
-                      IndexType _N, IndexType _K, T _alpha, ContainerT0 _A,
-                      IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
-                      ContainerT2 _C, IndexType _ldc) {
+cl::sycl::event _gemm_impl(Executor& ex, char _TransA, char _TransB,
+                           IndexType _M, IndexType _N, IndexType _K, T _alpha,
+                           ContainerT0 _A, IndexType _lda, ContainerT1 _B,
+                           IndexType _ldb, T _beta, ContainerT2 _C,
+                           IndexType _ldc, IndexType batch_size) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
@@ -147,7 +149,7 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
     return _select_gemm<_wg, _db, false, false, _clsize,                   \
                         Tile<_tir, _tic, _twr, _twc>>(                     \
         ex, _TrA, _TrB, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, \
-        _ldc);                                                             \
+        _ldc, batch_size);                                                 \
   }
 #ifndef NAIVE_GEMM
 #if defined(DYNAMIC)
@@ -190,6 +192,28 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
 #undef BIND_DATA_SIZE
 #undef BIND_DEFAULT
 #undef TO_TPARAMS
+}
+
+template <typename Executor, typename ContainerT0, typename ContainerT1,
+          typename ContainerT2, typename T, typename IndexType>
+cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
+                      IndexType _N, IndexType _K, T _alpha, ContainerT0 _A,
+                      IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
+                      ContainerT2 _C, IndexType _ldc) {
+  return _gemm_impl(ex, _TransA, _TransB, _M, _N, _K, _alpha, _A, _lda, _B,
+                    _ldb, _beta, _C, _ldc, 1);
+}
+
+template <typename Executor, typename ContainerT0, typename ContainerT1,
+          typename ContainerT2, typename T, typename IndexType>
+cl::sycl::event _gemm_batched(Executor& ex, char _TransA, char _TransB,
+                              IndexType _M, IndexType _N, IndexType _K,
+                              T _alpha, ContainerT0 _A, IndexType _lda,
+                              ContainerT1 _B, IndexType _ldb, T _beta,
+                              ContainerT2 _C, IndexType _ldc,
+                              IndexType batch_size) {
+  return _gemm_impl(ex, _TransA, _TransB, _M, _N, _K, _alpha, _A, _lda, _B,
+                    _ldb, _beta, _C, _ldc, batch_size);
 }
 
 }  // namespace blas

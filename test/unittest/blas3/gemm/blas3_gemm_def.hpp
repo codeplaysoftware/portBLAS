@@ -34,6 +34,10 @@ TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 REGISTER_PREC(float, 1e-4, gemm)
 REGISTER_PREC(double, 1e-8, gemm)
 REGISTER_PREC(long double, 1e-8, gemm)
+REGISTER_PREC(float, 1e-4, gemm_batched)
+REGISTER_PREC(double, 1e-8, gemm_batched)
+REGISTER_PREC(long double, 1e-8, gemm_batched)
+
 TYPED_TEST(BLAS_Test, gemm) {
   using test = class gemm;
 
@@ -132,6 +136,109 @@ TYPED_TEST(BLAS_Test, gemm) {
             for (int i = 0; i < dim_c[0] * dim_c[1]; ++i) {
               ASSERT_NEAR(c_m_gpu_result[i + index], c_m_cpu[i + index], prec);
             }
+          }
+          ex.template deallocate<ScalarT>(m_a_gpu);
+          ex.template deallocate<ScalarT>(m_b_gpu);
+          ex.template deallocate<ScalarT>(m_c_gpu);
+        }
+      }
+    }
+  }
+}
+
+TYPED_TEST(BLAS_Test, gemm_batched) {
+  using test = class gemm_batched;
+
+  using ScalarT = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+
+  using MatAType = typename TypeParam::metadata_t::a_format;
+  using MatBType = typename TypeParam::metadata_t::b_format;
+
+  ScalarT prec = BLAS_Test<TypeParam>::template test_prec<test>();
+
+  const char* ta_str = MatAType::str;
+  const char* tb_str = MatBType::str;
+
+  auto _TransA = tolower(*ta_str);
+  auto _TransB = tolower(*tb_str);
+  bool _TrA = _TransA != 'n';
+  bool _TrB = _TransB != 'n';
+
+  ScalarT alpha = ScalarT(1);
+  ScalarT beta = ScalarT(1);
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+#ifdef STRESS_TESTING
+  std::array<int, 20> batch_sizes = {1,   5,   11,  2,    13,   31,  39,
+                                     63,  64,  65,  127,  129,  255, 257,
+                                     511, 512, 513, 1023, 1024, 1025};
+  std::array<int, 18> m_sizes = {11,  33,  65,   129,  255, 513, ,
+                                 2,   14,  39,   63,   64,  127, 257,
+                                 511, 512, 1023, 1024, 1025};
+  std::array<int, 18> n_sizes = {14, 39, 63,  127, 257, 511, 2,    11,   31,
+                                 64, 65, 129, 255, 512, 513, 1023, 1024, 1025};
+  std::array<int, 21> k_sizes[] = {2,   33,  67,  129, 253,  519,  65,
+                                   14,  11,  31,  39,  64,   95,   96,
+                                   127, 257, 511, 512, 1023, 1024, 1025};
+#else
+  std::array<int, 2> batch_sizes = {1, 5};
+  std::array<int, 6> m_sizes = {11, 33, 65, 129, 255, 513};
+  std::array<int, 6> n_sizes = {14, 39, 63, 127, 257, 511};
+  std::array<int, 6> k_sizes = {2, 33, 67, 129, 253, 519};
+#endif
+
+  for (int p = 0; p < batch_sizes.size(); p++) {
+    int batch_size = batch_sizes[p];
+    for (int i = 0; i < m_sizes.size(); i++) {
+      for (int j = 0; j < n_sizes.size(); j++) {
+        for (int l = 0; l < k_sizes.size(); l++) {
+          std::array<int, 2> dim_a = {m_sizes[i], k_sizes[l]};
+          std::array<int, 2> dim_b = {k_sizes[l], n_sizes[j]};
+          std::array<int, 2> dim_c = {m_sizes[i], n_sizes[j]};
+
+          std::vector<ScalarT> a_m(dim_a[0] * dim_a[1] * batch_size);
+          std::vector<ScalarT> b_m(dim_b[0] * dim_b[1] * batch_size);
+          std::vector<ScalarT> c_m_gpu_result(dim_c[0] * dim_c[1] * batch_size,
+                                              ScalarT(0));
+          std::vector<ScalarT> c_m_cpu(dim_c[0] * dim_c[1] * batch_size,
+                                       ScalarT(0));
+          TestClass::set_rand(a_m, dim_a[0] * dim_a[1] * batch_size);
+          TestClass::set_rand(b_m, dim_b[0] * dim_b[1] * batch_size);
+          int lda = (_TrA) ? dim_a[1] : dim_a[0];
+          int ldb = (_TrB) ? dim_b[1] : dim_b[0];
+          int ldc = dim_c[0];
+          int m = dim_c[0];
+          int n = dim_c[1];
+          int k = dim_a[1];
+          auto m_a_gpu =
+              ex.template allocate<ScalarT>(dim_a[0] * dim_a[1] * batch_size);
+          auto m_b_gpu =
+              ex.template allocate<ScalarT>(dim_b[0] * dim_b[1] * batch_size);
+          auto m_c_gpu =
+              ex.template allocate<ScalarT>(dim_c[0] * dim_c[1] * batch_size);
+
+          for (int bs = 0; bs < batch_size; bs++) {
+            // system gemm implementation
+            gemm(ta_str, tb_str, m, n, k, alpha, a_m.data() + (bs * m * k), lda,
+                 b_m.data() + (bs * n * k), ldb, beta,
+                 c_m_cpu.data() + (bs * m * n), m);
+          }
+          ex.copy_to_device(a_m.data(), m_a_gpu,
+                            dim_a[0] * dim_a[1] * batch_size);
+          ex.copy_to_device(b_m.data(), m_b_gpu,
+                            dim_b[0] * dim_b[1] * batch_size);
+          ex.copy_to_device(c_m_gpu_result.data(), m_c_gpu,
+                            dim_c[0] * dim_c[1] * batch_size);
+          _gemm_batched(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu, lda,
+                        m_b_gpu, ldb, beta, m_c_gpu, ldc, batch_size);
+          auto event = ex.copy_to_host(m_c_gpu, c_m_gpu_result.data(),
+                                       dim_c[0] * dim_c[1] * batch_size);
+          ex.wait(event);
+          for (int i = 0; i < dim_c[0] * dim_c[1] * batch_size; ++i) {
+            ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
           }
           ex.template deallocate<ScalarT>(m_a_gpu);
           ex.template deallocate<ScalarT>(m_b_gpu);
