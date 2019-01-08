@@ -171,6 +171,9 @@ The build system is CMake version 3.2.2 or higher.
 We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
 build the project.
 
+A BLAS library, such as OpenBLAS, is also required. This can be installed on
+Ubuntu from the `libopenblas-base` package.
+
 Setup
 -----------------
 
