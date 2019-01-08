@@ -76,7 +76,7 @@ TYPED_TEST(BLAS_Test, gemm) {
                                    14,  11,  31,  39,  64,   95,   96,
                                    127, 257, 511, 512, 1023, 1024, 1025};
 #else
-  std::array<int, 2> batch_sizes = {1, 5};
+  std::array<int, 2> batch_sizes = {1, 2};
   std::array<int, 6> m_sizes = {11, 33, 65, 129, 255, 513};
   std::array<int, 6> n_sizes = {14, 39, 63, 127, 257, 511};
   std::array<int, 6> k_sizes = {2, 33, 67, 129, 253, 519};
@@ -184,7 +184,7 @@ TYPED_TEST(BLAS_Test, gemm_batched) {
                                    14,  11,  31,  39,  64,   95,   96,
                                    127, 257, 511, 512, 1023, 1024, 1025};
 #else
-  std::array<int, 2> batch_sizes = {1, 5};
+  std::array<int, 1> batch_sizes = {5};
   std::array<int, 6> m_sizes = {11, 33, 65, 129, 255, 513};
   std::array<int, 6> n_sizes = {14, 39, 63, 127, 257, 511};
   std::array<int, 6> k_sizes = {2, 33, 67, 129, 253, 519};
