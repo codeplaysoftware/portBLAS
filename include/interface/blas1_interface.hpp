@@ -36,6 +36,8 @@
 #include <operations/blas1_trees.hpp>
 #include <types/sycl_types.hpp>
 
+#include <SYCL/codeplay.hpp>
+
 namespace blas {
 /**
  * \brief AXPY constant times a vector plus a vector.
@@ -81,6 +83,104 @@ typename Executor::Return_Type _copy(Executor &ex, IndexType _N,
   auto vy = make_vector_view(ex, _vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
   auto ret = ex.execute(assignOp2);
+  return ret;
+}
+
+/**
+ * \brief COPY copies a vector, x, to a vector, y in groups
+ *
+ * @param Executor<ExecutorType> ex
+ * @param _vx  VectorView
+ * @param _incx Increment in X axis
+ * @param _vy  VectorView
+ * @param _incy Increment in Y axis
+ * @param _tile_size Size for each group
+ */
+template <typename Executor, typename IndexType, typename ContainerT0,
+          typename ContainerT1, typename IncrementType>
+typename Executor::Return_Type _copy_tiled(Executor &ex, IndexType _N,
+                                           ContainerT0 _vx, IncrementType _incx,
+                                           ContainerT1 _vy, IncrementType _incy,
+                                           size_t _tile_size) {
+  cl::sycl::event ret;
+
+  // For now, only use the tiled version when:
+  //   - _N `mod` _tile_size == 0
+  //   - (sizeof(ElemT) * _tile_size ) < _N (see ComputeCPP copy bug)
+  // Otherwise, fall back to the "default" copy
+  if (_N % _tile_size) {
+    std::cerr << "WARNING: REVERTING TO NORMAL COPY - CANNOT RUN TILED VARIANT!"
+              << std::endl;
+    return _copy(ex, _N, _vx, _incx, _vy, _incy);
+  }
+
+  auto vx = ex.get_buffer(_vx).get_buffer();
+  auto vy = ex.get_buffer(_vy).get_buffer();
+  using elemT = typename decltype(vy)::value_type;
+
+  auto ocm_property = cl::sycl::codeplay::property::buffer::use_onchip_memory(
+      cl::sycl::codeplay::property::prefer);
+
+  // Create sycl buffers for the tiles
+  cl::sycl::buffer<elemT, 1> vx_tile(cl::sycl::range<1>{_tile_size * _incx},
+                                     {ocm_property});
+  cl::sycl::buffer<elemT, 1> vy_tile(cl::sycl::range<1>{_tile_size * _incy},
+                                     {ocm_property});
+
+  // Make vector views to the tiles, so that we can use the standard ops
+  auto vx_tile_iterator_buffer =
+      helper::make_sycl_iterator_buffer<elemT, IndexType>(vx_tile);
+  auto vy_tile_iterator_buffer =
+      helper::make_sycl_iterator_buffer<elemT, IndexType>(vy_tile);
+  auto vx_tile_view =
+      make_vector_view(ex, vx_tile_iterator_buffer, _incx, _tile_size);
+  auto vy_tile_view =
+      make_vector_view(ex, vy_tile_iterator_buffer, _incy, _tile_size);
+
+  for (IndexType i = 0; i < _N; i += _tile_size) {
+    // Copy from _vx into vx_tile
+    ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+      auto vx_tile_acc =
+          vx_tile.template get_access<cl::sycl::access::mode::discard_write>(
+              cgh, cl::sycl::range<1>(_tile_size * _incx), cl::sycl::id<1>(0));
+      auto vx_range_acc = vx.template get_access<cl::sycl::access::mode::read>(
+          cgh, cl::sycl::range<1>(_tile_size * _incx),
+          cl::sycl::id<1>(i * _incx));
+      cgh.copy(vx_range_acc, vx_tile_acc);
+    });
+
+    if (_incy != 1) {
+      // If incy is not 1, then "empty" slots between the values will need to
+      // be copied over (_vy into vy_tile) first
+      ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+        auto vy_tile_acc =
+            vy_tile.template get_access<cl::sycl::access::mode::discard_write>(
+                cgh, cl::sycl::range<1>(_tile_size * _incy),
+                cl::sycl::id<1>(0));
+        auto vy_range_acc =
+            vy.template get_access<cl::sycl::access::mode::read>(
+                cgh, cl::sycl::range<1>(_tile_size * _incy),
+                cl::sycl::id<1>(i * _incy));
+        cgh.copy(vy_range_acc, vy_tile_acc);
+      });
+    }
+
+    // Perform the actual assignment
+    auto assignOp = make_op<Assign>(vy_tile_view, vx_tile_view);
+    ret = ex.execute(assignOp);
+
+    // Copy from vy_tile_acc back into _vy
+    ex.get_queue().submit([&](cl::sycl::handler &cgh) {
+      auto vy_tile_acc =
+          vy_tile.template get_access<cl::sycl::access::mode::read>(
+              cgh, cl::sycl::range<1>(_tile_size * _incy), cl::sycl::id<1>(0));
+      auto vy_range_acc = vy.template get_access<cl::sycl::access::mode::write>(
+          cgh, cl::sycl::range<1>(_tile_size * _incy),
+          cl::sycl::id<1>(i * _incy));
+      cgh.copy(vy_tile_acc, vy_range_acc);
+    });
+  }
+
   return ret;
 }
 
