@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename syclblas_benchmark.cpp
+ *  @filename gemv.cpp
  *
  **************************************************************************/
 
@@ -88,12 +88,11 @@ void BM_Gemv(benchmark::State& state) {
 }
 
 static void gemv_args(benchmark::internal::Benchmark* b) {
-  for (int i = 2 << 5; i <= 2 << 18; i *= 2)
-    for (int j = 2 << 5; j <= 2 << 18; j *= 2) {
-      b->Args({(int)benchmark::utils::to_transpose_enum("n"), i, j});
-      b->Args({(int)benchmark::utils::to_transpose_enum("t"), i, j});
-      b->Args({(int)benchmark::utils::to_transpose_enum("c"), i, j});
-    }
+  for (auto t : benchmark::utils::possible_transpositions)
+    for (int i = 2 << 5; i <= 2 << 18; i *= 2)
+      for (int j = 2 << 5; j <= 2 << 18; j *= 2) {
+        b->Args({(int)(t), i, j});
+      }
 }
 
 BENCHMARK_TEMPLATE(BM_Gemv, float)->Apply(gemv_args);

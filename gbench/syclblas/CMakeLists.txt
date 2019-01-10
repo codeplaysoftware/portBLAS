@@ -21,6 +21,8 @@ file(GLOB SYCLBLAS_BENCH_SRCS
   ${SYCLBLAS_BENCH}/blas1/scal3op.cpp
   # Level 2 blas
   ${SYCLBLAS_BENCH}/blas2/gemv.cpp
+  # Level 3 blas
+  ${SYCLBLAS_BENCH}/blas3/gemm.cpp
 )
 
 # Add individual benchmarks for each method

@@ -95,6 +95,10 @@ static inline std::vector<ScalarT> const_data(size_t size,
 }
 
 enum class Transposition { Normal, Transposed, Conjugate };
+
+const std::array<Transposition, 3> possible_transpositions(
+    {Transposition::Normal, Transposition::Transposed,
+     Transposition::Conjugate});
 /**
  * @fn to_transpose_enum
  * @brief Translates from a transposition string to an enum.
