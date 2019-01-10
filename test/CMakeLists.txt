@@ -7,8 +7,9 @@ set(SYCLBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 
 # Download and build googletest
-# The following operations are derived from the official advice on building googletest as a subproject,
-# from the following documentation: https://github.com/google/googletest/blob/master/googletest/README.md
+# The following operations are derived from the official advice on building
+# googletest as a subproject, from the following documentation:
+# https://github.com/google/googletest/blob/master/googletest/README.md
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/templates/GTest.txt.in
   ${CMAKE_CURRENT_BINARY_DIR}/googletest-download/CMakeLists.txt

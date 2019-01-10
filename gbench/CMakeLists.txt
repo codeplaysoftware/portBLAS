@@ -3,12 +3,24 @@ cmake_minimum_required(VERSION 3.2.2)
 # compile googlebench
 include(ExternalProject)
 
-set(SYCLBLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_BENCH_INCLUDE "${SYCLBLAS_BENCH}/include")
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/include)
+set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/cmake/Modules)
+
+include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+
+find_package(OpenCL REQUIRED)
+find_package(ComputeCpp REQUIRED)
+include(ConfigureSYCLBLAS)
+
+set(BLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
+set(BLAS_BENCH_INCLUDE "${BLAS_BENCH}/include")
 
 # Download and build googlebench
-# The following operations are derived from the official advice on building googlebench as a subproject,
-# from the following documentation: https://github.com/google/googletest/blob/master/googletest/README.md
+# The following operations are derived from the official advice on building
+# googlebench as a subproject, from the following documentation:
+# https://github.com/google/googletest/blob/master/googletest/README.md
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/templates/GBench.txt.in
   ${CMAKE_CURRENT_BINARY_DIR}/googlebench-download/CMakeLists.txt
@@ -49,9 +61,6 @@ if(SYCL_DEVICE)
   add_definitions(-DSYCL_DEVICE=${SYCL_DEVICE})
 endif(SYCL_DEVICE)
 
-# include_directories(
-#   ${GTEST_LIB}
-#   ${GMOCK_LIB}
-# )
-
-add_subdirectory(${SYCLBLAS_BENCH}/syclblas)
+include_directories(${BLAS_BENCH})
+add_subdirectory(${BLAS_BENCH}/syclblas)
+# add_subdirectory(${BLAS_BENCH}/clblast)
