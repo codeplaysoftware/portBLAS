@@ -131,6 +131,7 @@ static inline const char* from_transpose_enum(Transposition t) {
       return "n";
   }
 }
+
 }  // namespace utils
 }  // namespace benchmark
 
