@@ -106,6 +106,17 @@ class Queue_Interface<SYCL> {
   inline void deallocate(T *p) const {
     cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), *pointerMapperPtr_);
   }
+  template <typename T, typename ContainerT>
+  inline T *attach_buffer(ContainerT ptr) const {
+    return static_cast<T *>(static_cast<void *>(
+          pointerMapperPtr_->add_pointer(ptr)));
+  }
+  template <typename T>
+  inline void detach_buffer(T *p) const {
+    cl::sycl::codeplay::SYCLfree<false>(static_cast<void *>(p),
+                                        *pointerMapperPtr_);
+  }
+
   cl::sycl::queue get_queue() const { return q_; }
 
   // This function returns the nearest power of 2 Work-group size which is <=
