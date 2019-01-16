@@ -1,13 +1,14 @@
-#include "blas_test.hpp"
 #include "../blas3_matrix_formats.hpp"
+#include "blas_test.hpp"
 
 typedef ::testing::Types<
     blas_test_args<float, MatrixFormats<Conjugate, Normal>>
-    #ifndef NO_DOUBLE_SUPPORT
+#ifdef DOUBLE_SUPPORT
     ,
     blas_test_args<double, MatrixFormats<Conjugate, Normal>>
-    #endif
-    > BlasTypes;
+#endif
+    >
+    BlasTypes;
 
 #define BlasTypes BlasTypes
 #define TestName gemm_normal_normal

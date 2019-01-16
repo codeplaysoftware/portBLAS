@@ -1,0 +1,75 @@
+/***************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename gem_legacy.cpp.in
+ *
+ **************************************************************************/
+#include "container/sycl_iterator.hpp"
+#include "executors/executor_sycl.hpp"
+#include "executors/kernel_constructor.hpp"
+#include "interface/blas2_interface.hpp"
+#include "operations/blas1_trees.hpp"
+#include "operations/blas2_trees.hpp"
+#include "operations/blas_constants.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "views/view_sycl.hpp"
+
+namespace blas {
+namespace internal {
+
+/*!
+ @brief Generalised matrix vector product with rectangular non-symmetric
+ matrices.
+
+ Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
+ computing the mathematical operation:
+
+ y = alpha*A*x + beta*y
+
+ See the netlib blas interface documentation for more details of the high level
+ interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
+
+    Executor& ex,         // Executor (sycl, parallel, serial, etc)
+    char _trans,          // The transposition of the matrix ('n', 't', 'c')
+    IndexType _M,         // The size of dimension M of the matrix (rows)
+    IndexType _N,         // The size of dimension N of the matrix (columns)
+    T _alpha,             // Scalar parameter Alpha
+    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
+    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
+    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
+                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                          // containing the vector "x"
+    IncrementType _incx,  // The increment for elements in x (nonzero).
+    T _beta,              // Scalar parameter Beta
+    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
+                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+    // containing the vector "y" (if beta is nonzero). When
+    // finished, y is overwritten with the updated vector.
+    IncrementType _incy  // The increment for elements in y (nonzero).
+ */
+template typename Executor<${EXECUTOR}>::Policy::event_type _gemv_legacy(
+    Executor<${EXECUTOR}>& ex, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, ${CONTAINERT0} _mA, ${INDEX_TYPE} _lda,
+    ${CONTAINERT1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${CONTAINERT2} _vy, ${INCREMENT_TYPE} _incy);
+
+}  // namespace internal
+}  // namespace blas

@@ -24,11 +24,44 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+/**
+ * ROTG.
+ * @brief Consturcts given plane rotation
+ * Not implemented.
+ */
+template <typename T>
+void _rotg(T &_alpha, T &_beta, T &_cos, T &_sin) {
+  T abs_alpha = std::abs(_alpha);
+  T abs_beta = std::abs(_beta);
+  T roe = (abs_alpha > abs_beta) ? _alpha : _beta;
+  T scale = abs_alpha + abs_beta;
+  T norm;
+  T aux;
 
-typedef ::testing::Types<blas_test_float<>,
-                         blas_test_double<>
-                         >
-    BlasTypes;
+  if (scale == constant<T, const_val::zero>::value) {
+    _cos = constant<T, const_val::one>::value;
+    _sin = constant<T, const_val::zero>::value;
+    norm = constant<T, const_val::zero>::value;
+    aux = constant<T, const_val::zero>::value;
+  } else {
+    norm = scale * std::sqrt((_alpha / scale) * (_alpha / scale) +
+                             (_beta / scale) * (_beta / scale));
+    if (roe < constant<T, const_val::zero>::value) norm = -norm;
+    _cos = _alpha / norm;
+    _sin = _beta / norm;
+    if (abs_alpha > abs_beta) {
+      aux = _sin;
+    } else if (_cos != constant<T, const_val::zero>::value) {
+      aux = constant<T, const_val::one>::value / _cos;
+    } else {
+      aux = constant<T, const_val::one>::value;
+    }
+  }
+  _alpha = norm;
+  _beta = aux;
+}
+
+typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
@@ -43,8 +76,8 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class rotg_test;
 
-  size_t size = TestClass::template test_size<test>();
-  long strd = TestClass::template test_strd<test>();
+  int size = TestClass::template test_size<test>();
+  int strd = TestClass::template test_strd<test>();
   ScalarT prec = TestClass::template test_prec<test>();
 
   std::vector<ScalarT> vX(size);
@@ -59,7 +92,7 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   ScalarT giv = 0;
   // givens rotation of vectors vX and vY
   // and computation of dot of both vectors
-  for (size_t i = 0; i < size; i += strd) {
+  for (int i = 0; i < size; i += strd) {
     ScalarT x = vX[i], y = vY[i];
     if (i == 0) {
       // compute _cos and _sin
@@ -72,20 +105,20 @@ TYPED_TEST(BLAS_Test, rotg_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
 
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vY = ex.template allocate<ScalarT>(size);
-  auto gpu_vR = ex.template allocate<ScalarT>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
-  ex.copy_to_device(vY.data(), gpu_vY, size);
-  ex.copy_to_device(vR.data(), gpu_vR, 1);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vR = ex.get_policy_handler().template allocate<ScalarT>(1);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
+  ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
   _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  auto event = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  ex.get_policy_handler().wait(event);
 
   // check that the result is the same
   ASSERT_NEAR(giv, vR[0], prec);
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<ScalarT>(gpu_vY);
-  ex.template deallocate<ScalarT>(gpu_vR);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vR);
 }

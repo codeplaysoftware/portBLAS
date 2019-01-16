@@ -54,8 +54,8 @@ BENCHMARK(gemv, clblast_level_2) {
       static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
   size_t lda = m;
-  long incX = 1;
-  long incY = 1;
+  int incX = 1;
+  int incY = 1;
 
   // Specify the layout. As with GEMM, this needs to be kColMajor, and results
   // in errors otherwise. It may be that this is incorrect (especially for

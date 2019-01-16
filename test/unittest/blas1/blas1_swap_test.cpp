@@ -25,10 +25,7 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>,
-                         blas_test_double<>
-                         >
-    BlasTypes;
+typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
@@ -41,8 +38,8 @@ TYPED_TEST(BLAS_Test, swap_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class swap_test;
 
-  size_t size = TestClass::template test_size<test>();
-  long strd = TestClass::template test_strd<test>();
+  int size = TestClass::template test_size<test>();
+  int strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
@@ -60,17 +57,17 @@ TYPED_TEST(BLAS_Test, swap_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vY = ex.template allocate<ScalarT>(size);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
-  ex.copy_to_device(vY.data(), gpu_vY, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _swap(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = ex.copy_to_host(gpu_vX, vX.data(), size);
-  auto event1 = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.wait(event0, event1);
+  auto event0 = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
+  auto event1 = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  ex.get_policy_handler().wait(event0, event1);
   // check that new vX is equal to the copy of the original vY and
   // that new vY is equal to the copy of the original vX
-  for (size_t i = 0; i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vZ[i], vY[i]);
       ASSERT_EQ(vT[i], vX[i]);
@@ -79,6 +76,6 @@ TYPED_TEST(BLAS_Test, swap_test) {
       ASSERT_EQ(vT[i], vY[i]);
     }
   }
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
 }

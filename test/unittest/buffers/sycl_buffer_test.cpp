@@ -24,9 +24,8 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include "queue/sycl_iterator.hpp"
 typedef ::testing::Types<blas_test_args<float>
-#ifndef NO_DOUBLE_SUPPORT
+#ifdef DOUBLE_SUPPORT
                          ,
                          blas_test_args<double>
 #endif
@@ -39,7 +38,6 @@ REGISTER_SIZE(::RANDOM_SIZE, sycl_buffer_test)
 REGISTER_STRD(::RANDOM_STRD, sycl_buffer_test)
 REGISTER_PREC(float, 1e-4, sycl_buffer_test)
 REGISTER_PREC(double, 1e-6, sycl_buffer_test)
-REGISTER_PREC(long double, 1e-7, sycl_buffer_test)
 
 TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   using ScalarT = typename TypeParam::scalar_t;
@@ -63,9 +61,10 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto a = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX.data(), size);
-  auto event = ex.copy_to_host((a + offset), vR.data(), size - offset);
-  ex.wait(event);
+  auto a = blas::make_sycl_iterator_buffer<ScalarT>(vX.data(), size);
+  auto event = ex.get_policy_handler().copy_to_host((a + offset), vR.data(),
+                                                    size - offset);
+  ex.get_policy_handler().wait(event);
 
   for (auto i = 0; i < size; i++) {
     ASSERT_NEAR(vX[i + offset], vR[i], prec);

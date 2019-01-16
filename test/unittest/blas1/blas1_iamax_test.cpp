@@ -31,7 +31,6 @@ REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
 REGISTER_STRD(1, iamax_test)
 REGISTER_PREC(float, 1e-4, iamax_test)
 REGISTER_PREC(double, 1e-6, iamax_test)
-REGISTER_PREC(long double, 1e-7, iamax_test)
 
 TYPED_TEST(BLAS_Test, iamax_test) {
   using ScalarT = typename TypeParam::scalar_t;
@@ -67,12 +66,13 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vI = blas::helper::make_sycl_iterator_buffer<
-      IndexValueTuple<ScalarT, IndexType>>(IndexType(1));
+  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
+  auto gpu_vI =
+      blas::make_sycl_iterator_buffer<IndexValueTuple<ScalarT, IndexType>>(
+          IndexType(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  ex.get_policy_handler().wait(event);
 
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), vI[0].get_value());
@@ -118,18 +118,20 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vI = ex.get_policy_handler()
+                    .template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  ex.get_policy_handler().wait(event);
 
   IndexValueTuple<ScalarT, IndexType> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
   ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
 }

@@ -26,6 +26,7 @@
 #ifndef BLAS_TEST_HPP
 #define BLAS_TEST_HPP
 
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <cstdlib>
@@ -33,14 +34,9 @@
 #include <iostream>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "queue/sycl_iterator.hpp"
-
-#include <interface/blas1_interface.hpp>
-#include <interface/blas2_interface.hpp>
-#include <interface/blas3_interface.hpp>
+#include <sycl_blas.h>
 
 #include "blas_test_macros.hpp"
 #include "system_reference_blas.hpp"
@@ -85,20 +81,23 @@ struct blas_templ_struct {
 // "Using" shortcuts for the struct, with #ifndef guard for double
 
 // A "default" using shortcut
-template <class ScalarT_, class MetadataT_ = void, class ExecutorType_ = SYCL>
+template <class ScalarT_, class MetadataT_ = void,
+          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
 using blas_test_args = blas_templ_struct<ScalarT_, MetadataT_, ExecutorType_>;
 
 // specialisation for float
-template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+template <class MetadataT_ = void,
+          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
 using blas_test_float = blas_templ_struct<float, MetadataT_, ExecutorType_>;
 
 // specialisation (with define guard) for double
-// #define NO_DOUBLE_SUPPORT
-#ifndef NO_DOUBLE_SUPPORT
-template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+#ifdef DOUBLE_SUPPORT
+template <class MetadataT_ = void,
+          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
 using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
 #else
-template <class MetadataT_ = void, class ExecutorType_ = SYCL>
+template <class MetadataT_ = void,
+          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
 using blas_test_double = ::testing::internal::None;
 #endif
 
@@ -187,15 +186,9 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
     std::cout << std::endl;
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
-  static bufferT<value_type> make_buffer(DataType &vec) {
-    return bufferT<value_type>(vec.data(), vec.size() * sizeof(value_type));
-  }
-
   template <typename DeviceSelector,
-            typename = typename std::enable_if<
-                std::is_same<ExecutorType, SYCL>::value>::type>
+            typename = typename std::enable_if<std::is_same<
+                ExecutorType, Policy_Handler<BLAS_SYCL_Policy>>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       for (auto &e : eL) {
