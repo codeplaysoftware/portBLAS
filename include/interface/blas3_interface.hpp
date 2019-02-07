@@ -152,14 +152,14 @@ cl::sycl::event _gemm(Executor& ex, char _TransA, char _TransB, IndexType _M,
 #ifndef NAIVE_GEMM
 #if defined(DYNAMIC)
   if (ex.get_device_type() ==
-      Executor::Queue_Interface_Type::device_type::SYCL_INTEL_GPU) {
+      sycl_device_property::device_type::SYCL_INTEL_GPU) {
     BIND_DATA_SIZE(1024, 4096, 1024) TO_TPARAMS(128, false, 64, 4, 4, 16, 16);
     BIND_DATA_SIZE(10, 1024, 1024) TO_TPARAMS(128, false, 64, 2, 2, 8, 8);
     BIND_DEFAULT TO_TPARAMS(128, false, 64, 8, 8, 8, 8);
-  } else if ((ex.get_device_type() == Executor::Queue_Interface_Type::
-                                          device_type::SYCL_RCAR_CVENGINE) ||
-             (ex.get_device_type() == Executor::Queue_Interface_Type::
-                                          device_type::SYCL_RCAR_HOST_CPU)) {
+  } else if ((ex.get_device_type() ==
+              sycl_device_property::device_type::SYCL_RCAR_CVENGINE) ||
+             (ex.get_device_type() ==
+              sycl_device_property::device_type::SYCL_RCAR_HOST_CPU)) {
     if (_M < 512 && _N < 512) {
       BIND_DEFAULT TO_TPARAMS(32, false, 128, 4, 8, 8, 4);
     } else {

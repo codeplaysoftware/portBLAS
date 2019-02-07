@@ -34,6 +34,55 @@
 
 namespace blas {
 
+namespace sycl_device_property {
+enum device_type {
+  SYCL_CPU,
+  SYCL_HOST,
+  SYCL_UNSUPPORTED_DEVICE,
+  SYCL_INTEL_GPU,
+  SYCL_AMD_GPU,
+  SYCL_RCAR_CVENGINE,
+  SYCL_RCAR_HOST_CPU
+};
+inline const bool has_local_memory(cl::sycl::queue &q_) {
+  return (q_.get_device()
+              .template get_info<cl::sycl::info::device::local_mem_type>() ==
+          cl::sycl::info::local_mem_type::local);
+}
+// Force the systme not to set this to bigger than 256. As it can be
+inline const size_t get_work_group_size(cl::sycl::queue &q_) {
+  return std::min(
+      size_t(256),
+      q_.get_device()
+          .template get_info<cl::sycl::info::device::max_work_group_size>());
+}
+
+const device_type find_chosen_device_type(cl::sycl::queue &q_) {
+  auto dev = q_.get_device();
+  auto platform = dev.get_platform();
+  auto plat_name = platform.template get_info<cl::sycl::info::platform::name>();
+  auto device_type =
+      dev.template get_info<cl::sycl::info::device::device_type>();
+  std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
+                 ::tolower);
+  if (plat_name.find("amd") != std::string::npos &&
+      device_type == cl::sycl::info::device_type::gpu) {
+    return SYCL_AMD_GPU;
+  } else if (plat_name.find("intel") != std::string::npos &&
+             device_type == cl::sycl::info::device_type::gpu) {
+    return SYCL_INTEL_GPU;
+  } else if (plat_name.find("computeaorta") != std::string::npos &&
+             device_type == cl::sycl::info::device_type::accelerator) {
+    return SYCL_RCAR_CVENGINE;
+  } else if (plat_name.find("computeaorta") != std::string::npos &&
+             device_type == cl::sycl::info::device_type::cpu) {
+    return SYCL_RCAR_HOST_CPU;
+  } else {
+    return SYCL_UNSUPPORTED_DEVICE;
+  }
+  throw std::runtime_error("couldn't find device");
+}
+}  // namespace sycl_device_property
 template <>
 class Queue_Interface<SYCL> {
   /*!
@@ -41,20 +90,13 @@ class Queue_Interface<SYCL> {
    */
   cl::sycl::queue q_;
   std::shared_ptr<cl::sycl::codeplay::PointerMapper> pointerMapperPtr_;
-  bool pointer_mapper_owner;
+  const bool pointer_mapper_owner;
+  const size_t workgroupsize;
+  const sycl_device_property::device_type selected_device_type;
+  const bool local_memory_support;
   using generic_buffer_data_type = cl::sycl::codeplay::buffer_data_type_t;
 
  public:
-  enum device_type {
-    SYCL_CPU,
-    SYCL_HOST,
-    SYCL_UNSUPPORTED_DEVICE,
-    SYCL_INTEL_GPU,
-    SYCL_AMD_GPU,
-    SYCL_RCAR_CVENGINE,
-    SYCL_RCAR_HOST_CPU
-  };
-
   explicit Queue_Interface(cl::sycl::queue q)
       : q_(q),
         pointerMapperPtr_(std::shared_ptr<cl::sycl::codeplay::PointerMapper>(
@@ -63,39 +105,17 @@ class Queue_Interface<SYCL> {
               p->clear();
               delete p;
             })),
-        pointer_mapper_owner(true) {}
+        pointer_mapper_owner(true),
+        workgroupsize(sycl_device_property::get_work_group_size(q)),
+        selected_device_type(sycl_device_property::find_chosen_device_type(q)),
+        local_memory_support(sycl_device_property::has_local_memory(q)) {}
 
-  const device_type get_device_type() const {
-    auto dev = q_.get_device();
-    auto platform = dev.get_platform();
-    auto plat_name =
-        platform.template get_info<cl::sycl::info::platform::name>();
-    auto device_type =
-        dev.template get_info<cl::sycl::info::device::device_type>();
-    std::transform(plat_name.begin(), plat_name.end(), plat_name.begin(),
-                   ::tolower);
-    if (plat_name.find("amd") != std::string::npos &&
-        device_type == cl::sycl::info::device_type::gpu) {
-      return SYCL_AMD_GPU;
-    } else if (plat_name.find("intel") != std::string::npos &&
-               device_type == cl::sycl::info::device_type::gpu) {
-      return SYCL_INTEL_GPU;
-    } else if (plat_name.find("computeaorta") != std::string::npos &&
-               device_type == cl::sycl::info::device_type::accelerator) {
-      return SYCL_RCAR_CVENGINE;
-    } else if (plat_name.find("computeaorta") != std::string::npos &&
-               device_type == cl::sycl::info::device_type::cpu) {
-      return SYCL_RCAR_HOST_CPU;
-    } else {
-      return SYCL_UNSUPPORTED_DEVICE;
-    }
-    throw std::runtime_error("couldn't find device");
+  const sycl_device_property::device_type inline get_device_type() const {
+    return selected_device_type;
   }
-  inline bool has_local_memory() const {
-    return (q_.get_device()
-                .template get_info<cl::sycl::info::device::local_mem_type>() ==
-            cl::sycl::info::local_mem_type::local);
-  }
+  inline bool has_local_memory() const { return local_memory_support; }
+  // Force the systme not to set this to bigger than 256. As it can be
+  inline size_t get_work_group_size() const { return workgroupsize; }
   template <typename T>
   inline T *allocate(size_t num_elements) const {
     return static_cast<T *>(cl::sycl::codeplay::SYCLmalloc(
@@ -112,13 +132,6 @@ class Queue_Interface<SYCL> {
   // maximum device workgroup size.
   inline size_t get_rounded_power_of_two_work_group_size() const {
     return get_power_of_two(get_work_group_size(), false);
-  }
-  // Force the systme not to set this to bigger than 256. As it can be
-  inline size_t get_work_group_size() const {
-    return std::min(
-        size_t(256),
-        q_.get_device()
-            .template get_info<cl::sycl::info::device::max_work_group_size>());
   }
 
   // This function returns the nearest power of 2

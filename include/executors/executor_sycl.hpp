@@ -268,7 +268,7 @@ class Executor<SYCL> {
 
   cl::sycl::queue get_queue() const { return q_interface.get_queue(); }
 
-  inline Queue_Interface_Type::device_type get_device_type() {
+  inline sycl_device_property::device_type get_device_type() {
     return q_interface.get_device_type();
   }
 
