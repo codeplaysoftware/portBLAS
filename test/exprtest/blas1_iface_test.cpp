@@ -123,16 +123,20 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vY = ex.template allocate<ScalarT>(size);
-  auto gpu_vR = ex.template allocate<ScalarT>(1);
-  auto gpu_vS = ex.template allocate<ScalarT>(1);
-  auto gpu_vT = ex.template allocate<ScalarT>(1);
-  auto gpu_vU = ex.template allocate<ScalarT>(1);
-  auto gpu_vImax = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  auto gpu_vImin = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
-  ex.copy_to_device(vY.data(), gpu_vY, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vR = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vS = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vT = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vU = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vImax =
+      ex.get_policy_handler()
+          .template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
+  auto gpu_vImin =
+      ex.get_policy_handler()
+          .template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
   _asum(ex, size, gpu_vY, strd, gpu_vR);
   _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vS);
@@ -142,15 +146,18 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   _rot(ex, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
   _swap(ex, size, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  auto event1 = ex.copy_to_host(gpu_vS, vS.data(), 1);
-  auto event2 = ex.copy_to_host(gpu_vT, vT.data(), 1);
-  auto event3 = ex.copy_to_host(gpu_vU, vU.data(), 1);
-  auto event4 = ex.copy_to_host(gpu_vImax, vImax.data(), 1);
-  auto event5 = ex.copy_to_host(gpu_vImin, vImin.data(), 1);
-  auto event6 = ex.copy_to_host(gpu_vX, vX.data(), size);
-  auto event7 = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5, event6, event7);
+  auto event0 = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  auto event1 = ex.get_policy_handler().copy_to_host(gpu_vS, vS.data(), 1);
+  auto event2 = ex.get_policy_handler().copy_to_host(gpu_vT, vT.data(), 1);
+  auto event3 = ex.get_policy_handler().copy_to_host(gpu_vU, vU.data(), 1);
+  auto event4 =
+      ex.get_policy_handler().copy_to_host(gpu_vImax, vImax.data(), 1);
+  auto event5 =
+      ex.get_policy_handler().copy_to_host(gpu_vImin, vImin.data(), 1);
+  auto event6 = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
+  auto event7 = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5,
+                               event6, event7);
 
   // because there is a lot of operations, it makes sense to set the precision
   // threshold
@@ -172,12 +179,14 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<ScalarT>(gpu_vY);
-  ex.template deallocate<ScalarT>(gpu_vR);
-  ex.template deallocate<ScalarT>(gpu_vS);
-  ex.template deallocate<ScalarT>(gpu_vT);
-  ex.template deallocate<ScalarT>(gpu_vU);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImax);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImin);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vR);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vS);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vT);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vU);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImax);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImin);
 }

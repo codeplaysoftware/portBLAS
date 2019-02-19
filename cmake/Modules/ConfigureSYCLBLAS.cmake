@@ -31,7 +31,7 @@ message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 # Check to see if we've disabled double support in the tests
 option(DOUBLE_SUPPORT "Disable double support when testing." off)
 if(DOUBLE_SUPPORT)
-  # Define NO_DOUBLE_SUPPORT for the host cxx compiler
+  # Define DOUBLE_SUPPORT for the host cxx compiler
   add_definitions(-DDOUBLE_SUPPORT)
 endif()
 
