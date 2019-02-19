@@ -452,7 +452,7 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     run_benchmark(b, range_param, reps, ex, output);
   }
 
-#ifndef NO_DOUBLE_SUPPORT
+#ifdef DOUBLE_SUPPORT
   auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
   for (auto b : dbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);

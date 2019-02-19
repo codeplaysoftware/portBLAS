@@ -64,18 +64,21 @@ TYPED_TEST(BLAS_Test, iamin_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vI =
+      ex.get_policy_handler()
+          .template allocate<IndexValueTuple<ScalarT, IndexType>>(IndexType(1));
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  ex.get_policy_handler().wait(event);
 
   IndexValueTuple<ScalarT, IndexType> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
   ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
 }

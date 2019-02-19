@@ -25,10 +25,7 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>,
-                         blas_test_double<>
-                         >
-    BlasTypes;
+typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
@@ -41,8 +38,8 @@ TYPED_TEST(BLAS_Test, copy_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class copy_test;
 
-  size_t size = TestClass::template test_size<test>();
-  long strd = TestClass::template test_strd<test>();
+  int size = TestClass::template test_size<test>();
+  int strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
@@ -55,13 +52,13 @@ TYPED_TEST(BLAS_Test, copy_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vY = blas::helper::make_sycl_iterator_buffer<ScalarT>(size);
+  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
+  auto gpu_vY = blas::make_sycl_iterator_buffer<ScalarT>(size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  ex.get_policy_handler().wait(event);
   // check that vX and vY are the same
-  for (size_t i = 0; i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vX[i], vY[i]);
     } else {
@@ -79,8 +76,8 @@ TYPED_TEST(BLAS_Test, copy_test_vpr) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class copy_test_vpr;
 
-  size_t size = TestClass::template test_size<test>();
-  long strd = TestClass::template test_strd<test>();
+  int size = TestClass::template test_size<test>();
+  int strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
@@ -93,16 +90,16 @@ TYPED_TEST(BLAS_Test, copy_test_vpr) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vY = ex.template allocate<ScalarT>(size);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
-  ex.copy_to_device(vY.data(), gpu_vY, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  ex.get_policy_handler().wait(event);
 
   // check that vX and vY are the same
-  for (size_t i = 0; i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     if (i % strd == 0) {
       ASSERT_EQ(vX[i], vY[i]);
     } else {
@@ -110,6 +107,6 @@ TYPED_TEST(BLAS_Test, copy_test_vpr) {
     }
   }
 
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
 }

@@ -1,35 +1,85 @@
+#/***************************************************************************
+# *
+# *  @license
+# *  Copyright (C) Codeplay Software Limited
+# *  Licensed under the Apache License, Version 2.0 (the "License");
+# *  you may not use this file except in compliance with the License.
+# *  You may obtain a copy of the License at
+# *
+# *      http://www.apache.org/licenses/LICENSE-2.0
+# *
+# *  For your convenience, a copy of the License has been included in this
+# *  repository.
+# *
+# *  Unless required by applicable law or agreed to in writing, software
+# *  distributed under the License is distributed on an "AS IS" BASIS,
+# *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# *  See the License for the specific language governing permissions and
+# *  limitations under the License.
+# *
+# *  SYCL-BLAS: BLAS implementation using SYCL
+# *
+# *  @filename CMakeLists.txt
+# *
+# **************************************************************************/
 cmake_minimum_required (VERSION 3.2.2)
 
-project(sycl-blas)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-enable_testing()
+if(${CMAKE_VERSION} VERSION_LESS "3.9.0") 
+  project(sycl-blas VERSION 0.1.0)
+else()
+  project(sycl-blas VERSION 0.1.0 DESCRIPTION "sycl-blas library")
+endif()
 
 set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
+set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/sample/cmake)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -Wall -Wno-long-long -pedantic")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
+find_package(PythonInterp 2.7 REQUIRED)
+include(CmakeFunctionHelper)
 
-include(FindBLAS)
+add_subdirectory(src)
+#shared lib
+build_library(sycl_blas SHARED)
+target_include_directories(sycl_blas PUBLIC ${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+set_target_properties(sycl_blas PROPERTIES VERSION ${PROJECT_VERSION})
 
-if (DEFINED OPENBLAS_ROOT)
-  # If OPENBLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
-  # libraries based on the explicit path given 
-  message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${OPENBLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${OPENBLAS_ROOT}/include/")
-else()
-  message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  set(BLA_STATIC on)
-  # If we want to use a specific BLAS vendor, we could set it here:
-  # by calling: set(BLA_VENDOR OpenBLAS) 
-  find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
-  message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
+install(TARGETS sycl_blas 
+LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/lib
+)
+
+option(BLAS_ENABLE_STATIC_LIBRARY "Whether to enable STATIC LIBRARY" OFF)
+
+#static_lib
+if(BLAS_ENABLE_STATIC_LIBRARY)
+build_library(sycl_blas_static STATIC)
+install(TARGETS sycl_blas_static 
+ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/lib
+)
 endif()
 
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${BLAS_INCLUDE_DIRS})
+install(DIRECTORY ${SYCLBLAS_INCLUDE} DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas
+        FILES_MATCHING PATTERN "*.h")
 
-add_subdirectory(test)
+option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
+
+if(${BLAS_ENABLE_TESTING})
+  enable_testing()
+  add_subdirectory(test)
+endif()
+
