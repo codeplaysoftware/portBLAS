@@ -75,13 +75,13 @@ BENCHMARK(gemm, syclblas_level_3) {
       benchmark<>::measure(reps, n_fl_ops, [&]() -> cl::sycl::event {
         auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
                            ldb, beta, c_gpu, ldc);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
   auto event = ex.copy_to_host(c_gpu, c.data(), m * n);
 
-  ex.wait(event);
+  ex.get_policy_handler().wait(event);
 
   ex.template deallocate<ScalarT>(a_gpu);
   ex.template deallocate<ScalarT>(b_gpu);

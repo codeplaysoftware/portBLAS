@@ -1,4 +1,15 @@
-/***************************************************************************
+/**********************
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .waitex.get_policy_handler()
+    .wait
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -48,7 +59,7 @@ BENCHMARK(scal, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 1, [&]() -> cl::sycl::event {
         auto event = _scal(ex, size, alpha, in, 1);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
   ex.template deallocate<ScalarT>(in);
@@ -72,7 +83,7 @@ BENCHMARK(axpy, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -97,7 +108,7 @@ BENCHMARK(asum, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _asum(ex, size, inx, 1, inr);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -120,7 +131,7 @@ BENCHMARK(nrm2, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _nrm2(ex, size, inx, 1, inr);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -146,7 +157,7 @@ BENCHMARK(dot, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _dot(ex, size, inx, 1, iny, 1, inr);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -170,7 +181,7 @@ BENCHMARK(iamax, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _iamax(ex, size, inx, 1, outI);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -192,7 +203,7 @@ BENCHMARK(iamin, syclblas_level_1) {
   benchmark<>::datapoint_t flops =
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event = _iamin(ex, size, inx, 1, outI);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
@@ -219,7 +230,7 @@ BENCHMARK(scal2op, syclblas_level_1) {
       benchmark<>::measure(reps, size * 2, [&]() -> cl::sycl::event {
         auto event0 = _scal(ex, size, alpha, inx, 1);
         auto event1 = _scal(ex, size, alpha, iny, 1);
-        ex.wait(event0, event1);
+        ex.get_policy_handler().wait(event0, event1);
         return event1;
       });
 
@@ -250,7 +261,7 @@ BENCHMARK(scal3op, syclblas_level_1) {
         auto event0 = _scal(ex, size, alpha, inx, 1);
         auto event1 = _scal(ex, size, alpha, iny, 1);
         auto event2 = _scal(ex, size, alpha, inz, 1);
-        ex.wait(event0, event1, event2);
+        ex.get_policy_handler().wait(event0, event1, event2);
         return event2;
       });
 
@@ -292,7 +303,7 @@ BENCHMARK(axpy3op, syclblas_level_1) {
         auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
         auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
         auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
-        ex.wait(event0, event1, event2);
+        ex.get_policy_handler().wait(event0, event1, event2);
         return event2;
       });
 
@@ -332,7 +343,7 @@ BENCHMARK(blas1, syclblas_level_1) {
         auto event3 = _nrm2(ex, size, iny, 1, inr3);
         auto event4 = _iamax(ex, size, iny, 1, inrI);
         auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
-        ex.wait(event0, event1, event2, event3, event4, event5);
+        ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5);
         return event5;
       });
 

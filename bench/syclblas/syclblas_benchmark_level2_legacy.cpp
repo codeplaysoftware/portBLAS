@@ -76,13 +76,13 @@ BENCHMARK(gemv, syclblas_level_2_legacy) {
       benchmark<>::measure(reps, n_fl_ops, [&]() -> cl::sycl::event {
         auto event = _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu,
                                   incX, beta, v_c_gpu, incY);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
   auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), rlen);
 
-  ex.wait(event);
+  ex.get_policy_handler().wait(event);
 
   ex.template deallocate<ScalarT>(m_a_gpu);
   ex.template deallocate<ScalarT>(v_b_gpu);

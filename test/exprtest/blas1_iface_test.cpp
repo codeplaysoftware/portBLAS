@@ -150,7 +150,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   auto event5 = ex.copy_to_host(gpu_vImin, vImin.data(), 1);
   auto event6 = ex.copy_to_host(gpu_vX, vX.data(), size);
   auto event7 = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.wait(event0, event1, event2, event3, event4, event5, event6, event7);
+  ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5, event6, event7);
 
   // because there is a lot of operations, it makes sense to set the precision
   // threshold

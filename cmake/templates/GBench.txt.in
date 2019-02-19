@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.2.2)
+
+# This file is copied into the build directory in order to build googlebench
+# See the guidelines at the URL below for a more detailed explanation
+# https://github.com/google/googletest/blob/master/googletest/README.md
+
+project(googlebench-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(googlebench
+    GIT_REPOSITORY https://github.com/google/benchmark
+    GIT_TAG master
+    SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/googlebench-src"
+    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/googlebench-build"
+    CMAKE_ARGS "-DBENCHMARK_ENABLE_TESTING=OFF"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    TEST_COMMAND ""
+)
