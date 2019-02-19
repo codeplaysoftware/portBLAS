@@ -47,38 +47,46 @@ BENCHMARK(gemm, syclblas_level_3) {
   const IndexType m = std::get<2>(params);
   const IndexType k = std::get<3>(params);
   const IndexType n = std::get<4>(params);
+  const IndexType batched_size = 16;
 
   size_t n_fl_ops = (static_cast<size_t>(2) * static_cast<size_t>(m) *
-                     static_cast<size_t>(n) * static_cast<size_t>(k));
+                     static_cast<size_t>(n) * static_cast<size_t>(k) *
+                     static_cast<size_t>(batched_size));
 
   IndexType lda = t_a[0] == 'n' ? m : k;
   IndexType ldb = t_b[0] == 'n' ? k : n;
   IndexType ldc = m;
-
   ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   ScalarT beta = benchmark<>::random_scalar<ScalarT>();
 
-  std::vector<ScalarT> a = benchmark<>::random_data<ScalarT>(m * k);
-  std::vector<ScalarT> b = benchmark<>::random_data<ScalarT>(k * n);
-  std::vector<ScalarT> c = benchmark<>::const_data<ScalarT>(m * n, 0);
+  std::vector<ScalarT> a =
+      benchmark<>::random_data<ScalarT>(m * k * batched_size);
+  std::vector<ScalarT> b =
+      benchmark<>::random_data<ScalarT>(k * n * batched_size);
+  std::vector<ScalarT> c =
+      benchmark<>::const_data<ScalarT>(m * n * batched_size, 0);
 
-  auto a_gpu = ex.get_policy_handler().template allocate<ScalarT>(m * k);
-  auto b_gpu = ex.get_policy_handler().template allocate<ScalarT>(k * n);
-  auto c_gpu = ex.get_policy_handler().template allocate<ScalarT>(m * n);
+  auto a_gpu =
+      ex.get_policy_handler().template allocate<ScalarT>(m * k * batched_size);
+  auto b_gpu =
+      ex.get_policy_handler().template allocate<ScalarT>(k * n * batched_size);
+  auto c_gpu =
+      ex.get_policy_handler().template allocate<ScalarT>(m * n * batched_size);
 
-  ex.get_policy_handler().copy_to_device(a.data(), a_gpu, m * k);
-  ex.get_policy_handler().copy_to_device(b.data(), b_gpu, k * n);
-  ex.get_policy_handler().copy_to_device(c.data(), c_gpu, m * n);
+  ex.get_policy_handler().copy_to_device(a.data(), a_gpu, m * k * batched_size);
+  ex.get_policy_handler().copy_to_device(b.data(), b_gpu, k * n * batched_size);
+  ex.get_policy_handler().copy_to_device(c.data(), c_gpu, m * n * batched_size);
 
   benchmark<>::datapoint_t flops = benchmark<>::measure(
       reps, n_fl_ops, [&]() -> std::vector<cl::sycl::event> {
-        auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                           ldb, beta, c_gpu, ldc);
+        auto event = _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda,
+                                   b_gpu, ldb, beta, c_gpu, ldc, batched_size);
         ex.get_policy_handler().wait(event);
         return event;
       });
 
-  auto event = ex.get_policy_handler().copy_to_host(c_gpu, c.data(), m * n);
+  auto event = ex.get_policy_handler().copy_to_host(c_gpu, c.data(),
+                                                    m * n * batched_size);
 
   ex.get_policy_handler().wait(event);
 
