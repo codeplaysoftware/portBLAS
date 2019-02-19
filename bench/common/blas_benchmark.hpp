@@ -147,7 +147,7 @@ inline cl_ulong time_event(Event e) {
  * @brief Times n events, and returns the aggregate time.
  */
 template <typename EventT>
-inline cl_ulong time_events(std::vector<EventT> es) {
+inline cl_ulong time_event(std::vector<EventT> es) {
   cl_ulong total_time = 0;
   for (auto e : es) {
     total_time += time_event(e);
@@ -304,7 +304,7 @@ struct benchmark {
     auto overall_time = end - start;
 
     // Cast from a clulong to a double based time interval
-    TimeT event_time = static_cast<TimeT>(time_events(event));
+    TimeT event_time = static_cast<TimeT>(time_event(event));
 
     return std::make_tuple(overall_time, event_time);
   }
