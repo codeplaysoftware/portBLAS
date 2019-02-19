@@ -23,15 +23,15 @@
  *
  **************************************************************************/
 #ifdef RCAR
-#include "interface/backend/rcar.hpp"
+#include "interface/blas3/backend/rcar.hpp"
 #elif INTEL_GPU
-#include "interface/backend/intel_gpu.hpp"
+#include "interface/blas3/backend/intel_gpu.hpp"
 #elif PowerVR
-#include "interface/backend/power_vr.hpp"
+#include "interface/blas3/backend/power_vr.hpp"
 #elif ARM_GPU
-#include "interface/backend/amd_gpu.hpp"
+#include "interface/blas3/backend/amd_gpu.hpp"
 #elif AMD_GPU
-#include "interface/backend/arm_gpu.hpp"
+#include "interface/blas3/backend/arm_gpu.hpp"
 #else
-#include "interface/backend/default_cpu.hpp"
+#include "interface/blas3/backend/default_cpu.hpp"
 #endif

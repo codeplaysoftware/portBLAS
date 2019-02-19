@@ -65,20 +65,20 @@ struct BLAS_SYCL_Policy {
     SYCL_POWERVR_GPU,
     SYCL_RCAR_HOST_CPU
   };
-  static inline const bool has_local_memory(cl::sycl::queue &q_) {
+  static inline bool has_local_memory(cl::sycl::queue &q_) {
     return (q_.get_device()
                 .template get_info<cl::sycl::info::device::local_mem_type>() ==
             cl::sycl::info::local_mem_type::local);
   }
   // Force the systme not to set this to bigger than 256. As it can be
-  static inline const size_t get_work_group_size(cl::sycl::queue &q_) {
+  static inline size_t get_work_group_size(cl::sycl::queue &q_) {
     return std::min(
         size_t(256),
         q_.get_device()
             .template get_info<cl::sycl::info::device::max_work_group_size>());
   }
 
-  static const device_type find_chosen_device_type(cl::sycl::queue &q_) {
+  static device_type find_chosen_device_type(cl::sycl::queue &q_) {
     auto dev = q_.get_device();
     auto platform = dev.get_platform();
     auto plat_name =
