@@ -44,7 +44,7 @@ void BM_Gemm(benchmark::State& state) {
   state.counters["k"] = k;
   state.counters["n"] = n;
 
-  SYCL_EXECUTOR_TYPE ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
   // Scalars

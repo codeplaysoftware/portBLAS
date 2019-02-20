@@ -32,7 +32,7 @@ void BM_Axpy(benchmark::State& state) {
   const IndexType size = static_cast<IndexType>(state.range(0));
   state.counters["size"] = size;
 
-  SYCL_EXECUTOR_TYPE ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
   std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);

@@ -12,8 +12,8 @@
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
 typedef blas::Executor<blas::Policy_Handler<blas::BLAS_SYCL_Policy>>
-    SYCL_EXECUTOR_TYPE;
-typedef std::shared_ptr<SYCL_EXECUTOR_TYPE> ExecutorPtr;
+    SyclExecutorType;
+typedef std::shared_ptr<SyclExecutorType> ExecutorPtr;
 ExecutorPtr getExecutor();
 using IndexType = int;
 
