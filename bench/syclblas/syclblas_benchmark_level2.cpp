@@ -25,7 +25,7 @@
 
 #include "../common/blas_benchmark.hpp"
 
-#include <interface/blas2_interface.hpp>
+#include "sycl_blas.h"
 
 using namespace blas;
 
@@ -39,7 +39,7 @@ BENCHMARK_NAME_FORMAT(syclblas_level_2) {
 
 BENCHMARK(gemv, syclblas_level_2) {
   using ScalarT = ElemT;
-  using IndexType = unsigned int;
+  using IndexType = int;
 
   const char* t_str = std::get<0>(params);
   const IndexType m = std::get<1>(params);
@@ -52,8 +52,8 @@ BENCHMARK(gemv, syclblas_level_2) {
       static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
   IndexType lda = m;
-  long incX = 1;
-  long incY = 1;
+  IndexType incX = 1;
+  IndexType incY = 1;
 
   ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
   ScalarT beta = benchmark<>::random_scalar<ScalarT>();
@@ -66,28 +66,29 @@ BENCHMARK(gemv, syclblas_level_2) {
   std::vector<ScalarT> c_v_gpu_result =
       benchmark<>::const_data<ScalarT>(rlen, 0);
 
-  auto m_a_gpu = ex.template allocate<ScalarT>(m * n);
-  auto v_b_gpu = ex.template allocate<ScalarT>(vlen);
-  auto v_c_gpu = ex.template allocate<ScalarT>(rlen);
-  ex.copy_to_device(a_m.data(), m_a_gpu, m * n);
-  ex.copy_to_device(b_v.data(), v_b_gpu, vlen);
-  ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
+  auto m_a_gpu = ex.get_policy_handler().template allocate<ScalarT>(m * n);
+  auto v_b_gpu = ex.get_policy_handler().template allocate<ScalarT>(vlen);
+  auto v_c_gpu = ex.get_policy_handler().template allocate<ScalarT>(rlen);
+  ex.get_policy_handler().copy_to_device(a_m.data(), m_a_gpu, m * n);
+  ex.get_policy_handler().copy_to_device(b_v.data(), v_b_gpu, vlen);
+  ex.get_policy_handler().copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
 
-  benchmark<>::datapoint_t flops =
-      benchmark<>::measure(reps, n_fl_ops, [&]() -> cl::sycl::event {
+  benchmark<>::datapoint_t flops = benchmark<>::measure(
+      reps, n_fl_ops, [&]() -> std::vector<cl::sycl::event> {
         auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
                            beta, v_c_gpu, incY);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
-  auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), rlen);
+  auto event = ex.get_policy_handler().copy_to_host(
+      v_c_gpu, c_v_gpu_result.data(), rlen);
 
-  ex.wait(event);
+  ex.get_policy_handler().wait(event);
 
-  ex.template deallocate<ScalarT>(m_a_gpu);
-  ex.template deallocate<ScalarT>(v_b_gpu);
-  ex.template deallocate<ScalarT>(v_c_gpu);
+  ex.get_policy_handler().template deallocate<ScalarT>(m_a_gpu);
+  ex.get_policy_handler().template deallocate<ScalarT>(v_b_gpu);
+  ex.get_policy_handler().template deallocate<ScalarT>(v_c_gpu);
 
   return flops;
 }

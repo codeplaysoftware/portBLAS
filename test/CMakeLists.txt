@@ -10,7 +10,7 @@ set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 # The following operations are derived from the official advice on building googletest as a subproject,
 # form the following documentation: https://github.com/google/googletest/blob/master/googletest/README.md
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/templates/CMakeLists.txt.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/templates/GTest.txt.in
   ${CMAKE_CURRENT_BINARY_DIR}/googletest-download/CMakeLists.txt
 )
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
