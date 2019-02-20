@@ -400,10 +400,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
     const IndexType wg_col = tile_id_col * block_cols;
 
     /* Exiting from any threads outside of the m and n boundary */
-    if ((local_item_id_row + wg_row >= m) ||
-        (local_item_id_col + wg_col >= n)) {
-      return;
-    }
+    const bool out_of_range = ((local_item_id_row + wg_row >= m) ||
+                               (local_item_id_col + wg_col >= n));
     /*
      * The ma and na are used to adjust the start position of each work-item for
      * A, B and C matrices.
@@ -454,7 +452,7 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       compute_gemm_no_shared_pannel<false>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
           dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
-          boundary_check_n, boundary_check_c, reg_a, reg_b
+          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range
 #ifdef ARM_GPU
           ,
           id
@@ -464,7 +462,7 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       compute_gemm_no_shared_pannel<true>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
           dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
-          boundary_check_n, boundary_check_c, reg_a, reg_b
+          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range
 #ifdef ARM_GPU
           ,
           id
@@ -483,7 +481,7 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       const check_boundary_m_t &boundary_check_m,
       const check_boundary_n_t &boundary_check_n,
       const check_boundary_c_t &boundary_check_c, T (&reg_a)[item_rows],
-      T (&reg_b)[item_cols]
+      T (&reg_b)[item_cols], const bool out_of_range
 #ifdef ARM_GPU
       ,
       cl::sycl::nd_item<1> id
@@ -502,7 +500,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          * Loading a corresponding block of matrix A into reg_a
          */
         load<item_rows, wg_rows, need_check_boundary>(
-            A, reg_a, A_ptr_index, dim_m_a_start, boundary_check_m);
+            A, reg_a, A_ptr_index, dim_m_a_start, boundary_check_m,
+            out_of_range);
 #ifdef ARM_GPU
         id.barrier(cl::sycl::access::fence_space::local_space);
 #endif
@@ -510,7 +509,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          * Loading a corresponding block of matrix B into reg_b
          */
         load<item_cols, wg_cols, need_check_boundary>(
-            B, reg_b, B_ptr_index, dim_n_b_start, boundary_check_n);
+            B, reg_b, B_ptr_index, dim_n_b_start, boundary_check_n,
+            out_of_range);
 
         /*
          * Computing a the partial GEMM for the loaded block of reg_a andd
@@ -528,7 +528,7 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
        *  Storing the reg_res into C matrix
        */
       store<need_check_boundary>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
-                                 dim_n_b_start, boundary_check_c);
+                                 dim_n_b_start, boundary_check_c, out_of_range);
 
       orig_A += a_size;
       orig_B += b_size;
@@ -570,9 +570,13 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 
   template <IndexType item_size, IndexType next_element, bool check_block,
             typename PointerType, typename check_boundary>
-  static sycl_blas_inline void load(
-      PointerType ptr, T (&reg)[item_size], const IndexType &ld,
-      IndexType index, const check_boundary &chk_boundary) noexcept {
+  static sycl_blas_inline void load(PointerType ptr, T (&reg)[item_size],
+                                    const IndexType &ld, IndexType index,
+                                    const check_boundary &chk_boundary,
+                                    const bool out_of_range) noexcept {
+    if (out_of_range) {
+      return;
+    }
 #pragma unroll
     for (int i = 0; i < item_size; i++) {
       reg[i] = do_check<check_block>(chk_boundary(index)) ? ptr[0] : T(0);
@@ -619,8 +623,11 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   static sycl_blas_inline void store(
       PointerType C, T (&reg_res)[item_rows][item_cols], const T &alpha,
       const T &beta, const IndexType &ldc, const IndexType &dim_m_c_start,
-      const IndexType &dim_n_c_start,
-      const check_boundary &chk_boundary) noexcept {
+      const IndexType &dim_n_c_start, const check_boundary &chk_boundary,
+      const bool out_of_range) noexcept {
+    if (out_of_range) {
+      return;
+    }
 #pragma unroll
     for (int j = 0; j < item_cols; j++) {
 #pragma unroll
@@ -855,9 +862,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     const IndexType tile_col = (tile_id / tiles_per_col) * tl_cols;
     const IndexType wg_row = (tile_row + tile_local_id % tl_rows) * block_rows;
     const IndexType wg_col = (tile_col + tile_local_id / tl_rows) * block_rows;
-    if (wg_row >= m || wg_col >= n) {
-      return;
-    }
+    const bool out_of_range = (wg_row >= m || wg_col >= n);
     const IndexType item_row = item_id % wg_rows;
     const IndexType item_col = (item_id / wg_rows) * item_cols;
 
@@ -900,11 +905,11 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     if (internal) {
       compute_panel_gemm<double_buffer, false, false>(
           id, item_id, m, mc, n, nc, k, alpha, orig_A, lda, orig_B, ldb, beta,
-          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b);
+          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range);
     } else {
       compute_panel_gemm<double_buffer, true, true>(
           id, item_id, m, mc, n, nc, k, alpha, orig_A, lda, orig_B, ldb, beta,
-          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b);
+          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range);
     }
   }
 
@@ -940,7 +945,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       IndexType lda, InputPointerType orig_B, IndexType ldb, T beta,
       OutputPointerType orig_C, IndexType ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
-      T (&reg_a)[item_rows], T &reg_b) noexcept {
+      T (&reg_a)[item_rows], T &reg_b, const bool out_of_range) noexcept {
     IndexType ofs = 1;
     const IndexType a_size = _A.getSizeR() * _A.getSizeC();
     const IndexType b_size = _B.getSizeC() * _B.getSizeR();
@@ -952,7 +957,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       T reg_res[item_rows][item_cols] = {};
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
-            item_id, m, n, k, A, lda, B, ldb, s1, s3);
+            item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm(s2, s4, reg_a, reg_b, reg_res);
         A = A + cl_elems * (trans_a ? 1 : lda);
@@ -964,7 +969,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
 
       if (k > 0) {
         extract_input_blocks<check_m_limit, check_n_limit, true>(
-            item_id, m, n, k, A, lda, B, ldb, s1, s3);
+            item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm(s2, s4, reg_a, reg_b, reg_res);
       }
@@ -975,7 +980,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
         for (IndexType j = 0; j < item_rows; ++j) {
           const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                                 do_check<check_n_limit>(i < nc);
-          if (in_range) {
+          if (in_range && !out_of_range) {
             // when C is uninitialized the element of the C can be NaN, and
             // Nan*0 will be NaN
             if (is_beta_zero) {
@@ -1005,7 +1010,11 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
   static sycl_blas_inline void extract_input_blocks(
       IndexType item_id, IndexType m, IndexType n, IndexType k,
       InputPointerType A, IndexType lda, InputPointerType B, IndexType ldb,
-      ScratchPointerType sB, ScratchPointerType sA) noexcept {
+      ScratchPointerType sB, ScratchPointerType sA,
+      const bool out_of_range) noexcept {
+    if (out_of_range) {
+      return;
+    }
     extract_block<check_m_limit, check_k_limit, trans_a, block_rows, cl_elems,
                   ldsa>(
         item_id, A, lda, sA, [&](IndexType ir, IndexType cr) { return cr < m; },
