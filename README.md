@@ -99,7 +99,7 @@ languages that enable users to easily fuse GPU kernels.
 SYCL-BLAS can be used 
 - either as a header-only framework by including sycl_blas.hpp in 
 an application and passing src as pass to the application include directory.
--or as a library by including sycl_blas.h in an application. 
+- or as a library by including sycl_blas.h in an application. 
 
 All the relevant files can be found in 
 the include directory. 
