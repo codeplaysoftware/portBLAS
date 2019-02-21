@@ -28,6 +28,7 @@ Table of Contents
       * [Interface](#interface)
     * [Requirements](#requirements)
     * [Setup](#setup)
+      * [Cross-Compile](#cross-compile)
     * [Tests](#tests)
     * [Contributing to the project](#contributing-to-the-project)
 
@@ -176,7 +177,7 @@ The build system is CMake version 3.2.2 or higher.
 We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
 build the project.
 
-A BLAS library, such as OpenBLAS, is also required. This can be installed on
+A BLAS library, such as OpenBLAS, is also required to verify the test results. This can be installed on
 Ubuntu from the `libopenblas-base` package.
 
 Setup
@@ -195,7 +196,7 @@ $ ninja
 ```
 CMake options:
 
-- To build a SYCL-BLAS Library only with out the testing and benchmarking pass 
+- To build a SYCL-BLAS Library only without the testing and benchmarking set 
 ```
 -DBLAS_ENABLE_TESTING=OFF -DBLAS_ENABLE_BENCHMARK=OFF
 ```
@@ -229,8 +230,7 @@ ninja install
 ```
 The -DCMAKE_INSTALL_PREFIX can be used to set the install path.
 
-Cross-Compiling SYCL-BLAS
---------------------------
+### Cross-Compile
 
 - To cross-compile SYCL-BLAS first the following Environment variable must be set
 
