@@ -25,12 +25,12 @@
 # **************************************************************************/
 include(FindBLAS)
 
-if (DEFINED OPENBLAS_ROOT)
-  # If OPENBLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
+if (DEFINED SYSTEM_BLAS_ROOT)
+  # If SYSTEM_BLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
   # libraries based on the explicit path given 
   message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${OPENBLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${OPENBLAS_ROOT}/include/")
+  set(BLAS_LIBRARIES "${SYSTEM_BLAS_ROOT}/lib/libopenblas.so")
+  set(BLAS_INCLUDE_DIRS "${SYSTEM_BLAS_ROOT}/include/")
 else()
   message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
   set(BLA_STATIC on)
