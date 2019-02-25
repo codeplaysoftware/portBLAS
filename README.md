@@ -178,7 +178,7 @@ We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
 build the project.
 
 A BLAS library, such as OpenBLAS, is also required to verify the test results. This can be installed on
-Ubuntu from the `libopenblas-base` package.
+Ubuntu from the `libopenblas-dev` package.
 
 Setup
 -----------------
