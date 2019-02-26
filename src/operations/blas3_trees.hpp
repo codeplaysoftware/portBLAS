@@ -950,7 +950,6 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     const IndexType a_size = _A.getSizeR() * _A.getSizeC();
     const IndexType b_size = _B.getSizeC() * _B.getSizeR();
     const IndexType c_size = _C.getSizeC() * _C.getSizeR();
-    const IndexType orig_k = k;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -976,16 +975,15 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
         sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
       }
+
       // store the output
       store_output_block<check_m_limit, check_n_limit>(
           mc, nc, alpha, beta, C, ldc, reg_res, out_of_range);
-
       orig_A += a_size;
       orig_B += b_size;
       orig_C += c_size;
-      k = orig_k;
+      k = _A.getSizeC();
       m_batch_size--;
-
     } while (m_batch_size > 0);
   }
 
@@ -1006,7 +1004,6 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
    * @param reg_res  2D register array containing the partial resull of C per
    * thread
    */
-
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
   static sycl_blas_inline void store_output_block(
       IndexType mc, IndexType nc, T alpha, T beta, OutputPointerType C,
@@ -1034,6 +1031,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       C = C + ldc;
     }
   }
+
   /*!
    * @brief Extract a block of A, and a conformant block of B.
    *
@@ -1052,13 +1050,12 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     extract_block<check_m_limit, check_k_limit, trans_a, block_rows, cl_elems,
                   ldsa>(
         item_id, A, lda, sA, [&](IndexType ir, IndexType cr) { return cr < m; },
-        [&](IndexType ic, IndexType cc) { return cc < IndexType(k - ic); });
+        [&](IndexType ic, IndexType cc) { return cc < k - ic; });
     extract_block<check_k_limit, check_n_limit, trans_b, cl_elems, block_cols,
-                  ldsb>(
-        item_id, B, ldb, sB,
-        [&](IndexType ir, IndexType cr) { return cr < IndexType(k - ir); },
-        [&](IndexType ic, IndexType cc) { return cc < n; });
-  }  // namespace blas
+                  ldsb>(item_id, B, ldb, sB,
+                        [&](IndexType ir, IndexType cr) { return cr < k - ir; },
+                        [&](IndexType ic, IndexType cc) { return cc < n; });
+  }
 
   /*!
    * @brief Extract a block of a matrix from global to shared memory, and
