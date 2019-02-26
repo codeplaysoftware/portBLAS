@@ -950,6 +950,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     const IndexType a_size = _A.getSizeR() * _A.getSizeC();
     const IndexType b_size = _B.getSizeC() * _B.getSizeR();
     const IndexType c_size = _C.getSizeC() * _C.getSizeR();
+    const IndexType orig_k = k;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -972,34 +973,67 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm(s2, s4, reg_a, reg_b, reg_res);
+        sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
+                  ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
       }
+      // store the output
+      store_output_block<check_m_limit, check_n_limit>(
+          mc, nc, alpha, beta, C, ldc, reg_res, out_of_range);
 
-#pragma unroll
-      for (IndexType i = 0; i < item_cols; ++i) {
-#pragma unroll
-        for (IndexType j = 0; j < item_rows; ++j) {
-          const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
-                                do_check<check_n_limit>(i < nc);
-          if (in_range && !out_of_range) {
-            // when C is uninitialized the element of the C can be NaN, and
-            // Nan*0 will be NaN
-            if (is_beta_zero) {
-              C[j * wg_rows] = alpha * reg_res[j][i];
-            } else {
-              C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
-            }
-          }
-        }
-        C = C + ldc;
-      }
       orig_A += a_size;
       orig_B += b_size;
       orig_C += c_size;
-      k = _A.getSizeC();
+      k = orig_k;
       m_batch_size--;
+
     } while (m_batch_size > 0);
   }
 
+  /*!
+   * @brief Store the computed gemm result to the C matrix
+   *
+   * @tparam check_m_limit  iff true, check if row indexes of C are
+   *                        out-of-bound
+   * @tparam check_n_limit  iff true, check if no indexes of C are
+   *                        out-of-bound
+   * @tparam OutputPointerType the type of C
+   * @param mc the computed boundary limit of m in matrix C
+   * @param nc the computed boundary limit of n in matrix C
+   *  @param alpha  scaling factor of AB
+   * @param beta  scaling factor of C
+   * @param C  pointer to the first element of C
+   * @param ldc  leading dimension of C
+   * @param reg_res  2D register array containing the partial resull of C per
+   * thread
+   */
+
+  template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
+  static sycl_blas_inline void store_output_block(
+      IndexType mc, IndexType nc, T alpha, T beta, OutputPointerType C,
+      IndexType ldc, T (&reg_res)[item_rows][item_cols],
+      const bool out_of_range) noexcept {
+    if (out_of_range) {
+      return;
+    }
+#pragma unroll
+    for (IndexType i = 0; i < item_cols; ++i) {
+#pragma unroll
+      for (IndexType j = 0; j < item_rows; ++j) {
+        const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
+                              do_check<check_n_limit>(i < nc);
+        if (in_range) {
+          // when C is uninitialized the element of the C can be NaN, and
+          // Nan*0 will be NaN
+          if (is_beta_zero) {
+            C[j * wg_rows] = alpha * reg_res[j][i];
+          } else {
+            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
+          }
+        }
+      }
+      C = C + ldc;
+    }
+  }
   /*!
    * @brief Extract a block of A, and a conformant block of B.
    *
@@ -1018,12 +1052,13 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     extract_block<check_m_limit, check_k_limit, trans_a, block_rows, cl_elems,
                   ldsa>(
         item_id, A, lda, sA, [&](IndexType ir, IndexType cr) { return cr < m; },
-        [&](IndexType ic, IndexType cc) { return cc < k - ic; });
+        [&](IndexType ic, IndexType cc) { return cc < IndexType(k - ic); });
     extract_block<check_k_limit, check_n_limit, trans_b, cl_elems, block_cols,
-                  ldsb>(item_id, B, ldb, sB,
-                        [&](IndexType ir, IndexType cr) { return cr < k - ir; },
-                        [&](IndexType ic, IndexType cc) { return cc < n; });
-  }
+                  ldsb>(
+        item_id, B, ldb, sB,
+        [&](IndexType ir, IndexType cr) { return cr < IndexType(k - ir); },
+        [&](IndexType ic, IndexType cc) { return cc < n; });
+  }  // namespace blas
 
   /*!
    * @brief Extract a block of a matrix from global to shared memory, and
