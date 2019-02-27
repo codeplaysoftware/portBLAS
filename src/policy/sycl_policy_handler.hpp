@@ -37,9 +37,10 @@ inline Policy_Handler<BLAS_SYCL_Policy>::Policy_Handler(cl::sycl::queue q)
             p->clear();
             delete p;
           })),
-      workgroupsize(BLAS_SYCL_Policy::get_work_group_size(q)),
-      selected_device_type(BLAS_SYCL_Policy::find_chosen_device_type(q)),
-      local_memory_support(BLAS_SYCL_Policy::has_local_memory(q)) {}
+      workGroupSize_(BLAS_SYCL_Policy::get_work_group_size(q)),
+      selectedDeviceType_(BLAS_SYCL_Policy::find_chosen_device_type(q)),
+      localMemorySupport_(BLAS_SYCL_Policy::has_local_memory(q)),
+      computeUnits_(BLAS_SYCL_Policy::get_num_compute_units(q)) {}
 
 template <typename T>
 inline T *Policy_Handler<BLAS_SYCL_Policy>::allocate(

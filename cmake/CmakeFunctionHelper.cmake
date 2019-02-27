@@ -64,7 +64,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "PowerVR")  # need investigation
-  set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local_memory")
+  set(gemm_configuration_0 128 "false" "false" "false" 16 4 8 16 8 1 1 "local_memory")
   list(APPEND gemm_configuration_lists gemm_configuration_0)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 256 "true" "false" "false" 64 1 1 16 16 1 1 "local_memory")
@@ -76,6 +76,7 @@ else() # default cpu backend
     set(gemm_type "naive")
   endif()
   set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "${gemm_type}")
+  set(gemm_configuration_lists "")
   list(APPEND gemm_configuration_lists gemm_configuration_0)
 endif()
 

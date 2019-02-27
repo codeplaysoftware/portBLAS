@@ -172,7 +172,11 @@ class Gemm {
   IndexType m_batch_size;
   Gemm(RHS0 A, RHS0 B, RHS1 C, T alpha, T beta, IndexType batch_size);
   static std::string get_type_string() noexcept;
-  static cl::sycl::nd_range<1> get_nd_range(IndexType m, IndexType n) noexcept;
+  static IndexType get_workgroup_cluster(IndexType m, IndexType n) noexcept;
+  static IndexType get_num_workgroup_cluster(IndexType m, IndexType n,
+                                             IndexType compute_units) noexcept;
+  static cl::sycl::nd_range<1> get_nd_range(IndexType m, IndexType n,
+                                            IndexType compute_units) noexcept;
   IndexType getSize() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   void eval(cl::sycl::nd_item<1> id) noexcept;

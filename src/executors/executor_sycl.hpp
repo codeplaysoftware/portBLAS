@@ -228,15 +228,16 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
         gemm_tree) {
   auto rng =
       Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-           TransB, T, is_beta_zero, Gemm_type>::get_nd_range(gemm_tree.m,
-                                                             gemm_tree.n);
+           TransB, T, is_beta_zero,
+           Gemm_type>::get_nd_range(gemm_tree.m, gemm_tree.n,
+                                    policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory),
              using_shared_mem::enabled, using_shared_mem::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0],
       Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-           TransB, T, is_beta_zero, Gemm_type>::local_memory)};
+           TransB, T, is_beta_zero, Gemm_type>::local_memory_size)};
 }
 
 }  // namespace blas

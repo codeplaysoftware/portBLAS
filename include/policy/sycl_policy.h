@@ -70,12 +70,18 @@ struct BLAS_SYCL_Policy {
                 .template get_info<cl::sycl::info::device::local_mem_type>() ==
             cl::sycl::info::local_mem_type::local);
   }
-  // Force the systme not to set this to bigger than 256. As it can be
+  // Force the system not to set this to bigger than 256. Using work group size
+  // bigger than 256 may cause out of resource error on different platforms.
   static inline size_t get_work_group_size(cl::sycl::queue &q_) {
     return std::min(
         size_t(256),
         q_.get_device()
             .template get_info<cl::sycl::info::device::max_work_group_size>());
+  }
+
+  static inline size_t get_num_compute_units(cl::sycl::queue &q_) {
+    return q_.get_device()
+        .template get_info<cl::sycl::info::device::max_compute_units>();
   }
 
   static device_type find_chosen_device_type(cl::sycl::queue &q_) {

@@ -153,14 +153,61 @@ Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA, TransB, T,
   return std::string("ReferenceGemmFactory<") + std::to_string(wg_size) + ", " +
          type_string<value_type>::get_value() + ">";
 }
+/*!
+ *@brief gt_workgroup_cluster. This function is used to find the optimum
+ *number of work_group required to execute each GEMM.
+ *
+ */
+template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
+          int ClSize, typename tile_type, bool TransA, bool TransB, typename T,
+          bool is_beta_zero, int Gemm_type>
+sycl_blas_inline
+    typename Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+                  TransA, TransB, T, is_beta_zero, Gemm_type>::IndexType
+    Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, T, is_beta_zero,
+         Gemm_type>::get_workgroup_cluster(IndexType m, IndexType n) noexcept {
+  return ((m * n - 1) / wg_size + 1);
+}
+/*!
+ *@brief get_num_workgroup_cluster. This function is used to extend the number
+ *of work_group cluster, in order to make sure that atleast 4
+ *gemm operations is available per work group. The number 4
+ *is used based on empirical research.
+ *
+ */
+template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
+          int ClSize, typename tile_type, bool TransA, bool TransB, typename T,
+          bool is_beta_zero, int Gemm_type>
+sycl_blas_inline typename Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize,
+                               tile_type, TransA, TransB, T, is_beta_zero,
+                               Gemm_type>::IndexType
+Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA, TransB, T,
+     is_beta_zero,
+     Gemm_type>::get_num_workgroup_cluster(IndexType m, IndexType n,
+                                           IndexType compute_units) noexcept {
+  constexpr IndexType num_gemm_per_compute_units = 4;
+  return (
+      (num_gemm_per_compute_units * compute_units - 1) /
+          Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+               TransB, T, is_beta_zero, Gemm_type>::get_workgroup_cluster(m,
+                                                                          n) +
+      1);
+}
 
 template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
           int ClSize, typename tile_type, bool TransA, bool TransB, typename T,
           bool is_beta_zero, int Gemm_type>
 sycl_blas_inline cl::sycl::nd_range<1>
 Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA, TransB, T,
-     is_beta_zero, Gemm_type>::get_nd_range(IndexType m, IndexType n) noexcept {
-  const cl::sycl::range<1> nwg((m * n - 1) / wg_size + 1);
+     is_beta_zero, Gemm_type>::get_nd_range(IndexType m, IndexType n,
+                                            IndexType compute_units) noexcept {
+  const cl::sycl::range<1> nwg(
+      Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+           TransB, T, is_beta_zero, Gemm_type>::get_workgroup_cluster(m, n) *
+      Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+           TransB, T, is_beta_zero,
+           Gemm_type>::get_num_workgroup_cluster(m, n, compute_units));
   const cl::sycl::range<1> wgs(wg_size);
   return cl::sycl::nd_range<1>(nwg * wgs, wgs);
 }
@@ -190,13 +237,28 @@ template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
 sycl_blas_inline void
 Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA, TransB, T,
      is_beta_zero, Gemm_type>::eval(cl::sycl::nd_item<1> id) noexcept {
-  auto orig_A = _A.getData().get_pointer().get() + _A.getDisp();
-  auto orig_B = _B.getData().get_pointer().get() + _B.getDisp();
-  auto orig_C = _C.getData().get_pointer().get() + _C.getDisp();
+  const IndexType wg_batch_id = id.get_group(0) / get_workgroup_cluster(m, n);
+  // This will disable all workgroups that dont have any batch to work on
+  if (wg_batch_id >= m_batch_size) {
+    return;
+  }
+  const IndexType batch_stride =
+      id.get_group_range(0) / get_workgroup_cluster(m, n);
+
   const IndexType a_size = m * k;
   const IndexType b_size = n * k;
   const IndexType c_size = m * n;
-  IndexType item_id = id.get_global_id(0);
+
+  auto orig_A =
+      _A.getData().get_pointer().get() + _A.getDisp() + (wg_batch_id * a_size);
+  auto orig_B =
+      _B.getData().get_pointer().get() + _B.getDisp() + (wg_batch_id * b_size);
+  auto orig_C =
+      _C.getData().get_pointer().get() + _C.getDisp() + (wg_batch_id * c_size);
+
+  IndexType item_id = (id.get_group(0) % get_workgroup_cluster(m, n)) *
+                          (id.get_local_range(0)) +
+                      id.get_local_id(0);
   if (item_id >= m * n) {
     return;
   }
@@ -226,13 +288,14 @@ Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA, TransB, T,
     } else {
       C[0] = alpha * reg_res + beta * C[0];
     }
-    orig_A += a_size;
-    orig_B += b_size;
-    orig_C += c_size;
-    k = _A.getSizeC();
-    m_batch_size--;
 
-  } while (m_batch_size > 0);
+    orig_A += (a_size * batch_stride);
+    orig_B += (b_size * batch_stride);
+    orig_C += (c_size * batch_stride);
+    k = _A.getSizeC();
+    // m_batch_size must be signed as the negative value has meaning here.
+    m_batch_size -= batch_stride;
+  } while (m_batch_size > wg_batch_id);
 }
 
 template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
@@ -295,7 +358,7 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   using value_type = T;
   using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
   static constexpr int type = static_cast<int>(Gemm_t::no_local_memory);
-  static constexpr int local_memory = 0;
+  static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr IndexType item_rows = tile_type::item_rows;
   /*! @brief The number of cols processed by each work item */
@@ -334,7 +397,6 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   IndexType ldb;
   IndexType ldc;
   IndexType m_batch_size;
-
   sycl_blas_inline Gemm(RHS0 A, RHS0 B, RHS1 C, T alpha, T beta,
                         IndexType batch_size)
       : _A(A),
@@ -358,11 +420,36 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
            tile_type::get_type_string() + ", " +
            type_string<value_type>::get_value() + ">";
   }
+  /*!
+   *@brief gt_workgroup_cluster. This function is used to find the optimum
+   *number of work_group required to execute each GEMM.
+   *
+   */
+  static sycl_blas_inline IndexType
+  get_workgroup_cluster(IndexType m, IndexType n) noexcept {
+    return (((m - 1) / (item_rows * wg_rows) + 1) *
+            ((n - 1) / (item_cols * wg_cols) + 1));
+  }
+  /*!
+   *@brief get_num_workgroup_cluster. This function is used to extend the number
+   *of work_group cluster, in order to make sure that atleast 4 gemm operations
+   *is available per work group. The number 4 is used based on empirical
+   *research.
+   *
+   */
+  static sycl_blas_inline IndexType get_num_workgroup_cluster(
+      IndexType m, IndexType n, IndexType compute_units) noexcept {
+    constexpr IndexType num_gemm_per_compute_units = 4;
+    return ((num_gemm_per_compute_units * compute_units - 1) /
+                get_workgroup_cluster(m, n) +
+            1);
+  }
 
   static sycl_blas_inline cl::sycl::nd_range<1> get_nd_range(
-      IndexType m, IndexType n) noexcept {
-    const cl::sycl::range<1> nwg(((m - 1) / (item_rows * wg_rows) + 1) *
-                                 ((n - 1) / (item_cols * wg_cols) + 1));
+      IndexType m, IndexType n, IndexType compute_units) noexcept {
+    const cl::sycl::range<1> nwg(
+        get_workgroup_cluster(m, n) *
+        get_num_workgroup_cluster(m, n, compute_units));
     const cl::sycl::range<1> wgs(wg_rows * wg_cols);
 
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
@@ -375,15 +462,31 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   }
 
   sycl_blas_inline void eval(cl::sycl::nd_item<1> id) noexcept {
-    auto orig_A = _A.getData().get_pointer().get() + _A.getDisp();
-    auto orig_B = _B.getData().get_pointer().get() + _B.getDisp();
-    auto orig_C = _C.getData().get_pointer().get() + _C.getDisp();
-    const IndexType number_of_block_per_row = ((m - 1) / block_rows) + 1;
+    // The batch index that each workgroup should start working with
+    const IndexType wg_batch_id = id.get_group(0) / get_workgroup_cluster(m, n);
+    // This will disable all workgroups that dont have any batch to work on
+    if (wg_batch_id >= m_batch_size) {
+      return;
+    }
+
+    const IndexType batch_stride =
+        id.get_group_range(0) / get_workgroup_cluster(m, n);
+
     const IndexType a_size = m * k;
     const IndexType b_size = n * k;
     const IndexType c_size = m * n;
-    /* linear work group id */
-    const IndexType wg_id = id.get_group(0);
+
+    auto orig_A = _A.getData().get_pointer().get() + _A.getDisp() +
+                  (wg_batch_id * a_size);
+    auto orig_B = _B.getData().get_pointer().get() + _B.getDisp() +
+                  (wg_batch_id * b_size);
+    auto orig_C = _C.getData().get_pointer().get() + _C.getDisp() +
+                  (wg_batch_id * c_size);
+
+    const IndexType number_of_block_per_row = ((m - 1) / block_rows) + 1;
+    /* linear work group id The number of work-group required to executed each
+     * batch efficiently*/
+    const IndexType wg_id = id.get_group(0) % get_workgroup_cluster(m, n);
     /*linear work item id*/
     const IndexType item_id = id.get_local_id(0);
     /* row tile id  per work group */
@@ -452,7 +555,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       compute_gemm_no_shared_pannel<false>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
           dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
-          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range
+          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range,
+          batch_stride, wg_batch_id
 #ifdef ARM_GPU
           ,
           id
@@ -462,7 +566,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       compute_gemm_no_shared_pannel<true>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, dim_m_a_start,
           dim_n_b_start, A_ptr_index, B_ptr_index, boundary_check_m,
-          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range
+          boundary_check_n, boundary_check_c, reg_a, reg_b, out_of_range,
+          batch_stride, wg_batch_id
 #ifdef ARM_GPU
           ,
           id
@@ -481,7 +586,8 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       const check_boundary_m_t &boundary_check_m,
       const check_boundary_n_t &boundary_check_n,
       const check_boundary_c_t &boundary_check_c, T (&reg_a)[item_rows],
-      T (&reg_b)[item_cols], const bool out_of_range
+      T (&reg_b)[item_cols], const bool out_of_range,
+      const IndexType &batch_stride, const IndexType &wg_batch_id
 #ifdef ARM_GPU
       ,
       cl::sycl::nd_item<1> id
@@ -491,8 +597,6 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
-      // auto dim_m_a_start = orig_dim_m_a_start;
-      // auto dim_n_b_start = orig_dim_n_b_start;
       /* 2D register array used to store the result C*/
       value_type reg_res[item_rows][item_cols] = {};
       while (k > 0) {
@@ -530,12 +634,13 @@ class Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       store<need_check_boundary>(C, reg_res, alpha, beta, ldc, dim_m_a_start,
                                  dim_n_b_start, boundary_check_c, out_of_range);
 
-      orig_A += a_size;
-      orig_B += b_size;
-      orig_C += c_size;
+      orig_A += (a_size * batch_stride);
+      orig_B += (b_size * batch_stride);
+      orig_C += (c_size * batch_stride);
       k = _A.getSizeC();
-      m_batch_size--;
-    } while (m_batch_size > 0);
+      // m_batch_size must be signed as the negative value has meaning here.
+      m_batch_size -= batch_stride;
+    } while (m_batch_size > wg_batch_id);
   }
   /*!
    * @brief binding the placeholder accessors to the SYCL command group
@@ -743,7 +848,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
   static constexpr IndexType ldsb = cl_elems + nbc_b;
   //! @brief size (in elements) of local (local) memory required by each
   //         work group
-  static constexpr IndexType local_memory =
+  static constexpr IndexType local_memory_size =
       (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);
 
   RHS1 _A;
@@ -785,6 +890,28 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
   }
 
   /*!
+   *@brief gt_workgroup_cluster. This function is used to find the optimum
+   *number of work_group required to execute each GEMM.
+   *
+   */
+  static sycl_blas_inline IndexType
+  get_workgroup_cluster(IndexType m, IndexType n) noexcept {
+    return (((m - 1) / big_tile_rows + 1) * ((n - 1) / big_tile_cols + 1) *
+            tl_rows * tl_cols);
+  }
+  /*!
+   *@brief get_num_workgroup_cluster. This function is used to extend the number
+   *of work_group cluster, in order to make sure that atleast 4 gemm operations
+   *is available per work group. The number 4 is used based on empirical
+   *research.
+   *
+   */
+  static sycl_blas_inline IndexType get_num_workgroup_cluster(
+      IndexType m, IndexType n, IndexType compute_units) noexcept {
+    return ((4 * compute_units - 1) / get_workgroup_cluster(m, n) + 1);
+  }
+
+  /*!
    * @brief Get the nd_range value which has to be used for kernels that
    *        intend to call GemmFactory::run().
    *
@@ -797,10 +924,10 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
    * (This is done by manipulating wg_id and item_id parameters.)
    */
   static sycl_blas_inline cl::sycl::nd_range<1> get_nd_range(
-      IndexType m, IndexType n) noexcept {
-    const cl::sycl::range<1> nwg(((m - 1) / big_tile_rows + 1) *
-                                 ((n - 1) / big_tile_cols + 1) * tl_rows *
-                                 tl_cols);
+      IndexType m, IndexType n, IndexType compute_units) noexcept {
+    const cl::sycl::range<1> nwg(
+        get_workgroup_cluster(m, n) *
+        get_num_workgroup_cluster(m, n, compute_units));
     const cl::sycl::range<1> wgs(wg_size);
 #ifdef VERBOSE
     std::cout << " M: " << m << " , N " << n
@@ -847,12 +974,26 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
   template <typename shared_mem>
   sycl_blas_inline void eval(shared_mem scratch_acc,
                              cl::sycl::nd_item<1> id) noexcept {
+    // The batch index that each workgroup should start working with
+    const IndexType wg_batch_id = id.get_group(0) / get_workgroup_cluster(m, n);
+    // This will disable all workgroups that dont have any batch to work on
+    if (wg_batch_id >= m_batch_size) {
+      return;
+    }
+    const IndexType batch_stride =
+        id.get_group_range(0) / get_workgroup_cluster(m, n);
+
     auto scratch = scratch_acc.localAcc.get_pointer().get();
     using ScratchPointerType = decltype(scratch);
-    auto orig_A = _A.getData().get_pointer().get() + _A.getDisp();
-    auto orig_B = _B.getData().get_pointer().get() + _B.getDisp();
-    auto orig_C = _C.getData().get_pointer().get() + _C.getDisp();
-    const IndexType wg_id = id.get_group(0);
+    // The number of work-group required to executed each batch efficiently
+    const IndexType wg_id = id.get_group(0) % get_workgroup_cluster(m, n);
+
+    auto orig_A = _A.getData().get_pointer().get() + _A.getDisp() +
+                  (wg_batch_id * _A.getSizeR() * _A.getSizeC());
+    auto orig_B = _B.getData().get_pointer().get() + _B.getDisp() +
+                  (wg_batch_id * _B.getSizeC() * _B.getSizeR());
+    auto orig_C = _C.getData().get_pointer().get() + _C.getDisp() +
+                  (wg_batch_id * _C.getSizeC() * _C.getSizeR());
     const IndexType item_id = id.get_local_id(0);
     const IndexType tile_size = tl_rows * tl_cols;
     const IndexType tile_id = wg_id / tile_size;
@@ -865,7 +1006,6 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const IndexType item_row = item_id % wg_rows;
     const IndexType item_col = (item_id / wg_rows) * item_cols;
-
     const IndexType row = wg_row + item_row;
     const IndexType col = wg_col + item_col;
 
@@ -905,11 +1045,13 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
     if (internal) {
       compute_panel_gemm<double_buffer, false, false>(
           id, item_id, m, mc, n, nc, k, alpha, orig_A, lda, orig_B, ldb, beta,
-          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range);
+          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride,
+          wg_batch_id);
     } else {
       compute_panel_gemm<double_buffer, true, true>(
           id, item_id, m, mc, n, nc, k, alpha, orig_A, lda, orig_B, ldb, beta,
-          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range);
+          orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride,
+          wg_batch_id);
     }
   }
 
@@ -945,7 +1087,8 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       IndexType lda, InputPointerType orig_B, IndexType ldb, T beta,
       OutputPointerType orig_C, IndexType ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
-      T (&reg_a)[item_rows], T &reg_b, const bool out_of_range) noexcept {
+      T (&reg_a)[item_rows], T &reg_b, const bool out_of_range,
+      const IndexType batch_stride, const IndexType wg_batch_id) noexcept {
     IndexType ofs = 1;
     const IndexType a_size = _A.getSizeR() * _A.getSizeC();
     const IndexType b_size = _B.getSizeC() * _B.getSizeR();
@@ -979,12 +1122,13 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       // store the output
       store_output_block<check_m_limit, check_n_limit>(
           mc, nc, alpha, beta, C, ldc, reg_res, out_of_range);
-      orig_A += a_size;
-      orig_B += b_size;
-      orig_C += c_size;
+      orig_A += (a_size * batch_stride);
+      orig_B += (b_size * batch_stride);
+      orig_C += (c_size * batch_stride);
       k = _A.getSizeC();
-      m_batch_size--;
-    } while (m_batch_size > 0);
+      // m_batch_size must be signed as the negative value has meaning here.
+      m_batch_size -= batch_stride;
+    } while (m_batch_size > wg_batch_id);
   }
 
   /*!
@@ -1200,7 +1344,7 @@ class Gemm<RHS1, RHS2, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
       cl::sycl::nd_item<1> id, IndexType &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
-};
+};  // namespace blas
 
 }  // namespace blas
 
