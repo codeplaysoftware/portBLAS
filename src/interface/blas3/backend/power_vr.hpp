@@ -37,11 +37,14 @@ typename Executor::Policy::event_type _gemm(
     Executor& ex, IndexType _M, IndexType _N, IndexType _K, T _alpha,
     ContainerT0 _A, IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
     ContainerT2 _C, IndexType _ldc, IndexType batch_size) {
-  return blas::Gemm_Launcher<
-      64, false, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
-      static_cast<int>(Gemm_t::no_local_memory),
-      is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _A, _lda, _B,
-                                           _ldb, _beta, _C, _ldc, batch_size);
+  return blas::Gemm_Launcher<128, false, false, false, 16, Tile<4, 8, 16, 8>,
+                             _t_a, _t_b, static_cast<int>(Gemm_t::local_memory),
+                             is_beta_zero>::template _select_gemm(ex, _M, _N,
+                                                                  _K, _alpha,
+                                                                  _A, _lda, _B,
+                                                                  _ldb, _beta,
+                                                                  _C, _ldc,
+                                                                  batch_size);
 }
 }  // namespace backend
 }  // namespace gemm

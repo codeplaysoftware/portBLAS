@@ -136,14 +136,14 @@ class Policy_Handler<BLAS_SYCL_Policy> {
                                            T *dst, size_t);
 
   inline const Policy::device_type get_device_type() const {
-    return selected_device_type;
+    return selectedDeviceType_;
   };
-  inline bool has_local_memory() const { return local_memory_support; }
+  inline bool has_local_memory() const { return localMemorySupport_; }
   typename Policy::queue_type get_queue() const { return q_; }
 
-  // Force the system not to set this to bigger than 256. As it can be
+  inline size_t get_work_group_size() const { return workGroupSize_; }
 
-  inline size_t get_work_group_size() const { return workgroupsize; }
+  inline size_t get_num_compute_units() const { return computeUnits_; }
 
   inline void wait() { q_.wait(); }
 
@@ -162,9 +162,10 @@ class Policy_Handler<BLAS_SYCL_Policy> {
  private:
   typename Policy::queue_type q_;
   std::shared_ptr<cl::sycl::codeplay::PointerMapper> pointerMapperPtr_;
-  const size_t workgroupsize;
-  const Policy::device_type selected_device_type;
-  const bool local_memory_support;
+  const size_t workGroupSize_;
+  const Policy::device_type selectedDeviceType_;
+  const bool localMemorySupport_;
+  const size_t computeUnits_;
 };
 
 }  // namespace blas
