@@ -44,6 +44,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sd
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/sample/cmake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -Wall -Wno-long-long -pedantic")
+list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -56,7 +57,7 @@ include(CmakeFunctionHelper)
 add_subdirectory(src)
 #shared lib
 build_library(sycl_blas SHARED)
-target_include_directories(sycl_blas PUBLIC ${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+target_include_directories(sycl_blas PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
 set_target_properties(sycl_blas PROPERTIES VERSION ${PROJECT_VERSION})
 
 install(TARGETS sycl_blas 
