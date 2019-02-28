@@ -28,9 +28,9 @@
 #include "interface/blas3/backend/intel_gpu.hpp"
 #elif PowerVR
 #include "interface/blas3/backend/power_vr.hpp"
-#elif ARM_GPU
-#include "interface/blas3/backend/amd_gpu.hpp"
 #elif AMD_GPU
+#include "interface/blas3/backend/amd_gpu.hpp"
+#elif ARM_GPU
 #include "interface/blas3/backend/arm_gpu.hpp"
 #else
 #include "interface/blas3/backend/default_cpu.hpp"
