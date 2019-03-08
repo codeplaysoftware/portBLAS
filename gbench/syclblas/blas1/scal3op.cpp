@@ -25,27 +25,23 @@
 
 #include "utils.hpp"
 
-#include <interface/blas1_interface.hpp>
-
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Scal3op(benchmark::State& state) {
   // Standard test setup.
-  using IndexType = unsigned int;
-
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
-  blas::Executor<SYCL> ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> v2 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> v3 = benchmark::utils::random_data<ScalarT>(size);
-  ScalarT alpha = benchmark::utils::random_scalar<ScalarT>();
+  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v3 = benchmark::utils::random_data<scalar_t>(size);
+  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
 
-  auto inx = blas::helper::make_sycl_iterator_buffer<ScalarT>(v1, size);
-  auto iny = blas::helper::make_sycl_iterator_buffer<ScalarT>(v2, size);
-  auto inz = blas::helper::make_sycl_iterator_buffer<ScalarT>(v3, size);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
+  auto inz = blas::make_sycl_iterator_buffer<scalar_t>(v3, size);
 
   // Warmup
   for (int i = 0; i < 10; i++) {
@@ -55,10 +51,10 @@ void BM_Scal3op(benchmark::State& state) {
   // Measure
   for (auto _ : state) {
     // Run
-    cl::sycl::event event0 = _scal(ex, size, alpha, inx, 1);
-    cl::sycl::event event1 = _scal(ex, size, alpha, iny, 1);
-    cl::sycl::event event2 = _scal(ex, size, alpha, inz, 1);
-    ex.wait(event0, event1, event2);
+    auto event0 = _scal(ex, size, alpha, inx, 1);
+    auto event1 = _scal(ex, size, alpha, iny, 1);
+    auto event2 = _scal(ex, size, alpha, inz, 1);
+    ex.get_policy_handler().wait(event0, event1, event2);
 
     // Report
     state.PauseTiming();
@@ -71,6 +67,8 @@ void BM_Scal3op(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_Scal3op, float)
     ->RangeMultiplier(2)
     ->Range(2 << 5, 2 << 18);
+#ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Scal3op, double)
     ->RangeMultiplier(2)
     ->Range(2 << 5, 2 << 18);
+#endif

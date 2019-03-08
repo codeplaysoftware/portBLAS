@@ -4,34 +4,22 @@ find_package(PkgConfig)
 
 message(STATUS "Path to the SYCL implementation ")
 
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/include)
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/cmake/Modules)
-
-find_package(OpenCL REQUIRED)
-find_package(ComputeCpp REQUIRED)
-include(ConfigureSYCLBLAS)
-
 # Add syclblas benchmarks.
-file(GLOB SYCL_BENCHMARK_SRCS
+set(SYCL_BENCHMARK_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level1.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level2_legacy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_level3.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/syclblas/syclblas_benchmark_batch_gemm.cpp
 )
 foreach(syclblas_benchmark ${SYCL_BENCHMARK_SRCS})
   get_filename_component(sycl_bench_exec ${syclblas_benchmark} NAME_WE)
   set(TARGET sycl_bench_exec ${syclblas_benchmark})
   add_executable(${sycl_bench_exec} ${syclblas_benchmark})
   set_property(TARGET ${sycl_bench_exec} PROPERTY CXX_STANDARD 11)
-  add_sycl_to_target(
-    TARGET ${sycl_bench_exec}
-    SOURCES ${syclblas_benchmark}
-  )
-  install(TARGETS ${sycl_bench_exec} RUNTIME DESTINATION bin)
+  target_link_libraries(${sycl_bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
+  install(TARGETS ${sycl_bench_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)
 endforeach()
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
 # Try and also build CLBlast benchmarks.
 # Check to see if we've been passed an explicit path. 
@@ -55,7 +43,7 @@ if (CLBLAST_FOUND)
   include_directories(${CLBLAST_INCLUDE_DIRS})
   link_directories(${CLBLAST_LIBRARY_DIRS})
 
-  file(GLOB CLBLAST_BENCHMARK_SRCS
+  set(CLBLAST_BENCHMARK_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level1.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/clblast/clblast_benchmark_level3.cpp
@@ -68,7 +56,8 @@ if (CLBLAST_FOUND)
     set_property(TARGET ${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
     target_link_libraries(${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
     target_link_libraries(${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
-    install(TARGETS ${clblast_bench_exec} RUNTIME DESTINATION bin)
+    target_include_directories(${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS})
+    install(TARGETS ${clblast_bench_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)
   endforeach()
 else()
   message(STATUS "CLBlast not found, only building benchmarks for syclblas")

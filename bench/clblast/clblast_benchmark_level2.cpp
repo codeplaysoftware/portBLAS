@@ -41,7 +41,7 @@ BENCHMARK_NAME_FORMAT(clblast_level_2) {
 }
 
 BENCHMARK(gemv, clblast_level_2) {
-  using ScalarT = ElemT;
+  using scalar_t = ElemT;
 
   const char* t_str = std::get<0>(params);
   const size_t m = std::get<1>(params);
@@ -54,8 +54,8 @@ BENCHMARK(gemv, clblast_level_2) {
       static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
   size_t lda = m;
-  long incX = 1;
-  long incY = 1;
+  int incX = 1;
+  int incY = 1;
 
   // Specify the layout. As with GEMM, this needs to be kColMajor, and results
   // in errors otherwise. It may be that this is incorrect (especially for
@@ -74,24 +74,24 @@ BENCHMARK(gemv, clblast_level_2) {
     throw std::runtime_error("Got invalid transpose parameter!");
   }
 
-  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
-  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
+  scalar_t alpha = benchmark<>::random_scalar<scalar_t>();
+  scalar_t beta = benchmark<>::random_scalar<scalar_t>();
   // Input matrix
   size_t msize = m * n;
-  std::vector<ScalarT> a_m_host = benchmark<>::random_data<ScalarT>(msize);
-  MemBuffer<ScalarT> a_m(*ex, a_m_host.data(), msize);
+  std::vector<scalar_t> a_m_host = benchmark<>::random_data<scalar_t>(msize);
+  MemBuffer<scalar_t> a_m(*ex, a_m_host.data(), msize);
   // Input Vector
-  std::vector<ScalarT> b_v_host = benchmark<>::random_data<ScalarT>(vlen);
-  MemBuffer<ScalarT> b_v(*ex, b_v_host.data(), vlen);
+  std::vector<scalar_t> b_v_host = benchmark<>::random_data<scalar_t>(vlen);
+  MemBuffer<scalar_t> b_v(*ex, b_v_host.data(), vlen);
   // output Vector
-  std::vector<ScalarT> c_v_host = benchmark<>::const_data<ScalarT>(rlen, 0);
-  MemBuffer<ScalarT> c_v(*ex, c_v_host.data(), rlen);
+  std::vector<scalar_t> c_v_host = benchmark<>::const_data<scalar_t>(rlen, 0);
+  MemBuffer<scalar_t> c_v(*ex, c_v_host.data(), rlen);
 
   Event event;
   benchmark<>::datapoint_t flops = benchmark<>::measure(reps, n_fl_ops, [&]() {
-    clblast::Gemv<ScalarT>(layout, a_transpose, m, n, alpha, a_m.dev(), 0, lda,
-                           b_v.dev(), 0, incX, beta, c_v.dev(), 0, incY,
-                           (*ex)._queue(), &event._cl());
+    clblast::Gemv<scalar_t>(layout, a_transpose, m, n, alpha, a_m.dev(), 0, lda,
+                            b_v.dev(), 0, incX, beta, c_v.dev(), 0, incY,
+                            (*ex)._queue(), &event._cl());
     event.wait();
     return event;
   });

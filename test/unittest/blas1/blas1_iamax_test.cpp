@@ -31,48 +31,48 @@ REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
 REGISTER_STRD(1, iamax_test)
 REGISTER_PREC(float, 1e-4, iamax_test)
 REGISTER_PREC(double, 1e-6, iamax_test)
-REGISTER_PREC(long double, 1e-7, iamax_test)
 
 TYPED_TEST(BLAS_Test, iamax_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class iamax_test;
-  using IndexType = int;
-  IndexType size = TestClass::template test_size<test>();
-  IndexType strd = TestClass::template test_strd<test>();
+  using index_t = int;
+  index_t size = TestClass::template test_size<test>();
+  index_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create a random vector vX
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
+  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
-  ScalarT max = ScalarT(0);
-  IndexType imax = std::numeric_limits<IndexType>::max();
+  scalar_t max = scalar_t(0);
+  index_t imax = std::numeric_limits<index_t>::max();
   // compute index and value of the element with biggest absolute value
-  for (IndexType i = 0; i < size; i += strd) {
+  for (index_t i = 0; i < size; i += strd) {
     if (std::abs(vX[i]) > std::abs(max)) {
       max = vX[i];
       imax = i;
     }
   }
-  IndexValueTuple<ScalarT, IndexType> res(imax, max);
+  IndexValueTuple<scalar_t, index_t> res(imax, max);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::helper::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vI = blas::helper::make_sycl_iterator_buffer<
-      IndexValueTuple<ScalarT, IndexType>>(IndexType(1));
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vI =
+      blas::make_sycl_iterator_buffer<IndexValueTuple<scalar_t, index_t>>(
+          index_t(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  ex.get_policy_handler().wait(event);
 
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), vI[0].get_value());
@@ -84,52 +84,54 @@ REGISTER_SIZE(::RANDOM_SIZE, iamax_test_vpr)
 REGISTER_STRD(1, iamax_test_vpr)
 
 TYPED_TEST(BLAS_Test, iamax_test_vpr) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class iamax_test_vpr;
-  using IndexType = int;
+  using index_t = int;
 
-  IndexType size = TestClass::template test_size<test>();
-  IndexType strd = TestClass::template test_strd<test>();
+  index_t size = TestClass::template test_size<test>();
+  index_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create a random vector vX
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
+  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
-  ScalarT max = ScalarT(0);
-  IndexType imax = std::numeric_limits<IndexType>::max();
+  scalar_t max = scalar_t(0);
+  index_t imax = std::numeric_limits<index_t>::max();
   // compute index and value of the element with biggest absolute value
-  for (IndexType i = 0; i < size; i += strd) {
+  for (index_t i = 0; i < size; i += strd) {
     if (std::abs(vX[i]) > std::abs(max)) {
       max = vX[i];
       imax = i;
     }
   }
-  IndexValueTuple<ScalarT, IndexType> res(imax, max);
+  IndexValueTuple<scalar_t, index_t> res(imax, max);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vI = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vI = ex.get_policy_handler()
+                    .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.copy_to_host(gpu_vI, vI.data(), 1);
-  ex.wait(event);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  ex.get_policy_handler().wait(event);
 
-  IndexValueTuple<ScalarT, IndexType> res2(vI[0]);
+  IndexValueTuple<scalar_t, index_t> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
   ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vI);
 }

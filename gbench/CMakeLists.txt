@@ -3,16 +3,6 @@ cmake_minimum_required(VERSION 3.2.2)
 # compile googlebench
 include(ExternalProject)
 
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/include)
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/cmake/Modules)
-
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
-
-find_package(OpenCL REQUIRED)
-find_package(ComputeCpp REQUIRED)
-include(ConfigureSYCLBLAS)
 
 set(BLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 set(BLAS_BENCH_INCLUDE "${BLAS_BENCH}/include")
@@ -63,4 +53,3 @@ endif(SYCL_DEVICE)
 
 include_directories(${BLAS_BENCH})
 add_subdirectory(${BLAS_BENCH}/syclblas)
-# add_subdirectory(${BLAS_BENCH}/clblast)

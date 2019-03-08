@@ -33,18 +33,18 @@ TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_PREC(float, 1e-4, gemm)
 REGISTER_PREC(double, 1e-8, gemm)
-REGISTER_PREC(long double, 1e-8, gemm)
+
 TYPED_TEST(BLAS_Test, gemm) {
   using test = class gemm;
 
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
 
   using MatAType = typename TypeParam::metadata_t::a_format;
   using MatBType = typename TypeParam::metadata_t::b_format;
 
-  ScalarT prec = BLAS_Test<TypeParam>::template test_prec<test>();
+  scalar_t prec = BLAS_Test<TypeParam>::template test_prec<test>();
 
   const char* ta_str = MatAType::str;
   const char* tb_str = MatBType::str;
@@ -54,8 +54,8 @@ TYPED_TEST(BLAS_Test, gemm) {
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
 
-  ScalarT alpha = ScalarT(1);
-  ScalarT beta = ScalarT(1);
+  scalar_t alpha = scalar_t(1);
+  scalar_t beta = scalar_t(1);
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
@@ -87,12 +87,14 @@ TYPED_TEST(BLAS_Test, gemm) {
           std::array<int, 2> dim_b = {k_sizes[l], n_sizes[j]};
           std::array<int, 2> dim_c = {m_sizes[i], n_sizes[j]};
 
-          std::vector<ScalarT> a_m(dim_a[0] * dim_a[1] * batch_size);
-          std::vector<ScalarT> b_m(dim_b[0] * dim_b[1] * batch_size);
-          std::vector<ScalarT> c_m_gpu_result(dim_c[0] * dim_c[1] * batch_size,
-                                              ScalarT(0));
-          std::vector<ScalarT> c_m_cpu(dim_c[0] * dim_c[1] * batch_size,
-                                       ScalarT(0));
+          std::vector<scalar_t> a_m(dim_a[0] * dim_a[1] * batch_size);
+          std::vector<scalar_t> b_m(dim_b[0] * dim_b[1] * batch_size);
+          std::vector<scalar_t> c_m_gpu_result(dim_c[0] * dim_c[1] * batch_size,
+                                               scalar_t(0));
+          std::vector<scalar_t> c_m_gpu_result_batched(
+              dim_c[0] * dim_c[1] * batch_size, scalar_t(0));
+          std::vector<scalar_t> c_m_cpu(dim_c[0] * dim_c[1] * batch_size,
+                                        scalar_t(0));
           TestClass::set_rand(a_m, dim_a[0] * dim_a[1] * batch_size);
           TestClass::set_rand(b_m, dim_b[0] * dim_b[1] * batch_size);
           int lda = (_TrA) ? dim_a[1] : dim_a[0];
@@ -101,41 +103,78 @@ TYPED_TEST(BLAS_Test, gemm) {
           int m = dim_c[0];
           int n = dim_c[1];
           int k = dim_a[1];
-          auto m_a_gpu =
-              ex.template allocate<ScalarT>(dim_a[0] * dim_a[1] * batch_size);
-          auto m_b_gpu =
-              ex.template allocate<ScalarT>(dim_b[0] * dim_b[1] * batch_size);
-          auto m_c_gpu =
-              ex.template allocate<ScalarT>(dim_c[0] * dim_c[1] * batch_size);
+          auto m_a_gpu = ex.get_policy_handler().template allocate<scalar_t>(
+              dim_a[0] * dim_a[1] * batch_size);
+          auto m_b_gpu = ex.get_policy_handler().template allocate<scalar_t>(
+              dim_b[0] * dim_b[1] * batch_size);
+          auto m_c_gpu = ex.get_policy_handler().template allocate<scalar_t>(
+              dim_c[0] * dim_c[1] * batch_size);
+
+          auto m_a_gpu_batched =
+              ex.get_policy_handler().template allocate<scalar_t>(
+                  dim_a[0] * dim_a[1] * batch_size);
+          auto m_b_gpu_batched =
+              ex.get_policy_handler().template allocate<scalar_t>(
+                  dim_b[0] * dim_b[1] * batch_size);
+          auto m_c_gpu_batched =
+              ex.get_policy_handler().template allocate<scalar_t>(
+                  dim_c[0] * dim_c[1] * batch_size);
 
           for (int bs = 0; bs < batch_size; bs++) {
             // system gemm implementation
-            gemm(ta_str, tb_str, m, n, k, alpha, a_m.data() + (bs * m * k), lda,
-                 b_m.data() + (bs * n * k), ldb, beta,
-                 c_m_cpu.data() + (bs * m * n), m);
+            reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
+                                 a_m.data() + (bs * m * k), lda,
+                                 b_m.data() + (bs * n * k), ldb, beta,
+                                 c_m_cpu.data() + (bs * m * n), m);
 
-            ex.copy_to_device(a_m.data() + (bs * m * k), m_a_gpu + (bs * m * k),
-                              dim_a[0] * dim_a[1]);
-            ex.copy_to_device(b_m.data() + (bs * n * k), m_b_gpu + (bs * n * k),
-                              dim_b[0] * dim_b[1]);
-            ex.copy_to_device(c_m_gpu_result.data() + (bs * m * n),
-                              m_c_gpu + (bs * m * n), dim_c[0] * dim_c[1]);
+            ex.get_policy_handler().copy_to_device(a_m.data() + (bs * m * k),
+                                                   m_a_gpu + (bs * m * k),
+                                                   dim_a[0] * dim_a[1]);
+            ex.get_policy_handler().copy_to_device(b_m.data() + (bs * n * k),
+                                                   m_b_gpu + (bs * n * k),
+                                                   dim_b[0] * dim_b[1]);
+            ex.get_policy_handler().copy_to_device(
+                c_m_gpu_result.data() + (bs * m * n), m_c_gpu + (bs * m * n),
+                dim_c[0] * dim_c[1]);
             // SYCL BLAS GEMM implementation
             _gemm(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu + (bs * m * k),
                   lda, m_b_gpu + (bs * n * k), ldb, beta,
                   m_c_gpu + (bs * m * n), ldc);
-            auto event = ex.copy_to_host(m_c_gpu + (bs * m * n),
-                                         c_m_gpu_result.data() + (bs * m * n),
-                                         dim_c[0] * dim_c[1]);
-            ex.wait(event);
+            auto event = ex.get_policy_handler().copy_to_host(
+                m_c_gpu + (bs * m * n), c_m_gpu_result.data() + (bs * m * n),
+                dim_c[0] * dim_c[1]);
+            ex.get_policy_handler().wait(event);
             auto index = (bs * m * n);
-            for (int i = 0; i < dim_c[0] * dim_c[1]; ++i) {
-              ASSERT_NEAR(c_m_gpu_result[i + index], c_m_cpu[i + index], prec);
-            }
           }
-          ex.template deallocate<ScalarT>(m_a_gpu);
-          ex.template deallocate<ScalarT>(m_b_gpu);
-          ex.template deallocate<ScalarT>(m_c_gpu);
+          // batched gemm
+          ex.get_policy_handler().copy_to_device(
+              a_m.data(), m_a_gpu_batched, dim_a[0] * dim_a[1] * batch_size);
+          ex.get_policy_handler().copy_to_device(
+              b_m.data(), m_b_gpu_batched, dim_b[0] * dim_b[1] * batch_size);
+          ex.get_policy_handler().copy_to_device(
+              c_m_gpu_result_batched.data(), m_c_gpu_batched,
+              dim_c[0] * dim_c[1] * batch_size);
+          _gemm_batched(ex, *ta_str, *tb_str, m, n, k, alpha, m_a_gpu_batched,
+                        lda, m_b_gpu_batched, ldb, beta, m_c_gpu_batched, ldc,
+                        batch_size);
+          auto event = ex.get_policy_handler().copy_to_host(
+              m_c_gpu_batched, c_m_gpu_result_batched.data(),
+              dim_c[0] * dim_c[1] * batch_size);
+          ex.get_policy_handler().wait(event);
+          for (int i = 0; i < dim_c[0] * dim_c[1] * batch_size; ++i) {
+            ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
+            ASSERT_NEAR(c_m_gpu_result_batched[i], c_m_cpu[i], prec);
+          }
+          ex.get_policy_handler().template deallocate<scalar_t>(m_a_gpu);
+          ex.get_policy_handler().template deallocate<scalar_t>(m_b_gpu);
+          ex.get_policy_handler().template deallocate<scalar_t>(m_c_gpu);
+
+          ex.get_policy_handler().template deallocate<scalar_t>(
+              m_a_gpu_batched);
+          ex.get_policy_handler().template deallocate<scalar_t>(
+              m_b_gpu_batched);
+          ex.get_policy_handler().template deallocate<scalar_t>(
+              m_c_gpu_batched);
         }
       }
     }

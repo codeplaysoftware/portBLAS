@@ -25,23 +25,19 @@
 
 #include "utils.hpp"
 
-#include <interface/blas1_interface.hpp>
-
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Scal(benchmark::State& state) {
   // Standard test setup.
-  using IndexType = unsigned int;
-
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
-  blas::Executor<SYCL> ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);
-  ScalarT alpha = benchmark::utils::random_scalar<ScalarT>();
+  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
 
-  auto in = blas::helper::make_sycl_iterator_buffer<ScalarT>(v1, size);
+  auto in = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
 
   // Warmup
   for (int i = 0; i < 10; i++) {
@@ -52,14 +48,16 @@ void BM_Scal(benchmark::State& state) {
   for (auto _ : state) {
     // Run
     auto event = _scal(ex, size, alpha, in, 1);
-    ex.wait(event);
+    ex.get_policy_handler().wait(event);
 
     // Report
     state.PauseTiming();
-    state.counters["event_time"] = benchmark::utils::time_event(event);
+    state.counters["event_time"] = benchmark::utils::time_events(event);
     state.ResumeTiming();
   };
 }
 
 BENCHMARK_TEMPLATE(BM_Scal, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+#ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Scal, double)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+#endif

@@ -36,43 +36,43 @@ REGISTER_PREC(float, 1e-4, interface1_test)
 REGISTER_PREC(double, 1e-6, interface1_test)
 
 TYPED_TEST(BLAS_Test, interface1_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
-  using IndexType = int;
-  IndexType size = TestClass::template test_size<test>();
-  IndexType strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  using index_t = int;
+  index_t size = TestClass::template test_size<test>();
+  index_t strd = TestClass::template test_strd<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // creating three random vectors
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size);
-  std::vector<ScalarT> vZ(size);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
+  std::vector<scalar_t> vZ(size);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
   TestClass::set_rand(vZ, size);
 
   // the values will first be computed in a for loop:
-  IndexType imax = 0, imin = 0;
-  ScalarT asum(0);
-  const ScalarT alpha(0.432);
-  ScalarT dot(0);
-  ScalarT nrmX(0);
-  ScalarT nrmY(0);
-  ScalarT max(0);
-  ScalarT min(std::numeric_limits<ScalarT>::max());
-  ScalarT diff(0);
-  ScalarT _cos(0);
-  ScalarT _sin(0);
-  ScalarT giv(0);
+  index_t imax = 0, imin = 0;
+  scalar_t asum(0);
+  const scalar_t alpha(0.432);
+  scalar_t dot(0);
+  scalar_t nrmX(0);
+  scalar_t nrmY(0);
+  scalar_t max(0);
+  scalar_t min(std::numeric_limits<scalar_t>::max());
+  scalar_t diff(0);
+  scalar_t _cos(0);
+  scalar_t _sin(0);
+  scalar_t giv(0);
   for (int i = 0; i < size; i += strd) {
-    ScalarT &x = vX[i];
-    ScalarT &y = vY[i];
-    ScalarT &z = vZ[i];
+    scalar_t &x = vX[i];
+    scalar_t &y = vY[i];
+    scalar_t &z = vZ[i];
 
     // axpy:
     z = x * alpha + y;
@@ -93,7 +93,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
     }
     // givens rotation
     if (i == 0) {
-      ScalarT n1 = x, n2 = z;
+      scalar_t n1 = x, n2 = z;
       _rotg(n1, n2, _cos, _sin);
       diff = (z * _cos - x * _sin) - (x * _cos + z * _sin);
     } else if (i == size - 1) {
@@ -105,34 +105,38 @@ TYPED_TEST(BLAS_Test, interface1_test) {
 
   // creating vectors which will contain the result
   // for asum:
-  std::vector<ScalarT> vR(1);
+  std::vector<scalar_t> vR(1);
   // for dot:
-  std::vector<ScalarT> vS(1);
+  std::vector<scalar_t> vS(1);
   // for nrm2:
-  std::vector<ScalarT> vT(1);
+  std::vector<scalar_t> vT(1);
   // for dot after _rot
-  std::vector<ScalarT> vU(1);
+  std::vector<scalar_t> vU(1);
   // for iamax/iamin
   constexpr auto max_val =
-      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imax>::value;
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vImax(1, max_val);
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
+  std::vector<IndexValueTuple<scalar_t, index_t>> vImax(1, max_val);
   constexpr auto min_val =
-      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value;
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vImin(1, min_val);
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value;
+  std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.template allocate<ScalarT>(size);
-  auto gpu_vY = ex.template allocate<ScalarT>(size);
-  auto gpu_vR = ex.template allocate<ScalarT>(1);
-  auto gpu_vS = ex.template allocate<ScalarT>(1);
-  auto gpu_vT = ex.template allocate<ScalarT>(1);
-  auto gpu_vU = ex.template allocate<ScalarT>(1);
-  auto gpu_vImax = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  auto gpu_vImin = ex.template allocate<IndexValueTuple<ScalarT, IndexType>>(1);
-  ex.copy_to_device(vX.data(), gpu_vX, size);
-  ex.copy_to_device(vY.data(), gpu_vY, size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vS = ex.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vT = ex.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vU = ex.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vImax =
+      ex.get_policy_handler()
+          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
+  auto gpu_vImin =
+      ex.get_policy_handler()
+          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
+  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
   _asum(ex, size, gpu_vY, strd, gpu_vR);
   _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vS);
@@ -142,25 +146,29 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   _rot(ex, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
   _swap(ex, size, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = ex.copy_to_host(gpu_vR, vR.data(), 1);
-  auto event1 = ex.copy_to_host(gpu_vS, vS.data(), 1);
-  auto event2 = ex.copy_to_host(gpu_vT, vT.data(), 1);
-  auto event3 = ex.copy_to_host(gpu_vU, vU.data(), 1);
-  auto event4 = ex.copy_to_host(gpu_vImax, vImax.data(), 1);
-  auto event5 = ex.copy_to_host(gpu_vImin, vImin.data(), 1);
-  auto event6 = ex.copy_to_host(gpu_vX, vX.data(), size);
-  auto event7 = ex.copy_to_host(gpu_vY, vY.data(), size);
-  ex.wait(event0, event1, event2, event3, event4, event5, event6, event7);
+  auto event0 = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  auto event1 = ex.get_policy_handler().copy_to_host(gpu_vS, vS.data(), 1);
+  auto event2 = ex.get_policy_handler().copy_to_host(gpu_vT, vT.data(), 1);
+  auto event3 = ex.get_policy_handler().copy_to_host(gpu_vU, vU.data(), 1);
+  auto event4 =
+      ex.get_policy_handler().copy_to_host(gpu_vImax, vImax.data(), 1);
+  auto event5 =
+      ex.get_policy_handler().copy_to_host(gpu_vImin, vImin.data(), 1);
+  auto event6 = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
+  auto event7 = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5,
+                               event6, event7);
 
   // because there is a lot of operations, it makes sense to set the precision
   // threshold
-  ScalarT prec_sample = std::max(
-      std::numeric_limits<ScalarT>::epsilon() * size * 2, prec * ScalarT(1e1));
+  scalar_t prec_sample =
+      std::max(std::numeric_limits<scalar_t>::epsilon() * size * 2,
+               prec * scalar_t(1e1));
   // checking that precision is reasonable
   EXPECT_LE(prec_sample, prec * 1e4);
   DEBUG_PRINT(
       std::cout << "prec==" << std::fixed
-                << std::setprecision(std::numeric_limits<ScalarT>::digits10)
+                << std::setprecision(std::numeric_limits<scalar_t>::digits10)
                 << prec_sample << std::endl);
   // compare the results
   EXPECT_NEAR(asum, vR[0], prec_sample);
@@ -172,12 +180,14 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
-  ex.template deallocate<ScalarT>(gpu_vX);
-  ex.template deallocate<ScalarT>(gpu_vY);
-  ex.template deallocate<ScalarT>(gpu_vR);
-  ex.template deallocate<ScalarT>(gpu_vS);
-  ex.template deallocate<ScalarT>(gpu_vT);
-  ex.template deallocate<ScalarT>(gpu_vU);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImax);
-  ex.template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vImin);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vS);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImax);
+  ex.get_policy_handler()
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImin);
 }

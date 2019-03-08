@@ -36,43 +36,43 @@
 /**
  * Abstract base class for a range. Define three operations that any range must
  * implement, as well as an element type:
- *  T yield()        --  Return the current value of the range, and
+ *  element_t yield()        --  Return the current value of the range, and
  *                       increment the internal value (i.e. i++)
- *  T peek()         --  Return the current value of the range, but do not
+ *  element_t peek()         --  Return the current value of the range, but do not
  *                       increment the internal value.
  *  bool finished()  --  Report whether the previous yield caused the range
  *                       to "finish", or rollover and reset
  *                       whatever caused it to rollover.
  */
-template <typename T>
+template <typename element_t>
 class Range {
  public:
-  typedef T elem_t;
-  virtual T yield() = 0;
-  virtual T peek() = 0;
+  typedef element_t elem_t;
+  virtual element_t yield() = 0;
+  virtual element_t peek() = 0;
   virtual bool finished() = 0;
 };
 
 /**
  * Class of ranges that iterate over numeric sizes.
  */
-template <typename T>
-class SizeRange : public Range<T> {
+template <typename element_t>
+class SizeRange : public Range<element_t> {
   bool _finished = false;
-  T v;
-  T low;
-  T high;
-  T mult;
+  element_t v;
+  element_t low;
+  element_t high;
+  element_t mult;
 
  public:
-  typedef T elem_t;
-  SizeRange(T _low, T _high, T _mult)
+  typedef element_t elem_t;
+  SizeRange(element_t _low, element_t _high, element_t _mult)
       : v(_low), low(_low), high(_high), mult(_mult) {}
   SizeRange(const SizeRange& sr)
       : v(sr.v), low(sr.low), high(sr.high), mult(sr.mult) {}
-  T peek() { return v; }
-  T yield() {
-    T r = v;    // cache the current value
+  element_t peek() { return v; }
+  element_t yield() {
+    element_t r = v;    // cache the current value
     v *= mult;  // increment
     return r;   // return
   }
@@ -92,19 +92,19 @@ class SizeRange : public Range<T> {
 /**
  * Class of ranges that iterate over a list of concrete values.
  */
-template <typename T>
-class ValueRange : public Range<T> {
-  std::vector<T> vals;
-  typename std::vector<T>::iterator iter;
+template <typename element_t>
+class ValueRange : public Range<element_t> {
+  std::vector<element_t> vals;
+  typename std::vector<element_t>::iterator iter;
 
  public:
-  typedef T elem_t;
-  ValueRange(std::vector<T> _vals) : vals(_vals), iter(vals.begin()) {}
-  ValueRange(std::initializer_list<T> l) : vals(l), iter(vals.begin()) {}
+  typedef element_t elem_t;
+  ValueRange(std::vector<element_t> _vals) : vals(_vals), iter(vals.begin()) {}
+  ValueRange(std::initializer_list<element_t> l) : vals(l), iter(vals.begin()) {}
   ValueRange(const ValueRange& vr) : vals(vr.vals), iter(vals.begin()) {}
 
-  T peek() { return *iter; }
-  T yield() { return *iter++; }
+  element_t peek() { return *iter; }
+  element_t yield() { return *iter++; }
   bool finished() {
     bool _finished = iter >= vals.end();
     // act like a resettable latch - this allows us to iterate over a range
@@ -270,19 +270,19 @@ class Range5D
 /**
  * Utility range constructors.
  */
-template <typename T>
-SizeRange<T> size_range(T low, T high, T mult) {
-  return SizeRange<T>(low, high, mult);
+template <typename element_t>
+SizeRange<element_t> size_range(element_t low, element_t high, element_t mult) {
+  return SizeRange<element_t>(low, high, mult);
 }
 
 template <typename Vect>
-ValueRange<typename Vect::value_type> value_range(Vect vals) {
-  return ValueRange<typename Vect::value_type>(vals);
+ValueRange<typename Vect::value_t> value_range(Vect vals) {
+  return ValueRange<typename Vect::value_t>(vals);
 }
 
-template <typename T>
-ValueRange<T> value_range(std::initializer_list<T> l) {
-  return ValueRange<T>(l);
+template <typename element_t>
+ValueRange<element_t> value_range(std::initializer_list<element_t> l) {
+  return ValueRange<element_t>(l);
 }
 
 template <typename Range1, typename Range2>

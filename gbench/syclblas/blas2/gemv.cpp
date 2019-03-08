@@ -25,45 +25,40 @@
 
 #include "utils.hpp"
 
-#include <interface/blas2_interface.hpp>
-
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Gemv(benchmark::State& state) {
   // Standard test setup.
-  using IndexType = unsigned int;
-
   const char* t_str = benchmark::utils::from_transpose_enum(
       static_cast<benchmark::utils::Transposition>(state.range(0)));
-  const IndexType m = static_cast<IndexType>(state.range(1));
-  const IndexType n = static_cast<IndexType>(state.range(2));
+  const index_t m = static_cast<index_t>(state.range(1));
+  const index_t n = static_cast<index_t>(state.range(2));
 
-  IndexType vlen = t_str[0] == 'n' ? n : m;
-  IndexType rlen = t_str[0] == 'n' ? m : n;
+  index_t vlen = t_str[0] == 'n' ? n : m;
+  index_t rlen = t_str[0] == 'n' ? m : n;
 
-  IndexType lda = m;
-  long incX = 1;
-  long incY = 1;
+  index_t lda = m;
+  index_t incX = 1;
+  index_t incY = 1;
 
   state.counters["m"] = m;
   state.counters["n"] = n;
 
-  blas::Executor<SYCL> ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
   // Scalars
-  ScalarT alpha = benchmark::utils::random_scalar<ScalarT>();
-  ScalarT beta = benchmark::utils::random_scalar<ScalarT>();
+  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
+  scalar_t beta = benchmark::utils::random_scalar<scalar_t>();
 
   // Input matrix/vector, output vector.
-  std::vector<ScalarT> a_m = benchmark::utils::random_data<ScalarT>(m * n);
-  std::vector<ScalarT> b_v = benchmark::utils::random_data<ScalarT>(vlen);
-  std::vector<ScalarT> c_v_gpu_result =
-      benchmark::utils::const_data<ScalarT>(rlen, 0);
+  std::vector<scalar_t> a_m = benchmark::utils::random_data<scalar_t>(m * n);
+  std::vector<scalar_t> b_v = benchmark::utils::random_data<scalar_t>(vlen);
+  std::vector<scalar_t> c_v_gpu_result =
+      benchmark::utils::const_data<scalar_t>(rlen, 0);
 
-  auto m_a_gpu = blas::helper::make_sycl_iterator_buffer<ScalarT>(a_m, m * n);
-  auto v_b_gpu = blas::helper::make_sycl_iterator_buffer<ScalarT>(b_v, vlen);
-  auto v_c_gpu =
-      blas::helper::make_sycl_iterator_buffer<ScalarT>(c_v_gpu_result, rlen);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, m * n);
+  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, vlen);
+  auto v_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, rlen);
 
   // Warmup
   for (int i = 0; i < 10; i++) {
@@ -78,11 +73,11 @@ void BM_Gemv(benchmark::State& state) {
     // Run
     auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
                        v_c_gpu, incY);
-    ex.wait(event);
+    ex.get_policy_handler().wait(event);
 
     // Report
     state.PauseTiming();
-    state.counters["event_time"] = benchmark::utils::time_event(event);
+    state.counters["event_time"] = benchmark::utils::time_events(event);
     state.ResumeTiming();
   }
 }
@@ -96,4 +91,6 @@ static void gemv_args(benchmark::internal::Benchmark* b) {
 }
 
 BENCHMARK_TEMPLATE(BM_Gemv, float)->Apply(gemv_args);
+#ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Gemv, double)->Apply(gemv_args);
+#endif

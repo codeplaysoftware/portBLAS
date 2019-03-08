@@ -27,6 +27,7 @@
 #define SYSTEM_REFERENCE_BLAS_HPP
 
 #define ENABLE_SYSTEM_GEMV(_type, _system_name)                              \
+  namespace reference_blas {                                                 \
   extern "C" void _system_name(const char *, const int *, const int *,       \
                                const _type *, const _type *, const int *,    \
                                const _type *, const int *, const _type *,    \
@@ -35,7 +36,8 @@
             int lda, const _type b[], int incX, _type beta, _type c[],       \
             int incY) {                                                      \
     _system_name(trans, &m, &n, &alpha, a, &lda, b, &incX, &beta, c, &incY); \
-  }
+  }                                                                          \
+  }  // namespace reference_blas
 
 ENABLE_SYSTEM_GEMV(float, sgemv_)
 ENABLE_SYSTEM_GEMV(double, dgemv_)
@@ -43,34 +45,37 @@ ENABLE_SYSTEM_GEMV(double, dgemv_)
 #undef ENABLE_SYSTEM_GEMV
 
 #define ENABLE_SYSTEM_GER(_type, _system_name)                            \
+  namespace reference_blas {                                              \
   extern "C" void _system_name(const int *, const int *, const _type *,   \
                                const _type *, const int *, const _type *, \
                                const int *, _type *, const int *);        \
   void ger(int m, int n, _type alpha, const _type a[], int incX,          \
            const _type b[], int incY, _type c[], int lda) {               \
     _system_name(&m, &n, &alpha, a, &incX, b, &incY, c, &lda);            \
-  }
+  }                                                                       \
+  }  // namespace reference_blas
 
 ENABLE_SYSTEM_GER(float, sger_)
 ENABLE_SYSTEM_GER(double, dger_)
 
 #undef ENABLE_SYSTEM_GER
-
 #define ENABLE_SYSTEM_GEMM(_type, _system_name)                               \
-  extern "C" void _system_name(                                               \
-      const char *, const char *, const int *, const int *, const int *,      \
-      const _type *, const _type *, const int *, const _type *, const int *,  \
-      const _type *, _type *, const int *);                                   \
+  namespace reference_blas {                                                  \
+  extern "C" void _system_name(const char *, const char *, const int *,       \
+                               const int *, const int *, const _type *,       \
+                               const _type *, const int *, const _type *,     \
+                               const int *, const _type *, _type *,           \
+                               const int *);                                  \
   void gemm(const char *transA, const char *transB, int m, int n, int k,      \
             _type alpha, const _type a[], int lda, const _type b[], int ldb,  \
             _type beta, _type c[], int ldc) {                                 \
     _system_name(transA, transB, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, \
                  c, &ldc);                                                    \
-  }
+  }                                                                           \
+  }  // namespace reference_blas
 
 ENABLE_SYSTEM_GEMM(float, sgemm_)
 ENABLE_SYSTEM_GEMM(double, dgemm_)
 
 #undef ENABLE_SYSTEM_GEMM
-
 #endif /* end of include guard: SYSTEM_REFERENCE_BLAS_HPP */

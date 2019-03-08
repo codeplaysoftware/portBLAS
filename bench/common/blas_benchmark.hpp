@@ -50,14 +50,14 @@
 
 /**
  * @fn type_string
- * @brief Generate a string describing the type T. Currently only supports
+ * @brief Generate a string describing the type element_t. Currently only supports
  * `float` and `double`.
  *
  * This function uses C++ template specialisation to dispatch the correct
  * variant of `type_string`. e.g. calling: `type_string<Float>()` will return
  * "float", while calling: `type_string<Int>()` will return "unknown"
  */
-template <typename T>
+template <typename element_t>
 const inline std::string& type_string() {
   static const std::string str = "unknown";
   return str;
@@ -140,6 +140,19 @@ inline cl_ulong time_event(Event e) {
     // Return a really big number to show that we've failed.
     return 0xFFFFFFFFFFFFFFFF;
   }
+}
+
+/**
+ * @fn time_events
+ * @brief Times n events, and returns the aggregate time.
+ */
+template <typename EventT>
+inline cl_ulong time_event(std::vector<EventT> es) {
+  cl_ulong total_time = 0;
+  for (auto e : es) {
+    total_time += time_event(e);
+  }
+  return total_time;
 }
 
 /**
@@ -242,8 +255,8 @@ struct benchmark {
    * @brief Generates a random scalar value, using an arbitrary low quality
    * algorithm.
    */
-  template <typename ScalarT>
-  static inline ScalarT random_scalar() {
+  template <typename scalar_t>
+  static inline scalar_t random_scalar() {
     return 1e-3 * ((rand() % 2000) - 1000);
   }
 
@@ -252,13 +265,13 @@ struct benchmark {
    * @brief Generates a random vector of scalar values, using an arbitrary low
    * quality algorithm.
    */
-  template <typename ScalarT>
-  static inline std::vector<ScalarT> random_data(size_t size,
-                                                 bool initialized = true) {
-    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+  template <typename scalar_t>
+  static inline std::vector<scalar_t> random_data(size_t size,
+                                                  bool initialized = true) {
+    std::vector<scalar_t> v = std::vector<scalar_t>(size);
     if (initialized) {
-      std::transform(v.begin(), v.end(), v.begin(), [](ScalarT x) -> ScalarT {
-        return random_scalar<ScalarT>();
+      std::transform(v.begin(), v.end(), v.begin(), [](scalar_t x) -> scalar_t {
+        return random_scalar<scalar_t>();
       });
     }
     return v;
@@ -268,10 +281,10 @@ struct benchmark {
    * @fn const_data
    * @brief Generates a vector of constant values, of a given length.
    */
-  template <typename ScalarT>
-  static inline std::vector<ScalarT> const_data(size_t size,
-                                                ScalarT const_value = 0) {
-    std::vector<ScalarT> v = std::vector<ScalarT>(size);
+  template <typename scalar_t>
+  static inline std::vector<scalar_t> const_data(size_t size,
+                                                 scalar_t const_value = 0) {
+    std::vector<scalar_t> v = std::vector<scalar_t>(size);
     std::fill(v.begin(), v.end(), const_value);
     return v;
   }
@@ -332,12 +345,12 @@ struct benchmark {
 
   /**
    * @fn typestr
-   * @brief Print the type of a given type T. Currently only supports `float`
+   * @brief Print the type of a given type element_t. Currently only supports `float`
    * and `double`.
    */
-  template <typename T>
+  template <typename element_t>
   static std::string typestr() {
-    return type_string<T>();
+    return type_string<element_t>();
   }
 };
 
@@ -346,12 +359,12 @@ struct benchmark {
  * that every benchmark instance needs to provice.
  */
 
-template <typename T, typename ExecutorT, typename ParamT>
+template <typename element_t, typename ExecutorT, typename ParamT>
 class benchmark_instance {
  public:
   virtual const std::string name() = 0;
   virtual const std::string format_name(ParamT params) = 0;
-  virtual benchmark<>::datapoint_t run(ParamT params, unsigned int reps,
+  virtual benchmark<>::datapoint_t run(ParamT params, int reps,
                                        ExecutorT ex) = 0;
 };
 
@@ -359,43 +372,41 @@ class benchmark_instance {
  * Define how we want to print names for a given benchmark suite
  */
 
-#define BENCHMARK_NAME_FORMAT(suite_name)                          \
-  template <typename ElemT, typename ExecutorT, typename ParamT>   \
-  class benchmark_##suite_name##_suite_class                       \
-      : public benchmark_instance<ElemT, ExecutorT, ParamT> {      \
-   public:                                                         \
-    benchmark_##suite_name##_suite_class(){};                      \
-    const std::string name() = 0;                                  \
-    const std::string format_name(ParamT params);                  \
-    const char* type() { return typeid(ElemT).name(); }            \
-    benchmark<>::datapoint_t run(ParamT params, unsigned int reps, \
-                                 ExecutorT ex) = 0;                \
-  };                                                               \
-  template <typename ElemT, typename ExecutorT, typename ParamT>   \
-  const std::string benchmark_##suite_name##_suite_class<          \
+#define BENCHMARK_NAME_FORMAT(suite_name)                                    \
+  template <typename ElemT, typename ExecutorT, typename ParamT>             \
+  class benchmark_##suite_name##_suite_class                                 \
+      : public benchmark_instance<ElemT, ExecutorT, ParamT> {                \
+   public:                                                                   \
+    benchmark_##suite_name##_suite_class(){};                                \
+    const std::string name() = 0;                                            \
+    const std::string format_name(ParamT params);                            \
+    const char* type() { return typeid(ElemT).name(); }                      \
+    benchmark<>::datapoint_t run(ParamT params, int reps, ExecutorT ex) = 0; \
+  };                                                                         \
+  template <typename ElemT, typename ExecutorT, typename ParamT>             \
+  const std::string benchmark_##suite_name##_suite_class<                    \
       ElemT, ExecutorT, ParamT>::format_name(ParamT params)
 
 /** BENCHMARK
  * Declare a particular benchmark/instance.
  */
-#define BENCHMARK(bench_name, suite_name)                             \
-  template <typename ElemT, typename ExecutorT, typename ParamT>      \
-  class benchmark_##bench_name##_class_                               \
-      : public benchmark_##suite_name##_suite_class<ElemT, ExecutorT, \
-                                                    ParamT> {         \
-    const char* _name = #bench_name;                                  \
-                                                                      \
-   public:                                                            \
-    benchmark_##bench_name##_class_(){};                              \
-    const std::string name() { return std::string(_name); }           \
-    const char* type() { return typeid(ElemT).name(); }               \
-    benchmark<>::datapoint_t run(ParamT params, unsigned int reps,    \
-                                 ExecutorT ex);                       \
-  };                                                                  \
-  template <typename ElemT, typename ExecutorT, typename ParamT>      \
-  benchmark<>::datapoint_t                                            \
-      benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run( \
-          ParamT params, unsigned int reps, ExecutorT ex)
+#define BENCHMARK(bench_name, suite_name)                                \
+  template <typename ElemT, typename ExecutorT, typename ParamT>         \
+  class benchmark_##bench_name##_class_                                  \
+      : public benchmark_##suite_name##_suite_class<ElemT, ExecutorT,    \
+                                                    ParamT> {            \
+    const char* _name = #bench_name;                                     \
+                                                                         \
+   public:                                                               \
+    benchmark_##bench_name##_class_(){};                                 \
+    const std::string name() { return std::string(_name); }              \
+    const char* type() { return typeid(ElemT).name(); }                  \
+    benchmark<>::datapoint_t run(ParamT params, int reps, ExecutorT ex); \
+  };                                                                     \
+  template <typename ElemT, typename ExecutorT, typename ParamT>         \
+  benchmark<>::datapoint_t                                               \
+      benchmark_##bench_name##_class_<ElemT, ExecutorT, ParamT>::run(    \
+          ParamT params, int reps, ExecutorT ex)
 
 /** ADD
  * Add a particular benchmark to a suite of benchmarks.
@@ -452,7 +463,7 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     run_benchmark(b, range_param, reps, ex, output);
   }
 
-#ifndef NO_DOUBLE_SUPPORT
+#ifdef DOUBLE_SUPPORT
   auto dbenchmarks = benchmark_suite<double, Ex, ParamT>();
   for (auto b : dbenchmarks) {
     run_benchmark(b, range_param, reps, ex, output);
@@ -473,7 +484,7 @@ int main_impl(Range<ParamT>* range_param, const unsigned reps, Ex ex,
     }                                                                        \
     cli_device_selector cds(ba.device_vendor, ba.device_type);               \
     cl::sycl::queue q(cds, {cl::sycl::property::queue::enable_profiling()}); \
-    Executor<SYCL> ex(q);                                                    \
+    blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> ex(q);        \
     return main_impl((&RANGE_PARAM), (REPS), ex, ba.requestedOutput);        \
   }
 

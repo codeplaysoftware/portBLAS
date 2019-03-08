@@ -364,7 +364,7 @@ class Event {
   }
 };
 
-template <typename ScalarT, int Options = CL_MEM_READ_WRITE>
+template <typename scalar_t, int Options = CL_MEM_READ_WRITE>
 class MemBuffer {
  public:
   static constexpr const bool to_write =
@@ -376,7 +376,7 @@ class MemBuffer {
   Context &context;
   size_t size = 0;
   cl_mem dev_ptr = NULL;
-  ScalarT *host_ptr = NULL;
+  scalar_t *host_ptr = NULL;
   bool is_active = false;
 
   void init() {
@@ -384,16 +384,16 @@ class MemBuffer {
       do_error("buffer is already active");
     }
     cl_int status;
-    dev_ptr =
-        clCreateBuffer(context, Options, size * sizeof(ScalarT), NULL, &status);
+    dev_ptr = clCreateBuffer(context, Options, size * sizeof(scalar_t), NULL,
+                             &status);
     if (status != CL_SUCCESS) {
       do_error("failure to create buffer");
     }
     is_active = true;
     if (to_write) {
-      status =
-          clEnqueueWriteBuffer(context.queue(), dev_ptr, CL_TRUE, 0,
-                               size * sizeof(ScalarT), host_ptr, 0, NULL, NULL);
+      status = clEnqueueWriteBuffer(context.queue(), dev_ptr, CL_TRUE, 0,
+                                    size * sizeof(scalar_t), host_ptr, 0, NULL,
+                                    NULL);
       if (status != CL_SUCCESS) {
         do_error("failure in clEnqueueWriteBuffer");
       }
@@ -401,25 +401,25 @@ class MemBuffer {
   }
 
  public:
-  MemBuffer(Context &ctx, ScalarT *ptr, size_t size)
+  MemBuffer(Context &ctx, scalar_t *ptr, size_t size)
       : context(ctx), host_ptr(ptr), size(size) {
     init();
   }
 
-  ScalarT operator[](size_t i) const { return host_ptr[i]; }
+  scalar_t operator[](size_t i) const { return host_ptr[i]; }
 
-  ScalarT &operator[](size_t i) { return host_ptr[i]; }
+  scalar_t &operator[](size_t i) { return host_ptr[i]; }
 
   cl_mem dev() { return dev_ptr; }
 
-  ScalarT *host() { return host_ptr; }
+  scalar_t *host() { return host_ptr; }
 
   ~MemBuffer() {
     if (is_active) {
       if (to_read) {
         cl_int status;
         status = clEnqueueReadBuffer(context.queue(), dev_ptr, CL_TRUE, 0,
-                                     size * sizeof(ScalarT), host_ptr, 0, NULL,
+                                     size * sizeof(scalar_t), host_ptr, 0, NULL,
                                      NULL);
         if (status != CL_SUCCESS) {
           do_error("failure in clEnqueueReadBuffer");

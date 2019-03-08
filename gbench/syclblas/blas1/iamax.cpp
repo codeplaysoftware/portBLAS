@@ -25,25 +25,22 @@
 
 #include "utils.hpp"
 
-#include <interface/blas1_interface.hpp>
-
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Iamax(benchmark::State& state) {
   // Standard test setup.
-  using IndexType = unsigned int;
-
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
-  blas::Executor<SYCL> ex = *getExecutor();
+  SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);
-  blas::IndexValueTuple<ScalarT, IndexType> out(-1, -1);
+  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  blas::IndexValueTuple<scalar_t, index_t> out(-1, -1);
 
-  auto inx = blas::helper::make_sycl_iterator_buffer<ScalarT>(v1, size);
-  auto outI = blas::helper::make_sycl_iterator_buffer<
-      blas::IndexValueTuple<ScalarT, IndexType>>(&out, 1);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto outI =
+      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, index_t>>(
+          &out, 1);
 
   // Warmup
   for (int i = 0; i < 10; i++) {
@@ -54,16 +51,18 @@ void BM_Iamax(benchmark::State& state) {
   for (auto _ : state) {
     // Run
     auto event = _iamax(ex, size, inx, 1, outI);
-    ex.wait(event);
+    ex.get_policy_handler().wait(event);
 
     // Report
     state.PauseTiming();
-    state.counters["event_time"] = benchmark::utils::time_event(event);
+    state.counters["event_time"] = benchmark::utils::time_events(event);
     state.ResumeTiming();
   }
 }
 
 BENCHMARK_TEMPLATE(BM_Iamax, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+#ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Iamax, double)
     ->RangeMultiplier(2)
     ->Range(2 << 5, 2 << 24);
+#endif

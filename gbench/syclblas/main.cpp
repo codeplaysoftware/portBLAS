@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   // reconstructing it each time (which is slow). Although this won't be cleaned
   // up if RunSpecifiedBenchmarks exits badly, that's okay, as those are
   // presumably exceptional circumstances.
-  Private::ex = std::make_shared<blas::Executor<SYCL>>(Private::q);
+  Private::ex = std::make_shared<SyclExecutorType>(Private::q);
 
   benchmark::RunSpecifiedBenchmarks();
 }

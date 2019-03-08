@@ -25,7 +25,7 @@
 
 #include "../common/blas_benchmark.hpp"
 
-#include <interface/blas2_interface.hpp>
+#include "sycl_blas.h"
 
 using namespace blas;
 
@@ -38,56 +38,57 @@ BENCHMARK_NAME_FORMAT(syclblas_level_2) {
 }
 
 BENCHMARK(gemv, syclblas_level_2) {
-  using ScalarT = ElemT;
-  using IndexType = unsigned int;
+  using scalar_t = ElemT;
+  using index_t = int;
 
   const char* t_str = std::get<0>(params);
-  const IndexType m = std::get<1>(params);
-  const IndexType n = std::get<2>(params);
+  const index_t m = std::get<1>(params);
+  const index_t n = std::get<2>(params);
 
-  IndexType vlen = t_str[0] == 'n' ? n : m;
-  IndexType rlen = t_str[0] == 'n' ? m : n;
+  index_t vlen = t_str[0] == 'n' ? n : m;
+  index_t rlen = t_str[0] == 'n' ? m : n;
 
   size_t n_fl_ops =
       static_cast<size_t>(m) * static_cast<size_t>(n) * static_cast<size_t>(2);
 
-  IndexType lda = m;
-  long incX = 1;
-  long incY = 1;
+  index_t lda = m;
+  index_t incX = 1;
+  index_t incY = 1;
 
-  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
-  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
+  scalar_t alpha = benchmark<>::random_scalar<scalar_t>();
+  scalar_t beta = benchmark<>::random_scalar<scalar_t>();
 
   // Input matrix
-  std::vector<ScalarT> a_m = benchmark<>::random_data<ScalarT>(m * n);
+  std::vector<scalar_t> a_m = benchmark<>::random_data<scalar_t>(m * n);
   // Input Vector
-  std::vector<ScalarT> b_v = benchmark<>::random_data<ScalarT>(vlen);
+  std::vector<scalar_t> b_v = benchmark<>::random_data<scalar_t>(vlen);
   // output Vector
-  std::vector<ScalarT> c_v_gpu_result =
-      benchmark<>::const_data<ScalarT>(rlen, 0);
+  std::vector<scalar_t> c_v_gpu_result =
+      benchmark<>::const_data<scalar_t>(rlen, 0);
 
-  auto m_a_gpu = ex.template allocate<ScalarT>(m * n);
-  auto v_b_gpu = ex.template allocate<ScalarT>(vlen);
-  auto v_c_gpu = ex.template allocate<ScalarT>(rlen);
-  ex.copy_to_device(a_m.data(), m_a_gpu, m * n);
-  ex.copy_to_device(b_v.data(), v_b_gpu, vlen);
-  ex.copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
+  auto m_a_gpu = ex.get_policy_handler().template allocate<scalar_t>(m * n);
+  auto v_b_gpu = ex.get_policy_handler().template allocate<scalar_t>(vlen);
+  auto v_c_gpu = ex.get_policy_handler().template allocate<scalar_t>(rlen);
+  ex.get_policy_handler().copy_to_device(a_m.data(), m_a_gpu, m * n);
+  ex.get_policy_handler().copy_to_device(b_v.data(), v_b_gpu, vlen);
+  ex.get_policy_handler().copy_to_device(c_v_gpu_result.data(), v_c_gpu, rlen);
 
-  benchmark<>::datapoint_t flops =
-      benchmark<>::measure(reps, n_fl_ops, [&]() -> cl::sycl::event {
+  benchmark<>::datapoint_t flops = benchmark<>::measure(
+      reps, n_fl_ops, [&]() -> std::vector<cl::sycl::event> {
         auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
                            beta, v_c_gpu, incY);
-        ex.wait(event);
+        ex.get_policy_handler().wait(event);
         return event;
       });
 
-  auto event = ex.copy_to_host(v_c_gpu, c_v_gpu_result.data(), rlen);
+  auto event = ex.get_policy_handler().copy_to_host(
+      v_c_gpu, c_v_gpu_result.data(), rlen);
 
-  ex.wait(event);
+  ex.get_policy_handler().wait(event);
 
-  ex.template deallocate<ScalarT>(m_a_gpu);
-  ex.template deallocate<ScalarT>(v_b_gpu);
-  ex.template deallocate<ScalarT>(v_c_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(m_a_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(v_b_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(v_c_gpu);
 
   return flops;
 }
