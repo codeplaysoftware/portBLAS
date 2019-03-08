@@ -58,8 +58,13 @@ struct RebindType {
   using type = RemoveAll<element_t> *;
 };
 
+template <typename index_t>
+inline bool is_power_of_2(index_t ind) {
+  return ind > 0 && !(ind & (ind - 1));
+}
+
 // This function returns the nearest power of 2
-// if roundup is ture returns result>=wgsize
+// if roundup is true returns result>=wgsize
 // else it return result <= wgsize
 template <typename index_t>
 static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
