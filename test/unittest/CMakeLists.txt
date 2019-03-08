@@ -55,7 +55,7 @@ set(SYCL_UNITTEST_SRCS
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
-  if(NOT (${TARGET} STREQUAL "PowerVR"))
+  if(NOT (${TARGET} STREQUAL "POWER_VR"))
   list(APPEND SYCL_UNITTEST_SRCS
   #complex types
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nc_test.cpp

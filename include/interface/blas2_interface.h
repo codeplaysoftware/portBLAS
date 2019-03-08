@@ -40,27 +40,27 @@ namespace internal {
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type _gemv_legacy(
-    Executor& ex,         // Executor (sycl, parallel, serial, etc)
-    char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
-                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                          // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
-                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t _gemv_legacy(
+    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+    char _trans,        // The transposition of the matrix ('n', 't', 'c')
+    index_t _M,         // The size of dimension M of the matrix (rows)
+    index_t _N,         // The size of dimension N of the matrix (columns)
+    element_t _alpha,   // Scalar parameter Alpha
+    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
+    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
+                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                        // containing the vector "x"
+    increment_t _incx,  // The increment for elements in x (nonzero).
+    element_t _beta,    // Scalar parameter Beta
+    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
+                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
+    increment_t _incy  // The increment for elements in y (nonzero).
 );
 
 /*!
@@ -76,64 +76,64 @@ typename Executor::Policy::event_type _gemv_legacy(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type _gemv(
-    Executor& ex,         // Executor (sycl, parallel, serial, etc)
-    char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
-                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                          // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
-                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t _gemv(
+    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+    char _trans,        // The transposition of the matrix ('n', 't', 'c')
+    index_t _M,         // The size of dimension M of the matrix (rows)
+    index_t _N,         // The size of dimension N of the matrix (columns)
+    element_t _alpha,   // Scalar parameter Alpha
+    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
+    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
+                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                        // containing the vector "x"
+    increment_t _incx,  // The increment for elements in x (nonzero).
+    element_t _beta,    // Scalar parameter Beta
+    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
+                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
+    increment_t _incy  // The increment for elements in y (nonzero).
 );
 
-template <typename Executor, typename IndexType, typename ContainerT0,
-          typename ContainerT1, typename IncrementType>
-typename Executor::Policy::event_type _trmv(Executor& ex, char _Uplo,
-                                            char _trans, char _Diag,
-                                            IndexType _N, ContainerT0 _mA,
-                                            IndexType _lda, ContainerT1 _vx,
-                                            IncrementType _incx);
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type _symv(
-    Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _mA,
-    IndexType _lda, ContainerT1 _vx, IncrementType _incx, T _beta,
-    ContainerT2 _vy, IncrementType _incy);
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1,
-          typename ContainerT2>
-typename Executor::Policy::event_type _ger(Executor& ex, IndexType _M,
-                                           IndexType _N, T _alpha,
-                                           ContainerT0 _vx, IncrementType _incx,
-                                           ContainerT1 _vy, IncrementType _incy,
-                                           ContainerT2 _mA, IndexType _lda);
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1>
-typename Executor::Policy::event_type _syr(Executor& ex, char _Uplo,
-                                           IndexType _N, T _alpha,
-                                           ContainerT0 _vx, IncrementType _incx,
-                                           ContainerT1 _mA, IndexType _lda);
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1,
-          typename ContainerT2>
-typename Executor::Policy::event_type _syr2(
-    Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _vx,
-    IncrementType _incx, ContainerT1 _vy, IncrementType _incy, ContainerT2 _mA,
-    IndexType _lda);
+template <typename executor_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename executor_t::policy_t::event_t _trmv(executor_t& ex, char _Uplo,
+                                             char _trans, char _Diag,
+                                             index_t _N, container_0_t _mA,
+                                             index_t _lda, container_1_t _vx,
+                                             increment_t _incx);
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t _symv(
+    executor_t& ex, char _Uplo, index_t _N, element_t _alpha, container_0_t _mA,
+    index_t _lda, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy);
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t _ger(
+    executor_t& ex, index_t _M, index_t _N, element_t _alpha, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _mA,
+    index_t _lda);
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t>
+typename executor_t::policy_t::event_t _syr(executor_t& ex, char _Uplo,
+                                            index_t _N, element_t _alpha,
+                                            container_0_t _vx,
+                                            increment_t _incx,
+                                            container_1_t _mA, index_t _lda);
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t _syr2(
+    executor_t& ex, char _Uplo, index_t _N, element_t _alpha, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _mA,
+    index_t _lda);
 }  // namespace internal
 /*!
  @brief Generalised matrix vector product with rectangular non-symmetric
@@ -148,27 +148,27 @@ typename Executor::Policy::event_type _syr2(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type inline _gemv_legacy(
-    Executor& ex,         // Executor (sycl, parallel, serial, etc)
-    char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
-                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                          // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
-                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t inline _gemv_legacy(
+    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+    char _trans,        // The transposition of the matrix ('n', 't', 'c')
+    index_t _M,         // The size of dimension M of the matrix (rows)
+    index_t _N,         // The size of dimension N of the matrix (columns)
+    element_t _alpha,   // Scalar parameter Alpha
+    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
+    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
+                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                        // containing the vector "x"
+    increment_t _incx,  // The increment for elements in x (nonzero).
+    element_t _beta,    // Scalar parameter Beta
+    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
+                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
+    increment_t _incy  // The increment for elements in y (nonzero).
 ) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
@@ -191,27 +191,27 @@ typename Executor::Policy::event_type inline _gemv_legacy(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type inline _gemv(
-    Executor& ex,         // Executor (sycl, parallel, serial, etc)
-    char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
-                          // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                          // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
-                          // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t inline _gemv(
+    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+    char _trans,        // The transposition of the matrix ('n', 't', 'c')
+    index_t _M,         // The size of dimension M of the matrix (rows)
+    index_t _N,         // The size of dimension N of the matrix (columns)
+    element_t _alpha,   // Scalar parameter Alpha
+    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
+    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
+                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
+                        // containing the vector "x"
+    increment_t _incx,  // The increment for elements in x (nonzero).
+    element_t _beta,    // Scalar parameter Beta
+    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
+                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
+    increment_t _incy  // The increment for elements in y (nonzero).
 ) {
   return internal::_gemv(ex, _trans, _M, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
@@ -219,24 +219,24 @@ typename Executor::Policy::event_type inline _gemv(
                          ex.get_policy_handler().get_buffer(_vy), _incy);
 }
 
-template <typename Executor, typename IndexType, typename ContainerT0,
-          typename ContainerT1, typename IncrementType>
-typename Executor::Policy::event_type inline _trmv(
-    Executor& ex, char _Uplo, char _trans, char _Diag, IndexType _N,
-    ContainerT0 _mA, IndexType _lda, ContainerT1 _vx, IncrementType _incx) {
+template <typename executor_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename executor_t::policy_t::event_t inline _trmv(
+    executor_t& ex, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, index_t _lda, container_1_t _vx, increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_trmv(ex, _Uplo, _trans, _Diag, _N,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx);
 }
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename ContainerT1, typename IncrementType,
-          typename ContainerT2>
-typename Executor::Policy::event_type inline _symv(
-    Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _mA,
-    IndexType _lda, ContainerT1 _vx, IncrementType _incx, T _beta,
-    ContainerT2 _vy, IncrementType _incy) {
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t inline _symv(
+    executor_t& ex, char _Uplo, index_t _N, element_t _alpha, container_0_t _mA,
+    index_t _lda, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_symv(ex, _Uplo, _N, _alpha,
@@ -244,13 +244,13 @@ typename Executor::Policy::event_type inline _symv(
                          ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
 }
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1,
-          typename ContainerT2>
-typename Executor::Policy::event_type inline _ger(
-    Executor& ex, IndexType _M, IndexType _N, T _alpha, ContainerT0 _vx,
-    IncrementType _incx, ContainerT1 _vy, IncrementType _incy, ContainerT2 _mA,
-    IndexType _lda) {
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t inline _ger(
+    executor_t& ex, index_t _M, index_t _N, element_t _alpha, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _mA,
+    index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_ger(ex, _M, _N, _alpha,
@@ -258,24 +258,24 @@ typename Executor::Policy::event_type inline _ger(
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
 }
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1>
-typename Executor::Policy::event_type inline _syr(
-    Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _vx,
-    IncrementType _incx, ContainerT1 _mA, IndexType _lda) {
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t>
+typename executor_t::policy_t::event_t inline _syr(
+    executor_t& ex, char _Uplo, index_t _N, element_t _alpha, container_0_t _vx,
+    increment_t _incx, container_1_t _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_syr(ex, _Uplo, _N, _alpha,
                         ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
 }
-template <typename Executor, typename IndexType, typename T,
-          typename ContainerT0, typename IncrementType, typename ContainerT1,
-          typename ContainerT2>
-typename Executor::Policy::event_type inline _syr2(
-    Executor& ex, char _Uplo, IndexType _N, T _alpha, ContainerT0 _vx,
-    IncrementType _incx, ContainerT1 _vy, IncrementType _incy, ContainerT2 _mA,
-    IndexType _lda) {
+template <typename executor_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t,
+          typename container_2_t>
+typename executor_t::policy_t::event_t inline _syr2(
+    executor_t& ex, char _Uplo, index_t _N, element_t _alpha, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _mA,
+    index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return internal::_syr2(ex, _Uplo, _N, _alpha,

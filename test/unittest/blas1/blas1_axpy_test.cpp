@@ -35,24 +35,24 @@ REGISTER_PREC(std::complex<float>, 1e-4, axpy_test_buff)
 REGISTER_PREC(std::complex<double>, 1e-6, axpy_test_buff)
 
 TYPED_TEST(BLAS_Test, axpy_test_buff) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class axpy_test_buff;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   // setting alpha to some value
-  ScalarT alpha(1.54);
+  scalar_t alpha(1.54);
   // creating three vectors: vX, vY and vZ.
   // the for loop will compute axpy for vX, vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size);
-  std::vector<ScalarT> vZ(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
+  std::vector<scalar_t> vZ(size, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
@@ -68,8 +68,8 @@ TYPED_TEST(BLAS_Test, axpy_test_buff) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vY = blas::make_sycl_iterator_buffer<ScalarT>(vY, size);
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
   ex.get_policy_handler().wait(event);
@@ -90,24 +90,24 @@ REGISTER_PREC(std::complex<float>, 1e-4, axpy_test)
 REGISTER_PREC(std::complex<double>, 1e-6, axpy_test)
 
 TYPED_TEST(BLAS_Test, axpy_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class axpy_test;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   // setting alpha to some value
-  ScalarT alpha(1.54);
+  scalar_t alpha(1.54);
   // creating three vectors: vX, vY and vZ.
   // the for loop will compute axpy for vX, vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size);
-  std::vector<ScalarT> vZ(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
+  std::vector<scalar_t> vZ(size, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
@@ -123,8 +123,8 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
@@ -134,7 +134,7 @@ TYPED_TEST(BLAS_Test, axpy_test) {
   for (int i = 0; i < size; ++i) {
     ASSERT_NEAR(vZ[i], vY[i], prec);
   }
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
 }
 
 REGISTER_SIZE(::RANDOM_SIZE, axpy_test_vpr)
@@ -145,24 +145,24 @@ REGISTER_PREC(std::complex<float>, 1e-4, axpy_test_vpr)
 REGISTER_PREC(std::complex<double>, 1e-6, axpy_test_vpr)
 
 TYPED_TEST(BLAS_Test, axpy_test_vpr) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class axpy_test_vpr;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
   // setting alpha to some value
-  ScalarT alpha(1.54);
+  scalar_t alpha(1.54);
   // creating three vectors: vX, vY and vZ.
   // the for loop will compute axpy for vX, vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size);
-  std::vector<ScalarT> vZ(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
+  std::vector<scalar_t> vZ(size, 0);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
@@ -178,8 +178,8 @@ TYPED_TEST(BLAS_Test, axpy_test_vpr) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd, gpu_vY, strd);
@@ -191,6 +191,6 @@ TYPED_TEST(BLAS_Test, axpy_test_vpr) {
     ASSERT_NEAR(vZ[i], vY[i], prec);
   }
 
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
 }

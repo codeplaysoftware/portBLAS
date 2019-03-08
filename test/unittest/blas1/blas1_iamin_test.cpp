@@ -33,52 +33,52 @@ REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
 REGISTER_STRD(1, iamin_test)
 
 TYPED_TEST(BLAS_Test, iamin_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class iamin_test;
-  using IndexType = int;
-  IndexType size = TestClass::template test_size<test>();
-  IndexType strd = TestClass::template test_strd<test>();
+  using index_t = int;
+  index_t size = TestClass::template test_size<test>();
+  index_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<ScalarT, IndexType>, const_val::imin>::value;
-  std::vector<IndexValueTuple<ScalarT, IndexType>> vI(1, val);
+      constant<Indexvalue_tuple<scalar_t, index_t>, const_val::imin>::value;
+  std::vector<Indexvalue_tuple<scalar_t, index_t>> vI(1, val);
 
   // compute iamin of vX into res with a for loop
-  ScalarT min = std::numeric_limits<ScalarT>::max();
-  IndexType imin = std::numeric_limits<IndexType>::max();
-  for (IndexType i = 0; i < size; i += strd) {
+  scalar_t min = std::numeric_limits<scalar_t>::max();
+  index_t imin = std::numeric_limits<index_t>::max();
+  for (index_t i = 0; i < size; i += strd) {
     if (std::abs(vX[i]) < std::abs(min)) {
       min = vX[i];
       imin = i;
     }
   }
-  IndexValueTuple<ScalarT, IndexType> res(imin, min);
+  Indexvalue_tuple<scalar_t, index_t> res(imin, min);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vI =
       ex.get_policy_handler()
-          .template allocate<IndexValueTuple<ScalarT, IndexType>>(IndexType(1));
+          .template allocate<Indexvalue_tuple<scalar_t, index_t>>(index_t(1));
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  IndexValueTuple<ScalarT, IndexType> res2(vI[0]);
+  Indexvalue_tuple<scalar_t, index_t> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
   ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
   ex.get_policy_handler()
-      .template deallocate<IndexValueTuple<ScalarT, IndexType>>(gpu_vI);
+      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(gpu_vI);
 }

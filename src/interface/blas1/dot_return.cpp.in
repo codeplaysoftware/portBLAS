@@ -44,8 +44,8 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template typename scalar_type<${CONTAINERT0}>::type _dot(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${CONTAINERT0} _vx,
-    ${INCREMENT_TYPE} _incx, ${CONTAINERT1} _vy, ${INCREMENT_TYPE} _incy);
+template typename ValueType<${container_t0}>::type _dot(
+    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
 }  // namespace internal
 }  // namespace blas

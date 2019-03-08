@@ -30,26 +30,28 @@ namespace blas {
 namespace gemm {
 namespace backend {
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename Executor,
-          typename ContainerT0, typename ContainerT1, typename ContainerT2,
-          typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm(
-    Executor& ex, IndexType _M, IndexType _N, IndexType _K, T _alpha,
-    ContainerT0 _A, IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
-    ContainerT2 _C, IndexType _ldc, IndexType batch_size) {
+          typename container_t0, typename container_t1, typename container_t2,
+          typename element_t, typename index_t>
+typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
+                                           index_t _K, element_t _alpha,
+                                           container_t0 a_, index_t _lda,
+                                           container_t1 b_, index_t _ldb,
+                                           element_t _beta, container_t2 _C,
+                                           index_t _ldc, index_t batch_size) {
   if (_M < 512 && _N < 512) {
     return blas::Gemm_Launcher<
         32, false, false, false, 128, Tile<4, 8, 8, 4>, _t_a, _t_b,
         static_cast<int>(Gemm_t::local_memory),
-        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _A, _lda,
-                                             _B, _ldb, _beta, _C, _ldc,
+        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, a_, _lda,
+                                             b_, _ldb, _beta, _C, _ldc,
                                              batch_size);
 
   } else {
     return blas::Gemm_Launcher<
         32, false, false, false, 128, Tile<8, 4, 4, 8>, _t_a, _t_b,
         static_cast<int>(Gemm_t::local_memory),
-        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _A, _lda,
-                                             _B, _ldb, _beta, _C, _ldc,
+        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, a_, _lda,
+                                             b_, _ldb, _beta, _C, _ldc,
                                              batch_size);
   }
 }

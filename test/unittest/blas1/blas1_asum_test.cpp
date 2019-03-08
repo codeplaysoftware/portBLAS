@@ -35,23 +35,23 @@ REGISTER_PREC(float, 1e-4, asum_test)
 REGISTER_PREC(double, 1e-6, asum_test)
 
 TYPED_TEST(BLAS_Test, asum_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(1, ScalarT(0));
-  ScalarT res(0);
+  std::vector<scalar_t> vR(1, scalar_t(0));
+  scalar_t res(0);
   for (int i = 0; i < size; i += strd) {
     res += std::abs(vX[i]);
   }
@@ -59,8 +59,8 @@ TYPED_TEST(BLAS_Test, asum_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vR = blas::make_sycl_iterator_buffer<ScalarT>(int(1));
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
   ex.get_policy_handler().wait(event);
@@ -73,23 +73,23 @@ REGISTER_PREC(float, 1e-4, asum_test_auto_return)
 REGISTER_PREC(double, 1e-6, asum_test_auto_return)
 
 TYPED_TEST(BLAS_Test, asum_test_auto_return) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test_auto_return;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(1, ScalarT(0));
-  ScalarT res(0);
+  std::vector<scalar_t> vR(1, scalar_t(0));
+  scalar_t res(0);
   for (int i = 0; i < size; i += strd) {
     res += std::abs(vX[i]);
   }
@@ -98,8 +98,8 @@ TYPED_TEST(BLAS_Test, asum_test_auto_return) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   {
-    auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
-    auto gpu_vR = blas::make_sycl_iterator_buffer<ScalarT>(vR, int(1));
+    auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+    auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(vR, int(1));
     _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
   }
   ASSERT_NEAR(res, vR[0], prec);
@@ -111,23 +111,23 @@ REGISTER_PREC(float, 1e-4, asum_test_virtual_pointer)
 REGISTER_PREC(double, 1e-6, asum_test_virtual_pointer)
 
 TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test_virtual_pointer;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(1, ScalarT(0));
-  ScalarT res(0);
+  std::vector<scalar_t> vR(1, scalar_t(0));
+  scalar_t res(0);
   for (int i = 0; i < size; i += strd) {
     res += std::abs(vX[i]);
   }
@@ -135,8 +135,8 @@ TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
@@ -145,8 +145,8 @@ TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vR);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
 }
 
 REGISTER_SIZE(::RANDOM_SIZE, asum_test_combined_vp_buffer)
@@ -155,23 +155,23 @@ REGISTER_PREC(float, 1e-4, asum_test_combined_vp_buffer)
 REGISTER_PREC(double, 1e-6, asum_test_combined_vp_buffer)
 
 TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test_combined_vp_buffer;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(1, ScalarT(0));
-  ScalarT res(0);
+  std::vector<scalar_t> vR(1, scalar_t(0));
+  scalar_t res(0);
   for (int i = 0; i < size; i += strd) {
     res += std::abs(vX[i]);
   }
@@ -179,8 +179,8 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vR = blas::make_sycl_iterator_buffer<ScalarT>(int(1));
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
@@ -189,7 +189,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
 }
 
 REGISTER_SIZE(::RANDOM_SIZE, asum_test_combined_vp_buffer_return_buff)
@@ -198,23 +198,23 @@ REGISTER_PREC(float, 1e-4, asum_test_combined_vp_buffer_return_buff)
 REGISTER_PREC(double, 1e-6, asum_test_combined_vp_buffer_return_buff)
 
 TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class asum_test_combined_vp_buffer_return_buff;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(1, ScalarT(0));
-  ScalarT res(0);
+  std::vector<scalar_t> vR(1, scalar_t(0));
+  scalar_t res(0);
   for (int i = 0; i < size; i += strd) {
     res += std::abs(vX[i]);
   }
@@ -222,8 +222,8 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vR = blas::make_sycl_iterator_buffer<ScalarT>(int(1));
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
   _asum(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
@@ -232,5 +232,5 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
 
   printf("vR[0] %f\n", vR[0]);
   ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
 }

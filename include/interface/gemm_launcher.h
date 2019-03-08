@@ -46,12 +46,12 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
           bool is_beta_zero>
 struct Gemm_Launcher {
-  template <typename Executor, typename ContainerT0, typename ContainerT1,
-            typename ContainerT2, typename T, typename IndexType>
-  static typename Executor::Policy::event_type _select_gemm(
-      Executor& ex, IndexType _M, IndexType _N, IndexType _K, T _alpha,
-      ContainerT0 _A, IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
-      ContainerT2 _C, IndexType _ldc, IndexType batch_size);
+  template <typename executor_t, typename container_0_t, typename container_1_t,
+            typename container_2_t, typename element_t, typename index_t>
+  static typename executor_t::policy_t::event_t _select_gemm(
+      executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+      container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
+      element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size);
 };
 
 }  // namespace blas

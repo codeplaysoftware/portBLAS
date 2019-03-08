@@ -27,25 +27,25 @@
 #define SYCL_BLAS_DEFAULT_POLICY_H
 namespace blas {
 
-template <typename Blas_Policy>
-class Policy_Handler {
+template <typename blas_policy_t>
+class PolicyHandler {
  public:
-  using Policy = Blas_Policy;
+  using policy_t = blas_policy_t;
   /*!
    * @brief SYCL queue for execution of trees.
    */
-  Policy_Handler() = delete;
+  PolicyHandler() = delete;
   /*!
    * @brief SYCL queue for execution of trees.
    */
 
-  explicit Policy_Handler(typename Blas_Policy::queue_type q);
+  explicit PolicyHandler(typename policy_t::queue_t q);
 
-  const typename Blas_Policy::device_type get_device_type() const;
+  const typename policy_t::device_type get_device_type() const;
 
   bool has_local_memory() const;
 
-  typename Blas_Policy::queue_type get_queue() const;
+  typename policy_t::queue_t get_queue() const;
 
   // Force the system not to set this to bigger than 256. As it can be
 
@@ -61,108 +61,72 @@ class Policy_Handler {
   template <typename first_event_t, typename... next_event_t>
   void wait(first_event_t first_event, next_event_t... next_events);
 
-  template <typename T>
-  T *allocate(size_t num_elements) const;
+  template <typename element_t>
+  element_t *allocate(size_t num_elements) const;
 
-  template <typename T>
-  void deallocate(T *p) const;
+  template <typename element_t>
+  void deallocate(element_t *p) const;
 
   /*
   @brief this class is to return the dedicated buffer to the user
-  @ tparam T is the type of the buffer
-  @tparam container_type<T> is the type of the buffer that user can apply
-  arithmetic operation on the host side
+  @ tparam element_t is the type of the buffer
+  @tparam container_type<element_t> is the type of the buffer that user can
+  apply arithmetic operation on the host side
   */
 
-  template <typename T>
-  typename Blas_Policy::template container_type<T> get_buffer(
-      typename Blas_Policy::template container_type<T> buff) const;
+  template <typename element_t>
+  BufferIterator<element_t, policy_t> get_buffer(
+      BufferIterator<element_t, policy_t> buff) const;
   /*  @brief Getting range accessor from the buffer created by virtual pointer
-      @tparam T is the type of the data
-      @tparam AcM is the access mode
+      @tparam element_t is the type of the data
+      @tparam acc_md_t is the access mode
       @param container is the  data we want to get range accessor
   */
 
   /*  @brief Getting range accessor from the buffer created by buffer iterator
-      @tparam T is the type of the data
-      @tparam AcM is the access mode
+      @tparam element_t is the type of the data
+      @tparam acc_md_t is the access mode
       @param container is the  data we want to get range accessor
   */
 
-  template <typename T>
-  typename Blas_Policy::template access_type<typename scalar_type<T>::type>
-  get_range_access(typename Blas_Policy::template container_type<T> buff);
+  template <typename element_t>
+  typename policy_t::template default_accessor_t<
+      typename ValueType<element_t>::type>
+  get_range_access(BufferIterator<element_t, policy_t> buff);
 
   /*
   @brief this function is to get the offset from the actual pointer
-  @tparam T is the type of the pointer
+  @tparam element_t is the type of the pointer
   */
 
-  template <typename T>
-  ptrdiff_t get_offset(
-      const typename Blas_Policy::template container_type<T> ptr) const;
+  template <typename element_t>
+  ptrdiff_t get_offset(const BufferIterator<element_t, policy_t> ptr) const;
   /*
   @brief this function is to get the offset from the actual pointer
-  @tparam T is the type of the container_type<T>
-  */
-
-  /// FIXME: temporary disabling this method due to reinterpret cast bug for
-  /// explicit copy between host and device when range accessor is used
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the device pointer we want to copy to.
-      @param size is the number of elements to be copied
+  @tparam element_t is the type of the container_type<element_t>
   */
 
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the host pointer we want to copy from.
-      @param dst is the device pointer we want to copy to.
-      @param size is the number of elements to be copied
-  */
-
-  template <typename T>
-  typename Blas_Policy::event_type copy_to_device(const T *src, T *dst,
-                                                  size_t size);
-
-  /*  @brief Copying the data back to device
-    @tparam T is the type of the data
+    @tparam element_t is the type of the data
     @param src is the host pointer we want to copy from.
-    @param dst is the buffer_iterator we want to copy to.
+    @param dst is the BufferIterator we want to copy to.
     @param size is the number of elements to be copied
   */
 
-  template <typename T>
-  typename Blas_Policy::event_type copy_to_device(
-      const T *src, typename Blas_Policy::template container_type<T> dst,
-      size_t);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_device(
+      const element_t *src, BufferIterator<element_t, policy_t> dst, size_t);
+
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the device pointer we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
-  */
-  /// FIXME: temporary disabling this method due to reinterpret cast bug for
-  /// explicit copy between host and device when range accessor is used
-  /*  @brief Copying the data back to device
-      @tparam T is the type of the data
-      @param src is the device pointer we want to copy from.
-      @param dst is the host pointer we want to copy to.
-      @param size is the number of elements to be copied
-  */
-  template <typename T>
-  typename Blas_Policy::event_type copy_to_host(T *src, T *dst, size_t size);
-  /*  @brief Copying the data back to device
-    @tparam T is the type of the data
-    @param src is the buffer_iterator we want to copy from.
+    @tparam element_t is the type of the data
+    @param src is the BufferIterator we want to copy from.
     @param dst is the host pointer we want to copy to.
     @param size is the number of elements to be copied
   */
 
-  template <typename T>
-  typename Blas_Policy::event_type copy_to_host(
-      typename Blas_Policy::template container_type<T> src, T *dst, size_t);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_host(
+      BufferIterator<element_t, policy_t> src, element_t *dst, size_t);
 
   /*  @brief waiting for a sycl::queue.wait()
    */

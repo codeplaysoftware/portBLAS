@@ -32,36 +32,36 @@ namespace blas {
 /*
  * @brief allows arithmetic operations on m_buff object and capture the offset
  * of the buffer to access a certain region of the memory
- * @tparam T is the element type of the m_buff object
- * @tparam Policy is the policy determining the type of m_buff object
+ * @tparam element_t is the element type of the m_buff object
+ * @tparam policy_t is the policy determining the type of m_buff object
  This is a work-around for the following enum class.
 */
 
-template <typename T, typename Policy>
-class buffer_iterator {
+template <typename element_t, typename policy_t>
+class BufferIterator {
  public:
-  using scalar_t = T;
-  using self_t = buffer_iterator<scalar_t, Policy>;
-  using buff_t = typename Policy::template buffer_t<scalar_t, 1>;
+  using scalar_t = element_t;
+  using self_t = BufferIterator<scalar_t, policy_t>;
+  using buff_t = typename policy_t::template buffer_t<scalar_t, 1>;
 
   /*
    * buffer iterator constructor
    */
-  buffer_iterator(const buff_t& buff, std::ptrdiff_t offset);
+  BufferIterator(const buff_t& buff, std::ptrdiff_t offset);
   /*
    * buffer iterator constructor
    */
-  buffer_iterator(const buff_t& buff, std::ptrdiff_t offset,
-                  scalar_t* legacy_ptr);
+  BufferIterator(const buff_t& buff, std::ptrdiff_t offset,
+                 scalar_t* legacy_ptr);
   /*
    * buffer iterator constructor
    */
-  buffer_iterator(const buff_t& buff);
+  BufferIterator(const buff_t& buff);
   /*
    * buffer iterator constructor
    */
   template <typename other_scalar_t>
-  buffer_iterator(const buffer_iterator<other_scalar_t, Policy>& other);
+  BufferIterator(const BufferIterator<other_scalar_t, policy_t>& other);
   /*
    * += operator on buffer
    */
@@ -85,11 +85,11 @@ class buffer_iterator {
   // Postfix operator (Return value and increment)
   self_t operator++(int i);
   /*
-   * return the size of the m_buffer (m_buff.size -m_offset)
+   * return the size of the buffer_ (m_buff.size -offset_)
    */
   std::ptrdiff_t get_size() const;
   /*
-   * return the starting point of m_buffer
+   * return the starting point of buffer_
    */
 
   std::ptrdiff_t get_offset() const;
@@ -112,22 +112,23 @@ class buffer_iterator {
 
  private:
   buff_t m_buff;
-  ptrdiff_t m_offset;
+  ptrdiff_t offset_;
 };
 
 /*
  * returns the element type of m_buff in buffer iterator
  */
-template <typename T, typename Policy>
-struct scalar_type<buffer_iterator<T, Policy>> {
-  using type = T;
+template <typename element_t, typename policy_t>
+struct ValueType<BufferIterator<element_t, policy_t>> {
+  using type = element_t;
 };
 /*
- * rebind the buffer iterator<U, Policy> with buffer_iterator<T, Policy>
+ * rebind the buffer iterator<U, policy_t> with BufferIterator<element_t,
+ * policy_t>
  */
-template <typename T, typename U, typename Policy>
-struct rebind_type<T, buffer_iterator<U, Policy>> {
-  using type = buffer_iterator<T, Policy>;
+template <typename element_t, typename U, typename policy_t>
+struct RebindType<element_t, BufferIterator<U, policy_t>> {
+  using type = BufferIterator<element_t, policy_t>;
 };
 
 }  // end namespace blas

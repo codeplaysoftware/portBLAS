@@ -39,15 +39,15 @@ namespace internal {
  * Implements AXPY \f$y = ax + y\f$
  *
  * @param Executor<${EXECUTOR}> ex
- * @param _vx  ${CONTAINERT0}
+ * @param _vx  ${container_t0}
  * @param _incx Increment in X axis
- * @param _vy  ${CONTAINERT1}
+ * @param _vy  ${container_t1}
  * @param _incy Increment in Y axis
  */
 
-template typename Executor<${EXECUTOR}>::Policy::event_type _axpy(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _axpy(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${CONTAINERT0} _vx, ${INCREMENT_TYPE} _incx, ${CONTAINERT1} _vy,
+    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
     ${INCREMENT_TYPE} _incy);
 }  // namespace internal
 }  // end namespace blas

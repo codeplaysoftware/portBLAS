@@ -25,21 +25,21 @@
 
 #include "utils.hpp"
 
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Asum(benchmark::State& state) {
   // Standard test setup.
 
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
   SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);
-  ScalarT vr;
+  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  scalar_t vr;
 
-  auto inx = blas::make_sycl_iterator_buffer<ScalarT>(v1, size);
-  auto inr = blas::make_sycl_iterator_buffer<ScalarT>(&vr, 1);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto inr = blas::make_sycl_iterator_buffer<scalar_t>(&vr, 1);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

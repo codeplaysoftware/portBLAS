@@ -42,31 +42,31 @@ enum class Trans : char { Normal = 'n', Transposed = 't', Conjugate = 'c' };
  */
 class Transposition {
  private:
-  Trans trans;
+  Trans trans_;
 
  public:
   Transposition(char x) {
     char lx = tolower(x);
     switch (lx) {
       case 'n':
-        trans = Trans::Normal;
+        trans_ = Trans::Normal;
         break;
       case 't':
-        trans = Trans::Transposed;
+        trans_ = Trans::Transposed;
         break;
       case 'c':
-        trans = Trans::Conjugate;
+        trans_ = Trans::Conjugate;
         break;
       default:
         throw std::invalid_argument("Invalid transposition argument");
     }
   }
 
-  Trans& get() { return trans; }
+  Trans& get() { return trans_; }
 
-  bool isNormal() { return (trans == Trans::Normal); }
-  bool isTransposed() { return (trans == Trans::Transposed); }
-  bool isConjugate() { return (trans == Trans::Conjugate); }
+  bool is_normal() { return (trans_ == Trans::Normal); }
+  bool is_transposed() { return (trans_ == Trans::Transposed); }
+  bool is_conjugate() { return (trans_ == Trans::Conjugate); }
 };
 
 #endif  // TRANSPOSITION_TYPES_H

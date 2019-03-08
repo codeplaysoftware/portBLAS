@@ -48,27 +48,29 @@ namespace internal {
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
    Executor& ex,         // Executor (sycl, parallel, serial, etc)
     char _trans,          // The transposition of the matrix ('n', 't', 'c')
-    IndexType _M,         // The size of dimension M of the matrix (rows)
-    IndexType _N,         // The size of dimension N of the matrix (columns)
-    T _alpha,             // Scalar parameter Alpha
-    ContainerT0 _mA,      // An array (LDA,N), with the first m*n elements
-    IndexType _lda,       // Specifies the first dimension of a, max(1, m)
-    ContainerT1 _vx,      // An array of dimension at least: (1+(n-1)*abs(incx))
+    index_t _M,         // The size of dimension M of the matrix (rows)
+    index_t _N,         // The size of dimension N of the matrix (columns)
+    element_t _alpha,             // Scalar parameter Alpha
+    container_t0 _mA,      // An array (LDA,N), with the first m*n elements
+    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+    container_t1 _vx,      // An array of dimension at least:
+ (1+(n-1)*abs(incx))
                           // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
                           // containing the vector "x"
-    IncrementType _incx,  // The increment for elements in x (nonzero).
-    T _beta,              // Scalar parameter Beta
-    ContainerT2 _vy,      // An array of dimension at least: (1+(m-1)*abs(incy))
+    increment_t _incx,  // The increment for elements in x (nonzero).
+    element_t _beta,              // Scalar parameter Beta
+    container_t2 _vy,      // An array of dimension at least:
+ (1+(m-1)*abs(incy))
                           // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    IncrementType _incy  // The increment for elements in y (nonzero).
+    increment_t _incy  // The increment for elements in y (nonzero).
  */
-template typename Executor<${EXECUTOR}>::Policy::event_type _gemv(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _gemv(
     Executor<${EXECUTOR}>& ex, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${CONTAINERT0} _mA, ${INDEX_TYPE} _lda,
-    ${CONTAINERT1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
-    ${CONTAINERT2} _vy, ${INCREMENT_TYPE} _incy);
+    ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
+    ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${container_t2} _vy, ${INCREMENT_TYPE} _incy);
 
 }  // namespace internal
 }  // namespace blas

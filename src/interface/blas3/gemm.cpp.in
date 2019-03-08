@@ -32,17 +32,17 @@
 namespace blas {
 namespace internal {
 // gemm
-template typename Executor<${EXECUTOR}>::Policy::event_type _gemm(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
     Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${CONTAINERT0} _A,
-    ${INDEX_TYPE} _lda, ${CONTAINERT1} _B, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${CONTAINERT2} _C, ${INDEX_TYPE} _ldc);
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
+    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
-template typename Executor<${EXECUTOR}>::Policy::event_type _gemm_batched(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
     Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${CONTAINERT0} _A,
-    ${INDEX_TYPE} _lda, ${CONTAINERT1} _B, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${CONTAINERT2} _C, ${INDEX_TYPE} _ldc,
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
+    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
     ${INDEX_TYPE} batch_size);
 }  // namespace internal
 }  // namespace blas

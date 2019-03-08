@@ -37,20 +37,20 @@ template class Gemm_Launcher<
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>;
 
-template typename Executor<${EXECUTOR}>::Policy::event_type Gemm_Launcher<
+template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>::
     _select_gemm<Executor<${EXECUTOR}>,
-                 buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy>,
-                 buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy>,
-                 buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy>, ${DATA_TYPE},
+                 BufferIterator<${DATA_TYPE}, codeplay_policy>,
+                 BufferIterator<${DATA_TYPE}, codeplay_policy>,
+                 BufferIterator<${DATA_TYPE}, codeplay_policy>, ${DATA_TYPE},
                  ${INDEX_TYPE}>(
         Executor<${EXECUTOR}>& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha,
-        buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy> _A, ${INDEX_TYPE} _lda,
-        buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy> _B, ${INDEX_TYPE} _ldb,
-        ${DATA_TYPE} _beta, buffer_iterator<${DATA_TYPE}, BLAS_SYCL_Policy> _C,
+        BufferIterator<${DATA_TYPE}, codeplay_policy> a_, ${INDEX_TYPE} _lda,
+        BufferIterator<${DATA_TYPE}, codeplay_policy> b_, ${INDEX_TYPE} _ldb,
+        ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}, codeplay_policy> _C,
         ${INDEX_TYPE} _ldc, ${INDEX_TYPE} batch_size);
 
 }  // namespace blas

@@ -33,7 +33,7 @@ REGISTER_PREC(float, 1e-4, ger_test)
 REGISTER_PREC(double, 1e-8, ger_test)
 
 TYPED_TEST(BLAS_Test, ger_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class ger_test;
@@ -43,29 +43,30 @@ TYPED_TEST(BLAS_Test, ger_test) {
   int lda = m;
   int incX = 1;
   int incY = 1;
-  ScalarT prec = TestClass::template test_prec<test>();
-  ScalarT alpha = ScalarT(3);
+  scalar_t prec = TestClass::template test_prec<test>();
+  scalar_t alpha = scalar_t(3);
 
   // Input matrix
-  std::vector<ScalarT> a_v(m);
+  std::vector<scalar_t> a_v(m);
   // Input Vector
-  std::vector<ScalarT> b_v(n);
+  std::vector<scalar_t> b_v(n);
   // output Vector
-  std::vector<ScalarT> c_m_gpu_result(m * n, ScalarT(0));
+  std::vector<scalar_t> c_m_gpu_result(m * n, scalar_t(0));
   // output system vector
-  std::vector<ScalarT> c_m_cpu(m * n, ScalarT(0));
+  std::vector<scalar_t> c_m_cpu(m * n, scalar_t(0));
   TestClass::set_rand(a_v, m);
   TestClass::set_rand(b_v, n);
 
   // SYSTEM GEMMV
-  ger(m, n, alpha, a_v.data(), incX, b_v.data(), incY, c_m_cpu.data(), m);
+  reference_blas::ger(m, n, alpha, a_v.data(), incX, b_v.data(), incY,
+                      c_m_cpu.data(), m);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto v_a_gpu = ex.get_policy_handler().template allocate<ScalarT>(m);
-  auto v_b_gpu = ex.get_policy_handler().template allocate<ScalarT>(n);
-  auto m_c_gpu = ex.get_policy_handler().template allocate<ScalarT>(m * n);
+  auto v_a_gpu = ex.get_policy_handler().template allocate<scalar_t>(m);
+  auto v_b_gpu = ex.get_policy_handler().template allocate<scalar_t>(n);
+  auto m_c_gpu = ex.get_policy_handler().template allocate<scalar_t>(m * n);
   ex.get_policy_handler().copy_to_device(a_v.data(), v_a_gpu, m);
   ex.get_policy_handler().copy_to_device(b_v.data(), v_b_gpu, n);
   ex.get_policy_handler().copy_to_device(c_m_gpu_result.data(), m_c_gpu, m * n);
@@ -79,7 +80,7 @@ TYPED_TEST(BLAS_Test, ger_test) {
   for (int i = 0; i < m * n; ++i) {
     ASSERT_NEAR(c_m_gpu_result[i], c_m_cpu[i], prec);
   }
-  ex.get_policy_handler().template deallocate<ScalarT>(v_a_gpu);
-  ex.get_policy_handler().template deallocate<ScalarT>(v_b_gpu);
-  ex.get_policy_handler().template deallocate<ScalarT>(m_c_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(v_a_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(v_b_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(m_c_gpu);
 }

@@ -31,39 +31,44 @@
 
 namespace blas {
 
-struct BLAS_SYCL_Policy {
-  template <typename ScalarT, int dim = 1>
-  using buffer_t = cl::sycl::buffer<ScalarT, dim>;
-  template <typename ScalarT,
-            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
-            cl::sycl::access::target AcT =
+struct codeplay_policy {
+  template <typename scalar_t, int dim = 1>
+  using buffer_t = cl::sycl::buffer<scalar_t, dim>;
+  template <typename scalar_t,
+            cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
                 cl::sycl::access::target::global_buffer,
-            cl::sycl::access::placeholder AcP =
+            cl::sycl::access::placeholder place_holder_t =
                 cl::sycl::access::placeholder::false_t>
-  using SyclAccessor = cl::sycl::accessor<ScalarT, 1, AcM, AcT, AcP>;
-  template <
-      typename ScalarT,
-      cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write,
-      cl::sycl::access::target AcT = cl::sycl::access::target::global_buffer,
-      cl::sycl::access::placeholder AcP = cl::sycl::access::placeholder::true_t>
-  using placeholder_accessor_t = cl::sycl::accessor<ScalarT, 1, AcM, AcT, AcP>;
-  using access_mode_type = cl::sycl::access::mode;
-  using queue_type = cl::sycl::queue;
-  template <typename T,
-            cl::sycl::access::mode AcM = cl::sycl::access::mode::read_write>
-  using access_type = placeholder_accessor_t<T, AcM>;
-  using event_type = std::vector<cl::sycl::event>;
+  using accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  template <typename scalar_t,
+            cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
+                cl::sycl::access::target::global_buffer,
+            cl::sycl::access::placeholder place_holder_t =
+                cl::sycl::access::placeholder::true_t>
+  using placeholder_accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  using access_mode_t = cl::sycl::access::mode;
+  using queue_t = cl::sycl::queue;
+  template <typename value_t,
+            access_mode_t acc_md_t = cl::sycl::access::mode::read_write>
+  using default_accessor_t = placeholder_accessor_t<value_t, acc_md_t>;
+  using event_t = std::vector<cl::sycl::event>;
 
-  enum class device_type {
-    SYCL_CPU,
-    SYCL_HOST,
-    SYCL_UNSUPPORTED_DEVICE,
-    SYCL_INTEL_GPU,
-    SYCL_AMD_GPU,
-    SYCL_ARM_GPU,
-    SYCL_RCAR_CVENGINE,
-    SYCL_POWERVR_GPU,
-    SYCL_RCAR_HOST_CPU
+  enum class device_type : int {
+    cpu,
+    host,
+    intel_gpu,
+    amd_gpu,
+    arm_gpu,
+    rcar_cvengine,
+    power_vr,
+    rcar_cpu,
+    unsupported
   };
   static inline bool has_local_memory(cl::sycl::queue &q_) {
     return (q_.get_device()
@@ -95,24 +100,24 @@ struct BLAS_SYCL_Policy {
                    ::tolower);
     if (plat_name.find("amd") != std::string::npos &&
         dev_type == cl::sycl::info::device_type::gpu) {
-      return device_type::SYCL_AMD_GPU;
+      return device_type::amd_gpu;
     } else if (plat_name.find("intel") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::gpu) {
-      return device_type::SYCL_INTEL_GPU;
+      return device_type::intel_gpu;
     } else if (plat_name.find("computeaorta") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::accelerator) {
-      return device_type::SYCL_RCAR_CVENGINE;
+      return device_type::rcar_cvengine;
     } else if (plat_name.find("arm") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::gpu) {
-      return device_type::SYCL_ARM_GPU;
+      return device_type::arm_gpu;
     } else if (plat_name.find("powervr") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::gpu) {
-      return device_type::SYCL_POWERVR_GPU;
+      return device_type::power_vr;
     } else if (plat_name.find("computeaorta") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::cpu) {
-      return device_type::SYCL_RCAR_HOST_CPU;
+      return device_type::rcar_cpu;
     } else {
-      return device_type::SYCL_UNSUPPORTED_DEVICE;
+      return device_type::unsupported;
     }
     throw std::runtime_error("couldn't find device");
   }

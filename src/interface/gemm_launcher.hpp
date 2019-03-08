@@ -48,23 +48,23 @@ namespace blas {
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
           bool is_beta_zero>
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type Gemm_Launcher<
+template <typename Executor, typename container_t0, typename container_t1,
+          typename container_t2, typename element_t, typename index_t>
+typename Executor::policy_t::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
-    GemmType, is_beta_zero>::_select_gemm(Executor& ex, IndexType _M,
-                                          IndexType _N, IndexType _K, T _alpha,
-                                          ContainerT0 _A, IndexType _lda,
-                                          ContainerT1 _B, IndexType _ldb,
-                                          T _beta, ContainerT2 _C,
-                                          IndexType _ldc,
-                                          IndexType batch_size) {
-  auto buffer_a = make_matrix_view(ex, _A, _M, _K, _lda, Access::ColMajor());
-  auto buffer_b = make_matrix_view(ex, _B, _K, _N, _ldb, Access::ColMajor());
-  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::ColMajor());
+    GemmType, is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
+                                          index_t _K, element_t _alpha,
+                                          container_t0 a_, index_t _lda,
+                                          container_t1 b_, index_t _ldb,
+                                          element_t _beta, container_t2 _C,
+                                          index_t _ldc, index_t batch_size) {
+  auto buffer_a = make_matrix_view(ex, a_, _M, _K, _lda, Access::col_major());
+  auto buffer_b = make_matrix_view(ex, b_, _K, _N, _ldb, Access::col_major());
+  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::col_major());
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
                         TransA, TransB, GemmType, is_beta_zero>(
-      buffer_a, buffer_b, buffer_c, T(_alpha), T(_beta), batch_size);
+      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
+      batch_size);
   return ex.execute(gemm);
 }
 

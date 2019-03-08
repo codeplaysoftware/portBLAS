@@ -45,9 +45,9 @@ namespace internal {
  * @param _cos cosine
  * @param _N data size
  */
-template typename Executor<${EXECUTOR}>::Policy::event_type _rot(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${CONTAINERT0} _vx,
-    ${INCREMENT_TYPE} _incx, ${CONTAINERT1} _vy, ${INCREMENT_TYPE} _incy,
+template typename Executor<${EXECUTOR}>::policy_t::event_t _rot(
+    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${DATA_TYPE} _cos, ${DATA_TYPE} _sin);
 }  // namespace internal
 }  // namespace blas

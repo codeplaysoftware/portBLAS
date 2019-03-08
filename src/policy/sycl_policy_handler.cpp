@@ -28,102 +28,104 @@
 
 namespace blas {
 
-#define INSTANTIATE_TEMPLATE_METHODS(T)                                       \
-  template T *Policy_Handler<BLAS_SYCL_Policy>::allocate<T>(                  \
-      size_t num_elements) const;                                             \
-  template void Policy_Handler<BLAS_SYCL_Policy>::deallocate<T>(T * p) const; \
-  template buffer_iterator<T, BLAS_SYCL_Policy>                               \
-      Policy_Handler<BLAS_SYCL_Policy>::get_buffer<T>(T * ptr) const;         \
-  template buffer_iterator<T, BLAS_SYCL_Policy>                               \
-  Policy_Handler<BLAS_SYCL_Policy>::get_buffer<T>(                            \
-      buffer_iterator<T, BLAS_SYCL_Policy> buff) const;                       \
-  template typename BLAS_SYCL_Policy::access_type<                            \
-      typename scalar_type<T>::type, cl::sycl::access::mode::read_write>      \
-      Policy_Handler<BLAS_SYCL_Policy>::get_range_access<                     \
-          cl::sycl::access::mode::read_write, T>(T * vptr);                   \
-                                                                              \
-  template typename BLAS_SYCL_Policy::access_type<                            \
-      typename scalar_type<T>::type, cl::sycl::access::mode::read_write>      \
-  Policy_Handler<BLAS_SYCL_Policy>::get_range_access<                         \
-      T, cl::sycl::access::mode::read_write>(                                 \
-      buffer_iterator<T, BLAS_SYCL_Policy> buff);                             \
-  template typename BLAS_SYCL_Policy::event_type                              \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_device<T>(const T *src, T *dst,   \
-                                                      size_t size);           \
-                                                                              \
-  template typename BLAS_SYCL_Policy::event_type                              \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_device<T>(                        \
-      const T *src, buffer_iterator<T, BLAS_SYCL_Policy> dst,                 \
-      size_t size = 0);                                                       \
-  template typename BLAS_SYCL_Policy::event_type                              \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_host<T>(T * src, T * dst,         \
-                                                    size_t size);             \
-                                                                              \
-  template typename BLAS_SYCL_Policy::event_type                              \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_host<T>(                          \
-      buffer_iterator<T, BLAS_SYCL_Policy> src, T * dst, size_t size = 0);    \
-  template ptrdiff_t Policy_Handler<BLAS_SYCL_Policy>::get_offset<T>(         \
-      const T *ptr) const;                                                    \
-                                                                              \
-  template ptrdiff_t Policy_Handler<BLAS_SYCL_Policy>::get_offset<T>(         \
-      buffer_iterator<T, BLAS_SYCL_Policy> ptr) const;
+#define INSTANTIATE_TEMPLATE_METHODS(element_t)                                \
+  template element_t *PolicyHandler<codeplay_policy>::allocate<element_t>(     \
+      size_t num_elements) const;                                              \
+  template void PolicyHandler<codeplay_policy>::deallocate<element_t>(         \
+      element_t * p) const;                                                    \
+  template BufferIterator<element_t, codeplay_policy>                          \
+      PolicyHandler<codeplay_policy>::get_buffer<element_t>(element_t * ptr)   \
+          const;                                                               \
+  template BufferIterator<element_t, codeplay_policy>                          \
+  PolicyHandler<codeplay_policy>::get_buffer<element_t>(                       \
+      BufferIterator<element_t, codeplay_policy> buff) const;                  \
+  template typename codeplay_policy::default_accessor_t<                       \
+      typename ValueType<element_t>::type, cl::sycl::access::mode::read_write> \
+      PolicyHandler<codeplay_policy>::get_range_access<                        \
+          cl::sycl::access::mode::read_write, element_t>(element_t * vptr);    \
+                                                                               \
+  template typename codeplay_policy::default_accessor_t<                       \
+      typename ValueType<element_t>::type, cl::sycl::access::mode::read_write> \
+  PolicyHandler<codeplay_policy>::get_range_access<                            \
+      element_t, cl::sycl::access::mode::read_write>(                          \
+      BufferIterator<element_t, codeplay_policy> buff);                        \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_device<element_t>(                   \
+      const element_t *src, element_t *dst, size_t size);                      \
+                                                                               \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_device<element_t>(                   \
+      const element_t *src, BufferIterator<element_t, codeplay_policy> dst,    \
+      size_t size = 0);                                                        \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_host<element_t>(                     \
+      element_t * src, element_t * dst, size_t size);                          \
+                                                                               \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_host<element_t>(                     \
+      BufferIterator<element_t, codeplay_policy> src, element_t * dst,         \
+      size_t size = 0);                                                        \
+  template ptrdiff_t PolicyHandler<codeplay_policy>::get_offset<element_t>(    \
+      const element_t *ptr) const;                                             \
+                                                                               \
+  template ptrdiff_t PolicyHandler<codeplay_policy>::get_offset<element_t>(    \
+      BufferIterator<element_t, codeplay_policy> ptr) const;
 
 INSTANTIATE_TEMPLATE_METHODS(float)
 INSTANTIATE_TEMPLATE_METHODS(double)
 
 #define INSTANTIATE_TEMPLATE_METHODS_SPECIAL(ind, val)                         \
-  template IndexValueTuple<ind, val>                                           \
-      *Policy_Handler<BLAS_SYCL_Policy>::allocate<IndexValueTuple<ind, val>>(  \
+  template Indexvalue_tuple<ind, val>                                          \
+      *PolicyHandler<codeplay_policy>::allocate<Indexvalue_tuple<ind, val>>(   \
           size_t num_elements) const;                                          \
   template void                                                                \
-      Policy_Handler<BLAS_SYCL_Policy>::deallocate<IndexValueTuple<ind, val>>( \
-          IndexValueTuple<ind, val> * p) const;                                \
-  template buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy>        \
-      Policy_Handler<BLAS_SYCL_Policy>::get_buffer<IndexValueTuple<ind, val>>( \
-          IndexValueTuple<ind, val> * ptr) const;                              \
-  template buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy>        \
-  Policy_Handler<BLAS_SYCL_Policy>::get_buffer<IndexValueTuple<ind, val>>(     \
-      buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy> buff)       \
-      const;                                                                   \
-  template typename BLAS_SYCL_Policy::access_type<                             \
-      typename scalar_type<IndexValueTuple<ind, val>>::type,                   \
+      PolicyHandler<codeplay_policy>::deallocate<Indexvalue_tuple<ind, val>>(  \
+          Indexvalue_tuple<ind, val> * p) const;                               \
+  template BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy>         \
+      PolicyHandler<codeplay_policy>::get_buffer<Indexvalue_tuple<ind, val>>(  \
+          Indexvalue_tuple<ind, val> * ptr) const;                             \
+  template BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy>         \
+  PolicyHandler<codeplay_policy>::get_buffer<Indexvalue_tuple<ind, val>>(      \
+      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> buff) const; \
+  template typename codeplay_policy::default_accessor_t<                       \
+      typename ValueType<Indexvalue_tuple<ind, val>>::type,                    \
       cl::sycl::access::mode::read_write>                                      \
-      Policy_Handler<BLAS_SYCL_Policy>::get_range_access<                      \
-          cl::sycl::access::mode::read_write, IndexValueTuple<ind, val>>(      \
-          IndexValueTuple<ind, val> * vptr);                                   \
+      PolicyHandler<codeplay_policy>::get_range_access<                        \
+          cl::sycl::access::mode::read_write, Indexvalue_tuple<ind, val>>(     \
+          Indexvalue_tuple<ind, val> * vptr);                                  \
                                                                                \
-  template typename BLAS_SYCL_Policy::access_type<                             \
-      typename scalar_type<IndexValueTuple<ind, val>>::type,                   \
+  template typename codeplay_policy::default_accessor_t<                       \
+      typename ValueType<Indexvalue_tuple<ind, val>>::type,                    \
       cl::sycl::access::mode::read_write>                                      \
-  Policy_Handler<BLAS_SYCL_Policy>::get_range_access<                          \
-      IndexValueTuple<ind, val>, cl::sycl::access::mode::read_write>(          \
-      buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy> buff);      \
-  template typename BLAS_SYCL_Policy::event_type                               \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_device<IndexValueTuple<ind, val>>( \
-      const IndexValueTuple<ind, val> *src, IndexValueTuple<ind, val> *dst,    \
+  PolicyHandler<codeplay_policy>::get_range_access<                            \
+      Indexvalue_tuple<ind, val>, cl::sycl::access::mode::read_write>(         \
+      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> buff);       \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_device<Indexvalue_tuple<ind, val>>(  \
+      const Indexvalue_tuple<ind, val> *src, Indexvalue_tuple<ind, val> *dst,  \
       size_t size);                                                            \
                                                                                \
-  template typename BLAS_SYCL_Policy::event_type                               \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_device<IndexValueTuple<ind, val>>( \
-      const IndexValueTuple<ind, val> *src,                                    \
-      buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy> dst,        \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_device<Indexvalue_tuple<ind, val>>(  \
+      const Indexvalue_tuple<ind, val> *src,                                   \
+      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> dst,         \
       size_t size = 0);                                                        \
-  template typename BLAS_SYCL_Policy::event_type                               \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_host<IndexValueTuple<ind, val>>(   \
-      IndexValueTuple<ind, val> * src, IndexValueTuple<ind, val> * dst,        \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_host<Indexvalue_tuple<ind, val>>(    \
+      Indexvalue_tuple<ind, val> * src, Indexvalue_tuple<ind, val> * dst,      \
       size_t size);                                                            \
                                                                                \
-  template typename BLAS_SYCL_Policy::event_type                               \
-  Policy_Handler<BLAS_SYCL_Policy>::copy_to_host<IndexValueTuple<ind, val>>(   \
-      buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy> src,        \
-      IndexValueTuple<ind, val> * dst, size_t size = 0);                       \
+  template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::copy_to_host<Indexvalue_tuple<ind, val>>(    \
+      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> src,         \
+      Indexvalue_tuple<ind, val> * dst, size_t size = 0);                      \
   template ptrdiff_t                                                           \
-  Policy_Handler<BLAS_SYCL_Policy>::get_offset<IndexValueTuple<ind, val>>(     \
-      const IndexValueTuple<ind, val> *ptr) const;                             \
+  PolicyHandler<codeplay_policy>::get_offset<Indexvalue_tuple<ind, val>>(      \
+      const Indexvalue_tuple<ind, val> *ptr) const;                            \
                                                                                \
   template ptrdiff_t                                                           \
-  Policy_Handler<BLAS_SYCL_Policy>::get_offset<IndexValueTuple<ind, val>>(     \
-      buffer_iterator<IndexValueTuple<ind, val>, BLAS_SYCL_Policy> ptr) const;
+  PolicyHandler<codeplay_policy>::get_offset<Indexvalue_tuple<ind, val>>(      \
+      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> ptr) const;
 
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, int)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, long)

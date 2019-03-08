@@ -25,20 +25,20 @@
 
 #include "utils.hpp"
 
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Gemm(benchmark::State& state) {
   // Standard test setup.
   char const* t_a = benchmark::utils::from_transpose_enum(
       static_cast<benchmark::utils::Transposition>(state.range(0)));
   char const* t_b = benchmark::utils::from_transpose_enum(
       static_cast<benchmark::utils::Transposition>(state.range(1)));
-  const IndexType m = static_cast<IndexType>(state.range(2));
-  const IndexType k = static_cast<IndexType>(state.range(3));
-  const IndexType n = static_cast<IndexType>(state.range(4));
+  const index_t m = static_cast<index_t>(state.range(2));
+  const index_t k = static_cast<index_t>(state.range(3));
+  const index_t n = static_cast<index_t>(state.range(4));
 
-  IndexType lda = t_a[0] == 'n' ? m : k;
-  IndexType ldb = t_b[0] == 'n' ? k : n;
-  IndexType ldc = m;
+  index_t lda = t_a[0] == 'n' ? m : k;
+  index_t ldb = t_b[0] == 'n' ? k : n;
+  index_t ldc = m;
 
   state.counters["m"] = m;
   state.counters["k"] = k;
@@ -48,17 +48,17 @@ void BM_Gemm(benchmark::State& state) {
 
   // Create data
   // Scalars
-  ScalarT alpha = benchmark::utils::random_scalar<ScalarT>();
-  ScalarT beta = benchmark::utils::random_scalar<ScalarT>();
+  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
+  scalar_t beta = benchmark::utils::random_scalar<scalar_t>();
 
   // Matrices
-  std::vector<ScalarT> a = benchmark::utils::random_data<ScalarT>(m * k);
-  std::vector<ScalarT> b = benchmark::utils::random_data<ScalarT>(k * n);
-  std::vector<ScalarT> c = benchmark::utils::const_data<ScalarT>(m * n, 0);
+  std::vector<scalar_t> a = benchmark::utils::random_data<scalar_t>(m * k);
+  std::vector<scalar_t> b = benchmark::utils::random_data<scalar_t>(k * n);
+  std::vector<scalar_t> c = benchmark::utils::const_data<scalar_t>(m * n, 0);
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<ScalarT>(a, m * k);
-  auto b_gpu = blas::make_sycl_iterator_buffer<ScalarT>(b, k * n);
-  auto c_gpu = blas::make_sycl_iterator_buffer<ScalarT>(c, m * n);
+  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k);
+  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n);
+  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

@@ -43,9 +43,9 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incy Increment in Y axis
  */
-template typename Executor<${EXECUTOR}>::Policy::event_type _dot(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${CONTAINERT0} _vx,
-    ${INCREMENT_TYPE} _incx, ${CONTAINERT1} _vy, ${INCREMENT_TYPE} _incy,
-    ${CONTAINERT2} _rs);
+template typename Executor<${EXECUTOR}>::policy_t::event_t _dot(
+    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
+    ${container_t2} _rs);
 }  // namespace internal
 }  // namespace blas

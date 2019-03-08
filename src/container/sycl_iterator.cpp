@@ -25,14 +25,14 @@
 #include "container/sycl_iterator.hpp"
 #include "operations/blas_constants.h"
 namespace blas {
-template class buffer_iterator<float, BLAS_SYCL_Policy>;
-template class buffer_iterator<double, BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<float, int>, BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<float, long>, BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<float, long long>,
-                               BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<double, int>, BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<double, long>, BLAS_SYCL_Policy>;
-template class buffer_iterator<IndexValueTuple<double, long long>,
-                               BLAS_SYCL_Policy>;
+template class BufferIterator<float, codeplay_policy>;
+template class BufferIterator<double, codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<float, int>, codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<float, long>, codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<float, long long>,
+                              codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<double, int>, codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<double, long>, codeplay_policy>;
+template class BufferIterator<Indexvalue_tuple<double, long long>,
+                              codeplay_policy>;
 }  // end namespace blas

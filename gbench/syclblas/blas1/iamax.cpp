@@ -25,21 +25,21 @@
 
 #include "utils.hpp"
 
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Iamax(benchmark::State& state) {
   // Standard test setup.
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
   SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::vector<ScalarT> v1 = benchmark::utils::random_data<ScalarT>(size);
-  blas::IndexValueTuple<ScalarT, IndexType> out(-1, -1);
+  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  blas::Indexvalue_tuple<scalar_t, index_t> out(-1, -1);
 
-  auto inx = blas::make_sycl_iterator_buffer<ScalarT>(v1, size);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
   auto outI = blas::make_sycl_iterator_buffer<
-      blas::IndexValueTuple<ScalarT, IndexType>>(&out, 1);
+      blas::Indexvalue_tuple<scalar_t, index_t>>(&out, 1);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

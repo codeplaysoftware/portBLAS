@@ -40,28 +40,28 @@ REGISTER_PREC(float, 1e-4, sycl_buffer_test)
 REGISTER_PREC(double, 1e-6, sycl_buffer_test)
 
 TYPED_TEST(BLAS_Test, sycl_buffer_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class sycl_buffer_test;
 
   size_t size = TestClass::template test_size<test>();
   std::ptrdiff_t offset = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
   size_t strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  std::vector<ScalarT> vX(size, ScalarT(1));
+  std::vector<scalar_t> vX(size, scalar_t(1));
   TestClass::set_rand(vX, size);
 
-  std::vector<ScalarT> vR(size - offset, ScalarT(0));
+  std::vector<scalar_t> vR(size - offset, scalar_t(0));
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto a = blas::make_sycl_iterator_buffer<ScalarT>(vX.data(), size);
+  auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
   auto event = ex.get_policy_handler().copy_to_host((a + offset), vR.data(),
                                                     size - offset);
   ex.get_policy_handler().wait(event);

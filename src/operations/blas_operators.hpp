@@ -44,12 +44,12 @@ struct Operators {};
 @param name Name of the operator.
 @param expr Return expression of the eval function of the oeprator.
 */
-#define SYCLBLAS_DEFINE_UNARY_OPERATOR(name, expr) \
-  struct name : public Operators {                 \
-    template <typename R>                          \
-    static sycl_blas_inline R eval(const R r) {    \
-      return expr;                                 \
-    }                                              \
+#define SYCLBLAS_DEFINE_UNARY_OPERATOR(name, expr)      \
+  struct name : public Operators {                      \
+    template <typename rhs_t>                           \
+    static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) { \
+      return expr;                                      \
+    }                                                   \
   };
 
 /*!
@@ -58,66 +58,66 @@ struct Operators {};
 @param inital Initial value used in the init function of the operator.
 @param expr Return expression of the eval function of the operator.
 */
-#define SYCLBLAS_DEFINE_BINARY_OPERATOR(name, initial, expr)               \
-  struct name : public Operators {                                         \
-    template <typename L, typename R>                                      \
-    static sycl_blas_inline typename strip_asp<R>::type eval(const L &l,   \
-                                                             const R &r) { \
+#define SYCLBLAS_DEFINE_BINARY_OPERATOR(Name, initial_t, expr)             \
+  struct Name : public Operators {                                         \
+    template <typename lhs_t, typename rhs_t>                              \
+    static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(           \
+        const lhs_t &l, const rhs_t &r) {                                  \
       return expr;                                                         \
     }                                                                      \
                                                                            \
-    template <typename R>                                                  \
-    static sycl_blas_inline typename R::value_type init(const R &r) {      \
-      return constant<typename R::value_type, initial>::value;             \
+    template <typename rhs_t>                                              \
+    static SYCL_BLAS_INLINE typename rhs_t::value_t init(const rhs_t &r) { \
+      return constant<typename rhs_t::value_t, initial_t>::value;          \
     }                                                                      \
   };
 
-/* strip_asp.
+/* StripASP.
  * When using ComputeCpp CE, the Device Compiler uses Address Spaces
  * to deal with the different global memories.
  * However, this causes problem with std type traits, which see the
  * types with address space qualifiers as different from the C++
  * standard types.
  *
- * This is strip_asp function servers as a workaround that removes
+ * This is StripASP function servers as a workaround that removes
  * the address space for various types.
  */
-template <typename TypeWithAddressSpace>
-struct strip_asp {
-  typedef TypeWithAddressSpace type;
+template <typename type_with_address_space_t>
+struct StripASP {
+  typedef type_with_address_space_t type;
 };
 
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__COMPUTECPP__)
 #define GENERATE_STRIP_ASP(entry_type, pointer_type)                   \
   template <>                                                          \
-  struct strip_asp<typename std::remove_pointer<                       \
+  struct StripASP<typename std::remove_pointer<                        \
       typename cl::sycl::pointer_type<entry_type>::pointer_t>::type> { \
     typedef entry_type type;                                           \
   };
 
-#define GENERATE_STRIP_ASP_LOCATION(data_type) \
-  GENERATE_STRIP_ASP(data_type, constant_ptr)  \
-  GENERATE_STRIP_ASP(data_type, private_ptr)   \
-  GENERATE_STRIP_ASP(data_type, local_ptr)     \
-  GENERATE_STRIP_ASP(data_type, global_ptr)
+#define GENERATE_STRIP_ASP_LOCATION(data_t) \
+  GENERATE_STRIP_ASP(data_t, constant_ptr)  \
+  GENERATE_STRIP_ASP(data_t, private_ptr)   \
+  GENERATE_STRIP_ASP(data_t, local_ptr)     \
+  GENERATE_STRIP_ASP(data_t, global_ptr)
 
-#define GENERATE_STRIP_ASP_TUPLE(data_type, value_type, pointer_type)  \
-  template <>                                                          \
-  struct strip_asp<                                                    \
-      typename std::remove_pointer<typename cl::sycl::pointer_type<    \
-          IndexValueTuple<data_type, value_type>>::pointer_t>::type> { \
-    typedef IndexValueTuple<data_type, value_type> type;               \
+#define GENERATE_STRIP_ASP_TUPLE(data_t, index_t, pointer_type)     \
+  template <>                                                       \
+  struct StripASP<                                                  \
+      typename std::remove_pointer<typename cl::sycl::pointer_type< \
+          Indexvalue_tuple<data_t, index_t>>::pointer_t>::type> {   \
+    typedef Indexvalue_tuple<data_t, index_t> type;                 \
   };
 
-#define INDEX_VALUE_STRIP_ASP_LOCATION(data_type, index_type)   \
-  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, constant_ptr) \
-  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, private_ptr)  \
-  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, local_ptr)    \
-  GENERATE_STRIP_ASP_TUPLE(data_type, index_type, global_ptr)
+#define INDEX_VALUE_STRIP_ASP_LOCATION(data_t, index_t)   \
+  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, constant_ptr) \
+  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, private_ptr)  \
+  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, local_ptr)    \
+  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, global_ptr)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
 /**
- * syclblas_abs.
+ * ABS.
  *
  * SYCL 1.2 defines different functions for abs for floating point
  * and integer numbers, following the OpenCL convention.
@@ -125,20 +125,18 @@ struct strip_asp {
  * that is enabled for floating point to use fabs, and abs for everything
  * else.
  */
-struct syclblas_abs {
+struct ABS {
   template <typename Type>
-  static sycl_blas_inline Type
-  eval(const Type &val,
-       typename std::enable_if<!std::is_floating_point<
-           typename strip_asp<Type>::type>::value>::type * = 0) {
+  static SYCL_BLAS_INLINE Type eval(
+      const Type &val, typename std::enable_if<!std::is_floating_point<
+                           typename StripASP<Type>::type>::value>::type * = 0) {
     return cl::sycl::abs(val);
   }
 
   template <typename Type>
-  static sycl_blas_inline Type
-  eval(const Type &val,
-       typename std::enable_if<std::is_floating_point<
-           typename strip_asp<Type>::type>::value>::type * = 0) {
+  static SYCL_BLAS_INLINE Type eval(
+      const Type &val, typename std::enable_if<std::is_floating_point<
+                           typename StripASP<Type>::type>::value>::type * = 0) {
     return cl::sycl::fabs(val);
   }
 };
@@ -157,51 +155,44 @@ INDEX_VALUE_STRIP_ASP_LOCATION(double, long long)
 /*!
 Definitions of unary, bianry and ternary operators using the above macros.
 */
-SYCLBLAS_DEFINE_UNARY_OPERATOR(iniAddOp1_struct,
-                               (constant<R, const_val::zero>::value))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(iniPrdOp1_struct,
-                               (constant<R, const_val::one>::value))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(posOp1_struct, (r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(negOp1_struct, (-r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(sqtOp1_struct, (cl::sycl::sqrt(r)))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(tupOp1_struct, r)
-SYCLBLAS_DEFINE_UNARY_OPERATOR(addOp1_struct, (r + r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(prdOp1_struct, (r * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(addOp2_struct, const_val::zero, (l + r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(prdOp2_struct, const_val::one, (l * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(divOp2_struct, const_val::one, (l / r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(maxOp2_struct, const_val::min,
-                                ((l > r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(minOp2_struct, const_val::max,
-                                ((l < r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(addAbsOp2_struct, const_val::zero,
-                                (syclblas_abs::eval(l) + syclblas_abs::eval(r)))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(AdditionIdentity,
+                               (constant<rhs_t, const_val::zero>::value))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(ProductIdentity,
+                               (constant<rhs_t, const_val::one>::value))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(IdentityOperation, (r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(NegationOperation, (-r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(SqrtOperation, (cl::sycl::sqrt(r)))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(DoubleOperation, (r + r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(SquareOperation, (r * r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(AddOperation, const_val::zero, (l + r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(ProductOperation, const_val::one, (l * r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(DivisionOperation, const_val::one, (l / r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(MaxOperation, const_val::min, ((l > r) ? l : r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(MinOperation, const_val::max, ((l < r) ? l : r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperation, const_val::zero,
+                                (ABS::eval(l) + ABS::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    maxIndOp2_struct, const_val::imin,
-    (syclblas_abs::eval(
-         static_cast<typename strip_asp<L>::type>(l).get_value()) <
-         syclblas_abs::eval(
-             static_cast<typename strip_asp<R>::type>(r).get_value()) ||
-     (syclblas_abs::eval(
-          static_cast<typename strip_asp<L>::type>(l).get_value()) ==
-          syclblas_abs::eval(
-              static_cast<typename strip_asp<R>::type>(r).get_value()) &&
+    IMaxOperation, const_val::imin,
+    (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
+         ABS::eval(
+             static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
+     (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+          ABS::eval(
+              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
       l.get_index() > r.get_index()))
-        ? static_cast<typename strip_asp<R>::type>(r)
-        : static_cast<typename strip_asp<L>::type>(l))
+        ? static_cast<typename StripASP<rhs_t>::type>(r)
+        : static_cast<typename StripASP<lhs_t>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    minIndOp2_struct, const_val::imax,
-    (syclblas_abs::eval(
-         static_cast<typename strip_asp<L>::type>(l).get_value()) >
-         syclblas_abs::eval(
-             static_cast<typename strip_asp<R>::type>(r).get_value()) ||
-     (syclblas_abs::eval(
-          static_cast<typename strip_asp<L>::type>(l).get_value()) ==
-          syclblas_abs::eval(
-              static_cast<typename strip_asp<R>::type>(r).get_value()) &&
+    IMinOperation, const_val::imax,
+    (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
+         ABS::eval(
+             static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
+     (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+          ABS::eval(
+              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
       l.get_index() > r.get_index()))
-        ? static_cast<typename strip_asp<R>::type>(r)
-        : static_cast<typename strip_asp<L>::type>(l))
+        ? static_cast<typename StripASP<rhs_t>::type>(r)
+        : static_cast<typename StripASP<lhs_t>::type>(l))
 
 }  // namespace blas
 

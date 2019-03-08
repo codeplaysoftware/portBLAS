@@ -34,7 +34,7 @@ if __name__ == '__main__':
     from py_gen import *
     from string import Template
 
-    executor_list = ['Policy_Handler<BLAS_SYCL_Policy>']
+    executor_list = ['PolicyHandler<codeplay_policy>']
     index_list = ['int', 'long', 'long long']
     data_list = ['float', 'double']
 
@@ -78,12 +78,12 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='CONTAINERT0',
+            key='container_t0',
             vals=[container0],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='CONTAINERT1',
+            key='container_t1',
             vals=[container1],
             itermode=Itermode.combinations,
             iter_modifier=1)

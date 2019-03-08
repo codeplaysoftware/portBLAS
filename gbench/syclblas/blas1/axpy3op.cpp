@@ -25,30 +25,30 @@
 
 #include "utils.hpp"
 
-template <typename ScalarT>
+template <typename scalar_t>
 void BM_Axpy3op(benchmark::State& state) {
   // Standard test setup.
 
-  const IndexType size = static_cast<IndexType>(state.range(0));
+  const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
   SyclExecutorType ex = *getExecutor();
 
   // Create data
-  std::array<ScalarT, 3> alphas = {1.78426458744, 2.187346575843,
+  std::array<scalar_t, 3> alphas = {1.78426458744, 2.187346575843,
                                    3.78164387328};
-  std::vector<ScalarT> vsrc1 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> vsrc2 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> vsrc3 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> vdst1 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> vdst2 = benchmark::utils::random_data<ScalarT>(size);
-  std::vector<ScalarT> vdst3 = benchmark::utils::random_data<ScalarT>(size);
-  auto insrc1 = blas::make_sycl_iterator_buffer<ScalarT>(vsrc1, size);
-  auto insrc2 = blas::make_sycl_iterator_buffer<ScalarT>(vsrc2, size);
-  auto insrc3 = blas::make_sycl_iterator_buffer<ScalarT>(vsrc3, size);
-  auto indst1 = blas::make_sycl_iterator_buffer<ScalarT>(vdst1, size);
-  auto indst2 = blas::make_sycl_iterator_buffer<ScalarT>(vdst2, size);
-  auto indst3 = blas::make_sycl_iterator_buffer<ScalarT>(vdst3, size);
+  std::vector<scalar_t> vsrc1 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> vsrc2 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> vsrc3 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> vdst1 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> vdst2 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> vdst3 = benchmark::utils::random_data<scalar_t>(size);
+  auto insrc1 = blas::make_sycl_iterator_buffer<scalar_t>(vsrc1, size);
+  auto insrc2 = blas::make_sycl_iterator_buffer<scalar_t>(vsrc2, size);
+  auto insrc3 = blas::make_sycl_iterator_buffer<scalar_t>(vsrc3, size);
+  auto indst1 = blas::make_sycl_iterator_buffer<scalar_t>(vdst1, size);
+  auto indst2 = blas::make_sycl_iterator_buffer<scalar_t>(vdst2, size);
+  auto indst3 = blas::make_sycl_iterator_buffer<scalar_t>(vdst3, size);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

@@ -33,7 +33,7 @@ REGISTER_SIZE(::RANDOM_SIZE, copy_test)
 REGISTER_STRD(::RANDOM_STRD, copy_test)
 
 TYPED_TEST(BLAS_Test, copy_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class copy_test;
@@ -45,15 +45,15 @@ TYPED_TEST(BLAS_Test, copy_test) {
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create two vectors: vX and vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size, 0);
   TestClass::set_rand(vX, size);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<ScalarT>(vX, size);
-  auto gpu_vY = blas::make_sycl_iterator_buffer<ScalarT>(size);
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
   ex.get_policy_handler().wait(event);
@@ -71,7 +71,7 @@ REGISTER_SIZE(::RANDOM_SIZE, copy_test_vpr)
 REGISTER_STRD(::RANDOM_STRD, copy_test_vpr)
 
 TYPED_TEST(BLAS_Test, copy_test_vpr) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class copy_test_vpr;
@@ -83,15 +83,15 @@ TYPED_TEST(BLAS_Test, copy_test_vpr) {
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create two vectors: vX and vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size, 0);
   TestClass::set_rand(vX, size);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
@@ -107,6 +107,6 @@ TYPED_TEST(BLAS_Test, copy_test_vpr) {
     }
   }
 
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
 }

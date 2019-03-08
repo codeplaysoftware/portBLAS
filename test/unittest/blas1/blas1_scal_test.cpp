@@ -35,7 +35,7 @@ REGISTER_PREC(float, 1e-4, scal_test)
 REGISTER_PREC(double, 1e-6, scal_test)
 
 TYPED_TEST(BLAS_Test, scal_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class scal_test;
@@ -46,12 +46,12 @@ TYPED_TEST(BLAS_Test, scal_test) {
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
-  ScalarT alpha(1.54);
+  scalar_t alpha(1.54);
   // create two vectors: vX and vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size, 0);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size, 0);
   TestClass::set_rand(vX, size);
 
   // compute vector scalar product vX * alpha in a for loop and put it into vY
@@ -66,7 +66,7 @@ TYPED_TEST(BLAS_Test, scal_test) {
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _scal(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
@@ -76,5 +76,5 @@ TYPED_TEST(BLAS_Test, scal_test) {
   for (int i = 0; i < size; ++i) {
     ASSERT_NEAR(vY[i], vX[i], prec);
   }
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
 }

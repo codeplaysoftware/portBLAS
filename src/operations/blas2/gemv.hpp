@@ -32,49 +32,49 @@
 #include <views/view_sycl.hpp>
 namespace blas {
 
-template <class Output_t, class Matrix_t, class Vector_t>
-Gemv<Output_t, Matrix_t, Vector_t>::Gemv(Output_t &_l, Matrix_t &_matrix,
-                                         Vector_t &_vector)
-    : l(_l), matrix(_matrix), vector(_vector) {}
+template <typename output_t, typename matrxi_t, typename vector_t>
+Gemv<output_t, matrxi_t, vector_t>::Gemv(output_t &_l, matrxi_t &_matrix,
+                                         vector_t &_vector)
+    : lhs_(_l), matrix_(_matrix), vector_(_vector) {}
 
-template <class Output_t, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv<Output_t, Matrix_t, Vector_t>::IndexType
-Gemv<Output_t, Matrix_t, Vector_t>::getSize() const {
-  return vector.getSizeR();
+template <typename output_t, typename matrxi_t, typename vector_t>
+SYCL_BLAS_INLINE typename Gemv<output_t, matrxi_t, vector_t>::index_t
+Gemv<output_t, matrxi_t, vector_t>::get_size() const {
+  return vector_.get_size_row();
 }
-template <class Output_t, class Matrix_t, class Vector_t>
-sycl_blas_inline bool Gemv<Output_t, Matrix_t, Vector_t>::valid_thread(
+template <typename output_t, typename matrxi_t, typename vector_t>
+SYCL_BLAS_INLINE bool Gemv<output_t, matrxi_t, vector_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ndItem.get_global_id(0) < matrix.getSizeR();
+  return ndItem.get_global_id(0) < matrix_.get_size_row();
 }
 
-template <class Output_t, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv<Output_t, Matrix_t, Vector_t>::value_type
-Gemv<Output_t, Matrix_t, Vector_t>::eval(
-    typename Gemv<Output_t, Matrix_t, Vector_t>::IndexType i) {
-  auto dim = vector.getSize();
+template <typename output_t, typename matrxi_t, typename vector_t>
+SYCL_BLAS_INLINE typename Gemv<output_t, matrxi_t, vector_t>::value_t
+Gemv<output_t, matrxi_t, vector_t>::eval(
+    typename Gemv<output_t, matrxi_t, vector_t>::index_t i) {
+  auto dim = vector_.get_size();
 
-  typename Gemv<Output_t, Matrix_t, Vector_t>::value_type acc = 0;
-  for (typename Gemv<Output_t, Matrix_t, Vector_t>::IndexType j = 0;
-       j < vector.getSize(); j++) {
-    // acc += vector.eval(j) * matrix.eval(i, j);
-    acc = cl::sycl::mad(vector.eval(j), matrix.eval(i, j), acc);
+  typename Gemv<output_t, matrxi_t, vector_t>::value_t acc = 0;
+  for (typename Gemv<output_t, matrxi_t, vector_t>::index_t j = 0;
+       j < vector_.get_size(); j++) {
+    // acc += vector_.eval(j) * matrix_.eval(i, j);
+    acc = cl::sycl::mad(vector_.eval(j), matrix_.eval(i, j), acc);
   }
-  return l.eval(i) = acc;
+  return lhs_.eval(i) = acc;
 }
 
-template <class Output_t, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv<Output_t, Matrix_t, Vector_t>::value_type
-Gemv<Output_t, Matrix_t, Vector_t>::eval(cl::sycl::nd_item<1> ndItem) {
-  return Gemv<Output_t, Matrix_t, Vector_t>::eval(ndItem.get_global_id(0));
+template <typename output_t, typename matrxi_t, typename vector_t>
+SYCL_BLAS_INLINE typename Gemv<output_t, matrxi_t, vector_t>::value_t
+Gemv<output_t, matrxi_t, vector_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return Gemv<output_t, matrxi_t, vector_t>::eval(ndItem.get_global_id(0));
 }
 
-template <class Output_t, class Matrix_t, class Vector_t>
-sycl_blas_inline void Gemv<Output_t, Matrix_t, Vector_t>::bind(
+template <typename output_t, typename matrxi_t, typename vector_t>
+SYCL_BLAS_INLINE void Gemv<output_t, matrxi_t, vector_t>::bind(
     cl::sycl::handler &h) {
-  l.bind(h);
-  matrix.bind(h);
-  vector.bind(h);
+  lhs_.bind(h);
+  matrix_.bind(h);
+  vector_.bind(h);
 }
 
 }  // namespace blas

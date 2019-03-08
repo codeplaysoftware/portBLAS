@@ -30,20 +30,21 @@
 namespace blas {
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
-Non-specialized case for usingSharedMem == enabled, which contains a local
+Non-specialized case for using_local_memory == enabled, which contains a local
 accessor.
-@tparam valueT Value type of the local accessor.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
+@tparam value_t Value type of the local accessor.
+@tparam using_local_memory Enum class specifying whether shared memory is
+enabled.
 */
-template <typename valueT, int usingSharedMem>
-struct shared_mem {
+template <typename value_t, int using_local_memory>
+struct LocalMemory {
   /*!
   @brief Constructor that creates a local accessor from a size and a SYCL
   command group handler.
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  sycl_blas_inline shared_mem(size_t size, cl::sycl::handler &cgh)
+  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
       : localAcc(cl::sycl::range<1>(size), cgh) {}
 
   /*!
@@ -52,44 +53,46 @@ struct shared_mem {
   @param id SYCL id.
   @return Reference to an element of the local accessor.
   */
-  sycl_blas_inline valueT &operator[](cl::sycl::id<1> id) {
+  SYCL_BLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
     return localAcc[id];
   }
 
   /*!
   @brief Local accessor.
   */
-  cl::sycl::accessor<valueT, 1, cl::sycl::access::mode::read_write,
+  cl::sycl::accessor<value_t, 1, cl::sycl::access::mode::read_write,
                      cl::sycl::access::target::local>
       localAcc;
 };
 
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
-Specialised case for usingSharedMem == disabled, which does not contain a local
-accessor.
-@tparam valueT Value type of the accessor.
+Specialised case for using_local_memory == disabled, which does not contain a
+local accessor.
+@tparam value_t Value type of the accessor.
 */
-template <typename valueT>
-struct shared_mem<valueT, using_shared_mem::disabled> {
+template <typename value_t>
+struct LocalMemory<value_t, using_local_memory::disabled> {
   /*!
   @brief Constructor that does nothing.
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  sycl_blas_inline shared_mem(size_t size, cl::sycl::handler &cgh) {}
+  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh) {}
 };
 
 /*!
 @brief Template struct for containing an eval function, which uses shared memory
-if enabled. Non-specialised case for usingSharedMem == enabled, which calls eval
-on the tree with the shared_memory as well as an index.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
-@tparam tree_t Type of the tree.
-@tparam sharedMemT Value type of the shared memory.
+if enabled. Non-specialised case for using_local_memory == enabled, which calls
+eval on the tree with the shared_memory as well as an index.
+@tparam using_local_memory Enum class specifying whether shared memory is
+enabled.
+@tparam expression_tree_t Type of the tree.
+@tparam local_memory_t Value type of the shared memory.
 */
-template <int usingSharedMem, typename tree_t, typename sharedMemT>
-struct tree {
+template <int using_local_memory, typename expression_tree_t,
+          typename local_memory_t>
+struct ExpressionTreeEvaluator {
   /*!
   @brief Static function that calls eval on a tree, passing the shared_memory
   object and the index.
@@ -97,8 +100,9 @@ struct tree {
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static sycl_blas_inline void eval(
-      tree_t &tree, shared_mem<sharedMemT, usingSharedMem> scratch,
+  static SYCL_BLAS_INLINE void eval(
+      expression_tree_t &tree,
+      LocalMemory<local_memory_t, using_local_memory> scratch,
       cl::sycl::nd_item<1> index) {
     tree.eval(scratch, index);
   }
@@ -106,22 +110,25 @@ struct tree {
 
 /*! tree.
 @brief Template struct for containing an eval function, which uses shared memory
-if enabled. Specialised case for usingSharedMem == false, which calls eval on
-the tree with the index only.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
-@tparam tree_t Type of the tree.
-@tparam sharedMemT Value type of the shared memory.
+if enabled. Specialised case for using_local_memory == false, which calls eval
+on the tree with the index only.
+@tparam using_local_memory Enum class specifying whether shared memory is
+enabled.
+@tparam expression_tree_t Type of the tree.
+@tparam local_memory_t Value type of the shared memory.
 */
-template <typename tree_t, typename sharedMemT>
-struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
+template <typename expression_tree_t, typename local_memory_t>
+struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
+                               local_memory_t> {
   /*!
   @brief Static function that calls eval on a tree, passing only the index.
   @param tree Tree object.
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static sycl_blas_inline void eval(
-      tree_t &tree, shared_mem<sharedMemT, using_shared_mem::disabled> scratch,
+  static SYCL_BLAS_INLINE void eval(
+      expression_tree_t &tree,
+      LocalMemory<local_memory_t, using_local_memory::disabled> scratch,
       cl::sycl::nd_item<1> index) {
     if (tree.valid_thread(index)) {
       tree.eval(index);
@@ -129,33 +136,37 @@ struct tree<using_shared_mem::disabled, tree_t, sharedMemT> {
   }
 };
 
-/*! ExecTreeFunctor.
+/*! ExpressionTreeFunctor.
 @brief the functor for executing a tree in SYCL.
-@tparam int usingSharedMem  specifying whether shared memory is enabled.
+@tparam int using_local_memory  specifying whether shared memory is enabled.
 @tparam expression Tree Type of the tree.
-@tparam value_type type of elements in shared memory.
-@tparam SharedMem shared memory type (local accessor type).
+@tparam value_t type of elements in shared memory.
+@tparam local_memory_t shared memory type (local accessor type).
 @param scratch_ shared memory object (local accessor).
 @param t_ Tree object.
 */
-template <int usingSharedMem, typename Tree, typename SharedMem,
-          typename value_type>
-struct ExecTreeFunctor {
-  SharedMem scratch;
-  Tree t;
-  sycl_blas_inline ExecTreeFunctor(SharedMem scratch_, Tree t_)
+template <int using_local_memory, typename expression_tree_t,
+          typename local_memory_t, typename value_t>
+struct ExpressionTreeFunctor {
+  local_memory_t scratch;
+  expression_tree_t t;
+  SYCL_BLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch_,
+                                         expression_tree_t t_)
       : scratch(scratch_), t(t_) {}
-  sycl_blas_inline void operator()(cl::sycl::nd_item<1> i) {
-    tree<usingSharedMem, Tree, value_type>::eval(t, scratch, i);
+  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) {
+    ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
+                            value_t>::eval(t, scratch, i);
   }
 };
 
-template <int usingSharedMem, typename Tree>
-static sycl_blas_inline cl::sycl::event execute_tree(cl::sycl::queue q_, Tree t,
+template <int using_local_memory, typename queue_t, typename expression_tree_t>
+static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
+                                                     expression_tree_t t,
                                                      size_t _localSize,
                                                      size_t _globalSize,
                                                      size_t _shMem) {
-  using value_type = typename shared_mem_type<usingSharedMem, Tree>::type;
+  using value_t =
+      typename LocalMemoryType<using_local_memory, expression_tree_t>::type;
 
   auto localSize = _localSize;
   auto globalSize = _globalSize;
@@ -164,14 +175,14 @@ static sycl_blas_inline cl::sycl::event execute_tree(cl::sycl::queue q_, Tree t,
   try {
     auto cg1 = [=](cl::sycl::handler &h) mutable {
       t.bind(h);
-      auto scratch = shared_mem<value_type, usingSharedMem>(shMem, h);
+      auto scratch = LocalMemory<value_t, using_local_memory>(shMem, h);
 
       cl::sycl::nd_range<1> gridConfiguration = cl::sycl::nd_range<1>{
           cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
       h.parallel_for(
           gridConfiguration,
-          ExecTreeFunctor<usingSharedMem, Tree, decltype(scratch), value_type>(
-              scratch, t));
+          ExpressionTreeFunctor<using_local_memory, expression_tree_t,
+                                decltype(scratch), value_t>(scratch, t));
     };
 
     ev = q_.submit(cg1);

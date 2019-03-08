@@ -33,22 +33,22 @@
 #include "views/view.h"
 
 namespace blas {
-/*! Executor<Policy_Handler<BLAS_SYCL_Policy>>.
- * @brief Executes an Expression Tree using SYCL.
+/*! Executor<PolicyHandler<codeplay_policy>>.
+ * @brief Executes an Expression expression_tree_t using SYCL.
  */
-template class Executor<Policy_Handler<BLAS_SYCL_Policy>>;
+template class Executor<PolicyHandler<codeplay_policy>>;
 /*!
  * @brief Constructs a SYCL executor using the given queue.
  * @param q A SYCL queue.
  */
 template <>
-inline Executor<Policy_Handler<BLAS_SYCL_Policy>>::Executor(
-    typename BLAS_SYCL_Policy::queue_type q)
-    : policy_handler_(Policy_Handler<BLAS_SYCL_Policy>(q)) {}
+inline Executor<PolicyHandler<codeplay_policy>>::Executor(
+    typename codeplay_policy::queue_t q)
+    : policy_handler_(PolicyHandler<codeplay_policy>(q)) {}
 
 template <>
-inline Policy_Handler<BLAS_SYCL_Policy>
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::get_policy_handler() const {
+inline PolicyHandler<codeplay_policy>
+Executor<PolicyHandler<codeplay_policy>>::get_policy_handler() const {
   return policy_handler_;
 }
 
@@ -56,15 +56,15 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::get_policy_handler() const {
  * @brief Executes the tree without defining required shared memory.
  */
 template <>
-template <typename Tree>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t) {
+template <typename expression_tree_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t) {
   const auto localSize = policy_handler_.get_work_group_size();
-  auto _N = t.getSize();
+  auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
 
-  return {execute_tree<using_shared_mem::disabled>(
+  return {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
 };
 
@@ -73,14 +73,14 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t) {
  * required shared memory.
  */
 template <>
-template <typename Tree, typename IndexType>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t,
-                                                    IndexType localSize) {
-  auto _N = t.getSize();
+template <typename expression_tree_t, typename index_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+                                                  index_t localSize) {
+  auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
-  return {execute_tree<using_shared_mem::disabled>(
+  return {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
 };
 
@@ -89,11 +89,12 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t,
  * required shared memory.
  */
 template <>
-template <typename Tree, typename IndexType>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t, IndexType localSize,
-                                                    IndexType globalSize) {
-  return {execute_tree<using_shared_mem::disabled>(
+template <typename expression_tree_t, typename index_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+                                                  index_t localSize,
+                                                  index_t globalSize) {
+  return {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
 }
 
@@ -102,12 +103,13 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t, IndexType localSize,
  * memory values.
  */
 template <>
-template <typename Tree, typename IndexType>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t, IndexType localSize,
-                                                    IndexType globalSize,
-                                                    IndexType shMem) {
-  return {execute_tree<using_shared_mem::enabled>(
+template <typename expression_tree_t, typename index_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+                                                  index_t localSize,
+                                                  index_t globalSize,
+                                                  index_t shMem) {
+  return {execute_tree<using_local_memory::enabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, shMem)};
 }
 
@@ -115,45 +117,45 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(Tree t, IndexType localSize,
  * @brief Applies a reduction to a tree.
  */
 template <>
-template <typename Op, typename LHS, typename RHS>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
-    AssignReduction<Op, LHS, RHS> t) {
-  using Tree = AssignReduction<Op, LHS, RHS>;
-  auto _N = t.getSize();
-  auto localSize = t.blqS;
+template <typename operator_t, typename lhs_t, typename rhs_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    AssignReduction<operator_t, lhs_t, rhs_t> t) {
+  using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
+  auto _N = t.get_size();
+  auto localSize = t.local_num_thread_;
   // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF
   // ELEMENTS THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
   // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
   // ALL THE ELEMENTS ARE PROCESSED
-  auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
-  auto lhs = t.l;
-  auto rhs = t.r;
+  auto nWG = (t.global_num_thread_ + (2 * localSize) - 1) / (2 * localSize);
+  auto lhs = t.lhs_;
+  auto rhs = t.rhs_;
 
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-  auto shMem1 = make_sycl_iterator_buffer<typename LHS::value_type>(sharedSize);
-  auto shMem2 = make_sycl_iterator_buffer<typename LHS::value_type>(sharedSize);
-  auto opShMem1 = LHS(shMem1, 1, sharedSize);
-  auto opShMem2 = LHS(shMem2, 1, sharedSize);
-  typename BLAS_SYCL_Policy::event_type event;
+  auto shMem1 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
+  auto shMem2 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
+  auto opShMem1 = lhs_t(shMem1, 1, sharedSize);
+  auto opShMem2 = lhs_t(shMem2, 1, sharedSize);
+  typename codeplay_policy::event_t event;
   bool frst = true;
   bool even = false;
   do {
     auto globalSize = nWG * localSize;
     if (frst) {
       // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
-      auto localTree =
-          Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-      event.push_back(execute_tree<using_shared_mem::enabled>(
+      auto localTree = expression_tree_t(((nWG == 1) ? lhs : opShMem1), rhs,
+                                         localSize, globalSize);
+      event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-      auto localTree = AssignReduction<Op, LHS, LHS>(
+      auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
           ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
           (even ? opShMem1 : opShMem2), localSize, globalSize);
-      event.push_back(execute_tree<using_shared_mem::enabled>(
+      event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
     }
@@ -167,28 +169,29 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
 
 /*!
  * @brief Applies a reduction to a tree, receiving a scratch
- * buffer_iterator.
+ * BufferIterator.
  */
 template <>
-template <typename Operator, typename LHS, typename RHS, typename Scratch>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
-    AssignReduction<Operator, LHS, RHS> t, Scratch scr) {
-  using Tree = AssignReduction<Operator, LHS, RHS>;
-  auto _N = t.getSize();
-  auto localSize = t.blqS;
+template <typename operator_t, typename lhs_t, typename rhs_t,
+          typename local_memory_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr) {
+  using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
+  auto _N = t.get_size();
+  auto localSize = t.local_num_thread_;
   // IF THERE ARE ENOUGH ELEMENTS, EACH BLOCK PROCESS TWO BLOCKS OF
   // ELEMENTS THEREFORE, 2*GLOBALSIZE ELEMENTS ARE PROCESSED IN A STEP
   // MOREOVER, A LOOP ALLOWS TO REPEAT THE PROCESS UNTIL
   // ALL THE ELEMENTS ARE PROCESSED
-  auto nWG = (t.grdS + (2 * localSize) - 1) / (2 * localSize);
-  auto lhs = t.l;
-  auto rhs = t.r;
-  typename BLAS_SYCL_Policy::event_type event;
+  auto nWG = (t.global_num_thread_ + (2 * localSize) - 1) / (2 * localSize);
+  auto lhs = t.lhs_;
+  auto rhs = t.rhs_;
+  typename codeplay_policy::event_t event;
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-  auto opShMem1 = LHS(scr, 1, sharedSize);
-  auto opShMem2 = LHS(scr + sharedSize, 1, sharedSize);
+  auto opShMem1 = lhs_t(scr, 1, sharedSize);
+  auto opShMem2 = lhs_t(scr + sharedSize, 1, sharedSize);
 
   bool frst = true;
   bool even = false;
@@ -196,17 +199,17 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
     auto globalSize = nWG * localSize;
     if (frst) {
       // THE FIRST CASE USES THE ORIGINAL BINARY/TERNARY FUNCTION
-      auto localTree =
-          Tree(((nWG == 1) ? lhs : opShMem1), rhs, localSize, globalSize);
-      event.push_back(execute_tree<using_shared_mem::enabled>(
+      auto localTree = expression_tree_t(((nWG == 1) ? lhs : opShMem1), rhs,
+                                         localSize, globalSize);
+      event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
-      auto localTree = AssignReduction<Operator, LHS, LHS>(
+      auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
           ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
           (even ? opShMem1 : opShMem2), localSize, globalSize);
-      event.push_back(execute_tree<using_shared_mem::enabled>(
+      event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
     }
@@ -218,26 +221,27 @@ Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
   return event;
 }
 template <>
-template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
-          int ClSize, typename tile_type, bool TransA, bool TransB, typename T,
-          bool is_beta_zero, int Gemm_type>
-inline typename BLAS_SYCL_Policy::event_type
-Executor<Policy_Handler<BLAS_SYCL_Policy>>::execute(
-    Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, T, is_beta_zero, Gemm_type>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_type>
         gemm_tree) {
   auto rng =
-      Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-           TransB, T, is_beta_zero,
-           Gemm_type>::get_nd_range(gemm_tree.m, gemm_tree.n,
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero,
+           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
                                     policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory),
-             using_shared_mem::enabled, using_shared_mem::disabled>::type>(
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0],
-      Gemm<RHS0, RHS1, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-           TransB, T, is_beta_zero, Gemm_type>::local_memory_size)};
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero,
+           Gemm_type>::local_memory_size)};
 }
 
 }  // namespace blas

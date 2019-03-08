@@ -61,7 +61,7 @@ struct option_strd;
   struct option_strd<class test_name> {         \
     static constexpr const size_t value = strd; \
   };
-template <typename ScalarT, typename ClassName>
+template <typename scalar_t, typename ClassName>
 struct option_prec;
 #define REGISTER_PREC(type, val, test_name)   \
   template <>                                 \
@@ -82,22 +82,22 @@ struct blas_templ_struct {
 
 // A "default" using shortcut
 template <class ScalarT_, class MetadataT_ = void,
-          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
 using blas_test_args = blas_templ_struct<ScalarT_, MetadataT_, ExecutorType_>;
 
 // specialisation for float
 template <class MetadataT_ = void,
-          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
 using blas_test_float = blas_templ_struct<float, MetadataT_, ExecutorType_>;
 
 // specialisation (with define guard) for double
 #ifdef DOUBLE_SUPPORT
 template <class MetadataT_ = void,
-          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
 using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
 #else
 template <class MetadataT_ = void,
-          class ExecutorType_ = Policy_Handler<BLAS_SYCL_Policy>>
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
 using blas_test_double = ::testing::internal::None;
 #endif
 
@@ -109,7 +109,7 @@ template <class ScalarT_, class MetadataT_, class ExecutorType_>
 class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
     : public ::testing::Test {
  public:
-  using ScalarT = ScalarT_;
+  using scalar_t = ScalarT_;
   using MetadataT = MetadataT_;
   using ExecutorType = ExecutorType_;
 
@@ -124,7 +124,7 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
     // make sure the generated number is not too big for a type
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
-    int max_size = 18 + 3 * std::log2(sizeof(ScalarT) / sizeof(float));
+    int max_size = 18 + 3 * std::log2(sizeof(scalar_t) / sizeof(float));
     int max_rand = std::log2(RAND_MAX);
     return rand() >> (max_rand - max_size);
   }
@@ -164,21 +164,19 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
   }
 
   template <typename test>
-  ScalarT test_prec() {
-    return option_prec<ScalarT, test>::value;
+  scalar_t test_prec() {
+    return option_prec<scalar_t, test>::value;
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
+  template <typename DataType, typename value_t = typename DataType::value_type>
   static void set_rand(DataType &vec, size_t _N) {
-    value_type left(-1), right(1);
+    value_t left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = value_type(rand() % int((right - left) * 8)) * 0.125 - right;
+      vec[i] = value_t(rand() % int((right - left) * 8)) * 0.125 - right;
     }
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
+  template <typename DataType, typename value_t = typename DataType::value_type>
   static void print_cont(const DataType &vec, size_t _N,
                          std::string name = "vector") {
     std::cout << name << ": ";
@@ -188,7 +186,7 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
 
   template <typename DeviceSelector,
             typename = typename std::enable_if<std::is_same<
-                ExecutorType, Policy_Handler<BLAS_SYCL_Policy>>::value>::type>
+                ExecutorType, PolicyHandler<codeplay_policy>>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       for (auto &e : eL) {

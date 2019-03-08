@@ -41,7 +41,7 @@ namespace internal {
  * @param Executor<${EXECUTOR}> ex
  */
 template ${INDEX_TYPE} _iamax(Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N,
-                              ${CONTAINERT0} _vx, ${INCREMENT_TYPE} _incx);
+                              ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal
 }  // namespace blas

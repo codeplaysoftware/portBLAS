@@ -41,9 +41,11 @@ namespace internal {
  * it is assumed to be a vector and the first value
  * is used.
  */
-template <typename T>
+template <typename element_t>
 struct DetectScalar {
-  static typename T::value_type get_scalar(T &opSCL) { return opSCL.eval(0); }
+  static typename element_t::value_t get_scalar(element_t &opSCL) {
+    return opSCL.eval(0);
+  }
 };
 
 /*! DetectScalar.
@@ -51,8 +53,8 @@ struct DetectScalar {
  */
 template <>
 struct DetectScalar<int> {
-  using T = int;
-  static T get_scalar(T &scalar) { return scalar; }
+  using element_t = int;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
 /*! DetectScalar.
@@ -60,8 +62,8 @@ struct DetectScalar<int> {
  */
 template <>
 struct DetectScalar<float> {
-  using T = float;
-  static T get_scalar(T &scalar) { return scalar; }
+  using element_t = float;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
 /*! DetectScalar.
@@ -69,8 +71,8 @@ struct DetectScalar<float> {
  */
 template <>
 struct DetectScalar<double> {
-  using T = double;
-  static T get_scalar(T &scalar) { return scalar; }
+  using element_t = double;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
 /*! DetectScalar.
@@ -78,8 +80,8 @@ struct DetectScalar<double> {
  */
 template <>
 struct DetectScalar<std::complex<float>> {
-  using T = std::complex<float>;
-  static T get_scalar(T &scalar) { return scalar; }
+  using element_t = std::complex<float>;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
 /*! DetectScalar.
@@ -87,341 +89,362 @@ struct DetectScalar<std::complex<float>> {
  */
 template <>
 struct DetectScalar<std::complex<double>> {
-  using T = std::complex<double>;
-  static T get_scalar(T &scalar) { return scalar; }
+  using element_t = std::complex<double>;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
 /*! get_scalar.
  * @brief Template autodecuction function for DetectScalar.
  */
-template <typename T>
-auto get_scalar(T &scl) -> decltype(DetectScalar<T>::get_scalar(scl)) {
-  return DetectScalar<T>::get_scalar(scl);
+template <typename element_t>
+auto get_scalar(element_t &scalar_)
+    -> decltype(DetectScalar<element_t>::get_scalar(scalar_)) {
+  return DetectScalar<element_t>::get_scalar(scalar_);
 }
 }  // namespace internal
 
 /** Join.
  * @brief Joins both sides of the expression in the single kernel.
  */
-template <class LHS, class RHS>
-Join<LHS, RHS>::Join(LHS &_l, RHS _r) : l(_l), r(_r) {}
+template <typename lhs_t, typename rhs_t>
+Join<lhs_t, rhs_t>::Join(lhs_t &_l, rhs_t _r) : lhs_(_l), rhs_(_r) {}
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Join<LHS, RHS>::IndexType Join<LHS, RHS>::getSize()
-    const {
-  return r.getSize();
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Join<lhs_t, rhs_t>::index_t
+Join<lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline bool Join<LHS, RHS>::valid_thread(
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE bool Join<lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < Join<LHS, RHS>::getSize()));
+  return ((ndItem.get_global_id(0) < Join<lhs_t, rhs_t>::get_size()));
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Join<LHS, RHS>::value_type Join<LHS, RHS>::eval(
-    typename Join<LHS, RHS>::IndexType i) {
-  l.eval(i);
-  return r.eval(i);
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Join<lhs_t, rhs_t>::value_t Join<lhs_t, rhs_t>::eval(
+    typename Join<lhs_t, rhs_t>::index_t i) {
+  lhs_.eval(i);
+  return rhs_.eval(i);
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Join<LHS, RHS>::value_type Join<LHS, RHS>::eval(
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Join<lhs_t, rhs_t>::value_t Join<lhs_t, rhs_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
-  return Join<LHS, RHS>::eval(ndItem.get_global_id(0));
+  return Join<lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
-template <class LHS, class RHS>
-sycl_blas_inline void Join<LHS, RHS>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  r.bind(h);
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void Join<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_.bind(h);
 }
 
 /** Assign.
  */
 
-template <class LHS, class RHS>
-Assign<LHS, RHS>::Assign(LHS &_l, RHS _r) : l(_l), r(_r){};
+template <typename lhs_t, typename rhs_t>
+Assign<lhs_t, rhs_t>::Assign(lhs_t &_l, rhs_t _r) : lhs_(_l), rhs_(_r){};
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Assign<LHS, RHS>::IndexType
-Assign<LHS, RHS>::getSize() const {
-  return r.getSize();
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::index_t
+Assign<lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline bool Assign<LHS, RHS>::valid_thread(
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < Assign<LHS, RHS>::getSize()));
+  return ((ndItem.get_global_id(0) < Assign<lhs_t, rhs_t>::get_size()));
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Assign<LHS, RHS>::value_type Assign<LHS, RHS>::eval(
-    typename Assign<LHS, RHS>::IndexType i) {
-  auto val = l.eval(i) = r.eval(i);
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::value_t
+Assign<lhs_t, rhs_t>::eval(typename Assign<lhs_t, rhs_t>::index_t i) {
+  auto val = lhs_.eval(i) = rhs_.eval(i);
   return val;
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline typename Assign<LHS, RHS>::value_type Assign<LHS, RHS>::eval(
-    cl::sycl::nd_item<1> ndItem) {
-  return Assign<LHS, RHS>::eval(ndItem.get_global_id(0));
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::value_t
+Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return Assign<lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
 
-template <class LHS, class RHS>
-sycl_blas_inline void Assign<LHS, RHS>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  r.bind(h);
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void Assign<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_.bind(h);
 }
 
 /*! DoubleAssign.
  */
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline DoubleAssign<LHS1, LHS2, RHS1, RHS2>::DoubleAssign(LHS1 &_l1,
-                                                                    LHS2 &_l2,
-                                                                    RHS1 _r1,
-                                                                    RHS2 _r2)
-    : l1(_l1), l2(_l2), r1(_r1), r2(_r2){};
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::DoubleAssign(
+    lhs_1_t &_l1, lhs_2_t &_l2, rhs_1_t _r1, rhs_2_t _r2)
+    : lhs_1_(_l1), lhs_2_(_l2), rhs_1_(_r1), rhs_2_(_r2){};
 
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline typename DoubleAssign<LHS1, LHS2, RHS1, RHS2>::IndexType
-DoubleAssign<LHS1, LHS2, RHS1, RHS2>::getSize() const {
-  return r2.getSize();
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE
+    typename DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::index_t
+    DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::get_size() const {
+  return rhs_2_.get_size();
 }
 
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline bool DoubleAssign<LHS1, LHS2, RHS1, RHS2>::valid_thread(
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE bool
+DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < getSize()));
+  return ((ndItem.get_global_id(0) < get_size()));
 }
 
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline typename DoubleAssign<LHS1, LHS2, RHS1, RHS2>::value_type
-DoubleAssign<LHS1, LHS2, RHS1, RHS2>::eval(
-    typename DoubleAssign<LHS1, LHS2, RHS1, RHS2>::IndexType i) {
-  auto val1 = r1.eval(i);
-  auto val2 = r2.eval(i);
-  l1.eval(i) = val1;
-  l2.eval(i) = val2;
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE
+    typename DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::value_t
+    DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::eval(
+        typename DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::index_t i) {
+  auto val1 = rhs_1_.eval(i);
+  auto val2 = rhs_2_.eval(i);
+  lhs_1_.eval(i) = val1;
+  lhs_2_.eval(i) = val2;
   return val1;
 }
 
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline typename DoubleAssign<LHS1, LHS2, RHS1, RHS2>::value_type
-DoubleAssign<LHS1, LHS2, RHS1, RHS2>::eval(cl::sycl::nd_item<1> ndItem) {
-  return DoubleAssign<LHS1, LHS2, RHS1, RHS2>::eval(ndItem.get_global_id(0));
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE
+    typename DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::value_t
+    DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::eval(
+        cl::sycl::nd_item<1> ndItem) {
+  return DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::eval(
+      ndItem.get_global_id(0));
 }
-template <class LHS1, class LHS2, class RHS1, class RHS2>
-sycl_blas_inline void DoubleAssign<LHS1, LHS2, RHS1, RHS2>::bind(
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE void DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::bind(
     cl::sycl::handler &h) {
-  l1.bind(h);
-  r1.bind(h);
-  l2.bind(h);
-  r2.bind(h);
+  lhs_1_.bind(h);
+  rhs_1_.bind(h);
+  lhs_2_.bind(h);
+  rhs_2_.bind(h);
 }
 
 /*!ScalarOp.
  * @brief Implements an scalar operation.
  * (e.g alpha OP x, with alpha scalar and x vector)
  */
-template <typename Operator, typename SCL, typename RHS>
-ScalarOp<Operator, SCL, RHS>::ScalarOp(SCL _scl, RHS &_r) : scl(_scl), r(_r) {}
+template <typename operator_t, typename scalar_t, typename rhs_t>
+ScalarOp<operator_t, scalar_t, rhs_t>::ScalarOp(scalar_t _scl, rhs_t &_r)
+    : scalar_(_scl), rhs_(_r) {}
 
-template <typename Operator, typename SCL, typename RHS>
-sycl_blas_inline typename ScalarOp<Operator, SCL, RHS>::IndexType
-ScalarOp<Operator, SCL, RHS>::getSize() const {
-  return r.getSize();
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::index_t
+ScalarOp<operator_t, scalar_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
-template <typename Operator, typename SCL, typename RHS>
-sycl_blas_inline bool ScalarOp<Operator, SCL, RHS>::valid_thread(
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE bool ScalarOp<operator_t, scalar_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < ScalarOp<Operator, SCL, RHS>::getSize()));
+  return ((ndItem.get_global_id(0) <
+           ScalarOp<operator_t, scalar_t, rhs_t>::get_size()));
 }
-template <typename Operator, typename SCL, typename RHS>
-sycl_blas_inline typename ScalarOp<Operator, SCL, RHS>::value_type
-ScalarOp<Operator, SCL, RHS>::eval(
-    typename ScalarOp<Operator, SCL, RHS>::IndexType i) {
-  return Operator::eval(internal::get_scalar(scl), r.eval(i));
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t
+ScalarOp<operator_t, scalar_t, rhs_t>::eval(
+    typename ScalarOp<operator_t, scalar_t, rhs_t>::index_t i) {
+  return operator_t::eval(internal::get_scalar(scalar_), rhs_.eval(i));
 }
-template <typename Operator, typename SCL, typename RHS>
-sycl_blas_inline typename ScalarOp<Operator, SCL, RHS>::value_type
-ScalarOp<Operator, SCL, RHS>::eval(cl::sycl::nd_item<1> ndItem) {
-  return ScalarOp<Operator, SCL, RHS>::eval(ndItem.get_global_id(0));
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t
+ScalarOp<operator_t, scalar_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return ScalarOp<operator_t, scalar_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
-template <typename Operator, typename SCL, typename RHS>
-sycl_blas_inline void ScalarOp<Operator, SCL, RHS>::bind(cl::sycl::handler &h) {
-  r.bind(h);
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE void ScalarOp<operator_t, scalar_t, rhs_t>::bind(
+    cl::sycl::handler &h) {
+  rhs_.bind(h);
 }
 
 /*! UnaryOp.
- * Implements a Unary Operation ( Op(z), e.g. z++), with z a vector.
+ * Implements a Unary Operation ( operator_t(z), e.g. z++), with z a vector.
  */
-template <typename Operator, typename RHS>
-UnaryOp<Operator, RHS>::UnaryOp(RHS &_r) : r(_r) {}
+template <typename operator_t, typename rhs_t>
+UnaryOp<operator_t, rhs_t>::UnaryOp(rhs_t &_r) : rhs_(_r) {}
 
-template <typename Operator, typename RHS>
-sycl_blas_inline typename UnaryOp<Operator, RHS>::IndexType
-UnaryOp<Operator, RHS>::getSize() const {
-  return r.getSize();
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE typename UnaryOp<operator_t, rhs_t>::index_t
+UnaryOp<operator_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
 
-template <typename Operator, typename RHS>
-sycl_blas_inline bool UnaryOp<Operator, RHS>::valid_thread(
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE bool UnaryOp<operator_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < UnaryOp<Operator, RHS>::getSize()));
+  return ((ndItem.get_global_id(0) < UnaryOp<operator_t, rhs_t>::get_size()));
 }
 
-template <typename Operator, typename RHS>
-sycl_blas_inline typename UnaryOp<Operator, RHS>::value_type
-UnaryOp<Operator, RHS>::eval(typename UnaryOp<Operator, RHS>::IndexType i) {
-  return Operator::eval(r.eval(i));
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE typename UnaryOp<operator_t, rhs_t>::value_t
+UnaryOp<operator_t, rhs_t>::eval(
+    typename UnaryOp<operator_t, rhs_t>::index_t i) {
+  return operator_t::eval(rhs_.eval(i));
 }
 
-template <typename Operator, typename RHS>
-sycl_blas_inline typename UnaryOp<Operator, RHS>::value_type
-UnaryOp<Operator, RHS>::eval(cl::sycl::nd_item<1> ndItem) {
-  return UnaryOp<Operator, RHS>::eval(ndItem.get_global_id(0));
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE typename UnaryOp<operator_t, rhs_t>::value_t
+UnaryOp<operator_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return UnaryOp<operator_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
-template <typename Operator, typename RHS>
-sycl_blas_inline void UnaryOp<Operator, RHS>::bind(cl::sycl::handler &h) {
-  r.bind(h);
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE void UnaryOp<operator_t, rhs_t>::bind(cl::sycl::handler &h) {
+  rhs_.bind(h);
 }
 
 /*! BinaryOp.
  * @brief Implements a Binary Operation (x OP z) with x and z vectors.
  */
-template <typename Operator, typename LHS, typename RHS>
-BinaryOp<Operator, LHS, RHS>::BinaryOp(LHS &_l, RHS &_r) : l(_l), r(_r){};
+template <typename operator_t, typename lhs_t, typename rhs_t>
+BinaryOp<operator_t, lhs_t, rhs_t>::BinaryOp(lhs_t &_l, rhs_t &_r)
+    : lhs_(_l), rhs_(_r){};
 
-template <typename Operator, typename LHS, typename RHS>
-sycl_blas_inline typename BinaryOp<Operator, LHS, RHS>::IndexType
-BinaryOp<Operator, LHS, RHS>::getSize() const {
-  return r.getSize();
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::index_t
+BinaryOp<operator_t, lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
-template <typename Operator, typename LHS, typename RHS>
-sycl_blas_inline bool BinaryOp<Operator, LHS, RHS>::valid_thread(
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE bool BinaryOp<operator_t, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < getSize()));
+  return ((ndItem.get_global_id(0) < get_size()));
 }
 
-template <typename Operator, typename LHS, typename RHS>
-sycl_blas_inline typename BinaryOp<Operator, LHS, RHS>::value_type
-BinaryOp<Operator, LHS, RHS>::eval(
-    typename BinaryOp<Operator, LHS, RHS>::IndexType i) {
-  return Operator::eval(l.eval(i), r.eval(i));
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t
+BinaryOp<operator_t, lhs_t, rhs_t>::eval(
+    typename BinaryOp<operator_t, lhs_t, rhs_t>::index_t i) {
+  return operator_t::eval(lhs_.eval(i), rhs_.eval(i));
 }
-template <typename Operator, typename LHS, typename RHS>
-sycl_blas_inline typename BinaryOp<Operator, LHS, RHS>::value_type
-BinaryOp<Operator, LHS, RHS>::eval(cl::sycl::nd_item<1> ndItem) {
-  return BinaryOp<Operator, LHS, RHS>::eval(ndItem.get_global_id(0));
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t
+BinaryOp<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return BinaryOp<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
-template <typename Operator, typename LHS, typename RHS>
-sycl_blas_inline void BinaryOp<Operator, LHS, RHS>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  r.bind(h);
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void BinaryOp<operator_t, lhs_t, rhs_t>::bind(
+    cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_.bind(h);
 }
 
 /*! TupleOp.
  * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
  */
-template <typename RHS>
-TupleOp<RHS>::TupleOp(RHS &_r) : r(_r) {}
+template <typename rhs_t>
+TupleOp<rhs_t>::TupleOp(rhs_t &_r) : rhs_(_r) {}
 
-template <typename RHS>
-sycl_blas_inline typename TupleOp<RHS>::IndexType TupleOp<RHS>::getSize()
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename TupleOp<rhs_t>::index_t TupleOp<rhs_t>::get_size()
     const {
-  return r.getSize();
+  return rhs_.get_size();
 }
 
-template <typename RHS>
-sycl_blas_inline bool TupleOp<RHS>::valid_thread(
+template <typename rhs_t>
+SYCL_BLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < getSize()));
+  return ((ndItem.get_global_id(0) < get_size()));
 }
-template <typename RHS>
-sycl_blas_inline typename TupleOp<RHS>::value_type TupleOp<RHS>::eval(
-    typename TupleOp<RHS>::IndexType i) {
-  return TupleOp<RHS>::value_type(i, r.eval(i));
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
+    typename TupleOp<rhs_t>::index_t i) {
+  return TupleOp<rhs_t>::value_t(i, rhs_.eval(i));
 }
 
-template <typename RHS>
-sycl_blas_inline typename TupleOp<RHS>::value_type TupleOp<RHS>::eval(
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
-  return TupleOp<RHS>::eval(ndItem.get_global_id(0));
+  return TupleOp<rhs_t>::eval(ndItem.get_global_id(0));
 }
-template <typename RHS>
-sycl_blas_inline void TupleOp<RHS>::bind(cl::sycl::handler &h) {
-  r.bind(h);
+template <typename rhs_t>
+SYCL_BLAS_INLINE void TupleOp<rhs_t>::bind(cl::sycl::handler &h) {
+  rhs_.bind(h);
 }
 
 /*! AssignReduction.
  * @brief Implements the reduction operation for assignments (in the form y
  * = x) with y a scalar and x a subexpression tree.
  */
-template <typename Operator, class LHS, class RHS>
-AssignReduction<Operator, LHS, RHS>::AssignReduction(LHS &_l, RHS &_r,
-                                                     IndexType _blqS,
-                                                     IndexType _grdS)
-    : l(_l), r(_r), blqS(_blqS), grdS(_grdS){};
+template <typename operator_t, typename lhs_t, typename rhs_t>
+AssignReduction<operator_t, lhs_t, rhs_t>::AssignReduction(lhs_t &_l, rhs_t &_r,
+                                                           index_t _blqS,
+                                                           index_t _grdS)
+    : lhs_(_l), rhs_(_r), local_num_thread_(_blqS), global_num_thread_(_grdS){};
 
-template <typename Operator, class LHS, class RHS>
-sycl_blas_inline typename AssignReduction<Operator, LHS, RHS>::IndexType
-AssignReduction<Operator, LHS, RHS>::getSize() const {
-  return r.getSize();
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::index_t
+AssignReduction<operator_t, lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
 }
 
-template <typename Operator, class LHS, class RHS>
-sycl_blas_inline bool AssignReduction<Operator, LHS, RHS>::valid_thread(
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE bool AssignReduction<operator_t, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
-template <typename Operator, class LHS, class RHS>
-sycl_blas_inline typename AssignReduction<Operator, LHS, RHS>::value_type
-AssignReduction<Operator, LHS, RHS>::eval(
-    typename AssignReduction<Operator, LHS, RHS>::IndexType i) {
-  IndexType vecS = r.getSize();
-  IndexType frs_thrd = 2 * blqS * i;
-  IndexType lst_thrd = ((frs_thrd + blqS) > vecS) ? vecS : (frs_thrd + blqS);
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::value_t
+AssignReduction<operator_t, lhs_t, rhs_t>::eval(
+    typename AssignReduction<operator_t, lhs_t, rhs_t>::index_t i) {
+  index_t vecS = rhs_.get_size();
+  index_t frs_thrd = 2 * local_num_thread_ * i;
+  index_t lst_thrd = ((frs_thrd + local_num_thread_) > vecS)
+                         ? vecS
+                         : (frs_thrd + local_num_thread_);
   // Reduction across the grid
-  value_type val = Operator::init(r);
-  for (IndexType j = frs_thrd; j < lst_thrd; j++) {
-    value_type local_val = Operator::init(r);
-    for (IndexType k = j; k < vecS; k += 2 * grdS) {
-      local_val = Operator::eval(local_val, r.eval(k));
-      if (k + blqS < vecS) {
-        local_val = Operator::eval(local_val, r.eval(k + blqS));
+  value_t val = operator_t::init(rhs_);
+  for (index_t j = frs_thrd; j < lst_thrd; j++) {
+    value_t local_val = operator_t::init(rhs_);
+    for (index_t k = j; k < vecS; k += 2 * global_num_thread_) {
+      local_val = operator_t::eval(local_val, rhs_.eval(k));
+      if (k + local_num_thread_ < vecS) {
+        local_val =
+            operator_t::eval(local_val, rhs_.eval(k + local_num_thread_));
       }
     }
     // Reduction inside the block
-    val = Operator::eval(val, local_val);
+    val = operator_t::eval(val, local_val);
   }
-  if (i < l.getSize()) {
-    l.eval(i) = val;
+  if (i < lhs_.get_size()) {
+    lhs_.eval(i) = val;
   }
   return val;
 }
-template <typename Operator, class LHS, class RHS>
-sycl_blas_inline typename AssignReduction<Operator, LHS, RHS>::value_type
-AssignReduction<Operator, LHS, RHS>::eval(cl::sycl::nd_item<1> ndItem) {
-  return AssignReduction<Operator, LHS, RHS>::eval(ndItem.get_global_id(0));
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::value_t
+AssignReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return AssignReduction<operator_t, lhs_t, rhs_t>::eval(
+      ndItem.get_global_id(0));
 }
-template <typename Operator, class LHS, class RHS>
+template <typename operator_t, typename lhs_t, typename rhs_t>
 template <typename sharedT>
-sycl_blas_inline typename AssignReduction<Operator, LHS, RHS>::value_type
-AssignReduction<Operator, LHS, RHS>::eval(sharedT scratch,
-                                          cl::sycl::nd_item<1> ndItem) {
-  IndexType localid = ndItem.get_local_id(0);
-  IndexType localSz = ndItem.get_local_range(0);
-  IndexType groupid = ndItem.get_group(0);
+SYCL_BLAS_INLINE typename AssignReduction<operator_t, lhs_t, rhs_t>::value_t
+AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
+                                                cl::sycl::nd_item<1> ndItem) {
+  index_t localid = ndItem.get_local_id(0);
+  index_t localSz = ndItem.get_local_range(0);
+  index_t groupid = ndItem.get_group(0);
 
-  IndexType vecS = r.getSize();
-  IndexType frs_thrd = 2 * groupid * localSz + localid;
+  index_t vecS = rhs_.get_size();
+  index_t frs_thrd = 2 * groupid * localSz + localid;
 
   // Reduction across the grid
-  value_type val = Operator::init(r);
-  for (IndexType k = frs_thrd; k < vecS; k += 2 * grdS) {
-    val = Operator::eval(val, r.eval(k));
-    if ((k + blqS < vecS)) {
-      val = Operator::eval(val, r.eval(k + blqS));
+  value_t val = operator_t::init(rhs_);
+  for (index_t k = frs_thrd; k < vecS; k += 2 * global_num_thread_) {
+    val = operator_t::eval(val, rhs_.eval(k));
+    if ((k + local_num_thread_ < vecS)) {
+      val = operator_t::eval(val, rhs_.eval(k + local_num_thread_));
     }
   }
 
@@ -430,25 +453,25 @@ AssignReduction<Operator, LHS, RHS>::eval(sharedT scratch,
   ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
   // Reduction inside the block
-  for (IndexType offset = localSz >> 1; offset > 0; offset >>= 1) {
+  for (index_t offset = localSz >> 1; offset > 0; offset >>= 1) {
     if (localid < offset) {
       scratch[localid] =
-          Operator::eval(scratch[localid], scratch[localid + offset]);
+          operator_t::eval(scratch[localid], scratch[localid + offset]);
     }
     // This barrier is mandatory to be sure the data are on the shared memory
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
   }
   if (localid == 0) {
-    l.eval(groupid) = scratch[localid];
+    lhs_.eval(groupid) = scratch[localid];
   }
-  return l.eval(groupid);
+  return lhs_.eval(groupid);
 }
 
-template <typename Operator, class LHS, class RHS>
-sycl_blas_inline void AssignReduction<Operator, LHS, RHS>::bind(
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void AssignReduction<operator_t, lhs_t, rhs_t>::bind(
     cl::sycl::handler &h) {
-  l.bind(h);
-  r.bind(h);
+  lhs_.bind(h);
+  rhs_.bind(h);
 }
 
 }  // namespace blas

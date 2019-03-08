@@ -39,39 +39,39 @@ BENCHMARK_NAME_FORMAT(syclblas_level_3) {
 }
 
 BENCHMARK(gemm, syclblas_level_3) {
-  using ScalarT = ElemT;
-  using IndexType = int;
+  using scalar_t = ElemT;
+  using index_t = int;
 
   char const *t_a = std::get<0>(params);
   char const *t_b = std::get<1>(params);
-  const IndexType m = std::get<2>(params);
-  const IndexType k = std::get<3>(params);
-  const IndexType n = std::get<4>(params);
-  const IndexType batched_size = 16;
+  const index_t m = std::get<2>(params);
+  const index_t k = std::get<3>(params);
+  const index_t n = std::get<4>(params);
+  const index_t batched_size = 16;
 
   size_t n_fl_ops = (static_cast<size_t>(2) * static_cast<size_t>(m) *
                      static_cast<size_t>(n) * static_cast<size_t>(k) *
                      static_cast<size_t>(batched_size));
 
-  IndexType lda = t_a[0] == 'n' ? m : k;
-  IndexType ldb = t_b[0] == 'n' ? k : n;
-  IndexType ldc = m;
-  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
-  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
+  index_t lda = t_a[0] == 'n' ? m : k;
+  index_t ldb = t_b[0] == 'n' ? k : n;
+  index_t ldc = m;
+  scalar_t alpha = benchmark<>::random_scalar<scalar_t>();
+  scalar_t beta = benchmark<>::random_scalar<scalar_t>();
 
-  std::vector<ScalarT> a =
-      benchmark<>::random_data<ScalarT>(m * k * batched_size);
-  std::vector<ScalarT> b =
-      benchmark<>::random_data<ScalarT>(k * n * batched_size);
-  std::vector<ScalarT> c =
-      benchmark<>::const_data<ScalarT>(m * n * batched_size, 0);
+  std::vector<scalar_t> a =
+      benchmark<>::random_data<scalar_t>(m * k * batched_size);
+  std::vector<scalar_t> b =
+      benchmark<>::random_data<scalar_t>(k * n * batched_size);
+  std::vector<scalar_t> c =
+      benchmark<>::const_data<scalar_t>(m * n * batched_size, 0);
 
   auto a_gpu =
-      ex.get_policy_handler().template allocate<ScalarT>(m * k * batched_size);
+      ex.get_policy_handler().template allocate<scalar_t>(m * k * batched_size);
   auto b_gpu =
-      ex.get_policy_handler().template allocate<ScalarT>(k * n * batched_size);
+      ex.get_policy_handler().template allocate<scalar_t>(k * n * batched_size);
   auto c_gpu =
-      ex.get_policy_handler().template allocate<ScalarT>(m * n * batched_size);
+      ex.get_policy_handler().template allocate<scalar_t>(m * n * batched_size);
 
   ex.get_policy_handler().copy_to_device(a.data(), a_gpu, m * k * batched_size);
   ex.get_policy_handler().copy_to_device(b.data(), b_gpu, k * n * batched_size);
@@ -90,9 +90,9 @@ BENCHMARK(gemm, syclblas_level_3) {
 
   ex.get_policy_handler().wait(event);
 
-  ex.get_policy_handler().template deallocate<ScalarT>(a_gpu);
-  ex.get_policy_handler().template deallocate<ScalarT>(b_gpu);
-  ex.get_policy_handler().template deallocate<ScalarT>(c_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(a_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(b_gpu);
+  ex.get_policy_handler().template deallocate<scalar_t>(c_gpu);
 
   return flops;
 }

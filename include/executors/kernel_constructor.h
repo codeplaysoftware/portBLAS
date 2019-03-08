@@ -30,85 +30,89 @@
 
 namespace blas {
 
-/*!using_shared_mem.
+/*!using_local_memory.
  * @brief Indicates whether if the kernel uses shared memory or not.
  This is a work-around for the following enum class.
 */
-namespace using_shared_mem {
+namespace using_local_memory {
 static const int enabled = 0;
 static const int disabled = 1;
-};  // namespace using_shared_mem
+};  // namespace using_local_memory
 
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
-Non-specialised case for usingSharedMem == enabled, which contains a local
+Non-specialised case for using_local_memory == enabled, which contains a local
 accessor.
-@tparam valueT Value type of the local accessor.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
+@tparam value_t Value type of the local accessor.
+@tparam using_local_memory Enum class specifying whether shared memory is
+enabled.
 */
-template <typename valueT, int usingSharedMem>
-struct shared_mem;
+template <typename value_t, int using_local_memory>
+struct LocalMemory;
 
 /*!
 @brief Template struct defining the value type of shared memory if enabled.
-Non-specialised case for usingSharedMem == enabled, which defines the type as
-the value type of the tree.
+Non-specialised case for using_local_memory == enabled, which defines the type
+as the value type of the tree.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <int usingSharedMem, typename tree_t>
-struct shared_mem_type {
-  using type = typename tree_t::value_type;
+template <int using_local_memory, typename expression_tree_t>
+struct LocalMemoryType {
+  using type = typename expression_tree_t::value_t;
 };
 
 /*!
 @brief Template struct defining the value type of shared memory if enabled.
-Specialised case for usingSharedMem == disabled, which defines the type as void.
+Specialised case for using_local_memory == disabled, which defines the type as
+void.
 @tparam usingSharedMemory Enum class specifying whether shared memory is
 enabled.
 */
-template <typename tree_t>
-struct shared_mem_type<using_shared_mem::disabled, tree_t> {
+template <typename expression_tree_t>
+struct LocalMemoryType<using_local_memory::disabled, expression_tree_t> {
   using type = void;
 };
 
 /*!
 @brief Template struct for containing an eval function, which uses shared memory
-if enabled. Non-specialised case for usingSharedMem == enabled, which calls eval
-on the tree with the shared_memory as well as an index.
-@tparam usingSharedMem Enum class specifying whether shared memory is enabled.
-@tparam tree_t Type of the tree.
-@tparam sharedMemT Value type of the shared memory.
+if enabled. Non-specialised case for using_local_memory == enabled, which calls
+eval on the tree with the shared_memory as well as an index.
+@tparam using_local_memory Enum class specifying whether shared memory is
+enabled.
+@tparam expression_tree_t Type of the tree.
+@tparam local_memory_t Value type of the shared memory.
 */
-template <int usingSharedMem, typename tree_t, typename sharedMemT>
-struct tree;
+template <int using_local_memory, typename expression_tree_t,
+          typename local_memory_t>
+struct ExpressionTreeEvaluator;
 
-/*! ExecTreeFunctor.
+/*! ExpressionTreeFunctor.
 @brief the functor for executing a tree in SYCL.
-@tparam int usingSharedMem  specifying whether shared memory is enabled.
+@tparam int using_local_memory  specifying whether shared memory is enabled.
 @tparam expression Tree Type of the tree.
-@tparam value_type type of elements in shared memory.
-@tparam SharedMem shared memory type (local accessor type).
+@tparam value_t type of elements in shared memory.
+@tparam local_memory_t shared memory type (local accessor type).
 @param scratch_ shared memory object (local accessor).
 @param t_ Tree object.
 */
-template <int usingSharedMem, typename Tree, typename SharedMem,
-          typename value_type>
-struct ExecTreeFunctor;
+template <int using_local_memory, typename expression_tree_t,
+          typename local_memory_t, typename value_t>
+struct ExpressionTreeFunctor;
 
 /*! execute_tree.
 @brief Static function for executing a tree in SYCL.
-@tparam int usingSharedMem specifying whether shared memory is enabled.
+@tparam int using_local_memory specifying whether shared memory is enabled.
 @tparam Tree Type of the tree.
 @param q_ SYCL queue.
 @param t Tree object.
 @param _localSize Local work group size.
 @param _globalSize Global work size.
 @param _shMem Size in elements of the shared memory (should be zero if
-usingSharedMem == false).
+using_local_memory == false).
 */
-template <int usingSharedMem, typename Tree>
-static cl::sycl::event execute_tree(cl::sycl::queue q_, Tree t,
+template <int using_local_memory, typename queue_t, typename expression_tree_t>
+static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
                                     size_t _localSize, size_t _globalSize,
                                     size_t _shMem);
 

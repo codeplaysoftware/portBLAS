@@ -29,91 +29,89 @@
 
 namespace blas {
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>::buffer_iterator(
-    const typename buffer_iterator<T, BLAS_SYCL_Policy>::buff_t& buff_,
-    std::ptrdiff_t offset_)
-    : m_offset(offset_), m_buffer(buff_) {}
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
+    const typename BufferIterator<element_t, codeplay_policy>::buff_t& buff,
+    std::ptrdiff_t offset)
+    : offset_(offset), buffer_(buff) {}
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>::buffer_iterator(
-    const typename buffer_iterator<T, BLAS_SYCL_Policy>::buff_t& buff_,
-    std::ptrdiff_t offset_, T* legacy_ptr)
-    : m_offset(offset_), m_buffer(buff_) {}
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
+    const typename BufferIterator<element_t, codeplay_policy>::buff_t& buff)
+    : BufferIterator(buff, 0) {}
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>::buffer_iterator(
-    const typename buffer_iterator<T, BLAS_SYCL_Policy>::buff_t& buff_)
-    : buffer_iterator(buff_, 0) {}
-
-template <typename T>
+template <typename element_t>
 template <typename other_scalar_t>
-inline buffer_iterator<T, BLAS_SYCL_Policy>::buffer_iterator(
-    const buffer_iterator<other_scalar_t, BLAS_SYCL_Policy>& other)
-    : buffer_iterator(other.get_buffer(), other.get_offset()) {}
+inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
+    const BufferIterator<other_scalar_t, codeplay_policy>& other)
+    : BufferIterator(other.get_buffer(), other.get_offset()) {}
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>&
-buffer_iterator<T, BLAS_SYCL_Policy>::operator+=(std::ptrdiff_t offset_) {
-  m_offset += offset_;
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>&
+BufferIterator<element_t, codeplay_policy>::operator+=(std::ptrdiff_t offset) {
+  offset_ += offset;
   return *this;
 }
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>
-buffer_iterator<T, BLAS_SYCL_Policy>::operator+(std::ptrdiff_t offset_) const {
-  return buffer_iterator<T, BLAS_SYCL_Policy>(m_buffer, m_offset + offset_);
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>
+BufferIterator<element_t, codeplay_policy>::operator+(
+    std::ptrdiff_t offset) const {
+  return BufferIterator<element_t, codeplay_policy>(buffer_, offset_ + offset);
 }
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>
-buffer_iterator<T, BLAS_SYCL_Policy>::operator-(std::ptrdiff_t offset_) const {
-  return buffer_iterator<T, BLAS_SYCL_Policy>(m_buffer, m_offset - offset_);
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>
+BufferIterator<element_t, codeplay_policy>::operator-(
+    std::ptrdiff_t offset) const {
+  return BufferIterator<element_t, codeplay_policy>(buffer_, offset_ - offset);
 }
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>&
-buffer_iterator<T, BLAS_SYCL_Policy>::operator-=(std::ptrdiff_t offset_) {
-  m_offset -= offset_;
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>&
+BufferIterator<element_t, codeplay_policy>::operator-=(std::ptrdiff_t offset) {
+  offset_ -= offset;
   return *this;
 }
 
 // Prefix operator (Increment and return value)
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>&
-buffer_iterator<T, BLAS_SYCL_Policy>::operator++() {
-  m_offset++;
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>&
+BufferIterator<element_t, codeplay_policy>::operator++() {
+  offset_++;
   return (*this);
 }
 // Postfix operator (Return value and increment)
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>
-buffer_iterator<T, BLAS_SYCL_Policy>::operator++(int i) {
-  buffer_iterator<T, BLAS_SYCL_Policy> temp_iterator(*this);
-  m_offset += 1;
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>
+BufferIterator<element_t, codeplay_policy>::operator++(int i) {
+  BufferIterator<element_t, codeplay_policy> temp_iterator(*this);
+  offset_ += 1;
   return temp_iterator;
 }
 
-template <typename T>
-inline std::ptrdiff_t buffer_iterator<T, BLAS_SYCL_Policy>::get_size() const {
-  return (m_buffer.get_count() - m_offset);
+template <typename element_t>
+inline std::ptrdiff_t BufferIterator<element_t, codeplay_policy>::get_size()
+    const {
+  return (buffer_.get_count() - offset_);
 }
 
-template <typename T>
-inline std::ptrdiff_t buffer_iterator<T, BLAS_SYCL_Policy>::get_offset() const {
-  return m_offset;
+template <typename element_t>
+inline std::ptrdiff_t BufferIterator<element_t, codeplay_policy>::get_offset()
+    const {
+  return offset_;
 }
 
-template <typename T>
-inline typename buffer_iterator<T, BLAS_SYCL_Policy>::buff_t
-buffer_iterator<T, BLAS_SYCL_Policy>::get_buffer() const {
-  return m_buffer;
+template <typename element_t>
+inline typename BufferIterator<element_t, codeplay_policy>::buff_t
+BufferIterator<element_t, codeplay_policy>::get_buffer() const {
+  return buffer_;
 }
 
-template <typename T>
-inline void buffer_iterator<T, BLAS_SYCL_Policy>::set_offset(
-    std::ptrdiff_t offset_) {
-  m_offset = offset_;
+template <typename element_t>
+inline void BufferIterator<element_t, codeplay_policy>::set_offset(
+    std::ptrdiff_t offset) {
+  offset_ = offset;
 }
 
 }  // end namespace blas

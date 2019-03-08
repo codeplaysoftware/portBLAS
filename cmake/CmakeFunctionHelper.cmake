@@ -23,12 +23,12 @@
 # *
 # **************************************************************************/
 # represent the list of supported handler for executor
-set(executor_list "Policy_Handler<BLAS_SYCL_Policy>") 
+set(executor_list "PolicyHandler<codeplay_policy>") 
 #represent the list of supported index/increment type 
 set(index_list "int" )
 #represent the list of supported data type.
 #Each data type in a data list determines the container types.
-#The container type for SYCLbackend is buffer_iterator<${data}, BLAS_SYCL_Policy>
+#The container type for SYCLbackend is BufferIterator<${data}, codeplay_policy>
 set(data_list "float")
  #if double supported we add double as a data type
 if(DOUBLE_SUPPORT)
@@ -63,7 +63,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
   set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local_memory")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
                                        gemm_configuration_2)
-elseif(${TARGET} STREQUAL "PowerVR")  # need investigation
+elseif(${TARGET} STREQUAL "POWER_VR")  # need investigation
   set(gemm_configuration_0 128 "false" "false" "false" 16 4 8 16 8 1 1 "local_memory")
   list(APPEND gemm_configuration_lists gemm_configuration_0)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
@@ -92,8 +92,8 @@ function(set_target_compile_def in_target)
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
   elseif(${TARGET} STREQUAL "ARM_GPU")
     target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
-  elseif(${TARGET} STREQUAL "PowerVR")
-    target_compile_definitions(${in_target} PUBLIC PowerVR=1)
+  elseif(${TARGET} STREQUAL "POWER_VR")
+    target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
@@ -105,7 +105,7 @@ function(generate_blas_unary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "buffer_iterator<${data},BLAS_SYCL_Policy>")
+    set(container_list "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(increment ${index_list})
@@ -149,7 +149,7 @@ function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "buffer_iterator<${data},BLAS_SYCL_Policy>")
+    set(container_list "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
@@ -197,9 +197,9 @@ function(generate_blas_binary_special_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list_in "buffer_iterator<${data},BLAS_SYCL_Policy>")
+    set(container_list_in "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
-      set(container_list_out "buffer_iterator<IndexValueTuple<${data},${index}>,BLAS_SYCL_Policy>")
+      set(container_list_out "BufferIterator<Indexvalue_tuple<${data},${index}>,codeplay_policy>")
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
           foreach(increment ${index_list})
@@ -246,7 +246,7 @@ function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "buffer_iterator<${data},BLAS_SYCL_Policy>")
+    set(container_list "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})

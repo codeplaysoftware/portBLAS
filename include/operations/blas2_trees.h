@@ -26,44 +26,44 @@
 #ifndef SYCL_BLAS_BLAS2_TREES_H
 #define SYCL_BLAS_BLAS2_TREES_H
 namespace blas {
-template <class Output_t, class Matrix_t, class Vector_t>
+template <typename output_t, typename matrix_t, typename vector_t>
 struct Gemv {
-  using value_type = typename Vector_t::value_type;
-  using IndexType = typename Vector_t::IndexType;
-  Output_t l;
-  Matrix_t matrix;
-  Vector_t vector;
+  using value_t = typename vector_t::value_t;
+  using index_t = typename vector_t::index_t;
+  output_t lhs_;
+  matrix_t matrix_;
+  vector_t vector_;
 
-  Gemv(Output_t &_l, Matrix_t &_matrix, Vector_t &_vector);
-  IndexType getSize() const;
+  Gemv(output_t &_l, matrix_t &_matrix, vector_t &_vector);
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_type eval(IndexType i);
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 
-template <typename Output_t, typename Matrix_t, typename Vector_t>
-Gemv<Output_t, Matrix_t, Vector_t> make_gemv(Output_t &l, Matrix_t &matrix,
-                                             Vector_t &vector) {
-  return Gemv<Output_t, Matrix_t, Vector_t>(l, matrix, vector);
+template <typename output_t, typename matrix_t, typename vector_t>
+Gemv<output_t, matrix_t, vector_t> make_gemv(output_t &lhs_, matrix_t &matrix_,
+                                             vector_t &vector_) {
+  return Gemv<output_t, matrix_t, vector_t>(lhs_, matrix_, vector_);
 }
 
-template <class RHS>
+template <typename rhs_t>
 struct AddSetColumns {
-  using value_type = typename RHS::value_type;
-  using IndexType = typename RHS::IndexType;
+  using value_t = typename rhs_t::value_t;
+  using index_t = typename rhs_t::index_t;
 
-  RHS r;
+  rhs_t rhs_;
 
-  AddSetColumns(RHS &_r);
+  AddSetColumns(rhs_t &_r);
 
-  IndexType getSize() const;
+  index_t get_size() const;
 
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
 
-  value_type eval(IndexType i);
+  value_t eval(index_t i);
 
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 
@@ -71,173 +71,177 @@ struct AddSetColumns {
  * @fn make_addSetColumns
  * @brief Constructs an AddSetColumns structure.
  */
-template <class RHS>
-AddSetColumns<RHS> make_addSetColumns(RHS &r) {
-  return AddSetColumns<RHS>(r);
+template <typename rhs_t>
+AddSetColumns<rhs_t> make_addSetColumns(rhs_t &rhs_) {
+  return AddSetColumns<rhs_t>(rhs_);
 }
 
 /**
- * @struct Gemv_Col
+ * @struct GemvCol
  * @brief Tree node representing a Gemv, with parallel expressed across columns
  * *
  */
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-struct Gemv_Col {
-  using value_type = typename Vector_t::value_type;
-  using IndexType = typename Vector_t::IndexType;
-  LHS l;
-  Matrix_t matrix;
-  Vector_t vector;
-  IndexType nWG_row;
-  IndexType nWG_col;
-  IndexType shrMemSize;
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+struct GemvCol {
+  using value_t = typename vector_t::value_t;
+  using index_t = typename vector_t::index_t;
+  lhs_t lhs_;
+  matrix_t matrix_;
+  vector_t vector_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+  index_t local_memory_size_;
 
-  Gemv_Col(LHS &_l, Matrix_t &_matrix, Vector_t &_vector, IndexType &_nWG_row,
-           IndexType &_nWG_col, IndexType &_shrMemSize);
-  IndexType getSize() const;
+  GemvCol(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_nWG_row,
+          index_t &_nWG_col, index_t &_shrMemSize);
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_type eval(IndexType i);
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 
-// template <class LHS, class Matrix_t, class Vector_t>
+// template <typename lhs_t, typename matrix_t,typename vector_t>
 template <bool Lower = true, bool Diag = true, bool Upper = true,
-          bool Unit = false, class LHS, class Matrix_t, class Vector_t>
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t> make_Gemv_Col(
-    LHS &l, Matrix_t &matrix, Vector_t &vector,
-    typename Vector_t::IndexType nWG_row, typename Vector_t::IndexType nWG_col,
-    typename Vector_t::IndexType shrMemSize) {
-  return Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>(
-      l, matrix, vector, nWG_row, nWG_col, shrMemSize);
+          bool Unit = false, typename lhs_t, typename matrix_t,
+          typename vector_t>
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t> make_Gemv_Col(
+    lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
+    typename vector_t::index_t nWG_row_, typename vector_t::index_t nWG_col_,
+    typename vector_t::index_t local_memory_size_) {
+  return GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>(
+      lhs_, matrix_, vector_, nWG_row_, nWG_col_, local_memory_size_);
 }
 
 /**
- * @struct Gemv_Row
- * @brief Tree node representing a row-based/row-parallel generalised matrix
- * vector multiplication.
+ * @struct GemvRow
+ * @brief Tree node representing a row-based/row-parallel generalised matrix_
+ * vector_ multiplication.
  */
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-struct Gemv_Row {
-  using value_type = typename Vector_t::value_type;
-  using IndexType = typename Vector_t::IndexType;
+          typename lhs_t, typename matrix_t, typename vector_t>
+struct GemvRow {
+  using value_t = typename vector_t::value_t;
+  using index_t = typename vector_t::index_t;
 
-  LHS l;
-  Matrix_t matrix;
-  Vector_t vector;
-  IndexType nWG_row;
-  IndexType nWG_col;
-  IndexType shrMemSize;
+  lhs_t lhs_;
+  matrix_t matrix_;
+  vector_t vector_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+  index_t local_memory_size_;
 
-  Gemv_Row(LHS &_l, Matrix_t &_matrix, Vector_t &_vector, IndexType &_nWG_row,
-           IndexType &_nWG_col, IndexType &_shrMemSize);
-  IndexType getSize() const;
+  GemvRow(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_nWG_row,
+          index_t &_nWG_col, index_t &_shrMemSize);
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_type eval(IndexType i);
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 /*!
  @brief Generator/factory for row-based GEMV trees.
 
  make_Gemv_Row(
-    LHS &l,
-    Matrix_t &matrix,
-    Vector_t &vector,
-    typename Vector_t::IndexType nWG_row,
-    typename Vector_t::IndexType nWG_col,
-    typename Vector_t::IndexType shrMemSize
+    lhs_t &lhs_,
+     matrix_t &matrix_,
+    vector_t &vector_,
+    typename vector_t::index_t nWG_row_,
+    typename vector_t::index_t nWG_col_,
+    typename vector_t::index_t local_memory_size_
  )
  */
 template <int interLoop = 1, bool Lower = true, bool Diag = true,
-          bool Upper = true, bool Unit = false, typename LHS, typename Matrix_t,
-          typename Vector_t>
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>
-make_Gemv_Row(LHS &l, Matrix_t &matrix, Vector_t &vector,
-              typename Vector_t::IndexType nWG_row,
-              typename Vector_t::IndexType nWG_col,
-              typename Vector_t::IndexType shrMemSize) {
-  return Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>(
-      l, matrix, vector, nWG_row, nWG_col, shrMemSize);
+          bool Upper = true, bool Unit = false, typename lhs_t,
+          typename matrix_t, typename vector_t>
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>
+make_Gemv_Row(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
+              typename vector_t::index_t nWG_row_,
+              typename vector_t::index_t nWG_col_,
+              typename vector_t::index_t local_memory_size_) {
+  return GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                 vector_t>(lhs_, matrix_, vector_, nWG_row_, nWG_col_,
+                           local_memory_size_);
 }
 
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
-// template <class LHS, class RHS1, class RHS2>
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-struct Ger_Row {
-  using value_type = typename RHS2::value_type;
-  using IndexType = typename RHS2::IndexType;
-  LHS l;
-  RHS1 r1;
-  RHS2 r2;
-  IndexType nWG_row;
-  IndexType nWG_col;
-  IndexType shrMemSize;
-  value_type scl;
-  Ger_Row(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
-          IndexType &_nWG_col, IndexType &_shrMemSize);
-  IndexType getSize() const;
+// template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+struct GerRow {
+  using value_t = typename rhs_2_t::value_t;
+  using index_t = typename rhs_2_t::index_t;
+  lhs_t lhs_;
+  rhs_1_t rhs_1_;
+  rhs_2_t rhs_2_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+  index_t local_memory_size_;
+  value_t scalar_;
+  GerRow(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nWG_row,
+         index_t &_nWG_col, index_t &_shrMemSize);
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_type eval(IndexType i);
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 
 template <bool Single = true, bool Lower = true, bool Diag = true,
-          bool Upper = true, class LHS, class RHS1, class RHS2>
-Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2> make_Ger_Row(
-    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2,
-    typename RHS2::IndexType nWG_row, typename RHS2::IndexType nWG_col,
-    typename RHS2::IndexType shrMemSize) {
-  return Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>(
-      l, scl, r1, r2, nWG_row, nWG_col, shrMemSize);
+          bool Upper = true, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_Ger_Row(
+    lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_1_t &rhs_1_,
+    rhs_2_t &rhs_2_, typename rhs_2_t::index_t nWG_row_,
+    typename rhs_2_t::index_t nWG_col_,
+    typename rhs_2_t::index_t local_memory_size_) {
+  return GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>(
+      lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
 
 /**** GER BY COLUMNS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
-// template <class LHS, class RHS1, class RHS2>
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-struct Ger_Col {
-  using value_type = typename RHS2::value_type;
-  using IndexType = typename RHS2::IndexType;
+// template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+struct GerCol {
+  using value_t = typename rhs_2_t::value_t;
+  using index_t = typename rhs_2_t::index_t;
 
-  LHS l;
-  RHS1 r1;
-  RHS2 r2;
-  IndexType nWG_row;
-  IndexType nWG_col;
-  IndexType shrMemSize;
-  value_type scl;
+  lhs_t lhs_;
+  rhs_1_t rhs_1_;
+  rhs_2_t rhs_2_;
+  index_t nWG_row_;
+  index_t nWG_col_;
+  index_t local_memory_size_;
+  value_t scalar_;
 
-  Ger_Col(LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
-          IndexType &_nWG_col, IndexType &_shrMemSize);
-  IndexType getSize() const;
+  GerCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2, index_t &_nWG_row,
+         index_t &_nWG_col, index_t &_shrMemSize);
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_type eval(IndexType i);
-  value_type eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename sharedT>
-  value_type eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
 };
 
-// template <class LHS, class RHS1, class RHS2>
+// template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
 template <bool Single = true, bool Lower = true, bool Diag = true,
-          bool Upper = true, class LHS, class RHS1, class RHS2>
-Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2> make_Ger_Col(
-    LHS &l, typename LHS::value_type scl, RHS1 &r1, RHS2 &r2,
-    typename RHS2::IndexType nWG_row, typename RHS2::IndexType nWG_col,
-    typename RHS2::IndexType shrMemSize) {
-  return Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>(
-      l, scl, r1, r2, nWG_row, nWG_col, shrMemSize);
+          bool Upper = true, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_Ger_Col(
+    lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_1_t &rhs_1_,
+    rhs_2_t &rhs_2_, typename rhs_2_t::index_t nWG_row_,
+    typename rhs_2_t::index_t nWG_col_,
+    typename rhs_2_t::index_t local_memory_size_) {
+  return GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>(
+      lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
 }  // namespace blas
 #endif  // BLAS2_TREES_H

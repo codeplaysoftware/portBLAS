@@ -54,7 +54,7 @@ clblast::Transpose translate_transposition(const char *t_str) {
 }
 
 BENCHMARK(gemm, clblast_level_3) {
-  using ScalarT = ElemT;
+  using scalar_t = ElemT;
 
   char const *t_a = std::get<0>(params);
   char const *t_b = std::get<1>(params);
@@ -78,26 +78,26 @@ BENCHMARK(gemm, clblast_level_3) {
   clblast::Transpose a_transpose = translate_transposition(t_a);
   clblast::Transpose b_transpose = translate_transposition(t_b);
 
-  ScalarT alpha = benchmark<>::random_scalar<ScalarT>();
-  ScalarT beta = benchmark<>::random_scalar<ScalarT>();
+  scalar_t alpha = benchmark<>::random_scalar<scalar_t>();
+  scalar_t beta = benchmark<>::random_scalar<scalar_t>();
 
   size_t a_size = m * k;
-  std::vector<ScalarT> a_host = benchmark<>::random_data<ScalarT>(a_size);
-  MemBuffer<ScalarT> a(*ex, a_host.data(), a_size);
+  std::vector<scalar_t> a_host = benchmark<>::random_data<scalar_t>(a_size);
+  MemBuffer<scalar_t> a(*ex, a_host.data(), a_size);
 
   size_t b_size = k * n;
-  std::vector<ScalarT> b_host = benchmark<>::random_data<ScalarT>(b_size);
-  MemBuffer<ScalarT> b(*ex, b_host.data(), b_size);
+  std::vector<scalar_t> b_host = benchmark<>::random_data<scalar_t>(b_size);
+  MemBuffer<scalar_t> b(*ex, b_host.data(), b_size);
 
   size_t c_size = m * n;
-  std::vector<ScalarT> c_host = benchmark<>::const_data<ScalarT>(c_size, 0);
-  MemBuffer<ScalarT> c(*ex, c_host.data(), c_size);
+  std::vector<scalar_t> c_host = benchmark<>::const_data<scalar_t>(c_size, 0);
+  MemBuffer<scalar_t> c(*ex, c_host.data(), c_size);
 
   Event event;
   benchmark<>::datapoint_t flops = benchmark<>::measure(reps, n_fl_ops, [&]() {
-    clblast::Gemm<ScalarT>(layout, a_transpose, b_transpose, m, n, k, alpha,
-                           a.dev(), 0, lda, b.dev(), 0, ldb, beta, c.dev(), 0,
-                           ldc, (*ex)._queue(), &event._cl());
+    clblast::Gemm<scalar_t>(layout, a_transpose, b_transpose, m, n, k, alpha,
+                            a.dev(), 0, lda, b.dev(), 0, ldb, beta, c.dev(), 0,
+                            ldc, (*ex)._queue(), &event._cl());
     event.wait();
     return event;
   });

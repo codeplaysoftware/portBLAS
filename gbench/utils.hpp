@@ -11,11 +11,11 @@
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
-typedef blas::Executor<blas::Policy_Handler<blas::BLAS_SYCL_Policy>>
+typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>
     SyclExecutorType;
 typedef std::shared_ptr<SyclExecutorType> ExecutorPtr;
 ExecutorPtr getExecutor();
-using IndexType = int;
+using index_t = int;
 
 namespace benchmark {
 namespace utils {
@@ -61,8 +61,8 @@ inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
  * @brief Generates a random scalar value, using an arbitrary low quality
  * algorithm.
  */
-template <typename ScalarT>
-static inline ScalarT random_scalar() {
+template <typename scalar_t>
+static inline scalar_t random_scalar() {
   return 1e-3 * ((rand() % 2000) - 1000);
 }
 
@@ -71,13 +71,13 @@ static inline ScalarT random_scalar() {
  * @brief Generates a random vector of scalar values, using an arbitrary low
  * quality algorithm.
  */
-template <typename ScalarT>
-static inline std::vector<ScalarT> random_data(size_t size,
-                                               bool initialized = true) {
-  std::vector<ScalarT> v = std::vector<ScalarT>(size);
+template <typename scalar_t>
+static inline std::vector<scalar_t> random_data(size_t size,
+                                                bool initialized = true) {
+  std::vector<scalar_t> v = std::vector<scalar_t>(size);
   if (initialized) {
-    std::transform(v.begin(), v.end(), v.begin(), [](ScalarT x) -> ScalarT {
-      return random_scalar<ScalarT>();
+    std::transform(v.begin(), v.end(), v.begin(), [](scalar_t x) -> scalar_t {
+      return random_scalar<scalar_t>();
     });
   }
   return v;
@@ -87,10 +87,10 @@ static inline std::vector<ScalarT> random_data(size_t size,
  * @fn const_data
  * @brief Generates a vector of constant values, of a given length.
  */
-template <typename ScalarT>
-static inline std::vector<ScalarT> const_data(size_t size,
-                                              ScalarT const_value = 0) {
-  std::vector<ScalarT> v = std::vector<ScalarT>(size);
+template <typename scalar_t>
+static inline std::vector<scalar_t> const_data(size_t size,
+                                               scalar_t const_value = 0) {
+  std::vector<scalar_t> v = std::vector<scalar_t>(size);
   std::fill(v.begin(), v.end(), const_value);
   return v;
 }

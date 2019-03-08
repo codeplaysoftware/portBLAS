@@ -210,7 +210,7 @@ TARGETS are supported:
   - ARM_GPU
   - RCAR
   - ARM_GPU
-  - PowerVR 
+  - POWER_VR 
 
 - SYCL-BLAS requires a System BLAS for verifying the test result. 
 If BLAS_ENABLE_TESTING is enabled a system blas is required to be installed in 

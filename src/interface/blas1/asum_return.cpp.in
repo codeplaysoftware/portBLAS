@@ -36,15 +36,15 @@ namespace internal {
 /**
  * \brief _asum Takes the sum of the absolute values and return the output
  *
- * @param Executor<Policy_Handler<${EXECUTOR}>> ex
+ * @param Executor<PolicyHandler<${EXECUTOR}>> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
 template
-    typename scalar_type<${CONTAINERT0}>::type _asum(Executor<${EXECUTOR}> &ex,
-                                                     ${INDEX_TYPE} _N,
-                                                     ${CONTAINERT0} _vx,
-                                                     ${INCREMENT_TYPE} _incx);
+    typename ValueType<${container_t0}>::type _asum(Executor<${EXECUTOR}> &ex,
+                                                    ${INDEX_TYPE} _N,
+                                                    ${container_t0} _vx,
+                                                    ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal
 }  // namespace blas

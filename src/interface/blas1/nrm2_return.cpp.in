@@ -42,9 +42,9 @@ namespace internal {
  * @param _incx Increment in X axis
  */
 template
-    typename scalar_type<${CONTAINERT0}>::type _nrm2(Executor<${EXECUTOR}> &ex,
-                                                     ${INDEX_TYPE} _N,
-                                                     ${CONTAINERT0} _vx,
-                                                     ${INCREMENT_TYPE} _incx);
+    typename ValueType<${container_t0}>::type _nrm2(Executor<${EXECUTOR}> &ex,
+                                                    ${INDEX_TYPE} _N,
+                                                    ${container_t0} _vx,
+                                                    ${INCREMENT_TYPE} _incx);
 }  // namespace internal
 }  // namespace blas

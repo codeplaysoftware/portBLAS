@@ -35,162 +35,163 @@ namespace blas {
 /*!
 @brief Alias to std::string.
 */
-using string_class = std::string;
+using string_class_t = std::string;
 
 /*!
 @brief Template struct for containing vector that can used within a compile-time
 expression.
-@tparam ValueT Type of each element fo the vector.
-@tparam ContainerT Type of the container that is stored inside.
+@tparam value_t Type of each element fo the vector.
+@tparam container_t Type of the container that is stored inside.
 */
 
-template <class ValueT_, class ContainerT_, typename IndexType_,
-          typename IncrementType_>
-struct vector_view {
-  using ValueT = ValueT_;
-  using ContainerT = ContainerT_;
-  using IndexType = IndexType_;
-  using IncrementType = IncrementType_;
-  using Self = vector_view<ValueT, ContainerT, IndexType, IncrementType>;
-  using value_type = ValueT;
-  ContainerT &data_;
-  IndexType size_data_;
-  IndexType size_;
-  IndexType disp_;
-  IncrementType strd_;  // never size_t, because it could be negative
+template <typename view_value_t, typename view_container_t,
+          typename view_index_t, typename view_increment_t>
+struct VectorView {
+  using value_t = view_value_t;
+  using container_t = view_container_t;
+  using index_t = view_index_t;
+  using increment_t = view_increment_t;
+  using self_t = VectorView<value_t, container_t, index_t, increment_t>;
+  container_t &data_;
+  index_t size_data_;
+  index_t size_;
+  index_t disp_;
+  increment_t strd_;  // never size_t, because it could be negative
 
-  vector_view(ContainerT_ &data, IndexType_ disp = 0, IncrementType_ strd = 1);
-  vector_view(ContainerT_ &data, IndexType_ disp, IncrementType_ strd,
-              IndexType_ size);
-  vector_view(vector_view<ValueT_, ContainerT_, IndexType_, IncrementType_> opV,
-              IndexType_ disp, IncrementType_ strd, IndexType_ size);
+  VectorView(view_container_t &data, view_index_t disp = 0,
+             view_increment_t strd = 1);
+  VectorView(view_container_t &data, view_index_t disp, view_increment_t strd,
+             view_index_t size);
+  VectorView(
+      VectorView<view_value_t, view_container_t, view_index_t, view_increment_t>
+          opV,
+      view_index_t disp, view_increment_t strd, view_index_t size);
 
   /*!
   @brief Initializes the view using the indexing values.
   @param originalSize The original size of the container
   */
-  inline void initialize(IndexType originalSize);
+  inline void initialize(index_t originalSize);
 
   /*!
    * @brief Returns a reference to the container
    */
-  ContainerT &getData();
+  container_t &get_data();
 
   /*!
    * @brief Returns the displacement
    */
-  IndexType getDisp();
+  index_t get_access_displacement();
 
   /*!
    * @brief Returns the size of the underlying container.
    */
-  IndexType getDataSize();
+  index_t get_data_size();
 
   /*!
    @brief Returns the size of the view
    */
-  inline IndexType getSize() const;
+  inline index_t get_size() const;
 
   /*!
    @brief Returns the stride of the view.
   */
-  IncrementType getStrd();
+  increment_t get_stride();
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  Self operator+(IndexType disp);
+  self_t operator+(index_t disp);
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  Self operator()(IndexType disp);
+  self_t operator()(index_t disp);
 
   /*!
    @brief Multiplies the view stride by the given one and returns a new one
   */
-  Self operator*(IncrementType strd);
+  self_t operator*(increment_t strd);
   /*!
    @brief
   */
-  Self operator%(IndexType size);
+  self_t operator%(index_t size);
 
   /**** EVALUATING ****/
-  ValueT &eval(IndexType i);
+  value_t &eval(index_t i);
 
   template <class X, class Y, typename IndxT, typename IncrT>
   friend std::ostream &operator<<(std::ostream &stream,
-                                  vector_view<X, Y, IndxT, IncrT> opvS);
+                                  VectorView<X, Y, IndxT, IncrT> opvS);
 
-  void printH(const char *name);
+  void print_h(const char *name);
 };
 
-/*! matrix_view
+/*! MatrixView
 @brief Represents a Matrix on the given Container.
-@tparam ValueT Value type of the container.
-@tparam ContainerT Type of the container.
+@tparam value_t Value type of the container.
+@tparam container_t Type of the container.
  */
-template <class ValueT_, class ContainerT_, typename IndexType_>
-struct matrix_view {
+template <typename view_value_t, typename view_container_t,
+          typename view_index_t>
+struct MatrixView {
   // Information related to the data
-  using ValueT = ValueT_;
-  using ContainerT = ContainerT_;
-  using IndexType = IndexType_;
-  using Self = matrix_view<ValueT, ContainerT, IndexType>;
-  ContainerT &data_;
-  int accessDev_;        // True for row-major, column-major otherwise
-  IndexType size_data_;  // real size of the data
-  int accessOpr_;    // Operation Access Mode (True: Normal, False: Transpose)
-  IndexType sizeR_;  // number of rows
-  IndexType sizeC_;  // number of columns
-  IndexType sizeL_;  // size of the leading dimension
-  IndexType disp_;   // displacementt od the first element
+  using value_t = view_value_t;
+  using container_t = view_container_t;
+  using index_t = view_index_t;
+  using self_t = MatrixView<value_t, container_t, index_t>;
+  container_t &data_;
+  int accessDev_;      // True for row-major, column-major otherwise
+  index_t size_data_;  // real size of the data
+  int accessOpr_;      // Operation Access Mode (True: Normal, False: Transpose)
+  index_t sizeR_;      // number of rows
+  index_t sizeC_;      // number of columns
+  index_t sizeL_;      // size of the leading dimension
+  index_t disp_;       // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
-  using value_type = ValueT;
-
-  matrix_view(ContainerT_ &data, int accessDev, IndexType_ sizeR,
-              IndexType_ sizeC);
-  matrix_view(ContainerT_ &data, IndexType_ sizeR, IndexType_ sizeC);
-  matrix_view(ContainerT_ &data, int accessDev, IndexType_ sizeR,
-              IndexType_ sizeC, int accessOpr, IndexType_ sizeL,
-              IndexType_ disp);
-  matrix_view(ContainerT_ &data, IndexType_ sizeR, IndexType_ sizeC,
-              int accessOpr, IndexType_ sizeL, IndexType_ disp);
-  matrix_view(matrix_view<ValueT_, ContainerT_, IndexType_> opM, int accessDev,
-              IndexType_ sizeR, IndexType_ sizeC, int accessOpr,
-              IndexType_ sizeL, IndexType_ disp);
-  matrix_view(matrix_view<ValueT_, ContainerT_, IndexType_> opM,
-              IndexType_ sizeR, IndexType_ sizeC, int accessOpr,
-              IndexType_ sizeL, IndexType_ disp);
+  MatrixView(view_container_t &data, int accessDev, view_index_t sizeR,
+             view_index_t sizeC);
+  MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC);
+  MatrixView(view_container_t &data, int accessDev, view_index_t sizeR,
+             view_index_t sizeC, int accessOpr, view_index_t sizeL,
+             view_index_t disp);
+  MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC,
+             int accessOpr, view_index_t sizeL, view_index_t disp);
+  MatrixView(MatrixView<view_value_t, view_container_t, view_index_t> opM,
+             int accessDev, view_index_t sizeR, view_index_t sizeC,
+             int accessOpr, view_index_t sizeL, view_index_t disp);
+  MatrixView(MatrixView<view_value_t, view_container_t, view_index_t> opM,
+             view_index_t sizeR, view_index_t sizeC, int accessOpr,
+             view_index_t sizeL, view_index_t disp);
 
   /*!
    * @brief Returns the container
    */
-  ContainerT &getData();
+  container_t &get_data();
 
   /*!
    * @brief Returns the data size
    */
-  IndexType getDataSize() const;
+  index_t get_data_size() const;
 
   /*!
    * @brief Returns the size of the view.
    */
-  inline IndexType getSize() const;
+  inline index_t get_size() const;
 
-  /*! getSizeR.
+  /*! get_size_row.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  inline IndexType getSizeR() const;
+  inline index_t get_size_row() const;
 
-  /*! getSizeC.
+  /*! get_size_col.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  IndexType getSizeC() const;
+  index_t get_size_col() const;
 
   /*! is_row_access.
    * @brief Access mode for the view.
@@ -198,87 +199,91 @@ struct matrix_view {
    */
   int is_row_access() const;
 
-  /*! getAccessDev.
+  /*! get_access_device.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
-  int getAccessDev() const;
+  int get_access_device() const;
 
-  /*! getAccessOpr.
+  /*! get_access_operation.
    * @brief Returns the operation access mode
    * @return True: Normal access, False: Transpose
    */
-  int getAccessOpr() const;
+  int get_access_operation() const;
 
-  /*! getDisp.
+  /*! get_access_displacement.
    * @brief get displacement from the origin.
    */
-  IndexType getDisp() const;
+  index_t get_access_displacement() const;
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  Self operator+(IndexType disp);
+  self_t operator+(index_t disp);
 
   /*!
    * @brief Adds a displacement to the view, creating a new view.
    */
-  Self operator()(IndexType i, IndexType j);
+  self_t operator()(index_t i, index_t j);
 
   /*! eval.
    * @brief Evaluation for the given linear value.
    */
-  ValueT &eval(IndexType k);
+  value_t &eval(index_t k);
 
   /*! eval.
    * @brief Evaluation for the pair of row/col.
    */
-  ValueT &eval(IndexType i, IndexType j);
+  value_t &eval(index_t i, index_t j);
 
-  /*! printH
+  /*! print_h
    * @brief Display the contents of the matrix in stdout.
    */
-  void printH(const char *name);
+  void print_h(const char *name);
 };
 
-template <typename Policy, typename T, typename IndexType,
-          typename IncrementType>
-struct VectorViewTypeTrace {
-  using ScalarT = typename scalar_type<T>::type;
-  using Type =
-      vector_view<ScalarT, typename Policy::template access_type<ScalarT>,
-                  IndexType, IncrementType>;
+template <typename policy_t, typename data_t, typename index_t,
+          typename increment_t>
+struct VectorViewTypeFactory {
+  using scalar_t = typename ValueType<data_t>::type;
+  using output_t =
+      VectorView<scalar_t,
+                 typename policy_t::template default_accessor_t<scalar_t>,
+                 index_t, increment_t>;
 };
 
-template <typename Policy, typename T, typename IndexType>
-struct MatrixViewTypeTrace {
-  using ScalarT = typename scalar_type<T>::type;
-  using Type =
-      matrix_view<ScalarT, typename Policy::template access_type<ScalarT>,
-                  IndexType>;
+template <typename policy_t, typename element_t, typename index_t>
+struct MatrixViewTypeFactory {
+  using scalar_t = typename ValueType<element_t>::type;
+  using output_t =
+      MatrixView<scalar_t,
+                 typename policy_t::template default_accessor_t<scalar_t>,
+                 index_t>;
 };
 
-template <typename Executor, typename ContainerT, typename IncrementType,
-          typename IndexType>
-inline typename VectorViewTypeTrace<typename Executor::Policy, ContainerT,
-                                    IndexType, IncrementType>::Type
-make_vector_view(Executor &ex, ContainerT buff, IncrementType inc,
-                 IndexType sz) {
-  using LeafNode =
-      typename VectorViewTypeTrace<typename Executor::Policy, ContainerT,
-                                   IndexType, IncrementType>::Type;
-  return LeafNode{ex.get_policy_handler().get_buffer(buff), inc, sz};
+template <typename executor_t, typename container_t, typename increment_t,
+          typename index_t>
+inline
+    typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
+                                   index_t, increment_t>::output_t
+    make_vector_view(executor_t &ex, container_t buff, increment_t inc,
+                     index_t sz) {
+  using leaf_node_t =
+      typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
+                                     index_t, increment_t>::output_t;
+  return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
 }
 
-template <typename Executor, typename ContainerT, typename IndexType,
-          typename Opertype>
-inline typename MatrixViewTypeTrace<typename Executor::Policy, ContainerT,
-                                    IndexType>::Type
-make_matrix_view(Executor &ex, ContainerT buff, IndexType m, IndexType n,
-                 IndexType lda, Opertype accessOpr) {
-  using LeafNode = typename MatrixViewTypeTrace<typename Executor::Policy,
-                                                ContainerT, IndexType>::Type;
-  return LeafNode{ex.get_policy_handler().get_buffer(buff), m, n, accessOpr,
-                  lda};
+template <typename executor_t, typename container_t, typename index_t,
+          typename operator_t>
+inline typename MatrixViewTypeFactory<typename executor_t::policy_t,
+                                      container_t, index_t>::output_t
+make_matrix_view(executor_t &ex, container_t buff, index_t m, index_t n,
+                 index_t lda, operator_t accessOpr) {
+  using leaf_node_t =
+      typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
+                                     index_t>::output_t;
+  return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, accessOpr,
+                     lda};
 }
 
 }  // namespace blas

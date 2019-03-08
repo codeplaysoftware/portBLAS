@@ -35,10 +35,10 @@
 namespace blas {
 namespace internal {
 
-template typename Executor<${EXECUTOR}>::Policy::event_type _ger(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _ger(
     Executor<${EXECUTOR}>& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${CONTAINERT0} _vx, ${INCREMENT_TYPE} _incx,
-    ${CONTAINERT1} _vy, ${INCREMENT_TYPE} _incy, ${CONTAINERT2} _mA,
+    ${DATA_TYPE} _alpha, ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
+    ${container_t1} _vy, ${INCREMENT_TYPE} _incy, ${container_t2} _mA,
     ${INDEX_TYPE} _lda);
 
 }  // namespace internal

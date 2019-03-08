@@ -37,129 +37,129 @@ namespace blas {
  * @brief Tree node representing a column sum (reduction?) - i.e. summing a row,
  * with one row per thread
  */
-template <class RHS>
-AddSetColumns<RHS>::AddSetColumns(RHS &_r) : r(_r) {}
+template <typename rhs_t>
+AddSetColumns<rhs_t>::AddSetColumns(rhs_t &_r) : rhs_(_r) {}
 
-template <class RHS>
-sycl_blas_inline typename AddSetColumns<RHS>::IndexType
-AddSetColumns<RHS>::getSize() const {
-  return r.getSizeR();
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::index_t
+AddSetColumns<rhs_t>::get_size() const {
+  return rhs_.get_size_row();
 }
-template <class RHS>
-sycl_blas_inline bool AddSetColumns<RHS>::valid_thread(
+template <typename rhs_t>
+SYCL_BLAS_INLINE bool AddSetColumns<rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < getSize()));
+  return ((ndItem.get_global_id(0) < get_size()));
 }
-template <class RHS>
-sycl_blas_inline typename AddSetColumns<RHS>::value_type
-AddSetColumns<RHS>::eval(typename AddSetColumns<RHS>::IndexType i) {
-  auto dimR = r.getSizeR();
-  auto dimC = r.getSizeC();
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::value_t
+AddSetColumns<rhs_t>::eval(typename AddSetColumns<rhs_t>::index_t i) {
+  auto dimR = rhs_.get_size_row();
+  auto dimC = rhs_.get_size_col();
 
-  auto val = iniAddOp1_struct::eval(r.eval(0));
+  auto val = AdditionIdentity::eval(rhs_.eval(0));
   if (i < dimR) {
-    for (typename AddSetColumns<RHS>::IndexType j = 0; j < dimC; j++) {
-      val += r.eval(i, j);
+    for (typename AddSetColumns<rhs_t>::index_t j = 0; j < dimC; j++) {
+      val += rhs_.eval(i, j);
     }
   }
   return val;
 }
 
-template <class RHS>
-sycl_blas_inline typename AddSetColumns<RHS>::value_type
-AddSetColumns<RHS>::eval(cl::sycl::nd_item<1> ndItem) {
+template <typename rhs_t>
+SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::value_t
+AddSetColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   return eval(ndItem.get_global_id(0));
 }
-template <class RHS>
-sycl_blas_inline void AddSetColumns<RHS>::bind(cl::sycl::handler &h) {
-  r.bind(h);
+template <typename rhs_t>
+SYCL_BLAS_INLINE void AddSetColumns<rhs_t>::bind(cl::sycl::handler &h) {
+  rhs_.bind(h);
 }
 
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
 /**
- * @struct Gemv_Row
- * @brief Tree node representing a row-based/row-parallel generalised matrix
- * vector multiplication.
+ * @struct GemvRow
+ * @brief Tree node representing a row-based/row-parallel generalised matrix_
+ * vector_ multiplication.
  */
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::
-    Gemv_Row(LHS &_l, Matrix_t &_matrix, Vector_t &_vector,
-             typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                               Matrix_t, Vector_t>::IndexType &_nWG_row,
-             typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                               Matrix_t, Vector_t>::IndexType &_nWG_col,
-             typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                               Matrix_t, Vector_t>::IndexType &_shrMemSize)
-    : l(_l),
-      matrix(_matrix),
-      vector(_vector),
-      nWG_row(_nWG_row),
-      nWG_col(_nWG_col),
-      shrMemSize(_shrMemSize) {}
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::
+    GemvRow(lhs_t &_l, matrix_t &_matrix, vector_t &_vector,
+            typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                             matrix_t, vector_t>::index_t &_nWG_row,
+            typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                             matrix_t, vector_t>::index_t &_nWG_col,
+            typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                             matrix_t, vector_t>::index_t &_shrMemSize)
+    : lhs_(_l),
+      matrix_(_matrix),
+      vector_(_vector),
+      nWG_row_(_nWG_row),
+      nWG_col_(_nWG_col),
+      local_memory_size_(_shrMemSize) {}
 
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                   Matrix_t, Vector_t>::IndexType
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t,
-         Vector_t>::getSize() const {
-  return matrix.getSize();
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                  matrix_t, vector_t>::index_t
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+        vector_t>::get_size() const {
+  return matrix_.get_size();
 }
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline bool
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t,
-         Vector_t>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE bool
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+        vector_t>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 
 // TODO (@JOSE) If this function is extra and it is not required please remove
 // it.
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                   Matrix_t, Vector_t>::value_type
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
-    typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                      Vector_t>::IndexType i) {  // NOT VERIFIED
-  auto dim = vector.getSize();
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                  matrix_t, vector_t>::value_t
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
+    typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                     vector_t>::index_t i) {  // NOT VERIFIED
+  auto dim = vector_.get_size();
 
-  auto val = iniAddOp1_struct::eval(vector.eval(0));
-  for (typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                         Vector_t>::IndexType j = 0;
+  auto val = AdditionIdentity::eval(vector_.eval(0));
+  for (typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                        vector_t>::index_t j = 0;
        j < dim; j++) {
-    auto prod = prdOp2_struct::eval(matrix.eval(i, j), vector.eval(j));
-    val = addOp2_struct::eval(val, prod);
+    auto prod = ProductOperation::eval(matrix_.eval(i, j), vector_.eval(j));
+    val = AddOperation::eval(val, prod);
   }
-  return l.eval(i) = val;
+  return lhs_.eval(i) = val;
 }
 
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                   Matrix_t, Vector_t>::value_type
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                  matrix_t, vector_t>::value_t
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
-  using index_t = typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                    Matrix_t, Vector_t>::IndexType;
+  using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                   matrix_t, vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  // Get the number of rows of the matrix
-  index_t dimR = matrix.getSizeR();
+  // Get the number of rows of the matrix_
+  index_t dimR = matrix_.get_size_row();
   //
-  index_t dimC = matrix.getSizeC();
+  index_t dimC = matrix_.get_size_col();
 
-  index_t rowSz = (dimR + nWG_row - 1) / nWG_row;
+  index_t rowSz = (dimR + nWG_row_ - 1) / nWG_row_;
 
-  index_t idWFR = groupid / nWG_col;  // row bloq id of the current workgroup
-  index_t idWFC = groupid % nWG_col;  // col blq id of the current workgroup
+  index_t idWFR = groupid / nWG_col_;  // row bloq id of the current workgroup
+  index_t idWFC = groupid % nWG_col_;  // col blq id of the current workgroup
 
   index_t dimWFC =
-      ((dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col)) * localSz;
+      ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
   index_t lst_row = std::min(dimR, frs_row + rowSz);
@@ -169,8 +169,8 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
 
   index_t id_col_thr = idWFC * localSz + localid;
 
-  typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                    Vector_t>::value_type val = addOp2_struct::init(vector);
+  typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                   vector_t>::value_t val = AddOperation::init(vector_);
 
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP_OF ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
@@ -178,44 +178,44 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
       (!Lower &&
        ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
-      l.eval(rowid, id_col_thr) = val;
+      lhs_.eval(rowid, id_col_thr) = val;
     }
   } else {
     if (interLoop == 1) {
       if (id_col_thr < dimC) {
         for (index_t row = 0, id_row = frs_row; (id_row < lst_row);
              row++, id_row++) {
-          val = addOp2_struct::init(vector);
+          val = AddOperation::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
-              auto prod = prdOp2_struct::eval(matrix.eval(id_row, id_col),
-                                              vector.eval(id_col));
-              val = addOp2_struct::eval(val, prod);
+              auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
+                                                 vector_.eval(id_col));
+              val = AddOperation::eval(val, prod);
             } else {
               if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                   (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod = prdOp2_struct::eval(matrix.eval(id_row, id_col),
-                                                vector.eval(id_col));
-                val = addOp2_struct::eval(val, prod);
+                auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
+                                                   vector_.eval(id_col));
+                val = AddOperation::eval(val, prod);
               }
               if (Diag && Unit && (id_row == id_col)) {
-                val = addOp2_struct::eval(val, matrix.eval(id_row, id_col));
+                val = AddOperation::eval(val, matrix_.eval(id_row, id_col));
               }
             }
           }
-          l.eval(id_row, id_col_thr) = val;
+          lhs_.eval(id_row, id_col_thr) = val;
         }
       }
     } else {
       // There's an implied question mark after each of these comments.
       // They are just attempts to understand the code!
-      // Iterate over rows of the matrix
+      // Iterate over rows of the matrix_
       for (index_t row = 0, id_row = frs_row; (id_row < lst_row);
            row++, id_row++) {
-        // initialise an add node, with vector, the vector
+        // initialise an add node, with vector_, the vector_
         // we need to initialise it, as otherwise the type will change during
         // execution!
-        val = addOp2_struct::init(vector);
+        val = AddOperation::init(vector_);
         // Iterate across blocks of columns, in chunks of localSz * interLoop
         for (index_t id_col = frs_col; id_col < lst_col;
              id_col += localSz * interLoop) {
@@ -231,16 +231,16 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
                ((Upper) ? lst_k_int
                         : std::min(row + ((!Diag || Unit) ? 0 : 1), lst_k_int));
                k_int++) {
-            // calculate the product between the row and the vector.
-            auto prod = prdOp2_struct::eval(matrix.eval(id_row, k_int),
-                                            vector.eval(k_int));
+            // calculate the product between the row and the vector_.
+            auto prod = ProductOperation::eval(matrix_.eval(id_row, k_int),
+                                               vector_.eval(k_int));
             // add that to val?
             // Reassignment!
-            val = addOp2_struct::eval(val, prod);
+            val = AddOperation::eval(val, prod);
           }
         }
         // what does this do?
-        l.eval(id_row, id_col_thr) = val;
+        lhs_.eval(id_row, id_col_thr) = val;
       }
     }
   }
@@ -252,32 +252,32 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
 */
 
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-template <typename sharedT>
-sycl_blas_inline typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                   Matrix_t, Vector_t>::value_type
-Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
-    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
-  using index_t = typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                    Matrix_t, Vector_t>::IndexType;
-  using value_t = typename Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                                    Matrix_t, Vector_t>::value_type;
+          typename lhs_t, typename matrix_t, typename vector_t>
+template <typename local_memory_t>
+SYCL_BLAS_INLINE typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                  matrix_t, vector_t>::value_t
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
+    local_memory_t shrMem, cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                   matrix_t, vector_t>::index_t;
+  using value_t = typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                                   matrix_t, vector_t>::value_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
   // Get the dimensions of the row and column
-  index_t dimR = matrix.getSizeR();
-  index_t dimC = matrix.getSizeC();
+  index_t dimR = matrix_.get_size_row();
+  index_t dimC = matrix_.get_size_col();
 
   //
-  index_t rowSz = (dimR + nWG_row - 1) / nWG_row;
-  index_t shrSz = shrMemSize / localSz;
+  index_t rowSz = (dimR + nWG_row_ - 1) / nWG_row_;
+  index_t shrSz = local_memory_size_ / localSz;
 
-  index_t idWFR = groupid / nWG_col;  // row bloq id of the current workgroup
-  index_t idWFC = groupid % nWG_col;  // col blq id of the current workgroup
+  index_t idWFR = groupid / nWG_col_;  // row bloq id of the current workgroup
+  index_t idWFC = groupid % nWG_col_;  // col blq id of the current workgroup
   index_t dimWFC =
-      ((dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col)) * localSz;
+      ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
   index_t lst_row = std::min(dimR, frs_row + rowSz);
@@ -291,33 +291,33 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
       (!Lower &&
        ((frs_row + ((!Diag) ? 1 : 0)) > ((idWFC * dimWFC + dimWFC) - 1)))) {
     if (localid == 0) {
-      value_t val = iniAddOp1_struct::eval(vector.eval(0));
+      value_t val = AdditionIdentity::eval(vector_.eval(0));
       for (index_t rowid = frs_row; rowid < lst_row; rowid++) {
-        l.eval(rowid, idWFC) = val;
+        lhs_.eval(rowid, idWFC) = val;
       }
     }
   } else {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += shrSz) {
-      value_t val = addOp2_struct::init(vector);
+      value_t val = AddOperation::init(vector_);
       auto blqSz = std::min(shrSz, lst_row - rowid);
       if (interLoop == 1) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
           val = (Diag && Unit &&
                  ((id_row >= frs_col) && (id_row < lst_col) &&
                   (((id_row - frs_col) % localSz) == 0)))
-                    ? matrix.eval(id_row, id_row)
-                    : addOp2_struct::init(vector);
+                    ? matrix_.eval(id_row, id_row)
+                    : AddOperation::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
-              auto prod = prdOp2_struct::eval(matrix.eval(id_row, id_col),
-                                              vector.eval(id_col));
-              val = addOp2_struct::eval(val, prod);
+              auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
+                                                 vector_.eval(id_col));
+              val = AddOperation::eval(val, prod);
             } else {
               if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                   (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod = prdOp2_struct::eval(matrix.eval(id_row, id_col),
-                                                vector.eval(id_col));
-                val = addOp2_struct::eval(val, prod);
+                auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
+                                                   vector_.eval(id_col));
+                val = AddOperation::eval(val, prod);
               }
             }
           }
@@ -325,26 +325,26 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
         }
       } else {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
-          val = addOp2_struct::init(vector);
+          val = AddOperation::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col;
                id_col += localSz * interLoop) {
             for (index_t k_int = id_col;
                  k_int < std::min(id_col + interLoop, lst_col); k_int++) {
               if (Lower && Upper && Diag && !Unit) {
-                auto prod = prdOp2_struct::eval(matrix.eval(id_row, k_int),
-                                                vector.eval(k_int));
-                val = addOp2_struct::eval(val, prod);
+                auto prod = ProductOperation::eval(matrix_.eval(id_row, k_int),
+                                                   vector_.eval(k_int));
+                val = AddOperation::eval(val, prod);
               } else {
                 if ((Lower &&
                      ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                     (Upper &&
                      (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                  auto prod = prdOp2_struct::eval(matrix.eval(id_row, k_int),
-                                                  vector.eval(k_int));
-                  val = addOp2_struct::eval(val, prod);
+                  auto prod = ProductOperation::eval(
+                      matrix_.eval(id_row, k_int), vector_.eval(k_int));
+                  val = AddOperation::eval(val, prod);
                 }
                 if (Diag && Unit && (id_row == id_col)) {
-                  val = addOp2_struct::eval(val, matrix.eval(id_row, k_int));
+                  val = AddOperation::eval(val, matrix_.eval(id_row, k_int));
                 }
               }
             }
@@ -360,8 +360,8 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
         if (localid < offset) {
           for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
             shrMem[row * localSz + localid] =
-                addOp2_struct::eval(shrMem[row * localSz + localid],
-                                    shrMem[row * localSz + localid + offset]);
+                AddOperation::eval(shrMem[row * localSz + localid],
+                                   shrMem[row * localSz + localid + offset]);
           }
         }
         // This barrier is mandatory to be sure the data are on the shared
@@ -370,97 +370,97 @@ Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
       }
       if (localid == 0) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
-          l.eval(id_row, idWFC) = shrMem[row * localSz];
+          lhs_.eval(id_row, idWFC) = shrMem[row * localSz];
         }
       }
     }
   }
 
-  return addOp2_struct::init(vector);
+  return AddOperation::init(vector_);
 }
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
-          class LHS, class Matrix_t, class Vector_t>
-sycl_blas_inline void Gemv_Row<interLoop, Lower, Diag, Upper, Unit, LHS,
-                               Matrix_t, Vector_t>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  matrix.bind(h);
-  vector.bind(h);
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                              matrix_t, vector_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  matrix_.bind(h);
+  vector_.bind(h);
 }
 
 /**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
 
 /**
- * @struct Gemv_Col
+ * @struct GemvCol
  * @brief Tree node representing a Gemv, with parallel expressed across columns
  * *
  */
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::Gemv_Col(
-    LHS &_l, Matrix_t &_matrix, Vector_t &_vector,
-    typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                      Vector_t>::IndexType &_nWG_row,
-    typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                      Vector_t>::IndexType &_nWG_col,
-    typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                      Vector_t>::IndexType &_shrMemSize)
-    : l(_l),
-      matrix(_matrix),
-      vector(_vector),
-      nWG_row(_nWG_row),
-      nWG_col(_nWG_col),
-      shrMemSize(_shrMemSize){};
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                   Vector_t>::IndexType
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::getSize() const {
-  return matrix.getSizeR();
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::GemvCol(
+    lhs_t &_l, matrix_t &_matrix, vector_t &_vector,
+    typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                     vector_t>::index_t &_nWG_row,
+    typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                     vector_t>::index_t &_nWG_col,
+    typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                     vector_t>::index_t &_shrMemSize)
+    : lhs_(_l),
+      matrix_(_matrix),
+      vector_(_vector),
+      nWG_row_(_nWG_row),
+      nWG_col_(_nWG_col),
+      local_memory_size_(_shrMemSize){};
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                  vector_t>::index_t
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::get_size() const {
+  return matrix_.get_size_row();
 }
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline bool
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::valid_thread(
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE bool
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                   Vector_t>::value_type
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(IndexType i) {
-  auto dim = vector.getSize();
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                  vector_t>::value_t
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(index_t i) {
+  auto dim = vector_.get_size();
 
-  auto val = iniAddOp1_struct::eval(vector.eval(0));
-  for (IndexType j = 0; j < dim; j++) {
-    auto prod = prdOp2_struct::eval(matrix.eval(i, j), vector.eval(j));
-    val = addOp2_struct::eval(val, prod);
+  auto val = AdditionIdentity::eval(vector_.eval(0));
+  for (index_t j = 0; j < dim; j++) {
+    auto prod = ProductOperation::eval(matrix_.eval(i, j), vector_.eval(j));
+    val = AddOperation::eval(val, prod);
   }
-  return l.eval(i) = val;
+  return lhs_.eval(i) = val;
 }
 
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                   Vector_t>::value_type
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                  vector_t>::value_t
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
-  using index_t = typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                    Vector_t>::IndexType;
+  using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                   vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = matrix.getSizeR();
-  index_t dimC = matrix.getSizeC();
-  index_t colSz = (dimC + nWG_col - 1) / nWG_col;
+  index_t dimR = matrix_.get_size_row();
+  index_t dimC = matrix_.get_size_col();
+  index_t colSz = (dimC + nWG_col_ - 1) / nWG_col_;
 
-  index_t idWFR = (groupid % nWG_row);
-  index_t idWFC = (groupid / nWG_row);
+  index_t idWFR = (groupid % nWG_row_);
+  index_t idWFC = (groupid / nWG_row_);
   index_t dimWFR =
-      (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+      (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
   index_t lst_row = std::min(dimR, frs_row + dimWFR);
@@ -472,17 +472,17 @@ Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
   if ((!Upper &&
        ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
       (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
-    auto val = iniAddOp1_struct::eval(vector.eval(0));
+    auto val = AdditionIdentity::eval(vector_.eval(0));
     for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
-      l.eval(rowid, idWFC) = val;
+      lhs_.eval(rowid, idWFC) = val;
     }
   } else {
     // The product is computed
     for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
       // The initial value of val is different for the first iteration
       auto val = (Diag && Unit && ((rowid >= frs_col) && (rowid < lst_col)))
-                     ? matrix.eval(rowid, rowid)
-                     : iniAddOp1_struct::eval(vector.eval(0));
+                     ? matrix_.eval(rowid, rowid)
+                     : AdditionIdentity::eval(vector_.eval(0));
       for (index_t id_col =
                ((Lower) ? frs_col
                         : std::max(rowid + ((!Diag || Unit) ? 1 : 0), frs_col));
@@ -490,39 +490,39 @@ Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
            ((Upper) ? lst_col
                     : std::min(rowid + ((!Diag || Unit) ? 0 : 1), lst_col));
            id_col++) {
-        auto prod = prdOp2_struct::eval(matrix.eval(rowid, id_col),
-                                        vector.eval(id_col));
-        val = addOp2_struct::eval(val, prod);
+        auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
+                                           vector_.eval(id_col));
+        val = AddOperation::eval(val, prod);
       }
       // The result is stored in the correct component
-      l.eval(rowid, idWFC) = val;
+      lhs_.eval(rowid, idWFC) = val;
     }
   }
 
-  return l.eval(frs_row, idWFC);
+  return lhs_.eval(frs_row, idWFC);
 }
 
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-template <typename sharedT>
-sycl_blas_inline typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                   Vector_t>::value_type
-Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
-    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
-  using index_t = typename Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                                    Vector_t>::IndexType;
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+template <typename local_memory_t>
+SYCL_BLAS_INLINE typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                  vector_t>::value_t
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
+    local_memory_t shrMem, cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                                   vector_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = matrix.getSizeR();
-  index_t dimC = matrix.getSizeC();
+  index_t dimR = matrix_.get_size_row();
+  index_t dimC = matrix_.get_size_col();
 
-  index_t colSz = (dimC + nWG_col - 1) / nWG_col;
-  index_t idWFR = (groupid % nWG_row);
-  index_t idWFC = (groupid / nWG_row);
+  index_t colSz = (dimC + nWG_col_ - 1) / nWG_col_;
+  index_t idWFR = (groupid % nWG_row_);
+  index_t idWFC = (groupid / nWG_row_);
   index_t dimWFR =
-      (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+      (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
   index_t lst_row = std::min(dimR, frs_row + dimWFR);
@@ -535,23 +535,24 @@ Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
   if ((!Upper &&
        ((frs_col + ((!Diag) ? 1 : 0)) > ((idWFR * dimWFR + dimWFR) - 1))) ||
       (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
-    auto val = iniAddOp1_struct::eval(vector.eval(0));
+    auto val = AdditionIdentity::eval(vector_.eval(0));
     for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
-      l.eval(rowid, idWFC) = val;
+      lhs_.eval(rowid, idWFC) = val;
     }
   } else {
-    // The computation are made in blocks of shrMemSize elements
-    for (index_t colid = frs_col; colid < lst_col; colid += shrMemSize) {
+    // The computation are made in blocks of local_memory_size_ elements
+    for (index_t colid = frs_col; colid < lst_col;
+         colid += local_memory_size_) {
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
         // memory
         ndItem.barrier(cl::sycl::access::fence_space::local_space);
       }
-      auto blqSz = std::min(shrMemSize, lst_col - colid);
-      // Copy a block of elements of vector vector to the shared memory,
+      auto blqSz = std::min(local_memory_size_, lst_col - colid);
+      // Copy a block of elements of vector_ vector_ to the shared memory,
       // executing the expresion tree if it is needed
       for (index_t col = localid; (col < blqSz); col += localSz) {
-        shrMem[col] = vector.eval(colid + col);
+        shrMem[col] = vector_.eval(colid + col);
       }
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
@@ -560,39 +561,39 @@ Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t, Vector_t>::eval(
       for (index_t rowid = frs_row; rowid < lst_row; rowid += localSz) {
         // The initial value of val is different for the first iteration
         auto val =
-            ((colid == frs_col) ? iniAddOp1_struct::eval(vector.eval(0))
-                                : l.eval(rowid, idWFC)) +
+            ((colid == frs_col) ? AdditionIdentity::eval(vector_.eval(0))
+                                : lhs_.eval(rowid, idWFC)) +
             ((Diag && Unit && ((rowid >= colid) && (rowid < colid + blqSz)))
-                 ? matrix.eval(rowid, rowid)
-                 : iniAddOp1_struct::eval(vector.eval(0)));
+                 ? matrix_.eval(rowid, rowid)
+                 : AdditionIdentity::eval(vector_.eval(0)));
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag && !Unit) {
-            auto prod =
-                prdOp2_struct::eval(matrix.eval(rowid, id_col), shrMem[col]);
-            val = addOp2_struct::eval(val, prod);
+            auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
+                                               shrMem[col]);
+            val = AddOperation::eval(val, prod);
           } else {
             if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= rowid)) ||
                 (Upper && (id_col >= (rowid + ((!Diag || Unit) ? 1 : 0))))) {
-              auto prod =
-                  prdOp2_struct::eval(matrix.eval(rowid, id_col), shrMem[col]);
-              val = addOp2_struct::eval(val, prod);
+              auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
+                                                 shrMem[col]);
+              val = AddOperation::eval(val, prod);
             }
           }
         }
         // The result is stored in the correct component
-        l.eval(rowid, idWFC) = val;
+        lhs_.eval(rowid, idWFC) = val;
       }
     }
   }
-  return l.eval(frs_row, idWFC);
+  return lhs_.eval(frs_row, idWFC);
 }
-template <bool Lower, bool Diag, bool Upper, bool Unit, class LHS,
-          class Matrix_t, class Vector_t>
-sycl_blas_inline void Gemv_Col<Lower, Diag, Upper, Unit, LHS, Matrix_t,
-                               Vector_t>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  matrix.bind(h);
-  vector.bind(h);
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                              vector_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  matrix_.bind(h);
+  vector_.bind(h);
 }
 
 }  // namespace blas

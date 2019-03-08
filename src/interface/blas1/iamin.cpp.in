@@ -40,9 +40,9 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template typename Executor<${EXECUTOR}>::Policy::event_type _iamin(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${CONTAINERT0} _vx,
-    ${INCREMENT_TYPE} _incx, ${CONTAINERT1} _rs);
+template typename Executor<${EXECUTOR}>::policy_t::event_t _iamin(
+    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _rs);
 
 }  // namespace internal
 }  // namespace blas

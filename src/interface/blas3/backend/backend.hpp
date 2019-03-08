@@ -26,7 +26,7 @@
 #include "interface/blas3/backend/rcar.hpp"
 #elif INTEL_GPU
 #include "interface/blas3/backend/intel_gpu.hpp"
-#elif PowerVR
+#elif POWER_VR
 #include "interface/blas3/backend/power_vr.hpp"
 #elif AMD_GPU
 #include "interface/blas3/backend/amd_gpu.hpp"

@@ -41,7 +41,7 @@ namespace internal {
  * @param _incx Increment in X axis
  */
 template ${INDEX_TYPE} _iamin(Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N,
-                              ${CONTAINERT0} _vx, ${INCREMENT_TYPE} _incx);
+                              ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal
 }  // namespace blas

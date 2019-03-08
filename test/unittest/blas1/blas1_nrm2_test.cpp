@@ -35,25 +35,25 @@ REGISTER_PREC(float, 1e-4, nrm2_test)
 REGISTER_PREC(double, 1e-6, nrm2_test)
 
 TYPED_TEST(BLAS_Test, nrm2_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class nrm2_test;
 
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
-  ScalarT prec = TestClass::template test_prec<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create a random vector
-  std::vector<ScalarT> vX(size);
+  std::vector<scalar_t> vX(size);
   // create a vector which will hold the result
-  std::vector<ScalarT> vR(1, ScalarT(0));
+  std::vector<scalar_t> vR(1, scalar_t(0));
   TestClass::set_rand(vX, size);
 
-  ScalarT res(0);
+  scalar_t res(0);
   // compute nrm2 (euclidean length) of vX into res in a for loop
   for (int i = 0; i < size; i += strd) {
     res += vX[i] * vX[i];
@@ -64,8 +64,8 @@ TYPED_TEST(BLAS_Test, nrm2_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   // compute nrm2 of a vX into vR
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<ScalarT>(1);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
   _nrm2(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
@@ -74,6 +74,6 @@ TYPED_TEST(BLAS_Test, nrm2_test) {
 
   // check that the result is the same
   ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vR);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
 }

@@ -29,7 +29,7 @@
 
 namespace blas {
 
-inline Policy_Handler<BLAS_SYCL_Policy>::Policy_Handler(cl::sycl::queue q)
+inline PolicyHandler<codeplay_policy>::PolicyHandler(cl::sycl::queue q)
     : q_(q),
       pointerMapperPtr_(std::shared_ptr<cl::sycl::codeplay::PointerMapper>(
           new cl::sycl::codeplay::PointerMapper(),
@@ -37,130 +37,133 @@ inline Policy_Handler<BLAS_SYCL_Policy>::Policy_Handler(cl::sycl::queue q)
             p->clear();
             delete p;
           })),
-      workGroupSize_(BLAS_SYCL_Policy::get_work_group_size(q)),
-      selectedDeviceType_(BLAS_SYCL_Policy::find_chosen_device_type(q)),
-      localMemorySupport_(BLAS_SYCL_Policy::has_local_memory(q)),
-      computeUnits_(BLAS_SYCL_Policy::get_num_compute_units(q)) {}
+      workGroupSize_(codeplay_policy::get_work_group_size(q)),
+      selectedDeviceType_(codeplay_policy::find_chosen_device_type(q)),
+      localMemorySupport_(codeplay_policy::has_local_memory(q)),
+      computeUnits_(codeplay_policy::get_num_compute_units(q)) {}
 
-template <typename T>
-inline T *Policy_Handler<BLAS_SYCL_Policy>::allocate(
+template <typename element_t>
+inline element_t *PolicyHandler<codeplay_policy>::allocate(
     size_t num_elements) const {
-  return static_cast<T *>(cl::sycl::codeplay::SYCLmalloc(
-      num_elements * sizeof(T), *pointerMapperPtr_));
+  return static_cast<element_t *>(cl::sycl::codeplay::SYCLmalloc(
+      num_elements * sizeof(element_t), *pointerMapperPtr_));
 }
 
-template <typename T>
-inline void Policy_Handler<BLAS_SYCL_Policy>::deallocate(T *p) const {
+template <typename element_t>
+inline void PolicyHandler<codeplay_policy>::deallocate(element_t *p) const {
   cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), *pointerMapperPtr_);
 }
 
 /*
 @brief this class is to return the dedicated buffer to the user
-@ tparam T is the type of the pointer
-@tparam bufferT<T> is the type of the buffer points to the data. on the host
-side buffer<T> and T are the same
+@ tparam element_t is the type of the pointer
+@tparam bufferT<element_t> is the type of the buffer points to the data. on the
+host side buffer<element_t> and element_t are the same
 */
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>
-Policy_Handler<BLAS_SYCL_Policy>::get_buffer(T *ptr) const {
-  using pointer_t = typename std::remove_const<T>::type *;
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>
+PolicyHandler<codeplay_policy>::get_buffer(element_t *ptr) const {
+  using pointer_t = typename std::remove_const<element_t>::type *;
   auto original_buffer = pointerMapperPtr_->get_buffer(
       static_cast<void *>(const_cast<pointer_t>(ptr)));
-  auto typed_size = original_buffer.get_count() / sizeof(T);
-  auto buff = original_buffer.reinterpret<T>(cl::sycl::range<1>(typed_size));
+  auto typed_size = original_buffer.get_count() / sizeof(element_t);
+  auto buff =
+      original_buffer.reinterpret<element_t>(cl::sycl::range<1>(typed_size));
   auto offset = get_offset(ptr);
 
-  return buffer_iterator<T, BLAS_SYCL_Policy>(buff, offset, ptr - offset);
+  return BufferIterator<element_t, codeplay_policy>(buff, offset);
 }
 
 /*
 @brief this class is to return the dedicated buffer to the user
-@ tparam T is the type of the buffer
-@tparam buffer_iterator<T, BLAS_SYCL_Policy> is the type of the buffer that user
-can apply arithmetic operation on the host side
+@ tparam element_t is the type of the buffer
+@tparam BufferIterator<element_t, codeplay_policy> is the type of the buffer
+that user can apply arithmetic operation on the host side
 */
 
-template <typename T>
-inline buffer_iterator<T, BLAS_SYCL_Policy>
-Policy_Handler<BLAS_SYCL_Policy>::get_buffer(
-    buffer_iterator<T, BLAS_SYCL_Policy> buff) const {
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>
+PolicyHandler<codeplay_policy>::get_buffer(
+    BufferIterator<element_t, codeplay_policy> buff) const {
   return buff;
 }
 
 /*  @brief Getting range accessor from the buffer created by virtual pointer
-    @tparam T is the type of the data
-    @tparam AcM is the access mode
+    @tparam element_t is the type of the data
+    @tparam acc_md_t is the access mode
     @param container is the  data we want to get range accessor
 */
 
-template <typename BLAS_SYCL_Policy::access_mode_type AcM, typename T>
-inline typename BLAS_SYCL_Policy::template access_type<
-    typename scalar_type<T>::type, AcM>
-Policy_Handler<BLAS_SYCL_Policy>::get_range_access(T *vptr) {
-  return Policy_Handler<BLAS_SYCL_Policy>::template get_range_access<T, AcM>(
+template <typename codeplay_policy::access_mode_t acc_md_t, typename element_t>
+inline typename codeplay_policy::template default_accessor_t<
+    typename ValueType<element_t>::type, acc_md_t>
+PolicyHandler<codeplay_policy>::get_range_access(element_t *vptr) {
+  return PolicyHandler<codeplay_policy>::template get_range_access<element_t,
+                                                                   acc_md_t>(
       get_buffer(vptr));
 }
 
 /*  @brief Getting range accessor from the buffer created by buffer iterator
-    @tparam T is the type of the data
-    @tparam AcM is the access mode
+    @tparam element_t is the type of the data
+    @tparam acc_md_t is the access mode
     @param container is the  data we want to get range accessor
 */
 
-template <typename T, typename BLAS_SYCL_Policy::access_mode_type AcM>
-inline typename BLAS_SYCL_Policy::template access_type<
-    typename scalar_type<T>::type, AcM>
-Policy_Handler<BLAS_SYCL_Policy>::get_range_access(
-    buffer_iterator<T, BLAS_SYCL_Policy> buff) {
-  return blas::get_range_accessor<AcM>(buff);
+template <typename element_t, typename codeplay_policy::access_mode_t acc_md_t>
+inline typename codeplay_policy::template default_accessor_t<
+    typename ValueType<element_t>::type, acc_md_t>
+PolicyHandler<codeplay_policy>::get_range_access(
+    BufferIterator<element_t, codeplay_policy> buff) {
+  return blas::get_range_accessor<acc_md_t>(buff);
 }
 
 /*
 @brief this function is to get the offset from the actual pointer
-@tparam T is the type of the pointer
+@tparam element_t is the type of the pointer
 */
 
-template <typename T>
-inline std::ptrdiff_t Policy_Handler<BLAS_SYCL_Policy>::get_offset(
-    const T *ptr) const {
+template <typename element_t>
+inline std::ptrdiff_t PolicyHandler<codeplay_policy>::get_offset(
+    const element_t *ptr) const {
   return (pointerMapperPtr_->get_offset(static_cast<const void *>(ptr)) /
-          sizeof(T));
+          sizeof(element_t));
 }
 /*
 @brief this function is to get the offset from the actual pointer
-@tparam T is the type of the buffer_iterator<T,BLAS_SYCL_Policy>
+@tparam element_t is the type of the BufferIterator<element_t,codeplay_policy>
 */
 
-template <typename T>
-inline std::ptrdiff_t Policy_Handler<BLAS_SYCL_Policy>::get_offset(
-    buffer_iterator<T, BLAS_SYCL_Policy> buff) const {
+template <typename element_t>
+inline std::ptrdiff_t PolicyHandler<codeplay_policy>::get_offset(
+    BufferIterator<element_t, codeplay_policy> buff) const {
   return buff.get_offset();
 }
 
 /*  @brief Copying the data back to device
-    @tparam T is the type of the data
+    @tparam element_t is the type of the data
     @param src is the host pointer we want to copy from.
     @param dst is the device pointer we want to copy to.
     @param size is the number of elements to be copied
 */
-template <typename T>
-inline typename BLAS_SYCL_Policy::event_type
-Policy_Handler<BLAS_SYCL_Policy>::copy_to_device(const T *src, T *dst,
-                                                 size_t size) {
+template <typename element_t>
+inline typename codeplay_policy::event_t
+PolicyHandler<codeplay_policy>::copy_to_device(const element_t *src,
+                                               element_t *dst, size_t size) {
   return copy_to_device(src, get_buffer(dst), size);
 }
 
 /*  @brief Copying the data back to device
-  @tparam T is the type of the data
+  @tparam element_t is the type of the data
   @param src is the host pointer we want to copy from.
-  @param dst is the buffer_iterator we want to copy to.
+  @param dst is the BufferIterator we want to copy to.
   @param size is the number of elements to be copied
 */
-template <typename T>
-inline typename BLAS_SYCL_Policy::event_type
-Policy_Handler<BLAS_SYCL_Policy>::copy_to_device(
-    const T *src, buffer_iterator<T, BLAS_SYCL_Policy> dst, size_t size) {
+template <typename element_t>
+inline typename codeplay_policy::event_t
+PolicyHandler<codeplay_policy>::copy_to_device(
+    const element_t *src, BufferIterator<element_t, codeplay_policy> dst,
+    size_t size) {
   auto event = q_.submit([&](cl::sycl::handler &cgh) {
     auto acc =
         blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh, size);
@@ -170,27 +173,29 @@ Policy_Handler<BLAS_SYCL_Policy>::copy_to_device(
 }
 
 /*  @brief Copying the data back to device
-    @tparam T is the type of the data
+    @tparam element_t is the type of the data
     @param src is the device pointer we want to copy from.
     @param dst is the host pointer we want to copy to.
     @param size is the number of elements to be copied
 */
-template <typename T>
-inline typename BLAS_SYCL_Policy::event_type
-Policy_Handler<BLAS_SYCL_Policy>::copy_to_host(T *src, T *dst, size_t size) {
+template <typename element_t>
+inline typename codeplay_policy::event_t
+PolicyHandler<codeplay_policy>::copy_to_host(element_t *src, element_t *dst,
+                                             size_t size) {
   return copy_to_host(get_buffer(src), dst, size);
 }
 
 /*  @brief Copying the data back to device
-  @tparam T is the type of the data
-  @param src is the buffer_iterator we want to copy from.
+  @tparam element_t is the type of the data
+  @param src is the BufferIterator we want to copy from.
   @param dst is the host pointer we want to copy to.
   @param size is the number of elements to be copied
 */
-template <typename T>
-inline typename BLAS_SYCL_Policy::event_type
-Policy_Handler<BLAS_SYCL_Policy>::copy_to_host(
-    buffer_iterator<T, BLAS_SYCL_Policy> src, T *dst, size_t size) {
+template <typename element_t>
+inline typename codeplay_policy::event_t
+PolicyHandler<codeplay_policy>::copy_to_host(
+    BufferIterator<element_t, codeplay_policy> src, element_t *dst,
+    size_t size) {
   auto event = q_.submit([&](cl::sycl::handler &cgh) {
     auto acc =
         blas::get_range_accessor<cl::sycl::access::mode::read>(src, cgh, size);

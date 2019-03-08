@@ -36,110 +36,114 @@
 namespace blas {
 
 template <>
-class Policy_Handler<BLAS_SYCL_Policy> {
+class PolicyHandler<codeplay_policy> {
  public:
-  using Policy = BLAS_SYCL_Policy;
+  using policy_t = codeplay_policy;
 
-  explicit Policy_Handler(cl::sycl::queue q);
+  explicit PolicyHandler(cl::sycl::queue q);
 
-  template <typename T>
-  T *allocate(size_t num_elements) const;
+  template <typename element_t>
+  element_t *allocate(size_t num_elements) const;
 
-  template <typename T>
-  void deallocate(T *p) const;
+  template <typename element_t>
+  void deallocate(element_t *p) const;
   /*
   @brief this class is to return the dedicated buffer to the user
-  @ tparam T is the type of the pointer
-  @tparam bufferT<T> is the type of the buffer points to the data. on the host
-  side buffer<T> and T are the same
+  @ tparam element_t is the type of the pointer
+  @tparam bufferT<element_t> is the type of the buffer points to the data. on
+  the host side buffer<element_t> and element_t are the same
   */
 
-  template <typename T>
-  buffer_iterator<T, Policy> get_buffer(T *ptr) const;
+  template <typename element_t>
+  BufferIterator<element_t, policy_t> get_buffer(element_t *ptr) const;
   /*
   @brief this class is to return the dedicated buffer to the user
-  @ tparam T is the type of the buffer
-  @tparam buffer_iterator<T, Policy> is the type of the buffer that
+  @ tparam element_t is the type of the buffer
+  @tparam BufferIterator<element_t, policy_t> is the type of the buffer that
   user can apply arithmetic operation on the host side
   */
 
-  template <typename T>
-  buffer_iterator<T, Policy> get_buffer(buffer_iterator<T, Policy> buff) const;
+  template <typename element_t>
+  BufferIterator<element_t, policy_t> get_buffer(
+      BufferIterator<element_t, policy_t> buff) const;
 
   /*  @brief Getting range accessor from the buffer created by virtual pointer
-      @tparam T is the type of the data
-      @tparam AcM is the access mode
+      @tparam element_t is the type of the data
+      @tparam acc_md_t is the access mode
       @param container is the  data we want to get range accessor
   */
 
-  template <typename Policy::access_mode_type AcM, typename T>
-  typename Policy::access_type<typename scalar_type<T>::type, AcM>
-  get_range_access(T *vptr);
+  template <typename policy_t::access_mode_t acc_md_t, typename element_t>
+  typename policy_t::default_accessor_t<typename ValueType<element_t>::type,
+                                        acc_md_t>
+  get_range_access(element_t *vptr);
 
   /*  @brief Getting range accessor from the buffer created by buffer iterator
-      @tparam T is the type of the data
-      @tparam AcM is the access mode
+      @tparam element_t is the type of the data
+      @tparam acc_md_t is the access mode
       @param container is the  data we want to get range accessor
   */
 
-  template <typename T, typename Policy::access_mode_type AcM>
-  typename Policy::access_type<typename scalar_type<T>::type, AcM>
-  get_range_access(buffer_iterator<T, Policy> buff);
+  template <typename element_t, typename policy_t::access_mode_t acc_md_t>
+  typename policy_t::default_accessor_t<typename ValueType<element_t>::type,
+                                        acc_md_t>
+  get_range_access(BufferIterator<element_t, policy_t> buff);
 
   /*
   @brief this function is to get the offset from the actual pointer
-  @tparam T is the type of the pointer
+  @tparam element_t is the type of the pointer
   */
 
-  template <typename T>
-  ptrdiff_t get_offset(const T *ptr) const;
+  template <typename element_t>
+  ptrdiff_t get_offset(const element_t *ptr) const;
   /*
   @brief this function is to get the offset from the actual pointer
-  @tparam T is the type of the buffer_iterator<T, Policy>
+  @tparam element_t is the type of the BufferIterator<element_t, policy_t>
   */
 
-  template <typename T>
-  ptrdiff_t get_offset(buffer_iterator<T, Policy> buff) const;
+  template <typename element_t>
+  ptrdiff_t get_offset(BufferIterator<element_t, policy_t> buff) const;
 
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
+      @tparam element_t is the type of the data
       @param src is the host pointer we want to copy from.
       @param dst is the device pointer we want to copy to.
       @param size is the number of elements to be copied
   */
 
-  template <typename T>
-  typename Policy::event_type copy_to_device(const T *src, T *dst, size_t size);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_device(const element_t *src,
+                                            element_t *dst, size_t size);
   /*  @brief Copying the data back to device
-    @tparam T is the type of the data
+    @tparam element_t is the type of the data
     @param src is the host pointer we want to copy from.
-    @param dst is the buffer_iterator we want to copy to.
+    @param dst is the BufferIterator we want to copy to.
     @param size is the number of elements to be copied
   */
 
-  template <typename T>
-  typename Policy::event_type copy_to_device(const T *src,
-                                             buffer_iterator<T, Policy> dst,
-                                             size_t);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_device(
+      const element_t *src, BufferIterator<element_t, policy_t> dst, size_t);
   /*  @brief Copying the data back to device
-      @tparam T is the type of the data
+      @tparam element_t is the type of the data
       @param src is the device pointer we want to copy from.
       @param dst is the host pointer we want to copy to.
       @param size is the number of elements to be copied
   */
 
-  template <typename T>
-  typename Policy::event_type copy_to_host(T *src, T *dst, size_t size);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_host(element_t *src, element_t *dst,
+                                          size_t size);
 
-  template <typename T>
-  typename Policy::event_type copy_to_host(buffer_iterator<T, Policy> src,
-                                           T *dst, size_t);
+  template <typename element_t>
+  typename policy_t::event_t copy_to_host(
+      BufferIterator<element_t, policy_t> src, element_t *dst, size_t);
 
-  inline const Policy::device_type get_device_type() const {
+  inline const policy_t::device_type get_device_type() const {
     return selectedDeviceType_;
   };
   inline bool has_local_memory() const { return localMemorySupport_; }
-  typename Policy::queue_type get_queue() const { return q_; }
+  typename policy_t::queue_t get_queue() const { return q_; }
 
   inline size_t get_work_group_size() const { return workGroupSize_; }
 
@@ -147,7 +151,7 @@ class Policy_Handler<BLAS_SYCL_Policy> {
 
   inline void wait() { q_.wait(); }
 
-  inline void wait(Policy::event_type evs) { cl::sycl::event::wait(evs); }
+  inline void wait(policy_t::event_t evs) { cl::sycl::event::wait(evs); }
 
   /*  @brief waiting for a list of sycl events
  @param first_event  and next_events are instances of sycl::sycl::event
@@ -160,10 +164,10 @@ class Policy_Handler<BLAS_SYCL_Policy> {
   }
 
  private:
-  typename Policy::queue_type q_;
+  typename policy_t::queue_t q_;
   std::shared_ptr<cl::sycl::codeplay::PointerMapper> pointerMapperPtr_;
   const size_t workGroupSize_;
-  const Policy::device_type selectedDeviceType_;
+  const policy_t::device_type selectedDeviceType_;
   const bool localMemorySupport_;
   const size_t computeUnits_;
 };

@@ -33,7 +33,7 @@ REGISTER_SIZE(::RANDOM_SIZE, swap_test)
 REGISTER_STRD(::RANDOM_STRD, swap_test)
 
 TYPED_TEST(BLAS_Test, swap_test) {
-  using ScalarT = typename TypeParam::scalar_t;
+  using scalar_t = typename TypeParam::scalar_t;
   using ExecutorType = typename TypeParam::executor_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class swap_test;
@@ -45,20 +45,20 @@ TYPED_TEST(BLAS_Test, swap_test) {
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // create two random vectors with the same size: vX and vY
-  std::vector<ScalarT> vX(size);
-  std::vector<ScalarT> vY(size);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
 
   // create two more vectors equal to vX and vY
-  std::vector<ScalarT> vZ = vX;
-  std::vector<ScalarT> vT = vY;
+  std::vector<scalar_t> vZ = vX;
+  std::vector<scalar_t> vT = vY;
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<ScalarT>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<ScalarT>(size);
+  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _swap(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
@@ -76,6 +76,6 @@ TYPED_TEST(BLAS_Test, swap_test) {
       ASSERT_EQ(vT[i], vY[i]);
     }
   }
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vX);
-  ex.get_policy_handler().template deallocate<ScalarT>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
 }

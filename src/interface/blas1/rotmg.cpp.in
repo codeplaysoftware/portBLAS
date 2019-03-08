@@ -31,7 +31,7 @@ namespace internal {
  * Not implemented.
  * template
  * void _rotmg(${DATA_TYPE} &_d1, ${DATA_TYPE} &_d2, ${DATA_TYPE} &_x1,
- *${DATA_TYPE} &_y1, ${CONTAINERT0} _param);
+ *${DATA_TYPE} &_y1, ${container_t0} _param);
  **/
 }  // namespace internal
 }  // namespace blas

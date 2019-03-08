@@ -35,9 +35,9 @@
 namespace blas {
 namespace internal {
 
-template typename Executor<${EXECUTOR}>::Policy::event_type _trmv(
+template typename Executor<${EXECUTOR}>::policy_t::event_t _trmv(
     Executor<${EXECUTOR}>& ex, char _Uplo, char _trans, char _Diag,
-    ${INDEX_TYPE} _N, ${CONTAINERT0} _mA, ${INDEX_TYPE} _lda,
-    ${CONTAINERT1} _vx, ${INCREMENT_TYPE} _incx);
+    ${INDEX_TYPE} _N, ${container_t0} _mA, ${INDEX_TYPE} _lda,
+    ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
 }  // namespace internal
 }  // end namespace blas

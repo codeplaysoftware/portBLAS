@@ -35,72 +35,75 @@
 namespace blas {
 
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
-// template <class LHS, class RHS1, class RHS2>
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::Ger_Row(
-    LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
-    IndexType &_nWG_col, IndexType &_shrMemSize)
-    : l(_l),
-      scl(_scl),
-      r1(_r1),
-      r2(_r2),
-      nWG_row(_nWG_row),
-      nWG_col(_nWG_col),
-      shrMemSize(_shrMemSize) {}
+// template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                        rhs_2_t>::GerRow(lhs_t &_l, value_t _scl, rhs_1_t &_r1,
+                                         rhs_2_t &_r2, index_t &_nWG_row,
+                                         index_t &_nWG_col,
+                                         index_t &_shrMemSize)
+    : lhs_(_l),
+      scalar_(_scl),
+      rhs_1_(_r1),
+      rhs_2_(_r2),
+      nWG_row_(_nWG_row),
+      nWG_col_(_nWG_col),
+      local_memory_size_(_shrMemSize) {}
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType
-    Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::getSize() const {
-  return r1.getSize();
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::index_t
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
+  return rhs_1_.get_size();
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline bool
-Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::valid_thread(
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE bool
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType
-            i) {
-  auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
-  auto row = (l.is_row_access()) ? (i / size) : (i % size);
-  auto col = (l.is_row_access()) ? (i % size) : (i / size);
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                    rhs_2_t>::index_t i) {
+  auto size =
+      (lhs_.is_row_access()) ? lhs_.get_size_col() : lhs_.get_size_row();
+  auto row = (lhs_.is_row_access()) ? (i / size) : (i % size);
+  auto col = (lhs_.is_row_access()) ? (i % size) : (i / size);
 
-  auto val = scl * r1.eval(row) * r2.eval(col);
+  auto val = scalar_ * rhs_1_.eval(row) * rhs_2_.eval(col);
 
-  return l.eval(i) += val;
+  return lhs_.eval(i) += val;
 }
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        cl::sycl::nd_item<1> ndItem) {
-  using index_t =
-      typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType;
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                  rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = l.getSizeR();
-  index_t dimC = l.getSizeC();
+  index_t dimR = lhs_.get_size_row();
+  index_t dimC = lhs_.get_size_col();
 
-  index_t rowSz = (dimR + nWG_row - 1) / nWG_row;
+  index_t rowSz = (dimR + nWG_row_ - 1) / nWG_row_;
 
-  index_t idWFR = (groupid % nWG_row);
-  index_t idWFC = (groupid / nWG_row);
+  index_t idWFR = (groupid % nWG_row_);
+  index_t idWFC = (groupid / nWG_row_);
   index_t dimWFC =
-      (dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col) * localSz;
+      (dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_) * localSz;
 
   index_t frs_row = idWFR * rowSz;
   index_t lst_row = std::min(dimR, frs_row + rowSz);
@@ -116,65 +119,65 @@ sycl_blas_inline
     ;
   } else if (Single) {
     for (index_t colid = frs_col; colid < lst_col; colid += localSz) {
-      auto val = scl * r2.eval(colid);
+      auto val = scalar_ * rhs_2_.eval(colid);
       for (index_t id_row = frs_row, row = 0; id_row < lst_row;
            id_row++, row++) {
         if (Lower && Upper && Diag) {
-          l.eval(id_row, colid) += r1.eval(id_row) * val;
+          lhs_.eval(id_row, colid) += rhs_1_.eval(id_row) * val;
         } else {
           if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
               (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
-            l.eval(id_row, colid) += r1.eval(id_row) * val;
+            lhs_.eval(id_row, colid) += rhs_1_.eval(id_row) * val;
           }
         }
       }
     }
   } else {
     for (index_t colid = frs_col; colid < lst_col; colid += localSz) {
-      auto val1 = scl * r1.eval(colid);
-      auto val2 = scl * r2.eval(colid);
+      auto val1 = scalar_ * rhs_1_.eval(colid);
+      auto val2 = scalar_ * rhs_2_.eval(colid);
       for (index_t id_row = frs_row, row = 0; id_row < lst_row;
            id_row++, row++) {
         if (Lower && Upper && Diag) {
-          l.eval(id_row, colid) +=
-              r1.eval(id_row) * val2 + val1 * r2.eval(id_row);
+          lhs_.eval(id_row, colid) +=
+              rhs_1_.eval(id_row) * val2 + val1 * rhs_2_.eval(id_row);
         } else {
           if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
               (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
-            l.eval(id_row, colid) +=
-                r1.eval(id_row) * val2 + r2.eval(id_row) * val1;
+            lhs_.eval(id_row, colid) +=
+                rhs_1_.eval(id_row) * val2 + rhs_2_.eval(id_row) * val1;
           }
         }
       }
     }
   }
 
-  return l.eval(frs_row, frs_col);
+  return lhs_.eval(frs_row, frs_col);
 }
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
-sycl_blas_inline
-    typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
-  using index_t =
-      typename Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType;
+SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                  rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = l.getSizeR();
-  index_t dimC = l.getSizeC();
+  index_t dimR = lhs_.get_size_row();
+  index_t dimC = lhs_.get_size_col();
 
-  index_t rowSz = (dimR + nWG_row - 1) / nWG_row;
-  index_t shrSz = shrMemSize;
+  index_t rowSz = (dimR + nWG_row_ - 1) / nWG_row_;
+  index_t shrSz = local_memory_size_;
 
-  index_t idWFR = (groupid % nWG_row);
-  index_t idWFC = (groupid / nWG_row);
+  index_t idWFR = (groupid % nWG_row_);
+  index_t idWFC = (groupid / nWG_row_);
   index_t dimWFC =
-      (dimC + (localSz * nWG_col) - 1) / (localSz * nWG_col) * localSz;
+      (dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_) * localSz;
 
   index_t frs_row = idWFR * rowSz;
   index_t lst_row = std::min(dimR, frs_row + rowSz);
@@ -196,21 +199,21 @@ sycl_blas_inline
       auto blqSz = std::min(shrSz, lst_row - rowid);
       for (index_t row = localid, id_row = rowid + localid; (row < blqSz);
            row += localSz, id_row += localSz) {
-        shrMem[row] = scl * r1.eval(id_row);
+        shrMem[row] = scalar_ * rhs_1_.eval(id_row);
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
       for (index_t colid = frs_col; (colid < lst_col); colid += localSz) {
-        auto val = r2.eval(colid);
+        auto val = rhs_2_.eval(colid);
         for (index_t id_row = rowid, row = 0; row < blqSz; id_row++, row++) {
           if (Lower && Upper && Diag) {
-            l.eval(id_row, colid) += shrMem[row] * val;
+            lhs_.eval(id_row, colid) += shrMem[row] * val;
           } else {
             if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
                 (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
-              l.eval(id_row, colid) += shrMem[row] * val;
+              lhs_.eval(id_row, colid) += shrMem[row] * val;
             }
           }
         }
@@ -226,24 +229,24 @@ sycl_blas_inline
       auto blqSz = std::min(shrSz1, lst_row - rowid);
       for (index_t row = localid, id_row = rowid + localid; (row < blqSz);
            row += localSz, id_row += localSz) {
-        shrMem[row] = scl * r1.eval(id_row);
-        shrMem[shrSz1 + row] = scl * r2.eval(id_row);
+        shrMem[row] = scalar_ * rhs_1_.eval(id_row);
+        shrMem[shrSz1 + row] = scalar_ * rhs_2_.eval(id_row);
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
       for (index_t colid = frs_col; (colid < lst_col); colid += localSz) {
-        auto val1 = r1.eval(colid);
-        auto val2 = r2.eval(colid);
+        auto val1 = rhs_1_.eval(colid);
+        auto val2 = rhs_2_.eval(colid);
         for (index_t id_row = rowid, row = 0; row < blqSz; id_row++, row++) {
           if (Lower && Upper && Diag) {
-            l.eval(id_row, colid) +=
+            lhs_.eval(id_row, colid) +=
                 shrMem[row] * val2 + shrMem[shrSz1 + row] * val1;
           } else {
             if ((Lower && ((colid + ((!Diag) ? 1 : 0)) <= id_row)) ||
                 (Upper && (colid >= (id_row + ((!Diag) ? 1 : 0))))) {
-              l.eval(id_row, colid) +=
+              lhs_.eval(id_row, colid) +=
                   shrMem[row] * val2 + shrMem[shrSz1 + row] * val1;
             }
           }
@@ -254,81 +257,84 @@ sycl_blas_inline
 
   return shrMem[0];
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline void Ger_Row<Single, Lower, Diag, Upper, LHS, RHS1,
-                              RHS2>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  r1.bind(h);
-  r2.bind(h);
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                             rhs_2_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_1_.bind(h);
+  rhs_2_.bind(h);
 }
 
 /**** GER BY COLUMNS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
-// template <class LHS, class RHS1, class RHS2>
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::Ger_Col(
-    LHS &_l, value_type _scl, RHS1 &_r1, RHS2 &_r2, IndexType &_nWG_row,
-    IndexType &_nWG_col, IndexType &_shrMemSize)
-    : l(_l),
-      scl(_scl),
-      r1(_r1),
-      r2(_r2),
-      nWG_row(_nWG_row),
-      nWG_col(_nWG_col),
-      shrMemSize(_shrMemSize) {}
+// template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                        rhs_2_t>::GerCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1,
+                                         rhs_2_t &_r2, index_t &_nWG_row,
+                                         index_t &_nWG_col,
+                                         index_t &_shrMemSize)
+    : lhs_(_l),
+      scalar_(_scl),
+      rhs_1_(_r1),
+      rhs_2_(_r2),
+      nWG_row_(_nWG_row),
+      nWG_col_(_nWG_col),
+      local_memory_size_(_shrMemSize) {}
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType
-    Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::getSize() const {
-  return r1.getSize();
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::index_t
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
+  return rhs_1_.get_size();
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline bool
-Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::valid_thread(
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE bool
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType
-            i) {
-  auto size = (l.is_row_access()) ? l.getSizeC() : l.getSizeR();
-  auto row = (l.is_row_access()) ? (i / size) : (i % size);
-  auto col = (l.is_row_access()) ? (i % size) : (i / size);
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                    rhs_2_t>::index_t i) {
+  auto size =
+      (lhs_.is_row_access()) ? lhs_.get_size_col() : lhs_.get_size_row();
+  auto row = (lhs_.is_row_access()) ? (i / size) : (i % size);
+  auto col = (lhs_.is_row_access()) ? (i % size) : (i / size);
 
-  auto val = scl * r1.eval(row) * r2.eval(col);
+  auto val = scalar_ * rhs_1_.eval(row) * rhs_2_.eval(col);
 
-  return l.eval(i) += val;
+  return lhs_.eval(i) += val;
 }
 
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline
-    typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        cl::sycl::nd_item<1> ndItem) {
-  using index_t =
-      typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType;
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                  rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = l.getSizeR();
-  index_t dimC = l.getSizeC();
+  index_t dimR = lhs_.get_size_row();
+  index_t dimC = lhs_.get_size_col();
 
-  index_t colSz = (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+  index_t colSz = (dimR < localSz) ? localSz : (dimC + nWG_col_ - 1) / nWG_col_;
 
-  index_t idWFR = groupid % nWG_row;  // row bloq id of the current workgroup
-  index_t idWFC = groupid / nWG_row;  // col blq id of the current workgroup
+  index_t idWFR = groupid % nWG_row_;  // row bloq id of the current workgroup
+  index_t idWFC = groupid / nWG_row_;  // col blq id of the current workgroup
   index_t dimWFR =
-      (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+      (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
   index_t lst_row = std::min(dimR, frs_row + dimWFR);
@@ -341,60 +347,60 @@ sycl_blas_inline
     ;
   } else if (Single) {
     for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
-      auto val = scl * r1.eval(id_row);
+      auto val = scalar_ * rhs_1_.eval(id_row);
       for (index_t id_col =
                ((Lower) ? frs_col
                         : std::max(id_row + ((!Diag) ? 1 : 0), frs_col));
            id_col <
            ((Upper) ? lst_col : std::min(id_row + ((!Diag) ? 0 : 1), lst_col));
            id_col++) {
-        l.eval(id_row, id_col) += val * r2.eval(id_col);
+        lhs_.eval(id_row, id_col) += val * rhs_2_.eval(id_col);
       }
     }
   } else {
     for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
-      auto val1 = scl * r1.eval(id_row);
-      auto val2 = scl * r2.eval(id_row);
+      auto val1 = scalar_ * rhs_1_.eval(id_row);
+      auto val2 = scalar_ * rhs_2_.eval(id_row);
       for (index_t id_col =
                ((Lower) ? frs_col
                         : std::max(id_row + ((!Diag) ? 1 : 0), frs_col));
            id_col <
            ((Upper) ? lst_col : std::min(id_row + ((!Diag) ? 0 : 1), lst_col));
            id_col++) {
-        l.eval(id_row, id_col) +=
-            val1 * r2.eval(id_col) + val2 * r1.eval(id_col);
+        lhs_.eval(id_row, id_col) +=
+            val1 * rhs_2_.eval(id_col) + val2 * rhs_1_.eval(id_col);
       }
     }
   }
 
-  return l.eval(frs_row, frs_col);
+  return lhs_.eval(frs_row, frs_col);
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
-sycl_blas_inline
-    typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::value_type
-    Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::eval(
-        sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
-  using index_t =
-      typename Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1, RHS2>::IndexType;
+SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                 rhs_2_t>::value_t
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+    sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
+  using index_t = typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                                  rhs_2_t>::index_t;
   index_t localid = ndItem.get_local_id(0);
   index_t localSz = ndItem.get_local_range(0);
   index_t groupid = ndItem.get_group(0);
 
-  index_t dimR = l.getSizeR();
-  index_t dimC = l.getSizeC();
+  index_t dimR = lhs_.get_size_row();
+  index_t dimC = lhs_.get_size_col();
 
-  index_t colSz = (dimR < localSz) ? localSz : (dimC + nWG_col - 1) / nWG_col;
+  index_t colSz = (dimR < localSz) ? localSz : (dimC + nWG_col_ - 1) / nWG_col_;
 
-  index_t idWFR = groupid % nWG_row;  // row bloq id of the current workgroup
+  index_t idWFR = groupid % nWG_row_;  // row bloq id of the current workgroup
   index_t dimWFR =
-      (dimR + (localSz * nWG_row) - 1) / (localSz * nWG_row) * localSz;
+      (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
   index_t lst_row = std::min(dimR, frs_row + dimWFR);
 
-  index_t frs_col = (groupid / nWG_row) * colSz;
+  index_t frs_col = (groupid / nWG_row_) * colSz;
   index_t lst_col = std::min(dimC, frs_col + colSz);
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
@@ -403,39 +409,40 @@ sycl_blas_inline
       (!Lower && ((idWFR * dimWFR + ((!Diag) ? 1 : 0)) > (lst_col - 1)))) {
     ;
   } else if (Single) {
-    // The computation are made in blocks of shrMemSize elements
-    for (index_t colid = frs_col; colid < lst_col; colid += shrMemSize) {
+    // The computation are made in blocks of local_memory_size_ elements
+    for (index_t colid = frs_col; colid < lst_col;
+         colid += local_memory_size_) {
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
         // memory
         ndItem.barrier(cl::sycl::access::fence_space::local_space);
       }
-      auto blqSz = std::min(shrMemSize, lst_col - colid);
+      auto blqSz = std::min(local_memory_size_, lst_col - colid);
 
       for (index_t col = localid; (col < blqSz); col += localSz) {
-        shrMem[col] = scl * r2.eval(colid + col);
+        shrMem[col] = scalar_ * rhs_2_.eval(colid + col);
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
       for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
-        auto val = r1.eval(id_row);
+        auto val = rhs_1_.eval(id_row);
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag) {
-            l.eval(id_row, id_col) += val * shrMem[col];
+            lhs_.eval(id_row, id_col) += val * shrMem[col];
           } else {
             if ((Lower && ((id_col + ((!Diag) ? 1 : 0)) <= id_row)) ||
                 (Upper && (id_col >= (id_row + ((!Diag) ? 1 : 0))))) {
-              l.eval(id_row, id_col) += val * shrMem[col];
+              lhs_.eval(id_row, id_col) += val * shrMem[col];
             }
           }
         }
       }
     }
   } else {
-    auto shrSz1 = (shrMemSize >> 1);
-    // The computation are made in blocks of shrMemSize/shrSz1 elements
+    auto shrSz1 = (local_memory_size_ >> 1);
+    // The computation are made in blocks of local_memory_size_/shrSz1 elements
     for (index_t colid = frs_col; colid < lst_col; colid += shrSz1) {
       if (colid > frs_col) {
         // This barrier is mandatory to be sure the data is on the shared
@@ -445,24 +452,24 @@ sycl_blas_inline
       auto blqSz = std::min(shrSz1, lst_col - colid);
 
       for (index_t col = localid; (col < blqSz); col += localSz) {
-        shrMem[col] = scl * r1.eval(colid + col);
-        shrMem[shrSz1 + col] = scl * r2.eval(colid + col);
+        shrMem[col] = scalar_ * rhs_1_.eval(colid + col);
+        shrMem[shrSz1 + col] = scalar_ * rhs_2_.eval(colid + col);
       }
 
       // This barrier is mandatory to be sure the data is on the shared memory
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
       for (index_t id_row = frs_row; id_row < lst_row; id_row += localSz) {
-        auto val1 = r1.eval(id_row);
-        auto val2 = r2.eval(id_row);
+        auto val1 = rhs_1_.eval(id_row);
+        auto val2 = rhs_2_.eval(id_row);
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag) {
-            l.eval(id_row, id_col) +=
+            lhs_.eval(id_row, id_col) +=
                 val1 * shrMem[shrSz1 + col] + val2 * shrMem[col];
           } else {
             if ((Lower && ((id_col + ((!Diag) ? 1 : 0)) <= id_row)) ||
                 (Upper && (id_col >= (id_row + ((!Diag) ? 1 : 0))))) {
-              l.eval(id_row, id_col) +=
+              lhs_.eval(id_row, id_col) +=
                   val1 * shrMem[shrSz1 + col] + val2 * shrMem[col];
             }
           }
@@ -473,13 +480,13 @@ sycl_blas_inline
 
   return shrMem[0];
 }
-template <bool Single, bool Lower, bool Diag, bool Upper, class LHS, class RHS1,
-          class RHS2>
-sycl_blas_inline void Ger_Col<Single, Lower, Diag, Upper, LHS, RHS1,
-                              RHS2>::bind(cl::sycl::handler &h) {
-  l.bind(h);
-  r1.bind(h);
-  r2.bind(h);
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                             rhs_2_t>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_1_.bind(h);
+  rhs_2_.bind(h);
 }
 
 }  // namespace blas

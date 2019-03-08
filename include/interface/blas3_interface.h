@@ -33,43 +33,49 @@ namespace internal {
  *
  * See netlib.org/blas for details.
  */
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc);
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
+                                             char _TransB, index_t _M,
+                                             index_t _N, index_t _K,
+                                             element_t _alpha, container_0_t a_,
+                                             index_t _lda, container_1_t b_,
+                                             index_t _ldb, element_t _beta,
+                                             container_2_t _C, index_t _ldc);
 
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm_batched(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc,
-    IndexType batch_size);
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm_batched(
+    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, index_t batch_size);
 }  // namespace internal
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
+                                             char _TransB, index_t _M,
+                                             index_t _N, index_t _K,
+                                             element_t _alpha, container_0_t a_,
+                                             index_t _lda, container_1_t b_,
+                                             index_t _ldb, element_t _beta,
+                                             container_2_t _C, index_t _ldc) {
   return internal::_gemm(ex, _TransA, _TransB, _M, _N, _K, _alpha,
-                         ex.get_policy_handler().get_buffer(_A), _lda,
-                         ex.get_policy_handler().get_buffer(_B), _ldb, _beta,
+                         ex.get_policy_handler().get_buffer(a_), _lda,
+                         ex.get_policy_handler().get_buffer(b_), _ldb, _beta,
                          ex.get_policy_handler().get_buffer(_C), _ldc);
 }
 
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm_batched(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc,
-    IndexType batch_size) {
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm_batched(
+    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, index_t batch_size) {
   return internal::_gemm_batched(ex, _TransA, _TransB, _M, _N, _K, _alpha,
-                                 ex.get_policy_handler().get_buffer(_A), _lda,
-                                 ex.get_policy_handler().get_buffer(_B), _ldb,
+                                 ex.get_policy_handler().get_buffer(a_), _lda,
+                                 ex.get_policy_handler().get_buffer(b_), _ldb,
                                  _beta, ex.get_policy_handler().get_buffer(_C),
                                  _ldc, batch_size);
 }

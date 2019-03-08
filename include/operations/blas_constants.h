@@ -35,16 +35,16 @@ namespace blas {
 /*!
 @brief Container for a scalar value and an index.
 */
-template <typename ScalarT, typename IndexType>
-struct IndexValueTuple {
-  using value_type = ScalarT;
-  value_type val;
-  IndexType ind;
+template <typename scalar_t, typename index_t>
+struct Indexvalue_tuple {
+  using value_t = scalar_t;
+  value_t val;
+  index_t ind;
 
-  constexpr explicit IndexValueTuple(IndexType _ind, value_type _val)
+  constexpr explicit Indexvalue_tuple(index_t _ind, value_t _val)
       : val(_val), ind(_ind){};
-  inline IndexType get_index() const { return ind; }
-  inline value_type get_value() const { return val; }
+  inline index_t get_index() const { return ind; }
+  inline value_t get_value() const { return val; }
 };
 
 /*!
@@ -65,11 +65,11 @@ enum class const_val : int {
 /*!
 @brief Template struct used to represent constants within a compile-time
 expression tree, each instantiation will have a static constexpr member variable
-of the type valueT initialized to the specified constant.
-@tparam valueT Value type of the constant.
+of the type value_t initialized to the specified constant.
+@tparam value_t Value type of the constant.
 @tparam kIndicator Enumeration specifying the constant.
 */
-template <typename valueT, const_val kIndicator>
+template <typename value_t, const_val kIndicator>
 struct constant;
 
 /*!
@@ -153,9 +153,9 @@ SYCLBLAS_DEFINE_CONSTANT(
 #define SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(data_type, index_type, indicator, \
                                              index_value, data_value)          \
   template <>                                                                  \
-  struct constant<IndexValueTuple<data_type, index_type>, indicator> {         \
-    constexpr static const IndexValueTuple<data_type, index_type> value =      \
-        IndexValueTuple<data_type, index_type>(index_value, data_value);       \
+  struct constant<Indexvalue_tuple<data_type, index_type>, indicator> {        \
+    constexpr static const Indexvalue_tuple<data_type, index_type> value =     \
+        Indexvalue_tuple<data_type, index_type>(index_value, data_value);      \
   };
 
 #define INDEX_TYPE_CONSTANT(data_type, index_type) \

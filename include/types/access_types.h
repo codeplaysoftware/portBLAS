@@ -39,14 +39,14 @@ class Access {
    * @enum Layout
    * @brief The possible layout options for a matrix, expressed algebraically.
    */
-  enum class Layout { RowMajor, ColMajor };
+  enum class Layout { row_major, col_major };
   const Layout layout;
 
   static inline Layout layout_from_transposition(Transposition &t) {
-    if (t.isNormal()) {
-      return Layout::RowMajor;
+    if (t.is_normal()) {
+      return Layout::row_major;
     } else {
-      return Layout::ColMajor;
+      return Layout::col_major;
     }
   }
 
@@ -55,18 +55,18 @@ class Access {
     // in some cases, a is some data of layout, while b is how we want to access
     // it. if it's not true that (device is row major  xor  data is row major),
     // then row major
-    if (a.isRowMajor() && b.isRowMajor()) {
+    if (a.is_row_major() && b.is_row_major()) {
       // We can be row major, of course
-      return Layout::RowMajor;
-    } else if (a.isRowMajor() && b.isColMajor()) {
+      return Layout::row_major;
+    } else if (a.is_row_major() && b.is_col_major()) {
       // We should be col major?
-      return Layout::ColMajor;
-    } else if (a.isColMajor() && b.isRowMajor()) {
+      return Layout::col_major;
+    } else if (a.is_col_major() && b.is_row_major()) {
       // We should be col major?
-      return Layout::ColMajor;
-    } else {  // a.isColMajor() && b.isColMajor()
+      return Layout::col_major;
+    } else {  // a.is_col_major() && b.is_col_major()
       // We can be row major (according to Jose)
-      return Layout::RowMajor;
+      return Layout::row_major;
     }
   }
 
@@ -76,12 +76,16 @@ class Access {
 
   Access(Access &a, Access &b) : layout(combined_layouts(a, b)) {}
 
-  static Access RowMajor() { return Access(Layout::RowMajor); }
+  static Access row_major() { return Access(Layout::row_major); }
 
-  static Access ColMajor() { return Access(Layout::ColMajor); }
+  static Access col_major() { return Access(Layout::col_major); }
 
-  const inline bool isRowMajor() const { return (layout == Layout::RowMajor); }
-  const inline bool isColMajor() const { return (layout == Layout::ColMajor); }
+  const inline bool is_row_major() const {
+    return (layout == Layout::row_major);
+  }
+  const inline bool is_col_major() const {
+    return (layout == Layout::col_major);
+  }
 };
 
 #endif  // ACCESS_TYPES_H

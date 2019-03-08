@@ -26,12 +26,12 @@
 #define SYCL_BLAS_CONSTANT_CPP
 #include <operations/blas_constants.hpp>
 namespace blas {
-#define CPP_INSTANTIATE_TYPE(type, indicator) \
-  constexpr const type constant<type, indicator>::value;
+#define CPP_INSTANTIATE_TYPE(data_t, indicator) \
+  constexpr const type constant<data_t, indicator>::value;
 
-#define CPP_INSTANTIATE_INDEX_VALUE_TYPE(dtType, InType, indicator) \
-  constexpr const IndexValueTuple<dtType, InType>                   \
-      constant<IndexValueTuple<dtType, InType>, indicator>::value;
+#define CPP_INSTANTIATE_INDEX_VALUE_TYPE(data_t, index_t, indicator) \
+  constexpr const Indexvalue_tuple<data_t, index_t>                  \
+      constant<Indexvalue_tuple<data_t, index_t>, indicator>::value;
 
 CPP_INSTANTIATE_TYPE(int, const_val::zero)
 CPP_INSTANTIATE_TYPE(int, const_val::one)

@@ -132,52 +132,53 @@ struct Tile {
  *                   level tiles to use, see Tile
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
- * @tparam T  type of matrix elements
- * @param _A the LHS matrix
- * @param _B the RHS matrix
- * @param _C the output matrix
- * @param Alpha specifies the scalar alpha
- * @param beta specifies the scalar beta
+ * @tparam element_t  type of matrix elements
+ * @param a_ the lhs_t matrix
+ * @param b_ the rhs_t matrix
+ * @param c_ the output matrix
+ * @param alpha_ specifies the scalar alpha
+ * @param beta_ specifies the scalar beta
  * @param m  the number  of rows  of the  matrix _C
  * @param n  the number  of column  of the  matrix _C
- * @param k the contracting dimension between _A and _B
- * @param lda the leading dimension of the matrix _A
- * @param ldb the leading dimension of the matrix _B
+ * @param k the contracting dimension between a_ and b_
+ * @param lda the leading dimension of the matrix a_
+ * @param ldb the leading dimension of the matrix b_
  * @param ldc the leading dimension of the matrix _C
- * @param m_batch_size the number batches of matrices of _A _B _C
+ * @param batch_size_ the number batches of matrices of a_ b_ _C
  */
-template <typename RHS0, typename RHS1, bool DoubleBuffer, bool NbcA, bool NbcB,
-          int ClSize, typename tile_type, bool TransA, bool TransB, typename T,
-          bool is_beta_zero, int Gemm_type>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
 class Gemm {
  public:
-  using value_type = T;
-  using IndexType = typename std::make_signed<typename RHS0::IndexType>::type;
+  using value_t = element_t;
+  using index_t = typename std::make_signed<typename input_t::index_t>::type;
   static constexpr int type = Gemm_type;
   static constexpr int wg_size = tile_type::wg_rows * tile_type::wg_cols;
   static constexpr bool trans_a = TransA;
   static constexpr bool trans_b = TransB;
   static constexpr int local_memory_size = 0;
-  RHS0 _A;
-  RHS0 _B;
-  RHS1 _C;
-  T alpha;
-  T beta;
-  IndexType m;
-  IndexType n;
-  IndexType k;
-  IndexType lda;
-  IndexType ldb;
-  IndexType ldc;
-  IndexType m_batch_size;
-  Gemm(RHS0 A, RHS0 B, RHS1 C, T alpha, T beta, IndexType batch_size);
+  input_t a_;
+  input_t b_;
+  output_t c_;
+  element_t alpha_;
+  element_t beta_;
+  index_t m_;
+  index_t n_;
+  index_t k_;
+  index_t lda_;
+  index_t ldb_;
+  index_t ldc_;
+  index_t batch_size_;
+  Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
+       index_t batch_size);
   static std::string get_type_string() noexcept;
-  static IndexType get_workgroup_cluster(IndexType m, IndexType n) noexcept;
-  static IndexType get_num_workgroup_cluster(IndexType m, IndexType n,
-                                             IndexType compute_units) noexcept;
-  static cl::sycl::nd_range<1> get_nd_range(IndexType m, IndexType n,
-                                            IndexType compute_units) noexcept;
-  IndexType getSize() const;
+  static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
+  static index_t get_num_workgroup_cluster(index_t m, index_t n,
+                                           index_t compute_units) noexcept;
+  static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
+                                            index_t compute_units) noexcept;
+  index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   void eval(cl::sycl::nd_item<1> id) noexcept;
   void bind(cl::sycl::handler &h);
@@ -189,14 +190,14 @@ class Gemm {
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int Gemm_type,
-          bool is_beta_zero, typename RHS1, typename RHS2, typename T,
-          typename IndexType>
-inline Gemm<RHS1, RHS2, DoubleBuffer, ConflictA, ConflictB, ClSize, TileType,
-            TransA, TransB, T, is_beta_zero, Gemm_type>
-make_gemm(RHS1 buffer_a, RHS1 buffer_b, RHS2 buffer_c, T alpha, T beta,
-          IndexType batch_size) {
-  return Gemm<RHS1, RHS2, DoubleBuffer, ConflictA, ConflictB, ClSize, TileType,
-              TransA, TransB, T, is_beta_zero, Gemm_type>(
+          bool is_beta_zero, typename input_t, typename output_t,
+          typename element_t, typename index_t>
+inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
+            TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>
+make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
+          element_t alpha, element_t beta, index_t batch_size) {
+  return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
+              TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
       buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
 }
 

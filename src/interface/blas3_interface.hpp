@@ -49,40 +49,40 @@ namespace blas {
  */
 namespace internal {
 
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename Executor,
-          typename ContainerT0, typename ContainerT1, typename ContainerT2,
-          typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm_platform_specific(
-    Executor& ex, IndexType _M, IndexType _N, IndexType _K, T _alpha,
-    ContainerT0 _A, IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
-    ContainerT2 _C, IndexType _ldc, IndexType batch_size) {
+template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm_platform_specific(
+    executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+    container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
+    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size) {
   return blas::gemm::backend::_gemm<_t_a, _t_b, is_beta_zero>(
-      ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc, batch_size);
+      ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc, batch_size);
 }
 
-template <bool _t_a, bool _t_b, typename Executor, typename ContainerT0,
-          typename ContainerT1, typename ContainerT2, typename T,
-          typename IndexType>
-typename Executor::Policy::event_type _gemm_is_beta_zero(
-    Executor& ex, IndexType _M, IndexType _N, IndexType _K, T _alpha,
-    ContainerT0 _A, IndexType _lda, ContainerT1 _B, IndexType _ldb, T _beta,
-    ContainerT2 _C, IndexType _ldc, IndexType batch_size) {
-  return ((_beta == static_cast<T>(0))
+template <bool _t_a, bool _t_b, typename executor_t, typename container_0_t,
+          typename container_1_t, typename container_2_t, typename element_t,
+          typename index_t>
+typename executor_t::policy_t::event_t _gemm_is_beta_zero(
+    executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+    container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
+    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size) {
+  return ((_beta == static_cast<element_t>(0))
               ? _gemm_platform_specific<_t_a, _t_b, true>(
-                    ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc,
+                    ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
                     batch_size)
               : _gemm_platform_specific<_t_a, _t_b, false>(
-                    ex, _M, _N, _K, _alpha, _A, _lda, _B, _ldb, _beta, _C, _ldc,
+                    ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
                     batch_size));
 }
 
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm_backend(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc,
-    IndexType batch_size) {
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm_backend(
+    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, index_t batch_size) {
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
@@ -95,39 +95,42 @@ typename Executor::Policy::event_type _gemm_backend(
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
   if (_TrA && _TrB) {
-    return _gemm_is_beta_zero<true, true>(ex, _M, _N, _K, _alpha, _A, _lda, _B,
+    return _gemm_is_beta_zero<true, true>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
                                           _ldb, _beta, _C, _ldc, batch_size);
   } else if (!_TrA && _TrB) {
-    return _gemm_is_beta_zero<false, true>(ex, _M, _N, _K, _alpha, _A, _lda, _B,
+    return _gemm_is_beta_zero<false, true>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
                                            _ldb, _beta, _C, _ldc, batch_size);
   } else if (_TrA && !_TrB) {
-    return _gemm_is_beta_zero<true, false>(ex, _M, _N, _K, _alpha, _A, _lda, _B,
+    return _gemm_is_beta_zero<true, false>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
                                            _ldb, _beta, _C, _ldc, batch_size);
   } else {
-    return _gemm_is_beta_zero<false, false>(ex, _M, _N, _K, _alpha, _A, _lda,
-                                            _B, _ldb, _beta, _C, _ldc,
+    return _gemm_is_beta_zero<false, false>(ex, _M, _N, _K, _alpha, a_, _lda,
+                                            b_, _ldb, _beta, _C, _ldc,
                                             batch_size);
   }
 }
 
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc) {
-  return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, _A, _lda, _B,
-                       _ldb, _beta, _C, _ldc, IndexType(1));
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
+                                             char _TransB, index_t _M,
+                                             index_t _N, index_t _K,
+                                             element_t _alpha, container_0_t a_,
+                                             index_t _lda, container_1_t b_,
+                                             index_t _ldb, element_t _beta,
+                                             container_2_t _C, index_t _ldc) {
+  return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, b_,
+                       _ldb, _beta, _C, _ldc, index_t(1));
 }
 
-template <typename Executor, typename ContainerT0, typename ContainerT1,
-          typename ContainerT2, typename T, typename IndexType>
-typename Executor::Policy::event_type _gemm_batched(
-    Executor& ex, char _TransA, char _TransB, IndexType _M, IndexType _N,
-    IndexType _K, T _alpha, ContainerT0 _A, IndexType _lda, ContainerT1 _B,
-    IndexType _ldb, T _beta, ContainerT2 _C, IndexType _ldc,
-    IndexType batch_size) {
-  return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, _A, _lda, _B,
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _gemm_batched(
+    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, index_t batch_size) {
+  return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, b_,
                        _ldb, _beta, _C, _ldc, batch_size);
 }
 
