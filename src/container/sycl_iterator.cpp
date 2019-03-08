@@ -27,12 +27,12 @@
 namespace blas {
 template class BufferIterator<float, codeplay_policy>;
 template class BufferIterator<double, codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<float, int>, codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<float, long>, codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<float, long long>,
+template class BufferIterator<IndexValueTuple<float, int>, codeplay_policy>;
+template class BufferIterator<IndexValueTuple<float, long>, codeplay_policy>;
+template class BufferIterator<IndexValueTuple<float, long long>,
                               codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<double, int>, codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<double, long>, codeplay_policy>;
-template class BufferIterator<Indexvalue_tuple<double, long long>,
+template class BufferIterator<IndexValueTuple<double, int>, codeplay_policy>;
+template class BufferIterator<IndexValueTuple<double, long>, codeplay_policy>;
+template class BufferIterator<IndexValueTuple<double, long long>,
                               codeplay_policy>;
 }  // end namespace blas

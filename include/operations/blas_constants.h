@@ -36,12 +36,12 @@ namespace blas {
 @brief Container for a scalar value and an index.
 */
 template <typename scalar_t, typename index_t>
-struct Indexvalue_tuple {
+struct IndexValueTuple {
   using value_t = scalar_t;
   value_t val;
   index_t ind;
 
-  constexpr explicit Indexvalue_tuple(index_t _ind, value_t _val)
+  constexpr explicit IndexValueTuple(index_t _ind, value_t _val)
       : val(_val), ind(_ind){};
   inline index_t get_index() const { return ind; }
   inline value_t get_value() const { return val; }
@@ -153,9 +153,9 @@ SYCLBLAS_DEFINE_CONSTANT(
 #define SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(data_type, index_type, indicator, \
                                              index_value, data_value)          \
   template <>                                                                  \
-  struct constant<Indexvalue_tuple<data_type, index_type>, indicator> {        \
-    constexpr static const Indexvalue_tuple<data_type, index_type> value =     \
-        Indexvalue_tuple<data_type, index_type>(index_value, data_value);      \
+  struct constant<IndexValueTuple<data_type, index_type>, indicator> {         \
+    constexpr static const IndexValueTuple<data_type, index_type> value =      \
+        IndexValueTuple<data_type, index_type>(index_value, data_value);       \
   };
 
 #define INDEX_TYPE_CONSTANT(data_type, index_type) \

@@ -327,7 +327,7 @@ template <typename executor_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = Indexvalue_tuple<element_t, index_t>;
+  using IndValTuple = IndexValueTuple<element_t, index_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
@@ -345,7 +345,7 @@ template <typename executor_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = Indexvalue_tuple<element_t, index_t>;
+  using IndValTuple = IndexValueTuple<element_t, index_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));

@@ -35,11 +35,12 @@ void BM_Iamax(benchmark::State& state) {
 
   // Create data
   std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
-  blas::Indexvalue_tuple<scalar_t, index_t> out(-1, -1);
+  blas::IndexValueTuple<scalar_t, index_t> out(-1, -1);
 
   auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
-  auto outI = blas::make_sycl_iterator_buffer<
-      blas::Indexvalue_tuple<scalar_t, index_t>>(&out, 1);
+  auto outI =
+      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, index_t>>(
+          &out, 1);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

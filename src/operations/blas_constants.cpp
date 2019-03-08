@@ -30,8 +30,8 @@ namespace blas {
   constexpr const type constant<data_t, indicator>::value;
 
 #define CPP_INSTANTIATE_INDEX_VALUE_TYPE(data_t, index_t, indicator) \
-  constexpr const Indexvalue_tuple<data_t, index_t>                  \
-      constant<Indexvalue_tuple<data_t, index_t>, indicator>::value;
+  constexpr const IndexValueTuple<data_t, index_t>                   \
+      constant<IndexValueTuple<data_t, index_t>, indicator>::value;
 
 CPP_INSTANTIATE_TYPE(int, const_val::zero)
 CPP_INSTANTIATE_TYPE(int, const_val::one)

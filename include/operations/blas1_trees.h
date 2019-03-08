@@ -141,7 +141,7 @@ struct BinaryOp {
 template <typename rhs_t>
 struct TupleOp {
   using index_t = typename rhs_t::index_t;
-  using value_t = Indexvalue_tuple<typename rhs_t::value_t, index_t>;
+  using value_t = IndexValueTuple<typename rhs_t::value_t, index_t>;
   rhs_t rhs_;
   TupleOp(rhs_t &_r);
   index_t get_size() const;

@@ -74,58 +74,58 @@ namespace blas {
 INSTANTIATE_TEMPLATE_METHODS(float)
 INSTANTIATE_TEMPLATE_METHODS(double)
 
-#define INSTANTIATE_TEMPLATE_METHODS_SPECIAL(ind, val)                         \
-  template Indexvalue_tuple<ind, val>                                          \
-      *PolicyHandler<codeplay_policy>::allocate<Indexvalue_tuple<ind, val>>(   \
-          size_t num_elements) const;                                          \
-  template void                                                                \
-      PolicyHandler<codeplay_policy>::deallocate<Indexvalue_tuple<ind, val>>(  \
-          Indexvalue_tuple<ind, val> * p) const;                               \
-  template BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy>         \
-      PolicyHandler<codeplay_policy>::get_buffer<Indexvalue_tuple<ind, val>>(  \
-          Indexvalue_tuple<ind, val> * ptr) const;                             \
-  template BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy>         \
-  PolicyHandler<codeplay_policy>::get_buffer<Indexvalue_tuple<ind, val>>(      \
-      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> buff) const; \
-  template typename codeplay_policy::default_accessor_t<                       \
-      typename ValueType<Indexvalue_tuple<ind, val>>::type,                    \
-      cl::sycl::access::mode::read_write>                                      \
-      PolicyHandler<codeplay_policy>::get_range_access<                        \
-          cl::sycl::access::mode::read_write, Indexvalue_tuple<ind, val>>(     \
-          Indexvalue_tuple<ind, val> * vptr);                                  \
-                                                                               \
-  template typename codeplay_policy::default_accessor_t<                       \
-      typename ValueType<Indexvalue_tuple<ind, val>>::type,                    \
-      cl::sycl::access::mode::read_write>                                      \
-  PolicyHandler<codeplay_policy>::get_range_access<                            \
-      Indexvalue_tuple<ind, val>, cl::sycl::access::mode::read_write>(         \
-      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> buff);       \
-  template typename codeplay_policy::event_t                                   \
-  PolicyHandler<codeplay_policy>::copy_to_device<Indexvalue_tuple<ind, val>>(  \
-      const Indexvalue_tuple<ind, val> *src, Indexvalue_tuple<ind, val> *dst,  \
-      size_t size);                                                            \
-                                                                               \
-  template typename codeplay_policy::event_t                                   \
-  PolicyHandler<codeplay_policy>::copy_to_device<Indexvalue_tuple<ind, val>>(  \
-      const Indexvalue_tuple<ind, val> *src,                                   \
-      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> dst,         \
-      size_t size = 0);                                                        \
-  template typename codeplay_policy::event_t                                   \
-  PolicyHandler<codeplay_policy>::copy_to_host<Indexvalue_tuple<ind, val>>(    \
-      Indexvalue_tuple<ind, val> * src, Indexvalue_tuple<ind, val> * dst,      \
-      size_t size);                                                            \
-                                                                               \
-  template typename codeplay_policy::event_t                                   \
-  PolicyHandler<codeplay_policy>::copy_to_host<Indexvalue_tuple<ind, val>>(    \
-      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> src,         \
-      Indexvalue_tuple<ind, val> * dst, size_t size = 0);                      \
-  template ptrdiff_t                                                           \
-  PolicyHandler<codeplay_policy>::get_offset<Indexvalue_tuple<ind, val>>(      \
-      const Indexvalue_tuple<ind, val> *ptr) const;                            \
-                                                                               \
-  template ptrdiff_t                                                           \
-  PolicyHandler<codeplay_policy>::get_offset<Indexvalue_tuple<ind, val>>(      \
-      BufferIterator<Indexvalue_tuple<ind, val>, codeplay_policy> ptr) const;
+#define INSTANTIATE_TEMPLATE_METHODS_SPECIAL(ind, val)                        \
+  template IndexValueTuple<ind, val>                                          \
+      *PolicyHandler<codeplay_policy>::allocate<IndexValueTuple<ind, val>>(   \
+          size_t num_elements) const;                                         \
+  template void                                                               \
+      PolicyHandler<codeplay_policy>::deallocate<IndexValueTuple<ind, val>>(  \
+          IndexValueTuple<ind, val> * p) const;                               \
+  template BufferIterator<IndexValueTuple<ind, val>, codeplay_policy>         \
+      PolicyHandler<codeplay_policy>::get_buffer<IndexValueTuple<ind, val>>(  \
+          IndexValueTuple<ind, val> * ptr) const;                             \
+  template BufferIterator<IndexValueTuple<ind, val>, codeplay_policy>         \
+  PolicyHandler<codeplay_policy>::get_buffer<IndexValueTuple<ind, val>>(      \
+      BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> buff) const; \
+  template typename codeplay_policy::default_accessor_t<                      \
+      typename ValueType<IndexValueTuple<ind, val>>::type,                    \
+      cl::sycl::access::mode::read_write>                                     \
+      PolicyHandler<codeplay_policy>::get_range_access<                       \
+          cl::sycl::access::mode::read_write, IndexValueTuple<ind, val>>(     \
+          IndexValueTuple<ind, val> * vptr);                                  \
+                                                                              \
+  template typename codeplay_policy::default_accessor_t<                      \
+      typename ValueType<IndexValueTuple<ind, val>>::type,                    \
+      cl::sycl::access::mode::read_write>                                     \
+  PolicyHandler<codeplay_policy>::get_range_access<                           \
+      IndexValueTuple<ind, val>, cl::sycl::access::mode::read_write>(         \
+      BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> buff);       \
+  template typename codeplay_policy::event_t                                  \
+  PolicyHandler<codeplay_policy>::copy_to_device<IndexValueTuple<ind, val>>(  \
+      const IndexValueTuple<ind, val> *src, IndexValueTuple<ind, val> *dst,   \
+      size_t size);                                                           \
+                                                                              \
+  template typename codeplay_policy::event_t                                  \
+  PolicyHandler<codeplay_policy>::copy_to_device<IndexValueTuple<ind, val>>(  \
+      const IndexValueTuple<ind, val> *src,                                   \
+      BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> dst,         \
+      size_t size = 0);                                                       \
+  template typename codeplay_policy::event_t                                  \
+  PolicyHandler<codeplay_policy>::copy_to_host<IndexValueTuple<ind, val>>(    \
+      IndexValueTuple<ind, val> * src, IndexValueTuple<ind, val> * dst,       \
+      size_t size);                                                           \
+                                                                              \
+  template typename codeplay_policy::event_t                                  \
+  PolicyHandler<codeplay_policy>::copy_to_host<IndexValueTuple<ind, val>>(    \
+      BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> src,         \
+      IndexValueTuple<ind, val> * dst, size_t size = 0);                      \
+  template ptrdiff_t                                                          \
+  PolicyHandler<codeplay_policy>::get_offset<IndexValueTuple<ind, val>>(      \
+      const IndexValueTuple<ind, val> *ptr) const;                            \
+                                                                              \
+  template ptrdiff_t                                                          \
+  PolicyHandler<codeplay_policy>::get_offset<IndexValueTuple<ind, val>>(      \
+      BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> ptr) const;
 
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, int)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, long)

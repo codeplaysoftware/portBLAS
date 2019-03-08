@@ -165,7 +165,7 @@ BENCHMARK(iamax, syclblas_level_1) {
 
   auto inx = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto outI = ex.get_policy_handler()
-                  .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+                  .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   ex.get_policy_handler().copy_to_device(v1.data(), inx, size);
 
   benchmark<>::datapoint_t flops = benchmark<>::measure(
@@ -177,7 +177,7 @@ BENCHMARK(iamax, syclblas_level_1) {
 
   ex.get_policy_handler().template deallocate<scalar_t>(inx);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(outI);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(outI);
   return flops;
 }
 
@@ -189,7 +189,7 @@ BENCHMARK(iamin, syclblas_level_1) {
   std::vector<scalar_t> v1 = benchmark<>::random_data<scalar_t>(size);
   auto inx = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto outI = ex.get_policy_handler()
-                  .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+                  .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   ex.get_policy_handler().copy_to_device(v1.data(), inx, size);
 
   benchmark<>::datapoint_t flops = benchmark<>::measure(
@@ -201,7 +201,7 @@ BENCHMARK(iamin, syclblas_level_1) {
 
   ex.get_policy_handler().template deallocate<scalar_t>(inx);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(outI);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(outI);
   return flops;
 }
 
@@ -270,7 +270,7 @@ BENCHMARK(axpy3op, syclblas_level_1) {
   const index_t size = params;
 
   std::array<scalar_t, 3> alphas = {1.78426458744, 2.187346575843,
-                                   3.78164387328};
+                                    3.78164387328};
   std::vector<scalar_t> vsrc1 = benchmark<>::random_data<scalar_t>(size);
   std::vector<scalar_t> vsrc2 = benchmark<>::random_data<scalar_t>(size);
   std::vector<scalar_t> vsrc3 = benchmark<>::random_data<scalar_t>(size);
@@ -325,7 +325,7 @@ BENCHMARK(blas1, syclblas_level_1) {
   auto inr3 = ex.get_policy_handler().template allocate<scalar_t>(1);
   auto inr4 = ex.get_policy_handler().template allocate<scalar_t>(1);
   auto inrI = ex.get_policy_handler()
-                  .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+                  .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   ex.get_policy_handler().copy_to_device(v1.data(), inx, size);
   ex.get_policy_handler().copy_to_device(v2.data(), iny, size);
 
@@ -349,7 +349,7 @@ BENCHMARK(blas1, syclblas_level_1) {
   ex.get_policy_handler().template deallocate<scalar_t>(inr3);
   ex.get_policy_handler().template deallocate<scalar_t>(inr4);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(inrI);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(inrI);
   return flops;
 }
 

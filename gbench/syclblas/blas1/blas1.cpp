@@ -45,8 +45,9 @@ void BM_Blas1(benchmark::State& state) {
   auto inr2 = blas::make_sycl_iterator_buffer<scalar_t>(1);
   auto inr3 = blas::make_sycl_iterator_buffer<scalar_t>(1);
   auto inr4 = blas::make_sycl_iterator_buffer<scalar_t>(1);
-  auto inrI = blas::make_sycl_iterator_buffer<
-      blas::Indexvalue_tuple<scalar_t, index_t>>(1);
+  auto inrI =
+      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, index_t>>(
+          1);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

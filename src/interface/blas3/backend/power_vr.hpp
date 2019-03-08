@@ -39,7 +39,7 @@ typename executor_t::policy_t::event_t _gemm(
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
   // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
-  // PowerVR Rogue
+  // POWER_VR Rogue
   if ((_M == 96 && _K == 16 && _N == 22500) ||
       (_M == 273 && _K == 576 && _N == 100) ||
       (_M == 384 && _K == 64 && _N == 361)) {
@@ -51,7 +51,7 @@ typename executor_t::policy_t::event_t _gemm(
                                              batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
-  // PowerVR Rogue
+  // POWER_VR Rogue
   else if ((_M == 546 && _K == 512 && _N == 4) ||
            (_M == 24 && _K == 512 && _N == 4) ||
            (_M == 24 && _K == 256 && _N == 1) ||
@@ -66,7 +66,7 @@ typename executor_t::policy_t::event_t _gemm(
                                              batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
-  // PowerVR Rogue
+  // POWER_VR Rogue
   else if ((_M == 546 && _K == 128 && _N == 1) ||
            (_M == 546 && _K == 256 && _N == 1)) {
     return blas::Gemm_Launcher<
@@ -77,7 +77,7 @@ typename executor_t::policy_t::event_t _gemm(
                                              batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
-  // PowerVR Rogue
+  // POWER_VR Rogue
   else if ((_M == 576 && _K == 96 && _N == 361) ||
            (_M == 64 && _K == 384 && _N == 361) ||
            (_M == 160 && _K == 576 && _N == 100) ||

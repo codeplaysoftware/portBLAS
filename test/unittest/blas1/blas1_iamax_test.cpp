@@ -48,9 +48,9 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<Indexvalue_tuple<scalar_t, index_t>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<Indexvalue_tuple<scalar_t, index_t>> vI(1, val);
+  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
   scalar_t max = scalar_t(0);
   index_t imax = std::numeric_limits<index_t>::max();
@@ -61,14 +61,14 @@ TYPED_TEST(BLAS_Test, iamax_test) {
       imax = i;
     }
   }
-  Indexvalue_tuple<scalar_t, index_t> res(imax, max);
+  IndexValueTuple<scalar_t, index_t> res(imax, max);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
   auto gpu_vI =
-      blas::make_sycl_iterator_buffer<Indexvalue_tuple<scalar_t, index_t>>(
+      blas::make_sycl_iterator_buffer<IndexValueTuple<scalar_t, index_t>>(
           index_t(1));
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
@@ -100,9 +100,9 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<Indexvalue_tuple<scalar_t, index_t>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
   // create a vector which will hold the result
-  std::vector<Indexvalue_tuple<scalar_t, index_t>> vI(1, val);
+  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
   scalar_t max = scalar_t(0);
   index_t imax = std::numeric_limits<index_t>::max();
@@ -113,25 +113,25 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
       imax = i;
     }
   }
-  Indexvalue_tuple<scalar_t, index_t> res(imax, max);
+  IndexValueTuple<scalar_t, index_t> res(imax, max);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vI = ex.get_policy_handler()
-                    .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+                    .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  Indexvalue_tuple<scalar_t, index_t> res2(vI[0]);
+  IndexValueTuple<scalar_t, index_t> res2(vI[0]);
   // check that the result value is the same
   ASSERT_EQ(res.get_value(), res2.get_value());
   // check that the result index is the same
   ASSERT_EQ(res.get_index(), res2.get_index());
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(gpu_vI);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vI);
 }

@@ -114,11 +114,11 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   std::vector<scalar_t> vU(1);
   // for iamax/iamin
   constexpr auto max_val =
-      constant<Indexvalue_tuple<scalar_t, index_t>, const_val::imax>::value;
-  std::vector<Indexvalue_tuple<scalar_t, index_t>> vImax(1, max_val);
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
+  std::vector<IndexValueTuple<scalar_t, index_t>> vImax(1, max_val);
   constexpr auto min_val =
-      constant<Indexvalue_tuple<scalar_t, index_t>, const_val::imin>::value;
-  std::vector<Indexvalue_tuple<scalar_t, index_t>> vImin(1, min_val);
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value;
+  std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
 
   SYCL_DEVICE_SELECTOR d;
   auto q = TestClass::make_queue(d);
@@ -131,10 +131,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   auto gpu_vU = ex.get_policy_handler().template allocate<scalar_t>(1);
   auto gpu_vImax =
       ex.get_policy_handler()
-          .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   auto gpu_vImin =
       ex.get_policy_handler()
-          .template allocate<Indexvalue_tuple<scalar_t, index_t>>(1);
+          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
@@ -187,7 +187,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(gpu_vImax);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImax);
   ex.get_policy_handler()
-      .template deallocate<Indexvalue_tuple<scalar_t, index_t>>(gpu_vImin);
+      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImin);
 }

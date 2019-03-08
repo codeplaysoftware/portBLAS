@@ -105,8 +105,8 @@ struct StripASP {
   template <>                                                       \
   struct StripASP<                                                  \
       typename std::remove_pointer<typename cl::sycl::pointer_type< \
-          Indexvalue_tuple<data_t, index_t>>::pointer_t>::type> {   \
-    typedef Indexvalue_tuple<data_t, index_t> type;                 \
+          IndexValueTuple<data_t, index_t>>::pointer_t>::type> {   \
+    typedef IndexValueTuple<data_t, index_t> type;                 \
   };
 
 #define INDEX_VALUE_STRIP_ASP_LOCATION(data_t, index_t)   \
