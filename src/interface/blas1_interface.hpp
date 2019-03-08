@@ -60,8 +60,8 @@ typename executor_t::policy_t::event_t _axpy(
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
-  auto scalOp = make_op<ScalarOp, ProductOperation>(_alpha, vx);
-  auto addOp = make_op<BinaryOp, AddOperation>(vy, scalOp);
+  auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
+  auto addOp = make_op<BinaryOp, AddOperator>(vy, scalOp);
   auto assignOp = make_op<Assign>(vy, addOp);
   auto ret = ex.execute(assignOp);
   return ret;
@@ -108,13 +108,13 @@ typename executor_t::policy_t::event_t _dot(
   auto vy = make_vector_view(ex, _vy, _incy, _N);
   auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
-  auto prdOp = make_op<BinaryOp, ProductOperation>(vx, vy);
+  auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
 
   auto localSize = ex.get_policy_handler().get_work_group_size();
   auto nWG = 2 * localSize;
 
   auto assignOp =
-      make_AssignReduction<AddOperation>(rs, prdOp, localSize, localSize * nWG);
+      make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
   auto ret = ex.execute(assignOp);
   return ret;
 }
@@ -137,8 +137,8 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
 
   const auto localSize = ex.get_policy_handler().get_work_group_size();
   const auto nWG = 2 * localSize;
-  auto assignOp = make_AssignReduction<AbsoluteAddOperation>(rs, vx, localSize,
-                                                             localSize * nWG);
+  auto assignOp = make_AssignReduction<AbsoluteAddOperator>(rs, vx, localSize,
+                                                            localSize * nWG);
   auto ret = ex.execute(assignOp);
   return ret;
 }
@@ -160,8 +160,8 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
   const auto localSize = ex.get_policy_handler().get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_AssignReduction<IMaxOperation>(rs, tupOp, localSize,
-                                                      localSize * nWG);
+  auto assignOp =
+      make_AssignReduction<IMaxOperator>(rs, tupOp, localSize, localSize * nWG);
   auto ret = ex.execute(assignOp);
   return ret;
 }
@@ -184,8 +184,8 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
   const auto localSize = ex.get_policy_handler().get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_AssignReduction<IMinOperation>(rs, tupOp, localSize,
-                                                      localSize * nWG);
+  auto assignOp =
+      make_AssignReduction<IMinOperator>(rs, tupOp, localSize, localSize * nWG);
   auto ret = ex.execute(assignOp);
   return ret;
 }
@@ -227,7 +227,7 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx) {
   auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto scalOp = make_op<ScalarOp, ProductOperation>(_alpha, vx);
+  auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
   auto assignOp = make_op<Assign>(vx, scalOp);
   auto ret = ex.execute(assignOp);
   return ret;
@@ -248,14 +248,14 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
-  auto prdOp = make_op<UnaryOp, SquareOperation>(vx);
+  auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
   const auto localSize = ex.get_policy_handler().get_work_group_size();
   const auto nWG = 2 * localSize;
   auto assignOp =
-      make_AssignReduction<AddOperation>(rs, prdOp, localSize, localSize * nWG);
+      make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
   ex.execute(assignOp);
-  auto sqrtOp = make_op<UnaryOp, SqrtOperation>(rs);
+  auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
   auto ret = ex.execute(assignOpFinal);
   return ret;
@@ -282,12 +282,12 @@ typename executor_t::policy_t::event_t _rot(
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
-  auto scalOp1 = make_op<ScalarOp, ProductOperation>(_cos, vx);
-  auto scalOp2 = make_op<ScalarOp, ProductOperation>(_sin, vy);
-  auto scalOp3 = make_op<ScalarOp, ProductOperation>(-_sin, vx);
-  auto scalOp4 = make_op<ScalarOp, ProductOperation>(_cos, vy);
-  auto addOp12 = make_op<BinaryOp, AddOperation>(scalOp1, scalOp2);
-  auto addOp34 = make_op<BinaryOp, AddOperation>(scalOp3, scalOp4);
+  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_cos, vx);
+  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_sin, vy);
+  auto scalOp3 = make_op<ScalarOp, ProductOperator>(-_sin, vx);
+  auto scalOp4 = make_op<ScalarOp, ProductOperator>(_cos, vy);
+  auto addOp12 = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
+  auto addOp34 = make_op<BinaryOp, AddOperator>(scalOp3, scalOp4);
   auto DoubleAssignView = make_op<DoubleAssign>(vx, vy, addOp12, addOp34);
   auto ret = ex.execute(DoubleAssignView);
   return ret;

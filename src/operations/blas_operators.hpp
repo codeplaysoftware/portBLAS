@@ -105,8 +105,8 @@ struct StripASP {
   template <>                                                       \
   struct StripASP<                                                  \
       typename std::remove_pointer<typename cl::sycl::pointer_type< \
-          IndexValueTuple<data_t, index_t>>::pointer_t>::type> {   \
-    typedef IndexValueTuple<data_t, index_t> type;                 \
+          IndexValueTuple<data_t, index_t>>::pointer_t>::type> {    \
+    typedef IndexValueTuple<data_t, index_t> type;                  \
   };
 
 #define INDEX_VALUE_STRIP_ASP_LOCATION(data_t, index_t)   \
@@ -117,7 +117,7 @@ struct StripASP {
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
 /**
- * ABS.
+ * AbsoluteValue.
  *
  * SYCL 1.2 defines different functions for abs for floating point
  * and integer numbers, following the OpenCL convention.
@@ -125,18 +125,20 @@ struct StripASP {
  * that is enabled for floating point to use fabs, and abs for everything
  * else.
  */
-struct ABS {
-  template <typename Type>
-  static SYCL_BLAS_INLINE Type eval(
-      const Type &val, typename std::enable_if<!std::is_floating_point<
-                           typename StripASP<Type>::type>::value>::type * = 0) {
+struct AbsoluteValue {
+  template <typename value_t>
+  static SYCL_BLAS_INLINE value_t
+  eval(const value_t &val,
+       typename std::enable_if<!std::is_floating_point<
+           typename StripASP<value_t>::type>::value>::type * = 0) {
     return cl::sycl::abs(val);
   }
 
-  template <typename Type>
-  static SYCL_BLAS_INLINE Type eval(
-      const Type &val, typename std::enable_if<std::is_floating_point<
-                           typename StripASP<Type>::type>::value>::type * = 0) {
+  template <typename value_t>
+  static SYCL_BLAS_INLINE value_t
+  eval(const value_t &val,
+       typename std::enable_if<std::is_floating_point<
+           typename StripASP<value_t>::type>::value>::type * = 0) {
     return cl::sycl::fabs(val);
   }
 };
@@ -159,36 +161,41 @@ SYCLBLAS_DEFINE_UNARY_OPERATOR(AdditionIdentity,
                                (constant<rhs_t, const_val::zero>::value))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(ProductIdentity,
                                (constant<rhs_t, const_val::one>::value))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(IdentityOperation, (r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(NegationOperation, (-r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(SqrtOperation, (cl::sycl::sqrt(r)))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(DoubleOperation, (r + r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(SquareOperation, (r * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(AddOperation, const_val::zero, (l + r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(ProductOperation, const_val::one, (l * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(DivisionOperation, const_val::one, (l / r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(MaxOperation, const_val::min, ((l > r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(MinOperation, const_val::max, ((l < r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperation, const_val::zero,
-                                (ABS::eval(l) + ABS::eval(r)))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(IdentityOperator, (r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(NegationOperator, (-r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(SqrtOperator, (cl::sycl::sqrt(r)))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(DoubleOperator, (r + r))
+SYCLBLAS_DEFINE_UNARY_OPERATOR(SquareOperator, (r * r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(AddOperator, const_val::zero, (l + r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(ProductOperator, const_val::one, (l * r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(DivisionOperator, const_val::one, (l / r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(MaxOperator, const_val::min, ((l > r) ? l : r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(MinOperator, const_val::max, ((l < r) ? l : r))
+SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperator, const_val::zero,
+                                (AbsoluteValue::eval(l) +
+                                 AbsoluteValue::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMaxOperation, const_val::imin,
-    (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
-         ABS::eval(
+    IMaxOperator, const_val::imin,
+    (AbsoluteValue::eval(
+         static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
+         AbsoluteValue::eval(
              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
-     (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
-          ABS::eval(
+     (AbsoluteValue::eval(
+          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+          AbsoluteValue::eval(
               static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
       l.get_index() > r.get_index()))
         ? static_cast<typename StripASP<rhs_t>::type>(r)
         : static_cast<typename StripASP<lhs_t>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMinOperation, const_val::imax,
-    (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
-         ABS::eval(
+    IMinOperator, const_val::imax,
+    (AbsoluteValue::eval(
+         static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
+         AbsoluteValue::eval(
              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
-     (ABS::eval(static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
-          ABS::eval(
+     (AbsoluteValue::eval(
+          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+          AbsoluteValue::eval(
               static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
       l.get_index() > r.get_index()))
         ? static_cast<typename StripASP<rhs_t>::type>(r)

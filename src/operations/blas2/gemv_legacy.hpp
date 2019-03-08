@@ -130,8 +130,8 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
   for (typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
                         vector_t>::index_t j = 0;
        j < dim; j++) {
-    auto prod = ProductOperation::eval(matrix_.eval(i, j), vector_.eval(j));
-    val = AddOperation::eval(val, prod);
+    auto prod = ProductOperator::eval(matrix_.eval(i, j), vector_.eval(j));
+    val = AddOperator::eval(val, prod);
   }
   return lhs_.eval(i) = val;
 }
@@ -170,7 +170,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
   index_t id_col_thr = idWFC * localSz + localid;
 
   typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                   vector_t>::value_t val = AddOperation::init(vector_);
+                   vector_t>::value_t val = AddOperator::init(vector_);
 
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP_OF ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
@@ -185,21 +185,21 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       if (id_col_thr < dimC) {
         for (index_t row = 0, id_row = frs_row; (id_row < lst_row);
              row++, id_row++) {
-          val = AddOperation::init(vector_);
+          val = AddOperator::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
-              auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
-                                                 vector_.eval(id_col));
-              val = AddOperation::eval(val, prod);
+              auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
+                                                vector_.eval(id_col));
+              val = AddOperator::eval(val, prod);
             } else {
               if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                   (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
-                                                   vector_.eval(id_col));
-                val = AddOperation::eval(val, prod);
+                auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
+                                                  vector_.eval(id_col));
+                val = AddOperator::eval(val, prod);
               }
               if (Diag && Unit && (id_row == id_col)) {
-                val = AddOperation::eval(val, matrix_.eval(id_row, id_col));
+                val = AddOperator::eval(val, matrix_.eval(id_row, id_col));
               }
             }
           }
@@ -215,7 +215,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         // initialise an add node, with vector_, the vector_
         // we need to initialise it, as otherwise the type will change during
         // execution!
-        val = AddOperation::init(vector_);
+        val = AddOperator::init(vector_);
         // Iterate across blocks of columns, in chunks of localSz * interLoop
         for (index_t id_col = frs_col; id_col < lst_col;
              id_col += localSz * interLoop) {
@@ -232,11 +232,11 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                         : std::min(row + ((!Diag || Unit) ? 0 : 1), lst_k_int));
                k_int++) {
             // calculate the product between the row and the vector_.
-            auto prod = ProductOperation::eval(matrix_.eval(id_row, k_int),
-                                               vector_.eval(k_int));
+            auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
+                                              vector_.eval(k_int));
             // add that to val?
             // Reassignment!
-            val = AddOperation::eval(val, prod);
+            val = AddOperator::eval(val, prod);
           }
         }
         // what does this do?
@@ -298,7 +298,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     }
   } else {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += shrSz) {
-      value_t val = AddOperation::init(vector_);
+      value_t val = AddOperator::init(vector_);
       auto blqSz = std::min(shrSz, lst_row - rowid);
       if (interLoop == 1) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
@@ -306,18 +306,18 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                  ((id_row >= frs_col) && (id_row < lst_col) &&
                   (((id_row - frs_col) % localSz) == 0)))
                     ? matrix_.eval(id_row, id_row)
-                    : AddOperation::init(vector_);
+                    : AddOperator::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
-              auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
-                                                 vector_.eval(id_col));
-              val = AddOperation::eval(val, prod);
+              auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
+                                                vector_.eval(id_col));
+              val = AddOperator::eval(val, prod);
             } else {
               if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                   (Upper && (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                auto prod = ProductOperation::eval(matrix_.eval(id_row, id_col),
-                                                   vector_.eval(id_col));
-                val = AddOperation::eval(val, prod);
+                auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
+                                                  vector_.eval(id_col));
+                val = AddOperator::eval(val, prod);
               }
             }
           }
@@ -325,26 +325,26 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         }
       } else {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
-          val = AddOperation::init(vector_);
+          val = AddOperator::init(vector_);
           for (index_t id_col = frs_col; id_col < lst_col;
                id_col += localSz * interLoop) {
             for (index_t k_int = id_col;
                  k_int < std::min(id_col + interLoop, lst_col); k_int++) {
               if (Lower && Upper && Diag && !Unit) {
-                auto prod = ProductOperation::eval(matrix_.eval(id_row, k_int),
-                                                   vector_.eval(k_int));
-                val = AddOperation::eval(val, prod);
+                auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
+                                                  vector_.eval(k_int));
+                val = AddOperator::eval(val, prod);
               } else {
                 if ((Lower &&
                      ((id_col + ((!Diag || Unit) ? 1 : 0)) <= id_row)) ||
                     (Upper &&
                      (id_col >= (id_row + ((!Diag || Unit) ? 1 : 0))))) {
-                  auto prod = ProductOperation::eval(
-                      matrix_.eval(id_row, k_int), vector_.eval(k_int));
-                  val = AddOperation::eval(val, prod);
+                  auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
+                                                    vector_.eval(k_int));
+                  val = AddOperator::eval(val, prod);
                 }
                 if (Diag && Unit && (id_row == id_col)) {
-                  val = AddOperation::eval(val, matrix_.eval(id_row, k_int));
+                  val = AddOperator::eval(val, matrix_.eval(id_row, k_int));
                 }
               }
             }
@@ -360,8 +360,8 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         if (localid < offset) {
           for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
             shrMem[row * localSz + localid] =
-                AddOperation::eval(shrMem[row * localSz + localid],
-                                   shrMem[row * localSz + localid + offset]);
+                AddOperator::eval(shrMem[row * localSz + localid],
+                                  shrMem[row * localSz + localid + offset]);
           }
         }
         // This barrier is mandatory to be sure the data are on the shared
@@ -376,7 +376,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     }
   }
 
-  return AddOperation::init(vector_);
+  return AddOperator::init(vector_);
 }
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
@@ -435,8 +435,8 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(index_t i) {
 
   auto val = AdditionIdentity::eval(vector_.eval(0));
   for (index_t j = 0; j < dim; j++) {
-    auto prod = ProductOperation::eval(matrix_.eval(i, j), vector_.eval(j));
-    val = AddOperation::eval(val, prod);
+    auto prod = ProductOperator::eval(matrix_.eval(i, j), vector_.eval(j));
+    val = AddOperator::eval(val, prod);
   }
   return lhs_.eval(i) = val;
 }
@@ -490,9 +490,9 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
            ((Upper) ? lst_col
                     : std::min(rowid + ((!Diag || Unit) ? 0 : 1), lst_col));
            id_col++) {
-        auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
-                                           vector_.eval(id_col));
-        val = AddOperation::eval(val, prod);
+        auto prod = ProductOperator::eval(matrix_.eval(rowid, id_col),
+                                          vector_.eval(id_col));
+        val = AddOperator::eval(val, prod);
       }
       // The result is stored in the correct component
       lhs_.eval(rowid, idWFC) = val;
@@ -568,15 +568,15 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                  : AdditionIdentity::eval(vector_.eval(0)));
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag && !Unit) {
-            auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
-                                               shrMem[col]);
-            val = AddOperation::eval(val, prod);
+            auto prod =
+                ProductOperator::eval(matrix_.eval(rowid, id_col), shrMem[col]);
+            val = AddOperator::eval(val, prod);
           } else {
             if ((Lower && ((id_col + ((!Diag || Unit) ? 1 : 0)) <= rowid)) ||
                 (Upper && (id_col >= (rowid + ((!Diag || Unit) ? 1 : 0))))) {
-              auto prod = ProductOperation::eval(matrix_.eval(rowid, id_col),
-                                                 shrMem[col]);
-              val = AddOperation::eval(val, prod);
+              auto prod = ProductOperator::eval(matrix_.eval(rowid, id_col),
+                                                shrMem[col]);
+              val = AddOperator::eval(val, prod);
             }
           }
         }

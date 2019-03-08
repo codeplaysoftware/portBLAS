@@ -104,13 +104,13 @@ typename Executor::policy_t::event_t _gemv_legacy_impl(
   }
 
   // beta * y
-  auto scalOp1 = make_op<ScalarOp, ProductOperation>(_beta, vy);
+  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
   // Finish the mv?
   auto addMOp = make_addSetColumns(mat1);
   // (..) * alpha
-  auto scalOp2 = make_op<ScalarOp, ProductOperation>(_alpha, addMOp);
+  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   // add up
-  auto addOp = make_op<BinaryOp, AddOperation>(scalOp1, scalOp2);
+  auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   // assign the result to
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = ex.execute(assignOp, localSize);
@@ -191,13 +191,13 @@ typename Executor::policy_t::event_t _gemv_impl(
   ret = ex.execute(gemv, localSize, globalSize);
 
   // beta * y
-  auto scalOp1 = make_op<ScalarOp, ProductOperation>(_beta, vy);
+  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
   // Finish the mv?
   auto addMOp = make_addSetColumns(mat1);
   // (..) * alpha
-  auto scalOp2 = make_op<ScalarOp, ProductOperation>(_alpha, addMOp);
+  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   // add up
-  auto addOp = make_op<BinaryOp, AddOperation>(scalOp1, scalOp2);
+  auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   // assign the result to
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = ex.execute(assignOp, localSize);
@@ -414,12 +414,12 @@ typename Executor::policy_t::event_t _symv_impl(
       ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
     }
   }
-  auto scalOp1 = make_op<ScalarOp, ProductOperation>(_beta, vy);
+  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
   auto addMOpR = make_addSetColumns(matR);
   auto addMOpC = make_addSetColumns(matC);
-  auto addMOp = make_op<BinaryOp, AddOperation>(addMOpR, addMOpC);
-  auto scalOp2 = make_op<ScalarOp, ProductOperation>(_alpha, addMOp);
-  auto addOp = make_op<BinaryOp, AddOperation>(scalOp1, scalOp2);
+  auto addMOp = make_op<BinaryOp, AddOperator>(addMOpR, addMOpC);
+  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
+  auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
   return ex.execute(assignOp, localSize);
 }
