@@ -118,7 +118,7 @@ struct Tile {
  * @tparam NbcA  iff true, avoids bank conflicts when accessing blocks of
  *               matrix A in local memory (slightly increases local
  *               memory consumption) - may be useful in combination with TranA
- * @tparam NbcA  iff true, avoids bank conflicts when accessing blocks of
+ * @tparam NbcB  iff true, avoids bank conflicts when accessing blocks of
  *               matrix B in local memory (slightly increases local
  *               memory consumption) - may be useful in combination with TranB
  * @tparam ClSize  the size of the cache line of the architecture
