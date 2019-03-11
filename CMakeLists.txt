@@ -54,6 +54,9 @@ include(ConfigureSYCLBLAS)
 find_package(PythonInterp 2.7 REQUIRED)
 include(CmakeFunctionHelper)
 
+#by default always inlining the kernels
+option(SYCL_BLAS_ALWAYS_INLINE "Setting always inline attribute for all kernels" ON)
+
 add_subdirectory(src)
 #shared lib
 build_library(sycl_blas SHARED)

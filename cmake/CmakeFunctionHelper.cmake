@@ -79,6 +79,7 @@ endif()
 
 
 function(set_target_compile_def in_target)
+  #setting compiler flag for backend
   if(${TARGET} STREQUAL "INTEL_GPU")
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
   elseif(${TARGET} STREQUAL "AMD_GPU")
@@ -92,6 +93,11 @@ function(set_target_compile_def in_target)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
+  #setting always inline attribute
+  if(${SYCL_BLAS_ALWAYS_INLINE})
+    target_compile_definitions(${in_target} PUBLIC SYCL_BLAS_ALWAYS_INLINE=1)
+  endif()
+
 endfunction()
 
 

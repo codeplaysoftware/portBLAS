@@ -81,7 +81,11 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
   return ((!rounUp) ? (wGSize - (wGSize >> 1)) : ++wGSize);
 }
 
+#ifdef SYCL_BLAS_ALWAYS_INLINE
 #define SYCL_BLAS_INLINE inline __attribute__((always_inline))
+#else
+#define SYCL_BLAS_INLINE inline
+#endif
 
 template <typename index_t, typename vector_t>
 index_t vec_total_size(index_t &vector_size, vector_t &&current_vector) {
