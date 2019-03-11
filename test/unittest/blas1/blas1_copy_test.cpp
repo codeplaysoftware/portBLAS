@@ -53,7 +53,7 @@ TYPED_TEST(BLAS_Test, copy_test) {
   auto q = TestClass::make_queue(d);
   Executor<ExecutorType> ex(q);
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(size);
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vY, size);
   _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
   auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
   ex.get_policy_handler().wait(event);
