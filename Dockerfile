@@ -12,12 +12,14 @@ RUN apt-get -yq update
 
 # Utilities
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential            \
-    --allow-change-held-packages git wget apt-utils cmake unzip                \
+    --allow-change-held-packages git wget python-pip apt-utils cmake unzip                \
     libboost-all-dev software-properties-common python-software-properties libcompute-dev
 
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
+
+RUN pip install enum34
 
 # Clang 6.0
 RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
