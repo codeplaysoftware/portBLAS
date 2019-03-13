@@ -39,12 +39,13 @@ namespace blas {
  * before using them.
  * Only one method is mandatory, the Execute method.
  */
-template <class PolicyHandler>
+template <typename policy_handler_t>
 class Executor {
  public:
-  using policy_t = typename PolicyHandler::policy_t;
-  Executor(typename policy_t::queue_t q);
-  PolicyHandler get_policy_handler() const;
+  using policy_t = typename policy_handler_t::policy_t;
+  Executor(typename policy_t::queue_t q)
+      : policy_handler_(policy_handler_t(q)) {}
+  inline policy_handler_t get_policy_handler() const { return policy_handler_; }
 
   template <typename expression_tree_t>
   typename policy_t::event_t execute(expression_tree_t tree);
@@ -76,7 +77,7 @@ class Executor {
           gemm_tree);
 
  private:
-  PolicyHandler policy_handler_;
+  policy_handler_t policy_handler_;
 };
 
 }  // namespace blas
