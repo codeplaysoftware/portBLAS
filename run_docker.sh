@@ -6,7 +6,7 @@ export IMPL=COMPUTECPP
 export CXX_COMPILER=g++-7
 export CC_COMPILER=gcc-7
 export TARGET=opencl
-export GIT_SLUG="AdamHarries/sycl-blas"
+export GIT_SLUG="codeplaysoftware/sycl-blas"
 export GIT_BRANCH="master"
 
 
