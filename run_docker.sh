@@ -2,9 +2,13 @@
 
 # This script runs the SYCL-BLAS tests using the provided Dockerfile.
 # The intention is to provide a seamless alternative to .travis.yml, so that developers can locally test changes in a (somewhat) platform-agnostic manner without the usual delay that happens with travis.
+   - IMPL=COMPUTECPP CXX_COMPILER=clang++-6.0 CC_COMPILER=clang-6.0 TARGET=opencl
+
 export IMPL=COMPUTECPP
-export CXX_COMPILER=g++-7
-export CC_COMPILER=gcc-7
+# export CXX_COMPILER=g++-7
+export CXX_COMPILER=clang++-6.0
+# export CC_COMPILER=gcc-7
+export CC_COMPILER=clang-6.0
 export TARGET=opencl
 export GIT_SLUG="codeplaysoftware/sycl-blas"
 export GIT_BRANCH="master"
