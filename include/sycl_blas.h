@@ -59,8 +59,6 @@
 
 #include "operations/blas_operators.h"
 
-#include "policy/default_policy_handler.h"
-
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 
 #include "views/view.h"
