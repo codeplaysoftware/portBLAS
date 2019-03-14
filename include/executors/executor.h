@@ -29,6 +29,7 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas3_trees.h"
+#include "policy/policy_handler.h"
 namespace blas {
 
 /** Executor.
@@ -43,7 +44,7 @@ template <typename policy_handler_t>
 class Executor {
  public:
   using policy_t = typename policy_handler_t::policy_t;
-  Executor(typename policy_t::queue_t q)
+  inline Executor(typename policy_t::queue_t q)
       : policy_handler_(policy_handler_t(q)) {}
   inline policy_handler_t get_policy_handler() const { return policy_handler_; }
 

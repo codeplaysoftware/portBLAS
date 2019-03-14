@@ -134,4 +134,17 @@ INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, int)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, long)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, long long)
 
+PolicyHandler<codeplay_policy>::PolicyHandler(cl::sycl::queue q)
+    : q_(q),
+      pointerMapperPtr_(std::shared_ptr<cl::sycl::codeplay::PointerMapper>(
+          new cl::sycl::codeplay::PointerMapper(),
+          [](cl::sycl::codeplay::PointerMapper *p) {
+            p->clear();
+            delete p;
+          })),
+      workGroupSize_(codeplay_policy::get_work_group_size(q)),
+      selectedDeviceType_(codeplay_policy::find_chosen_device_type(q)),
+      localMemorySupport_(codeplay_policy::has_local_memory(q)),
+      computeUnits_(codeplay_policy::get_num_compute_units(q)) {}
+
 }  // namespace blas
