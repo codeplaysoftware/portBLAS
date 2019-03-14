@@ -24,7 +24,7 @@
  **************************************************************************/
 #ifdef SYCL_BLAS_CONSTANT_CPP
 #define SYCL_BLAS_CONSTANT_CPP
-#include <operations/blas_constants.hpp>
+#include "operations/blas_constants.h"
 namespace blas {
 #define CPP_INSTANTIATE_TYPE(data_t, indicator) \
   constexpr const type constant<data_t, indicator>::value;
