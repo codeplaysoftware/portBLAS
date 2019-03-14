@@ -29,7 +29,6 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas3_trees.h"
-#include "policy/default_policy_handler.h"
 #include "policy/policy_handler.h"
 namespace blas {
 
