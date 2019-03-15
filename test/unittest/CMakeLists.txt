@@ -55,7 +55,6 @@ set(SYCL_UNITTEST_SRCS
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
-  if(NOT (${TARGET} STREQUAL "POWER_VR"))
   list(APPEND SYCL_UNITTEST_SRCS
   #complex types
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nc_test.cpp
@@ -64,14 +63,13 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_ct_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_cc_test.cpp
   )
-endif()
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   set(test_exec, ${blas_test})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
-  add_dependencies(${test_exec} gtest_main)
+  add_dependencies(${test_exec} gtest_main sycl_blas)
   target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")

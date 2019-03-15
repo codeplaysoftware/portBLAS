@@ -66,7 +66,6 @@ struct codeplay_policy {
     amd_gpu,
     arm_gpu,
     rcar_cvengine,
-    power_vr,
     rcar_cpu,
     unsupported
   };
@@ -110,9 +109,6 @@ struct codeplay_policy {
     } else if (plat_name.find("arm") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::gpu) {
       return device_type::arm_gpu;
-    } else if (plat_name.find("powervr") != std::string::npos &&
-               dev_type == cl::sycl::info::device_type::gpu) {
-      return device_type::power_vr;
     } else if (plat_name.find("computeaorta") != std::string::npos &&
                dev_type == cl::sycl::info::device_type::cpu) {
       return device_type::rcar_cpu;

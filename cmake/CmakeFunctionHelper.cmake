@@ -63,15 +63,6 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
   set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local_memory")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
                                        gemm_configuration_2)
-elseif(${TARGET} STREQUAL "POWER_VR")  
-  set(gemm_configuration_0 96 "true" "false" "false" 16 4 6 12 8 1 1 "local_memory")
-  set(gemm_configuration_1 64 "false" "false" "false" 128 1 1 8 8 1 1 "local_memory")
-  set(gemm_configuration_2 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local_memory")
-  set(gemm_configuration_3 128 "false" "false" "false" 16 4 8 16 8 1 1 "local_memory")
-  set(gemm_configuration_4 64 "false" "false" "false" 32 4 4 8 8 1 1 "local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
-                                      gemm_configuration_2 gemm_configuration_3 
-                                      gemm_configuration_4)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 256 "true" "false" "false" 64 1 1 16 16 1 1 "local_memory")
   set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "local_memory")
@@ -88,6 +79,7 @@ endif()
 
 
 function(set_target_compile_def in_target)
+  #setting compiler flag for backend
   if(${TARGET} STREQUAL "INTEL_GPU")
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
   elseif(${TARGET} STREQUAL "AMD_GPU")
@@ -98,11 +90,14 @@ function(set_target_compile_def in_target)
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
   elseif(${TARGET} STREQUAL "ARM_GPU")
     target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
-  elseif(${TARGET} STREQUAL "POWER_VR")
-    target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
+  #setting always inline attribute
+  if(${SYCL_BLAS_ALWAYS_INLINE})
+    target_compile_definitions(${in_target} PUBLIC SYCL_BLAS_ALWAYS_INLINE=1)
+  endif()
+
 endfunction()
 
 
