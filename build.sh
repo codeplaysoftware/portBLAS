@@ -32,7 +32,7 @@ trap display_help ERR
 
 # Get the absolute path of the ComputeCpp_DIR, from arg $1
 if [ -z "$1" ]
-  then 
+  then
   echo "No ComputeCPP Package specified."
   exit 1
 else

@@ -45,10 +45,10 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
   using TestClass = BLAS_Test<TypeParam>;
   using test = class sycl_buffer_test;
 
-  size_t size = TestClass::template test_size<test>();
+  int size = TestClass::template test_size<test>();
   std::ptrdiff_t offset = TestClass::template test_strd<test>();
   scalar_t prec = TestClass::template test_prec<test>();
-  size_t strd = TestClass::template test_strd<test>();
+  int strd = TestClass::template test_strd<test>();
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
@@ -66,7 +66,7 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
                                                     size - offset);
   ex.get_policy_handler().wait(event);
 
-  for (auto i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++) {
     ASSERT_NEAR(vX[i + offset], vR[i], prec);
   }
 }

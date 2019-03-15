@@ -37,20 +37,6 @@ namespace blas {
  * @brief Executes an Expression expression_tree_t using SYCL.
  */
 template class Executor<PolicyHandler<codeplay_policy>>;
-/*!
- * @brief Constructs a SYCL executor using the given queue.
- * @param q A SYCL queue.
- */
-template <>
-inline Executor<PolicyHandler<codeplay_policy>>::Executor(
-    typename codeplay_policy::queue_t q)
-    : policy_handler_(PolicyHandler<codeplay_policy>(q)) {}
-
-template <>
-inline PolicyHandler<codeplay_policy>
-Executor<PolicyHandler<codeplay_policy>>::get_policy_handler() const {
-  return policy_handler_;
-}
 
 /*!
  * @brief Executes the tree without defining required shared memory.
