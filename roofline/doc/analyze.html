@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.5.3" />
+<title>roofline.analyze API documentation</title>
+<meta name="description" content="Create a roofline analysis of the benchmark results given as command-line
+args, for a machine which theoretical performance is known." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.name small{font-weight:normal}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title"><code>roofline.analyze</code> module</h1>
+</header>
+<section id="section-intro">
+<p>Create a roofline analysis of the benchmark results given as command-line
+args, for a machine which theoretical performance is known.</p>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">#!/usr/bin/env python3
+#/***************************************************************************
+# *
+# *  @license
+# *  Copyright (C) Codeplay Software Limited
+# *  Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);
+# *  you may not use this file except in compliance with the License.
+# *  You may obtain a copy of the License at
+# *
+# *      http://www.apache.org/licenses/LICENSE-2.0
+# *
+# *  For your convenience, a copy of the License has been included in this
+# *  repository.
+# *
+# *  Unless required by applicable law or agreed to in writing, software
+# *  distributed under the License is distributed on an &#34;AS IS&#34; BASIS,
+# *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# *  See the License for the specific language governing permissions and
+# *  limitations under the License.
+# *
+# *  SYCL-BLAS: BLAS implementation using SYCL
+# *
+# *  @filename roofline/analyze.py
+# *
+# **************************************************************************/
+
+&#34;&#34;&#34;Create a roofline analysis of the benchmark results given as command-line
+   args, for a machine which theoretical performance is known.
+&#34;&#34;&#34;
+
+import argparse
+import datetime
+
+
+def main(args):
+    &#34;&#34;&#34;Entry point. Parse args, read machine info and benchmark results,
+       and exports the graph as an image.
+    &#34;&#34;&#34;
+    graph_data = []
+    for i in range(len(args.gbench_file or [])):
+        title, filepath = args.gbench_file[i]
+        time_type = args.time_types[min(i, len(args.time_types) - 1)]
+        data_points = data.read_gbench_json(filepath, time_type)
+        if data_points:
+            graph_data.append((title, data_points))
+
+    # In case no file was given, or a file failed to be read
+    if not graph_data:
+        print(&#34;No data to plot&#34;)
+        exit(1)
+
+    machine_data = data.read_machine_info(args.machine_id)
+    today = datetime.datetime.today().strftime(&#34;%Y-%m-%d&#34;)
+    title = &#34;%s on %s (%s)&#34; % (args.kernel, machine_data.name, today)
+
+    draw.draw_roofline(machine_data, graph_data, args.output_file,
+                       args.x_bounds, args.y_bounds, title)
+
+
+def get_args(args_str=&#34;&#34;):
+    &#34;&#34;&#34;Parse the command line arguments (displays information if the -h or
+       --help option is used)
+    &#34;&#34;&#34;
+    description = &#34;Proof of concept of the roofline model.&#34;
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(&#34;-o&#34;, dest=&#34;output_file&#34;,
+                        default=&#34;roofline.png&#34;, metavar=&#34;filepath&#34;,
+                        help=&#34;Specify the name of the resulting image file&#34;)
+    parser.add_argument(&#34;-g&#34;, dest=&#34;gbench_file&#34;, nargs=2, action=&#34;append&#34;,
+                        metavar=(&#34;title&#34;, &#34;filepath&#34;),
+                        help=&#34;Add a gbench-generated JSON file. Specify the&#34;
+                        &#34; title of the graph and the file path.&#34;)
+    parser.add_argument(&#34;-m&#34;, dest=&#34;machine_id&#34;, default=&#34;test&#34;,
+                        metavar=&#34;machine_id&#34;,
+                        help=&#34;Id of the machine (to find the specs)&#34;)
+    parser.add_argument(&#34;-x&#34;, dest=&#34;x_bounds&#34;, nargs=2, default=(1, 1000),
+                        type=float, metavar=(&#34;xmin&#34;, &#34;xmax&#34;),
+                        help=&#34;x bounds for the graph (NB: it&#39;s a log scale)&#34;)
+    parser.add_argument(&#34;-y&#34;, dest=&#34;y_bounds&#34;, nargs=2, default=(.01, 200),
+                        type=float, metavar=(&#34;ymin&#34;, &#34;ymax&#34;),
+                        help=&#34;y bounds for the graph (NB: it&#39;s a log scale)&#34;)
+    parser.add_argument(&#34;-k&#34;, dest=&#34;kernel&#34;, default=&#34;GEMM&#34;,
+                        metavar=&#34;kernel_name&#34;, help=&#34;Name of the kernel&#34;)
+    parser.add_argument(&#34;-t&#34;, dest=&#34;time_types&#34;, metavar=&#34;time_type&#34;,
+                        action=&#34;append&#34;,
+                        help=&#34;Which time indicator to use in the results file.&#34;
+                        &#34; If you want to use different time types for different&#34;
+                        &#34; files, use this option multiple times.&#34;)
+    args = parser.parse_args(args_str) if args_str else parser.parse_args()
+    args.time_types = args.time_types or [&#34;best_event_time&#34;]
+
+    return args
+
+
+if __name__ == &#34;__main__&#34;:
+    import draw
+    import data
+    main(args=get_args())
+else:
+    from . import draw
+    from . import data</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="roofline.analyze.get_args"><code class="name flex">
+<span>def <span class="ident">get_args</span></span>(<span>args_str=&#39;&#39;)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Parse the command line arguments (displays information if the -h or
+&ndash;help option is used)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def get_args(args_str=&#34;&#34;):
+    &#34;&#34;&#34;Parse the command line arguments (displays information if the -h or
+       --help option is used)
+    &#34;&#34;&#34;
+    description = &#34;Proof of concept of the roofline model.&#34;
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(&#34;-o&#34;, dest=&#34;output_file&#34;,
+                        default=&#34;roofline.png&#34;, metavar=&#34;filepath&#34;,
+                        help=&#34;Specify the name of the resulting image file&#34;)
+    parser.add_argument(&#34;-g&#34;, dest=&#34;gbench_file&#34;, nargs=2, action=&#34;append&#34;,
+                        metavar=(&#34;title&#34;, &#34;filepath&#34;),
+                        help=&#34;Add a gbench-generated JSON file. Specify the&#34;
+                        &#34; title of the graph and the file path.&#34;)
+    parser.add_argument(&#34;-m&#34;, dest=&#34;machine_id&#34;, default=&#34;test&#34;,
+                        metavar=&#34;machine_id&#34;,
+                        help=&#34;Id of the machine (to find the specs)&#34;)
+    parser.add_argument(&#34;-x&#34;, dest=&#34;x_bounds&#34;, nargs=2, default=(1, 1000),
+                        type=float, metavar=(&#34;xmin&#34;, &#34;xmax&#34;),
+                        help=&#34;x bounds for the graph (NB: it&#39;s a log scale)&#34;)
+    parser.add_argument(&#34;-y&#34;, dest=&#34;y_bounds&#34;, nargs=2, default=(.01, 200),
+                        type=float, metavar=(&#34;ymin&#34;, &#34;ymax&#34;),
+                        help=&#34;y bounds for the graph (NB: it&#39;s a log scale)&#34;)
+    parser.add_argument(&#34;-k&#34;, dest=&#34;kernel&#34;, default=&#34;GEMM&#34;,
+                        metavar=&#34;kernel_name&#34;, help=&#34;Name of the kernel&#34;)
+    parser.add_argument(&#34;-t&#34;, dest=&#34;time_types&#34;, metavar=&#34;time_type&#34;,
+                        action=&#34;append&#34;,
+                        help=&#34;Which time indicator to use in the results file.&#34;
+                        &#34; If you want to use different time types for different&#34;
+                        &#34; files, use this option multiple times.&#34;)
+    args = parser.parse_args(args_str) if args_str else parser.parse_args()
+    args.time_types = args.time_types or [&#34;best_event_time&#34;]
+
+    return args</code></pre>
+</details>
+</dd>
+<dt id="roofline.analyze.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>args)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Entry point. Parse args, read machine info and benchmark results,
+and exports the graph as an image.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def main(args):
+    &#34;&#34;&#34;Entry point. Parse args, read machine info and benchmark results,
+       and exports the graph as an image.
+    &#34;&#34;&#34;
+    graph_data = []
+    for i in range(len(args.gbench_file or [])):
+        title, filepath = args.gbench_file[i]
+        time_type = args.time_types[min(i, len(args.time_types) - 1)]
+        data_points = data.read_gbench_json(filepath, time_type)
+        if data_points:
+            graph_data.append((title, data_points))
+
+    # In case no file was given, or a file failed to be read
+    if not graph_data:
+        print(&#34;No data to plot&#34;)
+        exit(1)
+
+    machine_data = data.read_machine_info(args.machine_id)
+    today = datetime.datetime.today().strftime(&#34;%Y-%m-%d&#34;)
+    title = &#34;%s on %s (%s)&#34; % (args.kernel, machine_data.name, today)
+
+    draw.draw_roofline(machine_data, graph_data, args.output_file,
+                       args.x_bounds, args.y_bounds, title)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="roofline" href="index.html">roofline</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="roofline.analyze.get_args" href="#roofline.analyze.get_args">get_args</a></code></li>
+<li><code><a title="roofline.analyze.main" href="#roofline.analyze.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.5.3</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
