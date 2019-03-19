@@ -1,11 +1,10 @@
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
-
-
 #include "clwrap.h"
 #include <clblast.h>
 #include "common_utils.hpp"
+
 typedef Context ExecutorType;
 typedef std::unique_ptr<ExecutorType> ExecutorPtr;
 
@@ -80,7 +79,9 @@ inline cl_ulong time_event<Event>(Event& e_wrapper) {
                                      sizeof(cl_ulong), &start_time, NULL));
   check_call(clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                      sizeof(cl_ulong), &end_time, NULL));
+
   e_wrapper.release();
+
   // Return the delta
   if (all_ok) {
     return (end_time - start_time);
