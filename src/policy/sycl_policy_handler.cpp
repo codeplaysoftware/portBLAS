@@ -22,10 +22,11 @@
  *
  **************************************************************************/
 
+#ifndef SYCL_BLAS_POLICY_HANDLER_CPP
+#define SYCL_BLAS_POLICY_HANDLER_CPP
 #include "operations/blas_constants.h"
 // the templated methods
 #include "policy/sycl_policy_handler.hpp"
-
 namespace blas {
 
 #define INSTANTIATE_TEMPLATE_METHODS(element_t)                                \
@@ -148,3 +149,4 @@ PolicyHandler<codeplay_policy>::PolicyHandler(cl::sycl::queue q)
       computeUnits_(codeplay_policy::get_num_compute_units(q)) {}
 
 }  // namespace blas
+#endif
