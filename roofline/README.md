@@ -41,19 +41,11 @@ python3 analyze.py -o syclblas_vs_clblast.png \
 
 ## Documentation of the tool
 
-You can see the documentation in the `doc` folder.
-
-To generate the documentation after a change, you need the module `pdoc3` that
+To generate the documentation, you need the module `pdoc3` that
 you can install with:
 
 ```bash
 pip3 install pdoc3
 ```
 
-You can then run the following code **from the top-level directory**:
-
-```bash
-rm -rf roofline/doc
-pdoc3 --html --html-dir roofline roofline
-mv roofline/roofline roofline/doc
-```
+You can then run `generate_doc.sh` from the `roofline` folder.
