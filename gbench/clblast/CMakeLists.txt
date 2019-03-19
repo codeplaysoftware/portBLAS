@@ -31,6 +31,19 @@ if (CLBLAST_FOUND)
   link_directories(${CLBLAST_LIBRARY_DIRS})
 
   set(CLBLAST_BENCH_SRCS
+    # Level 1 blas
+    ${CLBLAST_BENCH}/blas1/asum.cpp
+    ${CLBLAST_BENCH}/blas1/axpy.cpp
+    ${CLBLAST_BENCH}/blas1/dot.cpp
+    ${CLBLAST_BENCH}/blas1/iamax.cpp
+    ${CLBLAST_BENCH}/blas1/iamin.cpp
+    ${CLBLAST_BENCH}/blas1/nrm2.cpp
+    ${CLBLAST_BENCH}/blas1/scal.cpp
+    ${CLBLAST_BENCH}/blas1/scal2op.cpp
+    ${CLBLAST_BENCH}/blas1/scal3op.cpp
+    ${CLBLAST_BENCH}/blas1/axpy3op.cpp
+    # Level 2 blas
+    ${CLBLAST_BENCH}/blas2/gemv.cpp
     # Level 3 blas
     ${CLBLAST_BENCH}/blas3/gemm.cpp
   )
@@ -45,7 +58,7 @@ if (CLBLAST_FOUND)
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC benchmark)
-    target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS})
+    target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE})
 
     message("-- Created benchmark: ${clblast_bench_exec}")
     install(TARGETS bench_clblast_${clblast_bench_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)

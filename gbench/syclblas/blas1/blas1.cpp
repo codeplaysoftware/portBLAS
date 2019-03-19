@@ -28,9 +28,11 @@
 template <typename scalar_t>
 void BM_Blas1(benchmark::State& state) {
   // Standard test setup.
-
   const index_t size = static_cast<index_t>(state.range(0));
-  state.counters["size"] = size;
+  double size_d = static_cast<double>(size);
+  state.counters["size"] = size_d;
+  state.counters["n_fl_ops"] = 12 * size_d;
+  state.counters["bytes_processed"] = 10 * size_d * sizeof(scalar_t);
 
   SyclExecutorType ex = *Global::executorInstancePtr;
 
@@ -58,25 +60,49 @@ void BM_Blas1(benchmark::State& state) {
     auto event4 = _iamax(ex, size, iny, 1, inrI);
     auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
   }
+  ex.get_policy_handler().wait();
+
+  state.counters["best_event_time"] = ULONG_MAX;
+  state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
     // Run
-    auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
-    auto event1 = _asum(ex, size, iny, 1, inr1);
-    auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
-    auto event3 = _nrm2(ex, size, iny, 1, inr3);
-    auto event4 = _iamax(ex, size, iny, 1, inrI);
-    auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
-    ex.get_policy_handler().wait(event0, event1, event2, event3, event4,
-                                 event5);
+    std::tuple<double, double> times = benchmark::utils::timef(
+      [&]() -> std::vector<cl::sycl::event> {
+        auto event0 = _axpy(ex, size, alpha, inx, 1, iny, 1);
+        auto event1 = _asum(ex, size, iny, 1, inr1);
+        auto event2 = _dot(ex, size, inx, 1, iny, 1, inr2);
+        auto event3 = _nrm2(ex, size, iny, 1, inr3);
+        auto event4 = _iamax(ex, size, iny, 1, inrI);
+        auto event5 = _dot(ex, size, inx, 1, iny, 1, inr4);
+        ex.get_policy_handler().wait(event0, event1, event2, event3, event4,
+                                     event5);
+        return blas::concatenate_vectors(event0, event1, event2, event3, event4,
+                                         event5);
+      });
 
     // Report
     state.PauseTiming();
-    state.counters["event_time"] = benchmark::utils::time_events(
-        event0, event1, event2, event3, event4, event5);
+
+    double overall_time, event_time;
+    std::tie(overall_time, event_time) = times;
+
+    state.counters["total_event_time"] += event_time;
+    state.counters["best_event_time"] =
+      std::min<double>(state.counters["best_event_time"], event_time);
+
+    state.counters["total_overall_time"] += overall_time;
+    state.counters["best_overall_time"] =
+      std::min<double>(state.counters["best_overall_time"], overall_time);
+
     state.ResumeTiming();
   }
+
+  state.counters["avg_event_time"] = state.counters["total_event_time"]
+                                   / state.iterations();
+  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
+                                       / state.iterations();
 }
 
 BENCHMARK_TEMPLATE(BM_Blas1, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);

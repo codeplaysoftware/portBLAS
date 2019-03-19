@@ -304,7 +304,7 @@ Context::~Context() {
 /* Class Event */
 
 Event::Event() {}
-Event::~Event() { release(); }
+Event::~Event() {}
 
 cl_event &Event::_cl() { return event; }
 

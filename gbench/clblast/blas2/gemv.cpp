@@ -1,4 +1,4 @@
-/**************************************************************************
+/***************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -26,6 +26,7 @@
 #include "range.hpp"
 #include "utils.hpp"
 
+
 template <typename scalar_t>
 void BM_Gemv(benchmark::State& state) {
   // Standard test setup.
@@ -52,8 +53,6 @@ void BM_Gemv(benchmark::State& state) {
   state.counters["bytes_processed"] = (m_d * n_d + m_d + n_d)
                                       * sizeof(scalar_t);
 
-  SyclExecutorType ex = *Global::executorInstancePtr;
-
   // Create data
   // Scalars
   scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
@@ -64,31 +63,40 @@ void BM_Gemv(benchmark::State& state) {
   std::vector<scalar_t> v_b = benchmark::utils::random_data<scalar_t>(vlen);
   std::vector<scalar_t> v_c = benchmark::utils::const_data<scalar_t>(rlen, 0);
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, m * n);
-  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, vlen);
-  auto v_c_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, rlen);
+  // Specify the transposition
+  clblast::Transpose a_tr = benchmark::utils::translate_transposition(t_str);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
-          incY);
-  }
-  ex.get_policy_handler().wait();
+  // Specify the layout. This needs to be kColMajor, and results in errors
+  // otherwise. It may be that this is incorrect (especially for performance
+  // reasons), so may need to be revisited.
+  auto layout = clblast::Layout::kColMajor;
+
+  ExecutorType* ex = getExecutor().get();
+
+  // Device matrices
+  MemBuffer<scalar_t> m_a_gpu(ex, m_a.data(), static_cast<size_t>(m * n));
+  MemBuffer<scalar_t> v_b_gpu(ex, v_b.data(), static_cast<size_t>(vlen));
+  MemBuffer<scalar_t> v_c_gpu(ex, v_c.data(), static_cast<size_t>(rlen));
+
+  // Create a utility lambda describing the blas method that we want to run.
+  auto blas_method_def = [&]() -> std::vector<Event> {
+    Event event;
+    clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
+                            v_b_gpu.dev(), 0, incX, beta, v_c_gpu.dev(), 0,
+                            incY, ex->_queue(), &event._cl());
+    event.wait();
+    return {event};
+  };
+
+  // Warm up to avoid benchmarking data transfer
+  benchmark::utils::warmup(blas_method_def);
 
   state.counters["best_event_time"] = ULONG_MAX;
   state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
-    // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event = _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu,
-                                  incX, beta, v_c_gpu, incY);
-        ex.get_policy_handler().wait(event);
-        return event;
-      });
+    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
 
     // Report
     state.PauseTiming();
@@ -98,7 +106,7 @@ void BM_Gemv(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
@@ -107,39 +115,40 @@ void BM_Gemv(benchmark::State& state) {
     state.ResumeTiming();
   }
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                                     / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
   state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
-}
+       / state.iterations();
+};
 
 static void gemv_args(benchmark::internal::Benchmark* b) {
   // Matrix dimensions bounds
   constexpr const int dim_min = 2 << 5;
-  constexpr const int dim_max  = 2 << 10;
+  constexpr const int dim_max  = 2 << 14;
   // Matrix dimensions multiplier
   constexpr const int dim_mult = 2;
 
-  auto gemm_range = nd_range(
+  auto gemv_range = nd_range(
       value_range({"n", "t"}),
       size_range(dim_min, dim_max, dim_mult),
       size_range(dim_min, dim_max, dim_mult));
 
   do {
-    auto p = gemm_range.yield();
+    auto p = gemv_range.yield();
     int t = (int)benchmark::utils::to_transpose_enum(std::get<0>(p));
     int m = std::get<1>(p);
     int n = std::get<2>(p);
     b->Args({t, m, n});
 
-  } while (!gemm_range.finished());
+  } while (!gemv_range.finished());
 }
 
 BENCHMARK_TEMPLATE(BM_Gemv, float)
-  ->Apply(gemv_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemv_args)
+    ->Iterations(10)
+    ->Unit(benchmark::kNanosecond);
 #ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Gemv, double)
-  ->Apply(gemv_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemv_args)
+    ->Unit(benchmark::kNanosecond);
 #endif

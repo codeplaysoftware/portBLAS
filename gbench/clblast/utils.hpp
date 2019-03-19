@@ -1,11 +1,11 @@
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
-#include "common_utils.hpp"
+
 
 #include "clwrap.h"
 #include <clblast.h>
-
+#include "common_utils.hpp"
 typedef Context ExecutorType;
 typedef std::unique_ptr<ExecutorType> ExecutorPtr;
 
@@ -38,7 +38,10 @@ inline clblast::Transpose translate_transposition(const char *t_str) {
  * @brief Get the overall run time (start -> end) of the given event (see Event
  * class in clwrap.h)
  */
-inline cl_ulong time_event(cl_event &e) {
+template<>
+inline cl_ulong time_event<Event>(Event& e_wrapper) {
+  cl_event& e = e_wrapper._cl();
+
   cl_ulong start_time, end_time;
   bool all_ok = true;
   // Declare a lambda to check the result of the calls
@@ -77,7 +80,7 @@ inline cl_ulong time_event(cl_event &e) {
                                      sizeof(cl_ulong), &start_time, NULL));
   check_call(clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                      sizeof(cl_ulong), &end_time, NULL));
-  // e.release();
+  e_wrapper.release();
   // Return the delta
   if (all_ok) {
     return (end_time - start_time);
@@ -96,23 +99,6 @@ inline void warmup(F func, Args &&... args) {
   for (int i = 0; i < 10; ++i) {
     func(std::forward<Args>(args)...);
   }
-}
-
-/**
- * @fn timef
- * @brief Calculates the time spent executing the function func
- * (both overall and event time, returned in nanoseconds in a tuple of double)
- */
-template <typename F, typename... Args>
-static std::tuple<double, double> timef(F func, Args &&... args) {
-  auto start = std::chrono::system_clock::now();
-  auto event = func(std::forward<Args>(args)...);
-  auto end = std::chrono::system_clock::now();
-  double overall_time = (end - start).count();
-
-  double event_time = static_cast<double>(time_event(event._cl()));
-
-  return std::make_tuple(overall_time, event_time);
 }
 
 }  // namespace utils

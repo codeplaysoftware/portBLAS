@@ -5,8 +5,9 @@
 #include <chrono>
 #include <climits>
 #include <algorithm>
-
 #include <memory>
+
+#include "blas_meta.h"
 
 using index_t = int;
 
@@ -88,6 +89,50 @@ static inline const char* from_transpose_enum(Transposition t) {
     default:
       return "n";
   }
+}
+
+/**
+ * @fn time_event
+ * @brief Times 1 event, and returns the aggregate time.
+ */
+template <typename EventT>
+inline cl_ulong time_event(EventT&);
+// Declared here, defined separately in the specific utils.hpp files
+
+/**
+ * @fn time_events
+ * @brief Times n events, and returns the aggregate time.
+ */
+template <typename EventT>
+inline cl_ulong time_events(std::vector<EventT> es) {
+  cl_ulong total_time = 0;
+  for (auto e : es) {
+    total_time += time_event(e);
+  }
+  return total_time;
+}
+
+template <typename EventT, typename... OtherEvents>
+inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
+  return time_events<EventT>(
+      blas::concatenate_vectors(first_event, next_events...));
+}
+
+/**
+ * @fn timef
+ * @brief Calculates the time spent executing the function func
+ * (both overall and event time, returned in nanoseconds in a tuple of double)
+ */
+template <typename F, typename... Args>
+static std::tuple<double, double> timef(F func, Args&&... args) {
+  auto start = std::chrono::system_clock::now();
+  auto event = func(std::forward<Args>(args)...);
+  auto end = std::chrono::system_clock::now();
+  double overall_time = (end - start).count();
+
+  double event_time = static_cast<double>(time_events(event));
+
+  return std::make_tuple(overall_time, event_time);
 }
 
 }  // namespace utils

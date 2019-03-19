@@ -1,4 +1,4 @@
-/**************************************************************************
+/***************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -19,50 +19,50 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename scal2op.cpp
+ *  @filename asum.cpp
  *
  **************************************************************************/
 
 #include "utils.hpp"
 
+
 template <typename scalar_t>
-void BM_Scal2op(benchmark::State& state) {
+void BM_Nrm2(benchmark::State& state) {
   // Standard test setup.
   const index_t size = static_cast<index_t>(state.range(0));
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2 * size_d;
-  state.counters["bytes_processed"] = 4 * size_d * sizeof(scalar_t);
-
-  SyclExecutorType ex = *Global::executorInstancePtr;
+  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
   // Create data
   std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = benchmark::utils::random_data<scalar_t>(size);
-  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
+  scalar_t vr;
 
-  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
-  auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
+  ExecutorType* ex = getExecutor().get();
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _scal(ex, size, alpha, inx, 1);
-  }
-  ex.get_policy_handler().wait();
+  // Device vectors
+  MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(ex, v1.data(), size);
+  MemBuffer<scalar_t, CL_MEM_READ_ONLY> bufr(ex, &vr, 1);
+
+  // Create a utility lambda describing the blas method that we want to run.
+  auto blas_method_def = [&]() -> std::vector<Event> {
+    Event event;
+    clblast::Nrm2<scalar_t>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
+                            ex->_queue(), &event._cl());
+    event.wait();
+    return {event};
+  };
+
+  // Warm up to avoid benchmarking data transfer
+  benchmark::utils::warmup(blas_method_def);
 
   state.counters["best_event_time"] = ULONG_MAX;
   state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
-    // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event0 = _scal(ex, size, alpha, inx, 1);
-        auto event1 = _scal(ex, size, alpha, iny, 1);
-        ex.get_policy_handler().wait(event0, event1);
-        return blas::concatenate_vectors(event0, event1);
-      });
+    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
 
     // Report
     state.PauseTiming();
@@ -72,7 +72,7 @@ void BM_Scal2op(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
@@ -81,17 +81,13 @@ void BM_Scal2op(benchmark::State& state) {
     state.ResumeTiming();
   }
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                                   / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
   state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
-}
+       / state.iterations();
+};
 
-BENCHMARK_TEMPLATE(BM_Scal2op, float)
-    ->RangeMultiplier(2)
-    ->Range(2 << 5, 2 << 18);
+BENCHMARK_TEMPLATE(BM_Nrm2, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
 #ifdef DOUBLE_SUPPORT
-BENCHMARK_TEMPLATE(BM_Scal2op, double)
-    ->RangeMultiplier(2)
-    ->Range(2 << 5, 2 << 18);
+BENCHMARK_TEMPLATE(BM_Nrm2, double)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
 #endif

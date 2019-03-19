@@ -28,9 +28,11 @@
 template <typename scalar_t>
 void BM_Axpy3op(benchmark::State& state) {
   // Standard test setup.
-
   const index_t size = static_cast<index_t>(state.range(0));
-  state.counters["size"] = size;
+  double size_d = static_cast<double>(size);
+  state.counters["size"] = size_d;
+  state.counters["n_fl_ops"] = 6 * size_d;
+  state.counters["bytes_processed"] = 9 * size_d * sizeof(scalar_t);
 
   SyclExecutorType ex = *Global::executorInstancePtr;
 
@@ -56,20 +58,44 @@ void BM_Axpy3op(benchmark::State& state) {
     auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
     auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
   }
+  ex.get_policy_handler().wait();
+
+  state.counters["best_event_time"] = ULONG_MAX;
+  state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
     // Run
-    auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
-    auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
-    auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
-    ex.get_policy_handler().wait(event0, event1, event2);
+    std::tuple<double, double> times = benchmark::utils::timef(
+      [&]() -> std::vector<cl::sycl::event> {
+        auto event0 = _axpy(ex, size, alphas[0], insrc1, 1, indst1, 1);
+        auto event1 = _axpy(ex, size, alphas[1], insrc2, 1, indst2, 1);
+        auto event2 = _axpy(ex, size, alphas[2], insrc3, 1, indst3, 1);
+        ex.get_policy_handler().wait(event0, event1, event2);
+        return blas::concatenate_vectors(event0, event1, event2);
+      });
+
     // Report
     state.PauseTiming();
-    state.counters["event_time"] =
-        benchmark::utils::time_events(event0, event1, event2);
+
+    double overall_time, event_time;
+    std::tie(overall_time, event_time) = times;
+
+    state.counters["total_event_time"] += event_time;
+    state.counters["best_event_time"] =
+      std::min<double>(state.counters["best_event_time"], event_time);
+
+    state.counters["total_overall_time"] += overall_time;
+    state.counters["best_overall_time"] =
+      std::min<double>(state.counters["best_overall_time"], overall_time);
+
     state.ResumeTiming();
   }
+
+  state.counters["avg_event_time"] = state.counters["total_event_time"]
+                                   / state.iterations();
+  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
+                                       / state.iterations();
 }
 
 BENCHMARK_TEMPLATE(BM_Axpy3op, float)

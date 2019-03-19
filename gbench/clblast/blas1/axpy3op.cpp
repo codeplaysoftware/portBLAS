@@ -1,4 +1,4 @@
-/**************************************************************************
+/***************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -19,50 +19,55 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename scal2op.cpp
+ *  @filename asum.cpp
  *
  **************************************************************************/
 
 #include "utils.hpp"
 
+
 template <typename scalar_t>
-void BM_Scal2op(benchmark::State& state) {
+void BM_Axpy3op(benchmark::State& state) {
   // Standard test setup.
   const index_t size = static_cast<index_t>(state.range(0));
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 2 * size_d;
-  state.counters["bytes_processed"] = 4 * size_d * sizeof(scalar_t);
-
-  SyclExecutorType ex = *Global::executorInstancePtr;
+  state.counters["n_fl_ops"] = 6 * size_d;
+  state.counters["bytes_processed"] = 9 * size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = benchmark::utils::random_data<scalar_t>(size);
+  scalar_t alphas[] = {1.78426458744, 2.187346575843, 3.78164387328};
+  size_t offsets[] = {0, size, size * 2};
+  std::vector<scalar_t> src = benchmark::utils::random_data<scalar_t>(size * 3);
+  std::vector<scalar_t> dst = benchmark::utils::random_data<scalar_t>(size * 3);
   scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
 
-  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
-  auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
+  ExecutorType* ex = getExecutor().get();
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _scal(ex, size, alpha, inx, 1);
-  }
-  ex.get_policy_handler().wait();
+  // Device vectors
+  MemBuffer<scalar_t, CL_MEM_READ_ONLY> bufsrc(ex, src.data(),
+                                               size * 3);
+  MemBuffer<scalar_t> bufdst(ex, dst.data(), size * 3);
+
+  // Create a utility lambda describing the blas method that we want to run.
+  auto blas_method_def = [&]() -> std::vector<Event> {
+    Event event;
+    clblast::AxpyBatched<scalar_t>(size, alphas, bufsrc.dev(), offsets, 1,
+                                   bufdst.dev(), offsets, 1, 3,
+                                   ex->_queue(), &event._cl());
+    event.wait();
+    return {event};
+  };
+
+  // Warm up to avoid benchmarking data transfer
+  benchmark::utils::warmup(blas_method_def);
 
   state.counters["best_event_time"] = ULONG_MAX;
   state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
-    // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event0 = _scal(ex, size, alpha, inx, 1);
-        auto event1 = _scal(ex, size, alpha, iny, 1);
-        ex.get_policy_handler().wait(event0, event1);
-        return blas::concatenate_vectors(event0, event1);
-      });
+    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
 
     // Report
     state.PauseTiming();
@@ -72,7 +77,7 @@ void BM_Scal2op(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
@@ -81,17 +86,13 @@ void BM_Scal2op(benchmark::State& state) {
     state.ResumeTiming();
   }
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                                   / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
   state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
-}
+       / state.iterations();
+};
 
-BENCHMARK_TEMPLATE(BM_Scal2op, float)
-    ->RangeMultiplier(2)
-    ->Range(2 << 5, 2 << 18);
+BENCHMARK_TEMPLATE(BM_Axpy3op, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
 #ifdef DOUBLE_SUPPORT
-BENCHMARK_TEMPLATE(BM_Scal2op, double)
-    ->RangeMultiplier(2)
-    ->Range(2 << 5, 2 << 18);
+BENCHMARK_TEMPLATE(BM_Axpy3op, double)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
 #endif

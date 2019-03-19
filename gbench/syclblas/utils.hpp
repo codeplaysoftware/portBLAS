@@ -1,12 +1,12 @@
 #ifndef SYCL_UTILS_HPP
 #define SYCL_UTILS_HPP
 
-#include "common_utils.hpp"
 #include <CL/sycl.hpp>
 #include <chrono>
 #include <tuple>
 
 #include "sycl_blas.h"
+#include "common_utils.hpp"
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
@@ -27,7 +27,8 @@ namespace utils {
  * @brief Get the overall run time (start -> end) of a cl::sycl::event enqueued
  * on a queue with profiling.
  */
-inline cl_ulong time_event(cl::sycl::event e) {
+template<>
+inline cl_ulong time_event<cl::sycl::event>(cl::sycl::event& e) {
   // get start and end times
   cl_ulong start_time = e.template get_profiling_info<
       cl::sycl::info::event_profiling::command_start>();
