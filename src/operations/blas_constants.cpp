@@ -22,12 +22,12 @@
  *  @filename blas_constants.cpp
  *
  **************************************************************************/
-#ifdef SYCL_BLAS_CONSTANT_CPP
+#ifndef SYCL_BLAS_CONSTANT_CPP
 #define SYCL_BLAS_CONSTANT_CPP
 #include "operations/blas_constants.h"
 namespace blas {
 #define CPP_INSTANTIATE_TYPE(data_t, indicator) \
-  constexpr const type constant<data_t, indicator>::value;
+  constexpr const data_t constant<data_t, indicator>::value;
 
 #define CPP_INSTANTIATE_INDEX_VALUE_TYPE(data_t, index_t, indicator) \
   constexpr const IndexValueTuple<data_t, index_t>                   \
