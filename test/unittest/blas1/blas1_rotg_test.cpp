@@ -30,7 +30,8 @@
  * Not implemented.
  */
 template <typename element_t>
-void _rotg(element_t &_alpha, element_t &_beta, element_t &_cos, element_t &_sin) {
+void _rotg(element_t &_alpha, element_t &_beta, element_t &_cos,
+           element_t &_sin) {
   element_t abs_alpha = std::abs(_alpha);
   element_t abs_beta = std::abs(_beta);
   element_t roe = (abs_alpha > abs_beta) ? _alpha : _beta;
@@ -38,23 +39,23 @@ void _rotg(element_t &_alpha, element_t &_beta, element_t &_cos, element_t &_sin
   element_t norm;
   element_t aux;
 
-  if (scale == constant<element_t, const_val::zero>::value) {
-    _cos = constant<element_t, const_val::one>::value;
-    _sin = constant<element_t, const_val::zero>::value;
-    norm = constant<element_t, const_val::zero>::value;
-    aux = constant<element_t, const_val::zero>::value;
+  if (scale == constant<element_t, const_val::zero>::value()) {
+    _cos = constant<element_t, const_val::one>::value();
+    _sin = constant<element_t, const_val::zero>::value();
+    norm = constant<element_t, const_val::zero>::value();
+    aux = constant<element_t, const_val::zero>::value();
   } else {
     norm = scale * std::sqrt((_alpha / scale) * (_alpha / scale) +
                              (_beta / scale) * (_beta / scale));
-    if (roe < constant<element_t, const_val::zero>::value) norm = -norm;
+    if (roe < constant<element_t, const_val::zero>::value()) norm = -norm;
     _cos = _alpha / norm;
     _sin = _beta / norm;
     if (abs_alpha > abs_beta) {
       aux = _sin;
-    } else if (_cos != constant<element_t, const_val::zero>::value) {
-      aux = constant<element_t, const_val::one>::value / _cos;
+    } else if (_cos != constant<element_t, const_val::zero>::value()) {
+      aux = constant<element_t, const_val::one>::value() / _cos;
     } else {
-      aux = constant<element_t, const_val::one>::value;
+      aux = constant<element_t, const_val::one>::value();
     }
   }
   _alpha = norm;

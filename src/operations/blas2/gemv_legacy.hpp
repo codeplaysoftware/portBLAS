@@ -169,8 +169,11 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 
   index_t id_col_thr = idWFC * localSz + localid;
 
-  typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
-                   vector_t>::value_t val = AddOperator::init(vector_);
+  typedef typename GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                           vector_t>::value_t data_value_t;
+  static constexpr data_value_t init_val =
+      AddOperator::template init<vector_t>();
+  data_value_t val = init_val;
 
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP_OF ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
@@ -185,7 +188,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       if (id_col_thr < dimC) {
         for (index_t row = 0, id_row = frs_row; (id_row < lst_row);
              row++, id_row++) {
-          val = AddOperator::init(vector_);
+          val = init_val;
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
               auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
@@ -215,7 +218,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         // initialise an add node, with vector_, the vector_
         // we need to initialise it, as otherwise the type will change during
         // execution!
-        val = AddOperator::init(vector_);
+        val = init_val;
         // Iterate across blocks of columns, in chunks of localSz * interLoop
         for (index_t id_col = frs_col; id_col < lst_col;
              id_col += localSz * interLoop) {
@@ -284,7 +287,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
   index_t lst_col = std::min(dimC, frs_col + dimWFC);
-
+  static constexpr value_t init_val = AddOperator::template init<vector_t>();
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
   if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||
@@ -298,7 +301,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     }
   } else {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += shrSz) {
-      value_t val = AddOperator::init(vector_);
+      value_t val = init_val;
       auto blqSz = std::min(shrSz, lst_row - rowid);
       if (interLoop == 1) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
@@ -306,7 +309,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                  ((id_row >= frs_col) && (id_row < lst_col) &&
                   (((id_row - frs_col) % localSz) == 0)))
                     ? matrix_.eval(id_row, id_row)
-                    : AddOperator::init(vector_);
+                    : init_val;
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
               auto prod = ProductOperator::eval(matrix_.eval(id_row, id_col),
@@ -325,7 +328,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         }
       } else {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
-          val = AddOperator::init(vector_);
+          val = init_val;
           for (index_t id_col = frs_col; id_col < lst_col;
                id_col += localSz * interLoop) {
             for (index_t k_int = id_col;
@@ -376,7 +379,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
     }
   }
 
-  return AddOperator::init(vector_);
+  return init_val;
 }
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>

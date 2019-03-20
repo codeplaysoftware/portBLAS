@@ -28,8 +28,8 @@
 
 #include <complex>
 #include <limits>
-#include <utility>
-
+//#include <utility>
+#include "blas_meta.h"
 namespace blas {
 
 /*!
@@ -43,8 +43,8 @@ struct IndexValueTuple {
 
   constexpr explicit IndexValueTuple(index_t _ind, value_t _val)
       : val(_val), ind(_ind){};
-  inline index_t get_index() const { return ind; }
-  inline value_t get_value() const { return val; }
+  SYCL_BLAS_INLINE index_t get_index() const { return ind; }
+  SYCL_BLAS_INLINE value_t get_value() const { return val; }
 };
 
 /*!
@@ -61,6 +61,31 @@ enum class const_val : int {
   imax = 5,
   imin = 6
 };
+/*!
+@def define a specialization of the constant template value for each indicator.
+@ref ConstValue.
+@tparam primitive_t The value type to specialize for.
+@tparam Indicator The constant to specialize for.
+*/
+template <typename primitive_t, const_val Indicator>
+struct ConstValue {
+  constexpr static SYCL_BLAS_INLINE primitive_t init() {
+    return static_cast<primitive_t>(static_cast<int>(Indicator));
+  }
+};
+template <typename primitive_t>
+struct ConstValue<primitive_t, const_val::max> {
+  constexpr static SYCL_BLAS_INLINE primitive_t init() {
+    return std::numeric_limits<primitive_t>::min();
+  }
+};
+
+template <typename primitive_t>
+struct ConstValue<primitive_t, const_val::min> {
+  constexpr static SYCL_BLAS_INLINE primitive_t init() {
+    return std::numeric_limits<primitive_t>::max();
+  }
+};
 
 /*!
 @brief Template struct used to represent constants within a compile-time
@@ -69,116 +94,37 @@ of the type value_t initialized to the specified constant.
 @tparam value_t Value type of the constant.
 @tparam kIndicator Enumeration specifying the constant.
 */
-template <typename value_t, const_val kIndicator>
-struct constant;
+template <typename value_t, const_val Indicator>
+struct constant {
+  constexpr static SYCL_BLAS_INLINE value_t value() {
+    return ConstValue<value_t, Indicator>::init();
+  }
+};
 
-/*!
-@def Macro used to define a specialization of the constant template struct.
-@ref constant.
-@param type The value type to specialize for.
-@param indicator The constant to specialize for.
-@param val The value to asssign to the specialization.
-*/
-#define SYCLBLAS_DEFINE_CONSTANT(type, indicator, val) \
-  template <>                                          \
-  struct constant<type, indicator> {                   \
-    constexpr static const type value = val;           \
-  };
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<value_t, index_t>, const_val::imax> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
+    return IndexValueTuple<value_t, index_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<value_t>::min());
+  }
+};
 
-/*!
-Specializations of template struct constant.
-*/
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::zero, 0)
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::one, 1)
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::m_one, -1)
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::two, 2)
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::m_two, -2)
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::max, (std::numeric_limits<int>::max()))
-SYCLBLAS_DEFINE_CONSTANT(int, const_val::min, (std::numeric_limits<int>::min()))
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::zero, 0.0f)
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::one, 1.0f)
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::m_one, -1.0f)
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::two, 2.0f)
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::m_two, -2.0f)
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::max,
-                         (std::numeric_limits<float>::max()))
-SYCLBLAS_DEFINE_CONSTANT(float, const_val::min,
-                         (std::numeric_limits<float>::min()))
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::zero, 0.0)
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::one, 1.0)
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::m_one, -1.0)
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::two, 2.0)
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::m_two, -2.0)
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::max,
-                         (std::numeric_limits<double>::max()))
-SYCLBLAS_DEFINE_CONSTANT(double, const_val::min,
-                         (std::numeric_limits<double>::min()))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<float>, const_val::zero,
-                         (std::complex<float>(0.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<float>, const_val::one,
-                         (std::complex<float>(1.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<float>, const_val::m_one,
-                         (std::complex<float>(-1.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<float>, const_val::two,
-                         (std::complex<float>(2.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<float>, const_val::m_two,
-                         (std::complex<float>(-2.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(
-    std::complex<float>, const_val::max,
-    (std::complex<float>(std::numeric_limits<float>::max(),
-                         std::numeric_limits<float>::max())))
-SYCLBLAS_DEFINE_CONSTANT(
-    std::complex<float>, const_val::min,
-    (std::complex<float>(std::numeric_limits<float>::min(),
-                         std::numeric_limits<float>::min())))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<double>, const_val::zero,
-                         (std::complex<double>(0.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<double>, const_val::one,
-                         (std::complex<double>(1.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<double>, const_val::m_one,
-                         (std::complex<double>(-1.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<double>, const_val::two,
-                         (std::complex<double>(2.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(std::complex<double>, const_val::m_two,
-                         (std::complex<double>(-2.0f, 0.0f)))
-SYCLBLAS_DEFINE_CONSTANT(
-    std::complex<double>, const_val::max,
-    (std::complex<double>(std::numeric_limits<double>::max(),
-                          std::numeric_limits<double>::max())))
-SYCLBLAS_DEFINE_CONSTANT(
-    std::complex<double>, const_val::min,
-    (std::complex<double>(std::numeric_limits<double>::min(),
-                          std::numeric_limits<double>::min())))
-
-#define SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(data_type, index_type, indicator, \
-                                             index_value, data_value)          \
-  template <>                                                                  \
-  struct constant<IndexValueTuple<data_type, index_type>, indicator> {         \
-    constexpr static const IndexValueTuple<data_type, index_type> value =      \
-        IndexValueTuple<data_type, index_type>(index_value, data_value);       \
-  };
-
-#define INDEX_TYPE_CONSTANT(data_type, index_type) \
-  SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \
-      data_type, index_type, const_val::imax,      \
-      (std::numeric_limits<index_type>::max()),    \
-      (std::numeric_limits<data_type>::max()))     \
-  SYCLBLAS_DEFINE_INDEX_VALUE_CONSTANT(            \
-      data_type, index_type, const_val::imin,      \
-      (std::numeric_limits<index_type>::max()),    \
-      (std::numeric_limits<data_type>::min()))
-
-INDEX_TYPE_CONSTANT(float, int)
-INDEX_TYPE_CONSTANT(float, long)
-INDEX_TYPE_CONSTANT(float, long long)
-INDEX_TYPE_CONSTANT(double, int)
-INDEX_TYPE_CONSTANT(double, long)
-INDEX_TYPE_CONSTANT(double, long long)
-
-/*!
-Undefine SYCLBLAS_DEFINE_CONSTANT
-*/
-#undef SYCLBLASS_DEFINE_CONSTANT
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<value_t, index_t>, const_val::imin> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
+    return IndexValueTuple<value_t, index_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<value_t>::max());
+  }
+};
+template <typename value_t, const_val Indicator>
+struct constant<std::complex<value_t>, Indicator> {
+  constexpr static SYCL_BLAS_INLINE std::complex<value_t> value() {
+    return std::complex<value_t>(ConstValue<value_t, Indicator>::init(),
+                                 ConstValue<value_t, Indicator>::init());
+  }
+};
 
 }  // namespace blas
 

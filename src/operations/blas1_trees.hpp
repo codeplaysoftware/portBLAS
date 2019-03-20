@@ -402,10 +402,12 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(
   index_t lst_thrd = ((frs_thrd + local_num_thread_) > vecS)
                          ? vecS
                          : (frs_thrd + local_num_thread_);
+  // this will be computed at compile time
+  static constexpr value_t init_val = operator_t::template init<rhs_t>();
   // Reduction across the grid
-  value_t val = operator_t::init(rhs_);
+  value_t val = init_val;
   for (index_t j = frs_thrd; j < lst_thrd; j++) {
-    value_t local_val = operator_t::init(rhs_);
+    value_t local_val = init_val;
     for (index_t k = j; k < vecS; k += 2 * global_num_thread_) {
       local_val = operator_t::eval(local_val, rhs_.eval(k));
       if (k + local_num_thread_ < vecS) {
@@ -440,7 +442,8 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
   index_t frs_thrd = 2 * groupid * localSz + localid;
 
   // Reduction across the grid
-  value_t val = operator_t::init(rhs_);
+  static constexpr value_t init_val = operator_t::template init<rhs_t>();
+  value_t val = init_val;
   for (index_t k = frs_thrd; k < vecS; k += 2 * global_num_thread_) {
     val = operator_t::eval(val, rhs_.eval(k));
     if ((k + local_num_thread_ < vecS)) {

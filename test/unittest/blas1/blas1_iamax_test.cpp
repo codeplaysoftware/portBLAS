@@ -48,7 +48,7 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
   // create a vector which will hold the result
   std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
@@ -100,7 +100,7 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
   // create a vector which will hold the result
   std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
