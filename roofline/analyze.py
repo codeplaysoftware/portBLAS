@@ -33,8 +33,8 @@ import datetime
 
 
 def main(args):
-    """Entry point. Parse args, read machine info and benchmark results,
-       and exports the graph as an image.
+    """Entry point. Read machine info and benchmark results and exports the
+       graph as an image.
     """
     graph_data = []
     for i in range(len(args.gbench_file or [])):
@@ -61,7 +61,7 @@ def get_args(args_str=""):
     """Parse the command line arguments (displays information if the -h or
        --help option is used)
     """
-    description = "Proof of concept of the roofline model."
+    description = "Tool to generate the roofline model."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("-o", dest="output_file",
                         default="roofline.png", metavar="filepath",
