@@ -114,10 +114,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   std::vector<scalar_t> vU(1);
   // for iamax/iamin
   constexpr auto max_val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
   std::vector<IndexValueTuple<scalar_t, index_t>> vImax(1, max_val);
   constexpr auto min_val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
   std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
 
   SYCL_DEVICE_SELECTOR d;

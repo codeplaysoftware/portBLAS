@@ -58,18 +58,18 @@ struct Operators {};
 @param inital Initial value used in the init function of the operator.
 @param expr Return expression of the eval function of the operator.
 */
-#define SYCLBLAS_DEFINE_BINARY_OPERATOR(Name, initial_t, expr)             \
-  struct Name : public Operators {                                         \
-    template <typename lhs_t, typename rhs_t>                              \
-    static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(           \
-        const lhs_t &l, const rhs_t &r) {                                  \
-      return expr;                                                         \
-    }                                                                      \
-                                                                           \
-    template <typename rhs_t>                                              \
-    static SYCL_BLAS_INLINE typename rhs_t::value_t init(const rhs_t &r) { \
-      return constant<typename rhs_t::value_t, initial_t>::value;          \
-    }                                                                      \
+#define SYCLBLAS_DEFINE_BINARY_OPERATOR(Name, initial_t, expr)         \
+  struct Name : public Operators {                                     \
+    template <typename lhs_t, typename rhs_t>                          \
+    static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(       \
+        const lhs_t &l, const rhs_t &r) {                              \
+      return expr;                                                     \
+    }                                                                  \
+                                                                       \
+    template <typename rhs_t>                                          \
+    constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() { \
+      return constant<typename rhs_t::value_t, initial_t>::value();    \
+    }                                                                  \
   };
 
 /* StripASP.
@@ -158,9 +158,9 @@ INDEX_VALUE_STRIP_ASP_LOCATION(double, long long)
 Definitions of unary, bianry and ternary operators using the above macros.
 */
 SYCLBLAS_DEFINE_UNARY_OPERATOR(AdditionIdentity,
-                               (constant<rhs_t, const_val::zero>::value))
+                               (constant<rhs_t, const_val::zero>::value()))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(ProductIdentity,
-                               (constant<rhs_t, const_val::one>::value))
+                               (constant<rhs_t, const_val::one>::value()))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(IdentityOperator, (r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(NegationOperator, (-r))
 SYCLBLAS_DEFINE_UNARY_OPERATOR(SqrtOperator, (cl::sycl::sqrt(r)))
@@ -175,7 +175,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperator, const_val::zero,
                                 (AbsoluteValue::eval(l) +
                                  AbsoluteValue::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMaxOperator, const_val::imin,
+    IMaxOperator, const_val::imax,
     (AbsoluteValue::eval(
          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
          AbsoluteValue::eval(
@@ -188,7 +188,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(
         ? static_cast<typename StripASP<rhs_t>::type>(r)
         : static_cast<typename StripASP<lhs_t>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMinOperator, const_val::imax,
+    IMinOperator, const_val::imin,
     (AbsoluteValue::eval(
          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
          AbsoluteValue::eval(
