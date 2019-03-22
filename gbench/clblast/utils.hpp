@@ -89,7 +89,7 @@ inline cl_ulong time_event(cl_event &e) {
  * @brief Warm up to avoid benchmarking data transfer
  */
 template <typename F, typename... Args>
-inline cl_ulong warmup(F func, Args &&... args) {
+inline void warmup(F func, Args &&... args) {
   for (int i = 0; i < 10; ++i) {
     func(std::forward<Args>(args)...);
   }

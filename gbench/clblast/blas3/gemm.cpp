@@ -37,7 +37,7 @@ void BM_Gemm(benchmark::State& state) {
   const index_t m = static_cast<index_t>(state.range(2));
   const index_t k = static_cast<index_t>(state.range(3));
   const index_t n = static_cast<index_t>(state.range(4));
-/* "c"*/
+
   index_t lda = t_a[0] == 'n' ? m : k;
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
