@@ -65,7 +65,6 @@ static std::tuple<double, double> timef(F func, Args&&... args) {
   return std::make_tuple(overall_time, event_time);
 }
 
-
 template <typename EventT, typename... OtherEvents>
 inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
   return time_events<EventT>(
