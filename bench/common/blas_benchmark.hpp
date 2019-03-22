@@ -130,7 +130,7 @@ inline cl_ulong time_event(Event e) {
   };
   check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_START,
                                      sizeof(cl_ulong), &start_time, NULL));
-  check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_START,
+  check_call(clGetEventProfilingInfo(e._cl(), CL_PROFILING_COMMAND_END,
                                      sizeof(cl_ulong), &end_time, NULL));
   e.release();
   // return the delta

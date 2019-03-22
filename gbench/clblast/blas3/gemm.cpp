@@ -47,15 +47,13 @@ void BM_Gemm(benchmark::State& state) {
   state.counters["n"] = n;
 
   // The counters are double. We convert m, n and k to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
+  // integer overflows and write them in the counters
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
   state.counters["n_fl_ops"] = 2.0 * m_d * n_d * k_d;
   state.counters["bytes_processed"] = (m_d * k_d + k_d * n_d + m_d * n_d)
                                       * sizeof(scalar_t);
-
-  SyclExecutorType ex = *getExecutor();
 
   // Create data
   // Scalars
@@ -67,30 +65,41 @@ void BM_Gemm(benchmark::State& state) {
   std::vector<scalar_t> b = benchmark::utils::random_data<scalar_t>(k * n);
   std::vector<scalar_t> c = benchmark::utils::const_data<scalar_t>(m * n, 0);
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n);
+  // Specify the transpositions
+  clblast::Transpose a_tr = benchmark::utils::translate_transposition(t_a);
+  clblast::Transpose b_tr = benchmark::utils::translate_transposition(t_b);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb, beta, c_gpu,
-          ldc);
-  }
-  ex.get_policy_handler().wait();
+  // Specify the layout. As with GEMV, this needs to be kColMajor, and results
+  // in errors otherwise. It may be that this is incorrect (especially for
+  // performance reasons), so may need to be revisited.
+  auto layout = clblast::Layout::kColMajor;
+
+  ExecutorType* ex = getExecutor().get();
+
+  // Device matrices
+  MemBuffer<scalar_t> a_gpu(ex, a.data(), static_cast<size_t>(m * k));
+  MemBuffer<scalar_t> b_gpu(ex, b.data(), static_cast<size_t>(k * n));
+  MemBuffer<scalar_t> c_gpu(ex, c.data(), static_cast<size_t>(m * n));
+
+  // Create a utility lambda describing the blas method that we want to run.
+  auto blas_method_def = [&]() {
+    Event event;
+    clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
+                           lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
+                           ex->_queue(), &event._cl());
+    event.wait();
+    return event;
+  };
+
+  // Warm up to avoid benchmarking data transfer
+  benchmark::utils::warmup(blas_method_def);
 
   state.counters["best_event_time"] = ULONG_MAX;
   state.counters["best_overall_time"] = ULONG_MAX;
 
   // Measure
   for (auto _ : state) {
-    // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                           ldb, beta, c_gpu, ldc);
-        ex.get_policy_handler().wait(event);
-        return event;
-      });
+    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
 
     // Report
     state.PauseTiming();
@@ -100,7 +109,7 @@ void BM_Gemm(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
@@ -109,10 +118,10 @@ void BM_Gemm(benchmark::State& state) {
     state.ResumeTiming();
   }
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                                     / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
   state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
+       / state.iterations();
 };
 
 static void gemm_args(benchmark::internal::Benchmark* b) {
@@ -128,6 +137,7 @@ static void gemm_args(benchmark::internal::Benchmark* b) {
       size_range(dim_min, dim_max, dim_mult),
       size_range(dim_min, dim_max, dim_mult));
 
+
   do {
     auto p = gemm_range.yield();
     int t1 = (int)benchmark::utils::to_transpose_enum(std::get<0>(p));
@@ -137,14 +147,14 @@ static void gemm_args(benchmark::internal::Benchmark* b) {
     int n = std::get<4>(p);
     b->Args({t1, t2, m, k, n});
 
-  } while (!gemm_range.finished());
+  } while ( ! gemm_range.finished());
 }
 
 BENCHMARK_TEMPLATE(BM_Gemm, float)
-  ->Apply(gemm_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemm_args)
+    ->Unit(benchmark::kNanosecond);
 #ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Gemm, double)
-  ->Apply(gemm_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemm_args)
+    ->Unit(benchmark::kNanosecond);
 #endif

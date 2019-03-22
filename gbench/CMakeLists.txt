@@ -53,3 +53,4 @@ endif(SYCL_DEVICE)
 
 include_directories(${BLAS_BENCH})
 add_subdirectory(${BLAS_BENCH}/syclblas)
+add_subdirectory(${BLAS_BENCH}/clblast)
