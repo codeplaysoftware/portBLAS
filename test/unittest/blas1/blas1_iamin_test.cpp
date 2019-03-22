@@ -47,7 +47,7 @@ TYPED_TEST(BLAS_Test, iamin_test) {
   std::vector<scalar_t> vX(size);
   TestClass::set_rand(vX, size);
   constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value;
+      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
   std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
   // compute iamin of vX into res with a for loop
