@@ -35,5 +35,5 @@ foreach(syclblas_bench ${SYCLBLAS_BENCH_SRCS})
   target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
 
   message("-- Created benchmark: ${bench_exec}")
-  install(TARGETS bench_${bench_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)
+  install(TARGETS bench_${bench_exec} RUNTIME DESTINATION sycl_blas/bin)
 endforeach()

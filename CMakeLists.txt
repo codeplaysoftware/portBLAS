@@ -65,7 +65,7 @@ target_include_directories(sycl_blas PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_
 set_target_properties(sycl_blas PROPERTIES VERSION ${PROJECT_VERSION})
 
 install(TARGETS sycl_blas
-LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/lib
+LIBRARY DESTINATION sycl_blas/lib
 )
 
 option(BLAS_ENABLE_STATIC_LIBRARY "Whether to enable STATIC LIBRARY" OFF)
@@ -74,11 +74,11 @@ option(BLAS_ENABLE_STATIC_LIBRARY "Whether to enable STATIC LIBRARY" OFF)
 if(BLAS_ENABLE_STATIC_LIBRARY)
 build_library(sycl_blas_static STATIC)
 install(TARGETS sycl_blas_static
-ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/lib
+ARCHIVE DESTINATION sycl_blas/lib
 )
 endif()
 
-install(DIRECTORY ${SYCLBLAS_INCLUDE} DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas
+install(DIRECTORY ${SYCLBLAS_INCLUDE} DESTINATION sycl_blas
         FILES_MATCHING PATTERN "*.h")
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)

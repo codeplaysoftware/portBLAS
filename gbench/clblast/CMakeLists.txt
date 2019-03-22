@@ -61,7 +61,7 @@ if (CLBLAST_FOUND)
     target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE})
 
     message("-- Created benchmark: ${clblast_bench_exec}")
-    install(TARGETS bench_clblast_${clblast_bench_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)
+    install(TARGETS bench_clblast_${clblast_bench_exec} RUNTIME DESTINATION sycl_blas/bin)
   endforeach()
 else()
   message(STATUS "CLBlast not found, only building benchmarks for syclblas")
