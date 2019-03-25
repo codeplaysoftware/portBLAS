@@ -50,8 +50,8 @@ void BM_Gemv(benchmark::State& state) {
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   state.counters["n_fl_ops"] = 2.0 * m_d * n_d;
-  state.counters["bytes_processed"] = (m_d * n_d + m_d + n_d)
-                                      * sizeof(scalar_t);
+  state.counters["bytes_processed"] =
+      (m_d * n_d + m_d + n_d) * sizeof(scalar_t);
 
   // Create data
   // Scalars
@@ -71,7 +71,7 @@ void BM_Gemv(benchmark::State& state) {
   // reasons), so may need to be revisited.
   auto layout = clblast::Layout::kColMajor;
 
-  ExecutorType* ex = getExecutor().get();
+  ExecutorType* ex = Global::executorInstancePtr.get();
 
   // Device matrices
   MemBuffer<scalar_t> m_a_gpu(ex, m_a.data(), static_cast<size_t>(m * n));

@@ -64,10 +64,9 @@ void BM_Gemv(benchmark::State& state) {
   std::vector<scalar_t> v_b = benchmark::utils::random_data<scalar_t>(vlen);
   std::vector<scalar_t> v_c = benchmark::utils::const_data<scalar_t>(rlen, 0);
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, m * n);
-  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, vlen);
-  auto v_c_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, rlen);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m * n);
+  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_b, vlen);
+  auto v_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c, rlen);
 
   // Warmup
   for (int i = 0; i < 10; i++) {

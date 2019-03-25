@@ -41,7 +41,7 @@ void BM_Iamax(benchmark::State& state) {
   std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
   int res;
 
-  ExecutorType* ex = getExecutor().get();
+  ExecutorType* ex = Global::executorInstancePtr.get();
 
   // Device vectors and result
   MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(ex, v1.data(), size);

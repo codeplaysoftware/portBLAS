@@ -86,7 +86,7 @@ void BM_Gemm(benchmark::State& state) {
     cl_event event;
     clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
-                            ex->_queue(), &event._cl());
+                            ex->_queue(), &event);
     Event::wait(event);
     return {event};
   };

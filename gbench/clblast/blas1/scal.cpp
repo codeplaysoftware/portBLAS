@@ -41,7 +41,7 @@ void BM_Scal(benchmark::State& state) {
   std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
   scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
 
-  ExecutorType* ex = getExecutor().get();
+  ExecutorType* ex = Global::executorInstancePtr.get();
 
   // Device vectors
   MemBuffer<scalar_t> buf1(ex, v1.data(), size);
