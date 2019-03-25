@@ -1,4 +1,4 @@
-/***************************************************************************
+/**************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -26,7 +26,6 @@
 #include "range.hpp"
 #include "utils.hpp"
 
-
 template <typename scalar_t>
 void BM_Gemm(benchmark::State& state) {
   // Standard test setup.
@@ -52,10 +51,10 @@ void BM_Gemm(benchmark::State& state) {
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
   state.counters["n_fl_ops"] = 2.0 * m_d * n_d * k_d;
-  state.counters["bytes_processed"] = (m_d * k_d + k_d * n_d + m_d * n_d)
-                                      * sizeof(scalar_t);
+  state.counters["bytes_processed"] =
+      (m_d * k_d + k_d * n_d + m_d * n_d) * sizeof(scalar_t);
 
-  SyclExecutorType ex = *getExecutor();
+  SyclExecutorType ex = *Global::executorInstancePtr;
 
   // Create data
   // Scalars
@@ -84,13 +83,13 @@ void BM_Gemm(benchmark::State& state) {
   // Measure
   for (auto _ : state) {
     // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                           ldb, beta, c_gpu, ldc);
-        ex.get_policy_handler().wait(event);
-        return event;
-      });
+    std::tuple<double, double> times =
+        benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
+          auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                             ldb, beta, c_gpu, ldc);
+          ex.get_policy_handler().wait(event);
+          return event;
+        });
 
     // Report
     state.PauseTiming();
@@ -100,33 +99,32 @@ void BM_Gemm(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
-      std::min<double>(state.counters["best_overall_time"], overall_time);
+        std::min<double>(state.counters["best_overall_time"], overall_time);
 
     state.ResumeTiming();
   }
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                                     / state.iterations();
-  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
+  state.counters["avg_overall_time"] =
+      state.counters["total_overall_time"] / state.iterations();
 };
 
 static void gemm_args(benchmark::internal::Benchmark* b) {
   // Matrix dimensions bounds
   constexpr const int dim_min = 2 << 5;
-  constexpr const int dim_max  = 2 << 10;
+  constexpr const int dim_max = 2 << 10;
   // Matrix dimensions multiplier
   constexpr const int dim_mult = 2;
 
-  auto gemm_range = nd_range(
-      value_range({"n", "t"}), value_range({"n", "t"}),
-      size_range(dim_min, dim_max, dim_mult),
-      size_range(dim_min, dim_max, dim_mult),
-      size_range(dim_min, dim_max, dim_mult));
+  auto gemm_range = nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
+                             size_range(dim_min, dim_max, dim_mult),
+                             size_range(dim_min, dim_max, dim_mult),
+                             size_range(dim_min, dim_max, dim_mult));
 
   do {
     auto p = gemm_range.yield();
@@ -141,10 +139,10 @@ static void gemm_args(benchmark::internal::Benchmark* b) {
 }
 
 BENCHMARK_TEMPLATE(BM_Gemm, float)
-  ->Apply(gemm_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemm_args)
+    ->Unit(benchmark::kNanosecond);
 #ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Gemm, double)
-  ->Apply(gemm_args)
-  ->Unit(benchmark::kNanosecond);
+    ->Apply(gemm_args)
+    ->Unit(benchmark::kNanosecond);
 #endif

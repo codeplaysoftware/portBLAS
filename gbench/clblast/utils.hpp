@@ -7,8 +7,11 @@
 #include <clblast.h>
 
 typedef Context ExecutorType;
-typedef std::shared_ptr<ExecutorType> ExecutorPtr;
-ExecutorPtr getExecutor();
+typedef std::unique_ptr<ExecutorType> ExecutorPtr;
+
+namespace Global {
+extern ExecutorPtr executorInstancePtr;
+}
 
 namespace benchmark {
 namespace utils {
@@ -101,7 +104,7 @@ inline void warmup(F func, Args &&... args) {
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename F, typename... Args>
-static std::tuple<double, double> timef(F func, Args&&... args) {
+static std::tuple<double, double> timef(F func, Args &&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<Args>(args)...);
   auto end = std::chrono::system_clock::now();

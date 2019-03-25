@@ -32,11 +32,11 @@ void BM_Axpy3op(benchmark::State& state) {
   const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
-  SyclExecutorType ex = *getExecutor();
+  SyclExecutorType ex = *Global::executorInstancePtr;
 
   // Create data
   std::array<scalar_t, 3> alphas = {1.78426458744, 2.187346575843,
-                                   3.78164387328};
+                                    3.78164387328};
   std::vector<scalar_t> vsrc1 = benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> vsrc2 = benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> vsrc3 = benchmark::utils::random_data<scalar_t>(size);

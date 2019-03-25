@@ -1,4 +1,4 @@
-/***************************************************************************
+/**************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -31,7 +31,7 @@ void BM_Scal3op(benchmark::State& state) {
   const index_t size = static_cast<index_t>(state.range(0));
   state.counters["size"] = size;
 
-  SyclExecutorType ex = *getExecutor();
+  SyclExecutorType ex = *Global::executorInstancePtr;
 
   // Create data
   std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
