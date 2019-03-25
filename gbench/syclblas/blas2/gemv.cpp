@@ -1,4 +1,4 @@
-/***************************************************************************
+/**************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -43,7 +43,7 @@ void BM_Gemv(benchmark::State& state) {
   state.counters["m"] = m;
   state.counters["n"] = n;
 
-  SyclExecutorType ex = *getExecutor();
+  SyclExecutorType ex = *Global::executorInstancePtr;
 
   // Create data
   // Scalars
@@ -58,7 +58,8 @@ void BM_Gemv(benchmark::State& state) {
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, m * n);
   auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, vlen);
-  auto v_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, rlen);
+  auto v_c_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, rlen);
 
   // Warmup
   for (int i = 0; i < 10; i++) {
