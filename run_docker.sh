@@ -14,11 +14,11 @@
 # is OpenCL, and the git repository cloned is codeplay's sycl blas master.
 
 export IMPL=COMPUTECPP
-export CXX_COMPILER=g++-7
-export CC_COMPILER=gcc-7
+export CXX_COMPILER=clang++-6.0
+export CC_COMPILER=clang-6.0
 export TARGET=opencl
 export GIT_SLUG="codeplaysoftware/sycl-blas"
-export GIT_BRANCH="master"
+export GIT_BRANCH="asum_test"
 
 
 docker build --build-arg c_compiler=${CC_COMPILER} \
