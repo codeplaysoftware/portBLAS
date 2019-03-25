@@ -33,8 +33,7 @@ int main(int argc, char** argv) {
   cl::sycl::queue q = cl::sycl::queue(
       *Private::cdsp.get(), {cl::sycl::property::queue::enable_profiling()});
 
-// Print out some information about the device that we're running on.
-#if 1
+  // Print out some information about the device that we're running on.
   std::cout
       << "Device vendor: "
       << q.get_device().template get_info<cl::sycl::info::device::vendor>()
@@ -71,7 +70,6 @@ int main(int argc, char** argv) {
       break;
   };
   std::cout << std::endl;
-#endif
 
   // Create a sycl blas executor from the queue
   Private::ex = std::make_shared<SyclExecutorType>(q);
