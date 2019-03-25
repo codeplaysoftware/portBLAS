@@ -306,31 +306,28 @@ Context::~Context() {
 Event::Event() {}
 Event::~Event() {}
 
-cl_event &Event::_cl() { return event; }
-
-void Event::wait() {
+void Event::wait(cl_event event) {
   cl_int status = clWaitForEvents(1, &event);
   if (status != CL_SUCCESS) {
     do_error("failure in clWaitForEvents");
   }
 }
 
-void Event::wait(std::vector<Event> &&events) {
-  for (auto &ev : events) {
-    ev.wait();
+void Event::wait(std::vector<cl_event> &&events) {
+  for (auto &event : events) {
+    Event::wait(event);
   }
 }
 
-void Event::release() {
+void Event::release(cl_event event) {
   cl_int status = clReleaseEvent(event);
   if (status != CL_SUCCESS) {
     do_error("failure to release an event");
   }
 }
 
-template <typename... EVs>
-void Event::release(std::vector<Event> &&events) {
-  for (auto &&ev : events) {
-    ev.wait();
+void Event::release(std::vector<cl_event> &&events) {
+  for (auto &&event : events) {
+    Event::wait(event);
   }
 }

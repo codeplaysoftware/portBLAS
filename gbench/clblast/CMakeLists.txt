@@ -39,9 +39,6 @@ if (CLBLAST_FOUND)
     ${CLBLAST_BENCH}/blas1/iamin.cpp
     ${CLBLAST_BENCH}/blas1/nrm2.cpp
     ${CLBLAST_BENCH}/blas1/scal.cpp
-    ${CLBLAST_BENCH}/blas1/scal2op.cpp
-    ${CLBLAST_BENCH}/blas1/scal3op.cpp
-    ${CLBLAST_BENCH}/blas1/axpy3op.cpp
     # Level 2 blas
     ${CLBLAST_BENCH}/blas2/gemv.cpp
     # Level 3 blas

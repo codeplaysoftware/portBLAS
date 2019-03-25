@@ -29,6 +29,8 @@ template <typename scalar_t>
 void BM_Asum(benchmark::State& state) {
   // Standard test setup.
   const index_t size = static_cast<index_t>(state.range(0));
+
+  // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2.0 * size_d;

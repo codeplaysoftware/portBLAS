@@ -110,22 +110,17 @@ class Context {
 };
 
 class Event {
-  cl_event event;
-
  public:
   Event();
   ~Event();
 
-  cl_event &_cl();
+  static void wait(cl_event event);
 
-  void wait();
+  static void wait(std::vector<cl_event> &&events);
 
-  static void wait(std::vector<Event> &&events);
+  static void release(cl_event event);
 
-  void release();
-
-  template <typename... EVs>
-  static void release(std::vector<Event> &&events);
+  static void release(std::vector<cl_event> &&events);
 };
 
 template <typename scalar_t, int Options = CL_MEM_READ_WRITE>

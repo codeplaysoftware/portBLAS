@@ -79,12 +79,12 @@ void BM_Gemv(benchmark::State& state) {
   MemBuffer<scalar_t> v_c_gpu(ex, v_c.data(), static_cast<size_t>(rlen));
 
   // Create a utility lambda describing the blas method that we want to run.
-  auto blas_method_def = [&]() -> std::vector<Event> {
-    Event event;
+  auto blas_method_def = [&]() -> std::vector<cl_event> {
+    cl_event event;
     clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
                             v_b_gpu.dev(), 0, incX, beta, v_c_gpu.dev(), 0,
-                            incY, ex->_queue(), &event._cl());
-    event.wait();
+                            incY, ex->_queue(), &event);
+    Event::wait(event);
     return {event};
   };
 
@@ -145,7 +145,6 @@ static void gemv_args(benchmark::internal::Benchmark* b) {
 
 BENCHMARK_TEMPLATE(BM_Gemv, float)
     ->Apply(gemv_args)
-    ->Iterations(10)
     ->Unit(benchmark::kNanosecond);
 #ifdef DOUBLE_SUPPORT
 BENCHMARK_TEMPLATE(BM_Gemv, double)

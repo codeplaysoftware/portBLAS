@@ -81,12 +81,12 @@ void BM_Gemm(benchmark::State& state) {
   MemBuffer<scalar_t> c_gpu(ex, c.data(), static_cast<size_t>(m * n));
 
   // Create a utility lambda describing the blas method that we want to run.
-  auto blas_method_def = [&]() -> std::vector<Event> {
-    Event event;
+  auto blas_method_def = [&]() -> std::vector<cl_event> {
+    cl_event event;
     clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
                             ex->_queue(), &event._cl());
-    event.wait();
+    Event::wait(event);
     return {event};
   };
 

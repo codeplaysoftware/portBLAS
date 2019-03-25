@@ -38,9 +38,7 @@ inline clblast::Transpose translate_transposition(const char *t_str) {
  * class in clwrap.h)
  */
 template<>
-inline cl_ulong time_event<Event>(Event& e_wrapper) {
-  cl_event& e = e_wrapper._cl();
-
+inline cl_ulong time_event<cl_event>(cl_event& e) {
   cl_ulong start_time, end_time;
   bool all_ok = true;
   // Declare a lambda to check the result of the calls
@@ -80,7 +78,7 @@ inline cl_ulong time_event<Event>(Event& e_wrapper) {
   check_call(clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                      sizeof(cl_ulong), &end_time, NULL));
 
-  e_wrapper.release();
+  Event::release(e);
 
   // Return the delta
   if (all_ok) {

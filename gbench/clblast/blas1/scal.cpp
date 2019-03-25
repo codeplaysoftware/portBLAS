@@ -30,6 +30,8 @@ template <typename scalar_t>
 void BM_Scal(benchmark::State& state) {
   // Standard test setup.
   const index_t size = static_cast<index_t>(state.range(0));
+
+  // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = size_d;
@@ -45,11 +47,11 @@ void BM_Scal(benchmark::State& state) {
   MemBuffer<scalar_t> buf1(ex, v1.data(), size);
 
   // Create a utility lambda describing the blas method that we want to run.
-  auto blas_method_def = [&]() -> std::vector<Event> {
-    Event event;
+  auto blas_method_def = [&]() -> std::vector<cl_event> {
+    cl_event event;
     clblast::Scal<scalar_t>(size, alpha, buf1.dev(), 0, 1, ex->_queue(),
-                            &event._cl());
-    event.wait();
+                            &event);
+    Event::wait(event);
     return {event};
   };
 
