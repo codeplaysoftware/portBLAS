@@ -152,9 +152,9 @@ class MemBuffer {
 
     is_active = true;
     if (to_write) {
-      status =
-          clEnqueueWriteBuffer(context->queue(), dev_ptr, CL_TRUE, 0,
-                               size * sizeof(scalar_t), host_ptr, 0, NULL, NULL);
+      status = clEnqueueWriteBuffer(context->queue(), dev_ptr, CL_TRUE, 0,
+                                    size * sizeof(scalar_t), host_ptr, 0, NULL,
+                                    NULL);
       if (status != CL_SUCCESS) {
         do_error("failure in clEnqueueWriteBuffer");
       }

@@ -2,8 +2,8 @@
 #define CLBLAST_UTILS_HPP
 
 #include "clwrap.h"
-#include <clblast.h>
 #include "common_utils.hpp"
+#include <clblast.h>
 
 typedef Context ExecutorType;
 typedef std::unique_ptr<ExecutorType> ExecutorPtr;
@@ -37,8 +37,8 @@ inline clblast::Transpose translate_transposition(const char *t_str) {
  * @brief Get the overall run time (start -> end) of the given event (see Event
  * class in clwrap.h)
  */
-template<>
-inline cl_ulong time_event<cl_event>(cl_event& e) {
+template <>
+inline cl_ulong time_event<cl_event>(cl_event &e) {
   cl_ulong start_time, end_time;
   bool all_ok = true;
   // Declare a lambda to check the result of the calls

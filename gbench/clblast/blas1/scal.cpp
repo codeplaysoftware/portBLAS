@@ -25,7 +25,6 @@
 
 #include "utils.hpp"
 
-
 template <typename scalar_t>
 void BM_Scal(benchmark::State& state) {
   // Standard test setup.
@@ -77,15 +76,15 @@ void BM_Scal(benchmark::State& state) {
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
-      std::min<double>(state.counters["best_overall_time"], overall_time);
+        std::min<double>(state.counters["best_overall_time"], overall_time);
 
     state.ResumeTiming();
   }
 
   state.counters["avg_event_time"] =
       state.counters["total_event_time"] / state.iterations();
-  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-       / state.iterations();
+  state.counters["avg_overall_time"] =
+      state.counters["total_overall_time"] / state.iterations();
 };
 
 BENCHMARK_TEMPLATE(BM_Scal, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);

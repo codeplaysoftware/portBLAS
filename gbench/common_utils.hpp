@@ -1,10 +1,10 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <algorithm>
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <climits>
-#include <algorithm>
 #include <memory>
 
 #include "blas_meta.h"

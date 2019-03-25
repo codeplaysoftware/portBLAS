@@ -56,12 +56,12 @@ void BM_Scal(benchmark::State& state) {
   // Measure
   for (auto _ : state) {
     // Run
-    std::tuple<double, double> times = benchmark::utils::timef(
-      [&]() -> std::vector<cl::sycl::event> {
-        auto event = _scal(ex, size, alpha, in, 1);
-        ex.get_policy_handler().wait(event);
-        return event;
-      });
+    std::tuple<double, double> times =
+        benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
+          auto event = _scal(ex, size, alpha, in, 1);
+          ex.get_policy_handler().wait(event);
+          return event;
+        });
 
     // Report
     state.PauseTiming();
@@ -71,19 +71,19 @@ void BM_Scal(benchmark::State& state) {
 
     state.counters["total_event_time"] += event_time;
     state.counters["best_event_time"] =
-      std::min<double>(state.counters["best_event_time"], event_time);
+        std::min<double>(state.counters["best_event_time"], event_time);
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
-      std::min<double>(state.counters["best_overall_time"], overall_time);
+        std::min<double>(state.counters["best_overall_time"], overall_time);
 
     state.ResumeTiming();
   };
 
-  state.counters["avg_event_time"] = state.counters["total_event_time"]
-                               / state.iterations();
-  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-                                       / state.iterations();
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
+  state.counters["avg_overall_time"] =
+      state.counters["total_overall_time"] / state.iterations();
 }
 
 BENCHMARK_TEMPLATE(BM_Scal, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);

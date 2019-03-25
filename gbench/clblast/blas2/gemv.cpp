@@ -26,7 +26,6 @@
 #include "range.hpp"
 #include "utils.hpp"
 
-
 template <typename scalar_t>
 void BM_Gemv(benchmark::State& state) {
   // Standard test setup.
@@ -110,28 +109,27 @@ void BM_Gemv(benchmark::State& state) {
 
     state.counters["total_overall_time"] += overall_time;
     state.counters["best_overall_time"] =
-      std::min<double>(state.counters["best_overall_time"], overall_time);
+        std::min<double>(state.counters["best_overall_time"], overall_time);
 
     state.ResumeTiming();
   }
 
   state.counters["avg_event_time"] =
       state.counters["total_event_time"] / state.iterations();
-  state.counters["avg_overall_time"] = state.counters["total_overall_time"]
-       / state.iterations();
+  state.counters["avg_overall_time"] =
+      state.counters["total_overall_time"] / state.iterations();
 };
 
 static void gemv_args(benchmark::internal::Benchmark* b) {
   // Matrix dimensions bounds
   constexpr const int dim_min = 2 << 5;
-  constexpr const int dim_max  = 2 << 14;
+  constexpr const int dim_max = 2 << 14;
   // Matrix dimensions multiplier
   constexpr const int dim_mult = 2;
 
-  auto gemv_range = nd_range(
-      value_range({"n", "t"}),
-      size_range(dim_min, dim_max, dim_mult),
-      size_range(dim_min, dim_max, dim_mult));
+  auto gemv_range =
+      nd_range(value_range({"n", "t"}), size_range(dim_min, dim_max, dim_mult),
+               size_range(dim_min, dim_max, dim_mult));
 
   do {
     auto p = gemv_range.yield();

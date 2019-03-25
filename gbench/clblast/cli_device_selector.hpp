@@ -38,25 +38,23 @@
 #include <utility>
 #include <vector>
 
-
 class cli_device_selector {
   std::string program_name;
 
   void usage() {
-    std::cout << "Usage: " << program_name
-              << " [google-benchmark args]" << std::endl;
+    std::cout << "Usage: " << program_name << " [google-benchmark args]"
+              << std::endl;
     std::cout << " --device  DEVICE" << std::endl
               << "    Select a device (best effort) for running the benchmark."
               << std::endl;
     std::cout << "    e.g. intel:cpu, amd:gpu etc" << std::endl;
   }
 
-public:
+ public:
   std::string device_vendor;
   std::string device_type;
-  
-  cli_device_selector(int argc, char** argv)
-      : program_name(argv[0]) {
+
+  cli_device_selector(int argc, char** argv) : program_name(argv[0]) {
     /* Match parameters */
     std::regex help_regex("--help");
     std::regex device_regex("--device");
