@@ -5,7 +5,7 @@ namespace Private {
 ExecutorPtr ex;
 }  // namespace Private
 
-ExecutorPtr getExecutor() { return Private::ex; }
+ExecutorPtr Global::executorInstancePtr;
 
 int main(int argc, char** argv) {
   cli_device_selector cds(argc, argv);
@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   benchmark::Initialize(&argc, argv);
 
   Context ctx(oclds);
-  Private::ex = std::make_shared<ExecutorType>(std::move(ctx));
+  Global::executorInstancePtr = std::unique_ptr<ExecutorType>(&ctx);
 
   benchmark::RunSpecifiedBenchmarks();
 }

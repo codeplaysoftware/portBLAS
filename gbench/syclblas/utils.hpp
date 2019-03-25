@@ -12,8 +12,12 @@
 // `main.cpp`
 typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>
     SyclExecutorType;
-typedef std::shared_ptr<SyclExecutorType> ExecutorPtr;
-ExecutorPtr getExecutor();
+typedef std::unique_ptr<SyclExecutorType> ExecutorPtr;
+
+// Declare the global executor pointer
+namespace Global {
+extern ExecutorPtr executorInstancePtr;
+}
 
 namespace benchmark {
 namespace utils {
@@ -69,6 +73,45 @@ template <typename EventT, typename... OtherEvents>
 inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
   return time_events<EventT>(
       blas::concatenate_vectors(first_event, next_events...));
+}
+
+inline void print_queue_information(cl::sycl::queue q) {
+  std::cerr
+      << "Device vendor: "
+      << q.get_device().template get_info<cl::sycl::info::device::vendor>()
+      << std::endl;
+  std::cerr << "Device name: "
+            << q.get_device().template get_info<cl::sycl::info::device::name>()
+            << std::endl;
+  std::cerr << "Device type: ";
+  switch (
+      q.get_device().template get_info<cl::sycl::info::device::device_type>()) {
+    case cl::sycl::info::device_type::cpu:
+      std::cerr << "cpu";
+      break;
+    case cl::sycl::info::device_type::gpu:
+      std::cerr << "gpu";
+      break;
+    case cl::sycl::info::device_type::accelerator:
+      std::cerr << "accelerator";
+      break;
+    case cl::sycl::info::device_type::custom:
+      std::cerr << "custom";
+      break;
+    case cl::sycl::info::device_type::automatic:
+      std::cerr << "automatic";
+      break;
+    case cl::sycl::info::device_type::host:
+      std::cerr << "host";
+      break;
+    case cl::sycl::info::device_type::all:
+      std::cerr << "all";
+      break;
+    default:
+      std::cerr << "unknown";
+      break;
+  };
+  std::cerr << std::endl;
 }
 
 }  // namespace utils
