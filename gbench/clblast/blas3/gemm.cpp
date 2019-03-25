@@ -50,9 +50,10 @@ void BM_Gemm(benchmark::State& state) {
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
-  state.counters["n_fl_ops"] = 2.0 * m_d * n_d * k_d;
+
+  state.counters["n_fl_ops"] = 2 * (m_d * n_d * k_d + m_d * n_d);
   state.counters["bytes_processed"] =
-      (m_d * k_d + k_d * n_d + m_d * n_d) * sizeof(scalar_t);
+    (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
 
   // Create data
   // Scalars
