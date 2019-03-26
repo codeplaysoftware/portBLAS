@@ -91,5 +91,5 @@ endif()
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 
 if(${BLAS_ENABLE_BENCHMARK})
-  add_subdirectory(gbench)
+  add_subdirectory(benchmark)
 endif()
