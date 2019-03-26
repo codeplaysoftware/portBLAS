@@ -34,8 +34,8 @@ inline clblast::Transpose translate_transposition(const char *t_str) {
 
 /**
  * @fn time_event
- * @brief Get the overall run time (start -> end) of the given event (see Event
- * class in clwrap.h)
+ * @brief Get the overall run time (start -> end) of the given event (see
+ * CLEventHandler class in clwrap.h)
  */
 template <>
 inline cl_ulong time_event<cl_event>(cl_event &e) {
@@ -78,7 +78,7 @@ inline cl_ulong time_event<cl_event>(cl_event &e) {
   check_call(clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,
                                      sizeof(cl_ulong), &end_time, NULL));
 
-  Event::release(e);
+  CLEventHandler::release(e);
 
   // Return the delta
   if (all_ok) {
@@ -93,10 +93,10 @@ inline cl_ulong time_event<cl_event>(cl_event &e) {
  * @fn warmup
  * @brief Warm up to avoid benchmarking data transfer
  */
-template <typename F, typename... Args>
-inline void warmup(F func, Args &&... args) {
+template <typename function_t, typename... args_t>
+inline void warmup(function_t func, args_t &&... args) {
   for (int i = 0; i < 10; ++i) {
-    func(std::forward<Args>(args)...);
+    func(std::forward<args_t>(args)...);
   }
 }
 

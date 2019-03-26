@@ -303,31 +303,28 @@ Context::~Context() {
 
 /* Class Event */
 
-Event::Event() {}
-Event::~Event() {}
-
-void Event::wait(cl_event event) {
+void CLEventHandler::wait(cl_event event) {
   cl_int status = clWaitForEvents(1, &event);
   if (status != CL_SUCCESS) {
     do_error("failure in clWaitForEvents");
   }
 }
 
-void Event::wait(std::vector<cl_event> &&events) {
+void CLEventHandler::wait(std::vector<cl_event> &&events) {
   for (auto &event : events) {
-    Event::wait(event);
+    CLEventHandler::wait(event);
   }
 }
 
-void Event::release(cl_event event) {
+void CLEventHandler::release(cl_event event) {
   cl_int status = clReleaseEvent(event);
   if (status != CL_SUCCESS) {
-    do_error("failure to release an event");
+    do_error("failure in clReleaseEvent");
   }
 }
 
-void Event::release(std::vector<cl_event> &&events) {
+void CLEventHandler::release(std::vector<cl_event> &&events) {
   for (auto &&event : events) {
-    Event::wait(event);
+    CLEventHandler::release(event);
   }
 }

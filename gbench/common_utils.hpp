@@ -95,16 +95,16 @@ static inline const char* from_transpose_enum(Transposition t) {
  * @fn time_event
  * @brief Times 1 event, and returns the aggregate time.
  */
-template <typename EventT>
-inline cl_ulong time_event(EventT&);
+template <typename event_t>
+inline cl_ulong time_event(event_t&);
 // Declared here, defined separately in the specific utils.hpp files
 
 /**
  * @fn time_events
  * @brief Times n events, and returns the aggregate time.
  */
-template <typename EventT>
-inline cl_ulong time_events(std::vector<EventT> es) {
+template <typename event_t>
+inline cl_ulong time_events(std::vector<event_t> es) {
   cl_ulong total_time = 0;
   for (auto e : es) {
     total_time += time_event(e);
@@ -112,9 +112,10 @@ inline cl_ulong time_events(std::vector<EventT> es) {
   return total_time;
 }
 
-template <typename EventT, typename... OtherEvents>
-inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
-  return time_events<EventT>(
+template <typename event_t, typename... other_events_t>
+inline cl_ulong time_events(event_t first_event, other_events_t... next_events)
+{
+  return time_events<event_t>(
       blas::concatenate_vectors(first_event, next_events...));
 }
 
@@ -123,10 +124,10 @@ inline cl_ulong time_events(EventT first_event, OtherEvents... next_events) {
  * @brief Calculates the time spent executing the function func
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
-template <typename F, typename... Args>
-static std::tuple<double, double> timef(F func, Args&&... args) {
+template <typename function_t, typename... args_t>
+static std::tuple<double, double> timef(function_t func, args_t&&... args) {
   auto start = std::chrono::system_clock::now();
-  auto event = func(std::forward<Args>(args)...);
+  auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();
   double overall_time = (end - start).count();
 

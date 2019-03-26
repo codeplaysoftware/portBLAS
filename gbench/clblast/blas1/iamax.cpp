@@ -51,7 +51,7 @@ void BM_Iamax(benchmark::State& state) {
     cl_event event;
     clblast::Amax<scalar_t>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
                             ex->_queue(), &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 

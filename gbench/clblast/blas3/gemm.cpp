@@ -51,7 +51,7 @@ void BM_Gemm(benchmark::State& state) {
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
 
-  state.counters["n_fl_ops"] = 2 * (m_d * n_d * k_d + m_d * n_d);
+  state.counters["n_fl_ops"] = 3 * (m_d * n_d * k_d) + 2 * (m_d * n_d);
   state.counters["bytes_processed"] =
       (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
 
@@ -87,7 +87,7 @@ void BM_Gemm(benchmark::State& state) {
     clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
                             ex->_queue(), &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 

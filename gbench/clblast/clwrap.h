@@ -109,11 +109,8 @@ class Context {
   ~Context();
 };
 
-class Event {
+class CLEventHandler {
  public:
-  Event();
-  ~Event();
-
   static void wait(cl_event event);
 
   static void wait(std::vector<cl_event> &&events);

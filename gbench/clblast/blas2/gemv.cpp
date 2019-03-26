@@ -83,7 +83,7 @@ void BM_Gemv(benchmark::State& state) {
     clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
                             v_b_gpu.dev(), 0, incX, beta, v_c_gpu.dev(), 0,
                             incY, ex->_queue(), &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 

@@ -50,7 +50,7 @@ void BM_Scal(benchmark::State& state) {
     cl_event event;
     clblast::Scal<scalar_t>(size, alpha, buf1.dev(), 0, 1, ex->_queue(),
                             &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 

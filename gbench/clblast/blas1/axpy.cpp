@@ -52,7 +52,7 @@ void BM_Axpy(benchmark::State& state) {
     cl_event event;
     clblast::Axpy<scalar_t>(size, alpha, buf1.dev(), 0, 1, buf2.dev(), 0, 1,
                             ex->_queue(), &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 

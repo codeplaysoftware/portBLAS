@@ -51,7 +51,7 @@ void BM_Asum(benchmark::State& state) {
     cl_event event;
     clblast::Asum<scalar_t>(size, bufr.dev(), 0, buf1.dev(), 0, 1, ex->_queue(),
                             &event);
-    Event::wait(event);
+    CLEventHandler::wait(event);
     return {event};
   };
 
