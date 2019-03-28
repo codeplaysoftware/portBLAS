@@ -43,42 +43,6 @@ namespace internal {
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t _gemv_legacy(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
-    char _trans,        // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,         // The size of dimension M of the matrix (rows)
-    index_t _N,         // The size of dimension N of the matrix (columns)
-    element_t _alpha,   // Scalar parameter Alpha
-    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
-    index_t _lda,       // Specifies the first dimension of a, max(1, m)
-    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
-                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                        // containing the vector "x"
-    increment_t _incx,  // The increment for elements in x (nonzero).
-    element_t _beta,    // Scalar parameter Beta
-    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
-                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
-);
-
-/*!
- @brief Generalised matrix vector product with rectangular non-symmetric
- matrices.
-
- Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
- computing the mathematical operation:
-
- y = alpha*A*x + beta*y
-
- See the netlib blas interface documentation for more details of the high level
- interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
-
- */
-template <typename executor_t, typename index_t, typename element_t,
-          typename container_0_t, typename container_1_t, typename increment_t,
-          typename container_2_t>
 typename executor_t::policy_t::event_t _gemv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
@@ -151,7 +115,7 @@ typename executor_t::policy_t::event_t _syr2(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t inline _gemv_legacy(
+typename executor_t::policy_t::event_t inline _gemv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
@@ -172,47 +136,6 @@ typename executor_t::policy_t::event_t inline _gemv_legacy(
 ) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return internal::_gemv_legacy(
-      ex, _trans, _M, _N, _alpha, ex.get_policy_handler().get_buffer(_mA), _lda,
-      ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
-      ex.get_policy_handler().get_buffer(_vy), _incy);
-}
-
-/*!
- @brief Generalised matrix vector product with rectangular non-symmetric
- matrices.
-
- Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
- computing the mathematical operation:
-
- y = alpha*A*x + beta*y
-
- See the netlib blas interface documentation for more details of the high level
- interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
-
- */
-template <typename executor_t, typename index_t, typename element_t,
-          typename container_0_t, typename container_1_t, typename increment_t,
-          typename container_2_t>
-typename executor_t::policy_t::event_t inline _gemv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
-    char _trans,        // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,         // The size of dimension M of the matrix (rows)
-    index_t _N,         // The size of dimension N of the matrix (columns)
-    element_t _alpha,   // Scalar parameter Alpha
-    container_0_t _mA,  // An array (LDA,N), with the first m*n elements
-    index_t _lda,       // Specifies the first dimension of a, max(1, m)
-    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
-                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                        // containing the vector "x"
-    increment_t _incx,  // The increment for elements in x (nonzero).
-    element_t _beta,    // Scalar parameter Beta
-    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
-                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
-) {
   return internal::_gemv(ex, _trans, _M, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
