@@ -73,6 +73,6 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")
-  install(TARGETS ${test_exec} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/sycl_blas/bin)
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
 
 endforeach()
