@@ -50,8 +50,4 @@
 
 #include "policy/sycl_policy_handler.hpp"
 
-#include "policy/sycl_policy_handler.cpp"
-
 #include "views/view_sycl.hpp"
-
-#include "operations/blas_constants.cpp"
