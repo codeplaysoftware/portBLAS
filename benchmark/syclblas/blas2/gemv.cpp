@@ -70,8 +70,8 @@ void BM_Gemv(benchmark::State& state) {
 
   // Warmup
   for (int i = 0; i < 10; i++) {
-    _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
-                 v_c_gpu, incY);
+    _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
+          incY);
   }
   ex.get_policy_handler().wait();
 
@@ -83,8 +83,8 @@ void BM_Gemv(benchmark::State& state) {
     // Run
     std::tuple<double, double> times =
         benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
-          auto event = _gemv_legacy(ex, *t_str, m, n, alpha, m_a_gpu, m,
-                                    v_b_gpu, incX, beta, v_c_gpu, incY);
+          auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
+                             beta, v_c_gpu, incY);
           ex.get_policy_handler().wait(event);
           return event;
         });
