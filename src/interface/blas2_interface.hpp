@@ -50,7 +50,7 @@ namespace internal {
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t _gemv_legacy_impl(
+typename Executor::policy_t::event_t _gemv_impl(
     Executor& ex, Transposition _trans, index_t _M, index_t _N,
     element_t _alpha, container_t0 _mA, index_t _lda, container_t1 _vx,
     increment_t _incx, element_t _beta, container_t2 _vy, increment_t _incy,
@@ -102,93 +102,6 @@ typename Executor::policy_t::event_t _gemv_legacy_impl(
         make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
   }
-
-  // beta * y
-  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
-  // Finish the mv?
-  auto addMOp = make_addSetColumns(mat1);
-  // (..) * alpha
-  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
-  // add up
-  auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
-  // assign the result to
-  auto assignOp = make_op<Assign>(vy, addOp);
-  ret = ex.execute(assignOp, localSize);
-  return ret;
-}
-
-// Another definition of GEMV
-template <typename Executor,      // The type of the executor (e.g. sycl, etc)
-          typename index_t,       // The index type for iteration
-          typename element_t,     // the type of elements in the matrix/vector
-          typename container_t0,  // Matrix type
-          typename container_t1,  // Vector type
-          typename increment_t,   // Increment type for X/Y
-          typename container_t2   // Vector type
-          >
-typename Executor::policy_t::event_t _gemv_impl(
-    Executor& ex,                 // The executor upon which to run gemv
-    Transposition _trans,         // Transposition status of the matrix
-    index_t _M,                   // Dimension M
-    index_t _N,                   // Dimension N
-    element_t _alpha,             // Alpha
-    container_t0 _mA,             // The matrix
-    index_t _lda,                 // The leading dimension size of mA
-    container_t1 _vx,             // The vector
-    increment_t _incx,            // the increment of elements in the vector
-    element_t _beta,              // beta
-    container_t2 _vy,             // vector y, and also the result destination
-    increment_t _incy,            // the increment of elements in y
-    index_t _localSize = 0,       // The best local size for this platform
-    index_t _scratchPadSize = 0,  // the best size of the scratchpad
-    index_t _nRowsWG = 0,         // The best number of rows per workgroup
-    index_t _nColsWG = 0          // best columns, as above
-) {
-  typename Executor::policy_t::event_t ret;
-
-  Access accessOpr = Access(_trans);
-
-  if (!accessOpr.is_row_major()) {
-    return _gemv_legacy_impl(ex, _trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
-                             _beta, _vy, _incy, _localSize, _scratchPadSize,
-                             _nRowsWG, _nColsWG);
-  }
-
-  index_t M = (_trans.is_normal()) ? _M : _N;
-  index_t N = (_trans.is_normal()) ? _N : _M;
-
-  auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
-  auto vy = make_vector_view(ex, _vy, _incy, M);
-
-  const index_t interLoop = 1;
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(M, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
-  const index_t scratchPadSize =
-      (_localSize == 0) ? localSize : _scratchPadSize;
-
-  const index_t nWGPerCol = (N - 1) / nColsWG + 1;
-  const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
-  const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
-
-  const index_t scratchSize =
-      (mA.is_row_access())
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol)
-          : nWGPerCol;
-
-  auto valT1 = blas::make_sycl_iterator_buffer<element_t>(M * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize,
-                               Access::col_major());
-
-  auto gemv = make_gemv(mat1, mA, vx);
-  ret = ex.execute(gemv, localSize, globalSize);
 
   // beta * y
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
@@ -605,47 +518,6 @@ typename Executor::policy_t::event_t _syr2_impl(
       return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
     }
   }
-}
-
-/*!
- @brief Generalised matrix vector product with rectangular non-symmetric
- matrices.
-
- Generalised matrix vector product with rectangular non-symmetric matrices, i.e.
- computing the mathematical operation:
-
- y = alpha*A*x + beta*y
-
- See the netlib blas interface documentation for more details of the high level
- interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
-
- */
-template <typename Executor, typename index_t, typename element_t,
-          typename container_t0, typename container_t1, typename increment_t,
-          typename container_t2>
-typename Executor::policy_t::event_t inline _gemv_legacy(
-    Executor& ex,       // Executor (sycl, parallel, serial, etc)
-    char _trans,        // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,         // The size of dimension M of the matrix (rows)
-    index_t _N,         // The size of dimension N of the matrix (columns)
-    element_t _alpha,   // Scalar parameter Alpha
-    container_t0 _mA,   // An array (LDA,N), with the first m*n elements
-    index_t _lda,       // Specifies the first dimension of a, max(1, m)
-    container_t1 _vx,   // An array of dimension at least: (1+(n-1)*abs(incx))
-                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                        // containing the vector "x"
-    increment_t _incx,  // The increment for elements in x (nonzero).
-    element_t _beta,    // Scalar parameter Beta
-    container_t2 _vy,   // An array of dimension at least: (1+(m-1)*abs(incy))
-                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
-) {
-  // TODO: Here we can use some heuristics to select localn global, local, and
-  // scratch size per device
-  return _gemv_legacy_impl(ex, Transposition(_trans), _M, _N, _alpha, _mA, _lda,
-                           _vx, _incx, _beta, _vy, _incy);
 }
 
 /*!

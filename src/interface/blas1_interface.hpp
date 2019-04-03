@@ -254,11 +254,11 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
   const auto nWG = 2 * localSize;
   auto assignOp =
       make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  ex.execute(assignOp);
+  auto ret0 = ex.execute(assignOp);
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
-  auto ret = ex.execute(assignOpFinal);
-  return ret;
+  auto ret1 = ex.execute(assignOpFinal);
+  return blas::concatenate_vectors(ret0, ret1);
 }
 
 /**

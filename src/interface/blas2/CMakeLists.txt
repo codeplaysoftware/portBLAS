@@ -23,11 +23,10 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-#blas2 
+#blas2
 generate_blas_ternary_objects(blas2 gemv)
 generate_blas_ternary_objects(blas2 ger)
 generate_blas_ternary_objects(blas2 symv)
 generate_blas_ternary_objects(blas2 syr2)
-generate_blas_ternary_objects(blas2 gemv_legacy)
 generate_blas_binary_objects(blas2 syr)
 generate_blas_binary_objects(blas2 trmv)

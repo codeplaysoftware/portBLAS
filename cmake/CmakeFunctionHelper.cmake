@@ -394,7 +394,6 @@ add_library(${LIB_NAME} ${LIB_TYPE}
                              $<TARGET_OBJECTS:syr>
                              $<TARGET_OBJECTS:syr2>
                              $<TARGET_OBJECTS:trmv>
-                             $<TARGET_OBJECTS:gemv_legacy>
                              $<TARGET_OBJECTS:gemm_launcher>
                              $<TARGET_OBJECTS:gemm>
                             )
