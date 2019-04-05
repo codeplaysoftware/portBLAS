@@ -33,9 +33,6 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  const bool transA = true;
-  const bool transB = true;
-
   const int seed = 42;
   const int m = std::atoi(argv[1]);
   const int k = std::atoi(argv[2]);
@@ -43,13 +40,13 @@ int main(int argc, char *argv[]) {
   const int batch_size = std::atoi(argv[4]);
   const int rep = std::atoi(argv[5]);
   std::cout << "======= testing nn ======" << std::endl;
-  run_gemm_tests<!transA, !transB, float>(seed, m, k, n, batch_size, rep);
-  std::cout << "======= testing tn ======" << std::endl;
-  run_gemm_tests<!transA, transB, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<false, false, float>(seed, m, k, n, batch_size, rep);
   std::cout << "======= testing nt ======" << std::endl;
-  run_gemm_tests<transA, !transB, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<false, true, float>(seed, m, k, n, batch_size, rep);
+  std::cout << "======= testing tn ======" << std::endl;
+  run_tune_gemm<true, false, float>(seed, m, k, n, batch_size, rep);
   std::cout << "======= testing tt ======" << std::endl;
-  run_gemm_tests<transA, transB, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<true, true, float>(seed, m, k, n, batch_size, rep);
 
   return 0;
 }

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  const bool transA = true;
+  const bool transA = false;
   const bool transB = true;
 
   const int seed = 42;
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   const int n = std::atoi(argv[3]);
   const int batch_size = std::atoi(argv[4]);
   const int rep = std::atoi(argv[5]);
-  run_gemm_tests<!transA, transB, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<transA, transB, float>(seed, m, k, n, batch_size, rep);
 
   return 0;
 }

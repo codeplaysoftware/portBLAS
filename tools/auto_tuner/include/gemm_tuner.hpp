@@ -32,6 +32,7 @@
 #include <functional>
 #include <numeric>
 
+#include "reference_gemm.hpp"
 #include "sycl_blas.hpp"
 
 // Config
@@ -41,6 +42,37 @@ const bool bb = false;  // avoid bank conflicts for B
 
 using namespace cl::sycl;
 using namespace blas;
+
+struct TestResultEntry {
+  std::string name;
+  double sec;
+  double gflops;
+  double error;
+
+  TestResultEntry(std::string name) : name(name) {}
+
+  void print() const {
+    std::cout << gflops << " gflops: " << name << " - Time: " << sec
+              << " ms, Error: " << error << "\n";
+  }
+
+  bool operator<(const TestResultEntry &other) const {
+    return gflops < other.gflops;
+  }
+  bool operator>(const TestResultEntry &other) const {
+    return gflops > other.gflops;
+  }
+};
+
+class TestResult : public std::vector<TestResultEntry> {
+ public:
+  void print_all() const {
+    std::cout << "== Performance Results ==\n";
+    for (auto &r : *this) {
+      r.print();
+    }
+  }
+};
 
 template <bool _TransA, bool _TransB, typename _data_t, Gemm_t _Mode>
 struct GemmConfig {
@@ -66,6 +98,7 @@ struct GemmArgs {
   int batch_size;
   container_t &refC;
   executor_t &ex;
+  TestResult &results;
 };
 
 template <typename T, typename RndEngine>
@@ -91,7 +124,8 @@ T relative_diff(const std::vector<T> &ref, const std::vector<T> &obt) {
 }
 
 template <typename TestOperator>
-void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
+void run_tune(int rep, double flop_cnt, TestResultEntry &result,
+              TestOperator op = TestOperator()) {
   // warmup
   op();
   auto start = std::chrono::steady_clock::now();
@@ -101,39 +135,21 @@ void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
   auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> sec_d = end - start;
   double sec = sec_d.count() / rep;
-  std::cout << "time = " << sec * 1e3 << " ms\n"
-            << "perf = " << flop_cnt / sec / 1e9 << " GFLOPS" << std::endl;
+  result.sec = sec * 1e3;
+  result.gflops = flop_cnt / sec / 1e9;
 }
-
-namespace reference_gemm {
-#define ENABLE_SYSTEM_GEMM(_type, _system_name)                               \
-  extern "C" void _system_name(                                               \
-      const char *, const char *, const int *, const int *, const int *,      \
-      const _type *, const _type *, const int *, const _type *, const int *,  \
-      const _type *, _type *, const int *);                                   \
-  void gemm(const char *transA, const char *transB, int m, int n, int k,      \
-            _type alpha, const _type a[], int lda, const _type b[], int ldb,  \
-            _type beta, _type c[], int ldc) {                                 \
-    _system_name(transA, transB, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, \
-                 c, &ldc);                                                    \
-  }
-
-ENABLE_SYSTEM_GEMM(float, sgemm_)
-ENABLE_SYSTEM_GEMM(double, dgemm_)
-#undef ENABLE_SYSTEM_GEMM
-}  // namespace reference_gemm
 
 template <int Cls, typename Tile, typename Config, typename T,
           typename Container, typename Executor>
 // a should not be a reference, the C buffer needs copied
-void test(int r, const GemmArgs<T, Container, Executor> a) {
+void tune(int r, GemmArgs<T, Container, Executor> a) {
   using Gemm = Gemm<typename Config::data_t, typename Config::data_t, db, ba,
                     bb, Cls, Tile, Config::TransA, Config::TransB, T, false,
                     static_cast<int>(Config::Mode)>;
 
   using etype = typename Gemm::value_t;
-  std::cout << "\n=== Testing " << Gemm::get_type_string()
-            << " ===" << std::endl;
+  a.results.emplace_back(Gemm::get_type_string());
+  TestResultEntry &result = a.results.back();
   {
     blas::BufferIterator<etype, codeplay_policy> m_a_gpu =
         blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.a.data()),
@@ -154,19 +170,20 @@ void test(int r, const GemmArgs<T, Container, Executor> a) {
     auto accC =
         make_matrix_view(a.ex, m_c_gpu, a.m, a.n, a.ldc, Access::col_major());
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
-    run_test(r, 2.0 * a.m * a.n * a.k * a.batch_size, [&] {
+    run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
       auto event = a.ex.execute(gemm);
       a.ex.get_policy_handler().wait(event);
     });
   }
-  std::cout << "err  = " << relative_diff(a.refC, a.c) << std::endl;
+  result.error = relative_diff(a.refC, a.c);
 }
 
 template <typename T, typename Container, typename Executor>
-void test_syclblas(int r, char transA, char transB,
-                   const GemmArgs<T, Container, Executor> a) {
+void tune_syclblas(int r, char transA, char transB,
+                   GemmArgs<T, Container, Executor> a) {
   using etype = typename Container::value_type;
-  std::cout << "\n=== Testing SYCL-BLAS gemm ===" << std::endl;
+  a.results.emplace_back("SYCL-BLAS gemm");
+  TestResultEntry &result = a.results.back();
   {
     auto m_a_gpu = blas::make_sycl_iterator_buffer<etype>(
         const_cast<etype *>(a.a.data()), a.a.size());
@@ -174,18 +191,18 @@ void test_syclblas(int r, char transA, char transB,
         const_cast<etype *>(a.b.data()), a.b.size());
     auto m_c_gpu = blas::make_sycl_iterator_buffer<etype>(
         const_cast<etype *>(a.c.data()), a.c.size());
-    run_test(r, 2.0 * a.m * a.n * a.k * a.batch_size, [&] {
+    run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
       auto event = _gemm_batched(a.ex, transA, transB, a.m, a.n, a.k, a.alpha,
                                  m_a_gpu, a.lda, m_b_gpu, a.ldb, a.beta,
                                  m_c_gpu, a.ldc, a.batch_size);
       a.ex.get_policy_handler().wait(event);
     });
   }
-  std::cout << "err  = " << relative_diff(a.refC, a.c) << std::endl;
+  result.error = relative_diff(a.refC, a.c);
 }
 
 template <bool TransA, bool TransB, typename E>
-void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
+void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   std::cout << std::scientific;
 
   std::mt19937 rnd(seed);
@@ -202,9 +219,11 @@ void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
   const int ldb = TransB ? n : k;
   const int ldc = m;
 
-  std::cout << "\n=== Testing system CPU implementation ===" << std::endl;
+  TestResult results{};
 
-  run_test(rep, 2.0 * m * n * k * batch_size, [&] {
+  results.emplace_back("System GEMM implementation");
+  TestResultEntry &ref_result = results.back();
+  run_tune(rep, 2.0 * m * n * k * batch_size, ref_result, [&] {
     for (int bs = 0; bs < batch_size; bs++) {
       // system gemm implementation
       reference_gemm::gemm(ta_str, tb_str, m, n, k, E(1),
@@ -213,6 +232,7 @@ void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
                            refC.data() + (bs * m * n), m);
     }
   });
+  ref_result.error = 0.0;
 
   cl::sycl::queue q([=](cl::sycl::exception_list eL) {
     try {
@@ -232,8 +252,8 @@ void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
   Executor<PolicyHandler<codeplay_policy>> ex(q);
 
   GemmArgs<E, decltype(dataA), decltype(ex)> args{
-      m,   n,    k,     E(1), dataA,      lda,  dataB,
-      ldb, E(1), origC, ldc,  batch_size, refC, ex};
+      m,    n,     k,   E(1),       dataA, lda, dataB,  ldb,
+      E(1), origC, ldc, batch_size, refC,  ex,  results};
 
   using data_t =
       typename MatrixViewTypeFactory<codeplay_policy, E, int>::output_t;
@@ -247,101 +267,103 @@ void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
       (ex.get_policy_handler().get_device_type() !=
        codeplay_policy::device_type::cpu)) {
 #if !defined(RCAR)
-    test<64, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
-    test<64, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
-    test<64, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
-    test<64, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
-    test<64, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
+    tune<64, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
+    tune<64, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
+    tune<64, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
+    tune<64, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
+    tune<64, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
 
-    test<64, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
-    test<64, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
-    test<64, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
-    test<64, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
-    test<64, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
+    tune<64, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
+    tune<64, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
+    tune<64, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
+    tune<64, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
+    tune<64, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
 
-    test<128, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
-    test<128, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
-    test<128, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
-    test<128, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
-    test<128, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
+    tune<128, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
+    tune<128, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
+    tune<128, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
+    tune<128, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
+    tune<128, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
 
-    test<128, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
-    test<128, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
-    test<128, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
-    test<128, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
-    test<128, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
+    tune<128, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
+    tune<128, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
+    tune<128, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
+    tune<128, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
+    tune<128, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
 
-    test<64, Tile<4, 8, 16, 8, 1, 1>, Local>(rep, args);
-    test<64, Tile<4, 8, 16, 8, 2, 2>, Local>(rep, args);
-    test<64, Tile<4, 8, 16, 8, 4, 4>, Local>(rep, args);
-    test<64, Tile<4, 8, 16, 8, 8, 8>, Local>(rep, args);
-    test<64, Tile<4, 8, 16, 8, 16, 16>, Local>(rep, args);
+    tune<64, Tile<4, 8, 16, 8, 1, 1>, Local>(rep, args);
+    tune<64, Tile<4, 8, 16, 8, 2, 2>, Local>(rep, args);
+    tune<64, Tile<4, 8, 16, 8, 4, 4>, Local>(rep, args);
+    tune<64, Tile<4, 8, 16, 8, 8, 8>, Local>(rep, args);
+    tune<64, Tile<4, 8, 16, 8, 16, 16>, Local>(rep, args);
 
-    test<64, Tile<8, 4, 8, 16, 1, 1>, Local>(rep, args);
-    test<64, Tile<8, 4, 8, 16, 2, 2>, Local>(rep, args);
-    test<64, Tile<8, 4, 8, 16, 4, 4>, Local>(rep, args);
-    test<64, Tile<8, 4, 8, 16, 8, 8>, Local>(rep, args);
-    test<64, Tile<8, 4, 8, 16, 16, 16>, Local>(rep, args);
+    tune<64, Tile<8, 4, 8, 16, 1, 1>, Local>(rep, args);
+    tune<64, Tile<8, 4, 8, 16, 2, 2>, Local>(rep, args);
+    tune<64, Tile<8, 4, 8, 16, 4, 4>, Local>(rep, args);
+    tune<64, Tile<8, 4, 8, 16, 8, 8>, Local>(rep, args);
+    tune<64, Tile<8, 4, 8, 16, 16, 16>, Local>(rep, args);
 
-    test<128, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
-    test<128, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
-    test<128, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
-    test<128, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
-    test<128, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
-    test<128, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
-    test<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
-    test<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
+    tune<128, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
+    tune<128, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
+    tune<128, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
+    tune<128, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
+    tune<128, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
+    tune<128, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
+    tune<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    tune<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test<64, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
-    test<64, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
-    test<64, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
-    test<64, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
-    test<64, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
-    test<64, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
-    test<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
-    test<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
+    tune<64, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
+    tune<64, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
+    tune<64, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
+    tune<64, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
+    tune<64, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
+    tune<64, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
+    tune<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    tune<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test_syclblas(rep, *ta_str, *tb_str, args);
+    tune_syclblas(rep, *ta_str, *tb_str, args);
 
-    test<128, Tile<>, Naive>(rep, args);
-    test<256, Tile<>, Naive>(rep, args);
-    test<64, Tile<>, Naive>(rep, args);
+    tune<128, Tile<>, Naive>(rep, args);
+    tune<256, Tile<>, Naive>(rep, args);
+    tune<64, Tile<>, Naive>(rep, args);
 #endif
   } else {
 #if defined(RCAR)
-    test<64, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
-    test<64, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
-    test<64, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
-    test<64, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
-    test<64, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
+    tune<64, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
+    tune<64, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
+    tune<64, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
+    tune<64, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
+    tune<64, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
 
-    test<64, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
-    test<64, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
-    test<64, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
-    test<64, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
-    test<64, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
+    tune<64, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
+    tune<64, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
+    tune<64, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
+    tune<64, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
+    tune<64, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
 
-    test<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
-    test<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
+    tune<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    tune<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test<128, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
-    test<128, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
-    test<128, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
-    test<128, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
-    test<128, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
+    tune<128, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
+    tune<128, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
+    tune<128, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
+    tune<128, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
+    tune<128, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
 
-    test<128, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
-    test<128, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
-    test<128, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
-    test<128, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
-    test<128, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
+    tune<128, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
+    tune<128, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
+    tune<128, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
+    tune<128, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
+    tune<128, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
 
-    test<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
-    test<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
+    tune<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    tune<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test_syclblas(rep, *ta_str, *tb_str, args);
+    tune_syclblas(rep, *ta_str, *tb_str, args);
 
-    test<32, Tile<>, Naive>(rep, args);
+    tune<32, Tile<>, Naive>(rep, args);
 #endif  // defined R
   }
+  std::sort(results.begin(), results.end());
+  results.print_all();
 }
