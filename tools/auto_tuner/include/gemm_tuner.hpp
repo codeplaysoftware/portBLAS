@@ -34,6 +34,40 @@
 
 #include "sycl_blas.hpp"
 
+// Config
+const bool db = false;  // use double buffer
+const bool ba = false;  // avoid bank conflicts for A
+const bool bb = false;  // avoid bank conflicts for B
+
+using namespace cl::sycl;
+using namespace blas;
+
+template <bool _TransA, bool _TransB, typename _data_t, Gemm_t _Mode>
+struct GemmConfig {
+  static const bool TransA = _TransA;
+  static const bool TransB = _TransB;
+  static const Gemm_t Mode = _Mode;
+  using data_t = _data_t;
+};
+
+template <typename element_t, typename container_t, typename executor_t>
+struct GemmArgs {
+  int m;
+  int n;
+  int k;
+  element_t alpha;
+  container_t &a;
+  int lda;
+  container_t &b;
+  int ldb;
+  element_t beta;
+  container_t c;  // Not a reference - need new copy every time
+  int ldc;
+  int batch_size;
+  container_t &refC;
+  executor_t &ex;
+};
+
 template <typename T, typename RndEngine>
 std::vector<T> gen_matrix(int size, T lo, T hi, RndEngine rnd) {
   std::uniform_real_distribution<T> dst(lo, hi);
@@ -56,24 +90,6 @@ T relative_diff(const std::vector<T> &ref, const std::vector<T> &obt) {
   return std::sqrt(diff / mag);
 }
 
-template <typename T>
-struct type_name {
-  constexpr static const char *const name = "unknown";
-};
-
-#define ENABLE_TYPE_NAME(_type)                       \
-  template <>                                         \
-  struct type_name<_type> {                           \
-    constexpr static const char *const name = #_type; \
-  };
-
-ENABLE_TYPE_NAME(int)
-ENABLE_TYPE_NAME(float)
-ENABLE_TYPE_NAME(double)
-
-template <int...>
-struct static_list {};
-
 template <typename TestOperator>
 void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
   // warmup
@@ -88,9 +104,6 @@ void run_test(int rep, double flop_cnt, TestOperator op = TestOperator()) {
   std::cout << "time = " << sec * 1e3 << " ms\n"
             << "perf = " << flop_cnt / sec / 1e9 << " GFLOPS" << std::endl;
 }
-
-using namespace cl::sycl;
-using namespace blas;
 
 namespace reference_gemm {
 #define ENABLE_SYSTEM_GEMM(_type, _system_name)                               \
@@ -107,65 +120,68 @@ namespace reference_gemm {
 
 ENABLE_SYSTEM_GEMM(float, sgemm_)
 ENABLE_SYSTEM_GEMM(double, dgemm_)
-
 #undef ENABLE_SYSTEM_GEMM
 }  // namespace reference_gemm
 
-template <typename Gemm, typename T, typename Container, typename Executor>
-void test(int r, int m, int n, int k, T alpha, const Container &dataA, int lda,
-          const Container &dataB, int ldb, T beta, Container dataC, int ldc,
-          int batch_size, const Container &refC, Executor &ex) {
+template <int Cls, typename Tile, typename Config, typename T,
+          typename Container, typename Executor>
+// a should not be a reference, the C buffer needs copied
+void test(int r, const GemmArgs<T, Container, Executor> a) {
+  using Gemm = Gemm<typename Config::data_t, typename Config::data_t, db, ba,
+                    bb, Cls, Tile, Config::TransA, Config::TransB, T, false,
+                    static_cast<int>(Config::Mode)>;
+
   using etype = typename Gemm::value_t;
   std::cout << "\n=== Testing " << Gemm::get_type_string()
             << " ===" << std::endl;
   {
     blas::BufferIterator<etype, codeplay_policy> m_a_gpu =
-        blas::make_sycl_iterator_buffer<etype>(
-            const_cast<etype *>(dataA.data()), dataA.size());
+        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.a.data()),
+                                               a.a.size());
 
     blas::BufferIterator<etype, codeplay_policy> m_b_gpu =
-        blas::make_sycl_iterator_buffer<etype>(
-            const_cast<etype *>(dataB.data()), dataB.size());
+        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.b.data()),
+                                               a.b.size());
 
     blas::BufferIterator<etype, codeplay_policy> m_c_gpu =
-        blas::make_sycl_iterator_buffer<etype>(
-            const_cast<etype *>(dataC.data()), dataC.size());
+        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.c.data()),
+                                               a.c.size());
 
-    auto accA = make_matrix_view(ex, m_a_gpu, m, k, lda, Access::col_major());
-    auto accB = make_matrix_view(ex, m_b_gpu, k, n, ldb, Access::col_major());
-    auto accC = make_matrix_view(ex, m_c_gpu, m, n, ldc, Access::col_major());
-    auto gemm = Gemm(accA, accB, accC, alpha, beta, batch_size);
-    run_test(r, 2.0 * m * n * k * batch_size, [&] {
-      auto event = ex.execute(gemm);
-      ex.get_policy_handler().wait(event);
+    auto accA =
+        make_matrix_view(a.ex, m_a_gpu, a.m, a.k, a.lda, Access::col_major());
+    auto accB =
+        make_matrix_view(a.ex, m_b_gpu, a.k, a.n, a.ldb, Access::col_major());
+    auto accC =
+        make_matrix_view(a.ex, m_c_gpu, a.m, a.n, a.ldc, Access::col_major());
+    auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
+    run_test(r, 2.0 * a.m * a.n * a.k * a.batch_size, [&] {
+      auto event = a.ex.execute(gemm);
+      a.ex.get_policy_handler().wait(event);
     });
   }
-  std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
+  std::cout << "err  = " << relative_diff(a.refC, a.c) << std::endl;
 }
 
 template <typename T, typename Container, typename Executor>
-void test_syclblas(int r, char transA, char transB, int m, int n, int k,
-                   T alpha, const Container &dataA, int lda,
-                   const Container &dataB, int ldb, T beta, Container dataC,
-                   int ldc, int batch_size, const Container &refC,
-                   Executor &ex) {
+void test_syclblas(int r, char transA, char transB,
+                   const GemmArgs<T, Container, Executor> a) {
   using etype = typename Container::value_type;
   std::cout << "\n=== Testing SYCL-BLAS gemm ===" << std::endl;
   {
     auto m_a_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(dataA.data()), dataA.size());
+        const_cast<etype *>(a.a.data()), a.a.size());
     auto m_b_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(dataB.data()), dataB.size());
+        const_cast<etype *>(a.b.data()), a.b.size());
     auto m_c_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(dataC.data()), dataC.size());
-    run_test(r, 2.0 * m * n * k * batch_size, [&] {
-      auto event =
-          _gemm_batched(ex, transA, transB, m, n, k, alpha, m_a_gpu, lda,
-                        m_b_gpu, ldb, beta, m_c_gpu, ldc, batch_size);
-      ex.get_policy_handler().wait(event);
+        const_cast<etype *>(a.c.data()), a.c.size());
+    run_test(r, 2.0 * a.m * a.n * a.k * a.batch_size, [&] {
+      auto event = _gemm_batched(a.ex, transA, transB, a.m, a.n, a.k, a.alpha,
+                                 m_a_gpu, a.lda, m_b_gpu, a.ldb, a.beta,
+                                 m_c_gpu, a.ldc, a.batch_size);
+      a.ex.get_policy_handler().wait(event);
     });
   }
-  std::cout << "err  = " << relative_diff(refC, dataC) << std::endl;
+  std::cout << "err  = " << relative_diff(a.refC, a.c) << std::endl;
 }
 
 template <bool TransA, bool TransB, typename E>
@@ -215,134 +231,117 @@ void run_gemm_tests(int seed, int m, int k, int n, int batch_size, int rep) {
 
   Executor<PolicyHandler<codeplay_policy>> ex(q);
 
-#define ARG \
-  m, n, k, E(1), dataA, lda, dataB, ldb, E(1), origC, ldc, batch_size, refC, ex
+  GemmArgs<E, decltype(dataA), decltype(ex)> args{
+      m,   n,    k,     E(1), dataA,      lda,  dataB,
+      ldb, E(1), origC, ldc,  batch_size, refC, ex};
 
-  // const int cls = 64;     // size of cache line in bytes
-  const bool db = false;  // use double buffer
-  const bool ba = false;  // avoid bank conflicts for A
-  const bool bb = false;  // avoid bank conflicts for B
-  const bool ta = TransA;
-  const bool tb = TransB;
   using data_t =
       typename MatrixViewTypeFactory<codeplay_policy, E, int>::output_t;
 
-#define TARGNAIVE(_cls)                                            \
-  Gemm<data_t, data_t, db, ba, bb, _cls, Tile<>, ta, tb, E, false, \
-       static_cast<int>(Gemm_t::local_memory)>
-
-#define TARGLOCAL(_cls, _tir, _tic, _twr, _twc, _ttr, _ttc)        \
-  Gemm<data_t, data_t, db, ba, bb, _cls,                           \
-       Tile<_tir, _tic, _twr, _twc, _ttr, _ttc>, ta, tb, E, false, \
-       static_cast<int>(Gemm_t::local_memory)>
-
-#define TARGNOLOCAL(_cls, _tir, _tic, _twr, _twc)                            \
-  Gemm<data_t, data_t, db, ba, bb, _cls, Tile<_tir, _tic, _twr, _twc, 1, 1>, \
-       ta, tb, E, false, static_cast<int>(Gemm_t::no_local_memory)>
+  using Local = GemmConfig<TransA, TransB, data_t, Gemm_t::local_memory>;
+  using NonLocal = GemmConfig<TransA, TransB, data_t, Gemm_t::no_local_memory>;
+  using Naive = GemmConfig<TransA, TransB, data_t, Gemm_t::naive>;
 
   if ((ex.get_policy_handler().get_device_type() !=
        codeplay_policy::device_type::rcar_cvengine) &&
       (ex.get_policy_handler().get_device_type() !=
        codeplay_policy::device_type::cpu)) {
 #if !defined(RCAR)
-    test<TARGLOCAL(64, 8, 8, 8, 8, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 8, 8, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 8, 8, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 8, 8, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 8, 8, 16, 16)>(rep, ARG);
+    test<64, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
+    test<64, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
+    test<64, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
+    test<64, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
+    test<64, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(64, 8, 8, 16, 16, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 16, 16, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 16, 16, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 16, 16, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 8, 16, 16, 16, 16)>(rep, ARG);
+    test<64, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
+    test<64, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
+    test<64, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
+    test<64, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
+    test<64, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(128, 8, 8, 8, 8, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 8, 8, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 8, 8, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 8, 8, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 8, 8, 16, 16)>(rep, ARG);
+    test<128, Tile<8, 8, 8, 8, 1, 1>, Local>(rep, args);
+    test<128, Tile<8, 8, 8, 8, 2, 2>, Local>(rep, args);
+    test<128, Tile<8, 8, 8, 8, 4, 4>, Local>(rep, args);
+    test<128, Tile<8, 8, 8, 8, 8, 8>, Local>(rep, args);
+    test<128, Tile<8, 8, 8, 8, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(128, 8, 8, 16, 16, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 16, 16, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 16, 16, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 16, 16, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 8, 16, 16, 16, 16)>(rep, ARG);
+    test<128, Tile<8, 8, 16, 16, 1, 1>, Local>(rep, args);
+    test<128, Tile<8, 8, 16, 16, 2, 2>, Local>(rep, args);
+    test<128, Tile<8, 8, 16, 16, 4, 4>, Local>(rep, args);
+    test<128, Tile<8, 8, 16, 16, 8, 8>, Local>(rep, args);
+    test<128, Tile<8, 8, 16, 16, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(64, 4, 8, 16, 8, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 16, 8, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 16, 8, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 16, 8, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 16, 8, 16, 16)>(rep, ARG);
+    test<64, Tile<4, 8, 16, 8, 1, 1>, Local>(rep, args);
+    test<64, Tile<4, 8, 16, 8, 2, 2>, Local>(rep, args);
+    test<64, Tile<4, 8, 16, 8, 4, 4>, Local>(rep, args);
+    test<64, Tile<4, 8, 16, 8, 8, 8>, Local>(rep, args);
+    test<64, Tile<4, 8, 16, 8, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(64, 8, 4, 8, 16, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 8, 16, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 8, 16, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 8, 16, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 8, 16, 16, 16)>(rep, ARG);
+    test<64, Tile<8, 4, 8, 16, 1, 1>, Local>(rep, args);
+    test<64, Tile<8, 4, 8, 16, 2, 2>, Local>(rep, args);
+    test<64, Tile<8, 4, 8, 16, 4, 4>, Local>(rep, args);
+    test<64, Tile<8, 4, 8, 16, 8, 8>, Local>(rep, args);
+    test<64, Tile<8, 4, 8, 16, 16, 16>, Local>(rep, args);
 
-    test<TARGNOLOCAL(128, 8, 8, 8, 8)>(rep, ARG);
-    test<TARGNOLOCAL(128, 4, 4, 8, 8)>(rep, ARG);
-    test<TARGNOLOCAL(128, 4, 4, 16, 16)>(rep, ARG);
-    test<TARGNOLOCAL(128, 8, 8, 16, 16)>(rep, ARG);
-    test<TARGNOLOCAL(128, 4, 8, 16, 8)>(rep, ARG);
-    test<TARGNOLOCAL(128, 8, 4, 8, 16)>(rep, ARG);
-    test<TARGNOLOCAL(128, 4, 8, 8, 4)>(rep, ARG);
-    test<TARGNOLOCAL(128, 8, 4, 4, 8)>(rep, ARG);
+    test<128, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
+    test<128, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
+    test<128, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
+    test<128, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
+    test<128, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
+    test<128, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
+    test<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    test<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test<TARGNOLOCAL(64, 8, 8, 8, 8)>(rep, ARG);
-    test<TARGNOLOCAL(64, 4, 4, 8, 8)>(rep, ARG);
-    test<TARGNOLOCAL(64, 4, 4, 16, 16)>(rep, ARG);
-    test<TARGNOLOCAL(64, 8, 8, 16, 16)>(rep, ARG);
-    test<TARGNOLOCAL(64, 4, 8, 16, 8)>(rep, ARG);
-    test<TARGNOLOCAL(64, 8, 4, 8, 16)>(rep, ARG);
-    test<TARGNOLOCAL(64, 4, 8, 8, 4)>(rep, ARG);
-    test<TARGNOLOCAL(64, 8, 4, 4, 8)>(rep, ARG);
+    test<64, Tile<8, 8, 8, 8>, NonLocal>(rep, args);
+    test<64, Tile<4, 4, 8, 8>, NonLocal>(rep, args);
+    test<64, Tile<4, 4, 16, 16>, NonLocal>(rep, args);
+    test<64, Tile<8, 8, 16, 16>, NonLocal>(rep, args);
+    test<64, Tile<4, 8, 16, 8>, NonLocal>(rep, args);
+    test<64, Tile<8, 4, 8, 16>, NonLocal>(rep, args);
+    test<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    test<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test_syclblas(rep, *ta_str, *tb_str, ARG);
+    test_syclblas(rep, *ta_str, *tb_str, args);
 
-    test<TARGNAIVE(128)>(rep, ARG);
-    test<TARGNAIVE(256)>(rep, ARG);
-    test<TARGNAIVE(64)>(rep, ARG);
+    test<128, Tile<>, Naive>(rep, args);
+    test<256, Tile<>, Naive>(rep, args);
+    test<64, Tile<>, Naive>(rep, args);
 #endif
   } else {
 #if defined(RCAR)
-    test<TARGLOCAL(64, 4, 8, 8, 4, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 8, 4, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 8, 4, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 8, 4, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 4, 8, 8, 4, 16, 16)>(rep, ARG);
+    test<64, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
+    test<64, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
+    test<64, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
+    test<64, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
+    test<64, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(64, 8, 4, 4, 8, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 4, 8, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 4, 8, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 4, 8, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(64, 8, 4, 4, 8, 16, 16)>(rep, ARG);
+    test<64, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
+    test<64, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
+    test<64, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
+    test<64, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
+    test<64, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
 
-    test<TARGNOLOCAL(64, 4, 8, 8, 4)>(rep, ARG);
-    test<TARGNOLOCAL(64, 8, 4, 4, 8)>(rep, ARG);
+    test<64, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    test<64, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test<TARGLOCAL(128, 4, 8, 8, 4, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(128, 4, 8, 8, 4, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(128, 4, 8, 8, 4, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(128, 4, 8, 8, 4, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(128, 4, 8, 8, 4, 16, 16)>(rep, ARG);
+    test<128, Tile<4, 8, 8, 4, 1, 1>, Local>(rep, args);
+    test<128, Tile<4, 8, 8, 4, 2, 2>, Local>(rep, args);
+    test<128, Tile<4, 8, 8, 4, 4, 4>, Local>(rep, args);
+    test<128, Tile<4, 8, 8, 4, 8, 8>, Local>(rep, args);
+    test<128, Tile<4, 8, 8, 4, 16, 16>, Local>(rep, args);
 
-    test<TARGLOCAL(128, 8, 4, 4, 8, 1, 1)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 4, 4, 8, 2, 2)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 4, 4, 8, 4, 4)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 4, 4, 8, 8, 8)>(rep, ARG);
-    test<TARGLOCAL(128, 8, 4, 4, 8, 16, 16)>(rep, ARG);
+    test<128, Tile<8, 4, 4, 8, 1, 1>, Local>(rep, args);
+    test<128, Tile<8, 4, 4, 8, 2, 2>, Local>(rep, args);
+    test<128, Tile<8, 4, 4, 8, 4, 4>, Local>(rep, args);
+    test<128, Tile<8, 4, 4, 8, 8, 8>, Local>(rep, args);
+    test<128, Tile<8, 4, 4, 8, 16, 16>, Local>(rep, args);
 
-    test<TARGNOLOCAL(128, 4, 8, 8, 4)>(rep, ARG);
-    test<TARGNOLOCAL(128, 8, 4, 4, 8)>(rep, ARG);
+    test<128, Tile<4, 8, 8, 4>, NonLocal>(rep, args);
+    test<128, Tile<8, 4, 4, 8>, NonLocal>(rep, args);
 
-    test_syclblas(rep, *ta_str, *tb_str, ARG);
+    test_syclblas(rep, *ta_str, *tb_str, args);
 
-    test<TARGNAIVE(32)>(rep, ARG);
+    test<32, Tile<>, Naive>(rep, args);
 #endif  // defined R
   }
-#undef TARGLOCAL
-#undef TARGNOLOCAL
-#undef ARG
 }
