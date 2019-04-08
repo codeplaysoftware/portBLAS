@@ -6,13 +6,62 @@
 #include <chrono>
 #include <climits>
 #include <memory>
+#include <string>
 
 #include "blas_meta.h"
+#include "range.hpp"
+#include "cli_args.hpp"
 
 using index_t = int;
+using Blas3Range = Range5D<ValueRange<const char*>, ValueRange<const char*>,
+                           SizeRange<int>, SizeRange<int>, SizeRange<int>>;
 
-namespace benchmark {
+namespace blas_benchmark {
+
+// Forward-declaring the function that will create the benchmark
+void create_benchmark(Args& args);
+
 namespace utils {
+
+/**
+ * @fn get_range
+ * @brief Returns a range containing the parameters, either read from a file
+ * according to the command-line args, or the default ones.
+ * This function must be implemented for each blas level.
+ */
+template<typename range_t>
+range_t get_range(Args& args);
+
+template <>
+inline Blas3Range get_range<Blas3Range>(Args& args) {
+  // Matrix dimensions bounds
+  constexpr const int dim_min = 2 << 5;
+  constexpr const int dim_max = 2 << 10;
+  // Matrix dimensions multiplier
+  constexpr const int dim_mult = 2;
+
+  Blas3Range range = nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
+                        size_range(dim_min, dim_max, dim_mult),
+                        size_range(dim_min, dim_max, dim_mult),
+                        size_range(dim_min, dim_max, dim_mult));
+  return range;
+}
+
+/**
+ * @fn get_type_name
+ * @brief Returns a string with the given type. The C++ specification doesn't
+ * guarantee that typeid(T).name is human readable so we specify the template
+ * for float and double.
+ */
+template<typename scalar_t>
+inline std::string get_type_name() {
+  std::string type_name(typeid(scalar_t).name());
+  return type_name;
+}
+template<>
+inline std::string get_type_name<float>() { return "float"; }
+template<>
+inline std::string get_type_name<double>() { return "double"; }
 
 /**
  * @fn random_scalar
@@ -136,7 +185,35 @@ static std::tuple<double, double> timef(function_t func, args_t&&... args) {
   return std::make_tuple(overall_time, event_time);
 }
 
+// Functions to initialize and update the counters
+
+inline void init_counters(benchmark::State& state) {
+  state.counters["best_event_time"] = ULONG_MAX;
+  state.counters["best_overall_time"] = ULONG_MAX;
+}
+
+inline void update_counters(benchmark::State& state,
+                            std::tuple<double, double> times) {
+  state.PauseTiming();
+  double overall_time, event_time;
+  std::tie(overall_time, event_time) = times;
+  state.counters["total_event_time"] += event_time;
+  state.counters["best_event_time"] =
+      std::min<double>(state.counters["best_event_time"], event_time);
+  state.counters["total_overall_time"] += overall_time;
+  state.counters["best_overall_time"] =
+      std::min<double>(state.counters["best_overall_time"], overall_time);
+  state.ResumeTiming();
+}
+
+inline void calc_avg_counters(benchmark::State& state) {
+  state.counters["avg_event_time"] =
+      state.counters["total_event_time"] / state.iterations();
+  state.counters["avg_overall_time"] =
+      state.counters["total_overall_time"] / state.iterations();
+}
+
 }  // namespace utils
-}  // namespace benchmark
+}  // namespace blas_benchmark
 
 #endif

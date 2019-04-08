@@ -314,21 +314,21 @@ ConcatRange<Range1, Range2> concat_ranges(Range1 r1, Range2 r2) {
   return ConcatRange<Range1, Range2>(r1, r2);
 }
 
-namespace default_ranges {
-
-auto level_1 = size_range(1 << 1, 1 << 24, 1 << 1);
-
-auto level_2 = nd_range(value_range({"n", "t"}), size_range(128, 4096, 2),
-                        size_range(128, 4096, 2));
-
-auto level_3 =
-    concat_ranges(nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
-                           size_range(512, 4096, 2), size_range(512, 4096, 2),
-                           size_range(512, 4096, 2)),
-                  value_range({std::make_tuple("n", "n", 8192, 128, 8192),
-                               std::make_tuple("t", "n", 8192, 128, 8192),
-                               std::make_tuple("n", "t", 8192, 128, 8192)}));
-
-}  // namespace default_ranges
+// namespace default_ranges {
+//
+// auto level_1 = size_range(1 << 1, 1 << 24, 1 << 1);
+//
+// auto level_2 = nd_range(value_range({"n", "t"}), size_range(128, 4096, 2),
+//                         size_range(128, 4096, 2));
+//
+// auto level_3 =
+//     concat_ranges(nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
+//                            size_range(512, 4096, 2), size_range(512, 4096, 2),
+//                            size_range(512, 4096, 2)),
+//                   value_range({std::make_tuple("n", "n", 8192, 128, 8192),
+//                                std::make_tuple("t", "n", 8192, 128, 8192),
+//                                std::make_tuple("n", "t", 8192, 128, 8192)}));
+//
+// }  // namespace default_ranges
 
 #endif  // include guard

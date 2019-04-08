@@ -19,7 +19,7 @@ namespace Global {
 extern ExecutorPtr executorInstancePtr;
 }
 
-namespace benchmark {
+namespace blas_benchmark {
 namespace utils {
 
 /**
