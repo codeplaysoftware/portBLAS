@@ -204,19 +204,8 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
   }
 };
 
-template <typename T>
-void assert_t_equal(T a, T b) {
-  ASSERT_EQ(a, b);
-}
-
-template <>
-void assert_t_equal<float>(float a, float b) {
-  ASSERT_FLOAT_EQ(a, b);
-}
-
-template <>
-void assert_t_equal<double>(double a, double b) {
-  ASSERT_DOUBLE_EQ(a, b);
-}
+#define ASSERT_T_EQUAL(T, val1, val2)                                         \
+  ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperFloatingPointEQ<T>, val1, \
+                      val2)
 
 #endif /* end of include guard: BLAS_TEST_HPP */
