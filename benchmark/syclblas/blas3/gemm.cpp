@@ -26,17 +26,21 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name() {
-  return "BM_Gemm<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">";
+std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
+  return "BM_Gemm<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
+         t1 + "/" + t2 + "/" + std::to_string(m) + "/" + std::to_string(k) +
+         "/" + std::to_string(n);
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
   // Standard test setup.
-  char const* t_a = blas_benchmark::utils::from_transpose_enum(
+  std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
-  char const* t_b = blas_benchmark::utils::from_transpose_enum(
+  std::string t2s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t2));
+  const char* t_a = t1s.c_str();
+  const char* t_b = t2s.c_str();
   const index_t m = static_cast<index_t>(mi);
   const index_t k = static_cast<index_t>(ki);
   const index_t n = static_cast<index_t>(ni);
@@ -103,13 +107,12 @@ void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args) {
-  auto gemm_range = blas_benchmark::utils::get_range <Blas3Range>(args);
+  auto gemm_params = blas_benchmark::utils::get_params<Blas3Param>(args);
 
-  do {
-    auto p = gemm_range.yield();
-    const char *t1s, *t2s;
+  for(auto p: gemm_params) {
+    std::string t1s, t2s;
     int m, n, k;
-    std::tie(t1s, t2s, m, n, k) = p;
+    std::tie(t1s, t2s, m, k, n) = p;
     int t1 = (int)blas_benchmark::utils::to_transpose_enum(t1s);
     int t2 = (int)blas_benchmark::utils::to_transpose_enum(t2s);
 
@@ -117,9 +120,9 @@ void register_benchmark(blas_benchmark::Args& args) {
         int n) {
       run<scalar_t>(st, t1, t2, m, k, n);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(),
+    benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
                                  BM_lambda, t1, t2, m, k, n);
-  } while (!gemm_range.finished());
+  }
 }
 
 namespace blas_benchmark {

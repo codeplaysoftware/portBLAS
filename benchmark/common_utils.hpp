@@ -7,14 +7,16 @@
 #include <climits>
 #include <memory>
 #include <string>
+#include <vector>
+#include <sstream>
+#include <fstream>
+#include <iostream>
 
 #include "blas_meta.h"
-#include "range.hpp"
 #include "cli_args.hpp"
 
 using index_t = int;
-using Blas3Range = Range5D<ValueRange<const char*>, ValueRange<const char*>,
-                           SizeRange<int>, SizeRange<int>, SizeRange<int>>;
+using Blas3Param = std::tuple<std::string, std::string, int, int, int>;
 
 namespace blas_benchmark {
 
@@ -24,27 +26,51 @@ void create_benchmark(Args& args);
 namespace utils {
 
 /**
+ * @fn parse_csv_file
+ * @brief Returns a vector containing the parameters for a benchmark as tuples,
+ * read from the given csv file
+ */
+template <typename param_t>
+std::vector<param_t> parse_csv_file(
+    std::string& filepath,
+    std::function<param_t(std::vector<std::string>&)> func) {
+  std::vector<param_t> csv_data;
+  std::ifstream data(filepath);
+  std::string line;
+  while (std::getline(data, line)) {
+    if (line.empty()) continue;
+    line.push_back({});
+    std::stringstream lineStream(line);
+    std::string cell;
+    std::vector<std::string> csv_line;
+    while (std::getline(lineStream, cell, ',')) {
+      csv_line.push_back(cell);
+    }
+    csv_data.push_back(func(csv_line));
+  }
+  return csv_data;
+}
+
+/**
  * @fn get_range
  * @brief Returns a range containing the parameters, either read from a file
  * according to the command-line args, or the default ones.
  * This function must be implemented for each blas level.
  */
-template<typename range_t>
-range_t get_range(Args& args);
+template<typename param_t>
+std::vector<param_t> get_params(Args& args);
 
 template <>
-inline Blas3Range get_range<Blas3Range>(Args& args) {
-  // Matrix dimensions bounds
-  constexpr const int dim_min = 2 << 5;
-  constexpr const int dim_max = 2 << 10;
-  // Matrix dimensions multiplier
-  constexpr const int dim_mult = 2;
-
-  Blas3Range range = nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
-                        size_range(dim_min, dim_max, dim_mult),
-                        size_range(dim_min, dim_max, dim_mult),
-                        size_range(dim_min, dim_max, dim_mult));
-  return range;
+inline std::vector<Blas3Param> get_params<Blas3Param>(Args& args) {
+  if (args.csv_dim.empty()) {  // Use default ranges
+    // TODO: implement default ranges?
+  } else {  // Read from csv file
+    return parse_csv_file<Blas3Param>(
+        args.csv_dim, [&](std::vector<std::string>& v) {
+          return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
+                                 std::stoi(v[3]), std::stoi(v[4]));
+        });
+  }
 }
 
 /**
@@ -111,10 +137,10 @@ const std::array<Transposition, 3> possible_transpositions(
  * @fn to_transpose_enum
  * @brief Translates from a transposition string to an enum.
  */
-static inline Transposition to_transpose_enum(const char* t) {
-  if (t[0] == 't') {
+static inline Transposition to_transpose_enum(std::string t) {
+  if (t == "t") {
     return Transposition::Transposed;
-  } else if (t[0] == 'c') {
+  } else if (t == "c") {
     return Transposition::Conjugate;
   } else {
     return Transposition::Normal;
@@ -124,7 +150,7 @@ static inline Transposition to_transpose_enum(const char* t) {
  * @fn from_transpose_enum
  * @brief Translates from a transposition enum to a transposition string
  */
-static inline const char* from_transpose_enum(Transposition t) {
+static inline std::string from_transpose_enum(Transposition t) {
   switch (t) {
     case Transposition::Transposed:
       return "t";

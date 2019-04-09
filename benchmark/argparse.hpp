@@ -331,7 +331,7 @@ class ArgumentParser {
         std::cout << usage() << std::endl;;
       }
       //  check if the element is a key
-      if (index_.count(el) == 0) {
+      else if (index_.count(el) == 0) {
         // input
         // is the current active argument expecting more inputs?
         if (active.fixed && active.fixed_nargs <= consumed)
