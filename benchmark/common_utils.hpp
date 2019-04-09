@@ -10,7 +10,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
-#include <iostream>
+#include <functional>
 
 #include "blas_meta.h"
 #include "cli_args.hpp"
@@ -62,11 +62,11 @@ std::vector<param_t> get_params(Args& args);
 
 template <>
 inline std::vector<Blas3Param> get_params<Blas3Param>(Args& args) {
-  if (args.csv_dim.empty()) {  // Use default ranges
+  if (args.csv_param.empty()) {  // Use default ranges
     // TODO: implement default ranges?
   } else {  // Read from csv file
     return parse_csv_file<Blas3Param>(
-        args.csv_dim, [&](std::vector<std::string>& v) {
+        args.csv_param, [&](std::vector<std::string>& v) {
           return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
                                  std::stoi(v[3]), std::stoi(v[4]));
         });

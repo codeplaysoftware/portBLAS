@@ -10,7 +10,7 @@ namespace blas_benchmark {
 typedef struct {
   std::string program_name;
   std::string device;
-  std::string csv_dim;
+  std::string csv_param;
 } Args;
 
 namespace utils {
@@ -23,15 +23,15 @@ namespace utils {
 inline Args parse_args(int argc, char** argv) {
   ArgumentParser parser;
   parser.addArgument("--help", 0, true);
-  parser.addArgument("--device", 1);
-  parser.addArgument("--csv_dim", 1);
+  parser.addArgument("--device", 1, true);
+  parser.addArgument("--csv_param", 1, false);
 
   parser.parse(argc, const_cast<const char**>(argv));
 
   Args args = {
     argv[0],
     parser.retrieve<std::string>("device"),
-    parser.retrieve<std::string>("csv_dim")
+    parser.retrieve<std::string>("csv_param")
   };
 
   return args;

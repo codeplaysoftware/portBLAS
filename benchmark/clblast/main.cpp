@@ -8,9 +8,14 @@ ExecutorPtr ex;
 ExecutorPtr Global::executorInstancePtr;
 
 int main(int argc, char** argv) {
-  cli_device_selector cds(argc, argv);
-  OpenCLDeviceSelector oclds(cds.device_vendor, cds.device_type);
+  // Read the command-line arguments
+  auto args = blas_benchmark::utils::parse_args(argc, argv);
 
+  cli_device_selector cds(args);
+  OpenCLDeviceSelector oclds(cds.vendor_name, cds.device_type);
+
+  // Register the benchmark and initialize googlebench
+  blas_benchmark::create_benchmark(args);
   benchmark::Initialize(&argc, argv);
 
   Context ctx(oclds);
