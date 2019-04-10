@@ -32,19 +32,11 @@ int main(int argc, char** argv) {
   blas_benchmark::utils::print_queue_information(q);
 
   // Create a sycl blas executor from the queue
-  ExecutorPtr executorInstancePtr = std::shared_ptr<SyclExecutorType>(
-      new SyclExecutorType(q));  // std::make_unique<SyclExecutorType>(q);
+  ExecutorType executor(q);
 
   // Create the benchmarks
-  blas_benchmark::create_benchmark(args, executorInstancePtr);
+  blas_benchmark::create_benchmark(args, &executor);
 
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
-
-  // We need to explicitly reset/delete the executor instance pointer so that
-  // the executor (and the the queue) is properly deleted before the sycl
-  // runtime shuts down. If we don't, the runtime will complain about objects
-  // not being properly destroyed, and the benchmark will exit without a
-  // successful return code
-  executorInstancePtr.reset();
 }

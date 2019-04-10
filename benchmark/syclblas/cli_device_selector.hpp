@@ -34,7 +34,7 @@
 #include <regex>
 #include <string>
 
-#include "cli_args.hpp"
+#include "benchmark_cli_args.hpp"
 
 /** class cli_device_selector.
  * @brief Looks for a sycl device that matches the "requested" string. Scores

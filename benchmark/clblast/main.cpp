@@ -11,11 +11,10 @@ int main(int argc, char** argv) {
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
-  Context ctx(oclds);
-  ExecutorPtr executorInstancePtr = std::shared_ptr<ExecutorType>(&ctx);
+  ExecutorType executor(oclds);
 
   // Create the benchmarks
-  blas_benchmark::create_benchmark(args, executorInstancePtr);
+  blas_benchmark::create_benchmark(args, &executor);
 
   benchmark::RunSpecifiedBenchmarks();
 }

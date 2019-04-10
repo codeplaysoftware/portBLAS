@@ -6,11 +6,10 @@
 #include <clblast.h>
 
 typedef Context ExecutorType;
-typedef std::shared_ptr<ExecutorType> ExecutorPtr;
 
 namespace blas_benchmark {
 
-void create_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr);
 
 namespace utils {
 

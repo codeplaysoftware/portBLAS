@@ -33,7 +33,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorPtr executorInstancePtr, int t1,
+void run(benchmark::State& state, ExecutorType* executorPtr, int t1,
          int t2, int mi, int ki, int ni) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
@@ -63,7 +63,7 @@ void run(benchmark::State& state, ExecutorPtr executorInstancePtr, int t1,
   state.counters["bytes_processed"] =
       (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
 
-  SyclExecutorType ex = *executorInstancePtr;
+  ExecutorType& ex = *executorPtr;
 
   // Create data
   // Scalars
@@ -108,8 +108,8 @@ void run(benchmark::State& state, ExecutorPtr executorInstancePtr, int t1,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<Blas3Param>(args);
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  auto gemm_params = blas_benchmark::utils::get_params<blas3_param_t>(args);
 
   for (auto p : gemm_params) {
     std::string t1s, t2s;
@@ -118,7 +118,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
     int t1 = (int)blas_benchmark::utils::to_transpose_enum(t1s);
     int t2 = (int)blas_benchmark::utils::to_transpose_enum(t2s);
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorPtr exPtr, int t1,
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, int m, int k,
                          int n) { run<scalar_t>(st, exPtr, t1, t2, m, k, n); };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
@@ -127,7 +127,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
   register_benchmark<float>(args, exPtr);
 #ifdef DOUBLE_SUPPORT
   register_benchmark<double>(args, exPtr);

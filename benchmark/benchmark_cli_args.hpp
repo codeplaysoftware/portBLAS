@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "argparse.hpp"
+#include "argparse/argparse.hpp"
 
 namespace blas_benchmark {
 

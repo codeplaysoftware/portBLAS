@@ -13,10 +13,10 @@
 #include <vector>
 
 #include "blas_meta.h"
-#include "cli_args.hpp"
+#include "benchmark_cli_args.hpp"
 
 using index_t = int;
-using Blas3Param = std::tuple<std::string, std::string, int, int, int>;
+using blas3_param_t = std::tuple<std::string, std::string, int, int, int>;
 
 namespace blas_benchmark {
 
@@ -58,11 +58,11 @@ template <typename param_t>
 std::vector<param_t> get_params(Args& args);
 
 template <>
-inline std::vector<Blas3Param> get_params<Blas3Param>(Args& args) {
+inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
   if (args.csv_param.empty()) {  // Use default ranges
     // TODO: implement default ranges?
   } else {  // Read from csv file
-    return parse_csv_file<Blas3Param>(
+    return parse_csv_file<blas3_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
           return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
                                  std::stoi(v[3]), std::stoi(v[4]));

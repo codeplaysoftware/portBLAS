@@ -10,14 +10,12 @@
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
-typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>
-    SyclExecutorType;
-typedef std::shared_ptr<SyclExecutorType> ExecutorPtr;
+typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> ExecutorType;
 
 namespace blas_benchmark {
 
 // Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args, ExecutorPtr exPtr);
+void create_benchmark(Args& args, ExecutorType* exPtr);
 
 namespace utils {
 

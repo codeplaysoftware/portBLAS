@@ -38,7 +38,7 @@
 #include <utility>
 #include <vector>
 
-#include "cli_args.hpp"
+#include "benchmark_cli_args.hpp"
 
 class cli_device_selector {
   std::string program_name;
