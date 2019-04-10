@@ -5,12 +5,12 @@
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <climits>
-#include <memory>
-#include <string>
-#include <vector>
-#include <sstream>
 #include <fstream>
 #include <functional>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "blas_meta.h"
 #include "cli_args.hpp"
@@ -19,9 +19,6 @@ using index_t = int;
 using Blas3Param = std::tuple<std::string, std::string, int, int, int>;
 
 namespace blas_benchmark {
-
-// Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args);
 
 namespace utils {
 
@@ -57,7 +54,7 @@ std::vector<param_t> parse_csv_file(
  * according to the command-line args, or the default ones.
  * This function must be implemented for each blas level.
  */
-template<typename param_t>
+template <typename param_t>
 std::vector<param_t> get_params(Args& args);
 
 template <>
@@ -79,15 +76,19 @@ inline std::vector<Blas3Param> get_params<Blas3Param>(Args& args) {
  * guarantee that typeid(T).name is human readable so we specify the template
  * for float and double.
  */
-template<typename scalar_t>
+template <typename scalar_t>
 inline std::string get_type_name() {
   std::string type_name(typeid(scalar_t).name());
   return type_name;
 }
-template<>
-inline std::string get_type_name<float>() { return "float"; }
-template<>
-inline std::string get_type_name<double>() { return "double"; }
+template <>
+inline std::string get_type_name<float>() {
+  return "float";
+}
+template <>
+inline std::string get_type_name<double>() {
+  return "double";
+}
 
 /**
  * @fn random_scalar
@@ -188,8 +189,8 @@ inline cl_ulong time_events(std::vector<event_t> es) {
 }
 
 template <typename event_t, typename... other_events_t>
-inline cl_ulong time_events(event_t first_event, other_events_t... next_events)
-{
+inline cl_ulong time_events(event_t first_event,
+                            other_events_t... next_events) {
   return time_events<event_t>(
       blas::concatenate_vectors(first_event, next_events...));
 }

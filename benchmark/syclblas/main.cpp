@@ -8,16 +8,11 @@
 std::unique_ptr<cli_device_selector> cdsp;
 void free_device_selector() { cdsp.reset(); }
 
-// Declare the executorInstancePtr (it is already `extern` declared in utils.hpp
-// but it must be explicitly declared at least once.)
-ExecutorPtr Global::executorInstancePtr;
-
 int main(int argc, char** argv) {
   // Read the command-line arguments
   auto args = blas_benchmark::utils::parse_args(argc, argv);
 
-  // Register the benchmark and initialize googlebench
-  blas_benchmark::create_benchmark(args);
+  // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
   // Initialise the command line device selector in a unique pointer so that we
@@ -26,8 +21,7 @@ int main(int argc, char** argv) {
   // if the flag `--help` is passed), the cds will not be freed before the sycl
   // runtime tries to exit, leading to an exception, as the cds will still hold
   // some sycl objects.
-  cdsp =
-      std::unique_ptr<cli_device_selector>(new cli_device_selector(args));
+  cdsp = std::unique_ptr<cli_device_selector>(new cli_device_selector(args));
   std::atexit(free_device_selector);
 
   // Create a queue from the device selector - do this after initialising
@@ -38,8 +32,11 @@ int main(int argc, char** argv) {
   blas_benchmark::utils::print_queue_information(q);
 
   // Create a sycl blas executor from the queue
-  Global::executorInstancePtr = std::unique_ptr<SyclExecutorType>(
+  ExecutorPtr executorInstancePtr = std::shared_ptr<SyclExecutorType>(
       new SyclExecutorType(q));  // std::make_unique<SyclExecutorType>(q);
+
+  // Create the benchmarks
+  blas_benchmark::create_benchmark(args, executorInstancePtr);
 
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
@@ -49,5 +46,5 @@ int main(int argc, char** argv) {
   // runtime shuts down. If we don't, the runtime will complain about objects
   // not being properly destroyed, and the benchmark will exit without a
   // successful return code
-  Global::executorInstancePtr.reset();
+  executorInstancePtr.reset();
 }

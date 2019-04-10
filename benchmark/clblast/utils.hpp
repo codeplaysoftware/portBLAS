@@ -6,13 +6,12 @@
 #include <clblast.h>
 
 typedef Context ExecutorType;
-typedef std::unique_ptr<ExecutorType> ExecutorPtr;
-
-namespace Global {
-extern ExecutorPtr executorInstancePtr;
-}
+typedef std::shared_ptr<ExecutorType> ExecutorPtr;
 
 namespace blas_benchmark {
+
+void create_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr);
+
 namespace utils {
 
 /**

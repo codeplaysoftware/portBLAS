@@ -33,7 +33,8 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
+void run(benchmark::State& state, ExecutorPtr executorInstancePtr, int t1,
+         int t2, int mi, int ki, int ni) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -62,7 +63,7 @@ void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
   state.counters["bytes_processed"] =
       (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
 
-  SyclExecutorType ex = *Global::executorInstancePtr;
+  SyclExecutorType ex = *executorInstancePtr;
 
   // Create data
   // Scalars
@@ -72,7 +73,8 @@ void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
   // Matrices
   std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
   std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n);
-  std::vector<scalar_t> c = blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
+  std::vector<scalar_t> c =
+      blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
 
   auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k);
   auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n);
@@ -106,30 +108,29 @@ void run(benchmark::State& state, int t1, int t2, int mi, int ki, int ni) {
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
   auto gemm_params = blas_benchmark::utils::get_params<Blas3Param>(args);
 
-  for(auto p: gemm_params) {
+  for (auto p : gemm_params) {
     std::string t1s, t2s;
     int m, n, k;
     std::tie(t1s, t2s, m, k, n) = p;
     int t1 = (int)blas_benchmark::utils::to_transpose_enum(t1s);
     int t2 = (int)blas_benchmark::utils::to_transpose_enum(t2s);
 
-    auto BM_lambda = [&](benchmark::State& st, int t1, int t2, int m, int k,
-        int n) {
-      run<scalar_t>(st, t1, t2, m, k, n);
-    };
+    auto BM_lambda = [&](benchmark::State& st, ExecutorPtr exPtr, int t1,
+                         int t2, int m, int k,
+                         int n) { run<scalar_t>(st, exPtr, t1, t2, m, k, n); };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, t1, t2, m, k, n);
+                                 BM_lambda, exPtr, t1, t2, m, k, n);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args) {
-  register_benchmark<float>(args);
+void create_benchmark(blas_benchmark::Args& args, ExecutorPtr exPtr) {
+  register_benchmark<float>(args, exPtr);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args);
+  register_benchmark<double>(args, exPtr);
 #endif
 }
-} // namespace blas_benchmark
+}  // namespace blas_benchmark

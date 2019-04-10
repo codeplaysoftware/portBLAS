@@ -5,21 +5,20 @@
 #include <chrono>
 #include <tuple>
 
-#include "sycl_blas.h"
 #include "common_utils.hpp"
+#include "sycl_blas.h"
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
 typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>
     SyclExecutorType;
-typedef std::unique_ptr<SyclExecutorType> ExecutorPtr;
-
-// Declare the global executor pointer
-namespace Global {
-extern ExecutorPtr executorInstancePtr;
-}
+typedef std::shared_ptr<SyclExecutorType> ExecutorPtr;
 
 namespace blas_benchmark {
+
+// Forward-declaring the function that will create the benchmark
+void create_benchmark(Args& args, ExecutorPtr exPtr);
+
 namespace utils {
 
 /**
@@ -27,7 +26,7 @@ namespace utils {
  * @brief Get the overall run time (start -> end) of a cl::sycl::event enqueued
  * on a queue with profiling.
  */
-template<>
+template <>
 inline cl_ulong time_event<cl::sycl::event>(cl::sycl::event& e) {
   // get start and end times
   cl_ulong start_time = e.template get_profiling_info<
@@ -80,6 +79,6 @@ inline void print_queue_information(cl::sycl::queue q) {
 }
 
 }  // namespace utils
-}  // namespace benchmark
+}  // namespace blas_benchmark
 
 #endif
