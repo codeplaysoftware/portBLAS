@@ -39,6 +39,10 @@ inline Args parse_args(int argc, char** argv) {
     exit(1);
   } else if (show_help) {
     std::cout << parser << std::endl;
+  } else if (args.csv_param.empty()) {
+    std::cerr << "Error: csv file required for the parameters" << std::endl
+              << parser << std::endl;
+    exit(1);
   }
 
   return args;
