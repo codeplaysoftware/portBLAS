@@ -83,7 +83,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   for (int i = 0; i < y * incY; ++i) {
-    assert_t_equal<scalar_t>(c_v_gpu_result[i], c_v_cpu[i]);
+    ASSERT_T_EQUAL(scalar_t, c_v_gpu_result[i], c_v_cpu[i]);
   }
 
   ex.get_policy_handler().template deallocate<scalar_t>(m_a_gpu);
