@@ -1,9 +1,10 @@
 #ifndef CLI_ARGS_HPP
 #define CLI_ARGS_HPP
 
+#include <iostream>
 #include <string>
 
-#include "argparse/argparse.hpp"
+#include "clara.hpp"
 
 namespace blas_benchmark {
 
@@ -21,18 +22,24 @@ namespace utils {
  * command-line arguments.
  */
 inline Args parse_args(int argc, char** argv) {
-  ArgumentParser parser;
-  parser.addArgument("--help", 0, true);
-  parser.addArgument("--device", 1, true);
-  parser.addArgument("--csv_param", 1, false);
+  Args args;
+  args.program_name = std::string(argv[0]);
+  bool show_help;
 
-  parser.parse(argc, const_cast<const char**>(argv));
+  auto parser =
+      clara::Help(show_help) |
+      clara::Opt(args.device, "device")["--device"](
+          "Select a device (best effort) for running the benchmark.") |
+      clara::Opt(args.csv_param, "filepath")["--csv-param"](
+          "Select which CSV file to read the benchmark parameters from");
 
-  Args args = {
-    argv[0],
-    parser.retrieve<std::string>("device"),
-    parser.retrieve<std::string>("csv_param")
-  };
+  auto res = parser.parse(clara::Args(argc, argv));
+  if (!res) {
+    std::cerr << "Error in command line: " << res.errorMessage() << std::endl;
+    exit(1);
+  } else if (show_help) {
+    std::cout << parser << std::endl;
+  }
 
   return args;
 }
