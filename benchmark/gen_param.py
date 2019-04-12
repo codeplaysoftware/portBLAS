@@ -37,7 +37,7 @@ def main(args):
     """
     # Match DSL to Python names
     nd_range = itertools.product
-    value_range = list
+    value_range = lambda *v: list(v)
     def size_range(low, high, mult):
         val = low
         while val <= high:
