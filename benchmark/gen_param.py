@@ -20,9 +20,14 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename roofline/analyze.py
+# *  @filename gen_param.py
 # *
 # **************************************************************************/
+
+"""This tool generates CSV parameter files for the BLAS benchmarks, based on
+   expressions written in a domain-specific language.
+   See the documentation in README.md for more information.
+"""
 
 import itertools
 import argparse
