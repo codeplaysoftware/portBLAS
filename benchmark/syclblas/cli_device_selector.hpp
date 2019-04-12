@@ -62,11 +62,9 @@ class cli_device_selector : public cl::sycl::device_selector {
  public:
   cli_device_selector(blas_benchmark::Args& args)
       : cl::sycl::device_selector(), program_name(args.program_name) {
-
-    if(!args.device.empty()) {
+    if (!args.device.empty()) {
       std::string device = args.device;
-      std::transform(device.begin(), device.end(),
-                     device.begin(), ::tolower);
+      std::transform(device.begin(), device.end(), device.begin(), ::tolower);
       // split the string into tokens on ':'
       std::stringstream ss(device);
       std::string item;

@@ -9,7 +9,7 @@ typedef Context ExecutorType;
 
 namespace blas_benchmark {
 
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr);
+void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
 
 namespace utils {
 
@@ -99,6 +99,6 @@ inline void warmup(function_t func, args_t &&... args) {
 }
 
 }  // namespace utils
-}  // namespace benchmark
+}  // namespace blas_benchmark
 
 #endif

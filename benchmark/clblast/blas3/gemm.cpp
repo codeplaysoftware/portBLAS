@@ -33,8 +33,8 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int t1,
-         int t2, int mi, int ki, int ni) {
+void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
+         int mi, int ki, int ni) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));

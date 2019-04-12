@@ -53,8 +53,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
-    clblast::Nrm2<scalar_t>(size, bufr.dev(), 0, buf1.dev(), 0, 1, executorPtr->_queue(),
-                            &event);
+    clblast::Nrm2<scalar_t>(size, bufr.dev(), 0, buf1.dev(), 0, 1,
+                            executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
   };
@@ -66,7 +66,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
 
   // Measure
   for (auto _ : state) {
-    std::tuple<double, double> times = blas_benchmark::utils::timef(blas_method_def);
+    std::tuple<double, double> times =
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);

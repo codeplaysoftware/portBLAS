@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include "blas_meta.h"
 #include "benchmark_cli_args.hpp"
+#include "blas_meta.h"
 
 using index_t = int;
 using blas1_param_t = int;
@@ -62,9 +62,8 @@ std::vector<param_t> get_params(Args& args);
 template <>
 inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
   return parse_csv_file<blas1_param_t>(
-      args.csv_param, [&](std::vector<std::string>& v) {
-        return std::stoi(v[0]);
-      });
+      args.csv_param,
+      [&](std::vector<std::string>& v) { return std::stoi(v[0]); });
 }
 
 template <>

@@ -66,7 +66,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
 
   // Measure
   for (auto _ : state) {
-    std::tuple<double, double> times = blas_benchmark::utils::timef(blas_method_def);
+    std::tuple<double, double> times =
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
