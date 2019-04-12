@@ -27,8 +27,8 @@
 
 template <typename scalar_t>
 std::string get_name(int size) {
-  return "BM_Axpy<" + blas_benchmark::utils::get_type_name<scalar_t>() +
-         ">/" + std::to_string(size);
+  return "BM_Axpy<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
+         std::to_string(size);
 }
 
 template <typename scalar_t>

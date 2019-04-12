@@ -9,12 +9,12 @@ include_directories(${SYCLBLAS_BENCH})
 set(SYCLBLAS_BENCH_SRCS
   # Level 1 blas
   ${SYCLBLAS_BENCH}/blas1/axpy.cpp
-  # ${SYCLBLAS_BENCH}/blas1/asum.cpp
-  # ${SYCLBLAS_BENCH}/blas1/dot.cpp
-  # ${SYCLBLAS_BENCH}/blas1/iamax.cpp
-  # ${SYCLBLAS_BENCH}/blas1/iamin.cpp
-  # ${SYCLBLAS_BENCH}/blas1/nrm2.cpp
-  # ${SYCLBLAS_BENCH}/blas1/scal.cpp
+  ${SYCLBLAS_BENCH}/blas1/asum.cpp
+  ${SYCLBLAS_BENCH}/blas1/dot.cpp
+  ${SYCLBLAS_BENCH}/blas1/iamax.cpp
+  ${SYCLBLAS_BENCH}/blas1/iamin.cpp
+  ${SYCLBLAS_BENCH}/blas1/nrm2.cpp
+  ${SYCLBLAS_BENCH}/blas1/scal.cpp
   # Level 2 blas
   ${SYCLBLAS_BENCH}/blas2/gemv.cpp
   # Level 3 blas

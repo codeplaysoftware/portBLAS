@@ -32,15 +32,15 @@ if (CLBLAST_FOUND)
 
   set(CLBLAST_BENCH_SRCS
     # Level 1 blas
-    # ${CLBLAST_BENCH}/blas1/asum.cpp
-    # ${CLBLAST_BENCH}/blas1/axpy.cpp
-    # ${CLBLAST_BENCH}/blas1/dot.cpp
-    # ${CLBLAST_BENCH}/blas1/iamax.cpp
-    # ${CLBLAST_BENCH}/blas1/iamin.cpp
-    # ${CLBLAST_BENCH}/blas1/nrm2.cpp
-    # ${CLBLAST_BENCH}/blas1/scal.cpp
+    ${CLBLAST_BENCH}/blas1/asum.cpp
+    ${CLBLAST_BENCH}/blas1/axpy.cpp
+    ${CLBLAST_BENCH}/blas1/dot.cpp
+    ${CLBLAST_BENCH}/blas1/iamax.cpp
+    ${CLBLAST_BENCH}/blas1/iamin.cpp
+    ${CLBLAST_BENCH}/blas1/nrm2.cpp
+    ${CLBLAST_BENCH}/blas1/scal.cpp
     # # Level 2 blas
-    # ${CLBLAST_BENCH}/blas2/gemv.cpp
+    ${CLBLAST_BENCH}/blas2/gemv.cpp
     # Level 3 blas
     ${CLBLAST_BENCH}/blas3/gemm.cpp
   )
