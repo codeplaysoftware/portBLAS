@@ -35,11 +35,6 @@
 #include "reference_gemm.hpp"
 #include "sycl_blas.hpp"
 
-// Config
-const bool db = false;  // use double buffer
-const bool ba = false;  // avoid bank conflicts for A
-const bool bb = false;  // avoid bank conflicts for B
-
 using namespace cl::sycl;
 using namespace blas;
 
@@ -139,13 +134,13 @@ void run_tune(int rep, double flop_cnt, TestResultEntry &result,
   result.gflops = flop_cnt / sec / 1e9;
 }
 
-template <int Cls, typename Tile, typename Config, typename T,
-          typename Container, typename Executor>
+template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
+          typename Config, typename T, typename Container, typename Executor>
 // a should not be a reference, the C buffer needs copied
 void tune(int r, GemmArgs<T, Container, Executor> a) {
-  using Gemm = Gemm<typename Config::data_t, typename Config::data_t, db, ba,
-                    bb, Cls, Tile, Config::TransA, Config::TransB, T, false,
-                    static_cast<int>(Config::Mode)>;
+  using Gemm = Gemm<typename Config::data_t, typename Config::data_t,
+                    DoubleBuffer, Nbca, Nbcb, Cls, Tile, Config::TransA,
+                    Config::TransB, T, false, static_cast<int>(Config::Mode)>;
 
   using etype = typename Gemm::value_t;
   a.results.emplace_back(Gemm::get_type_string());
