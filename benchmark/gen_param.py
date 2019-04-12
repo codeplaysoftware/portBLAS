@@ -62,7 +62,7 @@ def get_args(args_str=""):
     parser.add_argument("-o", dest="output_file",
                         default="params.csv", metavar="filepath",
                         help="Specify the name of the resulting CSV file")
-    parser.add_argument("-e", metavar="expression", required=True,
+    parser.add_argument("-e", dest="expr", metavar="expression", required=True,
                         help="Expression used to generate the file, in a"
                         " domain-specific language (see README.md)")
     args = parser.parse_args(args_str) if args_str else parser.parse_args()
