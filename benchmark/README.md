@@ -66,14 +66,12 @@ displaying the results in the console and saving a json report:
     --benchmark_format console
 ```
 
-## Benchmark parameters
-
 ### CSV format
 
 The benchmarks can be given a CSV file containing the parameters to run with
-(matrix/vector dimensions, transpose or not, etc). One line corresponds to one
-set of parameters, i.e one name for the library (though it will be iterated
-many times for statistical accuracy).
+(matrix/vector dimensions, transpose or not, etc), in the following format: one
+line corresponds to one set of parameters, i.e one name for the library (though
+it will be iterated many times for statistical accuracy).
 
 The formats for the different BLAS levels are:
 
@@ -91,10 +89,11 @@ n,t,64,128,64
 t,n,13,3,7
 ```
 
-### Python generator using a domain-specific language
+### Python tool to generate a CSV file
 
-To make it easy to generate new files, we provide a Python generator in the
-script `gen_param.py`. The script takes two command-line args:
+If you don't yet have a file containing the parameters you want to run the
+benchmarks with, we provide a Python generator in the script `gen_param.py`.
+The script takes two command-line args:
 * `-o` specifies the output CSV file
 * `-e` specifies a generator expression in the DSL described below
 
@@ -151,8 +150,7 @@ t,1024,256
 
 #### Some ranges to start with
 
-If you don't yet have your CSV parameter files, the following ranges are a good
-starting point:
+The following ranges are a good starting point:
 
 |blas level|range expression|
 |----------|----------------|
@@ -163,7 +161,7 @@ starting point:
 
 ### Default parameters
 
-If no CSV file is provided, default ranges will be used, as described below.
+If no CSV file is provided, the default ranges will be used, as described below.
 These ranges only use powers of two, and run all the possible combinations of
 the values for all the parameters. This means that the BLAS 3 benchmark will be
 run for 500 different parameter tuples by default.
