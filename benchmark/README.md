@@ -80,8 +80,8 @@ The formats for the different BLAS levels are:
 |blas level|format|description|
 |:--------:|:----:|-----------|
 | 1 | *size* | Vector size |
-| 2 | *tr_A,m,n* | Action on the matrix (`n`, `t`, `c`) and dimensions |
-| 3 | *tr_A,tr_B,m,k,n* | Action on the matrices (`n`, `t`, `c`) and dimensions (A: mk, B:kn, C: mn) |
+| 2 | *transpose_A,m,n* | Action on the matrix (`n`, `t`, `c`) and dimensions |
+| 3 | *transpose_A,transpose_B,m,k,n* | Action on the matrices (`n`, `t`, `c`) and dimensions (A: mk, B:kn, C: mn) |
 
 Here is an example of a valid CSV file for the GEMM benchmark:
 
@@ -149,7 +149,6 @@ t,1024,128
 t,1024,256
 ```
 
-
 #### Some ranges to start with
 
 If you don't yet have your CSV parameter files, the following ranges are a good
@@ -160,3 +159,50 @@ starting point:
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
 | 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
 | 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
+
+
+## JSON output files
+
+The benchmarks can create a report as a JSON file. This JSON file contains two
+top level sections.
+
+### Context
+
+The `context` section is an object containing the following keys:
+* `date`: when the benchmarks **start**. Format: `YYYY-MM-DD hh:mm:ss`
+* `host_name`: the value of `$HOSTNAME`
+* `executable`: relative path to the exectuable from where it was invoked
+* `num_cpus`, `mhz_per_cpu`, `cpu_scaling_enabled`, `caches`: information
+     provided by the benchmark library. Not always relevant, especially if the
+     CL device used is not the CPU.
+
+### Benchmarks
+
+The `benchmarks` section contains a list of objects corresponding to each tuple
+of parameters the benchmark has been run with. Every object contains the
+following keys:
+* `name`: name of the benchmark and parameters, separated by slashes,
+    e.g `BM_Gemm<float>/n/n/64/64/64`
+* `iterations`: how many times the benchmark has been run
+* `real_time`: total time between the start and end of the benchmark
+* `cpu_time`: actual CPU time spent running the benchmark
+* `time_unit`: unit used for these times. Should be `ns`, if not please file an
+    issue.
+* `avg_event_time`: the average of the CL/SYCL event times in nanoseconds. This
+    time depends of the events returned by the BLAS functions used and might not
+    be accurate in some cases
+* `best_event_time`: the best of the CL/SYCL event times in nanoseconds. See
+    warning above.
+* `avg_overall_time`: the average wall time in nanoseconds.
+* `best_overall_time`: the best wall time in nanoseconds.
+* `total_event_time`: this is the event time of all iterations. Warning: the
+    number of iterations is variable.
+* `total_overall_time`: this is the wall time of all iterations. Warning: the
+    number of iterations is variable.
+* `n_fl_ops`: total number of floating-point operations. It is calculated
+    theoretically based on the operations that we think the benchmark is doing.
+* `bytes_processed`: total number of bytes read and written in memory. It is
+    calculated theoretically based on the operations that we think the benchmark
+    is doing.
+* a few benchmark parameters (e.g `m`, `n`, `k` for GEMM)
+* some other keys from the benchmark library
