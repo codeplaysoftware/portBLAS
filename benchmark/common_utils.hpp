@@ -7,6 +7,7 @@
 #include <climits>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -52,6 +53,17 @@ std::vector<param_t> parse_csv_file(
 
 /**
  * @fn get_range
+ * @brief Prints a warning to the user if no CSV parameter file has been given
+ */
+inline void warning_no_csv() {
+  std::cerr
+      << "WARNING: no CSV parameter file has been given. Default ranges will "
+         "be used. It is strongly recommended to use your own CSV files."
+      << std::endl;
+}
+
+/**
+ * @fn get_range
  * @brief Returns a range containing the parameters, either read from a file
  * according to the command-line args, or the default ones.
  * This function must be implemented for each blas level.
@@ -61,26 +73,57 @@ std::vector<param_t> get_params(Args& args);
 
 template <>
 inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
-  return parse_csv_file<blas1_param_t>(
-      args.csv_param,
-      [&](std::vector<std::string>& v) { return std::stoi(v[0]); });
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<blas1_param_t> blas1_default;
+    for (int size = 4096; size <= 1048576; size *= 2)
+      blas1_default.push_back(size);
+    return blas1_default;
+  } else
+    return parse_csv_file<blas1_param_t>(
+        args.csv_param,
+        [&](std::vector<std::string>& v) { return std::stoi(v[0]); });
 }
 
 template <>
 inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
-  return parse_csv_file<blas2_param_t>(
-      args.csv_param, [&](std::vector<std::string>& v) {
-        return std::make_tuple(v[0].c_str(), std::stoi(v[1]), std::stoi(v[2]));
-      });
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<blas2_param_t> blas2_default;
+    constexpr int dmin = 64, dmax = 1024;
+    for (std::string t : {"n", "t"})
+      for (int m = dmin; m <= dmax; m *= 2)
+        for (int n = dmin; n <= dmax; n *= 2)
+          blas2_default.push_back(std::make_tuple(t, m, n));
+    return blas2_default;
+  } else
+    return parse_csv_file<blas2_param_t>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          return std::make_tuple(v[0].c_str(), std::stoi(v[1]),
+                                 std::stoi(v[2]));
+        });
 }
 
 template <>
 inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
-  return parse_csv_file<blas3_param_t>(
-      args.csv_param, [&](std::vector<std::string>& v) {
-        return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
-                               std::stoi(v[3]), std::stoi(v[4]));
-      });
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<blas3_param_t> blas3_default;
+    constexpr int dmin = 64, dmax = 1024;
+    std::vector<std::string> dtranspose = {"n", "t"};
+    for (std::string& t1 : dtranspose)
+      for (std::string& t2 : dtranspose)
+        for (int m = dmin; m <= dmax; m *= 2)
+          for (int k = dmin; k <= dmax; k *= 2)
+            for (int n = dmin; n <= dmax; n *= 2)
+              blas3_default.push_back(std::make_tuple(t1, t2, m, k, n));
+    return blas3_default;
+  } else
+    return parse_csv_file<blas3_param_t>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
+                                 std::stoi(v[3]), std::stoi(v[4]));
+        });
 }
 
 /**

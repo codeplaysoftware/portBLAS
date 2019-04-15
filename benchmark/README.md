@@ -35,9 +35,11 @@ After the compilation, the binaries will be available:
 The benchmarks take two kinds of command-line options: those for the benchmark
 library and those specific to the SYCL-BLAS projects.
 
-Essentially, the benchmarks **require a CSV configuration file** (see the related
-section below), and if your machine has more than one OpenCL device, which one
-to use. The other options specify how to output the results.
+Essentially, the benchmarks need a CSV configuration file (see the related
+section below; there are default parameters if no CSV file is provided, but it
+is not recommended to use the defaults), and if your machine has more than one
+OpenCL device, which one to use. The other options specify how to output the
+results.
 
 The most useful options for us are:
 
