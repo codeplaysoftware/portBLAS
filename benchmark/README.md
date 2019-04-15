@@ -35,11 +35,9 @@ After the compilation, the binaries will be available:
 The benchmarks take two kinds of command-line options: those for the benchmark
 library and those specific to the SYCL-BLAS projects.
 
-Essentially, the benchmarks need a CSV configuration file (see the related
-section below; there are default parameters if no CSV file is provided, but it
-is not recommended to use the defaults), and if your machine has more than one
-OpenCL device, which one to use. The other options specify how to output the
-results.
+Essentially, the benchmarks can take a CSV configuration file (or will use
+defaults), and if your machine has more than one OpenCL device, you can specify
+which one to use. The other options specify how to output the results.
 
 The most useful options for us are:
 
@@ -68,13 +66,13 @@ displaying the results in the console and saving a json report:
     --benchmark_format console
 ```
 
-## CSV configuration files
+## Benchmark parameters
 
 ### CSV format
 
-The benchmarks need to be given a CSV file containing the parameters to run
-with (matrix/vector dimensions, transpose or not, etc). One line corresponds to
-one set of parameters, i.e one name for the library (though it will be iterated
+The benchmarks can be given a CSV file containing the parameters to run with
+(matrix/vector dimensions, transpose or not, etc). One line corresponds to one
+set of parameters, i.e one name for the library (though it will be iterated
 many times for statistical accuracy).
 
 The formats for the different BLAS levels are:
@@ -161,6 +159,41 @@ starting point:
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
 | 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
 | 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
+
+
+### Default parameters
+
+If no CSV file is provided, default ranges will be used, as described below.
+These ranges only use powers of two, and run all the possible combinations of
+the values for all the parameters. This means that the BLAS 3 benchmark will be
+run for 500 different parameter tuples by default.
+
+If you need to use specific sizes or run less benchmarks, you can use the CSV
+parameter files as described above.
+
+#### BLAS 1
+
+|parameter|values|
+|---------|------|
+| size | 4096, 8192, ..., 1048576 |
+
+#### BLAS 2
+
+|parameter|values|
+|---------|------|
+| transpose A | `"n"`, `"t"` |
+| m | 64, 128, ..., 1024 |
+| n | 64, 128, ..., 1024 |
+
+#### BLAS 3
+
+|parameter|values|
+|---------|------|
+| transpose A | `"n"`, `"t"` |
+| transpose B | `"n"`, `"t"` |
+| m | 64, 128, ..., 1024 |
+| k | 64, 128, ..., 1024 |
+| n | 64, 128, ..., 1024 |
 
 
 ## JSON output files

@@ -58,7 +58,7 @@ std::vector<param_t> parse_csv_file(
 inline void warning_no_csv() {
   std::cerr
       << "WARNING: no CSV parameter file has been given. Default ranges will "
-         "be used. It is strongly recommended to use your own CSV files."
+         "be used."
       << std::endl;
 }
 
