@@ -195,9 +195,9 @@ const std::array<Transposition, 3> possible_transpositions(
  * @brief Translates from a transposition string to an enum.
  */
 static inline Transposition to_transpose_enum(std::string t) {
-  if (t == "t") {
+  if (t == "t" || t == "T") {
     return Transposition::Transposed;
-  } else if (t == "c") {
+  } else if (t == "c" || t == "C") {
     return Transposition::Conjugate;
   } else {
     return Transposition::Normal;
