@@ -5,11 +5,13 @@
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <climits>
+#include <exception>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -46,7 +48,19 @@ std::vector<param_t> parse_csv_file(
     while (std::getline(lineStream, cell, ',')) {
       csv_line.push_back(cell);
     }
-    csv_data.push_back(func(csv_line));
+    try {
+      csv_data.push_back(func(csv_line));
+    } catch (std::exception& e) {
+      std::cerr << "Error while parsing CSV file: " << e.what()
+                << ", on line: " << line << std::endl;
+      exit(1);
+    }
+  }
+  if (csv_data.size() == 0) {
+    std::cerr
+        << "No data has been read. The given file might not exist or be empty."
+        << std::endl;
+    exit(1);
   }
   return csv_data;
 }
@@ -76,13 +90,23 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (int size = 4096; size <= 1048576; size *= 2)
+    for (int size = 4096; size <= 1048576; size *= 2) {
       blas1_default.push_back(size);
+    }
     return blas1_default;
   } else
     return parse_csv_file<blas1_param_t>(
-        args.csv_param,
-        [&](std::vector<std::string>& v) { return std::stoi(v[0]); });
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 1) {
+            throw std::runtime_error(
+                "invalid number of parameters (1 expected)");
+          }
+          try {
+            return std::stoi(v[0]);
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
 }
 
 template <>
@@ -91,16 +115,27 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
     warning_no_csv();
     std::vector<blas2_param_t> blas2_default;
     constexpr int dmin = 64, dmax = 1024;
-    for (std::string t : {"n", "t"})
-      for (int m = dmin; m <= dmax; m *= 2)
-        for (int n = dmin; n <= dmax; n *= 2)
+    for (std::string t : {"n", "t"}) {
+      for (int m = dmin; m <= dmax; m *= 2) {
+        for (int n = dmin; n <= dmax; n *= 2) {
           blas2_default.push_back(std::make_tuple(t, m, n));
+        }
+      }
+    }
     return blas2_default;
   } else
     return parse_csv_file<blas2_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          return std::make_tuple(v[0].c_str(), std::stoi(v[1]),
-                                 std::stoi(v[2]));
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), std::stoi(v[1]),
+                                   std::stoi(v[2]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
         });
 }
 
@@ -111,18 +146,31 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
     std::vector<blas3_param_t> blas3_default;
     constexpr int dmin = 64, dmax = 1024;
     std::vector<std::string> dtranspose = {"n", "t"};
-    for (std::string& t1 : dtranspose)
-      for (std::string& t2 : dtranspose)
-        for (int m = dmin; m <= dmax; m *= 2)
-          for (int k = dmin; k <= dmax; k *= 2)
-            for (int n = dmin; n <= dmax; n *= 2)
+    for (std::string& t1 : dtranspose) {
+      for (std::string& t2 : dtranspose) {
+        for (int m = dmin; m <= dmax; m *= 2) {
+          for (int k = dmin; k <= dmax; k *= 2) {
+            for (int n = dmin; n <= dmax; n *= 2) {
               blas3_default.push_back(std::make_tuple(t1, t2, m, k, n));
+            }
+          }
+        }
+      }
+    }
     return blas3_default;
   } else
     return parse_csv_file<blas3_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
-                                 std::stoi(v[3]), std::stoi(v[4]));
+          if (v.size() != 5) {
+            throw std::runtime_error(
+                "invalid number of parameters (5 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
+                                   std::stoi(v[3]), std::stoi(v[4]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
         });
 }
 
@@ -194,13 +242,16 @@ const std::array<Transposition, 3> possible_transpositions(
  * @fn to_transpose_enum
  * @brief Translates from a transposition string to an enum.
  */
-static inline Transposition to_transpose_enum(std::string t) {
-  if (t == "t" || t == "T") {
+static inline Transposition to_transpose_enum(std::string& t) {
+  if (t == "t") {
     return Transposition::Transposed;
-  } else if (t == "c" || t == "C") {
+  } else if (t == "c") {
     return Transposition::Conjugate;
-  } else {
+  } else if (t == "n") {
     return Transposition::Normal;
+  } else {
+    std::cerr << "Unrecognized transpose type: " << t << std::endl;
+    exit(1);
   }
 }
 /**
