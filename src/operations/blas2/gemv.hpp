@@ -308,7 +308,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
           val = (Diag && Unit &&
                  ((id_row >= frs_col) && (id_row < lst_col) &&
                   (((id_row - frs_col) % localSz) == 0)))
-                    ? matrix_.eval(id_row, id_row)
+                    ? vector_.eval(id_row)
                     : init_val;
           for (index_t id_col = frs_col; id_col < lst_col; id_col += localSz) {
             if (Lower && Upper && Diag && !Unit) {
@@ -567,7 +567,7 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
             ((colid == frs_col) ? AdditionIdentity::eval(vector_.eval(0))
                                 : lhs_.eval(rowid, idWFC)) +
             ((Diag && Unit && ((rowid >= colid) && (rowid < colid + blqSz)))
-                 ? matrix_.eval(rowid, rowid)
+                 ? vector_.eval(rowid)
                  : AdditionIdentity::eval(vector_.eval(0)));
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag && !Unit) {
