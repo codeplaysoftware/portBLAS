@@ -48,21 +48,11 @@ set(SYCL_UNITTEST_SRCS
  ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
  ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
   # Blas 3 tests
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nn_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nt_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tn_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tt_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
-  list(APPEND SYCL_UNITTEST_SRCS
-  #complex types
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_nc_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_cn_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_tc_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_ct_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm/blas3_gemm_cc_test.cpp
-  )
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
