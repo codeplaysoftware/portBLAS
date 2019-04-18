@@ -124,7 +124,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
     std::string ts;
     int m, n;
     std::tie(ts, m, n) = p;
-    int t = (int)blas_benchmark::utils::to_transpose_enum(ts);
+    int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
                          int m, int n) { run<scalar_t>(st, exPtr, t, m, n); };
