@@ -94,7 +94,7 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
       blas1_default.push_back(size);
     }
     return blas1_default;
-  } else
+  } else {
     return parse_csv_file<blas1_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 1) {
@@ -107,6 +107,7 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
             throw std::runtime_error("invalid parameter");
           }
         });
+  }
 }
 
 template <>
@@ -123,7 +124,7 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
       }
     }
     return blas2_default;
-  } else
+  } else {
     return parse_csv_file<blas2_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 3) {
@@ -137,6 +138,7 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
             throw std::runtime_error("invalid parameter");
           }
         });
+  }
 }
 
 template <>
@@ -158,7 +160,7 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
       }
     }
     return blas3_default;
-  } else
+  } else {
     return parse_csv_file<blas3_param_t>(
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 5) {
@@ -172,6 +174,7 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
             throw std::runtime_error("invalid parameter");
           }
         });
+  }
 }
 
 /**
