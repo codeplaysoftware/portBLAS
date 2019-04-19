@@ -26,9 +26,15 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-void BM_Axpy(benchmark::State& state) {
+std::string get_name(int size) {
+  return "BM_Axpy<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
+         std::to_string(size);
+}
+
+template <typename scalar_t>
+void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
   // Standard test setup.
-  const index_t size = static_cast<index_t>(state.range(0));
+  const index_t size = static_cast<index_t>(si);
 
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -36,12 +42,12 @@ void BM_Axpy(benchmark::State& state) {
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = 3.0 * size_d * sizeof(scalar_t);
 
-  SyclExecutorType ex = *Global::executorInstancePtr;
+  ExecutorType& ex = *executorPtr;
 
   // Create data
-  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = benchmark::utils::random_data<scalar_t>(size);
-  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
+  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
   auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
@@ -52,43 +58,43 @@ void BM_Axpy(benchmark::State& state) {
   }
   ex.get_policy_handler().wait();
 
-  state.counters["best_event_time"] = ULONG_MAX;
-  state.counters["best_overall_time"] = ULONG_MAX;
+  blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
+        blas_benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
           auto event = _axpy(ex, size, alpha, inx, 1, iny, 1);
           ex.get_policy_handler().wait(event);
           return event;
         });
 
     // Report
-    state.PauseTiming();
-
-    double overall_time, event_time;
-    std::tie(overall_time, event_time) = times;
-
-    state.counters["total_event_time"] += event_time;
-    state.counters["best_event_time"] =
-        std::min<double>(state.counters["best_event_time"], event_time);
-
-    state.counters["total_overall_time"] += overall_time;
-    state.counters["best_overall_time"] =
-        std::min<double>(state.counters["best_overall_time"], overall_time);
-
-    state.ResumeTiming();
+    blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.counters["avg_event_time"] =
-      state.counters["total_event_time"] / state.iterations();
-  state.counters["avg_overall_time"] =
-      state.counters["total_overall_time"] / state.iterations();
+  blas_benchmark::utils::calc_avg_counters(state);
 }
 
-BENCHMARK_TEMPLATE(BM_Axpy, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+
+  for (auto size : gemm_params) {
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int size) {
+      run<scalar_t>(st, exPtr, size);
+    };
+    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
+                                 exPtr, size);
+  }
+}
+
+namespace blas_benchmark {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  register_benchmark<float>(args, exPtr);
 #ifdef DOUBLE_SUPPORT
-BENCHMARK_TEMPLATE(BM_Axpy, double)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+  register_benchmark<double>(args, exPtr);
 #endif
+}
+}  // namespace blas_benchmark

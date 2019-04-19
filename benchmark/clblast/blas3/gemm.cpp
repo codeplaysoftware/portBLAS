@@ -23,19 +23,28 @@
  *
  **************************************************************************/
 
-#include "range.hpp"
 #include "utils.hpp"
 
 template <typename scalar_t>
-void BM_Gemm(benchmark::State& state) {
+std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
+  return "BM_Gemm<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
+         t1 + "/" + t2 + "/" + std::to_string(m) + "/" + std::to_string(k) +
+         "/" + std::to_string(n);
+}
+
+template <typename scalar_t>
+void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
+         int mi, int ki, int ni) {
   // Standard test setup.
-  char const* t_a = benchmark::utils::from_transpose_enum(
-      static_cast<benchmark::utils::Transposition>(state.range(0)));
-  char const* t_b = benchmark::utils::from_transpose_enum(
-      static_cast<benchmark::utils::Transposition>(state.range(1)));
-  const index_t m = static_cast<index_t>(state.range(2));
-  const index_t k = static_cast<index_t>(state.range(3));
-  const index_t n = static_cast<index_t>(state.range(4));
+  std::string t1s = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(t1));
+  std::string t2s = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(t2));
+  const char* t_a = t1s.c_str();
+  const char* t_b = t2s.c_str();
+  const index_t m = static_cast<index_t>(mi);
+  const index_t k = static_cast<index_t>(ki);
+  const index_t n = static_cast<index_t>(ni);
 
   index_t lda = t_a[0] == 'n' ? m : k;
   index_t ldb = t_b[0] == 'n' ? k : n;
@@ -57,102 +66,80 @@ void BM_Gemm(benchmark::State& state) {
 
   // Create data
   // Scalars
-  scalar_t alpha = benchmark::utils::random_scalar<scalar_t>();
-  scalar_t beta = benchmark::utils::random_scalar<scalar_t>();
+  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  scalar_t beta = blas_benchmark::utils::random_scalar<scalar_t>();
 
   // Matrices
-  std::vector<scalar_t> a = benchmark::utils::random_data<scalar_t>(m * k);
-  std::vector<scalar_t> b = benchmark::utils::random_data<scalar_t>(k * n);
-  std::vector<scalar_t> c = benchmark::utils::const_data<scalar_t>(m * n, 0);
+  std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
+  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n);
+  std::vector<scalar_t> c =
+      blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
 
   // Specify the transpositions
-  clblast::Transpose a_tr = benchmark::utils::translate_transposition(t_a);
-  clblast::Transpose b_tr = benchmark::utils::translate_transposition(t_b);
+  clblast::Transpose a_tr = blas_benchmark::utils::translate_transposition(t_a);
+  clblast::Transpose b_tr = blas_benchmark::utils::translate_transposition(t_b);
 
   // Specify the layout. As with GEMV, this needs to be kColMajor, and results
   // in errors otherwise. It may be that this is incorrect (especially for
   // performance reasons), so may need to be revisited.
   auto layout = clblast::Layout::kColMajor;
 
-  ExecutorType* ex = Global::executorInstancePtr.get();
-
   // Device matrices
-  MemBuffer<scalar_t> a_gpu(ex, a.data(), static_cast<size_t>(m * k));
-  MemBuffer<scalar_t> b_gpu(ex, b.data(), static_cast<size_t>(k * n));
-  MemBuffer<scalar_t> c_gpu(ex, c.data(), static_cast<size_t>(m * n));
+  MemBuffer<scalar_t> a_gpu(executorPtr, a.data(), static_cast<size_t>(m * k));
+  MemBuffer<scalar_t> b_gpu(executorPtr, b.data(), static_cast<size_t>(k * n));
+  MemBuffer<scalar_t> c_gpu(executorPtr, c.data(), static_cast<size_t>(m * n));
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
     clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
-                            ex->_queue(), &event);
+                            executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
   };
 
   // Warm up to avoid benchmarking data transfer
-  benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_method_def);
 
-  state.counters["best_event_time"] = ULONG_MAX;
-  state.counters["best_overall_time"] = ULONG_MAX;
+  blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
-    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
+    std::tuple<double, double> times =
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
-    state.PauseTiming();
-
-    double overall_time, event_time;
-    std::tie(overall_time, event_time) = times;
-
-    state.counters["total_event_time"] += event_time;
-    state.counters["best_event_time"] =
-        std::min<double>(state.counters["best_event_time"], event_time);
-
-    state.counters["total_overall_time"] += overall_time;
-    state.counters["best_overall_time"] =
-        std::min<double>(state.counters["best_overall_time"], overall_time);
-
-    state.ResumeTiming();
+    blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.counters["avg_event_time"] =
-      state.counters["total_event_time"] / state.iterations();
-  state.counters["avg_overall_time"] =
-      state.counters["total_overall_time"] / state.iterations();
+  blas_benchmark::utils::calc_avg_counters(state);
 };
 
-static void gemm_args(benchmark::internal::Benchmark* b) {
-  // Matrix dimensions bounds
-  constexpr const int dim_min = 2 << 5;
-  constexpr const int dim_max = 2 << 10;
-  // Matrix dimensions multiplier
-  constexpr const int dim_mult = 2;
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  auto gemm_params = blas_benchmark::utils::get_params<blas3_param_t>(args);
 
-  auto gemm_range = nd_range(value_range({"n", "t"}), value_range({"n", "t"}),
-                             size_range(dim_min, dim_max, dim_mult),
-                             size_range(dim_min, dim_max, dim_mult),
-                             size_range(dim_min, dim_max, dim_mult));
+  for (auto p : gemm_params) {
+    std::string t1s, t2s;
+    int m, n, k;
+    std::tie(t1s, t2s, m, k, n) = p;
+    int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
+    int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-  do {
-    auto p = gemm_range.yield();
-    int t1 = (int)benchmark::utils::to_transpose_enum(std::get<0>(p));
-    int t2 = (int)benchmark::utils::to_transpose_enum(std::get<1>(p));
-    int m = std::get<2>(p);
-    int k = std::get<3>(p);
-    int n = std::get<4>(p);
-    b->Args({t1, t2, m, k, n});
-
-  } while (!gemm_range.finished());
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
+                         int t2, int m, int k,
+                         int n) { run<scalar_t>(st, exPtr, t1, t2, m, k, n); };
+    benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
+                                 BM_lambda, exPtr, t1, t2, m, k, n);
+  }
 }
 
-BENCHMARK_TEMPLATE(BM_Gemm, float)
-    ->Apply(gemm_args)
-    ->Unit(benchmark::kNanosecond);
+namespace blas_benchmark {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  register_benchmark<float>(args, exPtr);
 #ifdef DOUBLE_SUPPORT
-BENCHMARK_TEMPLATE(BM_Gemm, double)
-    ->Apply(gemm_args)
-    ->Unit(benchmark::kNanosecond);
+  register_benchmark<double>(args, exPtr);
 #endif
+}
+}  // namespace blas_benchmark
