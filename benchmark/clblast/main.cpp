@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
   auto args = blas_benchmark::utils::parse_args(argc, argv);
 
   cli_device_selector cds(args);
-  OpenCLDeviceSelector oclds(cds.vendor_name, cds.device_type);
+  OpenCLDeviceSelector oclds(cds.device_vendor, cds.device_type);
 
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);

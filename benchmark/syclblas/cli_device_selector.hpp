@@ -43,7 +43,7 @@
  */
 class cli_device_selector : public cl::sycl::device_selector {
   std::string program_name;
-  std::string vendor_name;
+  std::string device_vendor;
   std::string device_type;
 
   static cl::sycl::info::device_type match_device_type(std::string requested) {
@@ -77,7 +77,7 @@ class cli_device_selector : public cl::sycl::device_selector {
                      "intel:gpu)"
                   << std::endl;
       } else {
-        vendor_name = tokens[0];
+        device_vendor = tokens[0];
         device_type = tokens[1];
       }
     }
@@ -102,9 +102,10 @@ class cli_device_selector : public cl::sycl::device_selector {
     cl::sycl::platform plat = device.get_platform();
     std::string name = plat.template get_info<cl::sycl::info::platform::name>();
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-    if (name.find(vendor_name) != std::string::npos && !vendor_name.empty()) {
+    if (name.find(device_vendor) != std::string::npos &&
+        !device_vendor.empty()) {
       score += 2;
-    } else if (vendor_name == "*" || vendor_name.empty()) {
+    } else if (device_vendor == "*" || device_vendor.empty()) {
       score += 1;
     } else {
       score -= 2;

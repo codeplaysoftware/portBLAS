@@ -44,7 +44,7 @@ class cli_device_selector {
   std::string program_name;
 
  public:
-  std::string vendor_name;
+  std::string device_vendor;
   std::string device_type;
 
   cli_device_selector(blas_benchmark::Args& args)
@@ -64,7 +64,7 @@ class cli_device_selector {
                      "intel:gpu)"
                   << std::endl;
       } else {
-        vendor_name = tokens[0];
+        device_vendor = tokens[0];
         device_type = tokens[1];
       }
     }
