@@ -58,8 +58,7 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
 
   std::vector<scalar_t> vR(size - offset, scalar_t(0));
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
   auto event = ex.get_policy_handler().copy_to_host((a + offset), vR.data(),

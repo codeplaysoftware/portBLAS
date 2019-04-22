@@ -1,12 +1,23 @@
-#include "cli_device_selector.hpp"
 #include "utils.hpp"
+#include "utils/extract_vendor_type.hpp"
 
 int main(int argc, char** argv) {
   // Read the command-line arguments
   auto args = blas_benchmark::utils::parse_args(argc, argv);
 
-  cli_device_selector cds(args);
-  OpenCLDeviceSelector oclds(cds.device_vendor, cds.device_type);
+  std::string vendor{};
+  std::string type{};
+  if (!args.device.empty()) {
+    bool valid;
+    std::tie(valid, vendor, type) = utils::extract_vendor_type(args.device);
+
+    if (!valid) {
+      // A message was already printed by extract_vendor_type, just exit
+      std::exit(1);
+    }
+  }
+
+  OpenCLDeviceSelector oclds(vendor, type);
 
   blas_benchmark::utils::print_device_information(oclds.device());
 
