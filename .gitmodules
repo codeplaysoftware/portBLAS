@@ -4,3 +4,6 @@
 [submodule "external/py_gen"]
 	path = external/py_gen
 	url = https://github.com/codeplaysoftware/py_gen.git
+[submodule "external/openblas"]
+	path = external/openblas
+	url = https://github.com/xianyi/OpenBLAS.git
