@@ -44,7 +44,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Input vector
   std::vector<scalar_t> x_v(n * incX);
-  blas_test_t::set_rand(x_v, n * incX);
+  fill_random(x_v);
 
   // Output matrix
   std::vector<scalar_t> a_m(n * lda, 7.0);
@@ -65,9 +65,7 @@ void run_test(const combination_t<scalar_t> combi) {
       ex.get_policy_handler().copy_to_host(a_m_gpu, a_m.data(), n * lda);
   ex.get_policy_handler().wait(event);
 
-  for (int i = 0; i < n * lda; ++i) {
-    ASSERT_T_EQUAL(scalar_t, a_m[i], a_cpu_m[i]);
-  }
+  ASSERT_TRUE(utils::compare_vectors(a_m, a_cpu_m));
 }
 
 #ifdef STRESS_TESTING
