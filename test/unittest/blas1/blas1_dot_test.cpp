@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) Codeplay Software Limited
+ *  Dotright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *  You may obtain a dot of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  For your convenience, a copy of the License has been included in this
+ *  For your convenience, a dot of the License has been included in this
  *  repository.
  *
  *  Unless required by applicable law or agreed to in writing, software
@@ -24,100 +24,73 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+using combination_t = std::tuple<int, int, int>;
 
-REGISTER_SIZE(::RANDOM_SIZE, dot_test)
-REGISTER_STRD(::RANDOM_STRD, dot_test)
-REGISTER_PREC(float, 1e-4, dot_test)
-REGISTER_PREC(double, 1e-6, dot_test)
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  using type_t = blas_test_args<scalar_t, void>;
+  using blas_test_t = BLAS_Test<type_t>;
+  using executor_t = typename type_t::executor_t;
 
-TYPED_TEST(BLAS_Test, dot_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class dot_test;
+  int size;
+  int incX;
+  int incY;
+  std::tie(size, incX, incY) = combi;
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
+  // Input vectors
+  std::vector<scalar_t> x_v(size * incX);
+  fill_random(x_v);
+  std::vector<scalar_t> y_v(size * incY);
+  fill_random(y_v);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // Output vector
+  std::vector<scalar_t> out_s(1, 10.0);
 
-  // create two random vectors: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size);
-  // create a vector of size 1 for the result
-  std::vector<scalar_t> vR(1, scalar_t(0));
-  TestClass::set_rand(vX, size);
-  TestClass::set_rand(vY, size);
+  // Reference implementation
+  auto out_cpu_s =
+      reference_blas::dot(size, x_v.data(), incX, y_v.data(), incY);
 
-  scalar_t res(0);
-  // compute dot(vX, vY) into res with a for loop
-  for (int i = 0; i < size; i += strd) {
-    res += vX[i] * vY[i];
-  }
+  // SYCL implementation
+  SYCL_DEVICE_SELECTOR d;
+  auto q = blas_test_t::make_queue(d);
+  Executor<executor_t> ex(q);
 
-  auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vY, size);
-  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
-  _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incY));
+  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v, size * incY);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
+  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+
+  _dot(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  ASSERT_NEAR(res, vR[0], prec);
+  // Validate the result
+  utils::almost_equal(out_s[0], out_cpu_s);
 }
 
-REGISTER_SIZE(::RANDOM_SIZE, dot_test_vpr)
-REGISTER_STRD(::RANDOM_STRD, dot_test_vpr)
-REGISTER_PREC(float, 1e-4, dot_test_vpr)
-REGISTER_PREC(double, 1e-6, dot_test_vpr)
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
+                       ::testing::Values(1, 4),                   // incX
+                       ::testing::Values(1, 3)                    // incY
+    );
+#else
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(1, 4),      // incX
+                                      ::testing::Values(1, 3)       // incY
+);
+#endif
 
-TYPED_TEST(BLAS_Test, dot_test_vpr) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class dot_test_vpr;
+class DotFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(DotFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(dot, DotFloat, combi);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
-
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  // create two random vectors: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size);
-  // create a vector of size 1 for the result
-  std::vector<scalar_t> vR(1, scalar_t(0));
-  TestClass::set_rand(vX, size);
-  TestClass::set_rand(vY, size);
-
-  scalar_t res(0);
-  // compute dot(vX, vY) into res with a for loop
-  for (int i = 0; i < size; i += strd) {
-    res += vX[i] * vY[i];
-  }
-
-  auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
-  printf("inside the test: %p\n", gpu_vR);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
-  _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
-  ex.get_policy_handler().wait(event);
-
-  ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
-}
+#if DOUBLE_SUPPORT
+class DotDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(DotDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(dot, DotDouble, combi);
+#endif

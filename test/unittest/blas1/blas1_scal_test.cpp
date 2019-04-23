@@ -25,55 +25,64 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
+template <typename scalar_t>
+using combination_t = std::tuple<int, scalar_t, int>;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  using type_t = blas_test_args<scalar_t, void>;
+  using blas_test_t = BLAS_Test<type_t>;
+  using executor_t = typename type_t::executor_t;
 
-REGISTER_SIZE(::RANDOM_SIZE, scal_test)
-REGISTER_STRD(::RANDOM_STRD, scal_test)
-REGISTER_PREC(float, 1e-4, scal_test)
-REGISTER_PREC(double, 1e-6, scal_test)
+  int size;
+  scalar_t alpha;
+  int incX;
+  std::tie(size, alpha, incX) = combi;
 
-TYPED_TEST(BLAS_Test, scal_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class scal_test;
+  // Input/output vector
+  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_cpu_v(x_v);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
+  // Reference implementation
+  reference_blas::scal(size, alpha, x_cpu_v.data(), incX);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // SYCL implementation
+  SYCL_DEVICE_SELECTOR d;
+  auto q = blas_test_t::make_queue(d);
+  Executor<executor_t> ex(q);
 
-  scalar_t prec = TestClass::template test_prec<test>();
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
 
-  scalar_t alpha(1.54);
-  // create two vectors: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size, 0);
-  TestClass::set_rand(vX, size);
-
-  // compute vector scalar product vX * alpha in a for loop and put it into vY
-  for (int i = 0; i < size; ++i) {
-    if (i % strd == 0) {
-      vY[i] = alpha * vX[i];
-    } else {
-      vY[i] = vX[i];
-    }
-  }
-
-  auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  _scal(ex, (size + strd - 1) / strd, alpha, gpu_vX, strd);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
+  _scal(ex, size, alpha, gpu_x_v, incX);
+  auto event =
+      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
   ex.get_policy_handler().wait(event);
 
-  // check that the result is the same
-  for (int i = 0; i < size; ++i) {
-    ASSERT_NEAR(vY[i], vX[i], prec);
-  }
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  // Validate the result
+  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
 }
+
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
+                       ::testing::Values(0.0, 1.0, 1.5),          // alpha
+                       ::testing::Values(1, 4)                    // incX
+    );
+#else
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(0.0, 1.5),  // alpha
+                                      ::testing::Values(4)          // incX
+);
+#endif
+
+class ScalFloat : public ::testing::TestWithParam<combination_t<float>> {};
+TEST_P(ScalFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(scal, ScalFloat, combi);
+
+#if DOUBLE_SUPPORT
+class ScalDouble : public ::testing::TestWithParam<combination_t<double>> {};
+TEST_P(ScalDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(scal, ScalDouble, combi);
+#endif
