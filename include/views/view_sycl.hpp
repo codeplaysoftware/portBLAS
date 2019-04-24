@@ -42,7 +42,7 @@ struct ViewTypeTrace<Executor, buffer_iterator<T>> {
 };
 
 template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<uint8_t>>
+          typename Allocator = cl::sycl::default_allocator>
 using bufferT = cl::sycl::buffer<ScalarT, dim, Allocator>;
 
 template <typename ContainerT>
@@ -66,7 +66,7 @@ auto get_size(ContainerT &c)
 }
 
 template <typename ScalarT, int dim = 1,
-          typename Allocator = cl::sycl::default_allocator<ScalarT>>
+          typename Allocator = cl::sycl::default_allocator>
 using BufferVectorView = vector_view<ScalarT, bufferT<ScalarT, dim, Allocator>>;
 
 template <typename ScalarT>

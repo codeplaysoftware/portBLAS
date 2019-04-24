@@ -25,6 +25,7 @@
 
 #ifndef VERBOSE_HPP
 #define VERBOSE_HPP
+#include "config.hpp"
 
 #ifdef VERBOSE
 #define DEBUG_PRINT(command) command

@@ -1,43 +1,59 @@
-cmake_minimum_required (VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.3)
+project(SYCL-BLAS LANGUAGES CXX)
 
-project(sycl-blas)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-enable_testing()
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
+include(CTest)
 
-message(STATUS "Path to the SYCL implementation ")
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+option(BUILD_DOCUMENTATION "Build the documentation" OFF)
 
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+find_package(ComputeCpp REQUIRED)
+# We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
+list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -no-serial-memop -sycl-compress-name)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+add_library(SYCL-BLAS INTERFACE)
+add_library(codeplay::SYCL-BLAS ALIAS SYCL-BLAS)
+target_include_directories(SYCL-BLAS INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-include(FindOpenCL)
-
-include(FindComputeCpp)
-
-include(FindBLAS)
-
-if (DEFINED OPENBLAS_ROOT)
-  # If OPENBLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
-  # libraries based on the explicit path given 
-  message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${OPENBLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${OPENBLAS_ROOT}/include/")
-else()
-  message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  set(BLA_STATIC on)
-  # If we want to use a specific BLAS vendor, we could set it here:
-  # by calling: set(BLA_VENDOR OpenBLAS) 
-  find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
-  message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
+if(BUILD_BENCHMARKS)
+    add_subdirectory(bench)
+endif()
+if(BUILD_TESTING)
+    add_subdirectory(test)
 endif()
 
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
-# We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-set(COMPUTECPP_DEVICE_COMPILER_FLAGS
-    "${COMPUTECPP_DEVICE_COMPILER_FLAGS} -no-serial-memop -sycl-compress-name")
-message(STATUS "${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
+install(TARGETS SYCL-BLAS EXPORT SYCLBlasTargets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
 
-include_directories(${SYCLBLAS_INCLUDE} ${COMPUTECPP_INCLUDE_DIRECTORY} ${BLAS_INCLUDE_DIRS})
+export(EXPORT SYCLBlasTargets
+  FILE "${PROJECT_BINARY_DIR}/sycl-blas-targets.cmake"
+  NAMESPACE codeplay::)
+configure_file(cmake/sycl-blas-config.cmake
+    "${PROJECT_BINARY_DIR}/sycl-blas-config.cmake"
+    COPYONLY)
 
-add_subdirectory(test)
+set(config_package_location lib/cmake/SYCL-BLAS)
+install(DIRECTORY include
+	    DESTINATION .
+		COMPONENT Devel)
+install(EXPORT SYCLBlasTargets
+  FILE sycl-blas-targets.cmake
+  NAMESPACE codeplay::
+  DESTINATION ${config_package_location})
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/sycl-blas-config.cmake
+  DESTINATION ${config_package_location}
+  COMPONENT Devel)

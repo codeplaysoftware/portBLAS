@@ -89,3 +89,7 @@ build/
 
 # Doxygen
 api_doc/
+
+# QtCreator
+CMakeLists.txt.user*
+*.autosave

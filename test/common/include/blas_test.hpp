@@ -36,7 +36,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "queue/sycl_iterator.hpp"
+#include <queue/sycl_iterator.hpp>
 
 #include <interface/blas1_interface.hpp>
 #include <interface/blas2_interface.hpp>
