@@ -10,11 +10,6 @@ if(NOT TARGET BLAS::BLAS)
     )
 endif()
 
-
-if(SYCL_DEVICE)
-  add_compile_definitions(-DSYCL_DEVICE=${SYCL_DEVICE})
-endif(SYCL_DEVICE)
-
 add_subdirectory(common)
 add_subdirectory(unittest)
 add_subdirectory(exprtest)

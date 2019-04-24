@@ -1,0 +1,15 @@
+#ifndef SYCL_BLAS_CONFIG_HPP
+#define SYCL_BLAS_CONFIG_HPP
+
+#cmakedefine01 INTEL_GPU
+#cmakedefine01 AMD_GPU
+#cmakedefine01 ARM_GPU
+#cmakedefine01 RCAR
+
+#if !defined(INTEL_GPU) || !defined(AMD_GPU) || !defined(ARM_GPU) || \
+    !defined(RCAR)
+#define DEFAULT_CPU 1
+
+#cmakedefine01 SYCL_BLAS_ALWAYS_INLINE
+
+#endif

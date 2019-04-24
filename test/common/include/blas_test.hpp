@@ -26,6 +26,7 @@
 #ifndef BLAS_TEST_HPP
 #define BLAS_TEST_HPP
 
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <cstdlib>
@@ -33,14 +34,9 @@
 #include <iostream>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <queue/sycl_iterator.hpp>
-
-#include <interface/blas1_interface.hpp>
-#include <interface/blas2_interface.hpp>
-#include <interface/blas3_interface.hpp>
+#include <sycl_blas.h>
 
 #include "blas_test_macros.hpp"
 #include "system_reference_blas.hpp"
@@ -65,7 +61,7 @@ struct option_strd;
   struct option_strd<class test_name> {         \
     static constexpr const size_t value = strd; \
   };
-template <typename ScalarT, typename ClassName>
+template <typename scalar_t, typename ClassName>
 struct option_prec;
 #define REGISTER_PREC(type, val, test_name)   \
   template <>                                 \
@@ -75,24 +71,46 @@ struct option_prec;
 
 // Wraps the above arguments into one template parameter.
 // We will treat template-specialized blas_templ_struct as a single class
-template <class ScalarT_, class ExecutorType_>
+template <class ScalarT_, class MetadataT_, class ExecutorType_>
 struct blas_templ_struct {
   using scalar_t = ScalarT_;
+  using metadata_t = MetadataT_;
   using executor_t = ExecutorType_;
 };
-// A "using" shortcut for the struct
-template <class ScalarT_, class ExecutorType_ = SYCL>
-using blas_test_args = blas_templ_struct<ScalarT_, ExecutorType_>;
+
+// "Using" shortcuts for the struct, with #ifndef guard for double
+
+// A "default" using shortcut
+template <class ScalarT_, class MetadataT_ = void,
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
+using blas_test_args = blas_templ_struct<ScalarT_, MetadataT_, ExecutorType_>;
+
+// specialisation for float
+template <class MetadataT_ = void,
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
+using blas_test_float = blas_templ_struct<float, MetadataT_, ExecutorType_>;
+
+// specialisation (with define guard) for double
+#ifdef DOUBLE_SUPPORT
+template <class MetadataT_ = void,
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
+using blas_test_double = blas_templ_struct<double, MetadataT_, ExecutorType_>;
+#else
+template <class MetadataT_ = void,
+          class ExecutorType_ = PolicyHandler<codeplay_policy>>
+using blas_test_double = ::testing::internal::None;
+#endif
 
 // the test class itself
 template <class B>
 class BLAS_Test;
 
-template <class ScalarT_, class ExecutorType_>
-class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
+template <class ScalarT_, class MetadataT_, class ExecutorType_>
+class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
     : public ::testing::Test {
  public:
-  using ScalarT = ScalarT_;
+  using scalar_t = ScalarT_;
+  using MetadataT = MetadataT_;
   using ExecutorType = ExecutorType_;
 
   BLAS_Test() = default;
@@ -106,7 +124,7 @@ class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
     // make sure the generated number is not too big for a type
     // i.e. we do not want the sample size to be too big because of
     // precision/memory restrictions
-    int max_size = 18 + 3 * std::log2(sizeof(ScalarT) / sizeof(float));
+    int max_size = 18 + 3 * std::log2(sizeof(scalar_t) / sizeof(float));
     int max_rand = std::log2(RAND_MAX);
     return rand() >> (max_rand - max_size);
   }
@@ -146,21 +164,19 @@ class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
   }
 
   template <typename test>
-  ScalarT test_prec() {
-    return option_prec<ScalarT, test>::value;
+  scalar_t test_prec() {
+    return option_prec<scalar_t, test>::value;
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
+  template <typename DataType, typename value_t = typename DataType::value_type>
   static void set_rand(DataType &vec, size_t _N) {
-    value_type left(-1), right(1);
+    value_t left(-1), right(1);
     for (size_t i = 0; i < _N; ++i) {
-      vec[i] = value_type(rand() % int((right - left) * 8)) * 0.125 - right;
+      vec[i] = value_t(rand() % int((right - left) * 8)) * 0.125 - right;
     }
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
+  template <typename DataType, typename value_t = typename DataType::value_type>
   static void print_cont(const DataType &vec, size_t _N,
                          std::string name = "vector") {
     std::cout << name << ": ";
@@ -168,21 +184,9 @@ class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
     std::cout << std::endl;
   }
 
-  template <typename DataType,
-            typename value_type = typename DataType::value_type>
-  static bufferT<value_type> make_buffer(DataType &vec) {
-    return bufferT<value_type>(vec.data(), vec.size() * sizeof(value_type));
-  }
-
-  template <typename value_type>
-  static vector_view<value_type, bufferT<value_type>> make_vview(
-      bufferT<value_type> &buf) {
-    return vector_view<value_type, bufferT<value_type>>(buf);
-  }
-
   template <typename DeviceSelector,
-            typename = typename std::enable_if<
-                std::is_same<ExecutorType, SYCL>::value>::type>
+            typename = typename std::enable_if<std::is_same<
+                ExecutorType, PolicyHandler<codeplay_policy>>::value>::type>
   static cl::sycl::queue make_queue(DeviceSelector s) {
     return cl::sycl::queue(s, [=](cl::sycl::exception_list eL) {
       for (auto &e : eL) {
@@ -199,5 +203,9 @@ class BLAS_Test<blas_test_args<ScalarT_, ExecutorType_>>
     });
   }
 };
+
+#define ASSERT_T_EQUAL(T, val1, val2)                                         \
+  ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperFloatingPointEQ<T>, val1, \
+                      val2)
 
 #endif /* end of include guard: BLAS_TEST_HPP */

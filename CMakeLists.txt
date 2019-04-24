@@ -1,3 +1,28 @@
+#/***************************************************************************
+# *
+# *  @license
+# *  Copyright (C) Codeplay Software Limited
+# *  Licensed under the Apache License, Version 2.0 (the "License");
+# *  you may not use this file except in compliance with the License.
+# *  You may obtain a copy of the License at
+# *
+# *      http://www.apache.org/licenses/LICENSE-2.0
+# *
+# *  For your convenience, a copy of the License has been included in this
+# *  repository.
+# *
+# *  Unless required by applicable law or agreed to in writing, software
+# *  distributed under the License is distributed on an "AS IS" BASIS,
+# *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# *  See the License for the specific language governing permissions and
+# *  limitations under the License.
+# *
+# *  SYCL-BLAS: BLAS implementation using SYCL
+# *
+# *  @filename CMakeLists.txt
+# *
+# **************************************************************************/
+
 cmake_minimum_required(VERSION 3.4.3)
 project(SYCL-BLAS LANGUAGES CXX)
 
@@ -6,37 +31,68 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake"
+                              "${PROJECT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules"
+)
 include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
 include(CTest)
+include(CmakeFunctionHelper)
 
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 option(BUILD_DOCUMENTATION "Build the documentation" OFF)
+option(SYCL_BLAS_ALWAYS_INLINE "Setting always inline attribute for all kernels" ON)
+option(DOUBLE_SUPPORT "Disable double support when testing." OFF)
+option(NAIVE_GEMM "Default to naive GEMM implementations" OFF)
+set(TARGET "DEFAULT_CPU" CACHE STRING "Defines the platform for which the sycl library is built")
+set_property(CACHE TARGET PROPERTY STRINGS
+    DEFAULT_CPU INTEL_GPU AMD_GPU ARM_GPU RCAR ARM_GPU)
 
+find_package(PythonInterp 2.7 REQUIRED)
 find_package(ComputeCpp REQUIRED)
-# We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -no-serial-memop -sycl-compress-name)
 
-add_library(SYCL-BLAS INTERFACE)
-add_library(codeplay::SYCL-BLAS ALIAS SYCL-BLAS)
-target_include_directories(SYCL-BLAS INTERFACE
+list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS
+    -O3
+    -fsycl-split-modules=20
+    -mllvm -inline-threshold=10000
+    -no-serial-memop
+    -Xclang -cl-mad-enable
+)
+
+if(DOUBLE_SUPPORT)
+  add_definitions(-DDOUBLE_SUPPORT)
+endif()
+if(WG_SIZE)
+  add_definitions(-DWG_SIZE=${WG_SIZE})
+endif()
+
+if(NAIVE_GEMM)
+  add_definitions(-DNAIVE_GEMM)
+endif()
+
+add_library(sycl-blas-header-only INTERFACE)
+add_library(codeplay::sycl-blas-header-only ALIAS sycl-blas-header-only)
+target_include_directories(sycl-blas-header-only INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
+install(TARGETS sycl-blas-header-only
+    EXPORT SYCLBlasTargets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+add_subdirectory(external)
+add_subdirectory(src bin)
+
 if(BUILD_BENCHMARKS)
-    add_subdirectory(bench)
+    add_subdirectory(benchmark)
 endif()
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()
 
-
-install(TARGETS SYCL-BLAS EXPORT SYCLBlasTargets
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
 
 export(EXPORT SYCLBlasTargets
   FILE "${PROJECT_BINARY_DIR}/sycl-blas-targets.cmake"

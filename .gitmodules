@@ -1,0 +1,6 @@
+[submodule "include/computecpp-sdk"]
+	path = external/computecpp-sdk
+	url = https://github.com/codeplaysoftware/computecpp-sdk.git
+[submodule "external/py_gen"]
+	path = external/py_gen
+	url = https://github.com/codeplaysoftware/py_gen.git
