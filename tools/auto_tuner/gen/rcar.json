@@ -1,0 +1,37 @@
+{"local":[
+    {
+        "cache_line_size":[64, 128],
+        "item":[[4, 8]],
+        "item_level_tiles":[[8, 4]],
+        "block_level_tiles":[[1, 1], [2, 2], [4, 4], [8, 8], [16, 16]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    },
+    {
+        "cache_line_size":[64, 128],
+        "item":[[8, 4]],
+        "item_level_tiles":[[4, 8]],
+        "block_level_tiles":[[1, 1], [2, 2], [4, 4], [8, 8], [16, 16]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    }
+],
+"non_local":[
+    {
+        "cache_line_size":[64, 128],
+        "item":[[4, 8]],
+        "item_level_tiles":[[8, 4]]
+    },
+    {
+        "cache_line_size":[64, 128],
+        "item":[[8, 4]],
+        "item_level_tiles":[[4, 8]]
+    }
+],
+"naive":[
+    {
+        "cache_line_size":[32]
+    }
+]}
