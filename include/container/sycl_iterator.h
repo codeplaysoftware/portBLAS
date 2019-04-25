@@ -55,6 +55,12 @@ class BufferIterator<element_t, codeplay_policy> {
                                                                 acc_md_t>
       get_range_accessor(BufferIterator<scal_t, codeplay_policy> buff_iterator,
                          size_t size);
+
+  /*!
+   * @brief See BufferIterator.
+   */
+  BufferIterator();
+
   /*!
    * @brief See BufferIterator.
    */
@@ -69,6 +75,11 @@ class BufferIterator<element_t, codeplay_policy> {
    */
   template <typename other_scalar_t>
   BufferIterator(const BufferIterator<other_scalar_t, codeplay_policy>& other);
+
+  /*!
+   * @brief See BufferIterator.
+   */
+  operator BufferIterator<const element_t, codeplay_policy>() const;
 
   /*!
    * @brief See BufferIterator.
