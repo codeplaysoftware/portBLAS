@@ -55,7 +55,7 @@ if (CLBLAST_FOUND)
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
     target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC benchmark)
-    target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE})
+    target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${CLARA_INCLUDE})
 
     message("-- Created benchmark: ${clblast_bench_exec}")
     install(TARGETS bench_clblast_${clblast_bench_exec} RUNTIME DESTINATION sycl_blas/bin)

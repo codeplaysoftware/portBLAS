@@ -4,7 +4,7 @@ project(syclblas_benchmarks)
 
 set(SYCLBLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_BENCH})
+include_directories(${SYCLBLAS_BENCH} ${CLARA_INCLUDE})
 
 set(SYCLBLAS_BENCH_SRCS
   # Level 1 blas

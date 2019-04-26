@@ -27,7 +27,7 @@ cmake_minimum_required(VERSION 3.2.2)
 project(syclblas_unittest)
 
 set(SYCLBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
+set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include" "${SYCLBLAS_TEST}../external/cblas")
 
 include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
@@ -45,8 +45,12 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
   # Blas 2 tests
- ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
- ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
@@ -60,6 +64,9 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   add_executable(${test_exec} main.cpp ${blas_test})
   set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
   add_dependencies(${test_exec} gtest_main sycl_blas)
+  if (STRESS_TESTING)
+  target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
+  endif()
   target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
   add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   message("-- Created google test ${test_exec}")

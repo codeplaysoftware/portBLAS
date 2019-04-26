@@ -68,13 +68,11 @@ void run_test(const combination_t<scalar_t> combi) {
   SYCL_DEVICE_SELECTOR d;
   auto q = blas_test_t::make_queue(d);
   Executor<executor_t> ex(q);
-  auto m_a_gpu = ex.get_policy_handler().template allocate<scalar_t>(lda * n);
-  auto v_b_gpu = ex.get_policy_handler().template allocate<scalar_t>(x * incX);
-  auto v_c_gpu = ex.get_policy_handler().template allocate<scalar_t>(y * incY);
-  ex.get_policy_handler().copy_to_device(a_m.data(), m_a_gpu, lda * n);
-  ex.get_policy_handler().copy_to_device(b_v.data(), v_b_gpu, x * incX);
-  ex.get_policy_handler().copy_to_device(c_v_gpu_result.data(), v_c_gpu,
-                                         y * incY);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
+  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, x * incX);
+  auto v_c_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, y * incY);
+
   // SYCLGEMV
   _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda, v_b_gpu, incX, beta, v_c_gpu,
         incY);
@@ -85,12 +83,7 @@ void run_test(const combination_t<scalar_t> combi) {
   for (int i = 0; i < y * incY; ++i) {
     ASSERT_T_EQUAL(scalar_t, c_v_gpu_result[i], c_v_cpu[i]);
   }
-
-  ex.get_policy_handler().template deallocate<scalar_t>(m_a_gpu);
-  ex.get_policy_handler().template deallocate<scalar_t>(v_b_gpu);
-  ex.get_policy_handler().template deallocate<scalar_t>(v_c_gpu);
 }
-
 
 #ifdef STRESS_TESTING
 const auto combi =
@@ -106,16 +99,15 @@ const auto combi =
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
 // (the stress_test above takes about ~5 minutes)
-const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 255, 1023),  // m
-                       ::testing::Values(14, 63, 257, 1010),  // n
-                       ::testing::Values(true, false),        // trans
-                       ::testing::Values(1.5),                // alpha
-                       ::testing::Values(0.0, 1.5),           // beta
-                       ::testing::Values(2),                  // incX
-                       ::testing::Values(3),                  // incY
-                       ::testing::Values(2)                   // lda_mul
-    );
+const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
+                                      ::testing::Values(14, 1010),     // n
+                                      ::testing::Values(true, false),  // trans
+                                      ::testing::Values(1.5),          // alpha
+                                      ::testing::Values(0.0, 1.5),     // beta
+                                      ::testing::Values(2),            // incX
+                                      ::testing::Values(3),            // incY
+                                      ::testing::Values(2)  // lda_mul
+);
 #endif
 
 class GemvFloat : public ::testing::TestWithParam<combination_t<float>> {};

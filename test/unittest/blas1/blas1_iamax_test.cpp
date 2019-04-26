@@ -52,10 +52,10 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   // create a vector which will hold the result
   std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
 
-  scalar_t max = scalar_t(0);
-  index_t imax = std::numeric_limits<index_t>::max();
+  scalar_t max = vX[0];
+  index_t imax = 0;
   // compute index and value of the element with biggest absolute value
-  for (index_t i = 0; i < size; i += strd) {
+  for (index_t i = 1; i < size; i += strd) {
     if (std::abs(vX[i]) > std::abs(max)) {
       max = vX[i];
       imax = i;
