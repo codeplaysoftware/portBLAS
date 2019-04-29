@@ -26,7 +26,8 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, index_t m, index_t k, index_t n) {
+std::string get_name(std::string t1, std::string t2, index_t m, index_t k,
+                     index_t n) {
   return "BM_Gemm<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
          t1 + "/" + t2 + "/" + std::to_string(m) + "/" + std::to_string(k) +
          "/" + std::to_string(n);
@@ -125,8 +126,9 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
-                         int t2, index_t m, index_t k,
-                         index_t n) { run<scalar_t>(st, exPtr, t1, t2, m, k, n); };
+                         int t2, index_t m, index_t k, index_t n) {
+      run<scalar_t>(st, exPtr, t1, t2, m, k, n);
+    };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
                                  BM_lambda, exPtr, t1, t2, m, k, n);
   }

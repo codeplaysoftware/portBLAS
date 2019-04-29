@@ -188,8 +188,9 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
                 "invalid number of parameters (5 expected)");
           }
           try {
-            return std::make_tuple(v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                                   str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]));
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

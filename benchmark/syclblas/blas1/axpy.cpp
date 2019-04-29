@@ -79,9 +79,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
   auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, index_t size) {
-      run<scalar_t>(st, exPtr, size);
-    };
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+                         index_t size) { run<scalar_t>(st, exPtr, size); };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
                                  exPtr, size);
   }
