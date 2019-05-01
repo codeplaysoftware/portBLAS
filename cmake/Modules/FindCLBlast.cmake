@@ -25,7 +25,7 @@
 
 find_package(OpenCL)
 find_path(CLBLAST_INCLUDE_DIR clblast.h)
-find_library(CLBLAST_LIBRARY clblast HINTS  "/usr/lib/x86_64-linux-gnu/" )
+find_library(CLBLAST_LIBRARY clblast HINTS  "${CLBLAST_ROOT}/lib" )
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(CLBlast REQUIRED_VARS CLBLAST_LIBRARY CLBLAST_INCLUDE_DIR OpenCL_FOUND)
