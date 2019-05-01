@@ -19,9 +19,10 @@
 #include "blas_meta.h"
 
 using index_t = int;
-using blas1_param_t = int;
-using blas2_param_t = std::tuple<std::string, int, int>;
-using blas3_param_t = std::tuple<std::string, std::string, int, int, int>;
+using blas1_param_t = index_t;
+using blas2_param_t = std::tuple<std::string, index_t, index_t>;
+using blas3_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t>;
 
 namespace blas_benchmark {
 
@@ -77,6 +78,25 @@ inline void warning_no_csv() {
 }
 
 /**
+ * @fn str_to_int
+ * @brief Converts a string to a specific integer type
+ */
+template <typename int_t>
+inline int_t str_to_int(std::string str) {
+  return static_cast<int_t>(std::stoi(str));
+}
+
+template <>
+inline long int str_to_int<long int>(std::string str) {
+  return std::stol(str);
+}
+
+template <>
+inline long long int str_to_int<long long int>(std::string str) {
+  return std::stoll(str);
+}
+
+/**
  * @fn get_range
  * @brief Returns a range containing the parameters, either read from a file
  * according to the command-line args, or the default ones.
@@ -90,7 +110,7 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (int size = 4096; size <= 1048576; size *= 2) {
+    for (index_t size = 4096; size <= 1048576; size *= 2) {
       blas1_default.push_back(size);
     }
     return blas1_default;
@@ -102,7 +122,7 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
                 "invalid number of parameters (1 expected)");
           }
           try {
-            return std::stoi(v[0]);
+            return str_to_int<index_t>(v[0]);
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -115,10 +135,10 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas2_param_t> blas2_default;
-    constexpr int dmin = 64, dmax = 1024;
+    constexpr index_t dmin = 64, dmax = 1024;
     for (std::string t : {"n", "t"}) {
-      for (int m = dmin; m <= dmax; m *= 2) {
-        for (int n = dmin; n <= dmax; n *= 2) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
           blas2_default.push_back(std::make_tuple(t, m, n));
         }
       }
@@ -132,8 +152,8 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
                 "invalid number of parameters (3 expected)");
           }
           try {
-            return std::make_tuple(v[0].c_str(), std::stoi(v[1]),
-                                   std::stoi(v[2]));
+            return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_int<index_t>(v[2]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -146,13 +166,13 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas3_param_t> blas3_default;
-    constexpr int dmin = 64, dmax = 1024;
+    constexpr index_t dmin = 64, dmax = 1024;
     std::vector<std::string> dtranspose = {"n", "t"};
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
-        for (int m = dmin; m <= dmax; m *= 2) {
-          for (int k = dmin; k <= dmax; k *= 2) {
-            for (int n = dmin; n <= dmax; n *= 2) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t k = dmin; k <= dmax; k *= 2) {
+            for (index_t n = dmin; n <= dmax; n *= 2) {
               blas3_default.push_back(std::make_tuple(t1, t2, m, k, n));
             }
           }
@@ -168,8 +188,9 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
                 "invalid number of parameters (5 expected)");
           }
           try {
-            return std::make_tuple(v[0].c_str(), v[1].c_str(), std::stoi(v[2]),
-                                   std::stoi(v[3]), std::stoi(v[4]));
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
