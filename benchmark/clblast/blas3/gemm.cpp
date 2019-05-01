@@ -26,11 +26,11 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, index_t m, index_t k,
-                     index_t n) {
-  return "BM_Gemm<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         t1 + "/" + t2 + "/" + std::to_string(m) + "/" + std::to_string(k) +
-         "/" + std::to_string(n);
+std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
+  std::ostringstream str{};
+  str << "BM_Gemm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n;
+  return str.str();
 }
 
 template <typename scalar_t>

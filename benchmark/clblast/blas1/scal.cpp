@@ -26,9 +26,11 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(index_t size) {
-  return "BM_Scal<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         std::to_string(size);
+std::string get_name(int size) {
+  std::ostringstream str{};
+  str << "BM_Scal<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << size;
+  return str.str();
 }
 
 template <typename scalar_t>
