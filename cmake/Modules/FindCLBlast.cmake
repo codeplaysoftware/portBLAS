@@ -25,7 +25,7 @@
 
 find_package(OpenCL)
 find_path(CLBLAST_INCLUDE_DIR clblast.h)
-find_library(CLBLAST_LIBRARY clblast)
+find_library(CLBLAST_LIBRARY clblast HINTS  "/usr/lib/x86_64-linux-gnu/" )
 
 message(STATUS "Found CLBLAST library at: ${CLBLAST_LIBRARY}")
 
