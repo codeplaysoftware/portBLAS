@@ -26,9 +26,15 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-void BM_Iamax(benchmark::State& state) {
+std::string get_name(int size) {
+  return "BM_Iamax<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
+         std::to_string(size);
+}
+
+template <typename scalar_t>
+void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
   // Standard test setup.
-  const index_t size = static_cast<index_t>(state.range(0));
+  const index_t size = static_cast<index_t>(si);
 
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -37,60 +43,57 @@ void BM_Iamax(benchmark::State& state) {
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<scalar_t> v1 = benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   int res;
 
-  ExecutorType* ex = Global::executorInstancePtr.get();
-
   // Device vectors and result
-  MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(ex, v1.data(), size);
-  MemBuffer<int, CL_MEM_READ_ONLY> buf_i(ex, &res, 1);
+  MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(executorPtr, v1.data(), size);
+  MemBuffer<int, CL_MEM_READ_ONLY> buf_i(executorPtr, &res, 1);
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
     clblast::Amax<scalar_t>(size, buf_i.dev(), 0, buf1.dev(), 0, 1,
-                            ex->_queue(), &event);
+                            executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
   };
 
   // Warm up to avoid benchmarking data transfer
-  benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_method_def);
 
-  state.counters["best_event_time"] = ULONG_MAX;
-  state.counters["best_overall_time"] = ULONG_MAX;
+  blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
-    std::tuple<double, double> times = benchmark::utils::timef(blas_method_def);
+    std::tuple<double, double> times =
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
-    state.PauseTiming();
-
-    double overall_time, event_time;
-    std::tie(overall_time, event_time) = times;
-
-    state.counters["total_event_time"] += event_time;
-    state.counters["best_event_time"] =
-        std::min<double>(state.counters["best_event_time"], event_time);
-
-    state.counters["total_overall_time"] += overall_time;
-    state.counters["best_overall_time"] =
-        std::min<double>(state.counters["best_overall_time"], overall_time);
-
-    state.ResumeTiming();
+    blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.counters["avg_event_time"] =
-      state.counters["total_event_time"] / state.iterations();
-  state.counters["avg_overall_time"] =
-      state.counters["total_overall_time"] / state.iterations();
+  blas_benchmark::utils::calc_avg_counters(state);
 };
 
-BENCHMARK_TEMPLATE(BM_Iamax, float)->RangeMultiplier(2)->Range(2 << 5, 2 << 18);
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+
+  for (auto size : gemm_params) {
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int size) {
+      run<scalar_t>(st, exPtr, size);
+    };
+    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
+                                 exPtr, size);
+  }
+}
+
+namespace blas_benchmark {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+  register_benchmark<float>(args, exPtr);
 #ifdef DOUBLE_SUPPORT
-BENCHMARK_TEMPLATE(BM_Iamax, double)
-    ->RangeMultiplier(2)
-    ->Range(2 << 5, 2 << 18);
+  register_benchmark<double>(args, exPtr);
 #endif
+}
+}  // namespace blas_benchmark

@@ -6,13 +6,11 @@
 #include <clblast.h>
 
 typedef Context ExecutorType;
-typedef std::unique_ptr<ExecutorType> ExecutorPtr;
 
-namespace Global {
-extern ExecutorPtr executorInstancePtr;
-}
+namespace blas_benchmark {
 
-namespace benchmark {
+void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
+
 namespace utils {
 
 /**
@@ -101,6 +99,6 @@ inline void warmup(function_t func, args_t &&... args) {
 }
 
 }  // namespace utils
-}  // namespace benchmark
+}  // namespace blas_benchmark
 
 #endif

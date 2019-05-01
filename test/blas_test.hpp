@@ -204,4 +204,8 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
   }
 };
 
+#define ASSERT_T_EQUAL(T, val1, val2)                                         \
+  ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperFloatingPointEQ<T>, val1, \
+                      val2)
+
 #endif /* end of include guard: BLAS_TEST_HPP */

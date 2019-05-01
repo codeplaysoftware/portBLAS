@@ -247,9 +247,9 @@ SYCL_BLAS_INLINE void Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t batch_stride =
       id.get_group_range(0) / get_workgroup_cluster(m_, n_);
 
-  const index_t a_size = m_ * k_;
-  const index_t b_size = n_ * k_;
-  const index_t c_size = m_ * n_;
+  const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
+  const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
+  const index_t c_size = ldc_ * n_;
 
   auto orig_A = a_.get_data().get_pointer().get() +
                 a_.get_access_displacement() + (wg_batch_id * a_size);
@@ -475,9 +475,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t batch_stride =
         id.get_group_range(0) / get_workgroup_cluster(m_, n_);
 
-    const index_t a_size = m_ * k_;
-    const index_t b_size = n_ * k_;
-    const index_t c_size = m_ * n_;
+    const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
+    const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
+    const index_t c_size = ldc_ * n_;
 
     auto orig_A = a_.get_data().get_pointer().get() +
                   a_.get_access_displacement() + (wg_batch_id * a_size);
@@ -979,9 +979,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     // The number of work-group required to executed each batch efficiently
     const index_t wg_id = id.get_group(0) % get_workgroup_cluster(m_, n_);
 
-    const index_t a_size = a_.get_size_row() * a_.get_size_col();
-    const index_t b_size = b_.get_size_col() * b_.get_size_row();
-    const index_t c_size = c_.get_size_col() * c_.get_size_row();
+    const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
+    const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
+    const index_t c_size = ldc_ * n_;
     auto orig_A = a_.get_data().get_pointer().get() +
                   a_.get_access_displacement() + (wg_batch_id * a_size);
     auto orig_B = b_.get_data().get_pointer().get() +
