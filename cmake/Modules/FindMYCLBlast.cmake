@@ -24,8 +24,8 @@
 # **************************************************************************/
 
 find_package(OpenCL)
-find_path(MYCLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include NO_DEFAULT_PATH)
-find_library(MYCLBLAST_LIBRARY NAME clblast libclblast.so HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib NO_DEFAULT_PATH)
+find_path(MYCLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include)
+find_library(MYCLBLAST_LIBRARY NAME clblast libclblast.so HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MYCLBlast REQUIRED_VARS MYCLBLAST_LIBRARY MYCLBLAST_INCLUDE_DIR OpenCL_FOUND)

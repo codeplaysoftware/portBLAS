@@ -6,16 +6,6 @@ set(CLBLAST_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${CLBLAST_BENCH})
 
-# Try and build CLBlast benchmarks.
-# Check to see if we've been passed an explicit path.
-# if (DEFINED CLBLAST_ROOT)
-#   message(STATUS "CLBlast root specified as : ${CLBLAST_ROOT}")
-#   set(CMAKE_PREFIX_PATH ${CLBLAST_ROOT})
-# else()
-#   # set a default path if not specified
-#   message(STATUS "CLBlast root not specified by user, searching default path /usr/lib/")
-#   set(CMAKE_PREFIX_PATH "/usr/lib/")
-# endif()
 find_package(MYCLBlast REQUIRED)
 
 set(CLBLAST_BENCH_SRCS
