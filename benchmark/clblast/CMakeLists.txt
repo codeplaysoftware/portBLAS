@@ -16,7 +16,7 @@ include_directories(${CLBLAST_BENCH})
 #   message(STATUS "CLBlast root not specified by user, searching default path /usr/lib/")
 #   set(CMAKE_PREFIX_PATH "/usr/lib/")
 # endif()
-find_package(CLBlast REQUIRED)
+find_package(MYCLBlast REQUIRED)
 
 set(CLBLAST_BENCH_SRCS
   # Level 1 blas
