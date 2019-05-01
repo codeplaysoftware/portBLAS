@@ -37,4 +37,7 @@ if(CLBlast_FOUND AND NOT TARGET clblast)
         INTERFACE_INCLUDE_DIRECTORIES "${CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
     )
+    message(STATUS "Debug: true")
+else()
+    message(STATUS "Debug: false")
 endif()
