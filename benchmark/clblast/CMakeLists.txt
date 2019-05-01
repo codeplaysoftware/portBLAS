@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.2.2)
 
-include(FindCLBlast)
-
 project(clblast_benchmarks)
 
 set(CLBLAST_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
