@@ -35,7 +35,7 @@ find_package_handle_standard_args(CLBlast REQUIRED_VARS CLBLAST_LIBRARY CLBLAST_
 if(CLBlast_FOUND AND NOT TARGET clblast)
     add_library(clblast UNKNOWN IMPORTED)
     set_target_properties(clblast PROPERTIES
-        IMPORTED_LOCATION ${CLBLAST_LIBRARY}
+        IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libclblast.so"
         INTERFACE_INCLUDE_DIRECTORIES "${CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
     )
