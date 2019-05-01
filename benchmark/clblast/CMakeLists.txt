@@ -20,8 +20,6 @@ else()
 endif()
 find_package(CLBlast REQUIRED)
 
-message(STATUS "CLBlast found!")
-
 set(CLBLAST_BENCH_SRCS
   # Level 1 blas
   ${CLBLAST_BENCH}/blas1/asum.cpp
