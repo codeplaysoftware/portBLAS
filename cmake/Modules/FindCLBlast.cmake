@@ -35,7 +35,7 @@ message(STATUS "Found CLBLAST: ${CLBLAST_LIBRARY} - ${CLBLAST_INCLUDE_DIR} - ${O
 if(CLBlast_FOUND AND NOT TARGET clblast)
     add_library(clblast UNKNOWN IMPORTED)
     set_target_properties(clblast PROPERTIES
-        IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/"
+        IMPORTED_LOCATION "${CLBLAST_LIBRARY}"
         INTERFACE_INCLUDE_DIRECTORIES "${CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
     )
