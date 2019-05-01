@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.2.2)
 
-find_package(PkgConfig)
-
 project(clblast_benchmarks)
 
 set(CLBLAST_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
@@ -15,8 +13,8 @@ if (DEFINED CLBLAST_ROOT)
   set(CMAKE_PREFIX_PATH ${CLBLAST_ROOT})
 else()
   # set a default path if not specified
-  message(STATUS "CLBlast root not specified by user, searching default path /usr/lib/clblast")
-  set(CMAKE_PREFIX_PATH "/usr/lib/clblast")
+  message(STATUS "CLBlast root not specified by user, searching default path /usr/local/lib/")
+  set(CMAKE_PREFIX_PATH "/usr/local/lib/")
 endif()
 find_package(CLBlast REQUIRED)
 
@@ -42,7 +40,6 @@ foreach(clblast_benchmark ${CLBLAST_BENCH_SRCS})
   add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} ${CLBLAST_BENCH}/main.cpp ${CLBLAST_BENCH}/clwrap.cpp)
   set_property(TARGET bench_clblast_${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
   add_dependencies(bench_clblast_${clblast_bench_exec} benchmark)
-  target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${CLBLAST_LIBRARIES})
   target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
   target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC benchmark)
   target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE clblast)
