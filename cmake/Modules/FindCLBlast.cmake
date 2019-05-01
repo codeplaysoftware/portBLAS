@@ -27,6 +27,8 @@ find_package(OpenCL)
 find_path(CLBLAST_INCLUDE_DIR clblast.h)
 find_library(CLBLAST_LIBRARY clblast)
 
+message(STATUS "Found CLBLAST library at: ${CLBLAST_LIBRARY}")
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(CLBlast REQUIRED_VARS CLBLAST_LIBRARY CLBLAST_INCLUDE_DIR OpenCL_FOUND)
 
@@ -37,7 +39,4 @@ if(CLBlast_FOUND AND NOT TARGET clblast)
         INTERFACE_INCLUDE_DIRECTORIES "${CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
     )
-    message(STATUS "Debug: true")
-else()
-    message(STATUS "Debug: false")
 endif()
