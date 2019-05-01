@@ -24,19 +24,17 @@
 # **************************************************************************/
 
 find_package(OpenCL)
-find_path(MYCLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include)
-find_library(MYCLBLAST_LIBRARY NAME clblast libclblast.so HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
+find_path(SB_CLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include)
+find_library(SB_CLBLAST_LIBRARY NAME clblast libclblast.so HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(MYCLBlast REQUIRED_VARS MYCLBLAST_LIBRARY MYCLBLAST_INCLUDE_DIR OpenCL_FOUND)
-
-message(STATUS "Found MYCLBLAST: ${MYCLBLAST_LIBRARY} - ${MYCLBLAST_INCLUDE_DIR} - ${OpenCL_FOUND}")
+find_package_handle_standard_args(MYCLBlast REQUIRED_VARS SB_CLBLAST_LIBRARY SB_CLBLAST_INCLUDE_DIR OpenCL_FOUND)
 
 if(MYCLBlast_FOUND AND NOT TARGET clblast)
     add_library(clblast UNKNOWN IMPORTED)
     set_target_properties(clblast PROPERTIES
-        IMPORTED_LOCATION "${MYCLBLAST_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${MYCLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
+        IMPORTED_LOCATION "${SB_CLBLAST_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${SB_CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
     )
 endif()

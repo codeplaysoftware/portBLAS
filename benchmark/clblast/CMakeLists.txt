@@ -6,7 +6,7 @@ set(CLBLAST_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${CLBLAST_BENCH})
 
-find_package(MYCLBlast REQUIRED)
+find_package(SB_CLBlast REQUIRED)
 
 set(CLBLAST_BENCH_SRCS
   # Level 1 blas
