@@ -27,15 +27,14 @@
 
 template <typename scalar_t>
 std::string get_name(int size) {
-  return "BM_Axpy<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         std::to_string(size);
+  std::ostringstream str{};
+  str << "BM_Axpy" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << size;
+  return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
-  // Standard test setup.
-  const index_t size = static_cast<index_t>(si);
-
+void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
@@ -82,9 +81,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
   auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int size) {
-      run<scalar_t>(st, exPtr, size);
-    };
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+                         index_t size) { run<scalar_t>(st, exPtr, size); };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
                                  exPtr, size);
   }
