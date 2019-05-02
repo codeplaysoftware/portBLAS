@@ -13,6 +13,35 @@ void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
 
 namespace utils {
 
+inline void print_device_information(cl_device_id device) {
+  char device_name[64];
+  cl_device_type *device_type = new cl_device_type;
+  clGetDeviceInfo(device, CL_DEVICE_NAME, 64 * sizeof(char), device_name, NULL);
+  clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), device_type,
+                  NULL);
+  std::cerr << "Device name: " << device_name << std::endl;
+  std::cerr << "Device type: ";
+  switch (*device_type) {
+    case CL_DEVICE_TYPE_CPU:
+      std::cerr << "cpu";
+      break;
+    case CL_DEVICE_TYPE_GPU:
+      std::cerr << "gpu";
+      break;
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      std::cerr << "accelerator";
+      break;
+    case CL_DEVICE_TYPE_DEFAULT:
+      std::cerr << "default";
+      break;
+    default:
+      std::cerr << "unknown";
+      break;
+  };
+  std::cerr << std::endl;
+  delete device_type;
+}
+
 /**
  * @fn translate_transposition
  * @brief Helper function to translate transposition information from netlib
