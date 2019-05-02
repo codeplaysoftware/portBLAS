@@ -78,15 +78,15 @@ The formats for the different BLAS levels are:
 |blas level|format|description|
 |:--------:|:----:|-----------|
 | 1 | *size* | Vector size |
-| 2 | *transpose_A,m,n* | Action on the matrix (`n`, `t`, `c`) and dimensions |
-| 3 | *transpose_A,transpose_B,m,k,n* | Action on the matrices (`n`, `t`, `c`) and dimensions (A: mk, B:kn, C: mn) |
+| 2 | *transpose_A,m,n,alpha,beta* | Action on the matrix (`n`, `t`, `c`), dimensions, and scalars alpha and beta |
+| 3 | *transpose_A,transpose_B,m,k,n,alpha,beta* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), and scalars alpha and beta |
 
 Here is an example of a valid CSV file for the GEMM benchmark:
 
 ```
-n,n,42,42,42
-n,t,64,128,64
-t,n,13,3,7
+n,n,42,42,42,1,0
+n,t,64,128,64,0.5,0.5
+t,n,13,3,7,0,0.7
 ```
 
 ### Python tool to generate a CSV file
@@ -131,21 +131,23 @@ GEMV parameters:
 ```python
 nd_range(value_range('n', 't'),
          concat_ranges(value_range(32, 64), value_range(1024)),
-         size_range(128, 256, 2))
+         size_range(128, 256, 2),
+         value_range(1),
+         value_range(0))
 ```
 ```
-n,32,128
-n,32,256
-n,64,128
-n,64,256
-n,1024,128
-n,1024,256
-t,32,128
-t,32,256
-t,64,128
-t,64,256
-t,1024,128
-t,1024,256
+n,32,128,1,0
+n,32,256,1,0
+n,64,128,1,0
+n,64,256,1,0
+n,1024,128,1,0
+n,1024,256,1,0
+t,32,128,1,0
+t,32,256,1,0
+t,64,128,1,0
+t,64,256,1,0
+t,1024,128,1,0
+t,1024,256,1,0
 ```
 
 #### Some ranges to start with
@@ -155,8 +157,8 @@ The following ranges are a good starting point:
 |blas level|range expression|
 |----------|----------------|
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
-| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
-| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2))` |
+| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0)))` |
+| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2)), value_range(1), value_range(0)))` |
 
 
 ### Default parameters
@@ -182,6 +184,8 @@ parameter files as described above.
 | transpose A | `"n"`, `"t"` |
 | m | 64, 128, ..., 1024 |
 | n | 64, 128, ..., 1024 |
+| alpha | 1 |
+| beta | 0 |
 
 #### BLAS 3
 
@@ -192,6 +196,8 @@ parameter files as described above.
 | m | 64, 128, ..., 1024 |
 | k | 64, 128, ..., 1024 |
 | n | 64, 128, ..., 1024 |
+| alpha | 1 |
+| beta | 0 |
 
 
 ## JSON output files
