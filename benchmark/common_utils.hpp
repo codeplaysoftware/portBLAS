@@ -20,9 +20,14 @@
 
 using index_t = int;
 using blas1_param_t = index_t;
-using blas2_param_t = std::tuple<std::string, index_t, index_t>;
-using blas3_param_t =
-    std::tuple<std::string, std::string, index_t, index_t, index_t>;
+
+template <typename scalar_t>
+using blas2_param_t =
+    std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
+
+template <typename scalar_t>
+using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
+                                 index_t, scalar_t, scalar_t>;
 
 namespace blas_benchmark {
 
@@ -97,16 +102,25 @@ inline long long int str_to_int<long long int>(std::string str) {
 }
 
 /**
- * @fn get_range
- * @brief Returns a range containing the parameters, either read from a file
- * according to the command-line args, or the default ones.
- * This function must be implemented for each blas level.
+ * @fn str_to_scalar
+ * @brief Converts a string to a specific scalar type
  */
-template <typename param_t>
-std::vector<param_t> get_params(Args& args);
+template <typename scalar_t>
+inline scalar_t str_to_scalar(std::string str) {
+  return static_cast<scalar_t>(std::stof(str));
+}
 
 template <>
-inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
+inline double str_to_scalar<double>(std::string str) {
+  return std::stod(str);
+}
+
+/**
+ * @fn get_blas1_params
+ * @brief Returns a vector containing the blas 1 benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
@@ -130,30 +144,39 @@ inline std::vector<blas1_param_t> get_params<blas1_param_t>(Args& args) {
   }
 }
 
-template <>
-inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
+/**
+ * @fn get_blas2_params
+ * @brief Returns a vector containing the blas 2 benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
-    std::vector<blas2_param_t> blas2_default;
+    std::vector<blas2_param_t<scalar_t>> blas2_default;
     constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    scalar_t beta = 0;
     for (std::string t : {"n", "t"}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          blas2_default.push_back(std::make_tuple(t, m, n));
+          blas2_default.push_back(std::make_tuple(t, m, n, alpha, beta));
         }
       }
     }
     return blas2_default;
   } else {
-    return parse_csv_file<blas2_param_t>(
+    return parse_csv_file<blas2_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 3) {
+          if (v.size() != 5) {
             throw std::runtime_error(
-                "invalid number of parameters (3 expected)");
+                "invalid number of parameters (5 expected)");
           }
           try {
             return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
-                                   str_to_int<index_t>(v[2]));
+                                   str_to_int<index_t>(v[2]),
+                                   str_to_scalar<scalar_t>(v[3]),
+                                   str_to_scalar<scalar_t>(v[4]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -161,19 +184,27 @@ inline std::vector<blas2_param_t> get_params<blas2_param_t>(Args& args) {
   }
 }
 
-template <>
-inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
+/**
+ * @fn get_blas3_params
+ * @brief Returns a vector containing the blas 3 benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
-    std::vector<blas3_param_t> blas3_default;
+    std::vector<blas3_param_t<scalar_t>> blas3_default;
     constexpr index_t dmin = 64, dmax = 1024;
     std::vector<std::string> dtranspose = {"n", "t"};
+    scalar_t alpha = 1;
+    scalar_t beta = 0;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t k = dmin; k <= dmax; k *= 2) {
             for (index_t n = dmin; n <= dmax; n *= 2) {
-              blas3_default.push_back(std::make_tuple(t1, t2, m, k, n));
+              blas3_default.push_back(
+                  std::make_tuple(t1, t2, m, k, n, alpha, beta));
             }
           }
         }
@@ -181,16 +212,17 @@ inline std::vector<blas3_param_t> get_params<blas3_param_t>(Args& args) {
     }
     return blas3_default;
   } else {
-    return parse_csv_file<blas3_param_t>(
+    return parse_csv_file<blas3_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 5) {
+          if (v.size() != 7) {
             throw std::runtime_error(
-                "invalid number of parameters (5 expected)");
+                "invalid number of parameters (7 expected)");
           }
           try {
             return std::make_tuple(
                 v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]));
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
