@@ -40,11 +40,14 @@ inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
     const typename BufferIterator<element_t, codeplay_policy>::buff_t& buff)
     : BufferIterator(buff, 0) {}
 
+// copy constructor buffer
 template <typename element_t>
 template <typename other_scalar_t>
 inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
     const BufferIterator<other_scalar_t, codeplay_policy>& other)
-    : BufferIterator(other.get_buffer(), other.get_offset()) {}
+    : BufferIterator(other.get_buffer().template reinterpret<element_t>(
+                         cl::sycl::range<1>(other.get_buffer().get_count())),
+                     other.get_offset()) {}
 
 template <typename element_t>
 inline BufferIterator<element_t, codeplay_policy>&
@@ -88,6 +91,13 @@ BufferIterator<element_t, codeplay_policy>::operator++(int i) {
   BufferIterator<element_t, codeplay_policy> temp_iterator(*this);
   offset_ += 1;
   return temp_iterator;
+}
+
+// implicitly converting non-const buffer to const buffer
+template <typename element_t>
+inline BufferIterator<element_t, codeplay_policy>::
+operator BufferIterator<const element_t, codeplay_policy>() const {
+  return BufferIterator<const element_t, codeplay_policy>(*this);
 }
 
 template <typename element_t>

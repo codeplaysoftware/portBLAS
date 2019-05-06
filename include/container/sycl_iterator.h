@@ -65,10 +65,15 @@ class BufferIterator<element_t, codeplay_policy> {
    */
   BufferIterator(const buff_t& buff);
   /*!
-   * @brief See BufferIterator.
+   * @brief implicitly converting non-const buffer to const buffer
    */
   template <typename other_scalar_t>
   BufferIterator(const BufferIterator<other_scalar_t, codeplay_policy>& other);
+
+  /*!
+   * @brief See BufferIterator.
+   */
+  operator BufferIterator<const element_t, codeplay_policy>() const;
 
   /*!
    * @brief See BufferIterator.
