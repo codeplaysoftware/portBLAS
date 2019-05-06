@@ -14,14 +14,20 @@ void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
 namespace utils {
 
 inline void print_device_information(cl_device_id device) {
-  char device_name[64];
-  cl_device_type *device_type = new cl_device_type;
-  clGetDeviceInfo(device, CL_DEVICE_NAME, 64 * sizeof(char), device_name, NULL);
-  clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), device_type,
-                  NULL);
+  size_t device_name_length = 0;
+  clGetDeviceInfo(device, CL_DEVICE_NAME, 0, nullptr, &device_name_length);
+  if(!device_name_length) {
+      return;
+  }
+  char device_name[device_name_length];
+  clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), device_name,
+                  nullptr);
+  cl_device_type device_type;
+  clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type,
+                  nullptr);
   std::cerr << "Device name: " << device_name << std::endl;
   std::cerr << "Device type: ";
-  switch (*device_type) {
+  switch (device_type) {
     case CL_DEVICE_TYPE_CPU:
       std::cerr << "cpu";
       break;
@@ -39,7 +45,6 @@ inline void print_device_information(cl_device_id device) {
       break;
   };
   std::cerr << std::endl;
-  delete device_type;
 }
 
 /**

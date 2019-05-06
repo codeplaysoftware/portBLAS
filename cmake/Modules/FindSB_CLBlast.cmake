@@ -25,12 +25,12 @@
 
 find_package(OpenCL)
 find_path(SB_CLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include)
-find_library(SB_CLBLAST_LIBRARY NAME clblast libclblast.so HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
+find_library(SB_CLBLAST_LIBRARY NAME clblast HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(MYCLBlast REQUIRED_VARS SB_CLBLAST_LIBRARY SB_CLBLAST_INCLUDE_DIR OpenCL_FOUND)
+find_package_handle_standard_args(SB_CLBlast REQUIRED_VARS SB_CLBLAST_LIBRARY SB_CLBLAST_INCLUDE_DIR OpenCL_FOUND)
 
-if(MYCLBlast_FOUND AND NOT TARGET clblast)
+if(SB_CLBlast_FOUND AND NOT TARGET clblast)
     add_library(clblast UNKNOWN IMPORTED)
     set_target_properties(clblast PROPERTIES
         IMPORTED_LOCATION "${SB_CLBLAST_LIBRARY}"
