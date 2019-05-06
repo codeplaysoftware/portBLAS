@@ -45,7 +45,7 @@ const auto combi = ::testing::Combine(
 const auto combi = ::testing::Combine(::testing::Values(5),        // batch_size
                                       ::testing::Values(11, 512),  // m
                                       ::testing::Values(14, 49),   // n
-                                      ::testing::Values(2, 512),   // k
+                                      ::testing::Values(21),       // k
                                       ::testing::Values('n', 't'),  // transa
                                       ::testing::Values('n', 't'),  // transb
                                       ::testing::Values(1.5),       // alpha

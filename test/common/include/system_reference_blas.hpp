@@ -26,57 +26,143 @@
 #ifndef SYSTEM_REFERENCE_BLAS_HPP
 #define SYSTEM_REFERENCE_BLAS_HPP
 
-#define ENABLE_SYSTEM_GEMV(_type, _system_name)                              \
-  namespace reference_blas {                                                 \
-  extern "C" void _system_name(const char *, const int *, const int *,       \
-                               const _type *, const _type *, const int *,    \
-                               const _type *, const int *, const _type *,    \
-                               _type *, const int *);                        \
-  inline void gemv(const char *trans, int m, int n, _type alpha,             \
-                   const _type a[], int lda, const _type b[], int incX,      \
-                   _type beta, _type c[], int incY) {                        \
-    _system_name(trans, &m, &n, &alpha, a, &lda, b, &incX, &beta, c, &incY); \
-  }                                                                          \
-  }  // namespace reference_blas
+#include "cblas.h"
+#include <iostream>
 
-ENABLE_SYSTEM_GEMV(float, sgemv_)
-ENABLE_SYSTEM_GEMV(double, dgemv_)
+namespace {
+CBLAS_TRANSPOSE c_trans(char x) {
+  switch (x) {
+    case 't':
+    case 'T':
+      return CblasTrans;
+    case 'n':
+    case 'N':
+      return CblasNoTrans;
+    case 'c':
+    case 'C':
+      return CblasConjTrans;
+    default:
+      std::cerr << "Transpose value " << x << " is invalid.\n";
+      abort();
+  }
+}
 
-#undef ENABLE_SYSTEM_GEMV
+CBLAS_UPLO c_uplo(char x) {
+  switch (x) {
+    case 'u':
+    case 'U':
+      return CblasUpper;
+    case 'l':
+    case 'L':
+      return CblasLower;
+    default:
+      std::cerr << "Uplo value " << x << " is invalid.\n";
+      abort();
+  }
+}
 
-#define ENABLE_SYSTEM_GER(_type, _system_name)                            \
-  namespace reference_blas {                                              \
-  extern "C" void _system_name(const int *, const int *, const _type *,   \
-                               const _type *, const int *, const _type *, \
-                               const int *, _type *, const int *);        \
-  inline void ger(int m, int n, _type alpha, const _type a[], int incX,   \
-                  const _type b[], int incY, _type c[], int lda) {        \
-    _system_name(&m, &n, &alpha, a, &incX, b, &incY, c, &lda);            \
-  }                                                                       \
-  }  // namespace reference_blas
+CBLAS_DIAG c_diag(char x) {
+  switch (x) {
+    case 'u':
+    case 'U':
+      return CblasUnit;
+    case 'n':
+    case 'N':
+      return CblasNonUnit;
+  }
+}
+}  // namespace
 
-ENABLE_SYSTEM_GER(float, sger_)
-ENABLE_SYSTEM_GER(double, dger_)
+namespace reference_blas {
 
-#undef ENABLE_SYSTEM_GER
+template <typename selector_t>
+struct TypeDispatcher;
 
-#define ENABLE_SYSTEM_GEMM(_type, _system_name)                               \
-  namespace reference_blas {                                                  \
-  extern "C" void _system_name(const char *, const char *, const int *,       \
-                               const int *, const int *, const _type *,       \
-                               const _type *, const int *, const _type *,     \
-                               const int *, const _type *, _type *,           \
-                               const int *);                                  \
-  void gemm(const char *transA, const char *transB, int m, int n, int k,      \
-            _type alpha, const _type a[], int lda, const _type b[], int ldb,  \
-            _type beta, _type c[], int ldc) {                                 \
-    _system_name(transA, transB, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, \
-                 c, &ldc);                                                    \
-  }                                                                           \
-  }  // namespace reference_blas
+template <>
+struct TypeDispatcher<float> {
+  template <typename ret_t = void, typename floatfn_t, typename doublefn_t,
+            typename... Args>
+  static ret_t call(floatfn_t ffn, doublefn_t dfn, Args... args) {
+    return ffn(args...);
+  }
+};
 
-ENABLE_SYSTEM_GEMM(float, sgemm_)
-ENABLE_SYSTEM_GEMM(double, dgemm_)
+#if DOUBLE_SUPPORT
+template <>
+struct TypeDispatcher<double> {
+  template <typename ret_t = void, typename floatfn_t, typename doublefn_t,
+            typename... Args>
+  static ret_t call(floatfn_t ffn, doublefn_t dfn, Args... args) {
+    return dfn(args...);
+  }
+};
+#endif
 
-#undef ENABLE_SYSTEM_GEMM
+// =======
+// Level 2
+// =======
+template <typename scalar_t>
+void gemv(const char *trans, int m, int n, scalar_t alpha, const scalar_t a[],
+          int lda, const scalar_t b[], int incX, scalar_t beta, scalar_t c[],
+          int incY) {
+  TypeDispatcher<scalar_t>::call(&cblas_sgemv, &cblas_dgemv, CblasColMajor,
+                                 c_trans(*trans), m, n, alpha, a, lda, b, incX,
+                                 beta, c, incY);
+}
+
+template <typename scalar_t>
+void ger(int m, int n, scalar_t alpha, const scalar_t a[], int incX,
+         const scalar_t b[], int incY, scalar_t c[], int lda) {
+  TypeDispatcher<scalar_t>::call(&cblas_sger, &cblas_dger, CblasColMajor, m, n,
+                                 alpha, a, incX, b, incY, c, lda);
+}
+
+template <typename scalar_t>
+void trmv(const char *uplo, const char *trans, const char *diag, const int n,
+          const scalar_t *a, const int lda, scalar_t *x, const int incX) {
+  TypeDispatcher<scalar_t>::call(&cblas_strmv, &cblas_dtrmv, CblasColMajor,
+                                 c_uplo(*uplo), c_trans(*trans), c_diag(*diag),
+                                 n, a, lda, x, incX);
+}
+
+template <typename scalar_t>
+void syr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
+         const int incX, scalar_t *a, const int lda) {
+  TypeDispatcher<scalar_t>::call(&cblas_ssyr, &cblas_dsyr, CblasColMajor,
+                                 c_uplo(*uplo), n, alpha, x, incX, a, lda);
+}
+
+template <typename scalar_t>
+void syr2(const char *uplo, const int n, const scalar_t alpha,
+          const scalar_t *x, const int incX, const scalar_t *y, const int incY,
+          scalar_t *a, const int lda) {
+  TypeDispatcher<scalar_t>::call(&cblas_ssyr2, &cblas_dsyr2, CblasColMajor,
+                                 c_uplo(*uplo), n, alpha, x, incX, y, incY, a,
+                                 lda);
+}
+
+template <typename scalar_t>
+void symv(const char *uplo, const int n, const scalar_t alpha,
+          const scalar_t *a, const int lda, const scalar_t *x, const int incX,
+          const scalar_t beta, scalar_t *y, const int incY) {
+  TypeDispatcher<scalar_t>::call(&cblas_ssymv, &cblas_dsymv, CblasColMajor,
+                                 c_uplo(*uplo), n, alpha, a, lda, x, incX, beta,
+                                 y, incY);
+}
+
+// =======
+// Level 3
+// =======
+template <typename scalar_t>
+void gemm(const char *transA, const char *transB, int m, int n, int k,
+          scalar_t alpha, const scalar_t a[], int lda, const scalar_t b[],
+          int ldb, scalar_t beta, scalar_t c[], int ldc) {
+  TypeDispatcher<scalar_t>::call(&cblas_sgemm, &cblas_dgemm, CblasColMajor,
+                                 c_trans(*transA), c_trans(*transB), m, n, k,
+                                 alpha, a, lda, b, ldb, beta, c, ldc);
+}
+
+#undef COROUTINE_SELECT
+}  // namespace reference_blas
+
 #endif /* end of include guard: SYSTEM_REFERENCE_BLAS_HPP */

@@ -26,6 +26,10 @@
 cmake_minimum_required(VERSION 3.4.3)
 project(SYCL-BLAS LANGUAGES CXX)
 
+add_compile_options(-fdiagnostics-color -fdiagnostics-show-template-tree)
+add_link_options(-fuse-ld=lld -Xlinker --color-diagnostics)
+set(COMPUTECPP_USER_FLAGS -fdiagnostics-color -fdiagnostics-show-template-tree)
+
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -92,6 +96,8 @@ endif()
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()
+
+add_subdirectory(tools)
 
 
 export(EXPORT SYCLBlasTargets

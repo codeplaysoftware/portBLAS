@@ -37,6 +37,10 @@ set(sources
 
     blas2/blas2_gemv_test.cpp
     blas2/blas2_ger_test.cpp
+    blas2/blas2_trmv_test.cpp
+    blas2/blas2_syr_test.cpp
+    blas2/blas2_syr2_test.cpp
+    blas2/blas2_symv_test.cpp
 
     blas3/blas3_gemm_test.cpp
     blas3/blas3_gemm_batched_test.cpp
@@ -46,3 +50,7 @@ set(sources
 add_executable(unittests main.cpp ${sources})
 target_link_libraries(unittests PRIVATE test_common)
 add_sycl_to_target(TARGET unittests SOURCES ${sources})
+
+if(STRESS_TESTING)
+    target_compile_definitions(unittests PRIVATE STRESS_TESTING)
+endif()

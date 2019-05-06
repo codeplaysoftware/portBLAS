@@ -23,18 +23,24 @@
 # *
 # **************************************************************************/
 
-find_package(BLAS REQUIRED)
-find_package(GTest REQUIRED CONFIG)
+set(GEN_COMB ${CMAKE_CURRENT_BINARY_DIR}/generate_combinations.inc.hpp)
 
-if(NOT TARGET BLAS::BLAS)
-    add_library(BLAS::BLAS INTERFACE IMPORTED)
-    set_property(TARGET BLAS::BLAS PROPERTY
-        INTERFACE_LINK_LIBRARIES
-            ${BLAS_LIBRARIES}
-            ${BLAS_LINKER_FLAGS}
-    )
+# The generator's configuration file - add any new jsons to this
+set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/default.json)
+if(${TARGET} STREQUAL "RCAR")
+    set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/rcar.json)
 endif()
 
-add_subdirectory(common)
-add_subdirectory(unittest)
-add_subdirectory(exprtest)
+add_custom_command(
+    OUTPUT generate_combinations.inc.hpp
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen/generate_combinations.py ${GEN_CONFIG} ${GEN_COMB}
+    COMMENT "Generating tuning configurations"
+    VERBATIM
+)
+
+foreach(tuner tune_nn tune_nt tune_tn tune_tt tune_all)
+    add_executable(${tuner} src/${tuner}.cpp ${CMAKE_CURRENT_BINARY_DIR}/generate_combinations.inc.hpp)
+    add_sycl_to_target(TARGET ${tuner} SOURCES src/${tuner}.cpp)
+    target_include_directories(${tuner} PRIVATE include ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(${tuner} PRIVATE codeplay::sycl-blas)
+endforeach()
