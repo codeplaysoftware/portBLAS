@@ -26,9 +26,8 @@ set(CLBLAST_BENCH_SRCS
 # Add individual benchmarks for each method
 foreach(clblast_benchmark ${CLBLAST_BENCH_SRCS})
   get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
-  set(clblast_bench_exec, ${clblast_benchmark})
   add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} ${CLBLAST_BENCH}/main.cpp ${CLBLAST_BENCH}/clwrap.cpp)
-  set_property(TARGET bench_clblast_${clblast_bench_exec} PROPERTY CXX_STANDARD 11)
+  set_target_properties(bench_clblast_${clblast_bench_exec} PROPERTIES CXX_STANDARD 11)
   add_dependencies(bench_clblast_${clblast_bench_exec} benchmark)
   target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC ${OpenCL_LIBRARIES})
   target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC benchmark)
