@@ -8,6 +8,8 @@ int main(int argc, char** argv) {
   cli_device_selector cds(args);
   OpenCLDeviceSelector oclds(cds.device_vendor, cds.device_type);
 
+  blas_benchmark::utils::print_device_information(oclds.device());
+
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
