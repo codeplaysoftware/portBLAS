@@ -87,17 +87,6 @@ inline cl_ulong time_event<cl_event>(cl_event &e) {
   }
 }
 
-/**
- * @fn warmup
- * @brief Warm up to avoid benchmarking data transfer
- */
-template <typename function_t, typename... args_t>
-inline void warmup(function_t func, args_t &&... args) {
-  for (int i = 0; i < 10; ++i) {
-    func(std::forward<args_t>(args)...);
-  }
-}
-
 }  // namespace utils
 }  // namespace blas_benchmark
 

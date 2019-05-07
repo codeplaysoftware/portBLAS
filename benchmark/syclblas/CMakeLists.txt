@@ -6,6 +6,11 @@ set(SYCLBLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${SYCLBLAS_BENCH} ${CLARA_INCLUDE})
 
+if(${BLAS_VERIFY_BENCHMARK})
+  add_definitions(-DBLAS_VERIFY_BENCHMARK)
+  find_package(SystemBLAS REQUIRED)
+endif()
+
 set(SYCLBLAS_BENCH_SRCS
   # Level 1 blas
   ${SYCLBLAS_BENCH}/blas1/axpy.cpp

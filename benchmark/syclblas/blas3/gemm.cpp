@@ -80,11 +80,34 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n);
   auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb, beta, c_gpu,
-          ldc);
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> c_ref = c;
+  reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
+                       beta, c_ref.data(), ldc);
+  std::vector<scalar_t> c_temp = c;
+  {
+    auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
+    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_temp_gpu, ldc);
+    ex.get_policy_handler().wait(event);
   }
+
+  if(!utils::compare_vectors<scalar_t>(
+      c_temp, c_ref, static_cast<size_t>(k))) {
+    exit(1);
+  };
+#endif
+
+  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_gpu, ldc);
+    ex.get_policy_handler().wait(event);
+    return event;
+  };
+
+  // Warmup
+  blas_benchmark::utils::warmup(blas_method_def);
   ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -93,12 +116,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
-          auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                             ldb, beta, c_gpu, ldc);
-          ex.get_policy_handler().wait(event);
-          return event;
-        });
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);

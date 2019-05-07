@@ -5,6 +5,7 @@
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -331,6 +332,17 @@ static inline std::string from_transpose_enum(Transposition t) {
 }
 
 /**
+ * @fn warmup
+ * @brief Warm up to avoid benchmarking data transfer
+ */
+template <typename function_t, typename... args_t>
+inline void warmup(function_t func, args_t &&... args) {
+  for (int i = 0; i < 10; ++i) {
+    func(std::forward<args_t>(args)...);
+  }
+}
+
+/**
  * @fn time_event
  * @brief Times 1 event, and returns the aggregate time.
  */
@@ -364,7 +376,7 @@ inline cl_ulong time_events(event_t first_event,
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename function_t, typename... args_t>
-static std::tuple<double, double> timef(function_t func, args_t&&... args) {
+inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();

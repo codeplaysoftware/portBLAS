@@ -90,6 +90,7 @@ if(${BLAS_ENABLE_TESTING})
 endif()
 
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
+option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)
