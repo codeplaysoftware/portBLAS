@@ -70,3 +70,33 @@ TYPED_TEST(BLAS_Test, sycl_buffer_test) {
     ASSERT_NEAR(vX[i + offset], vR[i], prec);
   }
 }
+template <typename data_t, typename index_t>
+inline BufferIterator<const data_t, blas::codeplay_policy> func(
+    BufferIterator<const data_t, blas::codeplay_policy> buff, index_t offset) {
+  return buff += offset;
+}
+
+TYPED_TEST(BLAS_Test, sycl_const_buffer_test) {
+  using scalar_t = typename TypeParam::scalar_t;
+  using ExecutorType = typename TypeParam::executor_t;
+  using TestClass = BLAS_Test<TypeParam>;
+  using test = class sycl_buffer_test;
+
+  int size = TestClass::template test_size<test>();
+  std::ptrdiff_t offset = TestClass::template test_strd<test>();
+  scalar_t prec = TestClass::template test_prec<test>();
+  int strd = TestClass::template test_strd<test>();
+
+  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
+  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+
+  std::vector<scalar_t> vX(size, scalar_t(1));
+  TestClass::set_rand(vX, size);
+
+  SYCL_DEVICE_SELECTOR d;
+  auto q = TestClass::make_queue(d);
+  Executor<ExecutorType> ex(q);
+  auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
+  BufferIterator<const scalar_t, blas::codeplay_policy> buff =
+      func<scalar_t>(a, offset);
+}
