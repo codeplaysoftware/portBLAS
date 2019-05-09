@@ -15,9 +15,9 @@
  */
 
 /**
- * This code mimics GoogleTest in using ULPs for comparisons between floating-
- * point types. ULPs (Units in the Last Place) equals the no. of representable
- * floats in between same-sign inputs. For example, using a 32-bit IEEE float:
+ * This code uses ULPs for comparisons between floating-point types.
+ * ULPs (Units in the Last Place) equals the no. of representable floats in
+ * between same-sign inputs. For example, using a 32-bit IEEE float:
  *
  *  sign   | exponent | fraction
  *    0    | 01111100 | 01000000000000000000000 = 0.15625
@@ -41,8 +41,8 @@
  * http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
  */
 
-#ifndef SYCLDNN_TEST_HELPERS_FLOAT_COMPARISON_H_
-#define SYCLDNN_TEST_HELPERS_FLOAT_COMPARISON_H_
+#ifndef UTILS_FLOAT_COMPARISON_H_
+#define UTILS_FLOAT_COMPARISON_H_
 
 #include <climits>
 #include <cmath>
@@ -220,8 +220,8 @@ inline typename FloatingPoint<scalar_t>::RawBits unsigned_difference(
 }
 
 /**
- * ULP comparison between two floating point values, returning a formatted
- * message on returning false. Note that:
+ * ULP comparison between two floating point values, returning a boolean
+ * equal to true of the scalars should be considered equal. Note that:
  *
  *  - For all x, x != -x, except 0 and -0 (as per IEEE standard)
  *  - Any comparison involving NaNs returns false (as per IEEE standard)
@@ -240,21 +240,21 @@ inline bool almost_equal(
 }
 
 /**
- * Compare two vectors and fails if the difference is not acceptable.
+ * Compare two vectors and returns false if the difference is not acceptable.
  * The second vector is considered the reference.
- * tolerated_ulp_diff is the max number of ULP tolerated between two scalars
+ * max_ulps is the max number of ULP tolerated between two scalars
  */
 template <typename scalar_t>
 inline bool compare_vectors(std::vector<scalar_t>& vec,
                             std::vector<scalar_t>& ref,
-                            size_t tolerated_ulp_diff) {
+                            size_t max_ulps) {
   if(vec.size() != ref.size()) {
     std::cerr << "Error: tried to compare vectors of different sizes"
               << std::endl;
     return false;
   }
   for (int i = 0; i < vec.size(); ++i) {
-    if(!almost_equal(vec[0], ref[0], tolerated_ulp_diff))
+    if(!almost_equal(vec[0], ref[0], max_ulps))
     {
       std::cerr << "Value mismatch at index " << i << ": " << vec[i]
                 << "; expected " << ref[i] << std::endl;
@@ -266,24 +266,4 @@ inline bool compare_vectors(std::vector<scalar_t>& vec,
 
 } // namespace utils
 
-#define GET_UNQUALIFIED_T(input) \
-  typename std::remove_cv<       \
-      typename std::remove_reference<decltype(input)>::type>::type
-
-#define SNN_PREDICATE_COMPARISON(formatted_predicate, expected, actual, \
-                                 max_ulps)                              \
-  static_assert(std::is_same<GET_UNQUALIFIED_T(expected),               \
-                             GET_UNQUALIFIED_T(actual)>::value,         \
-                "expected and actual must be of the same type!\n");     \
-  EXPECT_PRED_FORMAT3(formatted_predicate<GET_UNQUALIFIED_T(expected)>, \
-                      expected, actual, max_ulps)
-
-/**
- * Usage: replace GoogleTest's EXPECT_{FLOAT|DOUBLE}_EQ(exp[i], out[i]) with
- * SNN_ALMOST_EQUAL(exp[i], out[i], num_ulps). GoogleTest by default uses
- * num_ulps = 4. No type specialisation is required.
- */
-#define SNN_ALMOST_EQUAL(expected, actual, max_ulps) \
-  SNN_PREDICATE_COMPARISON(expect_almost_equal, expected, actual, max_ulps)
-
-#endif  // SYCLDNN_TEST_HELPERS_FLOAT_COMPARISON_H_
+#endif  // UTILS_FLOAT_COMPARISON_H_
