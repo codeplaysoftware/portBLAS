@@ -27,19 +27,19 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t, int m, int n) {
-  return "BM_Gemv<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         t + "/" + std::to_string(m) + "/" + std::to_string(n);
+  std::ostringstream str{};
+  str << "BM_Gemv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << t << "/" << m << "/" << n;
+  return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int ti, int mi,
-         int ni) {
+void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
+         index_t n) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
   const char* t_str = ts.c_str();
-  const index_t m = static_cast<index_t>(mi);
-  const index_t n = static_cast<index_t>(ni);
 
   index_t vlen = t_str[0] == 'n' ? n : m;
   index_t rlen = t_str[0] == 'n' ? m : n;
@@ -111,12 +111,13 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
 
   for (auto p : gemm_params) {
     std::string ts;
-    int m, n;
+    index_t m, n;
     std::tie(ts, m, n) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
-                         int m, int n) { run<scalar_t>(st, exPtr, t, m, n); };
+                         index_t m,
+                         index_t n) { run<scalar_t>(st, exPtr, t, m, n); };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
                                  BM_lambda, exPtr, t, m, n);
   }
