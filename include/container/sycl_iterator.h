@@ -76,11 +76,6 @@ class BufferIterator<element_t, codeplay_policy> {
   BufferIterator(const BufferIterator<other_scalar_t, codeplay_policy>& other);
 
   /*!
-   * @brief implicitly converting non-const buffer to const buffer.
-   */
-  // operator BufferIterator<const element_t, codeplay_policy>() const;
-
-  /*!
    * @brief See BufferIterator.
    */
   self_t& operator+=(std::ptrdiff_t offset);
