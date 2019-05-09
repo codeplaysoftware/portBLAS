@@ -39,7 +39,7 @@
 #include <sycl_blas.h>
 
 #include "blas_test_macros.hpp"
-#include "system_reference_blas.hpp"
+#include "utils/system_reference_blas.hpp"
 
 using namespace blas;
 
