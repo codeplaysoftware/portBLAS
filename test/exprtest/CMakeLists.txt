@@ -27,7 +27,6 @@ cmake_minimum_required(VERSION 3.2.2)
 project(syclblas_unittest)
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 
 include_directories(${SYCLBLAS_TEST})
 

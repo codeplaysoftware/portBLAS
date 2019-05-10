@@ -33,6 +33,7 @@ else()
 endif()
 
 set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
+set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
@@ -46,7 +47,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/sample/cmake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -w -Wall -Wno-long-long -pedantic")
 list(APPEND COMPUTECPP_USER_FLAGS "-O3" "-fsycl-split-modules=20" "-mllvm" "-inline-threshold=10000" "-no-serial-memop")
-list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE})
+list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -91,6 +92,7 @@ endif()
 
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
+option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)
