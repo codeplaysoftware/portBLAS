@@ -73,11 +73,35 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_b, vlen);
   auto v_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c, rlen);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta, v_c_gpu,
-          incY);
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> v_c_ref = v_c;
+  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_b.data(), incX,
+                       beta, v_c_ref.data(), incY);
+  std::vector<scalar_t> v_c_temp = v_c;
+  {
+    auto v_c_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(v_c_temp, m);
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
+                       beta, v_c_temp_gpu, incY);
+    ex.get_policy_handler().wait(event);
   }
+
+  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref,
+                                        static_cast<size_t>(n))) {
+    exit(1);
+  };
+#endif
+
+  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
+                       beta, v_c_gpu, incY);
+    ex.get_policy_handler().wait(event);
+    return event;
+  };
+
+  // Warmup
+  blas_benchmark::utils::warmup(blas_method_def);
   ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -86,12 +110,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
-          auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
-                             beta, v_c_gpu, incY);
-          ex.get_policy_handler().wait(event);
-          return event;
-        });
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
