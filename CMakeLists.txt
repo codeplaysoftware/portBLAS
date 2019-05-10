@@ -91,7 +91,7 @@ if(${BLAS_ENABLE_TESTING})
 endif()
 
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
-option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" OFF)
+option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 
 if(${BLAS_ENABLE_BENCHMARK})
