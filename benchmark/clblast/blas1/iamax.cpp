@@ -28,7 +28,8 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Iamax<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Iamax<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/";
   str << size;
   return str.str();
 }
@@ -77,7 +78,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
