@@ -76,7 +76,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
