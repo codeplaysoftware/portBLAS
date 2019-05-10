@@ -50,10 +50,32 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
   auto inr = blas::make_sycl_iterator_buffer<scalar_t>(&result, 1);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _nrm2(ex, size, inx, 1, inr);
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  scalar_t vr_ref = reference_blas::nrm2(size, v1.data(), 1);
+  scalar_t vr_temp = 0;
+  {
+    auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
+    auto event = _nrm2(ex, size, inx, 1, vr_temp_gpu);
+    ex.get_policy_handler().wait(event);
   }
+
+  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref,
+                                     static_cast<size_t>(size))) {
+    std::cerr << "Value mismatch: " << vr_temp
+              << "; expected " << vr_ref << std::endl;
+    exit(1);
+  };
+#endif
+
+  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+    auto event = _nrm2(ex, size, inx, 1, inr);
+    ex.get_policy_handler().wait(event);
+    return event;
+  };
+
+  // Warmup
+  blas_benchmark::utils::warmup(blas_method_def);
   ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -62,11 +84,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
-          auto event = _nrm2(ex, size, inx, 1, inr);
-          ex.get_policy_handler().wait(event);
-          return event;
-        });
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);

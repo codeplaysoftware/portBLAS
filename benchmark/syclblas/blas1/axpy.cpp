@@ -63,7 +63,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   }
 
   if (!utils::compare_vectors<scalar_t>(y_temp, y_ref,
-                                        static_cast<size_t>(size))) {
+                                        static_cast<size_t>(10))) {
     exit(1);
   };
 #endif
