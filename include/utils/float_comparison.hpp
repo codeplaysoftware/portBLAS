@@ -39,6 +39,11 @@
  *
  * For further details, see this article for details on ULP:
  * http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+ *
+ * Essentially, the two functions that you can use from this tool are
+ * almost_equal to tell if two scalars are to be considered equal with a given
+ * precision, and compare_vectors to apply this function to the elements of two
+ * vectors 2-by-2. See the description of these functions below for more details
  */
 
 #ifndef UTILS_FLOAT_COMPARISON_H_
