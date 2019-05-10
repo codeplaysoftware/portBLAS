@@ -54,7 +54,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> y_ref = v2;
-  reference_blas::axpy(ex, size, alpha, inx.data(), 1, y_ref.data(), 1);
+  reference_blas::axpy(size, alpha, v1.data(), 1, y_ref.data(), 1);
   std::vector<scalar_t> y_temp = v2;
   {
     auto y_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_temp, size);
