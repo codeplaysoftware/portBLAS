@@ -80,8 +80,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
                        beta, v_c_ref.data(), incY);
   std::vector<scalar_t> v_c_temp = v_c;
   {
-    auto v_c_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(v_c_temp, m);
+    auto v_c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c_temp, m);
     auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
                        beta, v_c_temp_gpu, incY);
     ex.get_policy_handler().wait(event);
