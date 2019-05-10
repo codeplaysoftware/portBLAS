@@ -35,7 +35,7 @@ std::string get_name(std::string t, int m, int n) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
-         index_t n) {
+         index_t n, scalar_t alpha, scalar_t beta) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
@@ -48,23 +48,23 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   index_t incX = 1;
   index_t incY = 1;
 
-  state.counters["m"] = m;
-  state.counters["n"] = n;
-
   // The counters are double. We convert m and n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
-  state.counters["n_fl_ops"] = 2.0 * m_d * n_d;
+
+  state.counters["n_fl_ops"] = 2.0 * m_d * n_d + 3 * m_d;
   state.counters["bytes_processed"] =
-      (m_d * n_d + m_d + n_d) * sizeof(scalar_t);
+      (m_d * n_d + n_d + 2 * m_d) * sizeof(scalar_t);
+
+  if (beta == 0.0) {
+    // not adding beta * Y
+    state.counters["n_fl_ops"] -= 2 * m_d;
+    // not reading Y
+    state.counters["bytes_processed"] -= m_d * sizeof(scalar_t);
+  }
 
   ExecutorType& ex = *executorPtr;
-
-  // Create data
-  // Scalars
-  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
-  scalar_t beta = blas_benchmark::utils::random_scalar<scalar_t>();
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -107,19 +107,21 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<blas2_param_t>(args);
+  auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
     std::string ts;
     index_t m, n;
-    std::tie(ts, m, n) = p;
+    scalar_t alpha, beta;
+    std::tie(ts, m, n, alpha, beta) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
-                         index_t m,
-                         index_t n) { run<scalar_t>(st, exPtr, t, m, n); };
+                         index_t m, index_t n, scalar_t alpha, scalar_t beta) {
+      run<scalar_t>(st, exPtr, t, m, n, alpha, beta);
+    };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
-                                 BM_lambda, exPtr, t, m, n);
+                                 BM_lambda, exPtr, t, m, n, alpha, beta);
   }
 }
 
