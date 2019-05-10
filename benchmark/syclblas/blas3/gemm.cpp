@@ -58,14 +58,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
 
+  state.counters["n_fl_ops"] = 2 * (m_d * n_d * k_d) + 3 * (m_d * n_d);
+  state.counters["bytes_processed"] =
+      (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
   if (beta == 0.0) {
-    state.counters["n_fl_ops"] = 3 * (m_d * n_d * k_d);
-    state.counters["bytes_processed"] =
-        (m_d * k_d + k_d * n_d + m_d * n_d) * sizeof(scalar_t);
-  } else {
-    state.counters["n_fl_ops"] = 3 * (m_d * n_d * k_d) + 2 * (m_d * n_d);
-    state.counters["bytes_processed"] =
-        (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
+    // not adding beta * C
+    state.counters["n_fl_ops"] -= 2 * m_d * n_d;
+    // not reading C
+    state.counters["bytes_processed"] -= m_d * n_d * sizeof(scalar_t);
   }
 
   ExecutorType& ex = *executorPtr;
