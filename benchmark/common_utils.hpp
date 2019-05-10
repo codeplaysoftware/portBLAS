@@ -5,7 +5,6 @@
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <climits>
-#include <cmath>
 #include <exception>
 #include <fstream>
 #include <functional>
