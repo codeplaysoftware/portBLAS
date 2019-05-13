@@ -259,7 +259,7 @@ inline bool compare_vectors(std::vector<scalar_t>& vec,
     return false;
   }
   for (int i = 0; i < vec.size(); ++i) {
-    if(!almost_equal(vec[0], ref[0], max_ulps))
+    if(!almost_equal(vec[i], ref[i], max_ulps))
     {
       std::cerr << "Value mismatch at index " << i << ": " << vec[i]
                 << "; expected " << ref[i] << std::endl;
