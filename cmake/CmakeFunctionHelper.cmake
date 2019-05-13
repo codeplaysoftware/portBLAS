@@ -371,7 +371,6 @@ endfunction(generate_blas_gemm_objects)
 
 function (build_library LIB_NAME LIB_TYPE)
 add_library(${LIB_NAME} ${LIB_TYPE}
-                             $<TARGET_OBJECTS:sycl_iterator>
                              $<TARGET_OBJECTS:sycl_policy> 
                              $<TARGET_OBJECTS:axpy>
                              $<TARGET_OBJECTS:asum>
