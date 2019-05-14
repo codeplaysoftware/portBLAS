@@ -89,20 +89,19 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   std::vector<scalar_t> v_c_temp = v_c;
   {
     auto v_c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c_temp, m);
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
-                       beta, v_c_temp_gpu, incY);
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
+                       v_c_temp_gpu, incY);
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref,
-                                        static_cast<size_t>(n))) {
+  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref)) {
     exit(1);
   };
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX,
-                       beta, v_c_gpu, incY);
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
+                       v_c_gpu, incY);
     ex.get_policy_handler().wait(event);
     return event;
   };

@@ -60,10 +60,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref,
-                                     static_cast<size_t>(size))) {
-    std::cerr << "Value mismatch: " << vr_temp
-              << "; expected " << vr_ref << std::endl;
+  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
+    std::cerr << "Value mismatch: " << vr_temp << "; expected " << vr_ref
+              << std::endl;
     exit(1);
   };
 #endif

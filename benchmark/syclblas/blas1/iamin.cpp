@@ -54,17 +54,20 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  index_t idx_ref = static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
+  index_t idx_ref =
+      static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
   blas::IndexValueTuple<scalar_t, index_t> idx_temp(-1, -1);
   {
-    auto idx_temp_gpu = blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, int>>(&idx_temp, 1);
+    auto idx_temp_gpu =
+        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, int>>(
+            &idx_temp, 1);
     auto event = _iamin(ex, size, inx, 1, idx_temp_gpu);
     ex.get_policy_handler().wait(event);
   }
 
   if (idx_temp.ind != idx_ref) {
-    std::cerr << "Index mismatch: " << idx_temp.ind
-              << "; expected " << idx_ref << std::endl;
+    std::cerr << "Index mismatch: " << idx_temp.ind << "; expected " << idx_ref
+              << std::endl;
     exit(1);
   };
 #endif

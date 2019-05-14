@@ -93,8 +93,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref,
-                                        static_cast<size_t>(k))) {
+  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref)) {
     exit(1);
   };
 #endif
@@ -142,9 +141,10 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
                          scalar_t alpha, scalar_t beta) {
       run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, exPtr, t1, t2, m, k, n, alpha,
-                                 beta);
+    auto bm_ptr = benchmark::RegisterBenchmark(
+        get_name<scalar_t>(t1s, t2s, m, k, n).c_str(), BM_lambda, exPtr, t1, t2,
+        m, k, n, alpha, beta);
+    bm_ptr->Iterations(1);
   }
 }
 

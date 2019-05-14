@@ -60,8 +60,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::compare_vectors<scalar_t>(v1_temp, v1_ref,
-                                        static_cast<size_t>(10))) {
+  if (!utils::compare_vectors<scalar_t>(v1_temp, v1_ref)) {
     exit(1);
   };
 #endif

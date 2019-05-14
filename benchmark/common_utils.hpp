@@ -10,6 +10,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -269,10 +270,12 @@ template <typename scalar_t>
 static inline std::vector<scalar_t> random_data(size_t size,
                                                 bool initialized = true) {
   std::vector<scalar_t> v = std::vector<scalar_t>(size);
-  if (initialized) {
-    std::transform(v.begin(), v.end(), v.begin(), [](scalar_t x) -> scalar_t {
-      return random_scalar<scalar_t>();
-    });
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-2.0, 2.0);
+  for (int i = 0; i < v.size(); ++i) {
+    v[i] = dis(gen);
   }
   return v;
 }
@@ -335,7 +338,7 @@ static inline std::string from_transpose_enum(Transposition t) {
  * @brief Warm up to avoid benchmarking data transfer
  */
 template <typename function_t, typename... args_t>
-inline void warmup(function_t func, args_t &&... args) {
+inline void warmup(function_t func, args_t&&... args) {
   for (int i = 0; i < 10; ++i) {
     func(std::forward<args_t>(args)...);
   }
