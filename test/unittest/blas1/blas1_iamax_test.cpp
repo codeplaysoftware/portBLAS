@@ -63,8 +63,7 @@ TYPED_TEST(BLAS_Test, iamax_test) {
   }
   IndexValueTuple<scalar_t, index_t> res(imax, max);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
   auto gpu_vI =
@@ -115,8 +114,7 @@ TYPED_TEST(BLAS_Test, iamax_test_vpr) {
   }
   IndexValueTuple<scalar_t, index_t> res(imax, max);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vI = ex.get_policy_handler()

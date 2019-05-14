@@ -60,8 +60,7 @@ TYPED_TEST(BLAS_Test, nrm2_test) {
   }
   res = std::sqrt(res);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   // compute nrm2 of a vX into vR
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
