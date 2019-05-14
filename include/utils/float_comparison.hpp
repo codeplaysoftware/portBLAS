@@ -35,7 +35,7 @@ namespace utils {
  */
 template <typename scalar_t>
 inline scalar_t getRelativeErrorMargin() {
-   /* Measured empirically with gemm. The dimensions of the matrices (even k)
+  /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
    * relative differences of up to 0.002 were observed for float
@@ -45,12 +45,12 @@ inline scalar_t getRelativeErrorMargin() {
 
 template <>
 inline double getRelativeErrorMargin<double>() {
-   /* Measured empirically with gemm. The dimensions of the matrices (even k)
+  /* Measured empirically with gemm. The dimensions of the matrices (even k)
    * don't seem to have an impact on the observed relative differences
    * In the cases where the relative error is relevant (non close to zero),
    * relative differences of up to 10^-12 were observed for double
    */
-  return 0.0000000001; // 10^-10
+  return 0.0000000001;  // 10^-10
 }
 
 /**
@@ -72,7 +72,7 @@ inline double getAbsoluteErrorMargin<double>() {
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 10^-12 were observed for double
    */
-  return 0.0000000001; // 10^-10
+  return 0.0000000001;  // 10^-10
 }
 
 /**
