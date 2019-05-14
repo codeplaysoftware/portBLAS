@@ -40,7 +40,7 @@ inline scalar_t getRelativeErrorMargin() {
 
 template <>
 inline double getRelativeErrorMargin<double>() {
-  return 0.00001;
+  return 0.000001;
 }
 
 /**
@@ -53,7 +53,7 @@ inline scalar_t getAbsoluteErrorMargin() {
 
 template <>
 inline double getAbsoluteErrorMargin<double>() {
-  return 0.00001;
+  return 0.0000001;
 }
 
 template <typename scalar_t>
