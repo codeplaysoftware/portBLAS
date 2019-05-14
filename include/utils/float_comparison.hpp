@@ -32,6 +32,8 @@ namespace utils {
 
 /**
  * Indicates the tolerated margin for relative differences
+ * These numbers are empirical (calculated based on the precision errors
+ * observed on gemm for big values of k)
  */
 template <typename scalar_t>
 inline scalar_t getRelativeErrorMargin() {
@@ -45,6 +47,8 @@ inline double getRelativeErrorMargin<double>() {
 
 /**
  * Indicates the tolerated margin for absolute differences
+ * These numbers are empirical (calculated based on the precision errors
+ * observed on gemm for big values of k)
  */
 template <typename scalar_t>
 inline scalar_t getAbsoluteErrorMargin() {
@@ -56,6 +60,9 @@ inline double getAbsoluteErrorMargin<double>() {
   return 0.0000001;
 }
 
+/**
+ * Compare two scalars and returns false if the difference is not acceptable.
+ */
 template <typename scalar_t>
 inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
   scalar_t absoluteErrorMargin = getAbsoluteErrorMargin<scalar_t>();
