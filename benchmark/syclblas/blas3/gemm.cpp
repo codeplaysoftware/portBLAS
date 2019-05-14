@@ -144,7 +144,6 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
     auto bm_ptr = benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n).c_str(), BM_lambda, exPtr, t1, t2,
         m, k, n, alpha, beta);
-    bm_ptr->Iterations(1);
   }
 }
 
