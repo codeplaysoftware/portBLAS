@@ -32,32 +32,57 @@ namespace utils {
 
 /**
  * Indicates the tolerated margin for relative differences
- * These numbers are empirical (calculated based on the precision errors
- * observed on gemm for big values of k)
  */
 template <typename scalar_t>
 inline scalar_t getRelativeErrorMargin() {
+   /* Measured empirically with gemm. The dimensions of the matrices (even k)
+   * don't seem to have an impact on the observed relative differences
+   * In the cases where the relative error is relevant (non close to zero),
+   * relative differences of up to 0.002 were observed for float
+   */
   return static_cast<scalar_t>(0.005);
 }
 
 template <>
 inline double getRelativeErrorMargin<double>() {
-  return 0.000001;
+   /* Measured empirically with gemm. The dimensions of the matrices (even k)
+   * don't seem to have an impact on the observed relative differences
+   * In the cases where the relative error is relevant (non close to zero),
+   * relative differences of up to 10^-12 were observed for double
+   */
+  return 0.0000000001; // 10^-10
 }
 
 /**
- * Indicates the tolerated margin for absolute differences
- * These numbers are empirical (calculated based on the precision errors
- * observed on gemm for big values of k)
+ * Indicates the tolerated margin for absolute differences (used in case the
+ * scalars are close to 0)
  */
 template <typename scalar_t>
 inline scalar_t getAbsoluteErrorMargin() {
-  return 0.0001;
+  /* Measured empirically with gemm.
+   * In the cases where the relative error is irrelevant (close to zero),
+   * absolute differences of up to 0.00008 were observed for float
+   */
+  return 0.0002;
 }
 
 template <>
 inline double getAbsoluteErrorMargin<double>() {
-  return 0.0000001;
+  /* Measured empirically with gemm.
+   * In the cases where the relative error is irrelevant (close to zero),
+   * absolute differences of up to 10^-12 were observed for double
+   */
+  return 0.0000000001; // 10^-10
+}
+
+/**
+ * Indicates if a scalar is close to zero
+ */
+template <typename scalar_t>
+inline bool closeToZero(scalar_t scalar) {
+  // Measured empirically with gemm. The relative difference becomes too big
+  // for values smaller than this
+  return (std::fabs(scalar) < 0.01);
 }
 
 /**
@@ -65,8 +90,6 @@ inline double getAbsoluteErrorMargin<double>() {
  */
 template <typename scalar_t>
 inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
-  scalar_t absoluteErrorMargin = getAbsoluteErrorMargin<scalar_t>();
-  scalar_t relativeErrorMargin = getRelativeErrorMargin<scalar_t>();
   // Shortcut, also handles case where both are zero
   if (scalar1 == scalar2) {
     return true;
@@ -80,12 +103,12 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
   const auto absolute_diff = std::fabs(scalar1 - scalar2);
 
   // Close to zero, the relative error doesn't work, use absolute error
-  if (scalar1 == 0 || scalar2 == 0 || absolute_diff < absoluteErrorMargin) {
-    return (absolute_diff < absoluteErrorMargin);
+  if (closeToZero(scalar1) || closeToZero(scalar2)) {
+    return (absolute_diff < getAbsoluteErrorMargin<scalar_t>());
   }
   // Use relative error
   const auto absolute_sum = std::fabs(scalar1) + std::fabs(scalar2);
-  return (absolute_diff / absolute_sum) < relativeErrorMargin;
+  return (absolute_diff / absolute_sum) < getRelativeErrorMargin<scalar_t>();
 }
 
 /**
