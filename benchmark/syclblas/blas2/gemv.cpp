@@ -55,7 +55,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
-  state.counters["n_fl_ops"] = 2.0 * m_d * n_d;
+  state.counters["n_fl_ops"] = 2.0 * m_d * n_d + 3 * m_d;
   state.counters["bytes_processed"] =
       (m_d * n_d + n_d + 2 * m_d) * sizeof(scalar_t);
 
