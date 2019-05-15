@@ -120,8 +120,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
       constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
   std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);

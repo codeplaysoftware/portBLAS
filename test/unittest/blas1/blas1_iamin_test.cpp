@@ -61,8 +61,7 @@ TYPED_TEST(BLAS_Test, iamin_test) {
   }
   IndexValueTuple<scalar_t, index_t> res(imin, min);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vI =

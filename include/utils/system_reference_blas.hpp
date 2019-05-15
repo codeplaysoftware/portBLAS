@@ -29,6 +29,14 @@
 #include "cblas.h"
 #include <iostream>
 
+extern "C" {
+// i*amin is an extension
+CBLAS_INDEX cblas_isamin(const int N, const float *X, const int incX);
+CBLAS_INDEX cblas_idamin(const int N, const double *X, const int incX);
+CBLAS_INDEX cblas_icamin(const int N, const void *X, const int incX);
+CBLAS_INDEX cblas_izamin(const int N, const void *X, const int incX);
+}
+
 namespace {
 CBLAS_TRANSPOSE c_trans(char x) {
   switch (x) {
@@ -97,6 +105,78 @@ struct TypeDispatcher<double> {
   }
 };
 #endif
+
+// =======
+// Level 1
+// =======
+template <typename scalar_t>
+scalar_t asum(const int n, scalar_t x[], const int incX) {
+  return TypeDispatcher<scalar_t>::template call<scalar_t>(
+      &cblas_sasum, &cblas_dasum, n, x, incX);
+}
+
+template <typename scalar_t>
+void axpy(const int n, scalar_t alpha, const scalar_t x[], const int incX,
+          scalar_t y[], const int incY) {
+  TypeDispatcher<scalar_t>::call(&cblas_saxpy, &cblas_daxpy, n, alpha, x, incX,
+                                 y, incY);
+}
+
+template <typename scalar_t>
+void copy(const int n, const scalar_t x[], const int incX, scalar_t y[],
+          const int incY) {
+  TypeDispatcher<scalar_t>::call(&cblas_scopy, &cblas_dcopy, n, x, incX, y,
+                                 incY);
+}
+
+template <typename scalar_t>
+scalar_t dot(const int n, const scalar_t x[], const int incX, scalar_t y[],
+             const int incY) {
+  return TypeDispatcher<scalar_t>::template call<scalar_t>(
+      &cblas_sdot, &cblas_ddot, n, x, incX, y, incY);
+}
+
+template <typename scalar_t>
+int iamax(const int n, const scalar_t x[], const int incX) {
+  return TypeDispatcher<scalar_t>::template call<int>(
+      &cblas_isamax, &cblas_idamax, n, x, incX);
+}
+
+template <typename scalar_t>
+int iamin(const int n, const scalar_t x[], const int incX) {
+  return TypeDispatcher<scalar_t>::template call<int>(
+      &cblas_isamin, &cblas_idamin, n, x, incX);
+}
+
+template <typename scalar_t>
+scalar_t nrm2(const int n, const scalar_t x[], const int incX) {
+  return TypeDispatcher<scalar_t>::template call<scalar_t>(
+      &cblas_snrm2, &cblas_dnrm2, n, x, incX);
+}
+
+template <typename scalar_t>
+void rot(const int n, scalar_t x[], const int incX, scalar_t y[],
+         const int incY, const scalar_t c, const scalar_t s) {
+  TypeDispatcher<scalar_t>::call(&cblas_srot, &cblas_drot, n, x, incX, y, incY,
+                                 c, s);
+}
+
+template <typename scalar_t>
+void rotg(scalar_t *sa, scalar_t *sb, scalar_t *c, scalar_t *s) {
+  TypeDispatcher<scalar_t>::call(&cblas_srotg, &cblas_drotg, sa, sb, c, s);
+}
+
+template <typename scalar_t>
+void scal(const int n, const scalar_t alpha, scalar_t x[], const int incX) {
+  TypeDispatcher<scalar_t>::call(&cblas_sscal, &cblas_dscal, n, alpha, x, incX);
+}
+
+template <typename scalar_t>
+void swap(const int n, scalar_t x[], const int incX, scalar_t y[],
+          const int incY) {
+  TypeDispatcher<scalar_t>::call(&cblas_sswap, &cblas_dswap, n, x, incX, y,
+                                 incY);
+}
 
 // =======
 // Level 2
