@@ -27,7 +27,6 @@ cmake_minimum_required(VERSION 3.2.2)
 project(syclblas_unittest)
 
 set(SYCLBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include" "${SYCLBLAS_TEST}../external/cblas")
 
 include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
@@ -68,7 +67,11 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
   target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
-  add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
+  if (TEST_DEVICE)
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE})
+  else()
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
+  endif()
   message("-- Created google test ${test_exec}")
   install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
 
