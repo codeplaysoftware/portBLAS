@@ -63,8 +63,7 @@ void run_test(const combination_t<scalar_t> combi) {
     return dim[0] * dim[1] * ld_mul * bs;
   };
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = blas_test_t::make_queue(d);
+  auto q = make_queue();
   Executor<executor_t> ex(q);
 
   auto policy_handler = ex.get_policy_handler();
