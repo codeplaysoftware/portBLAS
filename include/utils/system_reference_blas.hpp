@@ -83,7 +83,7 @@ inline int iamin(const int N, const scalar_t *X, const int incX)
       best = i;
     }
   }
-  return best;
+  return best / incX;
 }
 
 inline int isamin(const int N, const float *X, const int incX) {
