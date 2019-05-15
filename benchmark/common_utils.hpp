@@ -19,6 +19,11 @@
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
 
+#ifdef BLAS_VERIFY_BENCHMARK
+#include "utils/float_comparison.hpp"
+#include "utils/system_reference_blas.hpp"
+#endif
+
 using index_t = int;
 using blas1_param_t = index_t;
 

@@ -50,6 +50,28 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(executorPtr, v1.data(), size);
   MemBuffer<int, CL_MEM_READ_ONLY> buf_i(executorPtr, &res, 1);
 
+  // No verification for CLBlast's Amin until it is fixed
+
+  // #ifdef BLAS_VERIFY_BENCHMARK
+  //   // Run a first time with a verification of the results
+  //   index_t idx_ref =
+  //       static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
+  //   int idx_temp = -1;
+  //   {
+  //     MemBuffer<int, CL_MEM_READ_ONLY> idx_temp_gpu(executorPtr, &idx_temp,
+  //     1); cl_event event; clblast::Amin<scalar_t>(size, idx_temp_gpu.dev(),
+  //     0, buf1.dev(), 0, 1,
+  //                             executorPtr->_queue(), &event);
+  //     CLEventHandler::wait(event);
+  //   }
+  //
+  //   if (idx_temp != idx_ref) {
+  //     std::cerr << "Index mismatch: " << idx_temp << "; expected " << idx_ref
+  //               << std::endl;
+  //     exit(1);
+  //   };
+  // #endif
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;

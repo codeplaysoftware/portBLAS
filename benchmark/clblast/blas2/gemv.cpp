@@ -92,6 +92,27 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   MemBuffer<scalar_t> v_c_gpu(executorPtr, v_c.data(),
                               static_cast<size_t>(rlen));
 
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> v_c_ref = v_c;
+  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_b.data(), incX,
+                       beta, v_c_ref.data(), incY);
+  std::vector<scalar_t> v_c_temp = v_c;
+  {
+    MemBuffer<scalar_t> v_c_temp_gpu(executorPtr, v_c_temp.data(),
+                                     static_cast<size_t>(rlen));
+    cl_event event;
+    clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
+                            v_b_gpu.dev(), 0, incX, beta, v_c_temp_gpu.dev(), 0,
+                            incY, executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+  }
+
+  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref)) {
+    exit(1);
+  };
+#endif
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;

@@ -4,7 +4,7 @@ project(syclblas_benchmarks)
 
 set(SYCLBLAS_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_BENCH} ${CLARA_INCLUDE})
+include_directories(${SYCLBLAS_BENCH})
 
 if(${BLAS_VERIFY_BENCHMARK})
   add_definitions(-DBLAS_VERIFY_BENCHMARK)
@@ -33,6 +33,7 @@ foreach(syclblas_bench ${SYCLBLAS_BENCH_SRCS})
   set_target_properties(bench_${bench_exec} PROPERTIES CXX_STANDARD 11)
   add_dependencies(bench_${bench_exec} benchmark)
   target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
+  target_include_directories(bench_${bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${CLARA_INCLUDE} ${BLAS_INCLUDE_DIRS})
 
   message("-- Created benchmark: ${bench_exec}")
   install(TARGETS bench_${bench_exec} RUNTIME DESTINATION sycl_blas/bin)

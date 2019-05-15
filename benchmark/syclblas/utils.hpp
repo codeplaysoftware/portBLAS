@@ -5,8 +5,6 @@
 #include <chrono>
 #include <tuple>
 
-#include "utils/system_reference_blas.hpp"
-#include "utils/float_comparison.hpp"
 #include "common_utils.hpp"
 #include "sycl_blas.h"
 

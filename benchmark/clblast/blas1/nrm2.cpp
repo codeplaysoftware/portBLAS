@@ -49,6 +49,25 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(executorPtr, v1.data(), size);
   MemBuffer<scalar_t, CL_MEM_READ_ONLY> bufr(executorPtr, &vr, 1);
 
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  scalar_t vr_ref = reference_blas::nrm2(size, v1.data(), 1);
+  scalar_t vr_temp = 0;
+  {
+    MemBuffer<scalar_t, CL_MEM_READ_ONLY> vr_temp_gpu(executorPtr, &vr_temp, 1);
+    cl_event event;
+    clblast::Nrm2<scalar_t>(size, vr_temp_gpu.dev(), 0, buf1.dev(), 0, 1,
+                            executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+  }
+
+  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
+    std::cerr << "Value mismatch: " << vr_temp << "; expected " << vr_ref
+              << std::endl;
+    exit(1);
+  };
+#endif
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
