@@ -19,10 +19,22 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename CMakeLists.txt
+# *  @filename FindCLBlast.cmake
 # *
 # **************************************************************************/
-add_library(sycl_iterator OBJECT ${SYCLBLAS_SRC}/container/sycl_iterator.cpp)
-target_include_directories(sycl_iterator PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
-set_target_compile_def(sycl_iterator)
-add_sycl_to_target(TARGET sycl_iterator SOURCES ${SYCLBLAS_SRC}/container/sycl_iterator.cpp)
+
+find_package(OpenCL)
+find_path(SB_CLBLAST_INCLUDE_DIR clblast.h HINTS ${CLBLAST_ROOT} PATH_SUFFIXES include)
+find_library(SB_CLBLAST_LIBRARY NAME clblast HINTS ${CLBLAST_ROOT} PATH_SUFFIXES lib)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(SB_CLBlast REQUIRED_VARS SB_CLBLAST_LIBRARY SB_CLBLAST_INCLUDE_DIR OpenCL_FOUND)
+
+if(SB_CLBlast_FOUND AND NOT TARGET clblast)
+    add_library(clblast UNKNOWN IMPORTED)
+    set_target_properties(clblast PROPERTIES
+        IMPORTED_LOCATION "${SB_CLBLAST_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${SB_CLBLAST_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
+        INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES}"
+    )
+endif()

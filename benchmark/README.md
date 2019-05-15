@@ -16,13 +16,12 @@ library and generate a report with indicative metrics (see instructions below).
 The benchmarks are compiled with the project if the `BLAS_ENABLE_BENCHMARK`
 CMake option is activated (which is the case by default).
 
-The CLBLAST benchmarks are compiled only if CLBLAST is found, which requires
-that:
-* CLBLAST is installed (see
-    [CLBlast: Building and installing](
-    https://github.com/CNugteren/CLBlast/blob/master/doc/installation.md))
-* Either it is installed at the default location, or the CMake variable
-    `CLBLAST_ROOT` indicates its location.
+The CLBLAST benchmarks are compiled only if the `BUILD_CLBLAST_BENCHMARKS` CMake
+option is activated. If so, if CLBlast cannot be found the build will fail. The
+location of CLBlast can be given with `CLBLAST_ROOT`.
+To install CLBlast, see:
+[CLBlast: Building and installing](
+https://github.com/CNugteren/CLBlast/blob/master/doc/installation.md))
 
 After the compilation, the binaries will be available:
 * in the build folder, in `benchmark/syclblas/` and `benchmark/clblast/`

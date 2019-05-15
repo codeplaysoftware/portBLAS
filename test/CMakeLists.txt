@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.2.2)
 include(ExternalProject)
 include(FindSystemBLAS)
 set(SYCLBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 
 # Download and build googletest
 # The following operations are derived from the official advice on building googletest as a subproject,

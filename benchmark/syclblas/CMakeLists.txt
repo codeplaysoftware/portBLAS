@@ -25,9 +25,8 @@ set(SYCLBLAS_BENCH_SRCS
 # Add individual benchmarks for each method
 foreach(syclblas_bench ${SYCLBLAS_BENCH_SRCS})
   get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
-  set(bench_exec, ${syclblas_bench})
   add_executable(bench_${bench_exec} ${syclblas_bench} ${SYCLBLAS_BENCH}/main.cpp )
-  set_property(TARGET bench_${bench_exec} PROPERTY CXX_STANDARD 11)
+  set_target_properties(bench_${bench_exec} PROPERTIES CXX_STANDARD 11)
   add_dependencies(bench_${bench_exec} benchmark)
   target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
 
