@@ -30,27 +30,6 @@
 #include <iostream>
 #include <cmath>
 
-// i*amin is an extension, provide an implementation
-template<typename scalar_t>
-inline int iamin(const int N, const scalar_t *X, const int incX)
-{
-  int best = 0;
-  for(int i = 1; i < N; i++) {
-    if(std::abs(X[i]) < std::abs(X[best])) {
-      best = i;
-    }
-  }
-  return best;
-}
-
-inline int isamin(const int N, const float *X, const int incX) {
-  return iamin<float>(N, X, incX);
-}
-
-inline int idamin(const int N, const double *X, const int incX) {
-  return iamin<double>(N, X, incX);
-}
-
 namespace {
 CBLAS_TRANSPOSE c_trans(char x) {
   switch (x) {
@@ -92,6 +71,27 @@ CBLAS_DIAG c_diag(char x) {
     case 'N':
       return CblasNonUnit;
   }
+}
+
+// i*amin is an extension, provide an implementation
+template<typename scalar_t>
+inline int iamin(const int N, const scalar_t *X, const int incX)
+{
+  int best = 0;
+  for(int i = 1; i < N; i += incX) {
+    if(std::abs(X[i]) < std::abs(X[best])) {
+      best = i;
+    }
+  }
+  return best;
+}
+
+inline int isamin(const int N, const float *X, const int incX) {
+  return iamin<float>(N, X, incX);
+}
+
+inline int idamin(const int N, const double *X, const int incX) {
+  return iamin<double>(N, X, incX);
 }
 }  // namespace
 
