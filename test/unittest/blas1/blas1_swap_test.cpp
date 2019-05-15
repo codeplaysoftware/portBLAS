@@ -54,8 +54,7 @@ TYPED_TEST(BLAS_Test, swap_test) {
   std::vector<scalar_t> vZ = vX;
   std::vector<scalar_t> vT = vY;
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);

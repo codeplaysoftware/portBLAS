@@ -34,7 +34,9 @@
 #include <regex>
 #include <string>
 
-#include "benchmark_cli_args.hpp"
+#include "extract_vendor_type.hpp"
+
+namespace utils {
 
 /** class cli_device_selector.
  * @brief Looks for a sycl device that matches the "requested" string. Scores
@@ -42,7 +44,6 @@
  * and picks the one with highest score.
  */
 class cli_device_selector : public cl::sycl::device_selector {
-  std::string program_name;
   std::string device_vendor;
   std::string device_type;
 
@@ -60,26 +61,12 @@ class cli_device_selector : public cl::sycl::device_selector {
   }
 
  public:
-  cli_device_selector(blas_benchmark::Args& args)
-      : cl::sycl::device_selector(), program_name(args.program_name) {
-    if (!args.device.empty()) {
-      std::string device = args.device;
-      std::transform(device.begin(), device.end(), device.begin(), ::tolower);
-      // split the string into tokens on ':'
-      std::stringstream ss(device);
-      std::string item;
-      std::vector<std::string> tokens;
-      while (std::getline(ss, item, ':')) {
-        tokens.push_back(item);
-      }
-      if (tokens.size() != 2) {
-        std::cerr << "Device selector should be a colon-separated string (e.g "
-                     "intel:gpu)"
-                  << std::endl;
-      } else {
-        device_vendor = tokens[0];
-        device_type = tokens[1];
-      }
+  cli_device_selector(const std::string& device_spec)
+      : cl::sycl::device_selector() {
+    if (!device_spec.empty()) {
+      bool result;
+      std::tie(result, device_vendor, device_type) =
+          extract_vendor_type(device_spec);
     }
   }
 
@@ -113,5 +100,6 @@ class cli_device_selector : public cl::sycl::device_selector {
     return score;
   }
 };
+}  // namespace utils
 
 #endif  // CLI_DEVICE_SELECTOR_HPP
