@@ -28,13 +28,27 @@
 
 #include "cblas.h"
 #include <iostream>
+#include <cmath>
 
-extern "C" {
-// i*amin is an extension
-CBLAS_INDEX cblas_isamin(const int N, const float *X, const int incX);
-CBLAS_INDEX cblas_idamin(const int N, const double *X, const int incX);
-CBLAS_INDEX cblas_icamin(const int N, const void *X, const int incX);
-CBLAS_INDEX cblas_izamin(const int N, const void *X, const int incX);
+// i*amin is an extension, provide an implementation
+template<typename scalar_t>
+inline int iamin(const int N, const scalar_t *X, const int incX)
+{
+  int best = 0;
+  for(int i = 1; i < N; i++) {
+    if(std::abs(X[i]) < std::abs(X[best])) {
+      best = i;
+    }
+  }
+  return best;
+}
+
+inline int isamin(const int N, const float *X, const int incX) {
+  return iamin<float>(N, X, incX);
+}
+
+inline int idamin(const int N, const double *X, const int incX) {
+  return iamin<double>(N, X, incX);
 }
 
 namespace {
@@ -145,7 +159,7 @@ int iamax(const int n, const scalar_t x[], const int incX) {
 template <typename scalar_t>
 int iamin(const int n, const scalar_t x[], const int incX) {
   return TypeDispatcher<scalar_t>::template call<int>(
-      &cblas_isamin, &cblas_idamin, n, x, incX);
+      &isamin, &idamin, n, x, incX);
 }
 
 template <typename scalar_t>
