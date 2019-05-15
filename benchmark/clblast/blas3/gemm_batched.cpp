@@ -1,4 +1,4 @@
-/**************************************************************************
+/***************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -26,19 +26,16 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int batch_size) {
+std::string get_name(std::string t1, std::string t2, int m, int k, int n, int batch_size) {
   std::ostringstream str{};
-  str << "BM_GemmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/"
-      << batch_size;
+  str << "BM_Gemm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
-         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         index_t batch_size) {
+         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta, index_t batch_size) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -51,8 +48,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  // The counters are double. We convert m, n, k and batch_size to double to
-  // avoid integer overflows for n_fl_ops and bytes_processed
+  // The counters are double. We convert m, n and k to double to avoid
+  // integer overflows and write them in the counters
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
@@ -63,51 +60,76 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   state.counters["n"] = n_d;
   state.counters["batch_size"] = batch_size_d;
 
-  state.counters["n_fl_ops"] =
-      (2 * (m_d * n_d * k_d) + 3 * (m_d * n_d)) * batch_size_d;
+  state.counters["n_fl_ops"] = (2 * (m_d * n_d * k_d) + 3 * (m_d * n_d)) * batch_size_d;
   state.counters["bytes_processed"] =
       (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * batch_size_d * sizeof(scalar_t);
   if (beta == 0.0) {
     // not adding beta * C
     state.counters["n_fl_ops"] -= 2 * m_d * n_d * batch_size_d;
     // not reading C
-    state.counters["bytes_processed"] -=
-        m_d * n_d * batch_size_d * sizeof(scalar_t);
+    state.counters["bytes_processed"] -= m_d * n_d * batch_size_d * sizeof(scalar_t);
   }
 
-  ExecutorType& ex = *executorPtr;
-
   // Matrices
-  std::vector<scalar_t> a =
-      blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
-  std::vector<scalar_t> b =
-      blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
+  std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
+  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(m * n * batch_size, 0);
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k * batch_size);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n * batch_size);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n * batch_size);
+  // Specify the transpositions
+  clblast::Transpose a_tr = blas_benchmark::utils::translate_transposition(t_a);
+  clblast::Transpose b_tr = blas_benchmark::utils::translate_transposition(t_b);
 
-#ifdef BLAS_VERIFY_BENCHMARK
-  // Run a first time with a verification of the results
-  std::vector<scalar_t> c_ref = c;
+  // Specify the layout. As with GEMV, this needs to be kColMajor, and results
+  // in errors otherwise. It may be that this is incorrect (especially for
+  // performance reasons), so may need to be revisited.
+  auto layout = clblast::Layout::kColMajor;
+
+  // Device matrices
+  MemBuffer<scalar_t> a_gpu(executorPtr, a.data(), static_cast<size_t>(m * k * batch_size));
+  MemBuffer<scalar_t> b_gpu(executorPtr, b.data(), static_cast<size_t>(k * n * batch_size));
+  MemBuffer<scalar_t> c_gpu(executorPtr, c.data(), static_cast<size_t>(m * n * batch_size));
+
+  // Alphas and betas
+  std::vector<scalar_t> alphas;
+  std::vector<scalar_t> betas;
+  alphas.resize(batch_size, alpha);
+  betas.resize(batch_size, beta);
+
+  // Offsets
+  std::vector<size_t> a_offsets;
+  std::vector<size_t> b_offsets;
+  std::vector<size_t> c_offsets;
+  a_offsets.resize(batch_size);
+  b_offsets.resize(batch_size);
+  c_offsets.resize(batch_size);
   auto _base = [=](index_t dim0, index_t dim1, index_t idx) {
     return dim0 * dim1 * idx;
   };
   for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
+    a_offsets[batch_idx] = _base(m, k, batch_idx);
+    b_offsets[batch_idx] = _base(k, n, batch_idx);
+    c_offsets[batch_idx] = _base(m, n, batch_idx);
+  }
+
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> c_ref = c;
+  for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
     reference_blas::gemm(t_a, t_b, m, n, k, alpha,
-                         a.data() + _base(m, k, batch_idx), lda,
-                         b.data() + _base(k, n, batch_idx), ldb, beta,
-                         c_ref.data() + _base(m, n, batch_idx), ldc);
+                         a.data() + a_offsets[batch_idx], lda,
+                         b.data() + b_offsets[batch_idx], ldb, beta,
+                         c_ref.data() + c_offsets[batch_idx], ldc);
   }
   std::vector<scalar_t> c_temp = c;
   {
-    auto c_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
-    auto event = _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda,
-                               b_gpu, ldb, beta, c_temp_gpu, ldc, batch_size);
-    ex.get_policy_handler().wait(event);
+    MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(), static_cast<size_t>(m * n * batch_size));
+    cl_event event;
+    clblast::GemmBatched<scalar_t>(layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(), a_offsets.data(),
+                                   lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(), c_temp_gpu.dev(), c_offsets.data(), ldc,
+                                   batch_size,
+                                   executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
   }
 
   if (!utils::compare_vectors<scalar_t>(c_temp, c_ref)) {
@@ -115,22 +137,24 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda,
-                               b_gpu, ldb, beta, c_gpu, ldc, batch_size);
-    ex.get_policy_handler().wait(event);
-    return event;
+  // Create a utility lambda describing the blas method that we want to run.
+  auto blas_method_def = [&]() -> std::vector<cl_event> {
+    cl_event event;
+    clblast::GemmBatched<scalar_t>(layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(), a_offsets.data(),
+                                   lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(), c_gpu.dev(), c_offsets.data(), ldc,
+                                   batch_size,
+                                   executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+    return {event};
   };
 
-  // Warmup
+  // Warm up to avoid benchmarking data transfer
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
-    // Run
     std::tuple<double, double> times =
         blas_benchmark::utils::timef(blas_method_def);
 

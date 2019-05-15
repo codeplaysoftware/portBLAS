@@ -10,6 +10,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -17,6 +18,11 @@
 
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
+
+#ifdef BLAS_VERIFY_BENCHMARK
+#include "utils/float_comparison.hpp"
+#include "utils/system_reference_blas.hpp"
+#endif
 
 using index_t = int;
 using blas1_param_t = index_t;
@@ -31,8 +37,8 @@ using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
 
 template <typename scalar_t>
 using gemm_batched_param_t = std::tuple<std::string, std::string, index_t,
-                                        index_t, index_t, scalar_t, scalar_t,
-                                        index_t>;
+                                       index_t, index_t, scalar_t, scalar_t,
+                                       index_t>;
 
 namespace blas_benchmark {
 
@@ -323,10 +329,12 @@ template <typename scalar_t>
 static inline std::vector<scalar_t> random_data(size_t size,
                                                 bool initialized = true) {
   std::vector<scalar_t> v = std::vector<scalar_t>(size);
-  if (initialized) {
-    std::transform(v.begin(), v.end(), v.begin(), [](scalar_t x) -> scalar_t {
-      return random_scalar<scalar_t>();
-    });
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-2.0, 2.0);
+  for (int i = 0; i < v.size(); ++i) {
+    v[i] = dis(gen);
   }
   return v;
 }
@@ -385,6 +393,17 @@ static inline std::string from_transpose_enum(Transposition t) {
 }
 
 /**
+ * @fn warmup
+ * @brief Warm up to avoid benchmarking data transfer
+ */
+template <typename function_t, typename... args_t>
+inline void warmup(function_t func, args_t&&... args) {
+  for (int i = 0; i < 10; ++i) {
+    func(std::forward<args_t>(args)...);
+  }
+}
+
+/**
  * @fn time_event
  * @brief Times 1 event, and returns the aggregate time.
  */
@@ -418,7 +437,7 @@ inline cl_ulong time_events(event_t first_event,
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename function_t, typename... args_t>
-static std::tuple<double, double> timef(function_t func, args_t&&... args) {
+inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();
