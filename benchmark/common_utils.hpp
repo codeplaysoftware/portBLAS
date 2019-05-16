@@ -268,8 +268,8 @@ static inline scalar_t random_scalar() {
 
 /**
  * @fn random_data
- * @brief Generates a random vector of scalar values, using an arbitrary low
- * quality algorithm.
+ * @brief Generates a random vector of scalar values, using a uniform
+ * distribution.
  */
 template <typename scalar_t>
 static inline std::vector<scalar_t> random_data(size_t size,
