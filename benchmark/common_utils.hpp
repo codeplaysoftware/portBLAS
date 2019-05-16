@@ -437,7 +437,7 @@ inline cl_ulong time_events(event_t first_event,
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename function_t, typename... args_t>
-inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
+static std::tuple<double, double> timef(function_t func, args_t&&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();
