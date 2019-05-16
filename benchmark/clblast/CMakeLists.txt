@@ -36,7 +36,7 @@ foreach(clblast_benchmark ${CLBLAST_BENCH_SRCS})
   add_dependencies(bench_clblast_${clblast_bench_exec} benchmark)
   target_link_libraries(bench_clblast_${clblast_bench_exec} PUBLIC benchmark ${OpenCL_LIBRARIES} ${BLAS_LIBRARIES})
   target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE clblast)
-  target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${SYCLBLAS_INCLUDE} ${CLARA_INCLUDE} ${BLAS_INCLUDE_DIRS})
+  target_include_directories(bench_clblast_${clblast_bench_exec} PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
 
   message("-- Created benchmark: ${clblast_bench_exec}")
   install(TARGETS bench_clblast_${clblast_bench_exec} RUNTIME DESTINATION sycl_blas/bin)
