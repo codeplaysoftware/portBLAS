@@ -57,3 +57,7 @@ add_subdirectory(${BLAS_BENCH}/syclblas)
 if (BUILD_CLBLAST_BENCHMARKS)
   add_subdirectory(${BLAS_BENCH}/clblast)
 endif()
+
+if (BUILD_ACL_BENCHMARKS)
+  add_subdirectory(${BLAS_BENCH}/acl)
+endif()
