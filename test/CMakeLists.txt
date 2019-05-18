@@ -55,4 +55,4 @@ include_directories(
 )
 
 add_subdirectory(${SYCLBLAS_TEST}/unittest)
-#add_subdirectory(${SYCLBLAS_TEST}/exprtest)
+add_subdirectory(${SYCLBLAS_TEST}/exprtest)
