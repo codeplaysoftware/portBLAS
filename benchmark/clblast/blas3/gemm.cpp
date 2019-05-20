@@ -48,24 +48,30 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  state.counters["m"] = m;
-  state.counters["k"] = k;
-  state.counters["n"] = n;
-
   // The counters are double. We convert m, n and k to double to avoid
   // integer overflows and write them in the counters
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
 
-  state.counters["n_fl_ops"] = (2 * k_d - 1) * m_d * n_d + 3 * m_d * n_d;
-  state.counters["bytes_processed"] =
-      (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(scalar_t);
-  if (beta == 0.0) {
-    // not adding beta * C
-    state.counters["n_fl_ops"] -= 2 * m_d * n_d;
-    // not reading C
-    state.counters["bytes_processed"] -= m_d * n_d * sizeof(scalar_t);
+  state.counters["m"] = m_d;
+  state.counters["k"] = k_d;
+  state.counters["n"] = n_d;
+
+  {
+    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_timesAlpha = m_d * n_d;
+    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    state.counters["n_fl_ops"] =
+        nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+  }
+  {
+    double mem_readA = m_d * k_d;
+    double mem_readB = k_d * n_d;
+    double mem_writeC = m_d * n_d;
+    double mem_readC = (beta != 0) ? m_d * n_d : 0;
+    state.counters["bytes_processed"] =
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
   }
 
   // Matrices
