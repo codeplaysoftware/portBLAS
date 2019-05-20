@@ -19,7 +19,7 @@ foreach(acl_benchmark ${ACL_BENCH_SRCS})
   add_dependencies(bench_acl_${acl_bench_exec} benchmark)
   target_link_libraries(bench_acl_${acl_bench_exec} PUBLIC benchmark)
   target_link_libraries(bench_acl_${acl_bench_exec} PRIVATE acl)
-  target_include_directories(bench_acl_${acl_bench_exec} PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+  target_include_directories(bench_acl_${acl_bench_exec} PUBLIC ${ACL_BENCH} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
 
   message("-- Created benchmark: ${acl_bench_exec}")
   install(TARGETS bench_acl_${acl_bench_exec} RUNTIME DESTINATION sycl_blas/bin)
