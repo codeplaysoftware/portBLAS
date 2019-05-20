@@ -28,7 +28,7 @@ project(syclblas_exprtest)
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
+include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_SRC} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
 # compiling tests
 file(GLOB SYCL_EXPRTEST_SRCS
