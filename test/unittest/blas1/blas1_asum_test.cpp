@@ -56,8 +56,7 @@ TYPED_TEST(BLAS_Test, asum_test) {
     res += std::abs(vX[i]);
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
   auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
@@ -94,8 +93,7 @@ TYPED_TEST(BLAS_Test, asum_test_auto_return) {
     res += std::abs(vX[i]);
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   {
     auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
@@ -132,8 +130,7 @@ TYPED_TEST(BLAS_Test, asum_test_virtual_pointer) {
     res += std::abs(vX[i]);
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
@@ -176,8 +173,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer) {
     res += std::abs(vX[i]);
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
@@ -219,8 +215,7 @@ TYPED_TEST(BLAS_Test, asum_test_combined_vp_buffer_return_buff) {
     res += std::abs(vX[i]);
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));

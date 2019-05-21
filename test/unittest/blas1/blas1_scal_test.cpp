@@ -63,8 +63,7 @@ TYPED_TEST(BLAS_Test, scal_test) {
     }
   }
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
+  auto q = make_queue();
   Executor<ExecutorType> ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);

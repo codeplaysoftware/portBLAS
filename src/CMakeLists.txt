@@ -26,7 +26,6 @@
 add_library(sycl-blas)
 add_library(codeplay::sycl-blas ALIAS sycl-blas)
 
-add_subdirectory(container)
 add_subdirectory(policy)
 #add_subdirectory(interface)
 

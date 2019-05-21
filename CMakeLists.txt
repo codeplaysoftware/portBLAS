@@ -29,6 +29,7 @@ project(SYCL-BLAS LANGUAGES CXX)
 add_compile_options(-fdiagnostics-color -fdiagnostics-show-template-tree)
 add_link_options(-fuse-ld=lld -Xlinker --color-diagnostics)
 set(COMPUTECPP_USER_FLAGS -fdiagnostics-color -fdiagnostics-show-template-tree)
+set(TARGET INTEL_GPU)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)

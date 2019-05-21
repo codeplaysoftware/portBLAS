@@ -39,7 +39,15 @@
 #include <sycl_blas.h>
 
 #include "blas_test_macros.hpp"
-#include "system_reference_blas.hpp"
+#include "utils/system_reference_blas.hpp"
+#include "utils/cli_device_selector.hpp"
+#include "utils/print_queue_information.hpp"
+
+struct Args {
+  std::string program_name;
+  std::string device;
+};
+extern Args args;
 
 using namespace blas;
 
@@ -202,6 +210,34 @@ class BLAS_Test<blas_test_args<ScalarT_, MetadataT_, ExecutorType_>>
       }
     });
   }
+};
+
+inline cl::sycl::queue make_queue() {
+  std::unique_ptr<cl::sycl::device_selector> selector;
+  if (args.device.empty()) {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new cl::sycl::default_selector());
+  } else {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new utils::cli_device_selector(args.device));
+  }
+
+  auto q = cl::sycl::queue(*selector, [=](cl::sycl::exception_list eL) {
+    for (auto &e : eL) {
+      try {
+        std::rethrow_exception(e);
+      } catch (cl::sycl::exception &e) {
+        std::cout << "Sycl Exception " << e.what() << std::endl;
+      } catch (std::exception &e) {
+        std::cout << "Standard Exception " << e.what() << std::endl;
+      } catch (...) {
+        std::cout << "An exception " << std::endl;
+      }
+    }
+  });
+
+  utils::print_queue_information(q);
+  return q;
 };
 
 #define ASSERT_T_EQUAL(T, val1, val2)                                         \

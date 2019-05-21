@@ -318,4 +318,3 @@ set(LOCATION "${PROJECT_SOURCE_DIR}/src/interface/${blas_level}/${func}/")
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction(generate_blas_gemm_objects)
-
