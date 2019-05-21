@@ -26,7 +26,6 @@
 #include "sycl_blas.hpp"
 typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
-
 TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, axpy_copy_test)
@@ -88,10 +87,10 @@ TYPED_TEST(BLAS_Test, axpy_copy_test) {
   Executor<ExecutorType> ex(q);
 
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vZ = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vW = ex.get_policy_handler().template allocate<scalar_t>(size);
-
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vZ = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  auto gpu_vW = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
+  
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   ex.get_policy_handler().copy_to_device(vW.data(), gpu_vW, size);
 
@@ -131,8 +130,4 @@ TYPED_TEST(BLAS_Test, axpy_copy_test) {
       ASSERT_EQ(vA[i], vW[i]);
     }
   }
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vZ);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vW);
-
 }
