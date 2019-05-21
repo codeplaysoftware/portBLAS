@@ -33,6 +33,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <random>
 
 #include <gtest/gtest.h>
 
@@ -42,6 +43,7 @@
 #include "utils/system_reference_blas.hpp"
 #include "utils/cli_device_selector.hpp"
 #include "utils/print_queue_information.hpp"
+#include "utils/float_comparison.hpp"
 
 struct Args {
   std::string program_name;
@@ -240,8 +242,19 @@ inline cl::sycl::queue make_queue() {
   return q;
 };
 
-#define ASSERT_T_EQUAL(T, val1, val2)                                         \
-  ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperFloatingPointEQ<T>, val1, \
-                      val2)
+/**
+ * @fn random_data
+ * @brief Generates a random vector of scalar values, using a uniform
+ * distribution.
+ */
+template <typename scalar_t>
+static inline void fill_random(std::vector<scalar_t> &vec) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-1.0, 1.0);
+  for (scalar_t &e : vec) {
+    e = dis(gen);
+  }
+}
 
 #endif /* end of include guard: BLAS_TEST_HPP */

@@ -24,102 +24,86 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-/**
- * ROTG.
- * @brief Consturcts given plane rotation
- * Not implemented.
- */
-template <typename element_t>
-void _rotg(element_t &_alpha, element_t &_beta, element_t &_cos,
-           element_t &_sin) {
-  element_t abs_alpha = std::abs(_alpha);
-  element_t abs_beta = std::abs(_beta);
-  element_t roe = (abs_alpha > abs_beta) ? _alpha : _beta;
-  element_t scale = abs_alpha + abs_beta;
-  element_t norm;
-  element_t aux;
 
-  if (scale == constant<element_t, const_val::zero>::value()) {
-    _cos = constant<element_t, const_val::one>::value();
-    _sin = constant<element_t, const_val::zero>::value();
-    norm = constant<element_t, const_val::zero>::value();
-    aux = constant<element_t, const_val::zero>::value();
-  } else {
-    norm = scale * std::sqrt((_alpha / scale) * (_alpha / scale) +
-                             (_beta / scale) * (_beta / scale));
-    if (roe < constant<element_t, const_val::zero>::value()) norm = -norm;
-    _cos = _alpha / norm;
-    _sin = _beta / norm;
-    if (abs_alpha > abs_beta) {
-      aux = _sin;
-    } else if (_cos != constant<element_t, const_val::zero>::value()) {
-      aux = constant<element_t, const_val::one>::value() / _cos;
-    } else {
-      aux = constant<element_t, const_val::one>::value();
-    }
-  }
-  _alpha = norm;
-  _beta = aux;
-}
+using combination_t = std::tuple<int, int, int>;
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  using type_t = blas_test_args<scalar_t, void>;
+  using blas_test_t = BLAS_Test<type_t>;
+  using executor_t = typename type_t::executor_t;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+  int size;
+  int incA;
+  int incB;
+  std::tie(size, incA, incB) = combi;
 
-REGISTER_SIZE(2, rotg_test)
-REGISTER_STRD(1, rotg_test)
-REGISTER_PREC(float, 1e-4, rotg_test)
-REGISTER_PREC(double, 1e-7, rotg_test)
+  // Input vectors
+  std::vector<scalar_t> a_v(size * incA);
+  fill_random(a_v);
+  std::vector<scalar_t> b_v(size * incB);
+  fill_random(b_v);
 
-TYPED_TEST(BLAS_Test, rotg_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class rotg_test;
+  // Output vectors
+  std::vector<scalar_t> out_s(1, 10.0);
+  std::vector<scalar_t> a_cpu_v(a_v);
+  std::vector<scalar_t> b_cpu_v(b_v);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
+  // Looks like we don't have a SYCL rotg implementation
+  scalar_t c;
+  scalar_t s;
+  scalar_t sa = a_v[0];
+  scalar_t sb = a_v[1];
+  reference_blas::rotg(&sa, &sb, &c, &s);
 
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size);
-  std::vector<scalar_t> vR(1, 0);
-  TestClass::set_rand(vX, size);
-  TestClass::set_rand(vY, size);
+  // Reference implementation
+  std::vector<scalar_t> c_cpu_v(size * incA);
+  std::vector<scalar_t> s_cpu_v(size * incB);
+  reference_blas::rot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB, c, s);
+  auto out_cpu_s =
+      reference_blas::dot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB);
 
+  // SYCL implementation
   SYCL_DEVICE_SELECTOR d;
-  scalar_t _cos, _sin;
+  auto q = blas_test_t::make_queue(d);
+  Executor<executor_t> ex(q);
 
-  scalar_t giv = 0;
-  // givens rotation of vectors vX and vY
-  // and computation of dot of both vectors
-  for (int i = 0; i < size; i += strd) {
-    scalar_t x = vX[i], y = vY[i];
-    if (i == 0) {
-      // compute _cos and _sin
-      _rotg(x, y, _cos, _sin);
-    }
-    x = vX[i], y = vY[i];
-    giv += ((x * _cos + y * _sin) * (y * _cos - x * _sin));
-  }
+  // Iterators
+  auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incA));
+  ex.get_policy_handler().copy_to_device(a_v.data(), gpu_a_v, size * incA);
+  auto gpu_b_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incB));
+  ex.get_policy_handler().copy_to_device(b_v.data(), gpu_b_v, size * incB);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
+  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
 
-  auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
-
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
-  ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
-  _rot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
-  _dot(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd, gpu_vR);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
+  _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  // check that the result is the same
-  ASSERT_NEAR(giv, vR[0], prec);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
+  // Validate the result
+  ASSERT_TRUE(utils::almost_equal(out_s[0], out_cpu_s));
 }
+
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
+                       ::testing::Values(1, 4),                   // incX
+                       ::testing::Values(1, 3)                    // incY
+    );
+#else
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(4),         // incA
+                                      ::testing::Values(3)          // incB
+);
+#endif
+
+class RotgFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(RotgFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(rotg, RotgFloat, combi);
+
+#if DOUBLE_SUPPORT
+class RotgDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(RotgDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(rotg, RotgDouble, combi);
+#endif

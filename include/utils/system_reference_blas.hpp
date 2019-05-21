@@ -78,7 +78,7 @@ template<typename scalar_t>
 inline int iamin(const int N, const scalar_t *X, const int incX)
 {
   int best = 0;
-  for(int i = 1; i < N; i += incX) {
+  for(int i = incX; i < N * incX; i += incX) {
     if(std::abs(X[i]) < std::abs(X[best])) {
       best = i;
     }
