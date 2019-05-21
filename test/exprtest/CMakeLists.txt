@@ -60,8 +60,8 @@ endforeach()
 
 # header only expression tree tests
 set(SYCL_HEADER_ONLY_EXPRTEST_SRCS
-  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
-  #${SYCLBLAS_EXPRTEST}/blas1_reduction_asum_test.cpp
+  #${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+  ${SYCLBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
 )
 
 foreach(blas_test ${SYCL_HEADER_ONLY_EXPRTEST_SRCS})

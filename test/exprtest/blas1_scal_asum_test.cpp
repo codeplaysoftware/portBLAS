@@ -30,8 +30,8 @@ TYPED_TEST_CASE(BLAS_Test, BlasTypes);
 
 REGISTER_SIZE(::RANDOM_SIZE, reduction_asum_test)
 REGISTER_STRD(::RANDOM_STRD, reduction_asum_test)
-REGISTER_PREC(float, 1e-4, reduction_asum_test)
-REGISTER_PREC(double, 1e-6, reduction_asum_test)
+REGISTER_PREC(float, 1e-3, reduction_asum_test) // Lowered precision for _scal
+REGISTER_PREC(double, 1e-4, reduction_asum_test)
 //REGISTER_PREC(std::complex<float>, 1e-4, reduction_asum_test)
 //REGISTER_PREC(std::complex<double>, 1e-6, reduction_asum_test)
 
@@ -44,39 +44,53 @@ TYPED_TEST(BLAS_Test, reduction_asum_test) {
   int size = TestClass::template test_size<test>();
   int strd = TestClass::template test_strd<test>();
   scalar_t prec = TestClass::template test_prec<test>();
-
+  
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
+  // Select some alpha for _scal
+  scalar_t alpha = 1.12;
+
   std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vXResult(size);
+  std::vector<scalar_t> vY(1);
   TestClass::set_rand(vX, size);
 
-  std::vector<scalar_t> vR(1, scalar_t(0));
-  scalar_t result = 0;
+  // Compute the _scal
   for (int i = 0; i < size; i += strd) {
-    result += std::abs(vX[i]);
+    vXResult[i] = vX[i] * alpha;
   }
 
+  // Compute the _asum
+  scalar_t scal_asum_result = 0;
+  for (int i = 0; i < size; i += strd) {
+    scal_asum_result += vXResult[i];
+  }
+
+  // Now repeat the same operations using SYCL BLAS
   auto q = make_queue();
   Executor<ExecutorType> ex(q);
 
   auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
-
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vY, 1);
   auto view_vX = make_vector_view(ex, gpu_vX, strd, (size + strd - 1) / strd);
-  auto view_vR = make_vector_view(ex, gpu_vR, strd, (size + strd - 1) / strd);
+  auto view_vY = make_vector_view(ex, gpu_vY, 1, 1);
 
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
 
-  const auto local_size = ex.get_policy_handler().get_work_group_size();
-  const auto nWG = 2 * local_size;
+  auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, view_vX);
+  auto assign_op = make_op<Assign>(view_vX, scal_op);
 
-  auto asum_x_op = make_AssignReduction<AbsoluteAddOperator>
-                          (view_vX, view_vR, local_size, local_size * nWG);
+  const auto work_group_size = ex.get_policy_handler().get_work_group_size();
+  const auto nWG = 2 * work_group_size;
 
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  auto sacl_asum_op_tree = make_AssignReduction<AddOperator>
+                    (view_vY, assign_op, work_group_size, work_group_size * nWG);
+
+  auto ev = ex.execute(sacl_asum_op_tree);
+  ex.get_policy_handler().wait(ev);
+
+  auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), 1);
   ex.get_policy_handler().wait(event);
-  ASSERT_NEAR(result, vR[0], prec);
-
-  
+  ASSERT_NEAR(scal_asum_result, vY[0], prec);
 }
