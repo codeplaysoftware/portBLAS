@@ -28,7 +28,7 @@ project(syclblas_exprtest)
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_SRC} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE})
 
 # compiling tests
 file(GLOB SYCL_EXPRTEST_SRCS
@@ -61,6 +61,7 @@ endforeach()
 # header only expression tree tests
 set(SYCL_HEADER_ONLY_EXPRTEST_SRCS
   ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+  #${SYCLBLAS_EXPRTEST}/blas1_reduction_asum_test.cpp
 )
 
 foreach(blas_test ${SYCL_HEADER_ONLY_EXPRTEST_SRCS})

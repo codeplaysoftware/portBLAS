@@ -94,15 +94,10 @@ TYPED_TEST(BLAS_Test, axpy_copy_test) {
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   ex.get_policy_handler().copy_to_device(vW.data(), gpu_vW, size);
 
-  auto buff_vX = ex.get_policy_handler().get_buffer(gpu_vX);
-  auto buff_vY = ex.get_policy_handler().get_buffer(gpu_vY);
-  auto buff_vZ = ex.get_policy_handler().get_buffer(gpu_vZ);
-  auto buff_vW = ex.get_policy_handler().get_buffer(gpu_vW);
-
-  auto view_vX = make_vector_view(ex, buff_vX, strd, (size + strd - 1) / strd);
-  auto view_vY = make_vector_view(ex, buff_vY, strd, (size + strd - 1) / strd);
-  auto view_vZ = make_vector_view(ex, buff_vZ, strd, (size + strd - 1) / strd);
-  auto view_vW = make_vector_view(ex, buff_vW, strd, (size + strd - 1) / strd);
+  auto view_vX = make_vector_view(ex, gpu_vX, strd, (size + strd - 1) / strd);
+  auto view_vY = make_vector_view(ex, gpu_vY, strd, (size + strd - 1) / strd);
+  auto view_vZ = make_vector_view(ex, gpu_vZ, strd, (size + strd - 1) / strd);
+  auto view_vW = make_vector_view(ex, gpu_vW, strd, (size + strd - 1) / strd);
 
   // First copy operation
   auto copy_x_to_y = make_op<Assign>(view_vX, view_vY);
