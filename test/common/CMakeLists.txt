@@ -8,5 +8,5 @@ target_link_libraries(test_common INTERFACE
     codeplay::sycl-blas
     GTest::gtest
     GTest::gmock
-    BLAS::BLAS
+    SystemBLAS::BLAS
 )

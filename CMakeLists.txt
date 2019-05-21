@@ -23,25 +23,17 @@
 # *
 # **************************************************************************/
 
-cmake_minimum_required(VERSION 3.4.3)
+cmake_minimum_required(VERSION 3.14.3)
 project(SYCL-BLAS LANGUAGES CXX)
 
 add_compile_options(-fdiagnostics-color -fdiagnostics-show-template-tree)
-add_link_options(-fuse-ld=lld -Xlinker --color-diagnostics)
+#add_link_options(-fuse-ld=lld -Xlinker --color-diagnostics)
 set(COMPUTECPP_USER_FLAGS -fdiagnostics-color -fdiagnostics-show-template-tree)
-set(TARGET INTEL_GPU)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake"
-                              "${PROJECT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules"
-)
-include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
-include(CTest)
-include(CmakeFunctionHelper)
 
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 option(BUILD_DOCUMENTATION "Build the documentation" OFF)
@@ -51,6 +43,13 @@ option(NAIVE_GEMM "Default to naive GEMM implementations" OFF)
 set(TARGET "DEFAULT_CPU" CACHE STRING "Defines the platform for which the sycl library is built")
 set_property(CACHE TARGET PROPERTY STRINGS
     DEFAULT_CPU INTEL_GPU AMD_GPU ARM_GPU RCAR ARM_GPU)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake"
+                              "${PROJECT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules"
+)
+include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
+include(CTest)
+include(CmakeFunctionHelper)
 
 find_package(PythonInterp 2.7 REQUIRED)
 find_package(ComputeCpp REQUIRED)

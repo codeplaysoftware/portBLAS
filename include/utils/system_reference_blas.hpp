@@ -26,7 +26,7 @@
 #ifndef SYSTEM_REFERENCE_BLAS_HPP
 #define SYSTEM_REFERENCE_BLAS_HPP
 
-#include "cblas.h"
+#include <cblas.h>
 #include <iostream>
 #include <cmath>
 

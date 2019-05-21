@@ -1,4 +1,3 @@
-
 #/***************************************************************************
 # *
 # *  @license
@@ -20,22 +19,28 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename FindSystemBLAS.cmake
+# *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-include(FindBLAS)
 
-if (DEFINED SYSTEM_BLAS_ROOT)
-  # If SYSTEM_BLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
-  # libraries based on the explicit path given 
-  message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${SYSTEM_BLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${SYSTEM_BLAS_ROOT}/include/")
-else()
-  message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  set(BLA_STATIC on)
-  # If we want to use a specific BLAS vendor, we could set it here:
-  # by calling: set(BLAS_VENDOR OpenBLAS) 
-  find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
-  message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
+include(FindPackageHandleStandardArgs)
+
+find_package(BLAS)
+find_package(OpenBLAS)
+
+if(OpenBLAS_DIR)
+    set(SystemBLAS_LIBRARIES ${OpenBLAS_LIBRARIES})
+    set(SystemBLAS_INCLUDE_DIRS ${OpenBLAS_INCLUDE_DIRS})
+elseif(BLAS_FOUND)
+    set(SystemBLAS_LIBRARIES ${BLAS_LIBRARIES} ${BLAS_LINKER_FLAGS})
+endif()
+message(STATUS "${SystemBLAS_INCLUDE_DIRS}")
+find_package_handle_standard_args(SystemBLAS REQUIRED_VARS SystemBLAS_LIBRARIES)
+
+if(SystemBLAS_FOUND AND NOT TARGET SystemBLAS::BLAS)
+    add_library(SystemBLAS::BLAS INTERFACE IMPORTED)
+    set_target_properties(SystemBLAS::BLAS PROPERTIES
+        INTERFACE_LINK_LIBRARIES "${SystemBLAS_LIBRARIES}"
+        INTERFACE_INCLUDE_DIRECTORIES "${SystemBLAS_INCLUDE_DIRS}"
+    )
 endif()
