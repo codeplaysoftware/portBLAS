@@ -23,9 +23,7 @@
  *
  **************************************************************************/
 #include "blas_test.hpp"
-#include "operations/blas_operators.hpp"
-#include "blas_meta.h"
-#include "operations/blas1_trees.hpp"
+#include "sycl_blas.hpp"
 typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
 
 
@@ -116,7 +114,7 @@ TYPED_TEST(BLAS_Test, axpy_copy_test) {
   // Now axpy the copied vectors
   auto axpy_scal_op = make_op<ScalarOp, ProductOperator>(alpha, copy_x_to_y);
   auto axpy_add_op = make_op<BinaryOp, AddOperator>(copy_z_to_w, axpy_scal_op);
-  auto copy_axpy_op_tree = make_op<Assign>(copy_z_to_w, axpy_add_op);
+  auto copy_axpy_op_tree = make_op<Assign>(view_vW, axpy_add_op);
 
   auto axpy_ev = ex.execute(copy_axpy_op_tree);
   ex.get_policy_handler().wait(axpy_ev);
@@ -134,31 +132,7 @@ TYPED_TEST(BLAS_Test, axpy_copy_test) {
     }
   }
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
+  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vZ);
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vW);
-
-
-    // Wait for copies 
-  /*auto axpy_ev2 = ex.execute(copy_x_to_y);
-  ex.get_policy_handler().wait(axpy_ev2);
-  auto axpy_ev3 = ex.execute(copy_z_to_w);
-  ex.get_policy_handler().wait(axpy_ev3);*/
-
-
-  /*auto axpy_op_tree = 
-    make_op<Assign> 
-      (view_vY, make_op<BinaryOp, AddOperator>       // y = 
-        (view_vY, make_op<ScalarOp, ProductOperator> // y = y + 
-          (alpha, view_vX)                           // y = y + ax
-        )
-      );
-
-  auto copy_op_tree = 
-    make_op<Assign>
-      (view_vZ, view_vY); // z = y
-*/
-
-/*auto axpy_scal_op = make_op<ScalarOp, ProductOperator>(alpha, view_vY);
-  auto axpy_add_op = make_op<BinaryOp, AddOperator>(view_vW, axpy_scal_op);
-  auto copy_axpy_op_tree = make_op<Assign>(view_vW, axpy_add_op);*/
 
 }

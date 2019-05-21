@@ -33,7 +33,6 @@ include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${
 # compiling tests
 file(GLOB SYCL_EXPRTEST_SRCS
   #${SYCLBLAS_EXPRTEST}/blas1_iface_test.cpp
-  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
 )
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
@@ -58,3 +57,25 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
 
 endforeach()
+
+# header only expression tree tests
+set(SYCL_HEADER_ONLY_EXPRTEST_SRCS
+  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+)
+
+foreach(blas_test ${SYCL_HEADER_ONLY_EXPRTEST_SRCS})
+
+  message(ERROR ${blas_test})
+
+  include_directories(${SYCLBLAS_SRC})
+  get_filename_component(test_exec ${blas_test} NAME_WE)
+  set(test_exec, ${blas_test})
+  add_executable(${test_exec} main.cpp ${blas_test})
+  add_sycl_to_target(TARGET ${test_exec} SOURCES ${blas_test} main.cpp)
+  set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
+  add_dependencies(${test_exec} gtest_main)
+  target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
+  message("-- Created google test ${test_exec}")
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
+endforeach()
+
