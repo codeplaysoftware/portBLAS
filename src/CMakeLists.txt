@@ -23,14 +23,10 @@
 # *
 # **************************************************************************/
 
-add_library(sycl-blas ${sycl_blas_extern_instantiations})
+add_library(sycl-blas)
 add_library(codeplay::sycl-blas ALIAS sycl-blas)
-#add_subdirectory(interface)
 
-function(unary)
-endfunction()
-
-function(generate_binary_interface)
+function(generate_template_instantiations)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" "DIRECTORY" "FUNCTIONS")
     foreach(func ${ARG_FUNCTIONS})
         syclblas_add_binary_function_instantiations(
@@ -42,13 +38,20 @@ function(generate_binary_interface)
     endforeach()
 endfunction()
 
-function(ternary)
-endfunction()
+generate_template_instantiations(
+    DIRECTORY interface/blas1
+    FUNCTIONS axpy asum copy dot_return nrm2 rot nrm2_return swap iamin iamax iamax_return iamin_return scal
+)
 
-unary(asum_return iamax_return iamin_return scal)
-generate_binary_interface(DIRECTORY interface/blas1
-    FUNCTIONS axpy asum copy dot_return nrm2 rot nrm2_return swap iamin iamax)
-ternary(dot) 
+generate_template_instantiations(
+    DIRECTORY interface/blas2
+    FUNCTIONS gemv ger symv syr syr2 trmv
+)
+
+generate_template_instantiations(
+    DIRECTORY interface/blas3
+    FUNCTIONS gemm gemm_launcher
+)
 
 add_subdirectory(policy)
 
@@ -56,6 +59,8 @@ configure_file(config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
 target_include_directories(sycl-blas PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(sycl-blas
     PUBLIC codeplay::sycl-blas-header-only
-    codeplay::computecpp-sdk)
-get_property(sycl_blas_souces TARGET sycl-blas PROPERTY SOURCES)
-add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_souces})
+           codeplay::computecpp-sdk
+)
+
+get_property(sycl_blas_sources TARGET sycl-blas PROPERTY SOURCES)
+add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_sources})
