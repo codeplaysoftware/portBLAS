@@ -31,18 +31,28 @@
 
 namespace blas {
 namespace internal {
+
+{% for policy in policy_types -%}
+{% for index in index_types -%}
+{% for data in data_types -%}
+
 // gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _gemm(
+    Executor<PolicyHandler<{{policy}}>>& ex, char _TransA, char _TransB, {{index}} _M,
+    {{index}} _N, {{index}} _K, {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> a_,
+    {{index}} _lda, BufferIterator<{{data}}, {{policy}}> b_, {{index}} _ldb,
+    {{data}} _beta, ${container_t2} _C, {{index}} _ldc);
 // batched gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} batch_size);
+template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _gemm_batched(
+    Executor<PolicyHandler<{{policy}}>>& ex, char _TransA, char _TransB, {{index}} _M,
+    {{index}} _N, {{index}} _K, {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> a_,
+    {{index}} _lda, BufferIterator<{{data}}, {{policy}}> b_, {{index}} _ldb,
+    {{data}} _beta, ${container_t2} _C, {{index}} _ldc,
+    {{index}} batch_size);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }  // namespace internal
 }  // namespace blas

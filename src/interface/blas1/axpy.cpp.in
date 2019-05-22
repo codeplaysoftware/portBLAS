@@ -33,32 +33,27 @@
 namespace blas {
 namespace internal {
 
-{% for executor in executors -%}
+{% for policy in policy_types -%}
 {% for index in index_types -%}
-{% for increment in index_types -%}
 {% for data in data_types -%}
-{% for container_in in container_in_types -%}
-{% for container_out in container_out_types -%}
+
 /**
  * \brief AXPY constant times a vector plus a vector.
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param Executor<${EXECUTOR}> ex
- * @param _vx  ${container_t0}
+ * @param Executor<PolicyHandler<{{policy}}>> ex
+ * @param _vx  BufferIterator<{{data}}, {{policy}}>
  * @param _incx Increment in X axis
- * @param _vy  ${container_t1}
+ * @param _vy  BufferIterator<{{data}}, {{policy}}>
  * @param _incy Increment in Y axis
  */
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _axpy(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
-    ${INCREMENT_TYPE} _incy);
+template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _axpy(
+    Executor<PolicyHandler<{{policy}}>> &ex, {{index}} _N, {{data}} _alpha,
+    BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx, BufferIterator<{{data}}, {{policy}}> _vy,
+    {{index}} _incy);
 
-{% endfor -%}
-{% endfor -%}
-{% endfor -%}
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}

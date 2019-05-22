@@ -34,25 +34,19 @@
 namespace blas {
 namespace internal {
 
-{% for executor in executors -%}
+{% for policy in policy_types -%}
 {% for index in index_types -%}
-{% for increment in index_types -%}
 {% for data in data_types -%}
-{% for container_in in container_in_types -%}
-{% for container_out in container_out_types -%}
 
 /**
  * \brief _iamax finds the index of the first element having maximum
  * @param _vx  VectorView
  * @param _incx Increment in X axis
- * @param Executor<${EXECUTOR}> ex
+ * @param Executor<PolicyHandler<{{policy}}>> ex
  */
-template ${INDEX_TYPE} _iamax(Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N,
-                              ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
+template {{index}} _iamax(Executor<PolicyHandler<{{policy}}>> &ex, {{index}} _N,
+                              BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx);
 
-{% endfor -%}
-{% endfor -%}
-{% endfor -%}
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}

@@ -34,30 +34,24 @@
 namespace blas {
 namespace internal {
 
-{% for executor in executors -%}
+{% for policy in policy_types -%}
 {% for index in index_types -%}
-{% for increment in index_types -%}
 {% for data in data_types -%}
-{% for container_in in container_in_types -%}
-{% for container_out in container_out_types -%}
 
 /**
  * \brief _asum Takes the sum of the absolute values and return the output
  *
- * @param Executor<PolicyHandler<{{executor}}>> ex
+ * @param Executor<PolicyHandler<PolicyHandler<{{policy}}>>> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
 template
     typename ValueType<{{container_in | eval(data=data, index=index)}}>::type
-        _asum(Executor<{{executor}}> &ex,
+        _asum(Executor<PolicyHandler<{{policy}}>> &ex,
                        {{index}} _N,
-                       {{container_in | eval(data=data, index=index)}} _vx,
-                       {{increment)}} _incx);
+                       BufferIterator<{{data}}, {{policy}}> _vx,
+                       {{index)}} _incx);
 
-{% endfor -%}
-{% endfor -%}
-{% endfor -%}
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}

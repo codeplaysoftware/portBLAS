@@ -26,24 +26,18 @@
 namespace blas {
 namespace internal {
 
-{% for executor in executors -%}
+{% for policy in policy_types -%}
 {% for index in index_types -%}
-{% for increment in index_types -%}
 {% for data in data_types -%}
-{% for container_in in container_in_types -%}
-{% for container_out in container_out_types -%}
 
 /**
  * @brief Constructs given plane rotation
  * Not implemented.
  * template
- * void _rotmg(${DATA_TYPE} &_d1, ${DATA_TYPE} &_d2, ${DATA_TYPE} &_x1,
- *${DATA_TYPE} &_y1, ${container_t0} _param);
+ * void _rotmg({{data}} &_d1, {{data}} &_d2, {{data}} &_x1,
+ *{{data}} &_y1, BufferIterator<{{data}}, {{policy}}> _param);
  **/
 
-{% endfor -%}
-{% endfor -%}
-{% endfor -%}
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}

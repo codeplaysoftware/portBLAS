@@ -35,6 +35,10 @@
 namespace blas {
 namespace internal {
 
+{% for policy in policy_types -%}
+{% for index in index_types -%}
+{% for data in data_types -%}
+
 /*!
  @brief Generalised matrix vector product with rectangular non-symmetric
  matrices.
@@ -66,11 +70,15 @@ namespace internal {
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemv(
-    Executor<${EXECUTOR}>& ex, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
-    ${container_t2} _vy, ${INCREMENT_TYPE} _incy);
+template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _gemv(
+    Executor<PolicyHandler<{{policy}}>>& ex, char _trans, {{index}} _M, {{index}} _N,
+    {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> _mA, {{index}} _lda,
+    BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx, {{data}} _beta,
+    ${container_t2} _vy, {{index}} _incy);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
 
 }  // namespace internal
 }  // namespace blas

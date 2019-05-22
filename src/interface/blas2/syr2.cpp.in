@@ -35,10 +35,19 @@
 namespace blas {
 namespace internal {
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _syr2(
-    Executor<${EXECUTOR}>& ex, char _Uplo, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
-    ${container_t1} _vy, ${INCREMENT_TYPE} _incy, ${container_t2} _mA,
-    ${INDEX_TYPE} _lda);
+{% for policy in policy_types -%}
+{% for index in index_types -%}
+{% for data in data_types -%}
+
+template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _syr2(
+    Executor<PolicyHandler<{{policy}}>>& ex, char _Uplo, {{index}} _N,
+    {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx,
+    BufferIterator<{{data}}, {{policy}}> _vy, {{index}} _incy, ${container_t2} _mA,
+    {{index}} _lda);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }
 }  // end namespace blas

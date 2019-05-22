@@ -49,7 +49,6 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake"
 )
 include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
 include(CTest)
-include(CmakeFunctionHelper)
 
 find_package(PythonInterp 2.7 REQUIRED)
 find_package(ComputeCpp REQUIRED)

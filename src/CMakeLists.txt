@@ -26,6 +26,20 @@
 add_library(sycl-blas)
 add_library(codeplay::sycl-blas ALIAS sycl-blas)
 
+function(syclblas_add_binary_function_instantiations)
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TEMPLATE;MODEL;OUTPUT" "")
+    add_custom_command(OUTPUT ${ARG_OUTPUT}
+        COMMAND ${PROJECT_SOURCE_DIR}/python_generator/jinja.py
+                    --model=${ARG_MODEL} --template=${ARG_TEMPLATE}
+                    --output=${ARG_OUTPUT}
+        MAIN_DEPENDENCY ${ARG_TEMPLATE}
+        DEPENDS ${ARG_MODEL} ${PROJECT_SOURCE_DIR}/python_generator/jinja.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        VERBATIM
+    )
+endfunction()
+
+
 function(generate_template_instantiations)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" "DIRECTORY" "FUNCTIONS")
     foreach(func ${ARG_FUNCTIONS})
@@ -50,7 +64,8 @@ generate_template_instantiations(
 
 generate_template_instantiations(
     DIRECTORY interface/blas3
-    FUNCTIONS gemm gemm_launcher
+    FUNCTIONS gemm
+    #gemm_launcher
 )
 
 add_subdirectory(policy)

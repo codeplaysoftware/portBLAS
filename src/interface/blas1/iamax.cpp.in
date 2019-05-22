@@ -40,12 +40,12 @@ namespace internal {
 
 /**
  * \brief IAMAX finds the index of the first element having maximum
- * @param Executor<${EXECUTOR}> ex
+ * @param Executor<PolicyHandler<{{policy}}>> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
 template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _iamax(
-    Executor<PolicyHandler<{{policy}}>> &ex, {{index}} _N, ${container_t0} _vx,
+    Executor<PolicyHandler<{{policy}}>> &ex, {{index}} _N, BufferIterator<{{data}}, {{policy}}> _vx,
     {{index}} _incx, BufferIterator<IndexValueTuple<{{data}}, {{index}}>, {{policy}}> _rs);
 
 {% endfor -%}
