@@ -24,15 +24,15 @@
 # **************************************************************************/
 cmake_minimum_required(VERSION 3.2.2)
 
-project(syclblas_unittest)
+project(syclblas_exprtest)
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_TEST})
+include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
 # compiling tests
 file(GLOB SYCL_EXPRTEST_SRCS
-  ${SYCLBLAS_EXPRTEST}/blas1_iface_test.cpp
+  #${SYCLBLAS_EXPRTEST}/blas1_iface_test.cpp
 )
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
@@ -54,6 +54,36 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   endif()
   message("-- Created google test ${test_exec}")
-  install(TARGETS ${test_exec} RUNTIME DESTINATION bin)
 
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
+
+  include_directories(${SYCLBLAS_SRC})
+  get_filename_component(test_exec ${blas_test} NAME_WE)
+  set(test_exec, ${blas_test})
+  add_executable(${test_exec} main.cpp ${blas_test})
+  add_sycl_to_target(TARGET ${test_exec} SOURCES ${blas_test} main.cpp)
+  set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
+  add_dependencies(${test_exec} gtest_main)
+  target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
+  message("-- Created google test ${test_exec}")
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
 endforeach()
+
+# header only expression tree tests
+set(SYCL_HEADER_ONLY_EXPRTEST_SRCS
+  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+)
+
+foreach(blas_test ${SYCL_HEADER_ONLY_EXPRTEST_SRCS})
+  include_directories(${SYCLBLAS_SRC})
+  get_filename_component(test_exec ${blas_test} NAME_WE)
+  set(test_exec, ${blas_test})
+  add_executable(${test_exec} main.cpp ${blas_test})
+  add_sycl_to_target(TARGET ${test_exec} SOURCES ${blas_test} main.cpp)
+  set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
+  add_dependencies(${test_exec} gtest_main)
+  target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
+  message("-- Created google test ${test_exec}")
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
+endforeach()
+
