@@ -23,36 +23,32 @@
 # *
 # **************************************************************************/
 
+add_library(sycl-blas ${sycl_blas_extern_instantiations})
+add_library(codeplay::sycl-blas ALIAS sycl-blas)
 #add_subdirectory(interface)
 
 function(unary)
 endfunction()
 
-function(binary dir)
-    foreach(func ${ARGN})
+function(generate_binary_interface)
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "DIRECTORY" "FUNCTIONS")
+    foreach(func ${ARG_FUNCTIONS})
         syclblas_add_binary_function_instantiations(
-            MODEL "${CMAKE_CURRENT_LIST_DIR}/interface//model.yaml"
-            TEMPLATE ${dir}/${func}.cpp.in
-            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp"
+            MODEL "${CMAKE_CURRENT_LIST_DIR}/interface/model.yaml"
+            TEMPLATE ${ARG_DIRECTORY}/${func}.cpp.in
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${ARG_DIRECTORY}/${func}.cpp"
         )
-        list(APPEND sycl_blas_extern_instantiations ${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp)
+        target_sources(sycl-blas PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${ARG_DIRECTORY}/${func}.cpp")
     endforeach()
-    set(sycl_blas_extern_instantiations ${sycl_blas_extern_instantiations} PARENT_SCOPE)
-endfunction()
-
-function(binary_special)
 endfunction()
 
 function(ternary)
 endfunction()
 
 unary(asum_return iamax_return iamin_return scal)
-binary(interface/blas1 axpy asum copy dot_return nrm2 rot nrm2_return swap)
-binary_special(iamin iamax)
-ternary(dot)
-
-add_library(sycl-blas ${sycl_blas_extern_instantiations})
-add_library(codeplay::sycl-blas ALIAS sycl-blas)
+generate_binary_interface(DIRECTORY interface/blas1
+    FUNCTIONS axpy asum copy dot_return nrm2 rot nrm2_return swap iamin iamax)
+ternary(dot) 
 
 add_subdirectory(policy)
 
@@ -61,5 +57,5 @@ target_include_directories(sycl-blas PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(sycl-blas
     PUBLIC codeplay::sycl-blas-header-only
     codeplay::computecpp-sdk)
-#get_property(sycl_blas_souces TARGET sycl-blas PROPERTY SOURCES)
-#add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_extern_instantiations})
+get_property(sycl_blas_souces TARGET sycl-blas PROPERTY SOURCES)
+add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_souces})

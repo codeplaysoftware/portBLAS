@@ -23,7 +23,7 @@
 # *
 # **************************************************************************/
 
-cmake_minimum_required(VERSION 3.14.3)
+cmake_minimum_required(VERSION 3.4.3)
 project(SYCL-BLAS LANGUAGES CXX)
 
 add_compile_options(-fdiagnostics-color -fdiagnostics-show-template-tree)

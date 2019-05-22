@@ -44,15 +44,16 @@ namespace internal {
 /**
  * \brief _asum Takes the sum of the absolute values and return the output
  *
- * @param Executor<PolicyHandler<${EXECUTOR}>> ex
+ * @param Executor<PolicyHandler<{{executor}}>> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
 template
-    typename ValueType<${container_t0}>::type _asum(Executor<${EXECUTOR}> &ex,
-                                                    ${INDEX_TYPE} _N,
-                                                    ${container_t0} _vx,
-                                                    ${INCREMENT_TYPE} _incx);
+    typename ValueType<{{container_in | eval(data=data, index=index)}}>::type
+        _asum(Executor<{{executor}}> &ex,
+                       {{index}} _N,
+                       {{container_in | eval(data=data, index=index)}} _vx,
+                       {{increment)}} _incx);
 
 {% endfor -%}
 {% endfor -%}
