@@ -33,15 +33,30 @@
 
 namespace blas {
 namespace internal {
+
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
+
 /*
  * \brief _asum Takes the sum of the absolute values
- * @param Executor<${ExecutorType}> ex
+ * @param Executor<{{executor}}> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _asum(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1} _rs);
+template typename Executor<{{executor}}>::policy_t::event_t _asum(
+    Executor<{{executor}}> &ex, {{increment}} _N, {{container_in | eval(data=data, index=index)}} _vx,
+    {{increment}} _incx, {{container_out | eval(data=data, index=index)}} _rs);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
 
 }  // namespace internal
 }  // namespace blas

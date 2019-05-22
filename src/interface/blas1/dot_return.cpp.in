@@ -34,6 +34,13 @@
 namespace blas {
 namespace internal {
 
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
+
 /**
  * \brief Compute the inner product of two vectors with extended
     precision accumulation and result.
@@ -47,5 +54,13 @@ namespace internal {
 template typename ValueType<${container_t0}>::type _dot(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }  // namespace internal
 }  // namespace blas

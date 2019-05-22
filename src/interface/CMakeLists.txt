@@ -23,6 +23,29 @@
 # *
 # **************************************************************************/
 
+function(unary)
+endfunction()
+
+function(binary)
+    foreach(func ${ARGV})
+        syclblas_add_binary_function_instantiations(
+            MODEL "${CMAKE_CURRENT_LIST_DIR}/model.yaml"
+            TEMPLATE ${func}.cpp.in
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp"
+        )
+        set(sycl_blas_extern_instantiations ${sycl_blas_extern_instantiations} ${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp)
+    endforeach()
+    set(sycl_blas_extern_instantiations ${sycl_blas_extern_instantiations} PARENT_SCOPE)
+endfunction()
+
+function(binary_special)
+endfunction()
+
+function(ternary)
+endfunction()
+
 add_subdirectory(blas1)
-add_subdirectory(blas2)
-add_subdirectory(blas3)
+#add_subdirectory(blas2)
+#add_subdirectory(blas3)
+
+set(sycl_blas_extern_instantiations ${sycl_blas_extern_instantiations} PARENT_SCOPE)

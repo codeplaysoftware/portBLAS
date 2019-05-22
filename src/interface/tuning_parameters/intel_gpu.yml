@@ -1,0 +1,62 @@
+intel_gpu:
+    - gemm_configuration:
+        - workgroup_size: 256
+          double_buffer: true
+          conflict_a: false
+          conflict_b: false
+          cl_size: 64
+          tir: 4
+          tic: 4
+          twr: 16
+          twc: 16
+          tlr: 1
+          tlc: 1
+          gemm_type: "local_memory"
+        - workgroup_size: 256
+          double_buffer: false
+          conflict_a: false
+          conflict_b: false
+          cl_size: 64
+          tir: 8
+          tic: 8
+          twr: 16
+          twc: 16
+          tlr: 1
+          tlc: 1
+          gemm_type: "no_local_memory"
+        - workgroup_size: 64
+          double_buffer: true
+          conflict_a: false
+          conflict_b: false
+          cl_size: 64
+          tir: 4
+          tic: 4
+          twr: 8
+          twc: 8
+          tlr: 1
+          tlc: 1
+          gemm_type: "local_memory"
+        - workgroup_size: 64
+          double_buffer: false
+          conflict_a: false
+          conflict_b: false
+          cl_size: 64
+          tir: 8
+          tic: 8
+          twr: 8
+          twc: 8
+          tlr: 1
+          tlc: 1
+          gemm_type: "no_local_memory"
+        - workgroup_size: 64
+          double_buffer: true
+          conflict_a: false
+          conflict_b: false
+          cl_size: 64
+          tir: 8
+          tic: 8
+          twr: 8
+          twc: 8
+          tlr: 1
+          tlc: 1
+          gemm_type: "local_memory"

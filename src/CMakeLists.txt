@@ -23,16 +23,43 @@
 # *
 # **************************************************************************/
 
-add_library(sycl-blas)
+#add_subdirectory(interface)
+
+function(unary)
+endfunction()
+
+function(binary dir)
+    foreach(func ${ARGN})
+        syclblas_add_binary_function_instantiations(
+            MODEL "${CMAKE_CURRENT_LIST_DIR}/interface//model.yaml"
+            TEMPLATE ${dir}/${func}.cpp.in
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp"
+        )
+        list(APPEND sycl_blas_extern_instantiations ${CMAKE_CURRENT_BINARY_DIR}/${func}.cpp)
+    endforeach()
+    set(sycl_blas_extern_instantiations ${sycl_blas_extern_instantiations} PARENT_SCOPE)
+endfunction()
+
+function(binary_special)
+endfunction()
+
+function(ternary)
+endfunction()
+
+unary(asum_return iamax_return iamin_return scal)
+binary(interface/blas1 axpy asum copy dot_return nrm2 rot nrm2_return swap)
+binary_special(iamin iamax)
+ternary(dot)
+
+add_library(sycl-blas ${sycl_blas_extern_instantiations})
 add_library(codeplay::sycl-blas ALIAS sycl-blas)
 
 add_subdirectory(policy)
-#add_subdirectory(interface)
 
 configure_file(config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
 target_include_directories(sycl-blas PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(sycl-blas
     PUBLIC codeplay::sycl-blas-header-only
     codeplay::computecpp-sdk)
-get_property(sycl_blas_souces TARGET sycl-blas PROPERTY SOURCES)
-add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_souces})
+#get_property(sycl_blas_souces TARGET sycl-blas PROPERTY SOURCES)
+#add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_extern_instantiations})

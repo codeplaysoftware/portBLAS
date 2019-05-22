@@ -34,6 +34,13 @@
 namespace blas {
 namespace internal {
 
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
+
 /**
  * ROTG.
  * @brief Constructs given plane rotation
@@ -42,5 +49,13 @@ namespace internal {
  * void _rotg(${DATA_TYPE} &_alpha, ${DATA_TYPE} &_beta, ${DATA_TYPE} &_cos,
  *${DATA_TYPE} &_sin);
  **/
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }  // namespace internal
 }  // namespace blas

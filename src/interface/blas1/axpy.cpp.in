@@ -33,6 +33,12 @@
 namespace blas {
 namespace internal {
 
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
 /**
  * \brief AXPY constant times a vector plus a vector.
  *
@@ -49,5 +55,13 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t _axpy(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
     ${INCREMENT_TYPE} _incy);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }  // namespace internal
 }  // end namespace blas

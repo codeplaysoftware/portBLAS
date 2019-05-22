@@ -34,6 +34,13 @@
 namespace blas {
 namespace internal {
 
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
+
 /**
  * @brief _rot constructor given plane rotation
  * @param Executor<ExecutorType> ex
@@ -49,5 +56,13 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t _rot(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${DATA_TYPE} _cos, ${DATA_TYPE} _sin);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 }  // namespace internal
 }  // namespace blas

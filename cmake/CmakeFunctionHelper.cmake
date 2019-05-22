@@ -22,60 +22,6 @@
 # *  @filename CmakeFUnctionHelper.cmake
 # *
 # **************************************************************************/
-# represent the list of supported handler for executor
-set(executor_list "PolicyHandler<codeplay_policy>")
-#represent the list of supported index/increment type
-set(index_list "int" )
-#represent the list of supported data type.
-#Each data type in a data list determines the container types.
-#The container type for SYCLbackend is BufferIterator<${data}, codeplay_policy>
-set(data_list "float")
-#if double supported we add double as a data type
-if(DOUBLE_SUPPORT)
-  list(APPEND data_list "double")
-endif()
-
-## represent the list of bolean options
-set(boolean_list "true" "false")
-
-# gemm_configuration(work_group_size, double_buffer, conflict_a, conflict_b,
-#                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem)
-set(gemm_configuration_lists "")
-
-#intel GPU
-if(${TARGET} STREQUAL "INTEL_GPU")
-  set(gemm_configuration_0 256 "true" "false" "false" 64 4 4 16 16 1 1 "local_memory")
-  set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "no_local_memory")
-  set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory")
-  set(gemm_configuration_3 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local_memory")
-  set(gemm_configuration_4 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
-                                       gemm_configuration_2 gemm_configuration_3
-                                       gemm_configuration_4)
-elseif(${TARGET} STREQUAL "RCAR") # need investigation
-
-  set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local_memory")
-  set(gemm_configuration_1 32 "false" "false" "false" 128 8 4 4 8 1 1 "local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
-elseif(${TARGET} STREQUAL "ARM_GPU")
-  set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local_memory")
-  set(gemm_configuration_1 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local_memory")
-  set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
-                                       gemm_configuration_2)
-elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
-  set(gemm_configuration_0 256 "true" "false" "false" 64 1 1 16 16 1 1 "local_memory")
-  set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
-else() # default cpu backend
-  set(gemm_type "no_local_memory" )
-  if(NAIVE_GEMM)
-    set(gemm_type "naive")
-  endif()
-  set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "${gemm_type}")
-  set(gemm_configuration_lists "")
-  list(APPEND gemm_configuration_lists gemm_configuration_0)
-endif()
 
 # blas unary function for generating source code
 function(generate_blas_unary_objects blas_level func)
@@ -117,45 +63,18 @@ endfunction(generate_blas_unary_objects)
 
 
 # blas binary function for generating source code
-function(generate_blas_binary_objects blas_level func)
-    set(LOCATION "${PROJECT_SOURCE_DIR}/src/interface/${blas_level}/${func}/")
-    foreach(executor ${executor_list})
-      foreach(data ${data_list})
-        set(container_list "BufferIterator<${data},codeplay_policy>")
-        foreach(index ${index_list})
-          foreach(container0 ${container_list})
-            foreach(container1 ${container_list})
-              foreach(increment ${index_list})
-                set(file_name "${func}_${executor}_${data}_${index}_${container0}_${container1}_${increment}.cpp")
-                STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-                STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
-                add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                  COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-                    ${PROJECT_SOURCE_DIR}/external/
-                    ${SYCLBLAS_SRC_GENERATOR}/gen
-                    ${blas_level}
-                    ${func}
-                    ${PROJECT_SOURCE_DIR}/src/interface/${blas_level}/${func}.cpp.in
-                    ${executor}
-                    ${data}
-                    ${index}
-                    ${increment}
-                    ${container0}
-                    ${container1}
-                    ${file_name}
-                  MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/src/interface/${blas_level}/${func}.cpp.in
-                  DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                  VERBATIM
-                )
-                list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-                endforeach(increment)
-            endforeach(container1)
-          endforeach(container0)
-        endforeach(index)
-      endforeach(data)
-    endforeach(executor)
-endfunction(generate_blas_binary_objects)
+function(syclblas_add_binary_function_instantiations)
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TEMPLATE;MODEL;OUTPUT" "")
+    add_custom_command(OUTPUT ${ARG_OUTPUT}
+        COMMAND ${PROJECT_SOURCE_DIR}/python_generator/jinja.py
+                    --model=${ARG_MODEL} --template=${ARG_TEMPLATE}
+                    --output=${ARG_OUTPUT}
+        MAIN_DEPENDENCY ${ARG_TEMPLATE}
+        DEPENDS ${ARG_MODEL} ${PROJECT_SOURCE_DIR}/python_generator/jinja.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        VERBATIM
+    )
+endfunction()
 
 
 

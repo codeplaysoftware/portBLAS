@@ -33,6 +33,14 @@
 
 namespace blas {
 namespace internal {
+
+{% for executor in executors -%}
+{% for index in index_types -%}
+{% for increment in index_types -%}
+{% for data in data_types -%}
+{% for container_in in container_in_types -%}
+{% for container_out in container_out_types -%}
+
 /**
  * \brief _asum Takes the sum of the absolute values and return the output
  *
@@ -45,6 +53,13 @@ template
                                                     ${INDEX_TYPE} _N,
                                                     ${container_t0} _vx,
                                                     ${INCREMENT_TYPE} _incx);
+
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
 
 }  // namespace internal
 }  // namespace blas
