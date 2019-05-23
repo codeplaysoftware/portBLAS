@@ -74,7 +74,7 @@ template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _gemv(
     Executor<PolicyHandler<{{policy}}>>& ex, char _trans, {{index}} _M, {{index}} _N,
     {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> _mA, {{index}} _lda,
     BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx, {{data}} _beta,
-    ${container_t2} _vy, {{index}} _incy);
+    BufferIterator<{{data}}, {{policy}}> _vy, {{index}} _incy);
 
 {% endfor -%}
 {% endfor -%}

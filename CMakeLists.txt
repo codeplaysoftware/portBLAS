@@ -26,10 +26,6 @@
 cmake_minimum_required(VERSION 3.4.3)
 project(SYCL-BLAS LANGUAGES CXX)
 
-add_compile_options(-fdiagnostics-color -fdiagnostics-show-template-tree)
-#add_link_options(-fuse-ld=lld -Xlinker --color-diagnostics)
-set(COMPUTECPP_USER_FLAGS -fdiagnostics-color -fdiagnostics-show-template-tree)
-
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -44,13 +40,11 @@ set(TARGET "DEFAULT_CPU" CACHE STRING "Defines the platform for which the sycl l
 set_property(CACHE TARGET PROPERTY STRINGS
     DEFAULT_CPU INTEL_GPU AMD_GPU ARM_GPU RCAR ARM_GPU)
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake"
-                              "${PROJECT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules"
-)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include("${CMAKE_BINARY_DIR}/conan_paths.cmake" OPTIONAL)
 include(CTest)
 
-find_package(PythonInterp 2.7 REQUIRED)
+add_subdirectory(external)
 find_package(ComputeCpp REQUIRED)
 
 list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS
@@ -67,7 +61,6 @@ endif()
 if(WG_SIZE)
   add_definitions(-DWG_SIZE=${WG_SIZE})
 endif()
-
 if(NAIVE_GEMM)
   add_definitions(-DNAIVE_GEMM)
 endif()
@@ -86,8 +79,8 @@ install(TARGETS sycl-blas-header-only
     ARCHIVE DESTINATION lib
 )
 
-add_subdirectory(external)
 add_subdirectory(src bin)
+add_subdirectory(tools)
 
 if(BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
@@ -95,9 +88,6 @@ endif()
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()
-
-add_subdirectory(tools)
-
 
 export(EXPORT SYCLBlasTargets
   FILE "${PROJECT_BINARY_DIR}/sycl-blas-targets.cmake"

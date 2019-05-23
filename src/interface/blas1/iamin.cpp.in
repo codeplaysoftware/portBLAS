@@ -46,7 +46,7 @@ namespace internal {
  */
 template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _iamin(
     Executor<PolicyHandler<{{policy}}>> &ex, {{index}} _N, BufferIterator<{{data}}, {{policy}}> _vx,
-    {{index}} _incx, BufferIterator<{{data}}, {{policy}}> _rs);
+    {{index}} _incx, BufferIterator<IndexValueTuple<{{data}}, {{index}}>, {{policy}}> _rs);
 
 {% endfor -%}
 {% endfor -%}

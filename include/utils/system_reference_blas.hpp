@@ -70,6 +70,8 @@ CBLAS_DIAG c_diag(char x) {
     case 'n':
     case 'N':
       return CblasNonUnit;
+    default:
+      assert(!"unknown case");
   }
 }
 

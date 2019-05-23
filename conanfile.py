@@ -34,6 +34,8 @@ class SyclblasConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
+        cmake.definitions["BUILD_TESTING"] = self.options.build_testing
+        cmake.definitions["BUILD_BENCHMARKS"] = self.options.build_benchmarks
         cmake.configure()
         cmake.build()
         if self.options.build_testing:

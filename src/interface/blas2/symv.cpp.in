@@ -43,7 +43,7 @@ template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t _symv(
     Executor<PolicyHandler<{{policy}}>>& ex, char _Uplo, {{index}} _N,
     {{data}} _alpha, BufferIterator<{{data}}, {{policy}}> _mA, {{index}} _lda,
     BufferIterator<{{data}}, {{policy}}> _vx, {{index}} _incx, {{data}} _beta,
-    ${container_t2} _vy, {{index}} _incy);
+    BufferIterator<{{data}}, {{policy}}> _vy, {{index}} _incy);
 
 {% endfor -%}
 {% endfor -%}
