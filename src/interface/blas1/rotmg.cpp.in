@@ -23,6 +23,7 @@
  *  @filename rotmg.cpp.in
  *
  **************************************************************************/
+
 namespace blas {
 namespace internal {
 

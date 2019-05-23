@@ -26,15 +26,14 @@
 #ifndef SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 #define SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 
+#include "../executors/executor.h"
+#include "../operations/blas3_trees.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-#include "executors/executor.h"
-#include "operations/blas3_trees.h"
 
 namespace blas {
 

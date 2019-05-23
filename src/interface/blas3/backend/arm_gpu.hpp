@@ -22,8 +22,10 @@
  *  @filename arm_gpu.hpp
  *
  **************************************************************************/
+
 #ifndef SYCL_BLAS_GEMM_ARM_GPU_BACKEND_HPP
 #define SYCL_BLAS_GEMM_ARM_GPU_BACKEND_HPP
+
 #include "interface/gemm_launcher.h"
 
 namespace blas {

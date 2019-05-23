@@ -26,7 +26,6 @@
 #define SYCL_BLAS_BLAS3_TREES_GEMM_H
 
 #include <CL/sycl.hpp>
-
 #include <string>
 #include <type_traits>
 

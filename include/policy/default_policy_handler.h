@@ -25,6 +25,7 @@
 
 #ifndef SYCL_BLAS_DEFAULT_POLICY_H
 #define SYCL_BLAS_DEFAULT_POLICY_H
+
 namespace blas {
 
 template <typename blas_policy_t>

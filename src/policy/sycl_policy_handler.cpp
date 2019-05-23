@@ -24,9 +24,10 @@
 
 #ifndef SYCL_BLAS_POLICY_HANDLER_CPP
 #define SYCL_BLAS_POLICY_HANDLER_CPP
+
 #include "operations/blas_constants.h"
-// the templated methods
-#include "policy/sycl_policy_handler.hpp"
+#include "sycl_policy_handler.hpp"
+
 namespace blas {
 
 #define INSTANTIATE_TEMPLATE_METHODS(element_t)                                \

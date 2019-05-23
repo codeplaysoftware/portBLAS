@@ -26,18 +26,17 @@
 #ifndef SYCL_BLAS_BLAS3_LAUNCHER_HPP
 #define SYCL_BLAS_BLAS3_LAUNCHER_HPP
 
+#include "executors/executor.h"
+#include "interface/gemm_launcher.h"
+#include "operations/blas3_trees.h"
+#include "operations/blas_constants.hpp"
+#include "types/access_types.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-#include "executors/executor.h"
-#include "interface/gemm_launcher.h"
-#include "operations/blas3_trees.h"
-#include "operations/blas_constants.hpp"
-#include "types/access_types.h"
 
 namespace blas {
 

@@ -25,7 +25,7 @@
 #ifndef SYCL_BLAS_SYCL_POLICY_H
 #define SYCL_BLAS_SYCL_POLICY_H
 
-#include "blas_meta.h"
+#include "../blas_meta.h"
 #include <CL/sycl.hpp>
 #include <stdexcept>
 

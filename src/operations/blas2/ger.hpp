@@ -26,8 +26,8 @@
 #ifndef GER_HPP
 #define GER_HPP
 
-#include <operations/blas2_trees.h>
-#include <operations/blas_operators.hpp>
+#include "../blas_operators.hpp"
+#include "operations/blas2_trees.h"
 #include <stdexcept>
 #include <vector>
 #include <views/view_sycl.hpp>

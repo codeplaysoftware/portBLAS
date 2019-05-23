@@ -26,8 +26,7 @@
 #ifndef SYCL_BLAS_VIEW_H
 #define SYCL_BLAS_VIEW_H
 
-#include "blas_meta.h"
-
+#include "../blas_meta.h"
 #include <iostream>
 #include <stdexcept>
 #include <vector>

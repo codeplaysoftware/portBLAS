@@ -26,11 +26,6 @@
 #ifndef SYCL_BLAS_BLAS1_INTERFACE_HPP
 #define SYCL_BLAS_BLAS1_INTERFACE_HPP
 
-#include <cmath>
-#include <iostream>
-#include <stdexcept>
-#include <vector>
-
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
 #include "executors/executor.h"
@@ -38,6 +33,10 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+#include <vector>
 
 namespace blas {
 namespace internal {

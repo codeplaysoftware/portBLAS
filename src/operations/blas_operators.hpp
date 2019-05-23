@@ -27,14 +27,12 @@
 #ifndef SYCL_BLAS_OPERATORS_HPP
 #define SYCL_BLAS_OPERATORS_HPP
 
+#include "blas_constants.hpp"
+#include "operations/blas_operators.h"
+#include <CL/sycl.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-#include <CL/sycl.hpp>
-
-#include "operations/blas_constants.hpp"
-#include "operations/blas_operators.h"
 
 namespace blas {
 struct Operators {};

@@ -25,7 +25,7 @@
 #ifndef SYCL_BLAS_ACCESS_TYPES_H
 #define SYCL_BLAS_ACCESS_TYPES_H
 
-#include "types/transposition_types.h"
+#include "transposition_types.h"
 #include <stdexcept>
 
 /**

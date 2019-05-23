@@ -25,7 +25,9 @@
 
 #ifndef SYCL_BLAS_META_H
 #define SYCL_BLAS_META_H
+
 #include <vector>
+
 namespace blas {
 
 // choosing value at compile-time

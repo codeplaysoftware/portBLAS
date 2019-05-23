@@ -22,32 +22,19 @@
  *  @filename sycl_blas.hpp
  *
  **************************************************************************/
-#include "sycl_blas.h"
 
 #include "container/sycl_iterator.hpp"
-
 #include "executors/executor_sycl.hpp"
-
 #include "executors/kernel_constructor.hpp"
-
 #include "interface/blas1_interface.hpp"
-
 #include "interface/blas2_interface.hpp"
-
 #include "interface/blas3_interface.hpp"
-
 #include "interface/gemm_launcher.hpp"
-
 #include "operations/blas1_trees.hpp"
-
 #include "operations/blas2_trees.hpp"
-
 #include "operations/blas3_trees.hpp"
-
 #include "operations/blas_constants.hpp"
-
 #include "operations/blas_operators.hpp"
-
 #include "policy/sycl_policy_handler.hpp"
-
+#include "sycl_blas.h"
 #include "views/view_sycl.hpp"

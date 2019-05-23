@@ -55,16 +55,6 @@ list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS
     -Xclang -cl-mad-enable
 )
 
-if(DOUBLE_SUPPORT)
-  add_definitions(-DDOUBLE_SUPPORT)
-endif()
-if(WG_SIZE)
-  add_definitions(-DWG_SIZE=${WG_SIZE})
-endif()
-if(NAIVE_GEMM)
-  add_definitions(-DNAIVE_GEMM)
-endif()
-
 add_library(sycl-blas-header-only INTERFACE)
 add_library(codeplay::sycl-blas-header-only ALIAS sycl-blas-header-only)
 target_include_directories(sycl-blas-header-only INTERFACE
@@ -97,8 +87,8 @@ configure_file(cmake/sycl-blas-config.cmake
     COPYONLY)
 
 set(config_package_location lib/cmake/SYCL-BLAS)
-install(DIRECTORY include
-	    DESTINATION .
+install(DIRECTORY include/
+	    DESTINATION include/sycl-blas
 		COMPONENT Devel)
 install(EXPORT SYCLBlasTargets
   FILE sycl-blas-targets.cmake

@@ -22,8 +22,10 @@
  *  @filename default_cpu.hpp
  *
  **************************************************************************/
+
 #ifndef SYCL_BLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
 #define SYCL_BLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
+
 #include "interface/gemm_launcher.h"
 
 namespace blas {

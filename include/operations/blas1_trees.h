@@ -25,7 +25,8 @@
 
 #ifndef SYCL_BLAS_BLAS1_TREES_H
 #define SYCL_BLAS_BLAS1_TREES_H
-#include "operations/blas_constants.h"
+
+#include "blas_constants.h"
 #include <CL/sycl.hpp>
 #include <stdexcept>
 #include <vector>

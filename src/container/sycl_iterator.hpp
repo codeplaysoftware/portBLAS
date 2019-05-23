@@ -24,5 +24,7 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_BUFFER_ITERATOR_HPP
 #define SYCL_BLAS_BUFFER_ITERATOR_HPP
+
 #include "container/sycl_iterator.h"
+
 #endif  // BLAS_SYCL_ITERATOR_HPP

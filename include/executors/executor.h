@@ -25,11 +25,11 @@
 
 #ifndef SYCL_BLAS_EXECUTOR_H
 #define SYCL_BLAS_EXECUTOR_H
-#include "blas_meta.h"
-#include "operations/blas1_trees.h"
-#include "operations/blas2_trees.h"
-#include "operations/blas3_trees.h"
-#include "policy/policy_handler.h"
+#include "../blas_meta.h"
+#include "../operations/blas1_trees.h"
+#include "../operations/blas2_trees.h"
+#include "../operations/blas3_trees.h"
+#include "../policy/policy_handler.h"
 namespace blas {
 
 /** Executor.

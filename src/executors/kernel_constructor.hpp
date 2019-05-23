@@ -24,9 +24,11 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
 #define SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
+
 #include "executors/kernel_constructor.h"
 #include <CL/sycl.hpp>
 #include <iostream>
+
 namespace blas {
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.

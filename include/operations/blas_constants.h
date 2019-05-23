@@ -26,10 +26,10 @@
 #ifndef SYCL_BLAS_CONSTANTS_H
 #define SYCL_BLAS_CONSTANTS_H
 
+#include "../blas_meta.h"
 #include <complex>
 #include <limits>
-//#include <utility>
-#include "blas_meta.h"
+
 namespace blas {
 
 /*!
@@ -106,7 +106,7 @@ struct constant<IndexValueTuple<value_t, index_t>, const_val::imax> {
   constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
     return IndexValueTuple<value_t, index_t>(
         std::numeric_limits<index_t>::max(),
-        static_cast<value_t>(0)); // This is used for absolute max, -1 == 1
+        static_cast<value_t>(0));  // This is used for absolute max, -1 == 1
   }
 };
 

@@ -25,5 +25,5 @@
 
 #ifndef SYCL_BLAS_CONSTANTS_HPP
 #define SYCL_BLAS_CONSTANTS_HPP
-#include "operations/blas_constants.h"
+
 #endif  // BLAS_CONSTANTS_HPP

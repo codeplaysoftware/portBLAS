@@ -24,7 +24,7 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_ITERATOR_H
 #define SYCL_BLAS_ITERATOR_H
-#include "blas_meta.h"
+#include "../blas_meta.h"
 #include <CL/sycl.hpp>
 
 namespace blas {

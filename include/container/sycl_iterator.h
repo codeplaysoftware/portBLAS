@@ -24,9 +24,9 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_BUFFER_ITERATOR_H
 #define SYCL_BLAS_BUFFER_ITERATOR_H
-#include "blas_meta.h"
-#include "container/blas_iterator.h"
-#include "policy/sycl_policy.h"
+#include "../blas_meta.h"
+#include "../policy/sycl_policy.h"
+#include "blas_iterator.h"
 #include <CL/sycl.hpp>
 namespace blas {
 /*!

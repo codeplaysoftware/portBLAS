@@ -26,12 +26,11 @@
 #ifndef SYCL_BLAS_VIEW_SYCL_HPP
 #define SYCL_BLAS_VIEW_SYCL_HPP
 
-#include <CL/sycl.hpp>
-
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
 #include "types/access_types.h"
 #include "views/view.h"
+#include <CL/sycl.hpp>
 
 namespace blas {
 

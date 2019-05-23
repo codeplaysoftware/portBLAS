@@ -29,12 +29,11 @@
 #ifndef CLI_DEVICE_SELECTOR_HPP
 #define CLI_DEVICE_SELECTOR_HPP
 
+#include "extract_vendor_type.hpp"
 #include <CL/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
-
-#include "extract_vendor_type.hpp"
 
 namespace utils {
 

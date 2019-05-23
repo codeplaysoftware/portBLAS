@@ -25,7 +25,7 @@
 #ifndef SYCL_BLAS_BLAS3_TREES_GEMM_HPP
 #define SYCL_BLAS_BLAS3_TREES_GEMM_HPP
 
-#include "operations/blas3_trees.h"
+#include "blas3_trees.h"
 #include "views/view.h"
 #include <CL/sycl.hpp>
 #include <string>
@@ -1193,13 +1193,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       return;
     }
     extract_block<check_m_limit, check_k_limit, trans_a, block_rows, cl_elems,
-                  ldsa>(item_id, A, lda, sA,
-                        [&](index_t ir, index_t cr) { return cr < m; },
-                        [&](index_t ic, index_t cc) { return cc < k - ic; });
+                  ldsa>(
+        item_id, A, lda, sA, [&](index_t ir, index_t cr) { return cr < m; },
+        [&](index_t ic, index_t cc) { return cc < k - ic; });
     extract_block<check_k_limit, check_n_limit, trans_b, cl_elems, block_cols,
-                  ldsb>(item_id, B, ldb, sB,
-                        [&](index_t ir, index_t cr) { return cr < k - ir; },
-                        [&](index_t ic, index_t cc) { return cc < n; });
+                  ldsb>(
+        item_id, B, ldb, sB,
+        [&](index_t ir, index_t cr) { return cr < k - ir; },
+        [&](index_t ic, index_t cc) { return cc < n; });
   }
 
   /*!

@@ -23,42 +23,23 @@
  *
  **************************************************************************/
 
-#include <CL/sycl.hpp>
-
 #include "blas_meta.h"
-
-#include "policy/sycl_policy.h"
-
 #include "container/blas_iterator.h"
-
 #include "container/sycl_iterator.h"
-
 #include "executors/executor.h"
-
 #include "executors/kernel_constructor.h"
-
 #include "interface/blas1_interface.h"
-
-#include "types/access_types.h"
-
-#include "types/transposition_types.h"
-
 #include "interface/blas2_interface.h"
-
 #include "interface/blas3_interface.h"
-
 #include "interface/gemm_launcher.h"
-
 #include "operations/blas1_trees.h"
-
 #include "operations/blas2_trees.h"
-
 #include "operations/blas3_trees.h"
-
 #include "operations/blas_constants.h"
-
 #include "operations/blas_operators.h"
-
 #include "policy/policy_handler.h"
-
+#include "policy/sycl_policy.h"
+#include "types/access_types.h"
+#include "types/transposition_types.h"
 #include "views/view.h"
+#include <CL/sycl.hpp>

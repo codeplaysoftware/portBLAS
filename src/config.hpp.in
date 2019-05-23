@@ -1,6 +1,10 @@
 #ifndef SYCL_BLAS_CONFIG_HPP
 #define SYCL_BLAS_CONFIG_HPP
 
+#cmakedefine DOUBLE_SUPPPORT
+#cmakedefine WG_SIZE
+#cmakedefine NAIVE_GEMM
+
 #cmakedefine01 INTEL_GPU
 #cmakedefine01 AMD_GPU
 #cmakedefine01 ARM_GPU

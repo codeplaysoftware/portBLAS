@@ -24,7 +24,7 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_BLAS1_INTERFACE_H
 #define SYCL_BLAS_BLAS1_INTERFACE_H
-#include "blas_meta.h"
+#include "../blas_meta.h"
 
 namespace blas {
 namespace internal {

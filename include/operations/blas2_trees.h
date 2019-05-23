@@ -25,6 +25,7 @@
 
 #ifndef SYCL_BLAS_BLAS2_TREES_H
 #define SYCL_BLAS_BLAS2_TREES_H
+
 namespace blas {
 template <typename output_t, typename matrix_t, typename vector_t>
 struct Gemv {

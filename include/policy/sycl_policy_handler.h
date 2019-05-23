@@ -25,10 +25,10 @@
 #ifndef SYCL_BLAS_SYCL_POLICY_HANDLER_H
 #define SYCL_BLAS_SYCL_POLICY_HANDLER_H
 
-#include "blas_meta.h"
-#include "container/sycl_iterator.h"
-#include "policy/default_policy_handler.h"
-#include "policy/sycl_policy.h"
+#include "../blas_meta.h"
+#include "../container/sycl_iterator.h"
+#include "default_policy_handler.h"
+#include "sycl_policy.h"
 #include <CL/sycl.hpp>
 #include <stdexcept>
 #include <vptr/virtual_ptr.hpp>
