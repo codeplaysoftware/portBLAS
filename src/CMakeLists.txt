@@ -79,5 +79,6 @@ target_link_libraries(sycl-blas
            codeplay::computecpp-sdk
 )
 
+get_property(sycl_blas_sources TARGET sycl-blas PROPERTY SOURCES)
 add_sycl_to_target(TARGET sycl-blas SOURCES ${sycl_blas_sources})
 

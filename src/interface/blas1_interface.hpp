@@ -27,12 +27,9 @@
 #define SYCL_BLAS_BLAS1_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "container/sycl_iterator.h"
-#include "executors/executor.h"
 #include "interface/blas1_interface.h"
-#include "operations/blas1_trees.h"
-#include "operations/blas_constants.h"
-#include "operations/blas_operators.hpp"
+#include "operations/blas1_trees.hpp"
+#include "views/view.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

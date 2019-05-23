@@ -27,7 +27,7 @@
 #define SYCL_BLAS_BLAS1_TREES_HPP
 
 #include "operations/blas1_trees.h"
-#include "operations/blas_operators.hpp"
+#include "blas_operators.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
