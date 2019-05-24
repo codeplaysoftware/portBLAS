@@ -23,6 +23,8 @@
 # *
 # **************************************************************************/
 
+find_package(Clara REQUIRED)
+
 set(sources
     blas1/blas1_axpy_test.cpp
     blas1/blas1_copy_test.cpp
@@ -48,7 +50,7 @@ set(sources
     buffers/sycl_buffer_test.cpp
 )
 add_executable(unittests main.cpp ${sources})
-target_link_libraries(unittests PRIVATE test_common)
+target_link_libraries(unittests PRIVATE test_common Clara::Clara)
 add_sycl_to_target(TARGET unittests SOURCES ${sources})
 
 if(STRESS_TESTING)

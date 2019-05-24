@@ -33,25 +33,44 @@
 #include "views/view_sycl.hpp"
 
 namespace blas {
+
+{% for gemm in gemm_configurations -%}
+{% for transpose_a in ["false", "true"] -%}
+{% for transpose_b in ["false", "true"] -%}
+{% for is_beta_zero in ["false", "true"] -%}
+
 template class Gemm_Launcher<
-    ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
-    ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>;
+        {{gemm.workgroup_size}}, {{gemm.double_buffer}}, {{gemm.bank_conflict_a}}, {{gemm.bank_conflict_b}}, {{gemm.cache_line_size}},
+    Tile<{{gemm.tile_item_row}}, {{gemm.tile_item_col}}, {{gemm.tile_workgroup_row}}, {{gemm.tile_workgroup_col}}, {{gemm.tile_block_row}}, {{gemm.tile_block_col}}>, {{transpose_a}},
+    {{transpose_b}}, static_cast<int>(Gemm_t::{{gemm.type}}), {{is_beta_zero}}>;
+
+{% for policy in policy_types -%}
+{% for index in index_types -%}
+{% for data in data_types -%}
 
 template typename Executor<PolicyHandler<{{policy}}>>::policy_t::event_t Gemm_Launcher<
-    ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
-    ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>::
+    {{gemm.workgroup_size}}, {{gemm.double_buffer}}, {{gemm.bank_conflict_a}}, {{gemm.bank_conflict_b}}, {{gemm.cache_line_size}},
+    Tile<{{gemm.tile_item_row}}, {{gemm.tile_item_col}}, {{gemm.tile_workgroup_row}}, {{gemm.tile_workgroup_col}}, {{gemm.tile_block_row}}, {{gemm.tile_block_col}}>, {{transpose_a}},
+    {{transpose_b}}, static_cast<int>(Gemm_t::{{gemm.type}}), {{is_beta_zero}}>::
     _select_gemm<Executor<PolicyHandler<{{policy}}>>,
-                 BufferIterator<{{data}}, codeplay_policy>,
-                 BufferIterator<{{data}}, codeplay_policy>,
-                 BufferIterator<{{data}}, codeplay_policy>, {{data}},
+                 BufferIterator<{{data}}, {{policy}}>,
+                 BufferIterator<{{data}}, {{policy}}>,
+                 BufferIterator<{{data}}, {{policy}}>, {{data}},
                  {{index}}>(
         Executor<PolicyHandler<{{policy}}>>& ex, {{index}} _M, {{index}} _N,
         {{index}} _K, {{data}} _alpha,
-        BufferIterator<{{data}}, codeplay_policy> a_, {{index}} _lda,
-        BufferIterator<{{data}}, codeplay_policy> b_, {{index}} _ldb,
-        {{data}} _beta, BufferIterator<{{data}}, codeplay_policy> _C,
+        BufferIterator<{{data}}, {{policy}}> a_, {{index}} _lda,
+        BufferIterator<{{data}}, {{policy}}> b_, {{index}} _ldb,
+        {{data}} _beta, BufferIterator<{{data}}, {{policy}}> _C,
         {{index}} _ldc, {{index}} batch_size);
+        
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+{% endfor -%}
+
 
 }  // namespace blas

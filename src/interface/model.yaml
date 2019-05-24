@@ -8,3 +8,29 @@ data_types:
 
 policy_types:
   - codeplay_policy
+
+gemm_configurations:
+  - workgroup_size: 64
+    double_buffer: "false"
+    bank_conflict_a: "false"
+    bank_conflict_b: "false"
+    cache_line_size: 64
+    tile_item_row: 8
+    tile_item_col: 8
+    tile_workgroup_row: 8
+    tile_workgroup_col: 8
+    tile_block_row: 1
+    tile_block_col: 1
+    type: "no_local_memory"
+  - workgroup_size: 64
+    double_buffer: "false"
+    bank_conflict_a: "false"
+    bank_conflict_b: "false"
+    cache_line_size: 64
+    tile_item_row: 8
+    tile_item_col: 8
+    tile_workgroup_row: 8
+    tile_workgroup_col: 8
+    tile_block_row: 1
+    tile_block_col: 1
+    type: "naive"

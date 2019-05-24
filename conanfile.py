@@ -26,10 +26,12 @@ class SyclblasConan(ConanFile):
 
     def build_requirements(self):
         if self.options.build_testing:
-            self.build_requires("gtest/1.8.1@bincrafters/stable")
+            self.build_requires("gtest/1.9.0-master.20190523@mmha/stable")
             self.build_requires("openblas/0.3.5@conan/stable")
+            self.build_requires("clblast/1.5.0@mmha/stable")
         if self.options.build_benchmarks:
             self.build_requires("google-benchmark/1.4.1@mpusz/stable")
+        if self.options.build_testing or self.options.build_benchmarks:
             self.build_requires("clara/1.1.5@bincrafters/stable")
 
     def build(self):

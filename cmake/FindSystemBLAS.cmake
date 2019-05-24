@@ -27,6 +27,7 @@ include(FindPackageHandleStandardArgs)
 
 find_package(BLAS)
 find_package(OpenBLAS)
+find_package(Threads REQUIRED)
 
 if(OpenBLAS_DIR)
     set(SystemBLAS_LIBRARIES ${OpenBLAS_LIBRARIES})
@@ -40,7 +41,7 @@ find_package_handle_standard_args(SystemBLAS REQUIRED_VARS SystemBLAS_LIBRARIES)
 if(SystemBLAS_FOUND AND NOT TARGET SystemBLAS::BLAS)
     add_library(SystemBLAS::BLAS INTERFACE IMPORTED)
     set_target_properties(SystemBLAS::BLAS PROPERTIES
-        INTERFACE_LINK_LIBRARIES "${SystemBLAS_LIBRARIES}"
+        INTERFACE_LINK_LIBRARIES "${SystemBLAS_LIBRARIES};Threads::Threads"
         INTERFACE_INCLUDE_DIRECTORIES "${SystemBLAS_INCLUDE_DIRS}"
     )
 endif()

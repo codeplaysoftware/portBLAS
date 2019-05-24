@@ -2,25 +2,25 @@ default:
     - gemm_configuration:
         - workgroup_size: 64
           double_buffer: "false"
-          conflict_a: "false"
-          conflict_b: "false"
-          cl_size: 64
-          tir: 8
-          tic: 8
-          twr: 8
-          twc: 8
-          tlr: 1
-          tlc: 1
+          bank_conflict_a: "false"
+          bank_conflict_b: "false"
+          cache_line_size: 64
+          tile_item_row: 8
+          tile_item_col: 8
+          tile_workgroup_row: 8
+          tile_workgroup_col: 8
+          tile_block_row: 1
+          tile_block_col: 1
           gemm_type: "no_local_memory"
         - workgroup_size: 64
           double_buffer: "false"
-          conflict_a: "false"
-          conflict_b: "false"
-          cl_size: 64
-          tir: 8
-          tic: 8
-          twr: 8
-          twc: 8
-          tlr: 1
-          tlc: 1
+          bank_conflict_a: "false"
+          bank_conflict_b: "false"
+          cache_line_size: 64
+          tile_item_row: 8
+          tile_item_col: 8
+          tile_workgroup_row: 8
+          tile_workgroup_col: 8
+          tile_block_row: 1
+          tile_block_col: 1
           gemm_type: "naive"

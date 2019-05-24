@@ -6,7 +6,7 @@ target_include_directories(test_common INTERFACE
     "${CMAKE_CURRENT_BINARY_DIR}/include")
 target_link_libraries(test_common INTERFACE
     codeplay::sycl-blas
+    SystemBLAS::BLAS
     GTest::gtest
     GTest::gmock
-    SystemBLAS::BLAS
 )

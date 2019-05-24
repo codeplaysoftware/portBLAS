@@ -28,4 +28,4 @@ find_package(GTest REQUIRED CONFIG)
 
 add_subdirectory(common)
 add_subdirectory(unittest)
-add_subdirectory(exprtest)
+# add_subdirectory(exprtest)

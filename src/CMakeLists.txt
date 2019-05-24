@@ -66,8 +66,7 @@ generate_template_instantiations(
 
 generate_template_instantiations(
     DIRECTORY interface/blas3
-    FUNCTIONS gemm
-    #gemm_launcher
+    FUNCTIONS gemm gemm_launcher
 )
 
 add_subdirectory(policy)

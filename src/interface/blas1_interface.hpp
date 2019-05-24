@@ -29,7 +29,7 @@
 #include "blas_meta.h"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.hpp"
-#include "views/view.h"
+#include "views/view_sycl.hpp"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

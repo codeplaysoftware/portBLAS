@@ -25,7 +25,7 @@
 #ifndef SYCL_BLAS_BLAS3_TREES_GEMM_HPP
 #define SYCL_BLAS_BLAS3_TREES_GEMM_HPP
 
-#include "blas3_trees.h"
+#include "operations/blas3_trees.h"
 #include "views/view.h"
 #include <CL/sycl.hpp>
 #include <string>
