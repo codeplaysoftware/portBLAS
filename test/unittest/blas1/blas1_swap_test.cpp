@@ -25,56 +25,74 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
+using combination_t = std::tuple<int, int, int>;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  using type_t = blas_test_args<scalar_t, void>;
+  using blas_test_t = BLAS_Test<type_t>;
+  using executor_t = typename type_t::executor_t;
 
-REGISTER_SIZE(::RANDOM_SIZE, swap_test)
-REGISTER_STRD(::RANDOM_STRD, swap_test)
+  int size;
+  int incX;
+  int incY;
+  std::tie(size, incX, incY) = combi;
 
-TYPED_TEST(BLAS_Test, swap_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class swap_test;
+  // Input/Output vector
+  std::vector<scalar_t> x_v(size * incX);
+  fill_random(x_v);
+  std::vector<scalar_t> x_cpu_v(x_v);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
+  std::vector<scalar_t> y_v(size * incY);
+  fill_random(y_v);
+  std::vector<scalar_t> y_cpu_v(y_v);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // Reference implementation
+  reference_blas::swap(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY);
 
-  // create two random vectors with the same size: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size);
-  TestClass::set_rand(vX, size);
-  TestClass::set_rand(vY, size);
+  // SYCL implementation
+  SYCL_DEVICE_SELECTOR d;
+  auto q = blas_test_t::make_queue(d);
+  Executor<executor_t> ex(q);
 
-  // create two more vectors equal to vX and vY
-  std::vector<scalar_t> vZ = vX;
-  std::vector<scalar_t> vT = vY;
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incY));
+  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v, size * incY);
 
-  auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
-  _swap(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
-  auto event1 = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
-  ex.get_policy_handler().wait(event0, event1);
-  // check that new vX is equal to the copy of the original vY and
-  // that new vY is equal to the copy of the original vX
-  for (int i = 0; i < size; ++i) {
-    if (i % strd == 0) {
-      ASSERT_EQ(vZ[i], vY[i]);
-      ASSERT_EQ(vT[i], vX[i]);
-    } else {
-      ASSERT_EQ(vZ[i], vX[i]);
-      ASSERT_EQ(vT[i], vY[i]);
-    }
-  }
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
+  _swap(ex, size, gpu_x_v, incX, gpu_y_v, incY);
+  auto event =
+      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
+  ex.get_policy_handler().wait(event);
+  event =
+      ex.get_policy_handler().copy_to_host(gpu_y_v, y_v.data(), size * incY);
+  ex.get_policy_handler().wait(event);
+
+  // Validate the result
+  ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
+  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
 }
+
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
+                       ::testing::Values(1, 4),                   // incX
+                       ::testing::Values(1, 3)                    // incY
+    );
+#else
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(1, 4),      // incX
+                                      ::testing::Values(1, 3)       // incY
+);
+#endif
+
+class SwapFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(SwapFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(swap, SwapFloat, combi);
+
+#if DOUBLE_SUPPORT
+class SwapDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(SwapDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(swap, SwapDouble, combi);
+#endif
