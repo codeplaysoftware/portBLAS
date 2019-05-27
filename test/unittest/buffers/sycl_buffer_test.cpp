@@ -24,78 +24,77 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_args<float>
-#ifdef DOUBLE_SUPPORT
-                         ,
-                         blas_test_args<double>
-#endif
-                         >
-    BlasTypes;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+using combination_t = std::tuple<int, int>;
 
-REGISTER_SIZE(::RANDOM_SIZE, sycl_buffer_test)
-REGISTER_STRD(::RANDOM_STRD, sycl_buffer_test)
-REGISTER_PREC(float, 1e-4, sycl_buffer_test)
-REGISTER_PREC(double, 1e-6, sycl_buffer_test)
-
-TYPED_TEST(BLAS_Test, sycl_buffer_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class sycl_buffer_test;
-
-  int size = TestClass::template test_size<test>();
-  std::ptrdiff_t offset = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
-  int strd = TestClass::template test_strd<test>();
-
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  int size;
+  int offset;
+  std::tie(size, offset) = combi;
 
   std::vector<scalar_t> vX(size, scalar_t(1));
-  TestClass::set_rand(vX, size);
+  fill_random(vX);
 
-  std::vector<scalar_t> vR(size - offset, scalar_t(0));
+  std::vector<scalar_t> vR_gpu(size, scalar_t(10));
+  std::vector<scalar_t> vR_cpu(size, scalar_t(10));
+
+  for (int i = offset; i < size; i++) {
+    vR_cpu[i - offset] = vX[i];
+  }
 
   auto q = make_queue();
-  Executor<ExecutorType> ex(q);
+  test_executor_t ex(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
-  auto event = ex.get_policy_handler().copy_to_host((a + offset), vR.data(),
+  auto event = ex.get_policy_handler().copy_to_host((a + offset), vR_gpu.data(),
                                                     size - offset);
   ex.get_policy_handler().wait(event);
 
-  for (int i = 0; i < size; i++) {
-    ASSERT_NEAR(vX[i + offset], vR[i], prec);
-  }
+  ASSERT_TRUE(utils::compare_vectors(vR_gpu, vR_cpu));
 }
+
+const auto combi = ::testing::Combine(::testing::Values(100, 102400),  // size
+                                      ::testing::Values(0, 25)         // offset
+);
+
+class BufferFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(BufferFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(buffer, BufferFloat, combi);
+
+#if DOUBLE_SUPPORT
+class BufferDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(BufferDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(buffer, BufferDouble, combi);
+#endif
+
 template <typename data_t, typename index_t>
 inline BufferIterator<const data_t, blas::codeplay_policy> func(
     BufferIterator<const data_t, blas::codeplay_policy> buff, index_t offset) {
   return buff += offset;
 }
 
-TYPED_TEST(BLAS_Test, sycl_const_buffer_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class sycl_buffer_test;
-
-  int size = TestClass::template test_size<test>();
-  std::ptrdiff_t offset = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
-  int strd = TestClass::template test_strd<test>();
-
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+template <typename scalar_t>
+void run_const_test(const combination_t combi) {
+  int size;
+  int offset;
+  std::tie(size, offset) = combi;
 
   std::vector<scalar_t> vX(size, scalar_t(1));
-  TestClass::set_rand(vX, size);
+  fill_random(vX);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
+  auto q = make_queue();
+  test_executor_t ex(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
   BufferIterator<const scalar_t, blas::codeplay_policy> buff =
       func<scalar_t>(a, offset);
 }
+
+class BufferConstFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(BufferConstFloat, test) { run_const_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(buffer, BufferConstFloat, combi);
+
+#if DOUBLE_SUPPORT
+class BufferConstDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(BufferConstDouble, test) { run_const_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(buffer, BufferConstDouble, combi);
+#endif
