@@ -163,8 +163,8 @@ The following ranges are a good starting point:
 |blas level|range expression|
 |----------|----------------|
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
-| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0)))` |
-| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2)), value_range(1), value_range(0)))` |
+| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
+| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
 
 
 ### Default parameters

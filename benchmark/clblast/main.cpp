@@ -26,8 +26,13 @@ int main(int argc, char** argv) {
 
   ExecutorType executor(oclds);
 
+  // This will be set to false by a failing benchmark
+  bool success = true;
+
   // Create the benchmarks
-  blas_benchmark::create_benchmark(args, &executor);
+  blas_benchmark::create_benchmark(args, &executor, &success);
 
   benchmark::RunSpecifiedBenchmarks();
+
+  return success ? 0 : 1;
 }

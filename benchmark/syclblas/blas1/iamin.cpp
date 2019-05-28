@@ -34,7 +34,8 @@ std::string get_name(int size) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
+void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+         bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
@@ -66,9 +67,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
   }
 
   if (idx_temp.ind != idx_ref) {
-    std::cerr << "Index mismatch: " << idx_temp.ind << "; expected " << idx_ref
-              << std::endl;
-    exit(1);
+    std::ostringstream err_stream;
+    err_stream << "Index mismatch: " << idx_temp.ind << "; expected "
+               << idx_ref;
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
   };
 #endif
 
@@ -98,22 +102,26 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
-                         index_t size) { run<scalar_t>(st, exPtr, size); };
+                         index_t size, bool* success) {
+      run<scalar_t>(st, exPtr, size, success);
+    };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size);
+                                 exPtr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark

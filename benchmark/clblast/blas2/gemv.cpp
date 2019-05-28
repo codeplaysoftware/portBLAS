@@ -35,7 +35,7 @@ std::string get_name(std::string t, int m, int n) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
-         index_t n, scalar_t alpha, scalar_t beta) {
+         index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
@@ -108,8 +108,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
     CLEventHandler::wait(event);
   }
 
-  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref)) {
-    exit(1);
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
   };
 #endif
 
@@ -141,7 +144,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
@@ -152,19 +156,22 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
-                         index_t m, index_t n, scalar_t alpha, scalar_t beta) {
-      run<scalar_t>(st, exPtr, t, m, n, alpha, beta);
+                         index_t m, index_t n, scalar_t alpha, scalar_t beta,
+                         bool* success) {
+      run<scalar_t>(st, exPtr, t, m, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
-                                 BM_lambda, exPtr, t, m, n, alpha, beta);
+                                 BM_lambda, exPtr, t, m, n, alpha, beta,
+                                 success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark
