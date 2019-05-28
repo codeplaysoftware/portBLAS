@@ -53,5 +53,5 @@ int main(int argc, char** argv) {
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
 
-  return success ? 0 : 1;
+  return !success;
 }
