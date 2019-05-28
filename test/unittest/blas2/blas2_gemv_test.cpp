@@ -58,8 +58,8 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> c_v_gpu_result(y * incY, scalar_t(10.0));
   // output system vector
   std::vector<scalar_t> c_v_cpu(y * incY, scalar_t(10.0));
-  blas_test_t::set_rand(a_m, lda * n);
-  blas_test_t::set_rand(b_v, x * incX);
+  fill_random(a_m);
+  fill_random(b_v);
 
   // SYSTEM GEMMV
   reference_blas::gemv(t_str, m, n, alpha, a_m.data(), lda, b_v.data(), incX,
@@ -79,9 +79,7 @@ void run_test(const combination_t<scalar_t> combi) {
       v_c_gpu, c_v_gpu_result.data(), y * incY);
   ex.get_policy_handler().wait(event);
 
-  for (int i = 0; i < y * incY; ++i) {
-    ASSERT_T_EQUAL(scalar_t, c_v_gpu_result[i], c_v_cpu[i]);
-  }
+  ASSERT_TRUE(utils::compare_vectors(c_v_gpu_result, c_v_cpu));
 }
 
 #ifdef STRESS_TESTING

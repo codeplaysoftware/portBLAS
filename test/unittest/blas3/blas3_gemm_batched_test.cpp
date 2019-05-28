@@ -81,9 +81,9 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> c_m_gpu(_size(dim_c, ldc_mul));
   std::vector<scalar_t> c_m_cpu(_size(dim_c, ldc_mul));
 
-  blas_test_t::set_rand(a_m, _size(dim_a, lda_mul));
-  blas_test_t::set_rand(b_m, _size(dim_b, ldb_mul));
-  blas_test_t::set_rand(c_m_gpu, _size(dim_c, ldc_mul));
+  fill_random(a_m);
+  fill_random(b_m);
+  fill_random(c_m_gpu);
   std::copy(c_m_gpu.begin(), c_m_gpu.end(), c_m_cpu.begin());
 
   auto m_a_gpu =
@@ -112,9 +112,7 @@ void run_test(const combination_t<scalar_t> combi) {
                                            _size(dim_c, ldc_mul));
   policy_handler.wait(event);
 
-  for (int i = 0; i < _size(dim_c, ldc_mul); ++i) {
-    ASSERT_T_EQUAL(scalar_t, c_m_gpu[i], c_m_cpu[i]);
-  }
+  ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
 
   policy_handler.template deallocate<scalar_t>(m_a_gpu);
   policy_handler.template deallocate<scalar_t>(m_b_gpu);

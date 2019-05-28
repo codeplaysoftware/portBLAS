@@ -48,23 +48,28 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   index_t incX = 1;
   index_t incY = 1;
 
-  state.counters["m"] = m;
-  state.counters["n"] = n;
-
   // The counters are double. We convert m and n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
 
-  state.counters["n_fl_ops"] = 2.0 * m_d * n_d + 3 * m_d;
-  state.counters["bytes_processed"] =
-      (m_d * n_d + n_d + 2 * m_d) * sizeof(scalar_t);
+  state.counters["m"] = m_d;
+  state.counters["n"] = n_d;
 
-  if (beta == 0.0) {
-    // not adding beta * Y
-    state.counters["n_fl_ops"] -= 2 * m_d;
-    // not reading Y
-    state.counters["bytes_processed"] -= m_d * sizeof(scalar_t);
+  {
+    double nflops_AtimesX = 2.0 * m_d * n_d;
+    double nflops_timesAlpha = m_d;
+    double nflops_addBetaY = (beta != 0) ? 2 * m_d : 0;
+    state.counters["n_fl_ops"] =
+        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  }
+  {
+    double mem_readA = m_d * n_d;
+    double mem_readX = n_d;
+    double mem_writeY = m_d;
+    double mem_readY = (beta != 0) ? m_d : 0;
+    state.counters["bytes_processed"] =
+        (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
   // Input matrix/vector, output vector.
