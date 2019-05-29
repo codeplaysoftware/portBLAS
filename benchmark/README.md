@@ -30,7 +30,7 @@ After the compilation, the binaries will be available:
     `ninja install`, in your installation folder, in `sycl_blas/bin/`
 
 A verification of the results can be enabled with the CMake option
-`DBLAS_VERIFY_BENCHMARK`. The verification will be run a small number of times
+`BLAS_VERIFY_BENCHMARK`. The verification will be run a small number of times
 (more than once because of the way the benchmark library works, but much less
 then the usual number of iterations of the benchmarks). The verification
 requires that a reference implementation of BLAS like OpenBLAS is installed,
