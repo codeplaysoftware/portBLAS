@@ -30,10 +30,6 @@ using combination_t = std::tuple<int, int, scalar_t, int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  using type_t = blas_test_args<scalar_t, void>;
-  using blas_test_t = BLAS_Test<type_t>;
-  using executor_t = typename type_t::executor_t;
-
   int m;
   int n;
   int lda_mul;
@@ -59,7 +55,7 @@ void run_test(const combination_t<scalar_t> combi) {
                       c_m_cpu.data(), lda);
 
   auto q = make_queue();
-  Executor<executor_t> ex(q);
+  test_executor_t ex(q);
   auto v_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_v, m * incX);
   auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, n * incY);
   auto m_c_gpu =
