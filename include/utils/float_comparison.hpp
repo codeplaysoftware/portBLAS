@@ -27,6 +27,7 @@
 #define UTILS_FLOAT_COMPARISON_H_
 
 #include <cmath>
+#include <iostream>
 
 namespace utils {
 
@@ -108,17 +109,19 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
  */
 template <typename scalar_t>
 inline bool compare_vectors(std::vector<scalar_t>& vec,
-                            std::vector<scalar_t>& ref) {
+                            std::vector<scalar_t>& ref,
+                            std::ostream& err_stream = std::cerr,
+                            std::string end_line = "\n") {
   if (vec.size() != ref.size()) {
-    std::cerr << "Error: tried to compare vectors of different sizes"
-              << std::endl;
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
     return false;
   }
 
   for (int i = 0; i < vec.size(); ++i) {
     if (!almost_equal(vec[i], ref[i])) {
-      std::cerr << "Value mismatch at index " << i << ": " << vec[i]
-                << "; expected " << ref[i] << std::endl;
+      err_stream << "Value mismatch at index " << i << ": " << vec[i]
+                 << "; expected " << ref[i] << end_line;
       return false;
     }
   }

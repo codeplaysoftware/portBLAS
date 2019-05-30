@@ -35,7 +35,8 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
-         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta) {
+         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
+         bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -94,6 +95,30 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   MemBuffer<scalar_t> b_gpu(executorPtr, b.data(), static_cast<size_t>(k * n));
   MemBuffer<scalar_t> c_gpu(executorPtr, c.data(), static_cast<size_t>(m * n));
 
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> c_ref = c;
+  reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
+                       beta, c_ref.data(), ldc);
+  std::vector<scalar_t> c_temp = c;
+  {
+    MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
+                                   static_cast<size_t>(m * n));
+    cl_event event;
+    clblast::Gemm<scalar_t>(layout, a_tr, b_tr, m, n, k, alpha, a_gpu.dev(), 0,
+                            lda, b_gpu.dev(), 0, ldb, beta, c_temp_gpu.dev(), 0,
+                            ldc, executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
+#endif
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
@@ -122,7 +147,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas3_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
@@ -135,20 +161,21 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
-                         scalar_t alpha, scalar_t beta) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta);
+                         scalar_t alpha, scalar_t beta, bool* success) {
+      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, exPtr, t1, t2, m, k, n, alpha,
-                                 beta);
+                                 BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta,
+                                 success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark

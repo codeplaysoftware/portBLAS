@@ -44,9 +44,14 @@ int main(int argc, char** argv) {
   // Create a sycl blas executor from the queue
   ExecutorType executor(q);
 
+  // This will be set to false by a failing benchmark
+  bool success = true;
+
   // Create the benchmarks
-  blas_benchmark::create_benchmark(args, &executor);
+  blas_benchmark::create_benchmark(args, &executor, &success);
 
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
+
+  return !success;
 }
