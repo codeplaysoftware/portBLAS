@@ -32,10 +32,6 @@ using combination_t =
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  using type_t = blas_test_args<scalar_t, void>;
-  using blas_test_t = BLAS_Test<type_t>;
-  using executor_t = typename type_t::executor_t;
-
   int batch_size;
   int m;
   int n;
@@ -64,7 +60,7 @@ void run_test(const combination_t<scalar_t> combi) {
   };
 
   auto q = make_queue();
-  Executor<executor_t> ex(q);
+  test_executor_t ex(q);
 
   auto policy_handler = ex.get_policy_handler();
 
