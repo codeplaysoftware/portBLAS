@@ -92,3 +92,7 @@ api_doc/
 
 # Visual studio code files
 .vscode/
+
+#Visual Studio files
+.vs/
+CMakeSettings.json
