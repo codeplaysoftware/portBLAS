@@ -29,10 +29,6 @@ using combination_t = std::tuple<int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t combi) {
-  using type_t = blas_test_args<scalar_t, void>;
-  using blas_test_t = BLAS_Test<type_t>;
-  using executor_t = typename type_t::executor_t;
-
   int size;
   int incA;
   int incB;
@@ -64,9 +60,8 @@ void run_test(const combination_t combi) {
       reference_blas::dot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB);
 
   // SYCL implementation
-  SYCL_DEVICE_SELECTOR d;
-  auto q = blas_test_t::make_queue(d);
-  Executor<executor_t> ex(q);
+  auto q = make_queue();
+  test_executor_t ex(q);
 
   // Iterators
   auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incA));
