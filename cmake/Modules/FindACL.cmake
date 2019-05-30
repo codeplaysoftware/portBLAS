@@ -27,9 +27,9 @@ find_package(OpenCL)
 find_path(ACL_INCLUDE_DIR "arm_compute/graph.h" HINTS ${ACL_ROOT})
 find_path(ACL_SYSTEM_INCLUDE_DIR "half/half.hpp" HINTS ${ACL_ROOT} PATH_SUFFIXES include/)
 
-find_library(ACL_LIBRARY NAME arm_compute HINTS ${ACL_ROOT} PATH_SUFFIXES build lib/${ACL_TARGET}/)
-find_library(ACL_CORE_LIBRARY NAME arm_compute_core HINTS ${ACL_ROOT} PATH_SUFFIXES build lib/${ACL_TARGET}/)
-find_library(ACL_GRAPH_LIBRARY NAME arm_compute_graph HINTS ${ACL_ROOT} PATH_SUFFIXES build lib/${ACL_TARGET}/)
+find_library(ACL_LIBRARY NAME arm_compute HINTS ${ACL_ROOT} PATH_SUFFIXES build lib)
+find_library(ACL_CORE_LIBRARY NAME arm_compute_core HINTS ${ACL_ROOT} PATH_SUFFIXES build lib)
+find_library(ACL_GRAPH_LIBRARY NAME arm_compute_graph HINTS ${ACL_ROOT} PATH_SUFFIXES build lib)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ACL REQUIRED_VARS ACL_LIBRARY ACL_CORE_LIBRARY

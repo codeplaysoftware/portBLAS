@@ -5,6 +5,11 @@ project(acl_benchmarks)
 set(ACL_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(ACL REQUIRED)
+if(ACL_BACKEND STREQUAL "NEON")
+  add_definitions(-DACL_BACKEND_NEON)
+else()
+  add_definitions(-DACL_BACKEND_OPENCL)
+endif()
 
 set(ACL_BENCH_SRCS
   # Level 3 blas

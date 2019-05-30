@@ -23,6 +23,12 @@
  *
  **************************************************************************/
 
+#ifdef ACL_BACKEND_OPENCL
+#ifndef ARM_COMPUTE_CL
+#define ARM_COMPUTE_CL
+#endif /*ACL_BACKEND_OPENCL */
+#endif /* ARM_COMPUTE_CL */
+
 #include "utils.hpp"
 
 std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
@@ -74,7 +80,12 @@ void run(benchmark::State& state, int t1, int t2,
 
   // Device matrices
   const arm_compute::TensorShape shape_a(k, m), shape_b(n, k), shape_c(n, m);
+#ifdef ACL_BACKEND_NEON
   arm_compute::Tensor arm_a, arm_b, arm_c;
+#else
+  arm_compute::CLScheduler::get().default_init();
+  arm_compute::CLTensor arm_a, arm_b, arm_c;
+#endif
   arm_a.allocator()->init(arm_compute::TensorInfo(shape_a, 1, arm_compute::DataType::F32));
   arm_b.allocator()->init(arm_compute::TensorInfo(shape_b, 1, arm_compute::DataType::F32));
   arm_c.allocator()->init(arm_compute::TensorInfo(shape_c, 1, arm_compute::DataType::F32));
@@ -86,12 +97,19 @@ void run(benchmark::State& state, int t1, int t2,
   blas_benchmark::utils::fill_tensor(arm_c, c);
 
   // Configure the BLAS routine
+#ifdef ACL_BACKEND_NEON
   arm_compute::NEGEMM arm_gemm;
+#else
+  arm_compute::CLGEMM arm_gemm;
+#endif
   arm_gemm.configure(&arm_a, &arm_b, nullptr, &arm_c, alpha, beta);
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<void*> {
     arm_gemm.run();
+#ifdef ACL_BACKEND_OPENCL
+    arm_compute::CLScheduler::get().sync();
+#endif
     return {nullptr};
   };
 
