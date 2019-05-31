@@ -45,11 +45,15 @@ void run(benchmark::State& state, int t1, int t2,
       static_cast<blas_benchmark::utils::Transposition>(t1));
   std::string t2s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t2));
-  const char* t_a = t1s.c_str();
-  const char* t_b = t2s.c_str();
+  if(t1s != "n" || t2s != "n") {
+    state.SkipWithError("Transposed matrices not supported in ACL benchmarks");
+    return;
+  }
+  const char* t_a = "n";
+  const char* t_b = "n";
 
-  index_t lda = t_a[0] == 'n' ? m : k;
-  index_t ldb = t_b[0] == 'n' ? k : n;
+  index_t lda = m;
+  index_t ldb = k;
   index_t ldc = m;
 
   // The counters are double. We convert m, n and k to double to avoid
@@ -108,7 +112,7 @@ void run(benchmark::State& state, int t1, int t2,
 #else
   arm_compute::CLGEMM arm_gemm;
 #endif
-  arm_gemm.configure(&arm_a, &arm_b, nullptr, &arm_c, alpha, beta);
+  arm_gemm.configure(&arm_a, &arm_b, &arm_c, &arm_c, alpha, beta);
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<void*> {
@@ -137,7 +141,7 @@ void run(benchmark::State& state, int t1, int t2,
 #endif
 
   // Warm up to avoid benchmarking data transfer
-  // blas_benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_method_def);
 
   blas_benchmark::utils::init_counters(state);
 
