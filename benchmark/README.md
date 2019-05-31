@@ -29,6 +29,13 @@ After the compilation, the binaries will be available:
     `CMAKE_INSTALL_PREFIX`, and run the installation command, e.g
     `ninja install`, in your installation folder, in `sycl_blas/bin/`
 
+A verification of the results can be enabled with the CMake option
+`BLAS_VERIFY_BENCHMARK`. The verification will be run a small number of times
+(more than once because of the way the benchmark library works, but much less
+then the usual number of iterations of the benchmarks). The verification
+requires that a reference implementation of BLAS like OpenBLAS is installed,
+which path can be given with the `SYSTEM_BLAS_ROOT` CMake parameter.
+
 ## How to run the benchmarks
 
 The benchmarks take two kinds of command-line options: those for the benchmark
@@ -156,8 +163,8 @@ The following ranges are a good starting point:
 |blas level|range expression|
 |----------|----------------|
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
-| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0)))` |
-| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2)), value_range(1), value_range(0)))` |
+| 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
+| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
 
 
 ### Default parameters

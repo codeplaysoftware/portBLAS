@@ -91,6 +91,7 @@ if(${BLAS_ENABLE_TESTING})
 endif()
 
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
+option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" OFF)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 
