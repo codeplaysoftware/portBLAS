@@ -19,7 +19,7 @@
 
 namespace blas_benchmark {
 
-void create_benchmark(blas_benchmark::Args &args);
+void create_benchmark(blas_benchmark::Args &args, bool* success);
 
 namespace utils {
 
@@ -38,6 +38,26 @@ void fill_tensor(tensor_t &tensor, std::vector<float> &src) {
                                      int idx = id[0] * shape[1] + id[1];
                                      *reinterpret_cast<float *>(it.ptr()) =
                                          src[idx];
+                                   },
+                                   it);
+
+  arm_compute::utils::unmap(tensor);
+}
+
+template <typename tensor_t>
+void extract_tensor(tensor_t &tensor, std::vector<float> &dst) {
+  arm_compute::Window window;
+  const arm_compute::TensorShape &shape = tensor.info()->tensor_shape();
+  window.use_tensor_dimensions(shape);
+
+  arm_compute::utils::map(tensor, true);
+
+  arm_compute::Iterator it(&tensor, window);
+
+  arm_compute::execute_window_loop(window,
+                                   [&](const arm_compute::Coordinates &id) {
+                                     int idx = id[0] * shape[1] + id[1];
+                                     dst[idx] = *reinterpret_cast<float *>(it.ptr());
                                    },
                                    it);
 

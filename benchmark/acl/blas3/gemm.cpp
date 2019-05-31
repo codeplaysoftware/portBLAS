@@ -39,7 +39,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 }
 
 void run(benchmark::State& state, int t1, int t2,
-         index_t m, index_t k, index_t n, float alpha, float beta) {
+         index_t m, index_t k, index_t n, float alpha, float beta, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -52,24 +52,30 @@ void run(benchmark::State& state, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  state.counters["m"] = m;
-  state.counters["k"] = k;
-  state.counters["n"] = n;
-
   // The counters are double. We convert m, n and k to double to avoid
   // integer overflows and write them in the counters
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
 
-  state.counters["n_fl_ops"] = 2 * (m_d * n_d * k_d) + 3 * (m_d * n_d);
-  state.counters["bytes_processed"] =
-      (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * sizeof(float);
-  if (beta == 0.0) {
-    // not adding beta * C
-    state.counters["n_fl_ops"] -= 2 * m_d * n_d;
-    // not reading C
-    state.counters["bytes_processed"] -= m_d * n_d * sizeof(float);
+  state.counters["m"] = m_d;
+  state.counters["k"] = k_d;
+  state.counters["n"] = n_d;
+
+  {
+    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_timesAlpha = m_d * n_d;
+    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    state.counters["n_fl_ops"] =
+        nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+  }
+  {
+    double mem_readA = m_d * k_d;
+    double mem_readB = k_d * n_d;
+    double mem_writeC = m_d * n_d;
+    double mem_readC = (beta != 0) ? m_d * n_d : 0;
+    state.counters["bytes_processed"] =
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(float);
   }
 
   // Matrices
@@ -113,6 +119,23 @@ void run(benchmark::State& state, int t1, int t2,
     return {nullptr};
   };
 
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<float> c_ref = c;
+  reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
+                       beta, c_ref.data(), ldc);
+  blas_method_def();
+  std::vector<float> c_temp(m * n);
+  blas_benchmark::utils::extract_tensor(arm_c, c_temp);
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<float>(c_temp, c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
+#endif
+
   // Warm up to avoid benchmarking data transfer
   // blas_benchmark::utils::warmup(blas_method_def);
 
@@ -134,7 +157,7 @@ void run(benchmark::State& state, int t1, int t2,
   arm_c.allocator()->free();
 };
 
-void register_benchmark(blas_benchmark::Args& args) {
+void register_benchmark(blas_benchmark::Args& args, bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas3_params<float>(args);
 
   for (auto p : gemm_params) {
@@ -147,17 +170,17 @@ void register_benchmark(blas_benchmark::Args& args) {
 
     auto BM_lambda = [&](benchmark::State& st, int t1,
                          int t2, index_t m, index_t k, index_t n,
-                         float alpha, float beta) {
-      run(st, t1, t2, m, k, n, alpha, beta);
+                         float alpha, float beta, bool* success) {
+      run(st, t1, t2, m, k, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name(t1s, t2s, m, k, n).c_str(),
                                  BM_lambda, t1, t2, m, k, n, alpha,
-                                 beta);
+                                 beta, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args) {
-  register_benchmark(args);
+void create_benchmark(blas_benchmark::Args& args, bool* success) {
+  register_benchmark(args, success);
 }
 }  // namespace blas_benchmark

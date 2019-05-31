@@ -11,6 +11,11 @@ else()
   add_definitions(-DACL_BACKEND_OPENCL)
 endif()
 
+if(${BLAS_VERIFY_BENCHMARK})
+  add_definitions(-DBLAS_VERIFY_BENCHMARK)
+  find_package(SystemBLAS REQUIRED)
+endif()
+
 set(ACL_BENCH_SRCS
   # Level 3 blas
   ${ACL_BENCH}/blas3/gemm.cpp

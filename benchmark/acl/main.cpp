@@ -13,8 +13,14 @@ int main(int argc, char** argv) {
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
-  // Create the benchmarks
-  blas_benchmark::create_benchmark(args);
+  // This will be set to false by a failing benchmark
+  bool success = true;
 
+  // Create the benchmarks
+  blas_benchmark::create_benchmark(args, &success);
+
+  // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
+
+  return !success;
 }
