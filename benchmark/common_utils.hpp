@@ -36,9 +36,9 @@ using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
                                  index_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
-using gemm_batched_param_t = std::tuple<std::string, std::string, index_t,
-                                       index_t, index_t, scalar_t, scalar_t,
-                                       index_t>;
+using gemm_batched_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
+               scalar_t, index_t>;
 
 namespace blas_benchmark {
 
@@ -248,7 +248,8 @@ inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(Args& args) {
  * ones.
  */
 template <typename scalar_t>
-inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(Args& args) {
+inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
+    Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<gemm_batched_param_t<scalar_t>> gemm_batched_default;

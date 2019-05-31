@@ -26,16 +26,19 @@
 #include "utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, int m, int k, int n, int batch_size) {
+std::string get_name(std::string t1, std::string t2, int m, int k, int n,
+                     int batch_size) {
   std::ostringstream str{};
   str << "BM_Gemm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size;
+      << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/"
+      << batch_size;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
-         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta, index_t batch_size, bool* success) {
+         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
+         index_t batch_size, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -73,12 +76,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     double mem_writeC = m_d * n_d;
     double mem_readC = (beta != 0) ? m_d * n_d : 0;
     state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d * sizeof(scalar_t);
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d *
+        sizeof(scalar_t);
   }
 
   // Matrices
-  std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
-  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
+  std::vector<scalar_t> a =
+      blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
+  std::vector<scalar_t> b =
+      blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(m * n * batch_size, 0);
 
@@ -92,9 +98,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   auto layout = clblast::Layout::kColMajor;
 
   // Device matrices
-  MemBuffer<scalar_t> a_gpu(executorPtr, a.data(), static_cast<size_t>(m * k * batch_size));
-  MemBuffer<scalar_t> b_gpu(executorPtr, b.data(), static_cast<size_t>(k * n * batch_size));
-  MemBuffer<scalar_t> c_gpu(executorPtr, c.data(), static_cast<size_t>(m * n * batch_size));
+  MemBuffer<scalar_t> a_gpu(executorPtr, a.data(),
+                            static_cast<size_t>(m * k * batch_size));
+  MemBuffer<scalar_t> b_gpu(executorPtr, b.data(),
+                            static_cast<size_t>(k * n * batch_size));
+  MemBuffer<scalar_t> c_gpu(executorPtr, c.data(),
+                            static_cast<size_t>(m * n * batch_size));
 
   // Alphas and betas
   std::vector<scalar_t> alphas;
@@ -129,12 +138,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   }
   std::vector<scalar_t> c_temp = c;
   {
-    MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(), static_cast<size_t>(m * n * batch_size));
+    MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
+                                   static_cast<size_t>(m * n * batch_size));
     cl_event event;
-    clblast::GemmBatched<scalar_t>(layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(), a_offsets.data(),
-                                   lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(), c_temp_gpu.dev(), c_offsets.data(), ldc,
-                                   batch_size,
-                                   executorPtr->_queue(), &event);
+    clblast::GemmBatched<scalar_t>(
+        layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(),
+        a_offsets.data(), lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(),
+        c_temp_gpu.dev(), c_offsets.data(), ldc, batch_size,
+        executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
   }
 
@@ -149,10 +160,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
-    clblast::GemmBatched<scalar_t>(layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(), a_offsets.data(),
-                                   lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(), c_gpu.dev(), c_offsets.data(), ldc,
-                                   batch_size,
-                                   executorPtr->_queue(), &event);
+    clblast::GemmBatched<scalar_t>(
+        layout, a_tr, b_tr, m, n, k, alphas.data(), a_gpu.dev(),
+        a_offsets.data(), lda, b_gpu.dev(), b_offsets.data(), ldb, betas.data(),
+        c_gpu.dev(), c_offsets.data(), ldc, batch_size, executorPtr->_queue(),
+        &event);
     CLEventHandler::wait(event);
     return {event};
   };
@@ -175,7 +187,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
@@ -189,8 +202,10 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* s
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
-                         scalar_t alpha, scalar_t beta, index_t batch_size, bool* success) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size, success);
+                         scalar_t alpha, scalar_t beta, index_t batch_size,
+                         bool* success) {
+      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size,
+                    success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
@@ -199,7 +214,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* s
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
   register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
   register_benchmark<double>(args, exPtr, success);

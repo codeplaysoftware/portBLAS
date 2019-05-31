@@ -76,7 +76,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     double mem_writeC = m_d * n_d;
     double mem_readC = (beta != 0) ? m_d * n_d : 0;
     state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d * sizeof(scalar_t);
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d *
+        sizeof(scalar_t);
   }
 
   ExecutorType& ex = *executorPtr;
@@ -149,7 +150,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
@@ -163,8 +165,10 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* s
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
-                         scalar_t alpha, scalar_t beta, index_t batch_size, bool* success) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size, success);
+                         scalar_t alpha, scalar_t beta, index_t batch_size,
+                         bool* success) {
+      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size,
+                    success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
@@ -173,7 +177,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* s
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
   register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
   register_benchmark<double>(args, exPtr, success);
