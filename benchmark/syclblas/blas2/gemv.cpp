@@ -52,8 +52,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   // integer overflows for n_fl_ops and bytes_processed
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
-  state.counters["m"] = m_d;
-  state.counters["n"] = n_d;
 
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;

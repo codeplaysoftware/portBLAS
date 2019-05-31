@@ -38,7 +38,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n,
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
          index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         index_t batch_size) {
+         index_t batch_size, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -63,16 +63,20 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   state.counters["n"] = n_d;
   state.counters["batch_size"] = batch_size_d;
 
-  state.counters["n_fl_ops"] =
-      (2 * (m_d * n_d * k_d) + 3 * (m_d * n_d)) * batch_size_d;
-  state.counters["bytes_processed"] =
-      (m_d * k_d + k_d * n_d + 2 * m_d * n_d) * batch_size_d * sizeof(scalar_t);
-  if (beta == 0.0) {
-    // not adding beta * C
-    state.counters["n_fl_ops"] -= 2 * m_d * n_d * batch_size_d;
-    // not reading C
-    state.counters["bytes_processed"] -=
-        m_d * n_d * batch_size_d * sizeof(scalar_t);
+  {
+    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_timesAlpha = m_d * n_d;
+    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    state.counters["n_fl_ops"] =
+        (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
+  }
+  {
+    double mem_readA = m_d * k_d;
+    double mem_readB = k_d * n_d;
+    double mem_writeC = m_d * n_d;
+    double mem_readC = (beta != 0) ? m_d * n_d : 0;
+    state.counters["bytes_processed"] =
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d * sizeof(scalar_t);
   }
 
   ExecutorType& ex = *executorPtr;
@@ -110,8 +114,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref)) {
-    exit(1);
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
   };
 #endif
 
@@ -142,7 +149,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
@@ -156,20 +163,20 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
-                         scalar_t alpha, scalar_t beta, index_t batch_size) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size);
+                         scalar_t alpha, scalar_t beta, index_t batch_size, bool* success) {
+      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
-        exPtr, t1, t2, m, k, n, alpha, beta, batch_size);
+        exPtr, t1, t2, m, k, n, alpha, beta, batch_size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr, bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark
