@@ -34,7 +34,8 @@ std::string get_name(int size) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
+void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+         bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
@@ -47,6 +48,27 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 
   // Device vectors
   MemBuffer<scalar_t> buf1(executorPtr, v1.data(), size);
+
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> v1_ref = v1;
+  reference_blas::scal(size, alpha, v1_ref.data(), 1);
+  std::vector<scalar_t> v1_temp = v1;
+  {
+    MemBuffer<scalar_t> v1_temp_gpu(executorPtr, v1_temp.data(), size);
+    cl_event event;
+    clblast::Scal<scalar_t>(size, alpha, v1_temp_gpu.dev(), 0, 1,
+                            executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<scalar_t>(v1_temp, v1_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
+#endif
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
@@ -75,22 +97,26 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size) {
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
-                         index_t size) { run<scalar_t>(st, exPtr, size); };
+                         index_t size, bool* success) {
+      run<scalar_t>(st, exPtr, size, success);
+    };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size);
+                                 exPtr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark
