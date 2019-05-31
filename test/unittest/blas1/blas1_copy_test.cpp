@@ -25,88 +25,64 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
+using combination_t = std::tuple<int, int, int>;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  int size;
+  int incX;
+  int incY;
+  std::tie(size, incX, incY) = combi;
 
-REGISTER_SIZE(::RANDOM_SIZE, copy_test)
-REGISTER_STRD(::RANDOM_STRD, copy_test)
+  // Input vector
+  std::vector<scalar_t> x_v(size * incX);
+  fill_random(x_v);
 
-TYPED_TEST(BLAS_Test, copy_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class copy_test;
+  // Output vector
+  std::vector<scalar_t> y_v(size * incY, 10.0);
+  std::vector<scalar_t> y_cpu_v(size * incY, 10.0);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
+  // Reference implementation
+  reference_blas::copy(size, x_v.data(), incX, y_cpu_v.data(), incY);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  // SYCL implementation
+  auto q = make_queue();
+  test_executor_t ex(q);
 
-  // create two vectors: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size, 0);
-  TestClass::set_rand(vX, size);
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incY));
+  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v, size * incY);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(vY, size);
-  _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
-  ex.get_policy_handler().wait(event);
-  // check that vX and vY are the same
-  for (int i = 0; i < size; ++i) {
-    if (i % strd == 0) {
-      ASSERT_EQ(vX[i], vY[i]);
-    } else {
-      ASSERT_EQ(0, vY[i]);
-    }
-  }
-}
-
-REGISTER_SIZE(::RANDOM_SIZE, copy_test_vpr)
-REGISTER_STRD(::RANDOM_STRD, copy_test_vpr)
-
-TYPED_TEST(BLAS_Test, copy_test_vpr) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class copy_test_vpr;
-
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
-
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  // create two vectors: vX and vY
-  std::vector<scalar_t> vX(size);
-  std::vector<scalar_t> vY(size, 0);
-  TestClass::set_rand(vX, size);
-
-  SYCL_DEVICE_SELECTOR d;
-  auto q = TestClass::make_queue(d);
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
-  _copy(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vY, strd);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  _copy(ex, size, gpu_x_v, incX, gpu_y_v, incY);
+  auto event =
+      ex.get_policy_handler().copy_to_host(gpu_y_v, y_v.data(), size * incY);
   ex.get_policy_handler().wait(event);
 
-  // check that vX and vY are the same
-  for (int i = 0; i < size; ++i) {
-    if (i % strd == 0) {
-      ASSERT_EQ(vX[i], vY[i]);
-    } else {
-      ASSERT_EQ(0, vY[i]);
-    }
-  }
-
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
+  // Validate the result
+  ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
 }
+
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
+                       ::testing::Values(1, 4),                   // incX
+                       ::testing::Values(1, 3)                    // incY
+    );
+#else
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(1, 4),      // incX
+                                      ::testing::Values(1, 3)       // incY
+);
+#endif
+
+class CopyFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(CopyFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(copy, CopyFloat, combi);
+
+#if DOUBLE_SUPPORT
+class CopyDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(CopyDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(copy, CopyDouble, combi);
+#endif

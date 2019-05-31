@@ -27,15 +27,15 @@
 
 template <typename scalar_t>
 std::string get_name(int size) {
-  return "BM_Axpy<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         std::to_string(size);
+  std::ostringstream str{};
+  str << "BM_Axpy" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << size;
+  return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
-  // Standard test setup.
-  const index_t size = static_cast<index_t>(si);
-
+void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+         bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
@@ -49,7 +49,28 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
 
   // Device vectors
   MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(executorPtr, v1.data(), size);
-  MemBuffer<scalar_t> buf2(executorPtr, v1.data(), size);
+  MemBuffer<scalar_t> buf2(executorPtr, v2.data(), size);
+
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> y_ref = v2;
+  reference_blas::axpy(size, alpha, v1.data(), 1, y_ref.data(), 1);
+  std::vector<scalar_t> y_temp = v2;
+  {
+    MemBuffer<scalar_t> y_temp_gpu(executorPtr, y_temp.data(), size);
+    cl_event event;
+    clblast::Axpy<scalar_t>(size, alpha, buf1.dev(), 0, 1, y_temp_gpu.dev(), 0,
+                            1, executorPtr->_queue(), &event);
+    CLEventHandler::wait(event);
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors<scalar_t>(y_temp, y_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
+#endif
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
@@ -78,23 +99,26 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
+  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int size) {
-      run<scalar_t>(st, exPtr, size);
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+                         index_t size, bool* success) {
+      run<scalar_t>(st, exPtr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size);
+                                 exPtr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark

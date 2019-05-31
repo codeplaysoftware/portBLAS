@@ -34,10 +34,6 @@ using combination_t = std::tuple<char, char, char, int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t combi) {
-  using type_t = blas_test_args<scalar_t, void>;
-  using blas_test_t = BLAS_Test<type_t>;
-  using executor_t = typename type_t::executor_t;
-
   int n;
   int lda_mul;
   int incX;
@@ -49,7 +45,7 @@ void run_test(const combination_t combi) {
 
   // Input matrix
   std::vector<scalar_t> a_m(lda * n);
-  blas_test_t::set_rand(a_m, lda * n);
+  fill_random(a_m);
 
   // Output Vector
   std::vector<scalar_t> x_v(n * incX, 7.0);
@@ -67,9 +63,8 @@ void run_test(const combination_t combi) {
   reference_blas::trmv(&uplo, &trans, &diag, n, a_m.data(), lda, x_cpu_v.data(),
                        incX);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = blas_test_t::make_queue(d);
-  Executor<executor_t> ex(q);
+  auto q = make_queue();
+  test_executor_t ex(q);
   auto a_m_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
   auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
 
@@ -80,9 +75,7 @@ void run_test(const combination_t combi) {
       ex.get_policy_handler().copy_to_host(x_v_gpu, x_v.data(), n * incX);
   ex.get_policy_handler().wait(event);
 
-  for (int i = 0; i < n * incX; ++i) {
-    ASSERT_T_EQUAL(scalar_t, x_v[i], x_cpu_v[i]);
-  }
+  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
 }
 
 #ifdef STRESS_TESTING

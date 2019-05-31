@@ -103,10 +103,10 @@ template <int ItemRows, int ItemCols, int WgRows, int WgCols, int TlRows,
           int TlCols>
 SYCL_BLAS_INLINE std::string Tile<ItemRows, ItemCols, WgRows, WgCols, TlRows,
                                   TlCols>::get_type_string() noexcept {
-  return std::string("Tile<") + std::to_string(item_rows) + ", " +
-         std::to_string(item_cols) + ", " + std::to_string(wg_rows) + ", " +
-         std::to_string(wg_cols) + ", " + std::to_string(tl_rows) + ", " +
-         std::to_string(tl_cols) + ">";
+  std::ostringstream str{};
+  str << "Tile<" << item_rows << ", " << item_cols << ", " << wg_rows << ", "
+      << wg_cols << ", " << tl_rows << ", " << tl_cols << ">";
+  return str.str();
 }
 
 /*!
@@ -150,8 +150,10 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE std::string
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, Gemm_type>::get_type_string() noexcept {
-  return std::string("ReferenceGemmFactory<") + std::to_string(wg_size) + ", " +
-         type_string<value_t>::get_value() + ">";
+  std::ostringstream str{};
+  str << "ReferenceGemmFactory<" << wg_size << ", "
+      << type_string<value_t>::get_value() << ">";
+  return str.str();
 }
 /*!
  *@brief gt_workgroup_cluster. This function is used to find the optimum
@@ -419,9 +421,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @brief Get the type of this NoLocalGemmFactory as a human readable string.
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
-    return std::string("NoLocalGemmFactory<") + std::to_string(ClSize) + ", " +
-           tile_type::get_type_string() + ", " +
-           type_string<value_t>::get_value() + ">";
+    std::ostringstream str{};
+    str << "NoLocalGemmFactory<" << ClSize << ", "
+        << tile_type::get_type_string() << ", "
+        << type_string<value_t>::get_value() << ">";
+    return str.str();
   }
   /*!
    *@brief gt_workgroup_cluster. This function is used to find the optimum
@@ -896,10 +900,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @brief Get the type of this GemmFactory as a human readable string.
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
-    return std::string("GemmFactory<") + std::to_string(double_buffer) + ", " +
-           std::to_string(nbc_a) + ", " + std::to_string(nbc_b) + ", " +
-           std::to_string(cl_size) + ", " + tile_type::get_type_string() +
-           ", " + type_string<value_t>::get_value() + ">";
+    std::ostringstream str{};
+    str << "GemmFactory<" << double_buffer << ", " << nbc_a << ", " << nbc_b
+        << ", " << cl_size << ", " << tile_type::get_type_string() << ", "
+        << type_string<value_t>::get_value() << ">";
+    return str.str();
   }
 
   /*!

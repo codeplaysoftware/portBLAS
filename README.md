@@ -262,7 +262,15 @@ Tests
 
 The sample code of the project is designed also as a test.
 The project uses `Ctest` to run the different test.
-The default platform reported by ComputeCpp is used as the execution platform.
+
+The device used for testing can be specified by setting the `TEST_DEVICE` CMake
+variable (e.g. `-DTEST_DEVICE=intel:cpu`). The format of this string is a vendor
+name, followed by `gpu`, `cpu` or `accel`. A `*` may take the place of either
+a vendor or device type, and means "any". If the specified device isn't found,
+a default device is used instead.
+
+If `TEST_DEVICE` is not specified, the device used will be chosen based on the
+behaviour of Sycl's default selector.
 
 
 Contributing to the project

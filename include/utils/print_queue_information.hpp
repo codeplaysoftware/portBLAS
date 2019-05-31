@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 The Khronos Group Inc.
+/* Copyright (c) 2015-2018 The Khronos Group Inc.
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and/or associated documentation files (the
@@ -23,52 +23,58 @@
   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+
 */
 
-#ifndef CLI_DEVICE_SELECTOR_HPP
-#define CLI_DEVICE_SELECTOR_HPP
+#ifndef PRINT_QUEUE_INFORMATION_HPP
+#define PRINT_QUEUE_INFORMATION_HPP
 
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
+#include <CL/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
-#include <unistd.h>
-#include <utility>
-#include <vector>
 
-#include "benchmark_cli_args.hpp"
+namespace utils {
 
-class cli_device_selector {
-  std::string program_name;
+inline void print_queue_information(cl::sycl::queue q) {
+  std::cerr
+      << "Device vendor: "
+      << q.get_device().template get_info<cl::sycl::info::device::vendor>()
+      << std::endl;
+  std::cerr << "Device name: "
+            << q.get_device().template get_info<cl::sycl::info::device::name>()
+            << std::endl;
+  std::cerr << "Device type: ";
+  switch (
+      q.get_device().template get_info<cl::sycl::info::device::device_type>()) {
+    case cl::sycl::info::device_type::cpu:
+      std::cerr << "cpu";
+      break;
+    case cl::sycl::info::device_type::gpu:
+      std::cerr << "gpu";
+      break;
+    case cl::sycl::info::device_type::accelerator:
+      std::cerr << "accelerator";
+      break;
+    case cl::sycl::info::device_type::custom:
+      std::cerr << "custom";
+      break;
+    case cl::sycl::info::device_type::automatic:
+      std::cerr << "automatic";
+      break;
+    case cl::sycl::info::device_type::host:
+      std::cerr << "host";
+      break;
+    case cl::sycl::info::device_type::all:
+      std::cerr << "all";
+      break;
+    default:
+      std::cerr << "unknown";
+      break;
+  };
+  std::cerr << std::endl;
+}
 
- public:
-  std::string device_vendor;
-  std::string device_type;
-
-  cli_device_selector(blas_benchmark::Args& args)
-      : program_name(args.program_name) {
-    if (!args.device.empty()) {
-      std::string device = args.device;
-      std::transform(device.begin(), device.end(), device.begin(), ::tolower);
-      // split the string into tokens on ':'
-      std::stringstream ss(device);
-      std::string item;
-      std::vector<std::string> tokens;
-      while (std::getline(ss, item, ':')) {
-        tokens.push_back(item);
-      }
-      if (tokens.size() != 2) {
-        std::cerr << "Device selector should be a colon-separated string (e.g "
-                     "intel:gpu)"
-                  << std::endl;
-      } else {
-        device_vendor = tokens[0];
-        device_type = tokens[1];
-      }
-    }
-  }
-};
+}  // namespace utils
 
 #endif  // CLI_DEVICE_SELECTOR_HPP

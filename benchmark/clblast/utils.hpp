@@ -9,9 +9,44 @@ typedef Context ExecutorType;
 
 namespace blas_benchmark {
 
-void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
+void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr,
+                      bool *success);
 
 namespace utils {
+
+inline void print_device_information(cl_device_id device) {
+  size_t device_name_length = 0;
+  clGetDeviceInfo(device, CL_DEVICE_NAME, 0, nullptr, &device_name_length);
+  if (!device_name_length) {
+    return;
+  }
+  char device_name[device_name_length];
+  clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), device_name,
+                  nullptr);
+  cl_device_type device_type;
+  clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type,
+                  nullptr);
+  std::cerr << "Device name: " << device_name << std::endl;
+  std::cerr << "Device type: ";
+  switch (device_type) {
+    case CL_DEVICE_TYPE_CPU:
+      std::cerr << "cpu";
+      break;
+    case CL_DEVICE_TYPE_GPU:
+      std::cerr << "gpu";
+      break;
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      std::cerr << "accelerator";
+      break;
+    case CL_DEVICE_TYPE_DEFAULT:
+      std::cerr << "default";
+      break;
+    default:
+      std::cerr << "unknown";
+      break;
+  };
+  std::cerr << std::endl;
+}
 
 /**
  * @fn translate_transposition
@@ -84,17 +119,6 @@ inline cl_ulong time_event<cl_event>(cl_event &e) {
   } else {
     // Return a really big number to show that we've failed.
     return 0xFFFFFFFFFFFFFFFF;
-  }
-}
-
-/**
- * @fn warmup
- * @brief Warm up to avoid benchmarking data transfer
- */
-template <typename function_t, typename... args_t>
-inline void warmup(function_t func, args_t &&... args) {
-  for (int i = 0; i < 10; ++i) {
-    func(std::forward<args_t>(args)...);
   }
 }
 

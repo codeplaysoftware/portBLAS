@@ -27,15 +27,15 @@
 
 template <typename scalar_t>
 std::string get_name(int size) {
-  return "BM_Iamax<" + blas_benchmark::utils::get_type_name<scalar_t>() + ">/" +
-         std::to_string(size);
+  std::ostringstream str{};
+  str << "BM_Iamax<" << blas_benchmark::utils::get_type_name<scalar_t>();
+  str << ">/" << size;
+  return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
-  // Standard test setup.
-  const index_t size = static_cast<index_t>(si);
-
+void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+         bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
@@ -53,10 +53,37 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
       blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, index_t>>(
           &out, 1);
 
-  // Warmup
-  for (int i = 0; i < 10; i++) {
-    _iamax(ex, size, inx, 1, outI);
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Run a first time with a verification of the results
+  index_t idx_ref =
+      static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
+  blas::IndexValueTuple<scalar_t, index_t> idx_temp(-1, -1);
+  {
+    auto idx_temp_gpu =
+        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, int>>(
+            &idx_temp, 1);
+    auto event = _iamax(ex, size, inx, 1, idx_temp_gpu);
+    ex.get_policy_handler().wait(event);
   }
+
+  if (idx_temp.ind != idx_ref) {
+    std::ostringstream err_stream;
+    err_stream << "Index mismatch: " << idx_temp.ind << "; expected "
+               << idx_ref;
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
+#endif
+
+  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+    auto event = _iamax(ex, size, inx, 1, outI);
+    ex.get_policy_handler().wait(event);
+    return event;
+  };
+
+  // Warmup
+  blas_benchmark::utils::warmup(blas_method_def);
   ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -65,11 +92,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef([&]() -> std::vector<cl::sycl::event> {
-          auto event = _iamax(ex, size, inx, 1, outI);
-          ex.get_policy_handler().wait(event);
-          return event;
-        });
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
@@ -79,23 +102,26 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int si) {
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  auto gemm_params = blas_benchmark::utils::get_params<blas1_param_t>(args);
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                        bool* success) {
+  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int size) {
-      run<scalar_t>(st, exPtr, size);
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+                         index_t size, bool* success) {
+      run<scalar_t>(st, exPtr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size);
+                                 exPtr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr) {
-  register_benchmark<float>(args, exPtr);
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+                      bool* success) {
+  register_benchmark<float>(args, exPtr, success);
 #ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr);
+  register_benchmark<double>(args, exPtr, success);
 #endif
 }
 }  // namespace blas_benchmark

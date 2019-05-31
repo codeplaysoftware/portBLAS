@@ -25,11 +25,46 @@
 
 #include <gtest/gtest.h>
 
+#include "blas_test.hpp"
 #include "blas_test_macros.hpp"
+#include "clara.hpp"
 
-int main(int argc, char *argv[]) {
+struct Args args{};
+
+namespace {
+/**
+ * @fn parse_args
+ * @brief Returns a structure containing the data extracted from the
+ * command-line arguments.
+ */
+void parse_args(int argc, char** argv) {
+  // Updates the global args
+  args.program_name = std::string(argv[0]);
+  bool show_help;
+
+  auto parser = clara::Help(show_help) |
+                clara::Opt(args.device, "device")["--device"](
+                    "Select a device (best effort) for running the benchmark.");
+
+  auto res = parser.parse(clara::Args(argc, argv));
+  if (!res) {
+    std::cerr << "Error in command line: " << res.errorMessage() << std::endl;
+    exit(1);
+  } else if (show_help) {
+    std::cout << parser << std::endl;
+  }
+};
+}  // namespace
+
+int main(int argc, char* argv[]) {
   int seed = 12345;
   srand(seed);
+
+  // Do our own argument processing
+  parse_args(argc, argv);
+
+  // Hand off to google test's argument processing
   ::testing::InitGoogleTest(&argc, argv);
+
   return RUN_ALL_TESTS();
 }

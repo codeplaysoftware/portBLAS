@@ -30,10 +30,6 @@ using combination_t = std::tuple<char, int, scalar_t, int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  using type_t = blas_test_args<scalar_t, void>;
-  using blas_test_t = BLAS_Test<type_t>;
-  using executor_t = typename type_t::executor_t;
-
   int n;
   int lda_mul;
   int incX;
@@ -46,8 +42,8 @@ void run_test(const combination_t<scalar_t> combi) {
   // Input vector
   std::vector<scalar_t> x_v(n * incX);
   std::vector<scalar_t> y_v(n * incY);
-  blas_test_t::set_rand(x_v, n * incX);
-  blas_test_t::set_rand(y_v, n * incY);
+  fill_random(x_v);
+  fill_random(y_v);
 
   // Output matrix
   std::vector<scalar_t> a_m(n * lda, 7.0);
@@ -57,9 +53,8 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::syr2(&uplo, n, alpha, x_v.data(), incX, y_v.data(), incY,
                        a_cpu_m.data(), lda);
 
-  SYCL_DEVICE_SELECTOR d;
-  auto q = blas_test_t::make_queue(d);
-  Executor<executor_t> ex(q);
+  auto q = make_queue();
+  test_executor_t ex(q);
   auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
   auto y_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_v, n * incY);
   auto a_m_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
@@ -71,9 +66,7 @@ void run_test(const combination_t<scalar_t> combi) {
       ex.get_policy_handler().copy_to_host(a_m_gpu, a_m.data(), n * lda);
   ex.get_policy_handler().wait(event);
 
-  for (int i = 0; i < n * lda; ++i) {
-    ASSERT_T_EQUAL(scalar_t, a_m[i], a_cpu_m[i]);
-  }
+  ASSERT_TRUE(utils::compare_vectors(a_m, a_cpu_m));
 }
 
 #ifdef STRESS_TESTING

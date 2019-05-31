@@ -27,7 +27,6 @@ cmake_minimum_required(VERSION 3.2.2)
 project(syclblas_unittest)
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
-set(SYCLBLAS_TEST_INCLUDE "${SYCLBLAS_TEST}/include")
 
 include_directories(${SYCLBLAS_TEST})
 
@@ -49,7 +48,11 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
     TARGET ${test_exec}
     SOURCES main.cpp ${blas_test}
   )
-  add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
+  if (TEST_DEVICE)
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE})
+  else()
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
+  endif()
   message("-- Created google test ${test_exec}")
   install(TARGETS ${test_exec} RUNTIME DESTINATION bin)
 
