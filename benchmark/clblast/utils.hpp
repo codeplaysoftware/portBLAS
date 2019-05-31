@@ -9,15 +9,16 @@ typedef Context ExecutorType;
 
 namespace blas_benchmark {
 
-void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr);
+void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr,
+                      bool *success);
 
 namespace utils {
 
 inline void print_device_information(cl_device_id device) {
   size_t device_name_length = 0;
   clGetDeviceInfo(device, CL_DEVICE_NAME, 0, nullptr, &device_name_length);
-  if(!device_name_length) {
-      return;
+  if (!device_name_length) {
+    return;
   }
   char device_name[device_name_length];
   clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), device_name,

@@ -1,135 +1,67 @@
-/***************************************************************************
- *
- *  @license
- *  Copyright (C) Codeplay Software Limited
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  For your convenience, a copy of the License has been included in this
- *  repository.
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  SYCL-BLAS: BLAS implementation using SYCL
- *
- *  @filename blas1_iamax_test.cpp
- *
- **************************************************************************/
-
 #include "blas_test.hpp"
-typedef ::testing::Types<blas_test_float<>, blas_test_double<>> BlasTypes;
+#include <limits>
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
-REGISTER_SIZE(::RANDOM_SIZE, iamax_test)
-REGISTER_STRD(1, iamax_test)
-REGISTER_PREC(float, 1e-4, iamax_test)
-REGISTER_PREC(double, 1e-6, iamax_test)
+using combination_t = std::tuple<int, int, bool>;
 
-TYPED_TEST(BLAS_Test, iamax_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class iamax_test;
-  using index_t = int;
-  index_t size = TestClass::template test_size<test>();
-  index_t strd = TestClass::template test_strd<test>();
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  using tuple_t = IndexValueTuple<scalar_t, int>;
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
+  int size;
+  int incX;
+  bool all_max;
+  std::tie(size, incX, all_max) = combi;
 
-  // create a random vector vX
-  std::vector<scalar_t> vX(size);
-  TestClass::set_rand(vX, size);
-  constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
-  // create a vector which will hold the result
-  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
-
-  scalar_t max = vX[0];
-  index_t imax = 0;
-  // compute index and value of the element with biggest absolute value
-  for (index_t i = 1; i < size; i += strd) {
-    if (std::abs(vX[i]) > std::abs(max)) {
-      max = vX[i];
-      imax = i;
-    }
+  // Input vector
+  std::vector<scalar_t> x_v(size * incX, 0.0);
+  if (!all_max) {
+    fill_random(x_v);
   }
-  IndexValueTuple<scalar_t, index_t> res(imax, max);
 
+  // Output scalar
+  std::vector<tuple_t> out_s(1, tuple_t(0, 0.0));
+
+  // Reference implementation
+  scalar_t out_cpu_s = reference_blas::iamax(size, x_v.data(), incX);
+
+  // SYCL implementation
   auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(vX, size);
-  auto gpu_vI =
-      blas::make_sycl_iterator_buffer<IndexValueTuple<scalar_t, index_t>>(
-          index_t(1));
-  _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  test_executor_t ex(q);
+
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(int(1));
+  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+
+  _iamax(ex, size, gpu_x_v, incX, gpu_out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  // check that the result value is the same
-  ASSERT_EQ(res.get_value(), vI[0].get_value());
-  // check that the result index is the same
-  ASSERT_EQ(res.get_index(), vI[0].get_index());
+  // Validate the result
+  ASSERT_EQ(out_cpu_s, out_s[0].ind);
 }
 
-REGISTER_SIZE(::RANDOM_SIZE, iamax_test_vpr)
-REGISTER_STRD(1, iamax_test_vpr)
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 10000, 1002400),  // size
+                       ::testing::Values(1, 5),                    // incX
+                       ::testing::Values(true, false)  // All zero input
+    );
+#else
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 10000),  // size
+                       ::testing::Values(5),              // incX
+                       ::testing::Values(true, false)     // All max input
+    );
+#endif
 
-TYPED_TEST(BLAS_Test, iamax_test_vpr) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class iamax_test_vpr;
-  using index_t = int;
+class IamaxFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(IamaxFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(iamax, IamaxFloat, combi);
 
-  index_t size = TestClass::template test_size<test>();
-  index_t strd = TestClass::template test_strd<test>();
-
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  // create a random vector vX
-  std::vector<scalar_t> vX(size);
-  TestClass::set_rand(vX, size);
-  constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
-  // create a vector which will hold the result
-  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
-
-  scalar_t max = scalar_t(0);
-  index_t imax = std::numeric_limits<index_t>::max();
-  // compute index and value of the element with biggest absolute value
-  for (index_t i = 0; i < size; i += strd) {
-    if (std::abs(vX[i]) > std::abs(max)) {
-      max = vX[i];
-      imax = i;
-    }
-  }
-  IndexValueTuple<scalar_t, index_t> res(imax, max);
-
-  auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vI = ex.get_policy_handler()
-                    .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  _iamax(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
-  ex.get_policy_handler().wait(event);
-
-  IndexValueTuple<scalar_t, index_t> res2(vI[0]);
-  // check that the result value is the same
-  ASSERT_EQ(res.get_value(), res2.get_value());
-  // check that the result index is the same
-  ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler()
-      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vI);
-}
+#if DOUBLE_SUPPORT
+class IamaxDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(IamaxDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(iamax, IamaxDouble, combi);
+#endif

@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) Codeplay Software Limited
+ *  Nrm2right (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *  You may obtain a nrm2 of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  For your convenience, a copy of the License has been included in this
+ *  For your convenience, a nrm2 of the License has been included in this
  *  repository.
  *
  *  Unless required by applicable law or agreed to in writing, software
@@ -25,54 +25,52 @@
 
 #include "blas_test.hpp"
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<> > BlasTypes;
+using combination_t = std::tuple<int, int>;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  int size;
+  int incX;
+  std::tie(size, incX) = combi;
 
-REGISTER_SIZE(::RANDOM_SIZE, nrm2_test)
-REGISTER_STRD(::RANDOM_STRD, nrm2_test)
-REGISTER_PREC(float, 1e-4, nrm2_test)
-REGISTER_PREC(double, 1e-6, nrm2_test)
+  // Input vectors
+  std::vector<scalar_t> x_v(size * incX);
+  fill_random(x_v);
 
-TYPED_TEST(BLAS_Test, nrm2_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class nrm2_test;
+  // Output vector
+  std::vector<scalar_t> out_s(1, 10.0);
 
-  int size = TestClass::template test_size<test>();
-  int strd = TestClass::template test_strd<test>();
-  scalar_t prec = TestClass::template test_prec<test>();
+  // Reference implementation
+  auto out_cpu_s = reference_blas::nrm2(size, x_v.data(), incX);
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  // create a random vector
-  std::vector<scalar_t> vX(size);
-  // create a vector which will hold the result
-  std::vector<scalar_t> vR(1, scalar_t(0));
-  TestClass::set_rand(vX, size);
-
-  scalar_t res(0);
-  // compute nrm2 (euclidean length) of vX into res in a for loop
-  for (int i = 0; i < size; i += strd) {
-    res += vX[i] * vX[i];
-  }
-  res = std::sqrt(res);
-
+  // SYCL implementation
   auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  // compute nrm2 of a vX into vR
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vR.data(), gpu_vR, 1);
-  _nrm2(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vR);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  test_executor_t ex(q);
+
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
+  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+
+  _nrm2(ex, size, gpu_x_v, incX, gpu_out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  // check that the result is the same
-  ASSERT_NEAR(res, vR[0], prec);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
+  // Validate the result
+  ASSERT_TRUE(utils::almost_equal(out_s[0], out_cpu_s));
 }
+
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(1, 4)       // incX
+);
+
+class Nrm2Float : public ::testing::TestWithParam<combination_t> {};
+TEST_P(Nrm2Float, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(nrm2, Nrm2Float, combi);
+
+#if DOUBLE_SUPPORT
+class Nrm2Double : public ::testing::TestWithParam<combination_t> {};
+TEST_P(Nrm2Double, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(nrm2, Nrm2Double, combi);
+#endif

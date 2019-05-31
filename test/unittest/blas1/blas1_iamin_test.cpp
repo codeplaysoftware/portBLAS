@@ -24,60 +24,77 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+#include <limits>
 
-typedef ::testing::Types<blas_test_float<>, blas_test_double<>> BlasTypes;
+using combination_t = std::tuple<int, int, bool>;
 
-TYPED_TEST_CASE(BLAS_Test, BlasTypes);
+template <typename scalar_t>
+void run_test(const combination_t combi) {
+  using tuple_t = IndexValueTuple<scalar_t, int>;
 
-REGISTER_SIZE(::RANDOM_SIZE, iamin_test)
-REGISTER_STRD(1, iamin_test)
+  int size;
+  int incX;
+  bool all_max;
+  std::tie(size, incX, all_max) = combi;
 
-TYPED_TEST(BLAS_Test, iamin_test) {
-  using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
-  using TestClass = BLAS_Test<TypeParam>;
-  using test = class iamin_test;
-  using index_t = int;
-  index_t size = TestClass::template test_size<test>();
-  index_t strd = TestClass::template test_strd<test>();
+  const scalar_t max = std::numeric_limits<scalar_t>::max();
 
-  DEBUG_PRINT(std::cout << "size == " << size << std::endl);
-  DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
-
-  std::vector<scalar_t> vX(size);
-  TestClass::set_rand(vX, size);
-  constexpr auto val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
-  std::vector<IndexValueTuple<scalar_t, index_t>> vI(1, val);
-
-  // compute iamin of vX into res with a for loop
-  scalar_t min = std::numeric_limits<scalar_t>::max();
-  index_t imin = std::numeric_limits<index_t>::max();
-  for (index_t i = 0; i < size; i += strd) {
-    if (std::abs(vX[i]) < std::abs(min)) {
-      min = vX[i];
-      imin = i;
+  // Input vector
+  std::vector<scalar_t> x_v(size * incX, max);
+  if (!all_max) {
+    fill_random(x_v);
+  }
+  for (int i = 0; i < size * incX; i++) {
+    // There is a bug in Openblas where 0s are not handled correctly
+    if (x_v[i] == 0.0) {
+      x_v[i] = 1.0;
     }
   }
-  IndexValueTuple<scalar_t, index_t> res(imin, min);
 
+  // Output scalar
+  std::vector<tuple_t> out_s(1, tuple_t(0, max));
+
+  // Reference implementation
+  scalar_t out_cpu_s = reference_blas::iamin(size, x_v.data(), incX);
+
+  // SYCL implementation
   auto q = make_queue();
-  Executor<ExecutorType> ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vI =
-      ex.get_policy_handler()
-          .template allocate<IndexValueTuple<scalar_t, index_t>>(index_t(1));
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  _iamin(ex, (size + strd - 1) / strd, gpu_vX, strd, gpu_vI);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_vI, vI.data(), 1);
+  test_executor_t ex(q);
+
+  // Iterators
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
+  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(int(1));
+  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+
+  _iamin(ex, size, gpu_x_v, incX, gpu_out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
-  IndexValueTuple<scalar_t, index_t> res2(vI[0]);
-  // check that the result value is the same
-  ASSERT_EQ(res.get_value(), res2.get_value());
-  // check that the result index is the same
-  ASSERT_EQ(res.get_index(), res2.get_index());
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler()
-      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vI);
+  // Validate the result
+  ASSERT_EQ(out_cpu_s, out_s[0].ind);
 }
+
+#ifdef STRESS_TESTING
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 10000, 1002400),  // size
+                       ::testing::Values(1, 5),                    // incX
+                       ::testing::Values(true, false)  // All zero input
+    );
+#else
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 65, 10000),  // size
+                       ::testing::Values(5),              // incX
+                       ::testing::Values(true, false)     // All max input
+    );
+#endif
+
+class IaminFloat : public ::testing::TestWithParam<combination_t> {};
+TEST_P(IaminFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(iamin, IaminFloat, combi);
+
+#if DOUBLE_SUPPORT
+class IaminDouble : public ::testing::TestWithParam<combination_t> {};
+TEST_P(IaminDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(iamin, IaminDouble, combi);
+#endif
