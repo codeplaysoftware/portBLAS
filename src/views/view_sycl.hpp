@@ -58,97 +58,59 @@ struct VectorView<
       typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
   using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
   container_t data_;
-  index_t size_data_;
-  index_t size_;
-  index_t disp_;
-  increment_t strd_;  // never size_t, because it could negative
+  const index_t size_;
+  const index_t disp_;
+  const increment_t strd_;  // never size_t, because it could be negative
+  const increment_t move_;
 
   using value_t = scalar_t;
 
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE VectorView(container_t data)
-      : data_{data},
-        size_data_(data_.get_size()),
-        size_(data_.get_size()),
-        disp_(0),
-        strd_(1) {}
+  static SYCL_BLAS_INLINE const index_t calc_size(container_t &data,
+                                                  index_t disp,
+                                                  increment_t strd,
+                                                  index_t size) noexcept {
+    const index_t sz = (strd > 0)
+                           ? (((data.get_size() - disp) + strd - 1) / strd)
+                           : ((disp + (-strd)) / (-strd));
+    return (size < sz) ? size : sz;
+  }
 
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp)
-      : data_{data},
-        size_data_(data_.get_size()),
-        size_(data_.get_size()),
-        disp_(disp),
-        strd_(1) {}
-
-  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t, codeplay_policy> data,
-                              increment_t strd, index_t size)
-      : VectorView(get_range_accessor(data), data.get_offset(), strd, size) {}
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, increment_t strd,
                               index_t size)
       : data_{data},
-        size_data_(data_.get_size()),
-        size_(0),
-        disp_(disp),
-        strd_(strd) {
-    if (strd_ > 0) {
-      auto sizeV = (size_data_ - disp);
-      auto quot = (sizeV + strd - 1) / strd;  // ceiling
-      size_ = quot;
-    } else if (strd_ < 0) {
-      auto nstrd = -strd;
-      auto quot = (disp + nstrd) / nstrd;  // ceiling
-      size_ = quot;
-#ifndef __SYCL_DEVICE_ONLY__
-    } else {
-// Stride is zero, not valid!
-#ifdef VERBOSE
-      printf("std = 0 \n");
-#endif  // VERBOSE
-      throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE_ONLY__
-    }
-    if (size < size_) size_ = size;
-    if (strd_ < 0) disp_ += (size_ - 1) * strd_;
-  }
+        size_(calc_size(data, disp, strd, size)),
+        disp_((strd > 0) ? disp : disp + ((size_ - 1) * strd)),
+        strd_(strd),
+        move_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data)
+      : VectorView(data, 0, 1, data_.get_size()) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp)
+      : VectorView(data, disp, 1, data_.get_size()) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t, codeplay_policy> data,
+                              increment_t strd, index_t size)
+      : VectorView(get_range_accessor(data), data.get_offset(), strd, size) {}
 
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE VectorView(self_t &opV, index_t disp, increment_t strd,
                               index_t size)
-      : data_{opV.get_data()},
-        size_data_(opV.get_data().get_size()),
-        size_(0),
-        disp_(disp),
-        strd_(strd) {
-    if (strd_ > 0) {
-      auto sizeV = (size_data_ - disp);
-      auto quot = (sizeV + strd - 1) / strd;  // ceiling
-      size_ = quot;
-    } else if (strd_ < 0) {
-      auto nstrd = -strd;
-      auto quot = (disp + nstrd) / nstrd;  // ceiling
-      size_ = quot;
-#ifndef __SYCL_DEVICE_ONLY__
-    } else {
-// Stride is zero, not valid!
-#ifdef VERBOSE
-      printf("std = 0 \n");
-#endif  //  VERBOSE
-      throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE_ONLY__
-    }
-    if (size < size_) size_ = size;
-    if (strd_ < 0) disp_ += (size_ - 1) * strd_;
-  }
+      : VectorView(opV.get_data(), disp, strd, size) {}
 
   /*!
    * @brief See VectorView.
@@ -158,7 +120,7 @@ struct VectorView<
   /*!
    * @brief See VectorView.
    */
-  SYCL_BLAS_INLINE index_t get_data_size() const { return size_data_; }
+  SYCL_BLAS_INLINE index_t get_data_size() const { return data_.get_size(); }
 
   /*!
    * @brief See VectorView.
@@ -179,26 +141,17 @@ struct VectorView<
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator+(index_t disp) {
-    if (this->strd_ > 0)
-      return self_t(this->data_, this->disp_ + (disp * this->strd_),
-                    this->strd_, this->size_ - disp);
-    else
-      return self_t(this->data_,
-                    this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-                    this->strd_, this->size_ - disp);
+    //  if (this->strd_ > 0)
+    return self_t(this->data_, this->move_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
   }
 
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator()(index_t disp) {
-    if (this->strd_ > 0)
-      return self_t(this->data_, this->disp_ + (disp * this->strd_),
-                    this->strd_, this->size_ - disp);
-    else
-      return self_t(this->data_,
-                    this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-                    this->strd_, this->size_ - disp);
+    return self_t(this->data_, this->move_ + (disp * this->strd_), this->strd_,
+                  this->size_ - disp);
   }
 
   /*!
@@ -212,34 +165,22 @@ struct VectorView<
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator%(index_t size) {
-    if (this->strd_ > 0) {
-      return self_t(this->data_, this->disp_, this->strd_, size);
-    } else {
-      return self_t(this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
-                    this->strd_, size);
-    }
+    return self_t(this->data_, this->move_, this->strd_, size);
   }
 
+  SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
+    return data_[move_ + i * strd_];
+  }
   /**** EVALUATING ****/
   SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
-    auto ind = disp_;
-    if (strd_ == 1) {
-      ind += i;
-    } else if (strd_ > 0) {
-      ind += strd_ * i;
-    } else {
-      ind -= strd_ * (size_ - i - 1);
-    }
-#ifndef __SYCL_DEVICE_ONLY__
-    if (ind >= size_data_) {
-      // out of range access
-      throw std::invalid_argument("Out of range access");
-    }
-#endif  //__SYCL_DEVICE_ONLY__
-    return data_[ind];
+    return data_[move_ + i * strd_];
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -248,21 +189,9 @@ struct VectorView<
   friend std::ostream &operator<<(std::ostream &stream,
                                   VectorView<X, Y, IndxT, IncrT> opvS);
 
-  void print_h(const char *name) {
-    int frst = 1;
-    printf("%s = [ ", name);
-    for (size_t i = 0; i < size_; i++) {
-      if (frst)
-        printf("%f", eval(i));
-      else
-        printf(" , %f", eval(i));
-      frst = 0;
-    }
-    printf(" ]\n");
-  }
-
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
 };
+
 template <class ViewScalarT, typename view_index_t>
 struct MatrixView<
     ViewScalarT,
