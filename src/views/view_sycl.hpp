@@ -57,11 +57,10 @@ struct VectorView<
   using container_t =
       typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
   using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
-  container_t data_;
   const index_t size_;
   const index_t disp_;
   const increment_t strd_;  // never size_t, because it could be negative
-  const increment_t move_;
+  container_t data_;
 
   using value_t = scalar_t;
 
@@ -80,11 +79,10 @@ struct VectorView<
    */
   SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, increment_t strd,
                               index_t size)
-      : data_{data},
-        size_(calc_size(data, disp, strd, size)),
+      : size_(calc_size(data, disp, strd, size)),
         disp_((strd > 0) ? disp : disp + ((size_ - 1) * strd)),
         strd_(strd),
-        move_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)) {}
+        data_{data + ((strd > 0) ? disp : disp + (size_ - 1) * (-strd))} {}
 
   /*!
    * @brief See VectorView.
@@ -141,8 +139,7 @@ struct VectorView<
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator+(index_t disp) {
-    //  if (this->strd_ > 0)
-    return self_t(this->data_, this->move_ + (disp * this->strd_), this->strd_,
+    return self_t(this->data_, (disp * this->strd_), this->strd_,
                   this->size_ - disp);
   }
 
@@ -150,7 +147,7 @@ struct VectorView<
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator()(index_t disp) {
-    return self_t(this->data_, this->move_ + (disp * this->strd_), this->strd_,
+    return self_t(this->data_, (disp * this->strd_), this->strd_,
                   this->size_ - disp);
   }
 
@@ -165,16 +162,12 @@ struct VectorView<
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE self_t operator%(index_t size) {
-    return self_t(this->data_, this->move_, this->strd_, size);
+    return self_t(this->data_, 0, this->strd_, size);
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
-    return data_[move_ + i * strd_];
-  }
+  SYCL_BLAS_INLINE scalar_t eval(index_t i) const { return data_[i * strd_]; }
   /**** EVALUATING ****/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
-    return data_[move_ + i * strd_];
-  }
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i) { return data_[i * strd_]; }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
