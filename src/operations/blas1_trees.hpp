@@ -138,6 +138,11 @@ SYCL_BLAS_INLINE void Join<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void Join<lhs_t, rhs_t>::set_access_displacement() {
+  lhs_.set_access_displacement();
+  rhs_.set_access_displacement();
+}
 
 /** Assign.
  */
@@ -174,6 +179,11 @@ template <typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE void Assign<lhs_t, rhs_t>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
+}
+template <typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void Assign<lhs_t, rhs_t>::set_access_displacement() {
+  lhs_.set_access_displacement();
+  rhs_.set_access_displacement();
 }
 
 /*! DoubleAssign.
@@ -232,6 +242,16 @@ SYCL_BLAS_INLINE void DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::bind(
   rhs_2_.bind(h);
 }
 
+template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE void
+DoubleAssign<lhs_1_t, lhs_2_t, rhs_1_t, rhs_2_t>::set_access_displacement() {
+  lhs_1_.set_access_displacement();
+  rhs_1_.set_access_displacement();
+  lhs_2_.set_access_displacement();
+  rhs_2_.set_access_displacement();
+}
+
 /*!ScalarOp.
  * @brief Implements an scalar operation.
  * (e.g alpha OP x, with alpha scalar and x vector)
@@ -268,6 +288,11 @@ SYCL_BLAS_INLINE void ScalarOp<operator_t, scalar_t, rhs_t>::bind(
   rhs_.bind(h);
 }
 
+template <typename operator_t, typename scalar_t, typename rhs_t>
+SYCL_BLAS_INLINE void
+ScalarOp<operator_t, scalar_t, rhs_t>::set_access_displacement() {
+  rhs_.set_access_displacement();
+}
 /*! UnaryOp.
  * Implements a Unary Operation ( operator_t(z), e.g. z++), with z a vector.
  */
@@ -301,6 +326,10 @@ UnaryOp<operator_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
 template <typename operator_t, typename rhs_t>
 SYCL_BLAS_INLINE void UnaryOp<operator_t, rhs_t>::bind(cl::sycl::handler &h) {
   rhs_.bind(h);
+}
+template <typename operator_t, typename rhs_t>
+SYCL_BLAS_INLINE void UnaryOp<operator_t, rhs_t>::set_access_displacement() {
+  rhs_.set_access_displacement();
 }
 
 /*! BinaryOp.
@@ -339,6 +368,13 @@ SYCL_BLAS_INLINE void BinaryOp<operator_t, lhs_t, rhs_t>::bind(
   rhs_.bind(h);
 }
 
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void
+BinaryOp<operator_t, lhs_t, rhs_t>::set_access_displacement() {
+  lhs_.set_access_displacement();
+  rhs_.set_access_displacement();
+}
+
 /*! TupleOp.
  * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
  */
@@ -370,6 +406,10 @@ SYCL_BLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
 template <typename rhs_t>
 SYCL_BLAS_INLINE void TupleOp<rhs_t>::bind(cl::sycl::handler &h) {
   rhs_.bind(h);
+}
+template <typename rhs_t>
+SYCL_BLAS_INLINE void TupleOp<rhs_t>::set_access_displacement() {
+  rhs_.set_access_displacement();
 }
 
 /*! AssignReduction.
@@ -475,6 +515,13 @@ SYCL_BLAS_INLINE void AssignReduction<operator_t, lhs_t, rhs_t>::bind(
     cl::sycl::handler &h) {
   lhs_.bind(h);
   rhs_.bind(h);
+}
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+SYCL_BLAS_INLINE void
+AssignReduction<operator_t, lhs_t, rhs_t>::set_access_displacement() {
+  lhs_.set_access_displacement();
+  rhs_.set_access_displacement();
 }
 
 }  // namespace blas

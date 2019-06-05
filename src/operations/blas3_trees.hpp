@@ -253,12 +253,9 @@ SYCL_BLAS_INLINE void Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
   const index_t c_size = ldc_ * n_;
 
-  auto orig_A = a_.get_data().get_pointer().get() +
-                a_.get_access_displacement() + (wg_batch_id * a_size);
-  auto orig_B = b_.get_data().get_pointer().get() +
-                b_.get_access_displacement() + (wg_batch_id * b_size);
-  auto orig_C = c_.get_data().get_pointer().get() +
-                c_.get_access_displacement() + (wg_batch_id * c_size);
+  auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+  auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+  auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
   index_t item_id = (id.get_group(0) % get_workgroup_cluster(m_, n_)) *
                         (id.get_local_range(0)) +
@@ -311,6 +308,17 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);
+}
+
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
+SYCL_BLAS_INLINE void
+Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+     TransB, element_t, is_beta_zero, Gemm_type>::set_access_displacement() {
+  a_.set_access_displacement();
+  b_.set_access_displacement();
+  c_.set_access_displacement();
 }
 
 /*!
@@ -482,13 +490,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
     const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
     const index_t c_size = ldc_ * n_;
-
-    auto orig_A = a_.get_data().get_pointer().get() +
-                  a_.get_access_displacement() + (wg_batch_id * a_size);
-    auto orig_B = b_.get_data().get_pointer().get() +
-                  b_.get_access_displacement() + (wg_batch_id * b_size);
-    auto orig_C = c_.get_data().get_pointer().get() +
-                  c_.get_access_displacement() + (wg_batch_id * c_size);
+    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
     const index_t number_of_block_per_row = ((m_ - 1) / block_rows) + 1;
     /* linear work group id The number of work-group required to executed each
@@ -663,6 +667,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
+  }
+  void set_access_displacement() {
+    a_.set_access_displacement();
+    b_.set_access_displacement();
+    c_.set_access_displacement();
   }
 
  private:
@@ -987,12 +996,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
     const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
     const index_t c_size = ldc_ * n_;
-    auto orig_A = a_.get_data().get_pointer().get() +
-                  a_.get_access_displacement() + (wg_batch_id * a_size);
-    auto orig_B = b_.get_data().get_pointer().get() +
-                  b_.get_access_displacement() + (wg_batch_id * b_size);
-    auto orig_C = c_.get_data().get_pointer().get() +
-                  c_.get_access_displacement() + (wg_batch_id * c_size);
+    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
     const index_t item_id = id.get_local_id(0);
     const index_t tile_size = tl_rows * tl_cols;
     const index_t tile_id = wg_id / tile_size;
@@ -1061,6 +1067,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
+  }
+  void set_access_displacement() {
+    a_.set_access_displacement();
+    b_.set_access_displacement();
+    c_.set_access_displacement();
   }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;

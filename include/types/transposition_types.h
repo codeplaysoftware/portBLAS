@@ -24,7 +24,7 @@
 
 #ifndef SYCL_BLAS_TRANSPOSITION_TYPES_H
 #define SYCL_BLAS_TRANSPOSITION_TYPES_H
-
+#if 0
 #include <stdexcept>
 
 /**
@@ -69,4 +69,5 @@ class Transposition {
   bool is_conjugate() { return (trans_ == Trans::Conjugate); }
 };
 
+#endif
 #endif  // TRANSPOSITION_TYPES_H

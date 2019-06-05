@@ -28,15 +28,44 @@
 #include <vector>
 namespace blas {
 
-// choosing value at compile-time
-template <bool Conds, int value_one_t, int value_two_t>
-struct Choose {
-  static const int type = value_one_t;
+/**
+ * @class Access
+ * @brief A wrapper type for Layout, providing common functionality and a safer
+ * interface.
+ */
+enum class access_layout { row_major, col_major };
+
+struct row_major {
+  static constexpr bool is_col_major() { return false; }
+};
+struct col_major {
+  static constexpr bool is_col_major() { return true; }
 };
 
-template <int value_one_t, int value_two_t>
-struct Choose<false, value_one_t, value_two_t> {
-  static const int type = value_two_t;
+template <typename layout>
+static constexpr bool is_col_major() {
+  return layout::is_col_major();
+};
+/**
+ * @enum Trans
+ * @brief The possible transposition options for a matrix, expressed
+ * algebraically.
+ */
+enum class transpose_type : char {
+  Normal = 'n',
+  Transposed = 't',
+  Conjugate = 'c'
+};
+
+// choosing value at compile-time
+template <bool Conds, typename val_t, val_t value_one_t, val_t value_two_t>
+struct Choose {
+  static constexpr auto type = value_one_t;
+};
+
+template <typename val_t, val_t value_one_t, val_t value_two_t>
+struct Choose<false, val_t, value_one_t, value_two_t> {
+  static constexpr auto type = value_two_t;
 };
 /// \struct RemoveAll
 /// \brief These methods are used to remove all the & const and * from  a type.

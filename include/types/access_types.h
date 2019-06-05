@@ -27,7 +27,7 @@
 
 #include "types/transposition_types.h"
 #include <stdexcept>
-
+#if 0
 /**
  * @class Access
  * @brief A wrapper type for Layout, providing common functionality and a safer
@@ -55,13 +55,13 @@ class Access {
     // in some cases, a is some data of layout, while b is how we want to access
     // it. if it's not true that (device is row major  xor  data is row major),
     // then row major
-    if (a.is_row_major() && b.is_row_major()) {
+    if (a.is_col_major() && b.is_col_major()) {
       // We can be row major, of course
       return Layout::row_major;
-    } else if (a.is_row_major() && b.is_col_major()) {
+    } else if (a.is_col_major() && b.is_col_major()) {
       // We should be col major?
       return Layout::col_major;
-    } else if (a.is_col_major() && b.is_row_major()) {
+    } else if (a.is_col_major() && b.is_col_major()) {
       // We should be col major?
       return Layout::col_major;
     } else {  // a.is_col_major() && b.is_col_major()
@@ -80,12 +80,12 @@ class Access {
 
   static Access col_major() { return Access(Layout::col_major); }
 
-  const inline bool is_row_major() const {
+  const inline bool is_col_major() const {
     return (layout == Layout::row_major);
   }
   const inline bool is_col_major() const {
     return (layout == Layout::col_major);
   }
 };
-
+#endif
 #endif  // ACCESS_TYPES_H

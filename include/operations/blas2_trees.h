@@ -40,6 +40,7 @@ struct Gemv {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 
 template <typename output_t, typename matrix_t, typename vector_t>
@@ -65,6 +66,7 @@ struct AddSetColumns {
 
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 
 /**
@@ -102,6 +104,7 @@ struct GemvCol {
   template <typename sharedT>
   value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 
 // template <typename lhs_t, typename matrix_t,typename vector_t>
@@ -143,6 +146,7 @@ struct GemvRow {
   template <typename sharedT>
   value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 /*!
  @brief Generator/factory for row-based GEMV trees.
@@ -192,6 +196,7 @@ struct GerRow {
   template <typename sharedT>
   value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 
 template <bool Single = true, bool Lower = true, bool Diag = true,
@@ -230,6 +235,7 @@ struct GerCol {
   template <typename sharedT>
   value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
+  void set_access_displacement();
 };
 
 // template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>

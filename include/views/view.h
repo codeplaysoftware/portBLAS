@@ -27,6 +27,7 @@
 #define SYCL_BLAS_VIEW_H
 
 #include "blas_meta.h"
+#include "types/access_types.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -81,9 +82,19 @@ struct VectorView {
   container_t &get_data();
 
   /*!
-   * @brief Returns the displacement
+   * @brief Returns a reference to the container
+   */
+  value_t *get_pointer();
+
+  /*! get_access_displacement.
+   * @brief get displacement from the origin.
    */
   index_t get_access_displacement();
+
+  /*! set_access_displacement.
+   * @brief sett displacement from the origin.
+   */
+  void set_access_displacement();
 
   /*!
    * @brief Returns the size of the underlying container.
@@ -100,33 +111,8 @@ struct VectorView {
   */
   increment_t get_stride();
 
-  /*!
-   * @brief Adds a displacement to the view, creating a new view.
-   */
-  self_t operator+(index_t disp);
-
-  /*!
-   * @brief Adds a displacement to the view, creating a new view.
-   */
-  self_t operator()(index_t disp);
-
-  /*!
-   @brief Multiplies the view stride by the given one and returns a new one
-  */
-  self_t operator*(increment_t strd);
-  /*!
-   @brief
-  */
-  self_t operator%(index_t size);
-
   /**** EVALUATING ****/
   value_t &eval(index_t i);
-
-  template <class X, class Y, typename IndxT, typename IncrT>
-  friend std::ostream &operator<<(std::ostream &stream,
-                                  VectorView<X, Y, IndxT, IncrT> opvS);
-
-  void print_h(const char *name);
 };
 
 /*! MatrixView
@@ -135,41 +121,38 @@ struct VectorView {
 @tparam container_t Type of the container.
  */
 template <typename view_value_t, typename view_container_t,
-          typename view_index_t>
+          typename view_index_t, typename layout>
 struct MatrixView {
   // Information related to the data
+  using access_layout_t = layout;
   using value_t = view_value_t;
   using container_t = view_container_t;
   using index_t = view_index_t;
-  using self_t = MatrixView<value_t, container_t, index_t>;
+  using self_t = MatrixView<value_t, container_t, index_t, layout>;
   container_t &data_;
-  int accessDev_;      // True for row-major, column-major otherwise
   index_t size_data_;  // real size of the data
-  int accessOpr_;      // Operation Access Mode (True: Normal, False: Transpose)
   index_t sizeR_;      // number of rows
   index_t sizeC_;      // number of columns
   index_t sizeL_;      // size of the leading dimension
   index_t disp_;       // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
-  MatrixView(view_container_t &data, int accessDev, view_index_t sizeR,
-             view_index_t sizeC);
   MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC);
-  MatrixView(view_container_t &data, int accessDev, view_index_t sizeR,
-             view_index_t sizeC, int accessOpr, view_index_t sizeL,
-             view_index_t disp);
   MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC,
-             int accessOpr, view_index_t sizeL, view_index_t disp);
-  MatrixView(MatrixView<view_value_t, view_container_t, view_index_t> opM,
-             int accessDev, view_index_t sizeR, view_index_t sizeC,
-             int accessOpr, view_index_t sizeL, view_index_t disp);
-  MatrixView(MatrixView<view_value_t, view_container_t, view_index_t> opM,
-             view_index_t sizeR, view_index_t sizeC, int accessOpr,
              view_index_t sizeL, view_index_t disp);
+  MatrixView(
+      MatrixView<view_value_t, view_container_t, view_index_t, layout> opM,
+      view_index_t sizeR, view_index_t sizeC, view_index_t sizeL,
+      view_index_t disp);
 
   /*!
    * @brief Returns the container
    */
   container_t &get_data();
+
+  /*!
+   * @brief Returns the container
+   */
+  value_t *get_pointer();
 
   /*!
    * @brief Returns the data size
@@ -195,37 +178,20 @@ struct MatrixView {
    */
   index_t get_size_col() const;
 
-  /*! is_row_access.
-   * @brief Access mode for the view.
-   * Combination of the device access vs the operation mode.
-   */
-  int is_row_access() const;
-
   /*! get_access_device.
    * @brief Access on the Device (e.g CPU: Row, GPU: Column).
    */
   int get_access_device() const;
 
-  /*! get_access_operation.
-   * @brief Returns the operation access mode
-   * @return True: Normal access, False: Transpose
+  /*! set_access_displacement.
+   * @brief set displacement from the origin.
    */
-  int get_access_operation() const;
+  void set_access_displacement() const;
 
   /*! get_access_displacement.
    * @brief get displacement from the origin.
    */
   index_t get_access_displacement() const;
-
-  /*!
-   * @brief Adds a displacement to the view, creating a new view.
-   */
-  self_t operator+(index_t disp);
-
-  /*!
-   * @brief Adds a displacement to the view, creating a new view.
-   */
-  self_t operator()(index_t i, index_t j);
 
   /*! eval.
    * @brief Evaluation for the given linear value.
@@ -236,11 +202,6 @@ struct MatrixView {
    * @brief Evaluation for the pair of row/col.
    */
   value_t &eval(index_t i, index_t j);
-
-  /*! print_h
-   * @brief Display the contents of the matrix in stdout.
-   */
-  void print_h(const char *name);
 };
 
 template <typename policy_t, typename data_t, typename index_t,
@@ -253,18 +214,18 @@ struct VectorViewTypeFactory {
                  index_t, increment_t>;
 };
 
-template <typename policy_t, typename element_t, typename index_t>
+template <typename policy_t, typename element_t, typename index_t, typename acc>
 struct MatrixViewTypeFactory {
   using scalar_t = typename ValueType<element_t>::type;
   using output_t =
       MatrixView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,
-                 index_t>;
+                 index_t, acc>;
 };
 
 template <typename executor_t, typename container_t, typename increment_t,
           typename index_t>
-inline
+static inline
     typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
                                    index_t, increment_t>::output_t
     make_vector_view(executor_t &ex, container_t buff, increment_t inc,
@@ -275,17 +236,17 @@ inline
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
 }
 
-template <typename executor_t, typename container_t, typename index_t,
-          typename operator_t>
-inline typename MatrixViewTypeFactory<typename executor_t::policy_t,
-                                      container_t, index_t>::output_t
-make_matrix_view(executor_t &ex, container_t buff, index_t m, index_t n,
-                 index_t lda, operator_t accessOpr) {
+template <typename acc, typename executor_t, typename container_t,
+          typename index_t>
+static inline
+    typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
+                                   index_t, acc>::output_t
+    make_matrix_view(executor_t &ex, container_t buff, index_t m, index_t n,
+                     index_t lda) {
   using leaf_node_t =
       typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
-                                     index_t>::output_t;
-  return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, accessOpr,
-                     lda};
+                                     index_t, acc>::output_t;
+  return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, lda};
 }
 
 }  // namespace blas

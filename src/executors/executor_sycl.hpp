@@ -221,7 +221,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
            Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
                                     policy_handler_.get_num_compute_units());
   return {execute_tree<
-      Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory),
+      Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0],
