@@ -18,16 +18,17 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_trees.hpp
+ *  @filename gemm_tall_skinny.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TREES_HPP
-#define SYCL_BLAS_BLAS3_TREES_HPP
+#ifndef SYCL_BLAS_BLAS3_TALL_SKINNY_GEMM_HPP
+#define SYCL_BLAS_BLAS3_TALL_SKINNY_GEMM_HPP
 
-#include "blas3/gemm_ref.hpp"
-#include "blas3/gemm_no_local.hpp"
-#include "blas3/gemm_local.hpp"
-#include "blas3/gemm_tall_skinny.hpp"
+#include "gemm_common.hpp"
 
-#endif  // SYCL_BLAS_BLAS3_TREES_HPP
+namespace blas {
+
+}  // namespace blas
+
+#endif  // SYCL_BLAS_BLAS3_TALL_SKINNY_GEMM_HPP
