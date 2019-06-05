@@ -225,8 +225,8 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_((MatrixView<_value_t, _container_t, _IndexType, layout>::is_col_major())
-          ? sizeC_
-          : sizeR_)),
+          ? sizeR_
+          : sizeC_)),
       disp_(0) {}
 
 /*!

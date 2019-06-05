@@ -95,7 +95,7 @@ typename Executor::policy_t::event_t _gemv_impl(
   auto mat1 =
       make_matrix_view<row_major>(ex, valT1, M, scratchSize, scratchSize);
 
-  if (data_layout_t::is_col_major()) {
+  if (!data_layout_t::is_col_major()) {
     auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
                                           scratchPadSize);
     ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);

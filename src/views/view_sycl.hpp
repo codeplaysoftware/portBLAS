@@ -206,11 +206,7 @@ struct MatrixView<
 
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
-      : data_{opM.data_},
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(sizeL),
-        disp_(disp) {}
+      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
 
   /**** RETRIEVING DATA ****/
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
