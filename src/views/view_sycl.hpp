@@ -165,9 +165,15 @@ struct VectorView<
     return self_t(this->data_, 0, this->strd_, size);
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(index_t i) const { return data_[i * strd_]; }
+  SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
+    if (strd_ != 1) i *= strd_;
+    return data_[i];
+  }
   /**** EVALUATING ****/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t i) { return data_[i * strd_]; }
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
+    if (strd_ != 1) i *= strd_;
+    return data_[i];
+  }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
