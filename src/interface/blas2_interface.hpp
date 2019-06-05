@@ -73,10 +73,10 @@ typename Executor::policy_t::event_t _gemv_impl(
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG =
-      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? 1 : localSize)
+      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
                       : std::min(M, _nRowsWG);
   const index_t nColsWG =
-      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? N : localSize)
+      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : N)
                       : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
@@ -87,22 +87,22 @@ typename Executor::policy_t::event_t _gemv_impl(
 
   const index_t scratchSize =
       (data_layout_t::is_col_major())
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol)
-          : nWGPerCol;
+          ? nWGPerCol
+          : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
 
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(M * scratchSize);
   // this is column major
   auto mat1 =
       make_matrix_view<row_major>(ex, valT1, M, scratchSize, scratchSize);
 
-  if (!data_layout_t::is_col_major()) {
-    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
-                                          scratchPadSize);
-    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-  } else {
+  if (data_layout_t::is_col_major()) {
     auto gemvC =
         make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+  } else {
+    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
+                                          scratchPadSize);
+    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
   }
 
   // beta * y
