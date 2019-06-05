@@ -53,7 +53,7 @@ typename Executor::policy_t::event_t _gemv_impl(
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret;
+  typename Executor::policy_t::event_t ret{};
 
   index_t M = (trn == transpose_type::Normal) ? _M : _N;
   index_t N = (trn == transpose_type::Normal) ? _N : _M;
@@ -61,9 +61,7 @@ typename Executor::policy_t::event_t _gemv_impl(
   static constexpr auto data_layout_access =
       Choose<trn == transpose_type::Normal, access_layout,
              access_layout::col_major, access_layout::row_major>::type;
-  using data_layout_t = typename std::conditional<trn == transpose_type::Normal,
-                                                  col_major, row_major>::type;
-
+  using data_layout_t = typename Layout<data_layout_access>::type;
   auto mA = make_matrix_view<data_layout_t>(ex, _mA, M, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
   auto vy = make_vector_view(ex, _vy, _incy, M);
@@ -98,11 +96,13 @@ typename Executor::policy_t::event_t _gemv_impl(
   if (data_layout_t::is_col_major()) {
     auto gemvC =
         make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
   } else {
     auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
                                           scratchPadSize);
-    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
   }
 
   // beta * y
@@ -115,7 +115,7 @@ typename Executor::policy_t::event_t _gemv_impl(
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   // assign the result to
   auto assignOp = make_op<Assign>(vy, addOp);
-  ret = ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
   return ret;
 }
 
@@ -129,6 +129,7 @@ typename Executor::policy_t::event_t _trmv_impl(
     Executor& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+  typename Executor::policy_t::event_t ret{};
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
@@ -139,37 +140,32 @@ typename Executor::policy_t::event_t _trmv_impl(
   static constexpr auto data_layout_access =
       Choose<trn == transpose_type::Normal, access_layout,
              access_layout::col_major, access_layout::row_major>::type;
-  using data_layout_t = typename std::conditional<trn == transpose_type::Normal,
-                                                  col_major, row_major>::type;
-  int triangOpr = (data_layout_access == access_layout ::col_major)
-                      ? (_Uplo == 'u')
-                      : (_Uplo == 'l');
+  using data_layout_t = typename Layout<data_layout_access>::type;
+  int triangOpr =
+      (data_layout_t::is_col_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   index_t N = _N;
   auto mA = make_matrix_view<data_layout_t>(ex, _mA, N, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
-
   const index_t interLoop = 1;
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG =
-      (_nRowsWG == 0)
-          ? ((data_layout_access == access_layout ::col_major) ? 1 : localSize)
-          : std::min(N, _nRowsWG);
+      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
+                      : std::min(N, _nRowsWG);
   const index_t nColsWG =
-      (_nColsWG == 0)
-          ? ((data_layout_access == access_layout ::col_major) ? N : localSize)
-          : std::min(N, _nColsWG);
+      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : N)
+                      : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
   const index_t nWGPerCol = (N - 1) / nColsWG + 1;
   const index_t nWGPerRow = (N - 1) / nRowsWG + 1;
   const index_t scratchSize =
-      (data_layout_access == access_layout::col_major)
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol)
-          : nWGPerCol;
+      (data_layout_t::is_col_major())
+          ? nWGPerCol
+          : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   using element_t = typename ValueType<container_t0>::type;
@@ -177,56 +173,62 @@ typename Executor::policy_t::event_t _trmv_impl(
   auto mat1 =
       make_matrix_view<row_major>(ex, valT1, N, scratchSize, scratchSize);
 
-  typename Executor::policy_t::event_t ret;
-
-  if (data_layout_access == access_layout::col_major) {
-    if (triangOpr == 1) {
-      if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      } else {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      }
-    } else {
-      if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      } else {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      }
-    }
-  } else {
+  if (data_layout_t::is_col_major()) {
     if (triangOpr == 1) {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+      }
+    }
+  } else {  // row_major
+    if (triangOpr == 1) {
+      if (unitDiag == 1) {
+        auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      } else {
+        auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      }
+    } else {
+      if (unitDiag == 1) {
+        auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      } else {
+        auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     }
   }
   auto addMOp = make_addSetColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
-  ret = ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
   return ret;
 }
 
@@ -254,7 +256,7 @@ typename Executor::policy_t::event_t _symv_impl(
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-
+  typename Executor::policy_t::event_t ret;
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
@@ -301,19 +303,23 @@ typename Executor::policy_t::event_t _symv_impl(
       make_matrix_view<row_major>(ex, valTC, N, scratchSize_C, scratchSize_C);
 
   if (triangOpr == 1) {
-    auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
-        matR, mA, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-    auto gemvC = make_Gemv_Col<true, false, false>(matC, mAT, vx, nWGPerRow_C,
-                                                   nWGPerCol_C, scratchPadSize);
-    ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-    ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
+    auto gemvC = make_Gemv_Col<false, true, true>(matC, mA, vx, nWGPerRow_C,
+                                                  nWGPerCol_C, scratchPadSize);
+    auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
+        matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   } else {
-    auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
-        matR, mA, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-    auto gemvC = make_Gemv_Col<false, false, true>(matC, mAT, vx, nWGPerRow_C,
-                                                   nWGPerCol_C, scratchPadSize);
-    ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-    ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
+    auto gemvC = make_Gemv_Col<true, true, false>(matC, mA, vx, nWGPerRow_C,
+                                                  nWGPerCol_C, scratchPadSize);
+    auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
+        matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
@@ -323,7 +329,8 @@ typename Executor::policy_t::event_t _symv_impl(
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
-  return ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  return ret;
 }
 
 /**** RANK 1 MODIFICATION ****/
@@ -345,9 +352,9 @@ typename Executor::policy_t::event_t _ger_impl(
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0) ? 1 : std::min(M, _nRowsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
 
-  const index_t nColsWG = (_nColsWG == 0) ? N : std::min(N, _nColsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
 
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
@@ -358,7 +365,7 @@ typename Executor::policy_t::event_t _ger_impl(
 
   typename Executor::policy_t::event_t ret;
   auto assignOp =
-      make_Ger_Row(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
+      make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
   return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
 }
 
@@ -381,8 +388,8 @@ typename Executor::policy_t::event_t _syr_impl(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+  typename Executor::policy_t::event_t ret;
   _Uplo = tolower(_Uplo);
-
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
   auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
@@ -391,8 +398,8 @@ typename Executor::policy_t::event_t _syr_impl(
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0) ? 1 : std::min(N, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0) ? N : std::min(N, _nColsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
@@ -401,14 +408,17 @@ typename Executor::policy_t::event_t _syr_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   if (triangOpr) {
-    auto assignOp = make_Ger_Row<true, false, true, true>(
+    auto assignOp = make_Ger_Col<true, false, true, true>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-
+    return ret = concatenate_vectors(
+               ret,
+               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
   } else {
-    auto assignOp = make_Ger_Row<true, true, true, false>(
+    auto assignOp = make_Ger_Col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+    return ret = concatenate_vectors(
+               ret,
+               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
   }
 }
 
@@ -433,7 +443,6 @@ typename Executor::policy_t::event_t _syr2_impl(
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
 
@@ -444,8 +453,8 @@ typename Executor::policy_t::event_t _syr2_impl(
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0) ? 1 : std::min(N, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0) ? N : std::min(N, _nColsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? 2 * localSize : _scratchPadSize;
 
@@ -454,11 +463,11 @@ typename Executor::policy_t::event_t _syr2_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   if (triangOpr) {
-    auto assignOp = make_Ger_Row<false, false, true, true>(
+    auto assignOp = make_Ger_Col<false, false, true, true>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
     return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
   } else {
-    auto assignOp = make_Ger_Row<false, true, true, false>(
+    auto assignOp = make_Ger_Col<false, true, true, false>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
     return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
   }

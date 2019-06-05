@@ -226,7 +226,7 @@ struct MatrixView<
   SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 
   /**** EVALUATING ***/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t ind) { return data_[ind]; }
+  SYCL_BLAS_INLINE scalar_t &eval(index_t indx) { return *(ptr_ + indx); }
 
   SYCL_BLAS_INLINE const scalar_t eval(index_t indx) const noexcept {
     return *(ptr_ + indx);

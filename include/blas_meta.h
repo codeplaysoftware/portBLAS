@@ -25,6 +25,7 @@
 
 #ifndef SYCL_BLAS_META_H
 #define SYCL_BLAS_META_H
+#include <iostream>
 #include <vector>
 namespace blas {
 
@@ -42,9 +43,17 @@ struct col_major {
   static constexpr bool is_col_major() { return true; }
 };
 
-template <typename layout>
-static constexpr bool is_col_major() {
-  return layout::is_col_major();
+template <access_layout layout>
+struct Layout;
+
+template <>
+struct Layout<access_layout::row_major> {
+  using type = row_major;
+};
+
+template <>
+struct Layout<access_layout::col_major> {
+  using type = col_major;
 };
 /**
  * @enum Trans
