@@ -39,10 +39,6 @@
 
 #include "interface/blas1_interface.h"
 
-#include "types/access_types.h"
-
-#include "types/transposition_types.h"
-
 #include "interface/blas2_interface.h"
 
 #include "interface/blas3_interface.h"

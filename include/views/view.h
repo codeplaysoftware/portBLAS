@@ -27,8 +27,6 @@
 #define SYCL_BLAS_VIEW_H
 
 #include "blas_meta.h"
-#include "types/access_types.h"
-
 #include <iostream>
 #include <stdexcept>
 #include <vector>

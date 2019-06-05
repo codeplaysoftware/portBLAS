@@ -33,8 +33,6 @@
 #include "operations/blas2_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
-#include "types/access_types.h"
-#include "types/transposition_types.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

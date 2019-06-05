@@ -26,7 +26,6 @@
 #ifndef SYCL_BLAS_VIEW_HPP
 #define SYCL_BLAS_VIEW_HPP
 
-#include "types/access_types.h"
 #include "views/view.h"
 #include <iostream>
 #include <stdexcept>

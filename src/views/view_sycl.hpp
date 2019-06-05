@@ -30,7 +30,6 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "types/access_types.h"
 #include "views/view.h"
 
 namespace blas {

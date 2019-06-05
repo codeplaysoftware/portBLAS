@@ -37,7 +37,6 @@
 #include "interface/gemm_launcher.h"
 #include "operations/blas3_trees.h"
 #include "operations/blas_constants.hpp"
-#include "types/access_types.h"
 
 namespace blas {
 
