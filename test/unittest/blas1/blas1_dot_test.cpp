@@ -64,7 +64,9 @@ void run_test(const combination_t combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  utils::almost_equal(out_s[0], out_cpu_s);
+  ASSERT_TRUE(utils::almost_equal(out_s[0], out_cpu_s));
+
+  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING
