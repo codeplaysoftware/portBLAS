@@ -140,10 +140,12 @@ struct VectorView<
   SYCL_BLAS_INLINE increment_t get_stride() const { return strd_; }
 
   SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
-    return *(ptr_ + i * strd_);
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
   /**** EVALUATING ****/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t i) { return *(ptr_ + i * strd_); }
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
+  }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
