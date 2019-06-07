@@ -59,6 +59,8 @@ void run_test(const combination_t combi) {
 
   // Validate the result
   ASSERT_TRUE(utils::almost_equal(out_s[0], out_cpu_s));
+
+  ex.get_policy_handler().get_queue().wait();
 }
 
 const auto combi =
