@@ -25,7 +25,10 @@
 
 #include <gtest/gtest.h>
 
+#include "blas_test.hpp"
 #include "blas_test_macros.hpp"
+
+struct Args args{};
 
 int main(int argc, char *argv[]) {
   int seed = 12345;
