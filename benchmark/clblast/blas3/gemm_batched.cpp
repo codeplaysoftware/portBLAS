@@ -112,12 +112,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   betas.resize(batch_size, beta);
 
   // Offsets
-  std::vector<size_t> a_offsets;
-  std::vector<size_t> b_offsets;
-  std::vector<size_t> c_offsets;
-  a_offsets.resize(batch_size);
-  b_offsets.resize(batch_size);
-  c_offsets.resize(batch_size);
+  std::vector<size_t> a_offsets(batch_size);
+  std::vector<size_t> b_offsets(batch_size);
+  std::vector<size_t> c_offsets(batch_size);
   auto _base = [=](index_t dim0, index_t dim1, index_t idx) {
     return dim0 * dim1 * idx;
   };
