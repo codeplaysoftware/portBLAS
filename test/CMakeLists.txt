@@ -55,4 +55,6 @@ include_directories(
 )
 
 add_subdirectory(${SYCLBLAS_TEST}/unittest)
-#add_subdirectory(${SYCLBLAS_TEST}/exprtest)
+if(ENABLE_EXPRESSION_TESTS)
+  add_subdirectory(${SYCLBLAS_TEST}/exprtest)
+endif(ENABLE_EXPRESSION_TESTS)
