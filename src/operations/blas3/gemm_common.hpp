@@ -50,54 +50,12 @@ ENABLE_TYPE_STRING(double)
 #undef ENABLE_TYPE_STRING
 
 /*!
- * @brief The Tile structure determines the tiling configuration of a gemm
- *        implementation.
+ * Returns a human-readable description of a tile type.
  *
- * The structure defines a hierarchical mapping of work items to matrix blocks,
- * and the Tile parameter have the largest impact on performance.
- * The blocking is done in 3 layers.
+ * @return The type string as a std::string
  *
- * The largest, top-level layer groups multiple consecutive work groups into a
- * top-level tile. The size of the tile (expressed in the number of work groups
- * in a tile) is determined by TlRows and TlColumns template parameters.
- * Different settings of the top-level layer do not have any impact on the
- * amount of required resources, but can impact data locality between
- * neighboring work groups, which can improve cache hit rates of high-level
- * caches if they are shared between multiple work groups.
- *
- * The second, block-level layer groups multiple work items into a block-level
- * tile. One block-level tile is assigned to one work-group, and hence
- * determines the number of work items within a work group.
- * It impacts local memory requirement (larger tile size requires more
- * local memory). A larger tile will also increase global data reuse
- * (average number of arithmetic operations performed per each data element
- * fetched from global memory). Generally, the larger block-level tile the
- * better, but its size is restricted by the maximal work-group size, and by
- * the available amount of shared memory.
- *
- * The last, item-level layer determines the size of the item-level tile,
- * which represents the size of the matrix block processed by a single work
- * item. A larger tile results in higher global data reuse, as well as local
- * data reuse (average number of arithmetic operations performed per each data
- * element fetched from local). However, larger tiles require more
- * register space, as well as more local memory.
- *
- * @note Square, or close-to-square tiles achieve the highest data reuse rate
- *       among all tiles that use the same amount of local / register
- *       space.
- *
- * @tparam ItemRows  the number of rows processed by each work item
- * @tparam ItemCols  the number of columns processed by each work item
- * @tparam WgRows  the number of item-level tiles within each column of
- *                 block-level tile
- * @tparam WgCols  the number of item-level tiles within each row of
- *                 block-level tile
- * @tparam TlRows  the number of block-level tiles within each column of
- *                 top-level tile
- * @tparam TlCols  the number of block-level tiles within each row of
- *                 top-level tile
- *
- * @see GemmFactory
+ * @note See the struct definition in include/operations/blas3_trees.h for more
+ *       info about the tiling configuration of gemm
  */
 template <int ItemRows, int ItemCols, int WgRows, int WgCols, int TlRows,
           int TlCols>
@@ -106,6 +64,27 @@ SYCL_BLAS_INLINE std::string Tile<ItemRows, ItemCols, WgRows, WgCols, TlRows,
   std::ostringstream str{};
   str << "Tile<" << item_rows << ", " << item_cols << ", " << wg_rows << ", "
       << wg_cols << ", " << tl_rows << ", " << tl_cols << ">";
+  return str.str();
+}
+
+/*!
+ * Returns a human-readable description of a partial gemm tile type.
+ *
+ * @return The type string as a std::string
+ *
+ * @note See the struct definition in include/operations/blas3_trees.h for more
+ *       info about the tiling configuration of partial gemm
+ */
+template <int NumTiles, int TileSizeDimM, int TileSizeDimK, int TileSizeDimN,
+          int WorkPerThreadM, int WorkPerThreadN, int LocalThreadSizeN,
+          int LocalThreadSizeM>
+SYCL_BLAS_INLINE std::string GemmPartialTile<NumTiles, TileSizeDimM, TileSizeDimK, TileSizeDimN,
+          WorkPerThreadM, WorkPerThreadN, LocalThreadSizeN,
+          LocalThreadSizeM>::get_type_string() noexcept {
+  return std::string("GemmPartialTile<>");
+  std::ostringstream str{};
+  str << "GemmPartialTile";
+  // TODO: output actual info
   return str.str();
 }
 

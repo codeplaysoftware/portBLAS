@@ -108,6 +108,33 @@ struct Tile {
    */
   static std::string get_type_string() noexcept;
 };
+
+/* TODO: document this structure
+ */
+template <int NumTiles = 8,
+          int TileSizeDimM = 8, int TileSizeDimK = 16,
+          int TileSizeDimN = 16, int WorkPerThreadM = 16,
+          int WorkPerThreadN = 1, int LocalThreadSizeN = 4,
+          int LocalThreadSizeM = 4>
+struct GemmPartialTile {
+  static constexpr int num_tiles = NumTiles;
+  static constexpr int tile_size_dim_m = TileSizeDimM;
+  static constexpr int tile_size_dim_n = TileSizeDimN;
+  static constexpr int tile_size_dim_k = TileSizeDimK;
+
+  static constexpr int work_per_thread_m = WorkPerThreadM;
+  static constexpr int work_per_thread_n = WorkPerThreadN;
+
+  static constexpr int local_thread_size_n = LocalThreadSizeN;
+  static constexpr int local_thread_size_m = LocalThreadSizeM;
+
+  /*!
+   * @brief Get tile type as human readable string.
+   */
+  static std::string get_type_string() noexcept;
+};
+
+
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
  *        different implementations of the GEMM device function. It also support
@@ -189,6 +216,26 @@ class Gemm {
   void eval(cl::sycl::nd_item<1> id) noexcept;
   void bind(cl::sycl::handler &h);
 };
+
+/*
+ * TODO: more info here
+ */
+template <typename input_t, typename output_t, typename scratch_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
+class GemmPartial {
+ public:
+  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta, scratch_t scratch,
+                               const index_t group_count_m,
+                               const index_t group_count_n,
+                               const index_t group_count_k);
+   index_t get_size() const;
+   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+   void eval(cl::sycl::nd_item<1> id) noexcept;
+   void bind(cl::sycl::handler &h);
+};
+
 
 /*
  * @brief a helper function used for constructing the GEMM
