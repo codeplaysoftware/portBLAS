@@ -84,6 +84,7 @@ install(DIRECTORY ${SYCLBLAS_INCLUDE} DESTINATION sycl_blas
         FILES_MATCHING PATTERN "*.h")
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
+option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
 
 if(${BLAS_ENABLE_TESTING})
   enable_testing()
