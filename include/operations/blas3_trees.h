@@ -39,8 +39,7 @@ namespace blas {
 enum class Gemm_t : int {
   naive = 0,
   local_memory = 1,
-  no_local_memory = 2,
-  tall_skinny_local_memory = 3
+  no_local_memory = 2
 };
 
 
