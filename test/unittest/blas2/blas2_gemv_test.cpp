@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<int, int, bool, T, T, int, int, int>;
+using combination_t = std::tuple<int, int, T, T, bool, int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -82,9 +82,9 @@ void run_test(const combination_t<scalar_t> combi) {
 const auto combi =
     ::testing::Combine(::testing::Values(11, 65, 255, 1023),  // m
                        ::testing::Values(14, 63, 257, 1010),  // n
-                       ::testing::Values(true, false),        // trans
                        ::testing::Values(0.0, 1.0, 1.5),      // alpha
                        ::testing::Values(0.0, 1.0, 1.5),      // beta
+                       ::testing::Values(true, false),        // trans
                        ::testing::Values(1, 2),               // incX
                        ::testing::Values(1, 3),               // incY
                        ::testing::Values(1, 2)                // lda_mul
@@ -94,9 +94,9 @@ const auto combi =
 // (the stress_test above takes about ~5 minutes)
 const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
                                       ::testing::Values(14, 1010),     // n
-                                      ::testing::Values(true, false),  // trans
                                       ::testing::Values(1.5),          // alpha
                                       ::testing::Values(0.0, 1.5),     // beta
+                                      ::testing::Values(true, false),  // trans
                                       ::testing::Values(2),            // incX
                                       ::testing::Values(3),            // incY
                                       ::testing::Values(2)  // lda_mul
