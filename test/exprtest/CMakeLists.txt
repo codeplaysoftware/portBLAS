@@ -31,6 +31,7 @@ set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 # compiling tests
 set(SYCL_EXPRTEST_SRCS
   ${SYCLBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
+  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
 )
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})

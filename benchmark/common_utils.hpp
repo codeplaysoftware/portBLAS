@@ -50,7 +50,7 @@ namespace utils {
  * read from the given csv file
  */
 template <typename param_t>
-std::vector<param_t> parse_csv_file(
+static inline std::vector<param_t> parse_csv_file(
     std::string& filepath,
     std::function<param_t(std::vector<std::string>&)> func) {
   std::vector<param_t> csv_data;
@@ -86,7 +86,7 @@ std::vector<param_t> parse_csv_file(
  * @fn get_range
  * @brief Prints a warning to the user if no CSV parameter file has been given
  */
-inline void warning_no_csv() {
+static inline void warning_no_csv() {
   std::cerr
       << "WARNING: no CSV parameter file has been given. Default ranges will "
          "be used."
@@ -98,7 +98,7 @@ inline void warning_no_csv() {
  * @brief Converts a string to a specific integer type
  */
 template <typename int_t>
-inline int_t str_to_int(std::string str) {
+static inline int_t str_to_int(std::string str) {
   return static_cast<int_t>(std::stoi(str));
 }
 
@@ -117,7 +117,7 @@ inline long long int str_to_int<long long int>(std::string str) {
  * @brief Converts a string to a specific scalar type
  */
 template <typename scalar_t>
-inline scalar_t str_to_scalar(std::string str) {
+static inline scalar_t str_to_scalar(std::string str) {
   return static_cast<scalar_t>(std::stof(str));
 }
 
@@ -131,7 +131,7 @@ inline double str_to_scalar<double>(std::string str) {
  * @brief Returns a vector containing the blas 1 benchmark parameters, either
  * read from a file according to the command-line args, or the default ones.
  */
-inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
+static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
@@ -161,7 +161,7 @@ inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) {
+static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas2_param_t<scalar_t>> blas2_default;
@@ -201,7 +201,7 @@ inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) {
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(Args& args) {
+static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas3_param_t<scalar_t>> blas3_default;
@@ -298,7 +298,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
  * for float and double.
  */
 template <typename scalar_t>
-inline std::string get_type_name() {
+static inline std::string get_type_name() {
   std::string type_name(typeid(scalar_t).name());
   return type_name;
 }
@@ -398,7 +398,7 @@ static inline std::string from_transpose_enum(Transposition t) {
  * @brief Warm up to avoid benchmarking data transfer
  */
 template <typename function_t, typename... args_t>
-inline void warmup(function_t func, args_t&&... args) {
+static inline void warmup(function_t func, args_t&&... args) {
   for (int i = 0; i < 10; ++i) {
     func(std::forward<args_t>(args)...);
   }
@@ -409,7 +409,7 @@ inline void warmup(function_t func, args_t&&... args) {
  * @brief Times 1 event, and returns the aggregate time.
  */
 template <typename event_t>
-inline cl_ulong time_event(event_t&);
+static inline cl_ulong time_event(event_t&);
 // Declared here, defined separately in the specific utils.hpp files
 
 /**
@@ -417,7 +417,7 @@ inline cl_ulong time_event(event_t&);
  * @brief Times n events, and returns the aggregate time.
  */
 template <typename event_t>
-inline cl_ulong time_events(std::vector<event_t> es) {
+static inline cl_ulong time_events(std::vector<event_t> es) {
   cl_ulong total_time = 0;
   for (auto e : es) {
     total_time += time_event(e);
@@ -426,7 +426,7 @@ inline cl_ulong time_events(std::vector<event_t> es) {
 }
 
 template <typename event_t, typename... other_events_t>
-inline cl_ulong time_events(event_t first_event,
+static inline cl_ulong time_events(event_t first_event,
                             other_events_t... next_events) {
   return time_events<event_t>(
       blas::concatenate_vectors(first_event, next_events...));
@@ -438,7 +438,7 @@ inline cl_ulong time_events(event_t first_event,
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename function_t, typename... args_t>
-inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
+static inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();
@@ -451,12 +451,12 @@ inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
 
 // Functions to initialize and update the counters
 
-inline void init_counters(benchmark::State& state) {
+static inline void init_counters(benchmark::State& state) {
   state.counters["best_event_time"] = ULONG_MAX;
   state.counters["best_overall_time"] = ULONG_MAX;
 }
 
-inline void update_counters(benchmark::State& state,
+static inline void update_counters(benchmark::State& state,
                             std::tuple<double, double> times) {
   state.PauseTiming();
   double overall_time, event_time;
@@ -470,7 +470,7 @@ inline void update_counters(benchmark::State& state,
   state.ResumeTiming();
 }
 
-inline void calc_avg_counters(benchmark::State& state) {
+static inline void calc_avg_counters(benchmark::State& state) {
   state.counters["avg_event_time"] =
       state.counters["total_event_time"] / state.iterations();
   state.counters["avg_overall_time"] =

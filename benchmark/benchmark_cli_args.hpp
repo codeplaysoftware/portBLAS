@@ -21,10 +21,10 @@ namespace utils {
  * @brief Returns a structure containing the data extracted from the
  * command-line arguments.
  */
-inline Args parse_args(int argc, char** argv) {
+static inline Args parse_args(int argc, char** argv) {
   Args args;
   args.program_name = std::string(argv[0]);
-  bool show_help;
+  bool show_help = false;
 
   auto parser =
       clara::Help(show_help) |
