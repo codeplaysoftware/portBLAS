@@ -26,6 +26,7 @@ set(CLBLAST_BENCH_SRCS
   ${CLBLAST_BENCH}/blas2/gemv.cpp
   # Level 3 blas
   ${CLBLAST_BENCH}/blas3/gemm.cpp
+  ${CLBLAST_BENCH}/blas3/gemm_batched.cpp
 )
 
 # Add individual benchmarks for each method
