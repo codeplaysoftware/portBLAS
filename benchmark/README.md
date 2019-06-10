@@ -95,6 +95,10 @@ n,t,64,128,64,0.5,0.5
 t,n,13,3,7,0,0.7
 ```
 
+The folder `config_csv` provides a few files corresponding to sizes that are
+relevant for neural networks, but you can use your own files, see the next
+section for more info on how to generate them.
+
 ### Python tool to generate a CSV file
 
 If you don't yet have a file containing the parameters you want to run the
