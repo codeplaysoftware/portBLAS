@@ -24,7 +24,7 @@ namespace utils {
 static inline Args parse_args(int argc, char** argv) {
   Args args;
   args.program_name = std::string(argv[0]);
-  bool show_help;
+  bool show_help = false;
 
   auto parser =
       clara::Help(show_help) |
