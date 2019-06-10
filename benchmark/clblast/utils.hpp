@@ -14,7 +14,7 @@ void create_benchmark(blas_benchmark::Args &args, ExecutorType *exPtr,
 
 namespace utils {
 
-inline void print_device_information(cl_device_id device) {
+static inline void print_device_information(cl_device_id device) {
   size_t device_name_length = 0;
   clGetDeviceInfo(device, CL_DEVICE_NAME, 0, nullptr, &device_name_length);
   if (!device_name_length) {
@@ -53,7 +53,7 @@ inline void print_device_information(cl_device_id device) {
  * @brief Helper function to translate transposition information from netlib
  * blas style strings into clblast types.
  */
-inline clblast::Transpose translate_transposition(const char *t_str) {
+static inline clblast::Transpose translate_transposition(const char *t_str) {
   if (t_str[0] == 'n') {
     return clblast::Transpose::kNo;
   } else if (t_str[0] == 't') {
