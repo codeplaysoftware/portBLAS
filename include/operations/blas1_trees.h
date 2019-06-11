@@ -47,7 +47,7 @@ struct Join {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /** Assign.
@@ -64,7 +64,7 @@ struct Assign {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*! DoubleAssign.
@@ -84,7 +84,7 @@ struct DoubleAssign {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*!ScalarOp.
@@ -103,7 +103,7 @@ struct ScalarOp {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*! UnaryOp.
@@ -120,7 +120,7 @@ struct UnaryOp {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*! BinaryOp.
@@ -138,7 +138,7 @@ struct BinaryOp {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*! TupleOp.
@@ -155,7 +155,7 @@ struct TupleOp {
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*! AssignReduction.
@@ -178,7 +178,7 @@ struct AssignReduction {
   template <typename sharedT>
   value_t eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 template <typename operator_t, typename lhs_t, typename rhs_t, typename index_t>

@@ -25,7 +25,6 @@
 
 #ifndef SYCL_BLAS_META_H
 #define SYCL_BLAS_META_H
-#include <iostream>
 #include <vector>
 namespace blas {
 

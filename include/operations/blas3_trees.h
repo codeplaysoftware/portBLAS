@@ -182,7 +182,7 @@ class Gemm {
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   void eval(cl::sycl::nd_item<1> id) noexcept;
   void bind(cl::sycl::handler &h);
-  void set_access_displacement();
+  void adjust_access_displacement();
 };
 
 /*

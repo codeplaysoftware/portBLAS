@@ -80,7 +80,7 @@ struct VectorView {
   container_t &get_data();
 
   /*!
-   * @brief Returns a reference to the container
+   * @brief Returns a pointer containing the raw data of the container
    */
   value_t *get_pointer();
 
@@ -89,10 +89,13 @@ struct VectorView {
    */
   index_t get_access_displacement();
 
-  /*! set_access_displacement.
-   * @brief sett displacement from the origin.
+  /*! adjust_access_displacement.
+   * @brief this method adjust the position of the data access to point to the
+   *  data_ + offset_ on the device side. This function will be called at the
+   * begining of an expression so that the kernel wont repeat this operation at
+   * every eval call
    */
-  void set_access_displacement();
+  void adjust_access_displacement();
 
   /*!
    * @brief Returns the size of the underlying container.
@@ -181,10 +184,10 @@ struct MatrixView {
    */
   int get_access_device() const;
 
-  /*! set_access_displacement.
+  /*! adjust_access_displacement.
    * @brief set displacement from the origin.
    */
-  void set_access_displacement() const;
+  void adjust_access_displacement() const;
 
   /*! get_access_displacement.
    * @brief get displacement from the origin.
@@ -212,13 +215,14 @@ struct VectorViewTypeFactory {
                  index_t, increment_t>;
 };
 
-template <typename policy_t, typename element_t, typename index_t, typename acc>
+template <typename policy_t, typename element_t, typename index_t,
+          typename access_mode_t>
 struct MatrixViewTypeFactory {
   using scalar_t = typename ValueType<element_t>::type;
   using output_t =
       MatrixView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,
-                 index_t, acc>;
+                 index_t, access_mode_t>;
 };
 
 template <typename executor_t, typename container_t, typename increment_t,
@@ -234,16 +238,16 @@ static inline
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
 }
 
-template <typename acc, typename executor_t, typename container_t,
+template <typename access_mode_t, typename executor_t, typename container_t,
           typename index_t>
 static inline
     typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
-                                   index_t, acc>::output_t
+                                   index_t, access_mode_t>::output_t
     make_matrix_view(executor_t &ex, container_t buff, index_t m, index_t n,
                      index_t lda) {
   using leaf_node_t =
       typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
-                                     index_t, acc>::output_t;
+                                     index_t, access_mode_t>::output_t;
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, lda};
 }
 

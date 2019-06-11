@@ -154,7 +154,7 @@ struct ExpressionTreeFunctor {
                                          expression_tree_t t)
       : scratch_(scratch), t_(t) {}
   SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) {
-    t_.set_access_displacement();
+    t_.adjust_access_displacement();
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
                             value_t>::eval(t_, scratch_, i);
   }

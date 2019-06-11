@@ -143,7 +143,7 @@ inline _IndexType VectorView<_value_t, _container_t, _IndexType,
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 inline void VectorView<_value_t, _container_t, _IndexType,
-                       _IncrementType>::set_access_displacement() {
+                       _IncrementType>::adjust_access_displacement() {
   return data_ += disp_;
 }
 
@@ -385,7 +385,7 @@ inline _IndexType MatrixView<_value_t, _container_t, _IndexType,
 template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 inline void MatrixView<_value_t, _container_t, _IndexType,
-                       layout>::set_access_displacement() const {
+                       layout>::adjust_access_displacement() const {
   return data_ += disp_;
 }
 

@@ -315,10 +315,10 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero, int Gemm_type>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::set_access_displacement() {
-  a_.set_access_displacement();
-  b_.set_access_displacement();
-  c_.set_access_displacement();
+     TransB, element_t, is_beta_zero, Gemm_type>::adjust_access_displacement() {
+  a_.adjust_access_displacement();
+  b_.adjust_access_displacement();
+  c_.adjust_access_displacement();
 }
 
 /*!
@@ -668,10 +668,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     b_.bind(h);
     c_.bind(h);
   }
-  void set_access_displacement() {
-    a_.set_access_displacement();
-    b_.set_access_displacement();
-    c_.set_access_displacement();
+  void adjust_access_displacement() {
+    a_.adjust_access_displacement();
+    b_.adjust_access_displacement();
+    c_.adjust_access_displacement();
   }
 
  private:
@@ -1068,10 +1068,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.bind(h);
     c_.bind(h);
   }
-  void set_access_displacement() {
-    a_.set_access_displacement();
-    b_.set_access_displacement();
-    c_.set_access_displacement();
+  void adjust_access_displacement() {
+    a_.adjust_access_displacement();
+    b_.adjust_access_displacement();
+    c_.adjust_access_displacement();
   }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;

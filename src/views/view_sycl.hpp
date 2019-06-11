@@ -64,10 +64,14 @@ struct VectorView<
       ptr_;  // global pointer access inside the kernel
   using value_t = scalar_t;
 
-  static SYCL_BLAS_INLINE const index_t calc_size(container_t &data,
-                                                  index_t disp,
-                                                  increment_t strd,
-                                                  index_t size) noexcept {
+  // This function is used for calculating the size of the data from the
+  // container size, based on the stride value, when the size is not passed as
+  // an input parameter. Using this function it is possible to set the size from
+  // the constructor and make it to be const, so better optimisation will be
+  // provisded by compiler when it passes to the kernel.
+  static SYCL_BLAS_INLINE const index_t
+  calculate_input_data_size(container_t &data, index_t disp, increment_t strd,
+                            index_t size) noexcept {
     const index_t sz = (strd > 0)
                            ? (((data.get_size() - disp) + strd - 1) / strd)
                            : ((disp + (-strd)) / (-strd));
@@ -80,7 +84,7 @@ struct VectorView<
   SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, increment_t strd,
                               index_t size)
       : data_{data},
-        size_(calc_size(data, disp, strd, size)),
+        size_(calculate_input_data_size(data, disp, strd, size)),
         disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
         strd_(strd) {}
 
@@ -156,7 +160,7 @@ struct VectorView<
   }
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
-  SYCL_BLAS_INLINE void set_access_displacement() {
+  SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }
 };
@@ -250,7 +254,7 @@ struct MatrixView<
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
 
-  SYCL_BLAS_INLINE void set_access_displacement() {
+  SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }
 };  // namespace blas
