@@ -82,12 +82,9 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(c_m_gpu);
   std::copy(c_m_gpu.begin(), c_m_gpu.end(), c_m_cpu.begin());
 
-  auto m_a_gpu =
-      policy_handler.template allocate<scalar_t>(_size(dim_a, lda_mul));
-  auto m_b_gpu =
-      policy_handler.template allocate<scalar_t>(_size(dim_b, ldb_mul));
-  auto m_c_gpu =
-      policy_handler.template allocate<scalar_t>(_size(dim_c, ldc_mul));
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(_size(dim_a, lda_mul));
+  auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(_size(dim_b, ldb_mul));
+  auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(_size(dim_c, ldc_mul));
 
   for (int bs = 0; bs < batch_size; bs++) {
     // Use system blas to create a reference output
@@ -120,10 +117,7 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
-
-  policy_handler.template deallocate<scalar_t>(m_a_gpu);
-  policy_handler.template deallocate<scalar_t>(m_b_gpu);
-  policy_handler.template deallocate<scalar_t>(m_c_gpu);
+  ex.get_policy_handler().wait();
 }
 
 class GemmFloat : public ::testing::TestWithParam<combination_t<float>> {};

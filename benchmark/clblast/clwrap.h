@@ -34,7 +34,7 @@
 
 /* We don't want to return exceptions in destructors. #define them out for now.
  */
-inline void show_error(std::string err_str) {
+static inline void show_error(std::string err_str) {
   std::cerr << "Got error that we would otherwise have thrown: " << err_str
             << std::endl;
 }

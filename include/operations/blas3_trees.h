@@ -36,7 +36,12 @@ namespace blas {
  * It can be either a naive kernel; a kernel uses local memory or a kernel that
  * does not use local memory
  */
-enum class Gemm_t : int { naive = 0, local_memory = 1, no_local_memory = 2 };
+enum class Gemm_t : int {
+  naive = 0,
+  local_memory = 1,
+  no_local_memory = 2
+};
+
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
