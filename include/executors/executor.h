@@ -76,6 +76,13 @@ class Executor {
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, Gemm_type>
           gemm_tree);
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, bool is_beta_zero, int Gemm_type>
+  typename policy_t::event_t execute(
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero, Gemm_type>
+          gemm_tree);
 
  private:
   policy_handler_t policy_handler_;

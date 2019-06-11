@@ -24,4 +24,5 @@
 # **************************************************************************/
 #blas3
 generate_blas_gemm_objects(blas3 gemm_launcher)
+generate_blas_tsgemm_objects(blas3 gemm_launcher_tallskinny)
 generate_blas_ternary_objects(blas3 gemm)

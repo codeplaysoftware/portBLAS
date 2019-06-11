@@ -23,8 +23,8 @@
 # *
 # **************************************************************************/
 # represent the list of supported handler for executor
-set(executor_list "PolicyHandler<codeplay_policy>") 
-#represent the list of supported index/increment type 
+set(executor_list "PolicyHandler<codeplay_policy>")
+#represent the list of supported index/increment type
 set(index_list "int" )
 #represent the list of supported data type.
 #Each data type in a data list determines the container types.
@@ -38,7 +38,7 @@ endif()
 ## represent the list of bolean options
 set(boolean_list "true" "false")
 
-# gemm_configuration(work_group_size, double_buffer, conflict_a, conflict_b, 
+# gemm_configuration(work_group_size, double_buffer, conflict_a, conflict_b,
 #                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem)
 set(gemm_configuration_lists "")
 
@@ -49,9 +49,12 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory")
   set(gemm_configuration_3 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local_memory")
   set(gemm_configuration_4 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
-                                       gemm_configuration_2 gemm_configuration_3 
+  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
+                                       gemm_configuration_2 gemm_configuration_3
                                        gemm_configuration_4)
+
+  set(tsgemm_configuration_0 256 "true" "false" "false" 64 2 4 2 2 2 1 2 2 "tall_skinny_local_memory")
+  list(APPEND tsgemm_configuration_lists tsgemm_configuration_0)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
   set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local_memory")
@@ -61,7 +64,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
   set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local_memory")
   set(gemm_configuration_1 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local_memory")
   set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local_memory")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1 
+  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 256 "true" "false" "false" 64 1 1 16 16 1 1 "local_memory")
@@ -114,9 +117,9 @@ foreach(executor ${executor_list})
           STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
           STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py 
+            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
               ${PROJECT_SOURCE_DIR}/external/
-              ${SYCLBLAS_SRC_GENERATOR}/gen 
+              ${SYCLBLAS_SRC_GENERATOR}/gen
               ${blas_level}
               ${func}
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -159,9 +162,9 @@ foreach(executor ${executor_list})
             STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
             STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py 
+              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
                 ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen 
+                ${SYCLBLAS_SRC_GENERATOR}/gen
                 ${blas_level}
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -208,9 +211,9 @@ foreach(executor ${executor_list})
             STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
             STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py 
+              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
                 ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen 
+                ${SYCLBLAS_SRC_GENERATOR}/gen
                 ${blas_level}
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -257,9 +260,9 @@ foreach(executor ${executor_list})
               STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
               STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
               add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py 
+                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
                   ${PROJECT_SOURCE_DIR}/external/
-                  ${SYCLBLAS_SRC_GENERATOR}/gen 
+                  ${SYCLBLAS_SRC_GENERATOR}/gen
                   ${blas_level}
                   ${func}
                   ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -323,9 +326,9 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                     STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
                     STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
                     add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py 
+                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                         ${PROJECT_SOURCE_DIR}/external/
-                        ${SYCLBLAS_SRC_GENERATOR}/gen 
+                        ${SYCLBLAS_SRC_GENERATOR}/gen
                         ${blas_level}
                         ${func}
                         ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -369,9 +372,91 @@ message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_gemm_objects)
 
+
+# hardcode partial gemm for ts testing
+function(generate_blas_tsgemm_objects blas_level func)
+set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+      foreach(trans_a ${boolean_list})
+        foreach(trans_b ${boolean_list})
+          foreach(is_beta_zero ${boolean_list})
+            foreach(executor ${executor_list})
+              foreach(data ${data_list})
+                foreach(index ${index_list})
+                  foreach(gemm_list ${tsgemm_configuration_lists})
+                    list(GET ${gemm_list} 0 wg_size)
+                    list(GET ${gemm_list} 1 double_buffer)
+                    list(GET ${gemm_list} 2 conflict_a)
+                    list(GET ${gemm_list} 3 conflict_b)
+                    list(GET ${gemm_list} 4 cl_size)
+                    list(GET ${gemm_list} 5 nt)
+                    list(GET ${gemm_list} 6 tsm)
+                    list(GET ${gemm_list} 7 tsk)
+                    list(GET ${gemm_list} 8 tsn)
+                    list(GET ${gemm_list} 9 wptm)
+                    list(GET ${gemm_list} 10 wptn)
+                    list(GET ${gemm_list} 11 ltm)
+                    list(GET ${gemm_list} 12 ltn)
+                    list(GET ${gemm_list} 13 gemm_type)
+                    set(file_name "${func}_${double_buffer}_${conflict_a}_"
+                                    "${conflict_b}_${trans_a}_${trans_b}_"
+                                    "${is_beta_zero}_${gemm_type}_${executor}_"
+                                    "${data}_${index}_${nt}_${tsm}_${tsk}_"
+                                    "${tsn}_${wptm}_${wptm}_${ltm}_${ltm}_"
+                                    "${wg_size}_${cl_size}.cpp")
+                    STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
+                    STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+                    add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_tsgemm_launcher.py
+                        ${PROJECT_SOURCE_DIR}/external/
+                        ${SYCLBLAS_SRC_GENERATOR}/gen
+                        ${blas_level}
+                        ${func}
+                        ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        ${executor}
+                        ${data}
+                        ${index}
+                        ${double_buffer}
+                        ${conflict_a}
+                        ${conflict_b}
+                        ${trans_a}
+                        ${trans_b}
+                        ${is_beta_zero}
+                        ${gemm_type}
+                        ${nt}
+                        ${tsm}
+                        ${tsk}
+                        ${tsn}
+                        ${wptm}
+                        ${wptn}
+                        ${ltm}
+                        ${ltn}
+                        ${wg_size}
+                        ${cl_size}
+                        ${file_name}
+                      MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_tsgemm_launcher.py
+                      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                      VERBATIM
+                    )
+                    list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+                  endforeach(gemm_list)
+                endforeach(index)
+              endforeach(data)
+            endforeach(executor)
+          endforeach(is_beta_zero)
+        endforeach(trans_b)
+      endforeach(trans_a)
+add_library(${func} OBJECT ${FUNC_SRC})
+set_target_compile_def(${func})
+# The blas library depends on FindComputeCpp
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+message(STATUS "Adding SYCL to target ${func}")
+add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
+endfunction(generate_blas_tsgemm_objects)
+
 function (build_library LIB_NAME LIB_TYPE)
 add_library(${LIB_NAME} ${LIB_TYPE}
-                             $<TARGET_OBJECTS:sycl_policy> 
+                             $<TARGET_OBJECTS:sycl_policy>
                              $<TARGET_OBJECTS:axpy>
                              $<TARGET_OBJECTS:asum>
                              $<TARGET_OBJECTS:asum_return>
@@ -394,6 +479,7 @@ add_library(${LIB_NAME} ${LIB_TYPE}
                              $<TARGET_OBJECTS:syr2>
                              $<TARGET_OBJECTS:trmv>
                              $<TARGET_OBJECTS:gemm_launcher>
+                             $<TARGET_OBJECTS:gemm_launcher_tallskinny>
                              $<TARGET_OBJECTS:gemm>
                             )
 endfunction(build_library)

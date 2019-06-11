@@ -111,11 +111,11 @@ struct Tile {
 
 /* TODO: document this structure
  */
-template <int NumTiles = 8,
-          int TileSizeDimM = 8, int TileSizeDimK = 16,
-          int TileSizeDimN = 16, int WorkPerThreadM = 16,
-          int WorkPerThreadN = 1, int LocalThreadSizeN = 4,
-          int LocalThreadSizeM = 4>
+template <int NumTiles = 4,
+          int TileSizeDimM = 8, int TileSizeDimK = 8,
+          int TileSizeDimN = 8, int WorkPerThreadM = 4,
+          int WorkPerThreadN = 4, int LocalThreadSizeN = 2,
+          int LocalThreadSizeM = 2>
 struct GemmPartialTile {
   static constexpr int num_tiles = NumTiles;
   static constexpr int tile_size_dim_m = TileSizeDimM;
@@ -220,19 +220,28 @@ class Gemm {
 /*
  * TODO: more info here
  */
-template <typename input_t, typename output_t, typename scratch_t, bool DoubleBuffer, bool NbcA,
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int Gemm_type>
 class GemmPartial {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta, scratch_t scratch,
+  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
                                const index_t group_count_m,
                                const index_t group_count_n,
                                const index_t group_count_k);
+   static std::string get_type_string() noexcept;
+   static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
+   static index_t get_num_workgroup_cluster(index_t m, index_t n,
+                                            index_t compute_units) noexcept;
+   static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
+                                             index_t compute_units) noexcept;
    index_t get_size() const;
    bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-   void eval(cl::sycl::nd_item<1> id) noexcept;
+
+   template <typename local_memory_t>
+   void eval(local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept;
+
    void bind(cl::sycl::handler &h);
 };
 
@@ -252,6 +261,23 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
       buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
+}
+
+/*
+ * @brief a helper function used for constructing the GEMM
+ *  see GEMM for the parammeters passed here.
+ */
+template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
+          typename TileType, bool TransA, bool TransB, int Gemm_type,
+          bool is_beta_zero, typename input_t, typename output_t,
+          typename element_t>
+inline GemmPartial<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
+            TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>
+make_gemm_partial(input_t buffer_a, input_t buffer_b, output_t buffer_c,
+          element_t alpha, element_t beta) {
+  return GemmPartial<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
+              TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
+      buffer_a, buffer_b, buffer_c, alpha, beta, 1, 1, 1); // TODO: not 1!
 }
 
 }  // namespace blas

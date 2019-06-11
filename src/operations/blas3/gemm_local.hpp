@@ -70,9 +70,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using tile_type = TileType;
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using local_memory_t =
-      cl::sycl::accessor<element_t, 1, cl::sycl::access::mode::read_write,
-                         cl::sycl::access::target::local>;
 
   static constexpr int type = static_cast<int>(Gemm_t::local_memory);
 

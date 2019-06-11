@@ -230,6 +230,30 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
            Gemm_type>::local_memory_size)};
 }
 
+template <>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_type>
+        gemm_tree) {
+  auto rng =
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero,
+           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
+                                    policy_handler_.get_num_compute_units());
+  return {execute_tree<
+      Choose<Gemm_type == static_cast<int>(Gemm_t::tall_skinny_local_memory),
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
+      policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
+      rng.get_global_range()[0],
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero,
+           Gemm_type>::local_memory_size)};
+}
+
 }  // namespace blas
 
 #endif  // EXECUTOR_SYCL_HPP

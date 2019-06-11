@@ -68,6 +68,31 @@ typename Executor::policy_t::event_t Gemm_Launcher<
   return ex.execute(gemm);
 }
 
+/*!
+ * @brief Constructs the Tall & Skinny Gemm operation
+ */
+template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
+          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
+          bool is_beta_zero>
+template <typename Executor, typename container_t0, typename container_t1,
+          typename container_t2, typename element_t, typename index_t>
+typename Executor::policy_t::event_t Gemm_Launcher_TallSkinny<
+    WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
+    GemmType, is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
+                                          index_t _K, element_t _alpha,
+                                          container_t0 a_, index_t _lda,
+                                          container_t1 b_, index_t _ldb,
+                                          element_t _beta, container_t2 _C,
+                                          index_t _ldc) {
+  auto buffer_a = make_matrix_view(ex, a_, _M, _K, _lda, Access::col_major());
+  auto buffer_b = make_matrix_view(ex, b_, _K, _N, _ldb, Access::col_major());
+  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::col_major());
+  auto gemm = make_gemm_partial<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
+                                TransA, TransB, GemmType, is_beta_zero>(
+      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta));
+  return ex.execute(gemm);
+}
+
 }  // namespace blas
 
 #endif  // SYCL_BLAS_BLAS3_LAUNCHER_HPP

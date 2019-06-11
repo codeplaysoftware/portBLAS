@@ -51,16 +51,16 @@ namespace blas {
 // typename OutAccessor, typename TempAcc, typename LhsMapper,
 // typename RhsMapper, typename Scratch, typename Index,
 // typename PanelParameters, bool Vectorizable, bool NoEdge, boolIsFinal>
-template <typename input_t, typename output_t, typename scratch_t,
-          bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
-          typename tile_type, bool TransA, bool TransB, typename element_t,
-          bool is_beta_zero>
-class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero>
+class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
                   ClSize, tile_type, TransA, TransB, element_t, is_beta_zero,
                   static_cast<int>(Gemm_t::tall_skinny_local_memory)> {
  public:
   // using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using index_t = int;
+  using value_t = element_t;
 
   // Temporary
   // using scratch_t =
@@ -73,8 +73,6 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
 
   element_t alpha;
   element_t beta;
-
-  scratch_t scratch;
 
   // OutAccessor out_res;
 
@@ -92,6 +90,8 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
   static constexpr index_t local_thread_size_n = tile_type::local_thread_size_n;
   static constexpr index_t local_thread_size_m = tile_type::local_thread_size_m;
 
+  static constexpr int local_thread_size = local_thread_size_m * local_thread_size_n;
+
   /* The number of tiles to be processed */
   static constexpr index_t num_tiles = tile_type::num_tiles;
 
@@ -100,11 +100,23 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
   static constexpr index_t tile_size_dim_n = tile_type::tile_size_dim_n;
   static constexpr index_t tile_size_dim_k = tile_type::tile_size_dim_k;
 
+  /* Local memory */
+  static constexpr int local_memory_size = 2 * tile_size_dim_m * tile_size_dim_k + 2 * tile_size_dim_k * tile_size_dim_n;
+
   /* Workload per work item on each dimension m and n */
   static constexpr index_t work_per_thread_m = tile_type::work_per_thread_m;
   static constexpr index_t work_per_thread_n = tile_type::work_per_thread_n;
 
+  /* If double buffering should be used */
   static constexpr bool double_buffer = DoubleBuffer;
+
+  /* Transpose mode for matrices A and B */
+  static constexpr bool trans_a = TransA;
+  static constexpr bool trans_b = TransB;
+
+  // TODO: what is this? Is this relevant here?
+  static constexpr bool nbc_a = NbcA;
+  static constexpr bool nbc_b = NbcB;
 
   /* The number of groups on each dimension m, n, k */
   const index_t group_count_m;
@@ -115,9 +127,7 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
   //                       element_t beta, index_t batch_size
   SYCL_BLAS_INLINE GemmPartial(input_t A, input_t B, output_t C,
                                element_t alpha, element_t beta,
-                               scratch_t scratch, const index_t group_count_m,
-                               const index_t group_count_n,
-                               const index_t group_count_k)
+                               index_t group_count_m, index_t group_count_n, index_t group_count_k)
       : a_(A),
         b_(B),
         c_(C),
@@ -129,24 +139,78 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
         lda_(a_.getSizeL()),
         ldb_(b_.getSizeL()),
         ldc_(c_.getSizeL()),
-        scratch(scratch),
         group_count_m(group_count_m),
         group_count_n(group_count_n),
         group_count_k(group_count_k) {}
 
-  inline void check() const noexcept {
-    std::cerr << "This function has run correctly" << std::endl;
+  /*!
+   * @brief Get the type of this GemmPartial as a human readable string.
+   */
+  static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
+    std::ostringstream str{};
+    str << "GemmPartial<" << double_buffer << ", " << nbc_a << ", " << nbc_b
+        << ", " << tile_type::get_type_string() << ", "
+        << type_string<element_t>::get_value() << ">";
+    return str.str();
   }
 
-  inline void eval(cl::sycl::nd_item<1> id) const noexcept {
+  void bind(cl::sycl::handler &h) {
+    a_.bind(h);
+    b_.bind(h);
+    c_.bind(h);
+  }
+  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+    return true;
+  }
+
+  /*!
+   * @brief get_workgroup_cluster. This function is used to find the optimum
+   * number of work_group required to execute each partial GEMM.
+   */
+  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t m,
+                                                        index_t n) noexcept {
+    return 1; // TODO: use real value here
+    // return group_count_m * group_count_n * group_count_k;
+  }
+  /*!
+   * @brief get_num_workgroup_cluster. This function is used to extend the number
+   * of work_group cluster, in order to make sure that atleast 4 gemm operations
+   * are available per work group. The number 4 is used based on empirical
+   * research.
+   */
+  static SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(
+      index_t m, index_t n, index_t compute_units) noexcept {
+    // return ((4 * compute_units - 1) / get_workgroup_cluster(m, n) + 1);
+    return 1; // TODO: optimize that later
+  }
+
+  /*!
+   * @brief Get the nd_range value which has to be used for kernels that
+   *        intend to call GemmPartial::run().
+   */
+  static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+      index_t m, index_t n, index_t compute_units) noexcept {
+    const cl::sycl::range<1> nwg(
+        get_workgroup_cluster(m, n) *
+        get_num_workgroup_cluster(m, n, compute_units));
+    const cl::sycl::range<1> wgs(local_thread_size);
+    return cl::sycl::nd_range<1>(nwg * wgs, wgs);
+    // TODO: add verbose
+  }
+
+  SYCL_BLAS_INLINE index_t get_size() const { return m_ * n_; }
+
+  template <typename local_memory_t>
+  SYCL_BLAS_INLINE void eval(local_memory_t scratch,
+                   cl::sycl::nd_item<1> id) noexcept {
     /* references to the matrices */
-    auto A = a_.get_pointer().get();  // + a_.get_offset();
-    auto B = b_.get_pointer().get();  // + b_.get_offset();
-    auto C = c_.get_pointer().get();  // + c_.get_offset();
+    auto A = a_.get_data().get_pointer().get() + a_.get_access_displacement();
+    auto B = b_.get_data().get_pointer().get() + b_.get_access_displacement();
+    auto C = c_.get_data().get_pointer().get() + c_.get_access_displacement();
+
     /* references to the temporary memory, scratch memory, and rhs scratch
      * memory*/
-
-    auto scratch_ptr = scratch.get_pointer().get();
+    auto scratch_ptr = scratch.localAcc.get_pointer().get();
 
     auto rhs_scratch_ptr =
         scratch_ptr + (2 * tile_size_dim_m * tile_size_dim_k);
@@ -158,10 +222,8 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
     /* Local thread id */
     const index_t local_id = id.get_local_id(0);
 
-    /* Local ID Column */
+    /* Local ID column and row */
     const index_t n_local_id = local_id / local_thread_size_m;
-
-    /* Local ID row */
     const index_t m_local_id = local_id - (n_local_id * local_thread_size_m);
 
     /* workgroup id, local column */
@@ -172,7 +234,6 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
     // wg_id - (tmp * group_count_m);  // isn't this always 0???
 
     const index_t kgroup_id = (wg_id / group_count_m) / group_count_n;
-
     const index_t ngroup_id = wg_id % group_count_n;
 
     // tmp - (kgroup_id * group_count_n);
@@ -251,10 +312,10 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
             private_res[wLPTM + idx] =  // local_id;
                 private_res[wLPTM + idx] + (privateLhs * privateRhs);
 
-            lhs_index += work_per_thread_m;
+            lhs_index += local_thread_size_m;
           }
           idx += work_per_thread_m;
-          rhs_index += work_per_thread_n;
+          rhs_index += local_thread_size_n;
         }
         lhs_offset += tile_size_dim_m;
         rhs_offset += tile_size_dim_n;
@@ -273,8 +334,6 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
     index_t private_index_offset = 0;
 
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
-      index_t private_index = private_index_offset;
-
       // Disregard anything involving `i` - it simply specifies a stride
       // for (index_t i = 0; i < PacketSize; i++) {
       index_t global_col = global_col_offset;  // + i;
@@ -284,11 +343,10 @@ class GemmPartial<input_t, output_t, scratch_t, DoubleBuffer, NbcA, NbcB,
           // Store the final results in C
 
           C[c_index + global_row + global_k_offset] =
-              private_res[wLPTM + private_index];
+              private_res[wLPTM + private_index_offset];
         }
       }
       c_index += m_;
-      private_index += (work_per_thread_m);
       //}
       global_col_offset += local_thread_size_n;
       c_index = global_col_offset * m_;
