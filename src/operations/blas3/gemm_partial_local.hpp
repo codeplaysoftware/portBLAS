@@ -99,14 +99,24 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
   static constexpr index_t work_per_thread_m = tile_type::work_per_thread_m;
   static constexpr index_t work_per_thread_n = tile_type::work_per_thread_n;
 
-  /* Checking if the tile is valid and calculating the number of threads */
+  /* Checking if the tile is valid */
   static_assert(tile_size_dim_m % work_per_thread_m == 0,
-                "The tile dimension M should be a multiple of the workload per thread on M");
+                "The tile dimension M must be a multiple of the workload per thread on M");
   static_assert(tile_size_dim_n % work_per_thread_n == 0,
-                "The tile dimension N should be a multiple of the workload per thread on N");
+                "The tile dimension N must be a multiple of the workload per thread on N");
+  static_assert((tile_size_dim_k * work_per_thread_m * work_per_thread_n) % tile_size_dim_m == 0,
+                "The tile dimension M must divide the product of the dimension K and the number of threads");
+  static_assert((tile_size_dim_k * work_per_thread_m * work_per_thread_n) % tile_size_dim_n == 0,
+                "The tile dimension N must divide the product of the dimension K and the number of threads");
+
+  /* Calculating the number of threads */
   static constexpr index_t local_thread_size_m = tile_size_dim_m / work_per_thread_m;
   static constexpr index_t local_thread_size_n = tile_size_dim_n / work_per_thread_n;
-  static constexpr int local_thread_size = local_thread_size_m * local_thread_size_n;
+  static constexpr index_t local_thread_size = local_thread_size_m * local_thread_size_n;
+
+  /* Number of loads per thread for LHS and RHS tiles */
+  static constexpr index_t loads_per_thread_lhs = (tile_size_dim_k * work_per_thread_m * work_per_thread_n) / tile_size_dim_n;
+  static constexpr index_t loads_per_thread_rhs = (tile_size_dim_k * work_per_thread_m * work_per_thread_n) / tile_size_dim_m;
 
   /* Local memory */
   static constexpr int local_memory_size = 2 * tile_size_dim_m * tile_size_dim_k + 2 * tile_size_dim_k * tile_size_dim_n;
@@ -243,9 +253,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
     // tmp - (kgroup_id * group_count_n);
 
     /* register offsets */
-    const index_t global_mix_offset = mgroup_id * tile_size_dim_m;
-    const index_t global_nix_offset = ngroup_id * tile_size_dim_n;
-    const index_t global_kix_offset = kgroup_id * tile_size_dim_k;
+    const index_t global_m_offset = mgroup_id * tile_size_dim_m;
+    const index_t global_n_offset = ngroup_id * tile_size_dim_n;
+    const index_t global_k_offset = kgroup_id * tile_size_dim_k;
 
     /* initialise the private res summation registers */
     for (auto i = 0; i < work_per_thread_m * work_per_thread_n; i++) {
@@ -257,12 +267,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
     // Is there any reason why we "preload" these here? We have a do while
     // loop... -> we preload next iteration each time (double buffering)?
 
-    // Tile LHS for now, assume that the LHS isn't transposed.
-    load_tile(A, scratch_ptr, local_id, global_mix_offset, global_kix_offset, 0,
-              work_per_thread_m, m_, k_);
-    // Tile RHS
-    load_and_transpose_tile(B, rhs_scratch_ptr, local_id, global_nix_offset,
-                            global_kix_offset, 0, work_per_thread_n, k_, n_);
+    extract_input_blocks(local_id, 0, m_, n_, k_, A, lda_, B, ldb_, scratch_ptr, rhs_scratch_ptr,
+                         global_m_offset, global_n_offset, global_k_offset);
 
     id.barrier(cl::sycl::access::fence_space::local_space);
 
@@ -279,14 +285,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
       // If we need to swap, or not? -> no need to preload next tile if there is
       // no next tile
       if (next_tile < num_tiles) {
-        /* Load tiles, LHS and RHS into local memory */
-        // Tile LHS
-        load_tile(A, scratch_ptr, local_id, global_mix_offset,
-                  global_kix_offset, next_tile, work_per_thread_m, m_, k_);
-        // Tile RHS
-        load_and_transpose_tile(B, rhs_scratch_ptr, local_id, global_nix_offset,
-                                global_kix_offset, next_tile, work_per_thread_n,
-                                k_, n_);
+        extract_input_blocks(local_id, next_tile, m_, n_, k_, A, lda_, B, ldb_, scratch_ptr, rhs_scratch_ptr,
+                             global_m_offset, global_n_offset, global_k_offset);
       }
       // Calculate offsets into the temporary memory.
 
@@ -350,134 +350,129 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
 
     id.barrier(cl::sycl::access::fence_space::local_space);
 
-    // Store the final results in C
-    index_t global_col_offset = (ngroup_id * tile_size_dim_n) + (n_local_id);
-    index_t global_row_offset = (mgroup_id * tile_size_dim_m) + (m_local_id);
-    index_t global_k_offset = kgroup_id * m_ * n_;
-    index_t c_index = global_col_offset * m_;
+    // Store the final results in the cube buffer
+    index_t cube_col_offset = (ngroup_id * tile_size_dim_n) + (n_local_id);
+    index_t cube_row_offset = (mgroup_id * tile_size_dim_m) + (m_local_id);
+    index_t cube_depth_offset = kgroup_id * m_ * n_;
+    index_t c_index = cube_col_offset * m_;
     index_t private_index_offset = 0;
 
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
       index_t private_index = private_index_offset;
-      // Disregard anything involving `i` - it simply specifies a stride
-      // for (index_t i = 0; i < PacketSize; i++) {
-      index_t global_col = global_col_offset;  // + i;
-      index_t global_row = global_row_offset;
+
+      index_t cube_col = cube_col_offset;  // + i;
+      index_t cube_row = cube_row_offset;
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
-        if (/*(NoEdge) ||*/ (global_row < m_ && global_col < n_)) {
+        if (/*(NoEdge) ||*/ (cube_row < m_ && cube_col < n_)) {
           // Store the final results in C
 
-          C[c_index + global_row + global_k_offset] =
+          C[c_index + cube_row + cube_depth_offset] =
               private_res[wLPTM + private_index];
         }
-        global_row += local_thread_size_m;
+        cube_row += local_thread_size_m;
       }
       c_index += m_;
       private_index += work_per_thread_m;
       //}
-      global_col_offset += local_thread_size_n;
-      c_index = global_col_offset * m_;
+      cube_col_offset += local_thread_size_n;
+      c_index = cube_col_offset * m_;
       private_index_offset += work_per_thread_m;
     }
   }
-  // We need two load functions: one that loads normally, one that
-  // loads + transposes on load.
 
-  // Load a "left hand" tile, or "right hand transposed" tile
-  // What is NoEdge for?? -> bypass test if we know we're in an inside block?
-  template <typename GlobalPointerType, typename LocalPointerType>
-  static inline void load_tile(GlobalPointerType glb_ptr,
-                               LocalPointerType lcl_ptr,
-                               index_t linear_local_thread_id,
-                               index_t global_m_offset, index_t global_k_offset,
-                               index_t next_tile, index_t load_per_thread_lhs,
-                               index_t M, index_t K) {
-    // Our rhs linear id is the same as our thread id to start with
-    index_t local_lhs_linear_id = linear_local_thread_id;
-    index_t global_tile_k_offset = global_k_offset + tile_size_dim_k * next_tile;
-
-    // Local id offset depends on whether we're on the first or second "half" of
-    // the scratch memory. If we're on the first half (i.e. the lowest bit is
-    // set to 0), then the offset is 0. If we're on the second half (i.e. the
-    // lowest bit is set to 1), then the offset is the linear size of a RHS
-    // tile: tile_size_dim_m * tile_size_dim_k
-    index_t linear_local_id_offset =
-        (next_tile & 1) * (tile_size_dim_m * tile_size_dim_k);
-
-    for (index_t lPTL = 0; lPTL < load_per_thread_lhs; lPTL++) {
-      index_t local_thread_k = local_lhs_linear_id / tile_size_dim_m;
-      index_t local_thread_m =
-          local_lhs_linear_id - (local_thread_k * tile_size_dim_m);
-
-      index_t global_k_index = global_tile_k_offset + local_thread_k;
-      index_t global_m_index = global_m_offset + local_thread_m;
-
-      index_t linear_local_id_index =
-          local_thread_m + (local_thread_k * tile_size_dim_m);
-
-      // We can ignore this check, as we're not using packet types right now
-      // if (/*(NoEdge) ||*/ ((global_m_index < M) && (global_k_index < K))) {
-      // load from matrix according to global_m_index and
-      // global_k_index
-
-      element_t val = glb_ptr[global_m_index + (global_k_index * M)];
-
-      // TODO: don't do that
-      if(linear_local_id_index < tile_size_dim_k * tile_size_dim_m) {
-        lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
-      }
-      // }
-
-      local_lhs_linear_id += local_thread_size_n * local_thread_size_m;
+  template <typename global_ptr_t, typename local_ptr_t>
+  static SYCL_BLAS_INLINE void extract_input_blocks(index_t local_id, index_t tile_idx, index_t m_,
+                               index_t n_, index_t k_, global_ptr_t A, index_t lda_,
+                               global_ptr_t B, index_t ldb_, local_ptr_t scratch_ptr, local_ptr_t rhs_scratch_ptr,
+                       index_t global_m_offset, index_t global_n_offset, index_t global_k_offset)
+  {
+    // LHS tile
+    if(trans_a) {
+      load_and_transpose_block<loads_per_thread_lhs>(local_id, tile_idx, A, scratch_ptr, global_k_offset, global_m_offset,
+                k_, m_, tile_size_dim_k, tile_size_dim_m);
+    } else {
+      load_block<loads_per_thread_lhs>(local_id, tile_idx, A, scratch_ptr, global_m_offset, global_k_offset,
+                m_, k_, tile_size_dim_m, tile_size_dim_k);
+    }
+    // RHS tile
+    if(trans_b) {
+      load_block<loads_per_thread_rhs>(local_id, tile_idx, B, rhs_scratch_ptr, global_n_offset,
+                global_k_offset, n_, k_, tile_size_dim_n, tile_size_dim_k);
+    } else {
+      load_and_transpose_block<loads_per_thread_rhs>(local_id, tile_idx, B, rhs_scratch_ptr, global_k_offset,
+                              global_n_offset, k_, n_, tile_size_dim_k, tile_size_dim_n);
     }
   }
 
-  template <typename GlobalPointerType, typename LocalPointerType>
-  static inline void load_and_transpose_tile(
-      GlobalPointerType glb_ptr, LocalPointerType lcl_ptr,
-      index_t linear_local_thread_id, index_t global_n_offset,
-      index_t global_k_offset, index_t next_tile, index_t load_per_thread_rhs,
-      index_t K, index_t N) {
-    if(linear_local_thread_id == 0) printf("---\n");
-    // Our rhs linear id is the same as our thread id to start with
-    index_t local_rhs_linear_id = linear_local_thread_id;
-    index_t global_tile_k_offset = global_k_offset + tile_size_dim_k * next_tile;
+  // TODO: less duplication with templates?
 
-    // Local id offset depends on whether we're on the first or second "half" of
-    // the scratch memory. If we're on the first half (i.e. the lowest bit is
-    // set to 0), then the offset is 0. If we're on the second half (i.e. the
-    // lowest bit is set to 1), then the offset is the linear size of a RHS
-    // tile: tile_size_dim_k * tile_size_dim_n
-    index_t linear_local_id_offset =
-        (next_tile & 1) * (tile_size_dim_k * tile_size_dim_n);
+  template <index_t loads_per_thread, typename global_ptr_t, typename local_ptr_t>
+  static SYCL_BLAS_INLINE void load_block(index_t local_id, index_t tile_idx,
+                               global_ptr_t global_ptr, local_ptr_t local_ptr,
+                               index_t global_row_offset, index_t global_col_offset,
+                               index_t global_rows, index_t global_cols,
+                               index_t block_rows, index_t block_cols) {
+    index_t local_mem_id = local_id;
+    const index_t global_tile_col_offset = global_col_offset + block_cols * tile_idx;
+    const index_t local_thread_size = local_thread_size_n * local_thread_size_m;
 
-    for (index_t lPTR = 0; lPTR < load_per_thread_rhs; lPTR++) {
-      // Calculate the index in the 'n' dimension that this thread should access
-      index_t local_thread_n = local_rhs_linear_id / tile_size_dim_k;
-      // Calculate the index in the 'k' dimension that this thread should access
-      index_t local_thread_k =
-          local_rhs_linear_id - (tile_size_dim_k * local_thread_n);
+    // Double buffering
+    index_t local_mem_offset = (tile_idx & 1) * (block_rows * block_cols);
 
-      index_t global_k_index = global_tile_k_offset + local_thread_k;
-      index_t global_n_index = global_n_offset + local_thread_n;
+    for (index_t lPT = 0; lPT < loads_per_thread; lPT++) {
+      index_t local_thread_col = local_mem_id / block_rows;
+      index_t local_thread_row =
+          local_mem_id - (local_thread_col * block_rows);
 
-      // Transpose RHS on the fly
-      index_t linear_local_id_index =
-          local_thread_n + (local_thread_k * tile_size_dim_n);
-      // index_t linear_local_id_index =
-      //     local_thread_k + (local_thread_n * tile_size_dim_k);
+      index_t global_col_index = global_tile_col_offset + local_thread_col;
+      index_t global_row_index = global_row_offset + local_thread_row;
 
       element_t val = 0;
-      if (/*(NoEdge) ||*/ ((global_k_index < K) && (global_n_index < N))) {
-        val = glb_ptr[global_n_index * K + global_k_index];
+      if (/*(NoEdge) ||*/ ((global_row_index < global_rows) && (global_col_index < global_cols))) {
+        val = global_ptr[global_col_index * global_rows + global_row_index];
+        // val = global_ptr[global_row_index * global_cols + global_col_index];
       }
 
-      // TODO: don't do that
-      if(linear_local_id_index < tile_size_dim_k * tile_size_dim_n) {
-        lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
+      local_ptr[local_mem_offset + local_mem_id] = val;
+
+      local_mem_id += local_thread_size;
+    }
+  }
+
+  template <index_t loads_per_thread, typename global_ptr_t, typename local_ptr_t>
+  static SYCL_BLAS_INLINE void load_and_transpose_block(index_t local_id, index_t tile_idx,
+      global_ptr_t global_ptr, local_ptr_t local_ptr,
+      index_t global_row_offset, index_t global_col_offset,
+      index_t global_rows, index_t global_cols,
+      index_t block_rows, index_t block_cols) {
+    index_t local_linear_id = local_id;
+    const index_t global_tile_row_offset = global_row_offset + block_rows * tile_idx;
+    const index_t local_thread_size = local_thread_size_n * local_thread_size_m;
+
+    // Double buffering
+    index_t local_mem_offset = (tile_idx & 1) * (block_rows * block_cols);
+
+    for (index_t lPT = 0; lPT < loads_per_thread; lPT++) {
+      index_t local_thread_col = local_linear_id / block_rows;
+      index_t local_thread_row =
+          local_linear_id - (local_thread_col * block_rows);
+
+      index_t global_col_index = global_col_offset + local_thread_col;
+      index_t global_row_index = global_tile_row_offset + local_thread_row;
+
+      // Transpose on the fly
+      index_t local_mem_id =
+          local_thread_col + (local_thread_row * block_cols);
+
+      element_t val = 0;
+      if (/*(NoEdge) ||*/ ((global_row_index < global_rows) && (global_col_index < global_cols))) {
+        val = global_ptr[global_col_index * global_rows + global_row_index];
+        // todo: change global_rows to leading dimension
       }
 
-      local_rhs_linear_id += local_thread_size_n * local_thread_size_m;
+      local_ptr[local_mem_offset + local_mem_id] = val;
+
+      local_linear_id += local_thread_size;
     }
   }
 };

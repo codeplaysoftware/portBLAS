@@ -53,7 +53,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                        gemm_configuration_2 gemm_configuration_3
                                        gemm_configuration_4)
 
-  set(tsgemm_configuration_0 256 "true" "false" "false" 64 5 6 3 9 2 3 "tall_skinny_local_memory")
+  set(tsgemm_configuration_0 256 "true" "false" "false" 64 3 6 3 3 2 3 "tall_skinny_local_memory")
   list(APPEND tsgemm_configuration_lists tsgemm_configuration_0)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 

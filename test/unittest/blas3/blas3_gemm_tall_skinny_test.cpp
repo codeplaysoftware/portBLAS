@@ -32,8 +32,8 @@ using combination_t =
     std::tuple<int, int, int, char, char, scalar_t, scalar_t, int, int, int>;
 
 const auto combi = ::testing::Combine(::testing::Values(6),    // m
-                                      ::testing::Values(9),    // n
-                                      ::testing::Values(14),    // k
+                                      ::testing::Values(3),    // n
+                                      ::testing::Values(9),    // k
                                       ::testing::Values('n'),  // transa
                                       ::testing::Values('n'),  // transb
                                       ::testing::Values(1.0),  // alpha
@@ -117,13 +117,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto policy_handler = ex.get_policy_handler();
 
-  std::array<int, 2> dim_a = {m, k};
-  std::array<int, 2> dim_b = {k, n};
-  std::array<int, 2> dim_c = {m, n};
-
-  int lda = ((transa != 'n') ? dim_a[1] : dim_a[0]) * lda_mul;
-  int ldb = ((transb != 'n') ? dim_b[1] : dim_b[0]) * ldb_mul;
-  int ldc = dim_c[0] * ldc_mul;
+  int lda = ((transa != 'n') ? k : m) * lda_mul;
+  int ldb = ((transb != 'n') ? n : k) * ldb_mul;
+  int ldc = m * ldc_mul;
 
   std::vector<scalar_t> a_m(m * k * lda_mul);
   std::vector<scalar_t> b_m(k * n * ldb_mul);
@@ -137,8 +133,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // system gemm implementation
 
-  reference_blas::gemm(ta_str, tb_str, m, n, k, (scalar_t)alpha, a_m.data(), m,
-                       b_m.data(), k, (scalar_t)beta, c_m_cpu.data(), m);
+  reference_blas::gemm(ta_str, tb_str, m, n, k, (scalar_t)alpha, a_m.data(), lda,
+                       b_m.data(), ldb, (scalar_t)beta, c_m_cpu.data(), ldc);
 
   {
     auto m_a_gpu =
