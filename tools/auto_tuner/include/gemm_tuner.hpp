@@ -158,12 +158,9 @@ void tune(int r, GemmArgs<T, Container, Executor> a) {
         blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.c.data()),
                                                a.c.size());
 
-    auto accA =
-        make_matrix_view(a.ex, m_a_gpu, a.m, a.k, a.lda, Access::col_major());
-    auto accB =
-        make_matrix_view(a.ex, m_b_gpu, a.k, a.n, a.ldb, Access::col_major());
-    auto accC =
-        make_matrix_view(a.ex, m_c_gpu, a.m, a.n, a.ldc, Access::col_major());
+    auto accA = make_matrix_view<col_major>(a.ex, m_a_gpu, a.m, a.k, a.lda);
+    auto accB = make_matrix_view<col_major>(a.ex, m_b_gpu, a.k, a.n, a.ldb);
+    auto accC = make_matrix_view<col_major>(a.ex, m_c_gpu, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
     run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
       auto event = a.ex.execute(gemm);

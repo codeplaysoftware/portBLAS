@@ -249,12 +249,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
     const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
     const index_t c_size = ldc_ * n_;
-    auto orig_A = a_.get_data().get_pointer().get() +
-                  a_.get_access_displacement() + (wg_batch_id * a_size);
-    auto orig_B = b_.get_data().get_pointer().get() +
-                  b_.get_access_displacement() + (wg_batch_id * b_size);
-    auto orig_C = c_.get_data().get_pointer().get() +
-                  c_.get_access_displacement() + (wg_batch_id * c_size);
+    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
     const index_t item_id = id.get_local_id(0);
     const index_t tile_id = wg_id / tile_size;
     const index_t tile_local_id = wg_id % tile_size;
@@ -322,6 +319,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
+  }
+  void adjust_access_displacement() {
+    a_.adjust_access_displacement();
+    b_.adjust_access_displacement();
+    c_.adjust_access_displacement();
   }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;

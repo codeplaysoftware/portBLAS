@@ -148,14 +148,15 @@ struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
 template <int using_local_memory, typename expression_tree_t,
           typename local_memory_t, typename value_t>
 struct ExpressionTreeFunctor {
-  local_memory_t scratch;
-  expression_tree_t t;
-  SYCL_BLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch_,
-                                         expression_tree_t t_)
-      : scratch(scratch_), t(t_) {}
+  local_memory_t scratch_;
+  expression_tree_t t_;
+  SYCL_BLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch,
+                                         expression_tree_t t)
+      : scratch_(scratch), t_(t) {}
   SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) {
+    t_.adjust_access_displacement();
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
-                            value_t>::eval(t, scratch, i);
+                            value_t>::eval(t_, scratch_, i);
   }
 };
 

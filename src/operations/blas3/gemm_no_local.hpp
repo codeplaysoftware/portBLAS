@@ -181,12 +181,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
     const index_t c_size = ldc_ * n_;
 
-    auto orig_A = a_.get_data().get_pointer().get() +
-                  a_.get_access_displacement() + (wg_batch_id * a_size);
-    auto orig_B = b_.get_data().get_pointer().get() +
-                  b_.get_access_displacement() + (wg_batch_id * b_size);
-    auto orig_C = c_.get_data().get_pointer().get() +
-                  c_.get_access_displacement() + (wg_batch_id * c_size);
+    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
     const index_t number_of_block_per_row = ((m_ - 1) / block_rows) + 1;
     /* linear work group id The number of work-group required to executed each
@@ -361,6 +358,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     a_.bind(h);
     b_.bind(h);
     c_.bind(h);
+  }
+
+  void adjust_access_displacement() {
+    a_.adjust_access_displacement();
+    b_.adjust_access_displacement();
+    c_.adjust_access_displacement();
   }
 
  private:

@@ -173,12 +173,9 @@ SYCL_BLAS_INLINE void Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
   const index_t c_size = ldc_ * n_;
 
-  auto orig_A = a_.get_data().get_pointer().get() +
-                a_.get_access_displacement() + (wg_batch_id * a_size);
-  auto orig_B = b_.get_data().get_pointer().get() +
-                b_.get_access_displacement() + (wg_batch_id * b_size);
-  auto orig_C = c_.get_data().get_pointer().get() +
-                c_.get_access_displacement() + (wg_batch_id * c_size);
+  auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
+  auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
+  auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
   index_t item_id = (id.get_group(0) % get_workgroup_cluster(m_, n_)) *
                         (id.get_local_range(0)) +
@@ -231,6 +228,17 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);
+}
+
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_type>
+SYCL_BLAS_INLINE void
+Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+     TransB, element_t, is_beta_zero, Gemm_type>::adjust_access_displacement() {
+  a_.adjust_access_displacement();
+  b_.adjust_access_displacement();
+  c_.adjust_access_displacement();
 }
 
 }  // namespace blas

@@ -30,7 +30,6 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "types/access_types.h"
 #include "views/view.h"
 
 namespace blas {
@@ -58,107 +57,76 @@ struct VectorView<
       typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
   using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
   container_t data_;
-  index_t size_data_;
-  index_t size_;
-  index_t disp_;
-  increment_t strd_;  // never size_t, because it could negative
-
+  const index_t size_;
+  const index_t disp_;
+  const increment_t strd_;  // never size_t, because it could be negative
+  cl::sycl::global_ptr<scalar_t>
+      ptr_;  // global pointer access inside the kernel
   using value_t = scalar_t;
 
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE VectorView(container_t data)
-      : data_{data},
-        size_data_(data_.get_size()),
-        size_(data_.get_size()),
-        disp_(0),
-        strd_(1) {}
+  // This function is used for calculating the size of the data from the
+  // container size, based on the stride value, when the size is not passed as
+  // an input parameter. Using this function it is possible to set the size from
+  // the constructor and make it to be const, so better optimisation will be
+  // provisded by compiler when it passes to the kernel.
+  static SYCL_BLAS_INLINE const index_t
+  calculate_input_data_size(container_t &data, index_t disp, increment_t strd,
+                            index_t size) noexcept {
+    const index_t sz = (strd > 0)
+                           ? (((data.get_size() - disp) + strd - 1) / strd)
+                           : ((disp + (-strd)) / (-strd));
+    return (size < sz) ? size : sz;
+  }
 
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp)
-      : data_{data},
-        size_data_(data_.get_size()),
-        size_(data_.get_size()),
-        disp_(disp),
-        strd_(1) {}
-
-  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t, codeplay_policy> data,
-                              increment_t strd, index_t size)
-      : VectorView(get_range_accessor(data), data.get_offset(), strd, size) {}
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, increment_t strd,
                               index_t size)
       : data_{data},
-        size_data_(data_.get_size()),
-        size_(0),
-        disp_(disp),
-        strd_(strd) {
-    if (strd_ > 0) {
-      auto sizeV = (size_data_ - disp);
-      auto quot = (sizeV + strd - 1) / strd;  // ceiling
-      size_ = quot;
-    } else if (strd_ < 0) {
-      auto nstrd = -strd;
-      auto quot = (disp + nstrd) / nstrd;  // ceiling
-      size_ = quot;
-#ifndef __SYCL_DEVICE_ONLY__
-    } else {
-// Stride is zero, not valid!
-#ifdef VERBOSE
-      printf("std = 0 \n");
-#endif  // VERBOSE
-      throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE_ONLY__
-    }
-    if (size < size_) size_ = size;
-    if (strd_ < 0) disp_ += (size_ - 1) * strd_;
-  }
+        size_(calculate_input_data_size(data, disp, strd, size)),
+        disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
+        strd_(strd) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data)
+      : VectorView(data, 0, 1, data_.get_size()) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp)
+      : VectorView(data, disp, 1, data_.get_size()) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t, codeplay_policy> data,
+                              increment_t strd, index_t size)
+      : VectorView(get_range_accessor(data), data.get_offset(), strd, size) {}
 
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE VectorView(self_t &opV, index_t disp, increment_t strd,
                               index_t size)
-      : data_{opV.get_data()},
-        size_data_(opV.get_data().get_size()),
-        size_(0),
-        disp_(disp),
-        strd_(strd) {
-    if (strd_ > 0) {
-      auto sizeV = (size_data_ - disp);
-      auto quot = (sizeV + strd - 1) / strd;  // ceiling
-      size_ = quot;
-    } else if (strd_ < 0) {
-      auto nstrd = -strd;
-      auto quot = (disp + nstrd) / nstrd;  // ceiling
-      size_ = quot;
-#ifndef __SYCL_DEVICE_ONLY__
-    } else {
-// Stride is zero, not valid!
-#ifdef VERBOSE
-      printf("std = 0 \n");
-#endif  //  VERBOSE
-      throw std::invalid_argument("Cannot create view with 0 stride");
-#endif  //__SYCL_DEVICE_ONLY__
-    }
-    if (size < size_) size_ = size;
-    if (strd_ < 0) disp_ += (size_ - 1) * strd_;
-  }
+      : VectorView(opV.get_data(), disp, strd, size) {}
 
   /*!
    * @brief See VectorView.
    */
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 
   /*!
    * @brief See VectorView.
    */
-  SYCL_BLAS_INLINE index_t get_data_size() const { return size_data_; }
+  SYCL_BLAS_INLINE index_t get_data_size() const { return data_.get_size(); }
 
   /*!
    * @brief See VectorView.
@@ -175,291 +143,121 @@ struct VectorView<
    */
   SYCL_BLAS_INLINE increment_t get_stride() const { return strd_; }
 
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE self_t operator+(index_t disp) {
-    if (this->strd_ > 0)
-      return self_t(this->data_, this->disp_ + (disp * this->strd_),
-                    this->strd_, this->size_ - disp);
-    else
-      return self_t(this->data_,
-                    this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-                    this->strd_, this->size_ - disp);
+  SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
-
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE self_t operator()(index_t disp) {
-    if (this->strd_ > 0)
-      return self_t(this->data_, this->disp_ + (disp * this->strd_),
-                    this->strd_, this->size_ - disp);
-    else
-      return self_t(this->data_,
-                    this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-                    this->strd_, this->size_ - disp);
-  }
-
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE self_t operator*(long strd) {
-    return self_t(this->data_, this->disp_, this->strd_ * strd);
-  }
-
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE self_t operator%(index_t size) {
-    if (this->strd_ > 0) {
-      return self_t(this->data_, this->disp_, this->strd_, size);
-    } else {
-      return self_t(this->data_, this->disp_ - (this->size_ - 1) * this->strd_,
-                    this->strd_, size);
-    }
-  }
-
   /**** EVALUATING ****/
   SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
-    auto ind = disp_;
-    if (strd_ == 1) {
-      ind += i;
-    } else if (strd_ > 0) {
-      ind += strd_ * i;
-    } else {
-      ind -= strd_ * (size_ - i - 1);
-    }
-#ifndef __SYCL_DEVICE_ONLY__
-    if (ind >= size_data_) {
-      // out of range access
-      throw std::invalid_argument("Out of range access");
-    }
-#endif  //__SYCL_DEVICE_ONLY__
-    return data_[ind];
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  /**** PRINTING ****/
-  template <class X, class Y, typename IndxT, typename IncrT>
-  friend std::ostream &operator<<(std::ostream &stream,
-                                  VectorView<X, Y, IndxT, IncrT> opvS);
-
-  void print_h(const char *name) {
-    int frst = 1;
-    printf("%s = [ ", name);
-    for (size_t i = 0; i < size_; i++) {
-      if (frst)
-        printf("%f", eval(i));
-      else
-        printf(" , %f", eval(i));
-      frst = 0;
-    }
-    printf(" ]\n");
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+    return eval(ndItem.get_global_id(0));
   }
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
+  SYCL_BLAS_INLINE void adjust_access_displacement() {
+    ptr_ = data_.get_pointer() + disp_;
+  }
 };
-template <class ViewScalarT, typename view_index_t>
+
+template <class ViewScalarT, typename view_index_t, typename layout>
 struct MatrixView<
     ViewScalarT,
     typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
-    view_index_t>;
+    view_index_t, layout>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
-template <class ViewScalarT, typename view_index_t>
+template <class ViewScalarT, typename view_index_t, typename layout>
 struct MatrixView<
     ViewScalarT,
     typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
-    view_index_t> {
+    view_index_t, layout> {
+  using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
   using container_t =
       typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
-  using self_t = MatrixView<scalar_t, container_t, index_t>;
+  using self_t = MatrixView<scalar_t, container_t, index_t, layout>;
+
+  using value_t = scalar_t;
   // Information related to the data
   container_t data_;
-  // int accessDev_;  // row-major or column-major value for the device/language
-
-  Access deviceAccess_;
-  Access operationAccess_;
-  Access overallAccess_;
-
-  index_t size_data_;  // real size of the data
   // Information related to the operation
-  // int accessOpr_;    // row-major or column-major
-  index_t sizeR_;  // number of rows
-  index_t sizeC_;  // number of columns
-  index_t sizeL_;  // size of the leading dimension
-  index_t disp_;   // displacementt od the first element
-  // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
-  using value_t = scalar_t;
+  const index_t sizeR_;  // number of rows
+  const index_t sizeC_;  // number of columns
+  const index_t sizeL_;  // size of the leading dimension
+  const index_t disp_;   // displacementt od the first element
+  cl::sycl::global_ptr<scalar_t>
+      ptr_;  // global pointer access inside the kernel
 
   /**** CONSTRUCTORS ****/
-
-  SYCL_BLAS_INLINE MatrixView(container_t data, Access accessDev, index_t sizeR,
-                              index_t sizeC)
-      : data_{data},
-        deviceAccess_(accessDev),
-        operationAccess_(Access::row_major()),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(data_.get_size()),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(0),
-        disp_(0) {
-    sizeL_ = overallAccess_.is_row_major() ? sizeC_ : sizeR_;
-  }
+  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
+                              index_t sizeL, index_t disp)
+      : data_{data}, sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), disp_(disp) {}
 
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
-      : data_{data},
-        deviceAccess_(Access::col_major()),
-        operationAccess_(Access::row_major()),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(data_.get_size()),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(0),
-        disp_(0) {
-    sizeL_ = Access(deviceAccess_, operationAccess_).is_row_major() ? sizeC_
-                                                                    : sizeR_;
-  }
-
-  SYCL_BLAS_INLINE MatrixView(container_t data, Access accessDev, index_t sizeR,
-                              index_t sizeC, Access accessOpr, index_t sizeL,
-                              index_t disp)
-      : data_{data},
-        deviceAccess_(accessDev),
-        operationAccess_(accessOpr),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(data_.get_size()),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(sizeL),
-        disp_(disp) {}
-
-  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
-                              Access accessOpr, index_t sizeL, index_t disp)
-      : data_{data},
-        deviceAccess_(Access::col_major()),
-        operationAccess_(accessOpr),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(data_.get_size()),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(sizeL),
-        disp_(disp) {}
+      : MatrixView(data, sizeR, sizeC,
+                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {}
 
   SYCL_BLAS_INLINE MatrixView(BufferIterator<scalar_t, codeplay_policy> data,
-                              index_t sizeR, index_t sizeC, Access accessOpr,
-                              index_t sizeL)
-      : MatrixView(get_range_accessor(data), sizeR, sizeC, accessOpr, sizeL,
+                              index_t sizeR, index_t sizeC, index_t sizeL)
+      : MatrixView(get_range_accessor(data), sizeR, sizeC, sizeL,
                    data.get_offset()) {}
 
-  SYCL_BLAS_INLINE MatrixView(self_t opM, Access accessDev, index_t sizeR,
-                              index_t sizeC, Access accessOpr, index_t sizeL,
-                              index_t disp)
-      : data_{opM.data_},
-        deviceAccess_(accessDev),
-        operationAccess_(opM.operationAccess_, accessOpr),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(opM.size_data_),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(sizeL),
-        disp_(disp) {}
-
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
-                              Access accessOpr, index_t sizeL, index_t disp)
-      : data_{opM.data_},
-        deviceAccess_(opM.accessDev_),
-        operationAccess_(opM.operationAccess_, accessOpr),
-        overallAccess_(deviceAccess_, operationAccess_),
-        size_data_(opM.size_data_),
-        sizeR_(sizeR),
-        sizeC_(sizeC),
-        sizeL_(sizeL),
-        disp_(disp) {}
+                              index_t sizeL, index_t disp)
+      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
 
   /**** RETRIEVING DATA ****/
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
 
-  SYCL_BLAS_INLINE index_t get_data_size() const { return size_data_; }
+  SYCL_BLAS_INLINE const index_t get_size() const { return sizeR_ * sizeC_; }
 
-  SYCL_BLAS_INLINE index_t get_size() const { return sizeR_ * sizeC_; }
+  SYCL_BLAS_INLINE index_t get_data_size() const { return data_.get_size(); }
 
-  SYCL_BLAS_INLINE index_t getSizeL() const { return sizeL_; }
+  SYCL_BLAS_INLINE const index_t getSizeL() const { return sizeL_; }
 
-  SYCL_BLAS_INLINE index_t get_size_row() const { return sizeR_; }
+  SYCL_BLAS_INLINE const index_t get_size_row() const { return sizeR_; }
 
-  SYCL_BLAS_INLINE index_t get_size_col() const { return sizeC_; }
-
-  SYCL_BLAS_INLINE bool is_row_access() const {
-    return overallAccess_.is_row_major();
-  }
-
-  SYCL_BLAS_INLINE Access get_access_device() const { return deviceAccess_; }
-
-  SYCL_BLAS_INLINE Access get_access_operation() const {
-    return operationAccess_;
-  }
+  SYCL_BLAS_INLINE const index_t get_size_col() const { return sizeC_; }
 
   SYCL_BLAS_INLINE index_t get_access_displacement() const { return disp_; }
 
-  /**** OPERATORS ****/
-  SYCL_BLAS_INLINE MatrixView<scalar_t, container_t, view_index_t> operator+(
-      index_t disp) {
-    return MatrixView<scalar_t, container_t, view_index_t>(
-        this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-        this->accessOpr_, this->sizeL_, this->disp_ + disp);
-  }
-
-  SYCL_BLAS_INLINE MatrixView<scalar_t, container_t, view_index_t> operator()(
-      index_t i, index_t j) {
-    if (overallAccess_.is_row_major()) {
-      // ACCESING BY ROWS
-      return MatrixView<scalar_t, container_t, view_index_t>(
-          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-          this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
-    } else {
-      // ACCESING BY COLUMNS
-      return MatrixView<scalar_t, container_t, view_index_t>(
-          this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-          this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
-    }
-  }
+  SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 
   /**** EVALUATING ***/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t k) {
-    bool access = overallAccess_.is_row_major();
-    auto size = (access) ? sizeC_ : sizeR_;
-    auto i = (access) ? (k / size) : (k % size);
-    auto j = (access) ? (k % size) : (k / size);
+  SYCL_BLAS_INLINE scalar_t &eval(index_t indx) { return *(ptr_ + indx); }
 
-    return eval(i, j);
+  SYCL_BLAS_INLINE const scalar_t eval(index_t indx) const noexcept {
+    return *(ptr_ + indx);
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
-    auto ind = disp_;
-
-    if (overallAccess_.is_row_major()) {
-      ind += (sizeL_ * i) + j;
-    } else {
-      ind += (sizeL_ * j) + i;
-    }
-    return data_[ind + disp_];
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
+  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const
+      noexcept {
+    return eval(ndItem.get_global_id(0));
+  }
+
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
-};
+
+  SYCL_BLAS_INLINE void adjust_access_displacement() {
+    ptr_ = data_.get_pointer() + disp_;
+  }
+};  // namespace blas
 
 }  // namespace blas
 

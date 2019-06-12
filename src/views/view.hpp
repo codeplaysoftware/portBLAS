@@ -119,6 +119,15 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_data() {
 }
 
 /*!
+ * @brief Returns a reference to the container
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename _IncrementType>
+inline _value_t *
+VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_pointer() {
+  return data_;
+}
+/*!
  * @brief Returns the displacement
  */
 template <class _value_t, class _container_t, typename _IndexType,
@@ -126,6 +135,16 @@ template <class _value_t, class _container_t, typename _IndexType,
 inline _IndexType VectorView<_value_t, _container_t, _IndexType,
                              _IncrementType>::get_access_displacement() {
   return disp_;
+}
+
+/*!
+ * @brief Returns the displacement
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename _IncrementType>
+inline void VectorView<_value_t, _container_t, _IndexType,
+                       _IncrementType>::adjust_access_displacement() {
+  return data_ += disp_;
 }
 
 /*!
@@ -156,74 +175,6 @@ template <class _value_t, class _container_t, typename _IndexType,
 inline _IncrementType
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_stride() {
   return strd_;
-}
-
-/*!
- * @brief Adds a displacement to the view, creating a new view.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::operator+(
-    _IndexType disp) {
-  if (this->strd_ > 0) {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-        this->size_ - disp);
-  } else {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-        this->strd_, this->size_ - disp);
-  }
-}
-
-/*!
- * @brief Adds a displacement to the view, creating a new view.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::operator()(
-    _IndexType disp) {
-  if (this->strd_ > 0) {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_ + (disp * this->strd_), this->strd_,
-        this->size_ - disp);
-  } else {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_ - ((this->size_ - 1) - disp) * this->strd_,
-        this->strd_, this->size_ - disp);
-  }
-}
-
-/*!
- @brief Multiplies the view stride by the given one and returns a new one
-*/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>
-    VectorView<_value_t, _container_t, _IndexType, _IncrementType>::operator*(
-        _IncrementType strd) {
-  return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-      this->data_, this->disp_, this->strd_ * strd);
-}
-
-/*!
- @brief
-*/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::operator%(
-    _IndexType size) {
-  if (this->strd_ > 0) {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_, this->strd_, size);
-  } else {
-    return VectorView<_value_t, _container_t, _IndexType, _IncrementType>(
-        this->data_, this->disp_ - (this->size_ - 1) * this->strd_, this->strd_,
-        size);
-  }
 }
 
 /**** EVALUATING ****/
@@ -262,46 +213,21 @@ void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
 /*!
  * @brief Constructs a matrix view on the container.
  * @param data Reference to the container.
- * @param accessDev Row-major or column-major.
- * @param sizeR Number of rows.
- * @param sizeC Number of columns.
- */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(_container_t &data,
-                                                           int accessDev,
-                                                           _IndexType sizeR,
-                                                           _IndexType sizeC)
-    : data_(data),
-      accessDev_(accessDev),
-      size_data_(data_.get_size()),
-      accessOpr_(1),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(0),
-      disp_(0) {
-  sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
-}
-
-/*!
- * @brief Constructs a matrix view on the container.
- * @param data Reference to the container.
  * @param sizeR Number of rows.
  * @param sizeC Nummber of columns.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(_container_t &data,
-                                                           _IndexType sizeR,
-                                                           _IndexType sizeC)
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
+    _container_t &data, _IndexType sizeR, _IndexType sizeC)
     : data_(data),
-      accessDev_(1),
       size_data_(data_.get_size()),
-      accessOpr_(1),
       sizeR_(sizeR),
       sizeC_(sizeC),
-      sizeL_(0),
-      disp_(0) {
-  sizeL_ = (!(accessDev_ ^ accessOpr_)) ? sizeC_ : sizeR_;
-}
+      sizeL_((MatrixView<_value_t, _container_t, _IndexType, layout>::is_col_major())
+          ? sizeR_
+          : sizeC_)),
+      disp_(0) {}
 
 /*!
  * @brief Constructs a matrix view on the container.
@@ -313,40 +239,37 @@ MatrixView<_value_t, _container_t, _IndexType>::MatrixView(_container_t &data,
  * @param sizeL Size of the leading dimension.
  * @param disp Displacement from the start.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
-    _container_t &data, int accessDev, _IndexType sizeR, _IndexType sizeC,
-    int accessOpr, _IndexType sizeL, _IndexType disp)
-    : data_(data),
-      accessDev_(accessDev),
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
+    _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
+    _IndexType disp)
+    : data_(data + disp),
       size_data_(data_.size()),
-      accessOpr_(accessOpr),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      disp_(disp) {}
+      disp_(0) {}
 
 /*!
  * @brief Constructs a matrix view on the container.
  * @param data Reference to the container.
  * @param sizeR Number of rows.
  * @param sizeC Number of columns.
- * @param accessOpr
  * @param sizeL Size of the leading dimension.
  * @param disp Displacement from the start.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
-    _container_t &data, _IndexType sizeR, _IndexType sizeC, int accessOpr,
-    _IndexType sizeL, _IndexType disp)
-    : data_(data),
-      accessDev_(1),
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
+    _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
+    _IndexType disp)
+    : data_(data + disp),
       size_data_(data_.size()),
-      accessOpr_(accessOpr),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      disp_(disp) {}
+      disp_(0) {}
 
 /*!
  *@brief Creates a matrix view from the given one but with different access
@@ -359,19 +282,17 @@ MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
  * @param sizeL Size of the leading dimension.
  * @param disp Displacement from the start.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
-    MatrixView<_value_t, _container_t, _IndexType> opM, int accessDev,
-    _IndexType sizeR, _IndexType sizeC, int accessOpr, _IndexType sizeL,
-    _IndexType disp)
-    : data_(opM.data_),
-      accessDev_(accessDev),
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
+    MatrixView<_value_t, _container_t, _IndexType, layout> opM,
+    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL, _IndexType disp)
+    : data_(opM.data_ + disp),
       size_data_(opM.size_data_),
-      accessOpr_(!(opM.accessOpr_ ^ accessOpr)),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      disp_(disp) {}
+      disp_(0) {}
 
 /*!
  * @brief Creates a matrix view from the given one.
@@ -382,43 +303,45 @@ MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
  * @param sizeL Size of leading dimension.
  * @param disp Displacement from the start.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::MatrixView(
-    MatrixView<_value_t, _container_t, _IndexType> opM, _IndexType sizeR,
-    _IndexType sizeC, int accessOpr, _IndexType sizeL, _IndexType disp)
-    : data_(opM.data_),
-      accessDev_(opM.accessDev_),
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
+    MatrixView<_value_t, _container_t, _IndexType, layout> opM,
+    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL, _IndexType disp)
+    : data_(opM.data_ + disp),
       size_data_(opM.size_data_),
-      accessOpr_(!(opM.accessOpr_ ^ accessOpr)),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      disp_(disp) {}
+      disp_(0) {}
 
 /*!
  * @brief Returns the container
  */
-template <class _value_t, class _container_t, typename _IndexType>
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
 inline _container_t &
-MatrixView<_value_t, _container_t, _IndexType>::get_data() {
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_data() {
   return data_;
 }
 
 /*!
  * @brief Returns the data size
  */
-template <class _value_t, class _container_t, typename _IndexType>
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
 inline _IndexType
-MatrixView<_value_t, _container_t, _IndexType>::get_data_size() const {
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_data_size() const {
   return size_data_;
 }
 
 /*!
  * @brief Returns the size of the view.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-inline _IndexType MatrixView<_value_t, _container_t, _IndexType>::get_size()
-    const {
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _IndexType
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_size() const {
   return sizeR_ * sizeC_;
 }
 
@@ -427,9 +350,10 @@ inline _IndexType MatrixView<_value_t, _container_t, _IndexType>::get_size()
  * @bug This value should change depending on the access mode, but
  * is currently set to Rows.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-inline _IndexType MatrixView<_value_t, _container_t, _IndexType>::get_size_row()
-    const {
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _IndexType
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_size_row() const {
   return sizeR_;
 }
 
@@ -438,132 +362,52 @@ inline _IndexType MatrixView<_value_t, _container_t, _IndexType>::get_size_row()
  * @bug This value should change depending on the access mode, but
  * is currently set to Rows.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-inline _IndexType MatrixView<_value_t, _container_t, _IndexType>::get_size_col()
-    const {
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _IndexType
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_size_col() const {
   return sizeC_;
-}
-
-/*! is_row_access.
- * @brief Access mode for the view.
- * Combination of the device access vs the operation mode.
- */
-template <class _value_t, class _container_t, typename _IndexType>
-inline int MatrixView<_value_t, _container_t, _IndexType>::is_row_access()
-    const {
-  return !(accessDev_ ^ accessOpr_);
-}
-
-/*! get_access_device.
- * @brief Access on the Device (e.g CPU: Row, GPU: Column).
- */
-template <class _value_t, class _container_t, typename _IndexType>
-inline int MatrixView<_value_t, _container_t, _IndexType>::get_access_device()
-    const {
-  return accessDev_;
-}
-
-/*! get_access_operation.
- * @brief Returns the operation access mode
- * @return True: Normal access, False: Transpose
- */
-template <class _value_t, class _container_t, typename _IndexType>
-inline int
-MatrixView<_value_t, _container_t, _IndexType>::get_access_operation() const {
-  return accessOpr_;
 }
 
 /*! get_access_displacement.
  * @brief get displacement from the origin.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-inline _IndexType MatrixView<_value_t, _container_t,
-                             _IndexType>::get_access_displacement() const {
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _IndexType MatrixView<_value_t, _container_t, _IndexType,
+                             layout>::get_access_displacement() const {
   return disp_;
 }
 
-/*!
- * @brief Adds a displacement to the view, creating a new view.
+/*! get_access_displacement.
+ * @brief get displacement from the origin.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::operator+(_IndexType disp) {
-  return MatrixView<_value_t, _container_t, _IndexType>(
-      this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-      this->accessOpr_, this->sizeL_, this->disp_ + disp);
-}
-
-/*!
- * @brief Adds a displacement to the view, creating a new view.
- */
-template <class _value_t, class _container_t, typename _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>
-MatrixView<_value_t, _container_t, _IndexType>::operator()(_IndexType i,
-                                                           _IndexType j) {
-  if (!(accessDev_ ^ accessOpr_)) {
-    // ACCESING BY ROWS
-    return MatrixView<_value_t, _container_t, _IndexType>(
-        this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-        this->accessOpr_, this->sizeL_, this->disp_ + i * this->sizeL_ + j);
-  } else {
-    // ACCESING BY COLUMN
-    return MatrixView<_value_t, _container_t, _IndexType>(
-        this->data_, this->accessDev_, this->sizeR_, this->sizeC_,
-        this->accessOpr_, this->sizeL_, this->disp_ + i + this->sizeL_ * j);
-  }
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline void MatrixView<_value_t, _container_t, _IndexType,
+                       layout>::adjust_access_displacement() const {
+  return data_ += disp_;
 }
 
 /*! eval.
  * @brief Evaluation for the given linear value.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-_value_t &MatrixView<_value_t, _container_t, _IndexType>::eval(_IndexType k) {
-  auto ind = disp_;
-  auto access = (!(accessDev_ ^ accessOpr_));
-  auto size = (access) ? sizeC_ : sizeR_;
-  auto i = (access) ? (k / size) : (k % size);
-  auto j = (access) ? (k % size) : (k / size);
-  ;
-  return eval(i, j);
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+_value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
+    _IndexType ind) {
+  return data_[ind];
 }
 
 /*! eval.
  * @brief Evaluation for the pair of row/col.
  */
-template <class _value_t, class _container_t, typename _IndexType>
-_value_t &MatrixView<_value_t, _container_t, _IndexType>::eval(_IndexType i,
-                                                               _IndexType j) {
-  auto ind = disp_;
-  if (!(accessDev_ ^ accessOpr_)) {
-    ind += (sizeL_ * i) + j;
-  } else {
-    ind += (sizeL_ * j) + i;
-  }
-  if (ind >= size_data_) {
-    std::cout << "ind = " << ind << std::endl;
-    throw std::invalid_argument("Out of range access");
-  }
-  return data_[ind];
-}
-
-/*! print_h
- * @brief Display the contents of the matrix in stdout.
- */
-template <class _value_t, class _container_t, typename _IndexType>
-void MatrixView<_value_t, _container_t, _IndexType>::print_h(const char *name) {
-  std::cout << name << " = [ " << std::endl;
-  for (index_t i = 0; i < ((accessOpr_) ? sizeR_ : sizeC_); i++) {
-    int frst = 1;
-    for (index_t j = 0; j < ((accessOpr_) ? sizeC_ : sizeR_); j++) {
-      if (frst)
-        std::cout << eval(i, j);
-      else
-        std::cout << " , " << eval(i, j);
-      frst = 0;
-    }
-    std::cout << " ;" << std::endl;
-  }
-  std::cout << " ]" << std::endl;
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+_value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
+    _IndexType i, _IndexType j) {
+  return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
+                                   : data_[(sizeL_ * j) + i]);
 }
 
 }  // namespace blas
