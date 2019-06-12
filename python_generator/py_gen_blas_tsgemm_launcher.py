@@ -53,11 +53,9 @@ if __name__ == '__main__':
     tsn = sys.argv[19]
     wptm = sys.argv[20]
     wptn = sys.argv[21]
-    ltm = sys.argv[22]
-    ltn = sys.argv[23]
-    wg_size = sys.argv[24]
-    cl_size = sys.argv[25]
-    file_name = sys.argv[26]
+    wg_size = sys.argv[22]
+    cl_size = sys.argv[23]
+    file_name = sys.argv[24]
 
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
@@ -130,16 +128,6 @@ if __name__ == '__main__':
         Iterable(
             key='WPTN',
             vals=[wptn],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='LTM',
-            vals=[ltm],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='LTN',
-            vals=[ltn],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

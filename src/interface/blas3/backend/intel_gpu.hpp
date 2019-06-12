@@ -37,7 +37,7 @@ typename executor_t::policy_t::event_t _gemm(
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
     return blas::Gemm_Launcher_TallSkinny<
-        256, true, false, false, 64, GemmPartialTile<2,4,2,2,2,1,2,2>, _t_a, _t_b,
+        256, true, false, false, 64, GemmPartialTile<5,6,3,9,2,3>, _t_a, _t_b,
         static_cast<int>(Gemm_t::tall_skinny_local_memory),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc);

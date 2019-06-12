@@ -31,9 +31,9 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<int, int, int, char, char, scalar_t, scalar_t, int, int, int>;
 
-const auto combi = ::testing::Combine(::testing::Values(4),    // m
-                                      ::testing::Values(4),    // n
-                                      ::testing::Values(4),    // k
+const auto combi = ::testing::Combine(::testing::Values(6),    // m
+                                      ::testing::Values(9),    // n
+                                      ::testing::Values(14),    // k
                                       ::testing::Values('n'),  // transa
                                       ::testing::Values('n'),  // transb
                                       ::testing::Values(1.0),  // alpha
@@ -130,13 +130,9 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> c_m_gpu(m * n * ldc_mul);
   std::vector<scalar_t> c_m_cpu(m * n * ldc_mul);
 
-  a_m = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-  b_m = {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
-  c_m_gpu = {-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42,-42};
-
-  // fill_random(a_m);
-  // fill_random(b_m);
-  // fill_random(c_m_gpu);
+  fill_random(a_m);
+  fill_random(b_m);
+  fill_random(c_m_gpu);
   std::copy(c_m_gpu.begin(), c_m_gpu.end(), c_m_cpu.begin());
 
   // system gemm implementation

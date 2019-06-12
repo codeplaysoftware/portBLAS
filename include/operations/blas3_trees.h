@@ -125,9 +125,6 @@ struct GemmPartialTile {
   static constexpr int work_per_thread_m = WorkPerThreadM;
   static constexpr int work_per_thread_n = WorkPerThreadN;
 
-  static constexpr int local_thread_size_n = LocalThreadSizeN;
-  static constexpr int local_thread_size_m = LocalThreadSizeM;
-
   /*!
    * @brief Get tile type as human readable string.
    */

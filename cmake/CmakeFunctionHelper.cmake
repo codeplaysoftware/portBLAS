@@ -53,7 +53,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                        gemm_configuration_2 gemm_configuration_3
                                        gemm_configuration_4)
 
-  set(tsgemm_configuration_0 256 "true" "false" "false" 64 2 4 2 2 2 1 2 2 "tall_skinny_local_memory")
+  set(tsgemm_configuration_0 256 "true" "false" "false" 64 5 6 3 9 2 3 "tall_skinny_local_memory")
   list(APPEND tsgemm_configuration_lists tsgemm_configuration_0)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
@@ -394,14 +394,12 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                     list(GET ${gemm_list} 8 tsn)
                     list(GET ${gemm_list} 9 wptm)
                     list(GET ${gemm_list} 10 wptn)
-                    list(GET ${gemm_list} 11 ltm)
-                    list(GET ${gemm_list} 12 ltn)
-                    list(GET ${gemm_list} 13 gemm_type)
+                    list(GET ${gemm_list} 11 gemm_type)
                     set(file_name "${func}_${double_buffer}_${conflict_a}_"
                                     "${conflict_b}_${trans_a}_${trans_b}_"
                                     "${is_beta_zero}_${gemm_type}_${executor}_"
                                     "${data}_${index}_${nt}_${tsm}_${tsk}_"
-                                    "${tsn}_${wptm}_${wptm}_${ltm}_${ltm}_"
+                                    "${tsn}_${wptm}_${wptm}_"
                                     "${wg_size}_${cl_size}.cpp")
                     STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
                     STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})

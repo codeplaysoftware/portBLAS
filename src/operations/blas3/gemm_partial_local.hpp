@@ -87,11 +87,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
   index_t ldb_;
   index_t ldc_;
 
-  static constexpr index_t local_thread_size_n = tile_type::local_thread_size_n;
-  static constexpr index_t local_thread_size_m = tile_type::local_thread_size_m;
-
-  static constexpr int local_thread_size = local_thread_size_m * local_thread_size_n;
-
   /* The number of tiles to be processed */
   static constexpr index_t num_tiles = tile_type::num_tiles;
 
@@ -100,12 +95,21 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
   static constexpr index_t tile_size_dim_n = tile_type::tile_size_dim_n;
   static constexpr index_t tile_size_dim_k = tile_type::tile_size_dim_k;
 
-  /* Local memory */
-  static constexpr int local_memory_size = 2 * tile_size_dim_m * tile_size_dim_k + 2 * tile_size_dim_k * tile_size_dim_n;
-
   /* Workload per work item on each dimension m and n */
   static constexpr index_t work_per_thread_m = tile_type::work_per_thread_m;
   static constexpr index_t work_per_thread_n = tile_type::work_per_thread_n;
+
+  /* Checking if the tile is valid and calculating the number of threads */
+  static_assert(tile_size_dim_m % work_per_thread_m == 0,
+                "The tile dimension M should be a multiple of the workload per thread on M");
+  static_assert(tile_size_dim_n % work_per_thread_n == 0,
+                "The tile dimension N should be a multiple of the workload per thread on N");
+  static constexpr index_t local_thread_size_m = tile_size_dim_m / work_per_thread_m;
+  static constexpr index_t local_thread_size_n = tile_size_dim_n / work_per_thread_n;
+  static constexpr int local_thread_size = local_thread_size_m * local_thread_size_n;
+
+  /* Local memory */
+  static constexpr int local_memory_size = 2 * tile_size_dim_m * tile_size_dim_k + 2 * tile_size_dim_k * tile_size_dim_n;
 
   /* If double buffering should be used */
   static constexpr bool double_buffer = DoubleBuffer;
@@ -293,6 +297,26 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
           ((tile_id & 1) * (tile_size_dim_k * tile_size_dim_n)) +
           start_rhs_index;
 
+      // TODO: remove me
+      if(local_id == 0 && wg_id == 0) {
+        printf("tile %d\n", tile_id);
+        printf(" - LHS -\n");
+        for(int si = 0; si < tile_size_dim_m; si++) {
+          for(int sj = 0; sj < tile_size_dim_k; sj++) {
+            printf("%f ", scratch_ptr[lhs_offset + si + tile_size_dim_m * sj]);
+          }
+          printf("\n");
+        }
+        printf(" - RHS -\n");
+        for(int si = 0; si < tile_size_dim_k; si++) {
+          for(int sj = 0; sj < tile_size_dim_n; sj++) {
+            printf("%f ", rhs_scratch_ptr[rhs_offset + tile_size_dim_n * si + sj]);
+          }
+          printf("\n");
+        }
+        printf("\n");
+      }
+
       /* Loop over the values of a single tile */
 
       for (index_t k = 0; k < tile_size_dim_k; k++) {
@@ -334,6 +358,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
     index_t private_index_offset = 0;
 
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
+      index_t private_index = private_index_offset;
       // Disregard anything involving `i` - it simply specifies a stride
       // for (index_t i = 0; i < PacketSize; i++) {
       index_t global_col = global_col_offset;  // + i;
@@ -343,10 +368,12 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
           // Store the final results in C
 
           C[c_index + global_row + global_k_offset] =
-              private_res[wLPTM + private_index_offset];
+              private_res[wLPTM + private_index];
         }
+        global_row += local_thread_size_m;
       }
       c_index += m_;
+      private_index += work_per_thread_m;
       //}
       global_col_offset += local_thread_size_n;
       c_index = global_col_offset * m_;
@@ -357,7 +384,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
   // loads + transposes on load.
 
   // Load a "left hand" tile, or "right hand transposed" tile
-  // What is NoEdge for?? -> bypass test if we know we're in an inside block
+  // What is NoEdge for?? -> bypass test if we know we're in an inside block?
   template <typename GlobalPointerType, typename LocalPointerType>
   static inline void load_tile(GlobalPointerType glb_ptr,
                                LocalPointerType lcl_ptr,
@@ -367,6 +394,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
                                index_t M, index_t K) {
     // Our rhs linear id is the same as our thread id to start with
     index_t local_lhs_linear_id = linear_local_thread_id;
+    index_t global_tile_k_offset = global_k_offset + tile_size_dim_k * next_tile;
 
     // Local id offset depends on whether we're on the first or second "half" of
     // the scratch memory. If we're on the first half (i.e. the lowest bit is
@@ -381,7 +409,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
       index_t local_thread_m =
           local_lhs_linear_id - (local_thread_k * tile_size_dim_m);
 
-      index_t global_k_index = global_k_offset + local_thread_k;
+      index_t global_k_index = global_tile_k_offset + local_thread_k;
       index_t global_m_index = global_m_offset + local_thread_m;
 
       index_t linear_local_id_index =
@@ -394,10 +422,13 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
 
       element_t val = glb_ptr[global_m_index + (global_k_index * M)];
 
-      lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
+      // TODO: don't do that
+      if(linear_local_id_index < tile_size_dim_k * tile_size_dim_m) {
+        lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
+      }
       // }
 
-      local_lhs_linear_id += (local_thread_size_n * local_thread_size_m);
+      local_lhs_linear_id += local_thread_size_n * local_thread_size_m;
     }
   }
 
@@ -407,8 +438,11 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
       index_t linear_local_thread_id, index_t global_n_offset,
       index_t global_k_offset, index_t next_tile, index_t load_per_thread_rhs,
       index_t K, index_t N) {
+    if(linear_local_thread_id == 0) printf("---\n");
     // Our rhs linear id is the same as our thread id to start with
     index_t local_rhs_linear_id = linear_local_thread_id;
+    index_t global_tile_k_offset = global_k_offset + tile_size_dim_k * next_tile;
+
     // Local id offset depends on whether we're on the first or second "half" of
     // the scratch memory. If we're on the first half (i.e. the lowest bit is
     // set to 0), then the offset is 0. If we're on the second half (i.e. the
@@ -416,6 +450,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
     // tile: tile_size_dim_k * tile_size_dim_n
     index_t linear_local_id_offset =
         (next_tile & 1) * (tile_size_dim_k * tile_size_dim_n);
+
     for (index_t lPTR = 0; lPTR < load_per_thread_rhs; lPTR++) {
       // Calculate the index in the 'n' dimension that this thread should access
       index_t local_thread_n = local_rhs_linear_id / tile_size_dim_k;
@@ -423,21 +458,25 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
       index_t local_thread_k =
           local_rhs_linear_id - (tile_size_dim_k * local_thread_n);
 
-      index_t global_k_index = global_k_offset + local_thread_k;
+      index_t global_k_index = global_tile_k_offset + local_thread_k;
       index_t global_n_index = global_n_offset + local_thread_n;
 
       // Transpose RHS on the fly
-      // index_t linear_local_id_index =
-      //     local_thread_n + (local_thread_k * tile_size_dim_n);
       index_t linear_local_id_index =
-          local_thread_k + (local_thread_n * tile_size_dim_k);
+          local_thread_n + (local_thread_k * tile_size_dim_n);
+      // index_t linear_local_id_index =
+      //     local_thread_k + (local_thread_n * tile_size_dim_k);
 
       element_t val = 0;
       if (/*(NoEdge) ||*/ ((global_k_index < K) && (global_n_index < N))) {
-        val = glb_ptr[global_n_index + (global_k_index * N)];
+        val = glb_ptr[global_n_index * K + global_k_index];
       }
 
-      lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
+      // TODO: don't do that
+      if(linear_local_id_index < tile_size_dim_k * tile_size_dim_n) {
+        lcl_ptr[linear_local_id_index + linear_local_id_offset] = val;
+      }
+
       local_rhs_linear_id += local_thread_size_n * local_thread_size_m;
     }
   }

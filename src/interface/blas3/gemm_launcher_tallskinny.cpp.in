@@ -34,12 +34,12 @@
 namespace blas {
 template class Gemm_Launcher_TallSkinny<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}, ${LTM}, ${LTN}>, ${TRANS_A},
+    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>;
 
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher_TallSkinny<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}, ${LTM}, ${LTN}>, ${TRANS_A},
+    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>::
     _select_gemm<Executor<${EXECUTOR}>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,
