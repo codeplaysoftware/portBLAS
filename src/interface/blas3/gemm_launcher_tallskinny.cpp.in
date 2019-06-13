@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_launcher.cpp.in
+ *  @filename gemm_launcher_tallskinny.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
@@ -34,12 +34,12 @@
 namespace blas {
 template class Gemm_Launcher_TallSkinny<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}>, ${TRANS_A},
+    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>;
 
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher_TallSkinny<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
-    GemmPartialTile<${NT}, ${TSM}, ${TSK}, ${TSN}, ${WPTM}, ${WPTN}>, ${TRANS_A},
+    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(Gemm_t::${GEMM_TYPE}), ${IS_BETA_ZERO}>::
     _select_gemm<Executor<${EXECUTOR}>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,
@@ -51,6 +51,6 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher_TallSki
         BufferIterator<${DATA_TYPE}, codeplay_policy> a_, ${INDEX_TYPE} _lda,
         BufferIterator<${DATA_TYPE}, codeplay_policy> b_, ${INDEX_TYPE} _ldb,
         ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}, codeplay_policy> _C,
-        ${INDEX_TYPE} _ldc);
+        ${INDEX_TYPE} _ldc, ${INDEX_TYPE} batch_size);
 
 }  // namespace blas

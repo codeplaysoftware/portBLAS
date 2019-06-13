@@ -87,51 +87,40 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   index_t ldb_;
   index_t ldc_;
 
-  /* The number of tiles to be processed */
-  static constexpr index_t num_tiles = tile_type::num_tiles;
-
-  /* The dimensions of a single tile */
-  static constexpr index_t tile_size_dim_m = tile_type::tile_size_dim_m;
-  static constexpr index_t tile_size_dim_n = tile_type::tile_size_dim_n;
-  static constexpr index_t tile_size_dim_k = tile_type::tile_size_dim_k;
-
   /* Workload per work item on each dimension m and n */
-  static constexpr index_t work_per_thread_m = tile_type::work_per_thread_m;
-  static constexpr index_t work_per_thread_n = tile_type::work_per_thread_n;
-
-  /* Checking if the tile is valid */
-  static_assert(tile_size_dim_m % work_per_thread_m == 0,
-                "The tile dimension M must be a multiple of the workload per "
-                "thread on M");
-  static_assert(tile_size_dim_n % work_per_thread_n == 0,
-                "The tile dimension N must be a multiple of the workload per "
-                "thread on N");
-  static_assert((tile_size_dim_k * work_per_thread_m * work_per_thread_n) %
-                        tile_size_dim_m ==
-                    0,
-                "The tile dimension M must divide the product of the dimension "
-                "K and the number of threads");
-  static_assert((tile_size_dim_k * work_per_thread_m * work_per_thread_n) %
-                        tile_size_dim_n ==
-                    0,
-                "The tile dimension N must divide the product of the dimension "
-                "K and the number of threads");
+  static constexpr index_t work_per_thread_m = tile_type::item_rows;
+  static constexpr index_t work_per_thread_n = tile_type::item_cols;
 
   /* Calculating the number of threads */
-  static constexpr index_t local_thread_size_m =
-      tile_size_dim_m / work_per_thread_m;
-  static constexpr index_t local_thread_size_n =
-      tile_size_dim_n / work_per_thread_n;
+  static constexpr index_t local_thread_size_m = tile_type::wg_rows;
+  static constexpr index_t local_thread_size_n = tile_type::wg_cols;
   static constexpr index_t local_thread_size =
       local_thread_size_m * local_thread_size_n;
 
+  /* Checking if the tile is valid */
+  static_assert(ClSize % local_thread_size_m == 0,
+                "The number of item-level tiles within each work group column "
+                "must divide the cache line size");
+  static_assert(ClSize % local_thread_size_n == 0,
+                "The number of item-level tiles within each work group row "
+                "must divide the cache line size");
+
+  /* The dimensions of a single tile */
+  static constexpr index_t tile_size_dim_m =
+      local_thread_size_m * work_per_thread_m;
+  static constexpr index_t tile_size_dim_n =
+      local_thread_size_n * work_per_thread_n;
+  static constexpr index_t tile_size_dim_k = ClSize;
+
+  /* The number of tiles to be processed */
+  static constexpr index_t num_tiles = 3;
+  // TODO: don't hardcode that!!! See Eigen
+
   /* Number of loads per thread for LHS and RHS tiles */
   static constexpr index_t loads_per_thread_lhs =
-      (tile_size_dim_k * work_per_thread_m * work_per_thread_n) /
-      tile_size_dim_n;
+      (tile_size_dim_k * work_per_thread_m) / local_thread_size_n;
   static constexpr index_t loads_per_thread_rhs =
-      (tile_size_dim_k * work_per_thread_m * work_per_thread_n) /
-      tile_size_dim_m;
+      (tile_size_dim_k * work_per_thread_n) / local_thread_size_m;
 
   /* Local memory */
   static constexpr int local_memory_size =
@@ -173,7 +162,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
-    str << "GemmPartial<" << double_buffer << ", " << tile_type::get_type_string() << ", "
+    str << "GemmPartial<" << double_buffer << ", "
+        << tile_type::get_type_string() << ", "
         << type_string<element_t>::get_value() << ">";
     return str.str();
   }
@@ -192,7 +182,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * number of work_group required to execute each partial GEMM.
    */
   static SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t m, index_t n,
-                                                        index_t k) noexcept {
+                                                        index_t k, index_t compute_units) noexcept {
     return ((m - 1) / tile_size_dim_m + 1) * ((n - 1) / tile_size_dim_n + 1) *
            ((k - 1) / (tile_size_dim_k * num_tiles) + 1);
   }
@@ -215,7 +205,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
       index_t m, index_t n, index_t k, index_t compute_units) noexcept {
     const cl::sycl::range<1> nwg(
-        get_workgroup_cluster(m, n, k) *
+        get_workgroup_cluster(m, n, k, compute_units) *
         get_num_workgroup_cluster(m, n, k, compute_units));
     const cl::sycl::range<1> wgs(local_thread_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
@@ -262,7 +252,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const index_t ngroup_id = mn_group_id / group_count_m;
     const index_t mgroup_id = mn_group_id - ngroup_id * group_count_m;
 
-    if(local_id == 0) printf("%d %d %d\n", mgroup_id, ngroup_id, kgroup_id);
+    if (local_id == 0) printf("%d %d %d\n", mgroup_id, ngroup_id, kgroup_id);
 
     /* register offsets */
     const index_t global_m_offset = mgroup_id * tile_size_dim_m;

@@ -33,7 +33,7 @@ using combination_t =
 
 const auto combi = ::testing::Combine(::testing::Values(7),    // m
                                       ::testing::Values(13),    // n
-                                      ::testing::Values(9),    // k
+                                      ::testing::Values(120),    // k
                                       ::testing::Values('n'),  // transa
                                       ::testing::Values('t'),  // transb
                                       ::testing::Values(1.0),  // alpha

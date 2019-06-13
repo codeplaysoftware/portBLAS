@@ -66,7 +66,7 @@ struct Gemm_Launcher_TallSkinny {
   static typename executor_t::policy_t::event_t _select_gemm(
       executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
       container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
-      element_t _beta, container_2_t _C, index_t _ldc);
+      element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size);
 };
 
 }  // namespace blas

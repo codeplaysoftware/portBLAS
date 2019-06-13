@@ -83,7 +83,7 @@ typename Executor::policy_t::event_t Gemm_Launcher_TallSkinny<
                                           container_t0 a_, index_t _lda,
                                           container_t1 b_, index_t _ldb,
                                           element_t _beta, container_t2 _C,
-                                          index_t _ldc) {
+                                          index_t _ldc, index_t batch_size) {
   auto buffer_a = make_matrix_view(ex, a_, _M, _K, _lda, Access::col_major());
   auto buffer_b = make_matrix_view(ex, b_, _K, _N, _ldb, Access::col_major());
   auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::col_major());

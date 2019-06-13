@@ -53,7 +53,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                        gemm_configuration_2 gemm_configuration_3
                                        gemm_configuration_4)
 
-  set(tsgemm_configuration_0 256 "true" "false" "false" 64 3 6 3 3 2 3 "tall_skinny_local_memory")
+  set(tsgemm_configuration_0 256 "true" "false" "false" 64 2 2 4 4 1 1 "tall_skinny_local_memory")
   list(APPEND tsgemm_configuration_lists tsgemm_configuration_0)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
@@ -388,23 +388,23 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                     list(GET ${gemm_list} 2 conflict_a)
                     list(GET ${gemm_list} 3 conflict_b)
                     list(GET ${gemm_list} 4 cl_size)
-                    list(GET ${gemm_list} 5 nt)
-                    list(GET ${gemm_list} 6 tsm)
-                    list(GET ${gemm_list} 7 tsk)
-                    list(GET ${gemm_list} 8 tsn)
-                    list(GET ${gemm_list} 9 wptm)
-                    list(GET ${gemm_list} 10 wptn)
+                    list(GET ${gemm_list} 5 tir)
+                    list(GET ${gemm_list} 6 tic)
+                    list(GET ${gemm_list} 7 twr)
+                    list(GET ${gemm_list} 8 twc)
+                    list(GET ${gemm_list} 9 tlr)
+                    list(GET ${gemm_list} 10 tlc)
                     list(GET ${gemm_list} 11 gemm_type)
                     set(file_name "${func}_${double_buffer}_${conflict_a}_"
                                     "${conflict_b}_${trans_a}_${trans_b}_"
                                     "${is_beta_zero}_${gemm_type}_${executor}_"
-                                    "${data}_${index}_${nt}_${tsm}_${tsk}_"
-                                    "${tsn}_${wptm}_${wptm}_"
+                                    "${data}_${index}_${tir}_${tic}_${twr}_"
+                                    "${twc}_${tlr}_${tlc}_"
                                     "${wg_size}_${cl_size}.cpp")
                     STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
                     STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
                     add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_tsgemm_launcher.py
+                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                         ${PROJECT_SOURCE_DIR}/external/
                         ${SYCLBLAS_SRC_GENERATOR}/gen
                         ${blas_level}
@@ -420,19 +420,17 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                         ${trans_b}
                         ${is_beta_zero}
                         ${gemm_type}
-                        ${nt}
-                        ${tsm}
-                        ${tsk}
-                        ${tsn}
-                        ${wptm}
-                        ${wptn}
-                        ${ltm}
-                        ${ltn}
+                        ${tir}
+                        ${tic}
+                        ${twr}
+                        ${twc}
+                        ${tlr}
+                        ${tlc}
                         ${wg_size}
                         ${cl_size}
                         ${file_name}
                       MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_tsgemm_launcher.py
+                      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                       VERBATIM
                     )

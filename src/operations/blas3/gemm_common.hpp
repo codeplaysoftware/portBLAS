@@ -68,27 +68,6 @@ SYCL_BLAS_INLINE std::string Tile<ItemRows, ItemCols, WgRows, WgCols, TlRows,
 }
 
 /*!
- * Returns a human-readable description of a partial gemm tile type.
- *
- * @return The type string as a std::string
- *
- * @note See the struct definition in include/operations/blas3_trees.h for more
- *       info about the tiling configuration of partial gemm
- */
-template <int NumTiles, int TileSizeDimM, int TileSizeDimK, int TileSizeDimN,
-          int WorkPerThreadM, int WorkPerThreadN, int LocalThreadSizeN,
-          int LocalThreadSizeM>
-SYCL_BLAS_INLINE std::string GemmPartialTile<NumTiles, TileSizeDimM, TileSizeDimK, TileSizeDimN,
-          WorkPerThreadM, WorkPerThreadN, LocalThreadSizeN,
-          LocalThreadSizeM>::get_type_string() noexcept {
-  return std::string("GemmPartialTile<>");
-  std::ostringstream str{};
-  str << "GemmPartialTile";
-  // TODO: output actual info
-  return str.str();
-}
-
-/*!
  * Optionally avoid evaluating the expression given as input.
  *
  * @return If the template parameter is true, return the value of expression
