@@ -31,15 +31,15 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<int, int, int, char, char, scalar_t, scalar_t, int, int, int>;
 
-const auto combi = ::testing::Combine(::testing::Values(6),    // m
-                                      ::testing::Values(3),    // n
+const auto combi = ::testing::Combine(::testing::Values(7),    // m
+                                      ::testing::Values(13),    // n
                                       ::testing::Values(9),    // k
                                       ::testing::Values('n'),  // transa
-                                      ::testing::Values('n'),  // transb
+                                      ::testing::Values('t'),  // transb
                                       ::testing::Values(1.0),  // alpha
                                       ::testing::Values(0.0),  // beta
-                                      ::testing::Values(1),    // lda_mul
-                                      ::testing::Values(1),    // ldb_mul
+                                      ::testing::Values(2),    // lda_mul
+                                      ::testing::Values(3),    // ldb_mul
                                       ::testing::Values(1)     // ldc_mul
 );
 
@@ -53,15 +53,15 @@ struct MatrixPrinter {
 
 template <>
 struct MatrixPrinter<true> {
-  template <typename IxType, typename VectorT>
-  static inline void eval(IxType w, IxType h, VectorT v) {
-    for (IxType i = 0; i < h; i++) {
+  template <typename index_t, typename VectorT>
+  static inline void eval(index_t w, index_t h, VectorT v, index_t ld) {
+    for (index_t i = 0; i < h; i++) {
       std::cerr << "[";
-      for (IxType j = 0; j < w; j++) {
+      for (index_t j = 0; j < w; j++) {
         if (j != 0) {
           std::cerr << ", ";
         }
-        std::cerr << v[i + (j * h)];
+        std::cerr << v[i + (j * ld)];
       }
       std::cerr << "]\n";
     }
@@ -70,15 +70,15 @@ struct MatrixPrinter<true> {
 
 template <>
 struct MatrixPrinter<false> {
-  template <typename IxType, typename VectorT>
-  static inline void eval(IxType w, IxType h, VectorT v) {
-    for (IxType i = 0; i < h; i++) {
+  template <typename index_t, typename VectorT>
+  static inline void eval(index_t w, index_t h, VectorT v, index_t ld) {
+    for (index_t i = 0; i < h; i++) {
       std::cerr << "[";
-      for (IxType j = 0; j < w; j++) {
+      for (index_t j = 0; j < w; j++) {
         if (j != 0) {
           std::cerr << ", ";
         }
-        std::cerr << v[(i * w) + j];
+        std::cerr << v[(i * ld) + j];
       }
       std::cerr << "]\n";
     }
@@ -147,23 +147,25 @@ void run_test(const combination_t<scalar_t> combi) {
       _gemm(ex, transa, transb, m, n, k, alpha, m_a_gpu, lda, m_b_gpu, ldb, beta,
             m_c_gpu, ldc);
     } catch (cl::sycl::exception &e) {
-      std::cerr << " I have caught an exception! " << std::endl;
+      std::cerr << "Exception occured:" << std::endl;
       std::cerr << e.what() << std::endl;
     }
   }
 
   std::cerr << "A before: " << std::endl;
-  MatrixPrinter<true>::eval(k, m, a_m);
+  if(transa == 'n') MatrixPrinter<true>::eval(k, m, a_m, lda);
+  else MatrixPrinter<false>::eval(k, m, a_m, lda);
 
   std::cerr << "B before: " << std::endl;
-  MatrixPrinter<true>::eval(n, k, b_m);
+  if(transb == 'n') MatrixPrinter<true>::eval(n, k, b_m, ldb);
+  else MatrixPrinter<false>::eval(n, k, b_m, ldb);
 
   // the matrix is now in tsgf._C
   std::cerr << "C expected: " << std::endl;
-  MatrixPrinter<true>::eval(n, m, c_m_cpu);
+  MatrixPrinter<true>::eval(n, m, c_m_cpu, ldc);
 
   std::cerr << "C afterwards: " << std::endl;
-  MatrixPrinter<true>::eval(n, m, c_m_gpu);
+  MatrixPrinter<true>::eval(n, m, c_m_gpu, ldc);
 
   ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
 }

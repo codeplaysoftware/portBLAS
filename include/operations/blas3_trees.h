@@ -223,10 +223,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 class GemmPartial {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
-                               const index_t group_count_m,
-                               const index_t group_count_n,
-                               const index_t group_count_k);
+  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta);
    static std::string get_type_string() noexcept;
    static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
    static index_t get_num_workgroup_cluster(index_t m, index_t n,
@@ -262,7 +259,7 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
 
 /*
  * @brief a helper function used for constructing the GEMM
- *  see GEMM for the parammeters passed here.
+ *  see GEMM for the parameters passed here.
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int Gemm_type,
@@ -274,7 +271,7 @@ make_gemm_partial(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta) {
   return GemmPartial<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
-      buffer_a, buffer_b, buffer_c, alpha, beta, 1, 1, 1); // TODO: not 1!
+      buffer_a, buffer_b, buffer_c, alpha, beta); // TODO: not 1!
 }
 
 }  // namespace blas

@@ -242,7 +242,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   auto rng =
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
+           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_, gemm_tree.k_,
                                     policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<Gemm_type == static_cast<int>(Gemm_t::tall_skinny_local_memory),
