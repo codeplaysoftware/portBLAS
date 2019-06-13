@@ -37,7 +37,6 @@
 #include "interface/gemm_launcher.h"
 #include "operations/blas3_trees.h"
 #include "operations/blas_constants.hpp"
-#include "types/access_types.h"
 
 namespace blas {
 
@@ -58,9 +57,9 @@ typename Executor::policy_t::event_t Gemm_Launcher<
                                           container_t1 b_, index_t _ldb,
                                           element_t _beta, container_t2 _C,
                                           index_t _ldc, index_t batch_size) {
-  auto buffer_a = make_matrix_view(ex, a_, _M, _K, _lda, Access::col_major());
-  auto buffer_b = make_matrix_view(ex, b_, _K, _N, _ldb, Access::col_major());
-  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::col_major());
+  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
+  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
+  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
                         TransA, TransB, GemmType, is_beta_zero>(
       buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
@@ -84,9 +83,9 @@ typename Executor::policy_t::event_t Gemm_Launcher_TallSkinny<
                                           container_t1 b_, index_t _ldb,
                                           element_t _beta, container_t2 _C,
                                           index_t _ldc, index_t batch_size) {
-  auto buffer_a = make_matrix_view(ex, a_, _M, _K, _lda, Access::col_major());
-  auto buffer_b = make_matrix_view(ex, b_, _K, _N, _ldb, Access::col_major());
-  auto buffer_c = make_matrix_view(ex, _C, _M, _N, _ldc, Access::col_major());
+  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
+  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
+  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
   auto gemm = make_gemm_partial<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
                                 TransA, TransB, GemmType, is_beta_zero>(
       buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta));

@@ -57,6 +57,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Validate the result
   ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
+  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING

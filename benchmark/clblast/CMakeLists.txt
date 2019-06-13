@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.2)
 
 project(clblast_benchmarks)
 
@@ -26,6 +26,7 @@ set(CLBLAST_BENCH_SRCS
   ${CLBLAST_BENCH}/blas2/gemv.cpp
   # Level 3 blas
   ${CLBLAST_BENCH}/blas3/gemm.cpp
+  ${CLBLAST_BENCH}/blas3/gemm_batched.cpp
 )
 
 # Add individual benchmarks for each method

@@ -173,6 +173,11 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     b_.bind(h);
     cube_.bind(h);
   }
+  void adjust_access_displacement() {
+    a_.adjust_access_displacement();
+    b_.adjust_access_displacement();
+    cube_.adjust_access_displacement();
+  }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;
   }
@@ -218,10 +223,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
     /* references to the matrices */
-    auto A = a_.get_data().get_pointer().get() + a_.get_access_displacement();
-    auto B = b_.get_data().get_pointer().get() + b_.get_access_displacement();
-    auto cube_buffer =
-        cube_.get_data().get_pointer().get() + cube_.get_access_displacement();
+    auto A = a_.get_pointer();
+    auto B = b_.get_pointer();
+    auto cube_buffer = cube_.get_pointer();
 
     /* references to the temporary memory, scratch memory, and rhs scratch
      * memory*/

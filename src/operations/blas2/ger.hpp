@@ -265,6 +265,14 @@ SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
   rhs_1_.bind(h);
   rhs_2_.bind(h);
 }
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                             rhs_2_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  rhs_1_.adjust_access_displacement();
+  rhs_2_.adjust_access_displacement();
+}
 
 /**** GER BY COLUMNS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
 // template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
@@ -487,6 +495,15 @@ SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
+}
+
+template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
+          typename rhs_1_t, typename rhs_2_t>
+SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+                             rhs_2_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  rhs_1_.adjust_access_displacement();
+  rhs_2_.adjust_access_displacement();
 }
 
 }  // namespace blas

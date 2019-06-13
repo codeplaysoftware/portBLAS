@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.2)
 
 project(syclblas_benchmarks)
 
@@ -24,6 +24,7 @@ set(SYCLBLAS_BENCH_SRCS
   ${SYCLBLAS_BENCH}/blas2/gemv.cpp
   # Level 3 blas
   ${SYCLBLAS_BENCH}/blas3/gemm.cpp
+  ${SYCLBLAS_BENCH}/blas3/gemm_batched.cpp
 )
 
 # Add individual benchmarks for each method

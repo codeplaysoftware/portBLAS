@@ -33,8 +33,6 @@
 #include "operations/blas2_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
-#include "types/access_types.h"
-#include "types/transposition_types.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -47,23 +45,24 @@ namespace internal {
  * @brief Implementation of the General Matrix Vector product.
  *
  */
-template <typename Executor, typename index_t, typename element_t,
-          typename container_t0, typename container_t1, typename increment_t,
-          typename container_t2>
+template <transpose_type trn, typename Executor, typename index_t,
+          typename element_t, typename container_t0, typename container_t1,
+          typename increment_t, typename container_t2>
 typename Executor::policy_t::event_t _gemv_impl(
-    Executor& ex, Transposition _trans, index_t _M, index_t _N,
-    element_t _alpha, container_t0 _mA, index_t _lda, container_t1 _vx,
-    increment_t _incx, element_t _beta, container_t2 _vy, increment_t _incy,
-    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nRowsWG = 0,
-    index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret;
+    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
+    container_t2 _vy, increment_t _incy, index_t _localSize = 0,
+    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+  typename Executor::policy_t::event_t ret{};
 
-  Access accessOpr = Access(_trans);
+  index_t M = (trn == transpose_type::Normal) ? _M : _N;
+  index_t N = (trn == transpose_type::Normal) ? _N : _M;
 
-  index_t M = (_trans.is_normal()) ? _M : _N;
-  index_t N = (_trans.is_normal()) ? _N : _M;
-
-  auto mA = make_matrix_view(ex, _mA, M, N, _lda, accessOpr);
+  static constexpr auto data_layout_access =
+      Choose<trn == transpose_type::Normal, access_layout,
+             access_layout::col_major, access_layout::row_major>::type;
+  using data_layout_t = typename Layout<data_layout_access>::type;
+  auto mA = make_matrix_view<data_layout_t>(ex, _mA, M, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
   auto vy = make_vector_view(ex, _vy, _incy, M);
 
@@ -71,12 +70,12 @@ typename Executor::policy_t::event_t _gemv_impl(
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(M, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
+  const index_t nRowsWG =
+      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
+                      : std::min(M, _nRowsWG);
+  const index_t nColsWG =
+      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : N)
+                      : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
@@ -85,22 +84,25 @@ typename Executor::policy_t::event_t _gemv_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   const index_t scratchSize =
-      (mA.is_row_access())
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol)
-          : nWGPerCol;
+      (data_layout_t::is_col_major())
+          ? nWGPerCol
+          : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
 
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(M * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, M, scratchSize, scratchSize,
-                               Access::col_major());
+  // this is column major
+  auto mat1 =
+      make_matrix_view<row_major>(ex, valT1, M, scratchSize, scratchSize);
 
-  if (mA.is_row_access()) {
-    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
-                                          scratchPadSize);
-    ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-  } else {
+  if (data_layout_t::is_col_major()) {
     auto gemvC =
         make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+  } else {
+    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
+                                          scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
   }
 
   // beta * y
@@ -113,7 +115,7 @@ typename Executor::policy_t::event_t _gemv_impl(
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   // assign the result to
   auto assignOp = make_op<Assign>(vy, addOp);
-  ret = ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
   return ret;
 }
 
@@ -121,13 +123,13 @@ typename Executor::policy_t::event_t _gemv_impl(
  * @brief Implementation of the Triangular Matrix Vector product.
  */
 
-template <typename Executor, typename index_t, typename container_t0,
-          typename container_t1, typename increment_t>
+template <transpose_type trn, typename Executor, typename index_t,
+          typename container_t0, typename container_t1, typename increment_t>
 typename Executor::policy_t::event_t _trmv_impl(
-    Executor& ex, char _Uplo, Transposition _trans, char _Diag, index_t _N,
-    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
-    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nRowsWG = 0,
-    index_t _nColsWG = 0) {
+    Executor& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
+    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+  typename Executor::policy_t::event_t ret{};
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
@@ -135,89 +137,98 @@ typename Executor::policy_t::event_t _trmv_impl(
     throw std::invalid_argument("Erroneous parameter");
   }
 
-  Access accessOpr(_trans);
-  int triangOpr = (accessOpr.is_row_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
+  static constexpr auto data_layout_access =
+      Choose<trn == transpose_type::Normal, access_layout,
+             access_layout::col_major, access_layout::row_major>::type;
+  using data_layout_t = typename Layout<data_layout_access>::type;
+  int triangOpr =
+      (data_layout_t::is_col_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
+  auto mA = make_matrix_view<data_layout_t>(ex, _mA, N, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
-
   const index_t interLoop = 1;
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(N, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
+  const index_t nRowsWG =
+      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
+                      : std::min(N, _nRowsWG);
+  const index_t nColsWG =
+      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : N)
+                      : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
   const index_t nWGPerCol = (N - 1) / nColsWG + 1;
   const index_t nWGPerRow = (N - 1) / nRowsWG + 1;
   const index_t scratchSize =
-      (mA.is_row_access())
-          ? (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol)
-          : nWGPerCol;
+      (data_layout_t::is_col_major())
+          ? nWGPerCol
+          : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   using element_t = typename ValueType<container_t0>::type;
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize);
-  auto mat1 = make_matrix_view(ex, valT1, N, scratchSize, scratchSize,
-                               Access::col_major());
+  auto mat1 =
+      make_matrix_view<row_major>(ex, valT1, N, scratchSize, scratchSize);
 
-  typename Executor::policy_t::event_t ret;
-
-  if (mA.is_row_access()) {  // ROWS ACCESS
-    if (triangOpr == 1) {
-      if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      } else {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      }
-    } else {
-      if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      } else {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
-            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvR, localSize, globalSize, scratchPadSize);
-      }
-    }
-  } else {
+  if (data_layout_t::is_col_major()) {
     if (triangOpr == 1) {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-        ret = ex.execute(gemvC, localSize, globalSize, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+      }
+    }
+  } else {  // row_major
+    if (triangOpr == 1) {
+      if (unitDiag == 1) {
+        auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      } else {
+        auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      }
+    } else {
+      if (unitDiag == 1) {
+        auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+      } else {
+        auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
+            mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+        ret = concatenate_vectors(
+            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     }
   }
   auto addMOp = make_addSetColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
-  ret = ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
   return ret;
 }
 
@@ -245,17 +256,16 @@ typename Executor::policy_t::event_t _symv_impl(
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-
+  typename Executor::policy_t::event_t ret;
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
-  Access accessOpr = Access::row_major();
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view(ex, _mA, N, N, _lda, accessOpr);
+  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
   auto vy = make_vector_view(ex, _vy, _incy, N);
-  auto mAT = make_matrix_view(ex, _mA, N, N, _lda, Access::col_major());
+  auto mAT = make_matrix_view<row_major>(ex, _mA, N, N, _lda);
 
   const index_t interLoop = 1;
 
@@ -283,50 +293,35 @@ typename Executor::policy_t::event_t _symv_impl(
       ((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol_R;
 
   auto valTR = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_R);
-  auto matR = make_matrix_view(ex, valTR, N, scratchSize_R, scratchSize_R,
-                               Access::col_major());
+  auto matR =
+      make_matrix_view<row_major>(ex, valTR, N, scratchSize_R, scratchSize_R);
 
   const index_t scratchSize_C = nWGPerCol_C;
 
   auto valTC = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_C);
-  auto matC = make_matrix_view(ex, valTC, N, scratchSize_C, scratchSize_C,
-                               Access::col_major());
+  auto matC =
+      make_matrix_view<row_major>(ex, valTC, N, scratchSize_C, scratchSize_C);
 
-  if (mA.is_row_access()) {  // ROWS ACCESS
-    if (triangOpr == 1) {
-      auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
-          matR, mA, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-      auto gemvC = make_Gemv_Col<true, false, false>(
-          matC, mAT, vx, nWGPerRow_C, nWGPerCol_C, scratchPadSize);
-      ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-      ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
-    } else {
-      auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
-          matR, mA, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-      auto gemvC = make_Gemv_Col<false, false, true>(
-          matC, mAT, vx, nWGPerRow_C, nWGPerCol_C, scratchPadSize);
-      ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-      ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
-    }
-
-  } else {  // col major
-
-    if (triangOpr == 1) {
-      auto gemvC = make_Gemv_Col<false, true, true>(
-          matC, mA, vx, nWGPerRow_C, nWGPerCol_C, scratchPadSize);
-      auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
-          matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-      ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
-      ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-    } else {
-      auto gemvC = make_Gemv_Col<true, true, false>(
-          matC, mA, vx, nWGPerRow_C, nWGPerCol_C, scratchPadSize);
-      auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
-          matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
-      ex.execute(gemvC, localSize, globalSize_C, scratchPadSize);
-      ex.execute(gemvR, localSize, globalSize_R, scratchPadSize);
-    }
+  if (triangOpr == 1) {
+    auto gemvC = make_Gemv_Col<false, true, true>(matC, mA, vx, nWGPerRow_C,
+                                                  nWGPerCol_C, scratchPadSize);
+    auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
+        matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
+  } else {
+    auto gemvC = make_Gemv_Col<true, true, false>(matC, mA, vx, nWGPerRow_C,
+                                                  nWGPerCol_C, scratchPadSize);
+    auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
+        matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+    ret = concatenate_vectors(
+        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   }
+
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
   auto addMOpR = make_addSetColumns(matR);
   auto addMOpC = make_addSetColumns(matC);
@@ -334,7 +329,8 @@ typename Executor::policy_t::event_t _symv_impl(
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
-  return ex.execute(assignOp, localSize);
+  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  return ret;
 }
 
 /**** RANK 1 MODIFICATION ****/
@@ -349,20 +345,16 @@ typename Executor::policy_t::event_t _ger_impl(
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   index_t M = _M;
   index_t N = _N;
-  auto mA = make_matrix_view(ex, _mA, M, N, _lda, Access::row_major());
+  auto mA = make_matrix_view<col_major>(ex, _mA, M, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, M);
   auto vy = make_vector_view(ex, _vy, _incy, N);
 
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(M, _nRowsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
 
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
 
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
@@ -372,17 +364,9 @@ typename Executor::policy_t::event_t _ger_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   typename Executor::policy_t::event_t ret;
-
-  if (mA.is_row_access()) {  // rowmajor
-    auto assignOp =
-        make_Ger_Row(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-  } else {  // colmajor
-    auto assignOp =
-        make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-  }
-  return ret;
+  auto assignOp =
+      make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
+  return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
 }
 
 /*! _SYR.
@@ -404,22 +388,18 @@ typename Executor::policy_t::event_t _syr_impl(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+  typename Executor::policy_t::event_t ret;
   _Uplo = tolower(_Uplo);
-
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view(ex, _mA, N, N, _lda, Access::row_major());
+  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, N);
 
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(N, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
@@ -427,28 +407,18 @@ typename Executor::policy_t::event_t _syr_impl(
   const index_t nWGPerCol = (N - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  if (mA.is_row_access()) {  // ROWS ACCESS
-    if (triangOpr) {
-      auto assignOp = make_Ger_Row<true, false, true, true>(
-          mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-
-    } else {
-      auto assignOp = make_Ger_Row<true, true, true, false>(
-          mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    }
-
-  } else {  // COLUMN ACCESS
-    if (triangOpr) {
-      auto assignOp = make_Ger_Col<true, false, true, true>(
-          mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    } else {
-      auto assignOp = make_Ger_Col<true, true, true, false>(
-          mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    }
+  if (triangOpr) {
+    auto assignOp = make_Ger_Col<true, false, true, true>(
+        mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+    return ret = concatenate_vectors(
+               ret,
+               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+  } else {
+    auto assignOp = make_Ger_Col<true, true, true, false>(
+        mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
+    return ret = concatenate_vectors(
+               ret,
+               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
   }
 }
 
@@ -473,23 +443,18 @@ typename Executor::policy_t::event_t _syr2_impl(
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
 
-  auto mA = make_matrix_view(ex, _mA, _N, _N, _lda, Access::row_major());
+  auto mA = make_matrix_view<col_major>(ex, _mA, _N, _N, _lda);
   auto vx = make_vector_view(ex, _vx, _incx, _N);
   auto vy = make_vector_view(ex, _vy, _incy, _N);
 
   const index_t localSize = (_localSize == 0)
                                 ? ex.get_policy_handler().get_work_group_size()
                                 : _localSize;
-  const index_t nRowsWG = (_nRowsWG == 0)
-                              ? ((mA.is_row_access()) ? 1 : localSize)
-                              : std::min(N, _nRowsWG);
-  const index_t nColsWG = (_nColsWG == 0)
-                              ? ((mA.is_row_access()) ? N : localSize)
-                              : std::min(N, _nColsWG);
+  const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
       (_localSize == 0) ? 2 * localSize : _scratchPadSize;
 
@@ -497,26 +462,14 @@ typename Executor::policy_t::event_t _syr2_impl(
   const index_t nWGPerCol = (N - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  if (mA.is_row_access()) {  // ROWS ACCESS
-    if (triangOpr) {
-      auto assignOp = make_Ger_Row<false, false, true, true>(
-          mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    } else {
-      auto assignOp = make_Ger_Row<false, true, true, false>(
-          mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    }
-  } else {  // COLUMN ACCESS
-    if (triangOpr) {
-      auto assignOp = make_Ger_Col<false, false, true, true>(
-          mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    } else {
-      auto assignOp = make_Ger_Col<false, true, true, false>(
-          mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-      return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
-    }
+  if (triangOpr) {
+    auto assignOp = make_Ger_Col<false, false, true, true>(
+        mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
+    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  } else {
+    auto assignOp = make_Ger_Col<false, true, true, false>(
+        mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
+    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
   }
 }
 
@@ -555,8 +508,12 @@ typename Executor::policy_t::event_t inline _gemv(
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
 ) {
-  return _gemv_impl(ex, Transposition(_trans), _M, _N, _alpha, _mA, _lda, _vx,
-                    _incx, _beta, _vy, _incy);
+  return tolower(_trans) == 'n'
+             ? _gemv_impl<transpose_type::Normal>(ex, _M, _N, _alpha, _mA, _lda,
+                                                  _vx, _incx, _beta, _vy, _incy)
+             : _gemv_impl<transpose_type::Transposed>(ex, _M, _N, _alpha, _mA,
+                                                      _lda, _vx, _incx, _beta,
+                                                      _vy, _incy);
 }
 
 template <typename Executor, typename index_t, typename container_t0,
@@ -566,8 +523,11 @@ typename Executor::policy_t::event_t inline _trmv(
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _trmv_impl(ex, _Uplo, Transposition(_trans), _Diag, _N, _mA, _lda, _vx,
-                    _incx);
+  return tolower(_trans) == 'n'
+             ? _trmv_impl<transpose_type::Normal>(ex, _Uplo, _Diag, _N, _mA,
+                                                  _lda, _vx, _incx)
+             : _trmv_impl<transpose_type::Transposed>(ex, _Uplo, _Diag, _N, _mA,
+                                                      _lda, _vx, _incx);
 }
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,

@@ -75,6 +75,11 @@ SYCL_BLAS_INLINE void AddSetColumns<rhs_t>::bind(cl::sycl::handler &h) {
   rhs_.bind(h);
 }
 
+template <typename rhs_t>
+SYCL_BLAS_INLINE void AddSetColumns<rhs_t>::adjust_access_displacement() {
+  rhs_.adjust_access_displacement();
+}
+
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
 /**
  * @struct GemvRow
@@ -389,6 +394,14 @@ SYCL_BLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
   matrix_.bind(h);
   vector_.bind(h);
 }
+template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
+          typename lhs_t, typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
+                              matrix_t, vector_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  matrix_.adjust_access_displacement();
+  vector_.adjust_access_displacement();
+}
 
 /**** GEMV BY COLUMNS 1 ROW x M BLOCKS USING PROPERLY THE SHARED MEMORY ****/
 
@@ -597,6 +610,15 @@ SYCL_BLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
   lhs_.bind(h);
   matrix_.bind(h);
   vector_.bind(h);
+}
+
+template <bool Lower, bool Diag, bool Upper, bool Unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+SYCL_BLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+                              vector_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  matrix_.adjust_access_displacement();
+  vector_.adjust_access_displacement();
 }
 
 }  // namespace blas
