@@ -354,7 +354,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     index_t cube_col_offset = (ngroup_id * tile_size_dim_n) + (n_local_id);
     index_t cube_row_offset = (mgroup_id * tile_size_dim_m) + (m_local_id);
     index_t cube_depth_offset = kgroup_id * m_ * n_;
-    index_t c_index = cube_col_offset * m_;
+    index_t cube_index = cube_col_offset * m_;
     index_t private_index_offset = 0;
 
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
@@ -364,16 +364,16 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       index_t cube_row = cube_row_offset;
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
         if (/*(NoEdge) ||*/ (cube_row < m_ && cube_col < n_)) {
-          cube_buffer[c_index + cube_row + cube_depth_offset] =
+          cube_buffer[cube_index + cube_row + cube_depth_offset] =
               private_res[wLPTM + private_index];
         }
         cube_row += local_thread_size_m;
       }
-      c_index += m_;
+      cube_index += m_;
       private_index += work_per_thread_m;
 
       cube_col_offset += local_thread_size_n;
-      c_index = cube_col_offset * m_;
+      cube_index = cube_col_offset * m_;
       private_index_offset += work_per_thread_m;
     }
   }
