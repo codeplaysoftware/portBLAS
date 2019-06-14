@@ -85,10 +85,13 @@ typename Executor::policy_t::event_t Gemm_Launcher_TallSkinny<
                                           index_t _ldc, index_t batch_size) {
   auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
   auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
-  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
+  index_t cube_depth = 1; // TODO: get real depth of the cube buffer
+  // std::vector<element_t> host_cube(_M * _N * cube_depth);
+  auto& host_cube = _C;
+  auto buffer_cube = make_matrix_view<col_major>(ex, host_cube, _M * _N, cube_depth, _M * _N);
   auto gemm = make_gemm_partial<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
-                                TransA, TransB, GemmType, is_beta_zero>(
-      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta));
+                                TransA, TransB, GemmType>(
+      buffer_a, buffer_b, buffer_cube, element_t(_alpha));
   return ex.execute(gemm);
 }
 

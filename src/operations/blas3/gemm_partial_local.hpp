@@ -46,16 +46,11 @@
 
 namespace blas {
 
-// So far, more or less just copied from eigen.
-// template <typename OutScalar, typename LhsScalar, typename RhsScalar,
-// typename OutAccessor, typename TempAcc, typename LhsMapper,
-// typename RhsMapper, typename Scratch, typename Index,
-// typename PanelParameters, bool Vectorizable, bool NoEdge, boolIsFinal>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero>
+          typename element_t>
 class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  tile_type, TransA, TransB, element_t,
                   static_cast<int>(Gemm_t::tall_skinny_local_memory)> {
  public:
   // using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -72,7 +67,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   output_t cube_;
 
   element_t alpha;
-  element_t beta;
 
   // OutAccessor out_res;
 
@@ -141,12 +135,11 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t group_count_k;
 
   SYCL_BLAS_INLINE GemmPartial(input_t A, input_t B, output_t cube_buffer,
-                               element_t alpha, element_t beta)
+                               element_t alpha)
       : a_(A),
         b_(B),
         cube_(cube_buffer),
         alpha(alpha),
-        beta(beta),
         m_(a_.get_size_row()),
         n_(b_.get_size_col()),
         k_(a_.get_size_col()),
@@ -256,43 +249,35 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const index_t ngroup_id = mn_group_id / group_count_m;
     const index_t mgroup_id = mn_group_id - ngroup_id * group_count_m;
 
-    if (local_id == 0) printf("%d %d %d\n", mgroup_id, ngroup_id, kgroup_id);
+    // TODO: cleanup
+    // if (local_id == 0) printf("%d %d %d\n", mgroup_id, ngroup_id, kgroup_id);
 
     /* register offsets */
     const index_t global_m_offset = mgroup_id * tile_size_dim_m;
     const index_t global_n_offset = ngroup_id * tile_size_dim_n;
     const index_t global_k_offset = kgroup_id * tile_size_dim_k;
 
-    /* Load tiles, LHS and RHS */
-
-    // Is there any reason why we "preload" these here? We have a do while
-    // loop... -> we preload next iteration each time (double buffering)?
-
     extract_input_blocks(local_id, 0, m_, n_, k_, A, lda_, B, ldb_, scratch_ptr,
                          rhs_scratch_ptr, global_m_offset, global_n_offset,
                          global_k_offset);
-
-    id.barrier(cl::sycl::access::fence_space::local_space);
 
     const index_t start_lhs_index = m_local_id;
     const index_t start_rhs_index = n_local_id;
     index_t tile_id = 0;
     /* Loop over all tiles allocated to this particular workgroup size */
     do {
-      // Synchronise
-
+      // Make sure the current tile is fully loaded
       id.barrier(cl::sycl::access::fence_space::local_space);
 
+      // Start loading the next tile
       index_t next_tile = tile_id + 1;
-      // If we need to swap, or not? -> no need to preload next tile if there is
-      // no next tile
       if (next_tile < num_tiles) {
         extract_input_blocks(local_id, next_tile, m_, n_, k_, A, lda_, B, ldb_,
                              scratch_ptr, rhs_scratch_ptr, global_m_offset,
                              global_n_offset, global_k_offset);
       }
-      // Calculate offsets into the temporary memory.
 
+      // Calculate offsets into the temporary memory.
       index_t lhs_offset =
           ((tile_id & 1) * (tile_size_dim_m * tile_size_dim_k)) +
           start_lhs_index;
@@ -322,13 +307,11 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       }
 
       /* Loop over the values of a single tile */
-
       for (index_t k = 0; k < tile_size_dim_k; k++) {
         auto idx = 0;
         auto rhs_index = 0;
         for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
           // load a RHS element from the scratch buffer
-
           element_t privateRhs = rhs_scratch_ptr[rhs_index + rhs_offset];
 
           index_t lhs_index = 0;
@@ -337,7 +320,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
             element_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
 
             // Perform a manual MAD.
-            private_res[wLPTM + idx] =  // local_id;
+            private_res[wLPTM + idx] =
                 private_res[wLPTM + idx] + (privateLhs * privateRhs);
 
             lhs_index += local_thread_size_m;
@@ -348,7 +331,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
         lhs_offset += tile_size_dim_m;
         rhs_offset += tile_size_dim_n;
       }
-      // Next tile
       tile_id++;
     } while (tile_id < num_tiles);
 
@@ -364,7 +346,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
       index_t private_index = private_index_offset;
 
-      index_t cube_col = cube_col_offset;  // + i;
+      index_t cube_col = cube_col_offset;
       index_t cube_row = cube_row_offset;
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
         if (/*(NoEdge) ||*/ (cube_row < m_ && cube_col < n_)) {

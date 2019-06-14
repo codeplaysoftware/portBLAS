@@ -198,7 +198,7 @@ class Gemm {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, int Gemm_type>
 class GemmPartial {
  // public:
  //  using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -242,15 +242,15 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int Gemm_type,
-          bool is_beta_zero, typename input_t, typename output_t,
+          typename input_t, typename output_t,
           typename element_t>
 inline GemmPartial<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-            TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>
+            TileType, TransA, TransB, element_t,Gemm_type>
 make_gemm_partial(input_t buffer_a, input_t buffer_b, output_t buffer_c,
-          element_t alpha, element_t beta) {
+          element_t alpha) {
   return GemmPartial<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-              TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
-      buffer_a, buffer_b, buffer_c, alpha, beta);
+              TileType, TransA, TransB, element_t, Gemm_type>(
+      buffer_a, buffer_b, buffer_c, alpha);
 }
 
 }  // namespace blas
