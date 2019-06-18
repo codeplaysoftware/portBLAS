@@ -87,9 +87,6 @@ struct MatrixPrinter<false> {
 
 /// TESTING IMPLEMENTATION
 
-// #define TESTING_GUARD
-// #include <operations/blas3_trees.hpp>
-
 using index_t = int;
 
 class TSGEMMKernel;

@@ -22,11 +22,13 @@
  *  @filename gemm_launcher.cpp.in
  *
  **************************************************************************/
+
 #include "container/sycl_iterator.hpp"
 #include "executors/executor_sycl.hpp"
 #include "executors/kernel_constructor.hpp"
 #include "interface/gemm_launcher.hpp"
 #include "operations/blas3_trees.hpp"
+#include "operations/extension_trees.hpp"
 #include "operations/blas_constants.hpp"
 #include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"

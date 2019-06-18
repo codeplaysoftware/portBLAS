@@ -239,7 +239,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, Gemm_memory_type,
          static_cast<int>(Gemm_shape_t::tall_skinny)>
-        gemm_wrapper) {
+        gemm_wrapper)
+{
   // First step: partial gemm
   using gemm_partial_t =
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
@@ -259,7 +260,23 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       gemm_partial_t::local_memory_size)};
 
   // Second step: reduction
-  // TODO
+  //  TODO
+  // using temp_t = output_t;
+  // using reduction_t =
+  //     ReductionPartialRows<input_t, output_t, temp_t, ClSize, tile_type,
+  //                          element_t, true>;
+  // auto reduction_range = reduction_t::get_nd_range(
+  //    gemm_wrapper.m_ * gemm_wrapper.n_, 1,
+  //    policy_handler_.get_num_compute_units());
+  // reduction_t reduction(gemm_wrapper.c_, gemm_wrapper.c_, gemm_wrapper.c_,
+  //                       gemm_wrapper.m_ * gemm_wrapper.n_, 1);
+  // auto reduction_event = {execute_tree<Choose<
+  //     Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
+  //     using_local_memory::enabled, using_local_memory::disabled>::type>(
+  //     policy_handler_.get_queue(), reduction,
+  //     reduction_range.get_local_range()[0],
+  //     reduction_range.get_global_range()[0],
+  //     reduction_t::local_memory_size)};
 
   // Third step: combine with beta * C
   // TODO

@@ -49,9 +49,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t m_;
   const index_t n_;
   const index_t k_;
-  index_t lda_;
-  index_t ldb_;
-  index_t ldc_;
+  const index_t lda_;
+  const index_t ldb_;
+  const index_t ldc_;
 
   /* Workload per work item on each dimension m and n */
   static constexpr index_t work_per_thread_m = tile_type::item_rows;
@@ -196,10 +196,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     auto B = b_.get_pointer();
     auto cube_buffer = cube_.get_pointer();
 
-    /* references to the temporary memory, scratch memory, and rhs scratch
-     * memory*/
+    /* references to the scratch memory (lhs and rhs) */
     auto scratch_ptr = scratch.localAcc.get_pointer().get();
-
     auto rhs_scratch_ptr =
         scratch_ptr + (2 * tile_size_dim_m * tile_size_dim_k);
 

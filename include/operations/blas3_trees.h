@@ -100,7 +100,7 @@ enum class Gemm_shape_t : int {
  * @tparam TlCols  the number of block-level tiles within each row of
  *                 top-level tile
  *
- * @see GemmFactory
+ * @see Gemm
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
           int TlRows = 1, int TlCols = 1>

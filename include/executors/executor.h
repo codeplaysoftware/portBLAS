@@ -29,6 +29,7 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas3_trees.h"
+#include "operations/extension_trees.h"
 #include "policy/policy_handler.h"
 namespace blas {
 
@@ -77,7 +78,7 @@ class Executor {
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>
            gemm_tree);
-   
+
    template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
              bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
              typename element_t, bool is_beta_zero, int Gemm_memory_type>

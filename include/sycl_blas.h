@@ -51,6 +51,8 @@
 
 #include "operations/blas3_trees.h"
 
+#include "operations/extension_trees.h"
+
 #include "operations/blas_constants.h"
 
 #include "operations/blas_operators.h"

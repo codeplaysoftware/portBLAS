@@ -1,5 +1,4 @@
 /***************************************************************************
- *
  *  @license
  *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,37 +18,26 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.hpp
+ *  @filename extension_trees.h
  *
  **************************************************************************/
-#include "sycl_blas.h"
 
-#include "container/sycl_iterator.hpp"
+#ifndef SYCL_BLAS_EXTENSION_TREES_H
+#define SYCL_BLAS_EXTENSION_TREES_H
 
-#include "executors/executor_sycl.hpp"
+#include <CL/sycl.hpp>
 
-#include "executors/kernel_constructor.hpp"
+namespace blas {
 
-#include "interface/blas1_interface.hpp"
+/*!
+ * TODO: more info here
+ */
+template <typename input_t, typename output_t, typename temp_t, int ClSize,
+          typename tile_type, typename element_t, bool is_final>
+class ReductionPartialRows;
 
-#include "interface/blas2_interface.hpp"
+// TODO: make_reduction function
 
-#include "interface/blas3_interface.hpp"
+}  // namespace blas
 
-#include "interface/gemm_launcher.hpp"
-
-#include "operations/blas1_trees.hpp"
-
-#include "operations/blas2_trees.hpp"
-
-#include "operations/blas3_trees.hpp"
-
-#include "operations/extension_trees.hpp"
-
-#include "operations/blas_constants.hpp"
-
-#include "operations/blas_operators.hpp"
-
-#include "policy/sycl_policy_handler.hpp"
-
-#include "views/view_sycl.hpp"
+#endif  // SYCL_BLAS_EXTENSION_TREES_H
