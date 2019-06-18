@@ -85,11 +85,9 @@ struct MatrixPrinter<false> {
   }
 };
 
-/// TESTING IMPLEMENTATION
-
 using index_t = int;
 
-class TSGEMMKernel;
+// class TSGEMMKernel;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -149,11 +147,11 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
-  std::cerr << "A before: " << std::endl;
+  std::cerr << "A: " << std::endl;
   if(transa == 'n') MatrixPrinter<true>::eval(k, m, a_m, lda);
   else MatrixPrinter<false>::eval(k, m, a_m, lda);
 
-  std::cerr << "B before: " << std::endl;
+  std::cerr << "B: " << std::endl;
   if(transb == 'n') MatrixPrinter<true>::eval(n, k, b_m, ldb);
   else MatrixPrinter<false>::eval(n, k, b_m, ldb);
 
@@ -161,18 +159,18 @@ void run_test(const combination_t<scalar_t> combi) {
   std::cerr << "C expected: " << std::endl;
   MatrixPrinter<true>::eval(n, m, c_m_cpu, ldc);
 
-  std::cerr << "C afterwards: " << std::endl;
+  std::cerr << "C obtained: " << std::endl;
   MatrixPrinter<true>::eval(n, m, c_m_gpu, ldc);
 
   ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
 }
 
-class GemmFloat : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(GemmFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(gemm, GemmFloat, combi);
+class GemmTallSkinnyFloat : public ::testing::TestWithParam<combination_t<float>> {};
+TEST_P(GemmTallSkinnyFloat, test) { run_test<float>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(tsgemm, GemmTallSkinnyFloat, combi);
 
 #if DOUBLE_SUPPORT
-class GemmDouble : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(GemmDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(gemm, GemmDouble, combi);
+class GemmTallSkinnyDouble : public ::testing::TestWithParam<combination_t<double>> {};
+TEST_P(GemmTallSkinnyDouble, test) { run_test<double>(GetParam()); };
+INSTANTIATE_TEST_SUITE_P(tsgemm, GemmTallSkinnyDouble, combi);
 #endif

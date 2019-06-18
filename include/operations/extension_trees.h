@@ -32,9 +32,25 @@ namespace blas {
 /*!
  * TODO: more info here
  */
+template <typename input_t, typename output_t, int ClSize,
+          typename tile_type, typename element_t>
+class ReductionPartialRows {
+public:
+  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  input_t in_;
+  output_t out_;
+  const index_t rows_;
+  const index_t cols_;
+  const index_t leading_dim_;
+  ReductionPartialRows(input_t in, output_t out, index_t num_rows, index_t num_cols);
+};
+
+/*!
+ * TODO: more info here
+ */
 template <typename input_t, typename output_t, typename temp_t, int ClSize,
           typename tile_type, typename element_t, bool is_final>
-class ReductionPartialRows;
+class ReductionPartialRowsStep;
 
 // TODO: make_reduction function
 

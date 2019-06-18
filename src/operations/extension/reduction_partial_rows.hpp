@@ -33,9 +33,22 @@
 
 namespace blas {
 
+// Constructor of the wrapper class
+template <typename input_t, typename output_t, int ClSize, typename tile_type,
+          typename element_t>
+SYCL_BLAS_INLINE
+ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>::
+    ReductionPartialRows(
+        input_t in, output_t out,
+        typename std::make_signed<typename input_t::index_t>::type num_rows,
+        typename std::make_signed<typename input_t::index_t>::type num_cols)
+    : in_(in), out_(out), rows_(num_rows), cols_(num_cols), leading_dim_(num_rows) {}
+// TODO: support for leading_dim
+
+// Definition of the reduction step class
 template <typename input_t, typename output_t, typename temp_t, int ClSize,
           typename tile_type, typename element_t, bool IsFinal>
-class ReductionPartialRows {
+class ReductionPartialRowsStep {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using value_t = element_t;
@@ -67,16 +80,19 @@ class ReductionPartialRows {
   // TODO: we may want more columns there
 
   /* Local memory dimensions */
-  static constexpr index_t local_memory_rows = work_group_rows * work_per_item_rows;
+  static constexpr index_t local_memory_rows =
+      work_group_rows * work_per_item_rows;
   static constexpr index_t local_memory_cols = work_group_cols;
-  static constexpr index_t local_memory_size = local_memory_rows * local_memory_cols;
+  static constexpr index_t local_memory_size =
+      local_memory_rows * local_memory_cols;
 
   /* Work groups per dimension */
   const index_t group_count_rows;
   const index_t group_count_cols;
 
-  SYCL_BLAS_INLINE ReductionPartialRows(input_t in, output_t out, temp_t temp,
-                                        index_t num_rows, index_t num_cols)
+  SYCL_BLAS_INLINE ReductionPartialRowsStep(input_t in, output_t out,
+                                            temp_t temp, index_t num_rows,
+                                            index_t num_cols)
       : in_(in),
         out_(out),
         temp_(temp),
@@ -84,7 +100,8 @@ class ReductionPartialRows {
         cols_(in_.get_size_col()),
         leading_dim_(in_.getSizeL()),
         group_count_rows((num_rows - 1) / work_group_rows + 1),
-        group_count_cols((num_cols - 1) / (work_group_cols * work_per_item_cols) + 1) {}
+        group_count_cols(
+            (num_cols - 1) / (work_group_cols * work_per_item_cols) + 1) {}
 
   /*!
    * @brief Get the type of this Reduction as a human readable string.
@@ -98,7 +115,7 @@ class ReductionPartialRows {
 
   void bind(cl::sycl::handler &h) {
     in_.bind(h);
-    if(is_final) {
+    if (is_final) {
       out_.bind(h);
     } else {
       temp_.bind(h);
@@ -106,7 +123,7 @@ class ReductionPartialRows {
   }
   void adjust_access_displacement() {
     in_.adjust_access_displacement();
-    if(is_final) {
+    if (is_final) {
       out_.adjust_access_displacement();
     } else {
       temp_.adjust_access_displacement();
@@ -174,7 +191,6 @@ class ReductionPartialRows {
 
     printf("Hello from thread %d\n", local_id);
   }
-
 };
 
 }  // namespace blas

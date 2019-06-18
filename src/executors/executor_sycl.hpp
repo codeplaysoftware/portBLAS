@@ -239,50 +239,78 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, Gemm_memory_type,
          static_cast<int>(Gemm_shape_t::tall_skinny)>
-        gemm_wrapper)
-{
+        gemm_wrapper) {
   // First step: partial gemm
+  auto& cube_buffer = gemm_wrapper.c_;  // TODO: create real cube buffer
+  GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+              TransA, TransB, element_t, Gemm_memory_type>
+      gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube_buffer,
+                   gemm_wrapper.alpha_);
+  auto partial_event = execute(gemm_partial);
+
+  // Second step: reduction
+  ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+      reduction(cube_buffer, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_,
+                1);
+  auto reduction_event = execute(reduction);
+
+  // Third step: combine with beta * C
+  // TODO
+
+  return partial_event;
+}
+
+// GemmPartial
+template <>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, int Gemm_memory_type>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+                TransA, TransB, element_t, Gemm_memory_type>
+        gemm_partial) {
   using gemm_partial_t =
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   tile_type, TransA, TransB, element_t, Gemm_memory_type>;
   auto gemm_partial_range = gemm_partial_t::get_nd_range(
-      gemm_wrapper.m_, gemm_wrapper.n_, gemm_wrapper.k_,
+      gemm_partial.m_, gemm_partial.n_, gemm_partial.k_,
       policy_handler_.get_num_compute_units());
-  gemm_partial_t gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
-                              gemm_wrapper.alpha_);
-  // TODO: use cuber buffer instead of C
-  auto partial_event = {execute_tree<Choose<
+  return {execute_tree<Choose<
       Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
       using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_partial,
       gemm_partial_range.get_local_range()[0],
       gemm_partial_range.get_global_range()[0],
       gemm_partial_t::local_memory_size)};
+}
 
-  // Second step: reduction
-  //  TODO
-  // using temp_t = output_t;
-  // using reduction_t =
-  //     ReductionPartialRows<input_t, output_t, temp_t, ClSize, tile_type,
-  //                          element_t, true>;
-  // auto reduction_range = reduction_t::get_nd_range(
-  //    gemm_wrapper.m_ * gemm_wrapper.n_, 1,
-  //    policy_handler_.get_num_compute_units());
-  // reduction_t reduction(gemm_wrapper.c_, gemm_wrapper.c_, gemm_wrapper.c_,
-  //                       gemm_wrapper.m_ * gemm_wrapper.n_, 1);
-  // auto reduction_event = {execute_tree<Choose<
-  //     Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
-  //     using_local_memory::enabled, using_local_memory::disabled>::type>(
-  //     policy_handler_.get_queue(), reduction,
-  //     reduction_range.get_local_range()[0],
-  //     reduction_range.get_global_range()[0],
-  //     reduction_t::local_memory_size)};
-
-  // Third step: combine with beta * C
-  // TODO
-
-  return partial_event;
-}  // namespace blas
+// ReductionPartialRows
+template <>
+template <typename input_t, typename output_t, int ClSize, typename tile_type,
+          typename element_t>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+        reduction_wrapper) {
+  // TODO: implement multi-step
+  using temp_t = output_t;
+  using reduction_step_t =
+      ReductionPartialRowsStep<input_t, output_t, temp_t, ClSize, tile_type,
+                               element_t, true>;
+  auto reduction_range = reduction_step_t::get_nd_range(
+      reduction_wrapper.rows_, reduction_wrapper.cols_,
+      policy_handler_.get_num_compute_units());
+  reduction_step_t reduction(reduction_wrapper.in_, reduction_wrapper.out_,
+                             reduction_wrapper.out_, reduction_wrapper.rows_,
+                             reduction_wrapper.cols_);
+  auto reduction_event = {execute_tree<using_local_memory::enabled>(
+      policy_handler_.get_queue(), reduction,
+      reduction_range.get_local_range()[0],
+      reduction_range.get_global_range()[0],
+      reduction_step_t::local_memory_size)};
+  return reduction_event;
+}
 
 }  // namespace blas
 

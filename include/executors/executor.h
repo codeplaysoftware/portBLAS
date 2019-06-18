@@ -73,28 +73,39 @@ class Executor {
 
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int Gemm_memory_type, int Gemm_shape_type>
+            typename element_t, bool is_beta_zero, int Gemm_memory_type,
+            int Gemm_shape_type>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>
-           gemm_tree);
+           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+           Gemm_shape_type>
+          gemm_tree);
 
-   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-             typename element_t, bool is_beta_zero, int Gemm_memory_type>
-   typename policy_t::event_t execute(
-       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-            TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
-            static_cast<int>(Gemm_shape_t::tall_skinny)>
-            gemm_tree);
+  // Tall and skinny Gemm specialization
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, bool is_beta_zero, int Gemm_memory_type>
+  typename policy_t::event_t execute(
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+           static_cast<int>(Gemm_shape_t::tall_skinny)>
+          gemm_wrapper);
 
-  // template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-  //           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-  //           typename element_t, int Gemm_memory_type, int Gemm_shape_type>
-  // typename policy_t::event_t execute(
-  //     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-  //          TransA, TransB, element_t, Gemm_memory_type, Gemm_shape_type>
-  //         gemm_tree);
+  // GemmPartial specialization
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, int Gemm_memory_type>
+  typename policy_t::event_t execute(
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, Gemm_memory_type>
+          gemm_partial);
+
+  // ReductionPartialRows specialization
+  template <typename input_t, typename output_t, int ClSize, typename tile_type,
+            typename element_t>
+  typename policy_t::event_t execute(
+      ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+          reduction_wrapper);
 
  private:
   policy_handler_t policy_handler_;
