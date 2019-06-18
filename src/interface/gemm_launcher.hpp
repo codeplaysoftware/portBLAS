@@ -41,17 +41,17 @@
 namespace blas {
 
 /*!
- * @brief Select the correct transpose version of GemmFactory, depending on the
- *        runtime values of transpose.
+ * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
+          int ClSize, typename TileT, bool TransA, bool TransB,
+          int Gemm_memory_type, int Gemm_shape_type, bool is_beta_zero>
 template <typename Executor, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
-typename Executor::policy_t::event_t Gemm_Launcher<
-    WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
-    GemmType, is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
+typename Executor::policy_t::event_t
+Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+              TransB, Gemm_memory_type, Gemm_shape_type,
+              is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
                                           index_t _K, element_t _alpha,
                                           container_t0 a_, index_t _lda,
                                           container_t1 b_, index_t _ldb,
@@ -60,38 +60,11 @@ typename Executor::policy_t::event_t Gemm_Launcher<
   auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
   auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
   auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
-  auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
-                        TransA, TransB, GemmType, is_beta_zero>(
-      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
-      batch_size);
-  return ex.execute(gemm);
-}
-
-/*!
- * @brief Constructs the Tall & Skinny Gemm operation
- */
-template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
-template <typename Executor, typename container_t0, typename container_t1,
-          typename container_t2, typename element_t, typename index_t>
-typename Executor::policy_t::event_t Gemm_Launcher_TallSkinny<
-    WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
-    GemmType, is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
-                                          index_t _K, element_t _alpha,
-                                          container_t0 a_, index_t _lda,
-                                          container_t1 b_, index_t _ldb,
-                                          element_t _beta, container_t2 _C,
-                                          index_t _ldc, index_t batch_size) {
-  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
-  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
-  index_t cube_depth = 1; // TODO: get real depth of the cube buffer
-  // std::vector<element_t> host_cube(_M * _N * cube_depth);
-  auto& host_cube = _C;
-  auto buffer_cube = make_matrix_view<col_major>(ex, host_cube, _M * _N, cube_depth, _M * _N);
-  auto gemm = make_gemm_partial<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
-                                TransA, TransB, GemmType>(
-      buffer_a, buffer_b, buffer_cube, element_t(_alpha));
+  auto gemm =
+      make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+                TransB, Gemm_memory_type, Gemm_shape_type, is_beta_zero>(
+          buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
+          batch_size);
   return ex.execute(gemm);
 }
 

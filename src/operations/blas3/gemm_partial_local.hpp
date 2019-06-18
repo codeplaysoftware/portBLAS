@@ -18,7 +18,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_tall_skinny.hpp
+ *  @filename gemm_partial_local.hpp
  *
  **************************************************************************/
 
@@ -27,23 +27,6 @@
 
 #include "gemm_common.hpp"
 
-#include <sstream>
-
-#define dbg(expr)                                    \
-  [&]() -> decltype(expr) {                          \
-    auto __macro_val = expr;                         \
-    std::cerr << #expr " = " << __macro_val << ", "; \
-    return __macro_val;                              \
-  }()
-
-#define dbg_str(expr)                   \
-  [&]() -> std::string {                \
-    std::stringstream sstr;             \
-    auto __macro_val = expr;            \
-    sstr << #expr " = " << __macro_val; \
-    return sstr.str();                  \
-  }()
-
 namespace blas {
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -51,27 +34,16 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t>
 class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   tile_type, TransA, TransB, element_t,
-                  static_cast<int>(Gemm_t::tall_skinny_local_memory)> {
+                  static_cast<int>(Gemm_memory_t::local_memory)> {
  public:
-  // using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using index_t = int;
+  using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using value_t = element_t;
-
-  // Temporary
-  // using scratch_t =
-  //     cl::sycl::accessor<element_t, 1, cl::sycl::access::mode::read_write,
-  //                        cl::sycl::access::target::local>;
 
   input_t a_;
   input_t b_;
   output_t cube_;
 
   element_t alpha;
-
-  // OutAccessor out_res;
-
-  // const LhsMapper lhs;
-  // const RhsMapper rhs;
 
   /* Matrix dimensions */
   const index_t m_;
@@ -116,10 +88,14 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static constexpr index_t loads_per_thread_rhs =
       (tile_size_dim_k * work_per_thread_n) / local_thread_size_m;
 
-  /* Local memory */
-  static constexpr int local_memory_size =
+  /* Local memory size */
+  static constexpr index_t local_memory_size =
       2 * tile_size_dim_m * tile_size_dim_k +
       2 * tile_size_dim_k * tile_size_dim_n;
+
+  // Number of private summation registers
+  static constexpr index_t private_res_size =
+      work_per_thread_m * work_per_thread_n;
 
   /* If double buffering should be used */
   static constexpr bool double_buffer = DoubleBuffer;
@@ -179,8 +155,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief get_workgroup_cluster. This function is used to find the optimum
    * number of work_group required to execute each partial GEMM.
    */
-  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t m, index_t n,
-                                                        index_t k, index_t compute_units) noexcept {
+  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(
+      index_t m, index_t n, index_t k, index_t compute_units) noexcept {
     return ((m - 1) / tile_size_dim_m + 1) * ((n - 1) / tile_size_dim_n + 1) *
            ((k - 1) / (tile_size_dim_k * num_tiles) + 1);
   }
@@ -228,8 +204,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
         scratch_ptr + (2 * tile_size_dim_m * tile_size_dim_k);
 
     /* create and initialise the private res summation registers */
-    element_t private_res[work_per_thread_m * work_per_thread_n];
-    for (auto i = 0; i < work_per_thread_m * work_per_thread_n; i++) {
+    element_t private_res[private_res_size];
+    for (auto i = 0; i < private_res_size; i++) {
       private_res[i] = static_cast<element_t>(0);
     }
 

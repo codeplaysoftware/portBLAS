@@ -65,13 +65,12 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
-           static_cast<int>(Gemm_t::local_memory)> {
+           static_cast<int>(Gemm_memory_t::local_memory),
+           static_cast<int>(Gemm_shape_t::classic)> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-
-  static constexpr int type = static_cast<int>(Gemm_t::local_memory);
 
   // enable easier access to tile dimensions
   static constexpr index_t item_rows = tile_type::item_rows;

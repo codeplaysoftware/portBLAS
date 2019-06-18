@@ -39,28 +39,12 @@
 namespace blas {
 
 /*!
- * @brief Select the correct transpose version of GemmFactory, depending on the
- *        runtime values of transpose.
+ * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
+          int ClSize, typename TileT, bool TransA, bool TransB,
+          int Gemm_memory_type, int Gemm_shape_type, bool is_beta_zero>
 struct Gemm_Launcher {
-  template <typename executor_t, typename container_0_t, typename container_1_t,
-            typename container_2_t, typename element_t, typename index_t>
-  static typename executor_t::policy_t::event_t _select_gemm(
-      executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
-      container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
-      element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size);
-};
-
-/*!
- * TODO: add description
- */
-template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
-struct Gemm_Launcher_TallSkinny {
   template <typename executor_t, typename container_0_t, typename container_1_t,
             typename container_2_t, typename element_t, typename index_t>
   static typename executor_t::policy_t::event_t _select_gemm(

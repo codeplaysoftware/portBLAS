@@ -206,53 +206,66 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   } while (_N > 1);
   return event;
 }
-template <>
-template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
-    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, Gemm_type>
-        gemm_tree) {
-  auto rng =
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
-                                    policy_handler_.get_num_compute_units());
-  return {execute_tree<
-      Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory), int,
-             using_local_memory::enabled, using_local_memory::disabled>::type>(
-      policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
-      rng.get_global_range()[0],
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::local_memory_size)};
-}
 
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
-    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, Gemm_type>
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>
         gemm_tree) {
-  auto rng =
-      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t,
-           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_, gemm_tree.k_,
-                                    policy_handler_.get_num_compute_units());
-  return {execute_tree<
-      Choose<Gemm_type == static_cast<int>(Gemm_t::tall_skinny_local_memory), int,
-             using_local_memory::enabled, using_local_memory::disabled>::type>(
+  using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                      tile_type, TransA, TransB, element_t, is_beta_zero,
+                      Gemm_memory_type, Gemm_shape_type>;
+  auto rng = gemm_t::get_nd_range(gemm_tree.m_, gemm_tree.n_,
+                                  policy_handler_.get_num_compute_units());
+  return {execute_tree<Choose<
+      Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
+      using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
-      rng.get_global_range()[0],
-      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t,
-           Gemm_type>::local_memory_size)};
+      rng.get_global_range()[0], gemm_t::local_memory_size)};
 }
+
+// Tall and skinny Gemm
+template <>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int Gemm_memory_type>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_memory_type,
+         static_cast<int>(Gemm_shape_t::tall_skinny)>
+        gemm_wrapper) {
+  // First step: partial gemm
+  using gemm_partial_t =
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, Gemm_memory_type>;
+  auto gemm_partial_range = gemm_partial_t::get_nd_range(
+      gemm_wrapper.m_, gemm_wrapper.n_, gemm_wrapper.k_,
+      policy_handler_.get_num_compute_units());
+  gemm_partial_t gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
+                              gemm_wrapper.alpha_);
+  // TODO: use cuber buffer instead of C
+  auto partial_event = {execute_tree<Choose<
+      Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
+      using_local_memory::enabled, using_local_memory::disabled>::type>(
+      policy_handler_.get_queue(), gemm_partial,
+      gemm_partial_range.get_local_range()[0],
+      gemm_partial_range.get_global_range()[0],
+      gemm_partial_t::local_memory_size)};
+
+  // Second step: reduction
+  // TODO
+
+  // Third step: combine with beta * C
+  // TODO
+
+  return partial_event;
+}  // namespace blas
 
 }  // namespace blas
 

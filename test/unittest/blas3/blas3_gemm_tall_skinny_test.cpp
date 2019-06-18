@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas2_tsgemm.cpp
+ *  @filename blas3_gemm_tall_skinny_test.cpp
  *
  **************************************************************************/
 

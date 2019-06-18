@@ -46,10 +46,11 @@ namespace blas {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 SYCL_BLAS_INLINE
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::
+     TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>::
     Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
          typename std::make_signed<typename input_t::index_t>::type batch_size)
     : a_(A),
@@ -66,10 +67,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       batch_size_(batch_size) {}
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 SYCL_BLAS_INLINE std::string
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::get_type_string() noexcept {
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::get_type_string() noexcept {
   std::ostringstream str{};
   str << "ReferenceGemmFactory<" << wg_size << ", "
       << type_string<value_t>::get_value() << ">";
@@ -82,13 +85,16 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-SYCL_BLAS_INLINE typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB,
-                               ClSize, tile_type, TransA, TransB, element_t,
-                               is_beta_zero, Gemm_type>::index_t
-Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero,
-     Gemm_type>::get_workgroup_cluster(index_t m, index_t n) noexcept {
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
+SYCL_BLAS_INLINE
+    typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  Gemm_memory_type, Gemm_shape_type>::index_t
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_memory_type,
+         Gemm_shape_type>::get_workgroup_cluster(index_t m,
+                                                 index_t n) noexcept {
   return ((m * n - 1) / wg_size + 1);
 }
 /*!
@@ -100,67 +106,77 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-SYCL_BLAS_INLINE typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB,
-                               ClSize, tile_type, TransA, TransB, element_t,
-                               is_beta_zero, Gemm_type>::index_t
-Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero,
-     Gemm_type>::get_num_workgroup_cluster(index_t m, index_t n,
-                                           index_t compute_units) noexcept {
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
+SYCL_BLAS_INLINE
+    typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  Gemm_memory_type, Gemm_shape_type>::index_t
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>::
+        get_num_workgroup_cluster(index_t m, index_t n,
+                                  index_t compute_units) noexcept {
   constexpr index_t num_gemm_per_compute_units = 4;
-  return ((num_gemm_per_compute_units * compute_units - 1) /
-              Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                   tile_type, TransA, TransB, element_t, is_beta_zero,
-                   Gemm_type>::get_workgroup_cluster(m, n) +
-          1);
+  return (
+      (num_gemm_per_compute_units * compute_units - 1) /
+          Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+               TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+               Gemm_shape_type>::get_workgroup_cluster(m, n) +
+      1);
 }
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 SYCL_BLAS_INLINE cl::sycl::nd_range<1>
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero,
-     Gemm_type>::get_nd_range(index_t m, index_t n,
-                              index_t compute_units) noexcept {
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::get_nd_range(index_t m, index_t n,
+                                    index_t compute_units) noexcept {
   const cl::sycl::range<1> nwg(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::get_workgroup_cluster(m, n) *
+           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+           Gemm_shape_type>::get_workgroup_cluster(m, n) *
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::get_num_workgroup_cluster(m, n, compute_units));
+           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+           Gemm_shape_type>::get_num_workgroup_cluster(m, n, compute_units));
   const cl::sycl::range<1> wgs(wg_size);
   return cl::sycl::nd_range<1>(nwg * wgs, wgs);
 }
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-SYCL_BLAS_INLINE typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB,
-                               ClSize, tile_type, TransA, TransB, element_t,
-                               is_beta_zero, Gemm_type>::index_t
-Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::get_size() const {
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
+SYCL_BLAS_INLINE
+    typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  Gemm_memory_type, Gemm_shape_type>::index_t
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, Gemm_memory_type,
+         Gemm_shape_type>::get_size() const {
   return m_ * n_;
 }
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-SYCL_BLAS_INLINE bool Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                           tile_type, TransA, TransB, element_t, is_beta_zero,
-                           Gemm_type>::valid_thread(cl::sycl::nd_item<1> ndItem)
-    const {
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
+SYCL_BLAS_INLINE bool
+Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
-SYCL_BLAS_INLINE void Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                           tile_type, TransA, TransB, element_t, is_beta_zero,
-                           Gemm_type>::eval(cl::sycl::nd_item<1> id) noexcept {
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
+SYCL_BLAS_INLINE void
+Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::eval(cl::sycl::nd_item<1> id) noexcept {
   const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster(m_, n_);
   // This will disable all workgroups that dont have any batch to work on
   if (wg_batch_id >= batch_size_) {
@@ -221,10 +237,12 @@ SYCL_BLAS_INLINE void Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::bind(cl::sycl::handler &h) {
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::bind(cl::sycl::handler &h) {
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);
@@ -232,10 +250,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int Gemm_memory_type,
+          int Gemm_shape_type>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, Gemm_type>::adjust_access_displacement() {
+     TransB, element_t, is_beta_zero, Gemm_memory_type,
+     Gemm_shape_type>::adjust_access_displacement() {
   a_.adjust_access_displacement();
   b_.adjust_access_displacement();
   c_.adjust_access_displacement();
