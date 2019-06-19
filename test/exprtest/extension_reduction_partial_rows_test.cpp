@@ -90,7 +90,7 @@ void run_test(const combination_t<scalar_t> combi) {
   // Reduce the reference by hand
   for(index_t i = 0; i < rows; i++) {
     out_v_cpu[i] = 0;
-    for(index_t j = 0; j < rows; j++) {
+    for(index_t j = 0; j < cols; j++) {
       out_v_cpu[i] += in_m[ld * j + i];
     }
   }

@@ -223,9 +223,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const index_t ngroup_id = mn_group_id / group_count_m;
     const index_t mgroup_id = mn_group_id - ngroup_id * group_count_m;
 
-    // TODO: cleanup
-    // if (local_id == 0) printf("%d %d %d\n", mgroup_id, ngroup_id, kgroup_id);
-
     /* register offsets */
     const index_t global_m_offset = mgroup_id * tile_size_dim_m;
     const index_t global_n_offset = ngroup_id * tile_size_dim_n;

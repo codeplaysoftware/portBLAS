@@ -42,9 +42,12 @@ ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>::
         input_t in, output_t out,
         typename std::make_signed<typename input_t::index_t>::type num_rows,
         typename std::make_signed<typename input_t::index_t>::type num_cols)
-    : in_(in), out_(out), rows_(num_rows), cols_(num_cols), leading_dim_(num_rows) {}
+    : in_(in),
+      out_(out),
+      rows_(num_rows),
+      cols_(num_cols),
+      leading_dim_(num_rows) {}
 // TODO: support for leading_dim
-
 
 // Definition of the reduction step class
 template <typename input_t, typename output_t, typename temp_t, int ClSize,
@@ -100,7 +103,7 @@ class ReductionPartialRowsStep {
         rows_(in_.get_size_row()),
         cols_(in_.get_size_col()),
         leading_dim_(in_.getSizeL()),
-        group_count_rows((num_rows - 1) / work_group_rows + 1),
+        group_count_rows((num_rows - 1) / local_memory_rows + 1),
         group_count_cols(
             (num_cols - 1) / (work_group_cols * work_per_item_cols) + 1) {}
 
@@ -140,8 +143,8 @@ class ReductionPartialRowsStep {
    */
   static SYCL_BLAS_INLINE index_t get_workgroup_cluster(
       index_t num_rows, index_t num_cols, index_t compute_units) noexcept {
-    return 1;
-    // TODO: real value
+    return ((num_rows - 1) / local_memory_rows + 1) *
+           ((num_cols - 1) / (work_group_cols * work_per_item_cols) + 1);
   }
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
@@ -182,15 +185,97 @@ class ReductionPartialRowsStep {
     auto scratch_ptr = scratch.localAcc.get_pointer().get();
 
     /* workgroup id */
-    const index_t wg_id = id.get_group(0);
+    const index_t group_id = id.get_group(0);
     /* Local thread id */
     const index_t local_id = id.get_local_id(0);
 
-    //
-    // TODO: implement that lol
-    //
+    /* Block row and column */
+    const index_t group_row = group_id % group_count_rows;  // TODO: no modulo
+    const index_t group_col = group_id / group_count_rows;
 
-    printf("Hello from thread %d\n", local_id);
+    /* Item row and column within a block */
+    const index_t local_row = local_id % work_group_rows;  // TODO: no modulo
+    const index_t local_col = local_id / work_group_rows;
+
+    /* Global position of the first element processed by the thread */
+    const index_t global_row = group_row * local_memory_rows + local_row;
+    const index_t global_col = group_col * local_memory_cols + local_col;
+
+    /* Total number of item cols in all work groups */
+    const index_t total_item_cols = local_memory_cols * group_count_cols;
+
+    /* Initialize private reduction registers */
+    element_t accumulators[work_per_item_rows];
+    for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+      accumulators[wpr] = static_cast<element_t>(0);
+      // TODO: use reduction neutral element
+    }
+
+    /* Sequential reduction level:
+     * Load multiple elements from the global memory, reduce them together and
+     * store them in the local memory */
+    {
+      index_t elem_col = global_col;
+      for (index_t wpc = 0; wpc < work_per_item_cols; wpc++) {
+        index_t elem_col_idx = leading_dim_ * elem_col;
+        /* Each thread is responsible for multiple independent rows */
+        index_t elem_row = global_row;
+        for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+          if (elem_row < rows_ && elem_col < cols_) {
+            accumulators[wpr] += in_ptr[elem_col_idx + elem_row];
+            // TODO: use reduction actual operation
+          }
+          elem_row += work_group_rows;
+        }
+        elem_col += total_item_cols;
+      }
+    }
+
+    /* Copy the accumulation registers into the local memory */
+    {
+      index_t local_memory_idx = local_memory_rows * local_col + local_row;
+      for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+        scratch_ptr[local_memory_idx] = accumulators[wpr];
+        local_memory_idx += work_group_rows;
+      }
+    }
+    // TODO: use finalize operation if supporting mean reductions
+
+    /* Parallel-reduction level:
+     * Tree-based reduction in local memory */
+    {
+      const index_t local_memory_lhs = local_col * local_memory_rows;
+      for (index_t stride = work_group_cols / 2; stride > 0; stride /= 2) {
+        const index_t local_memory_rhs =
+            (local_col + stride) * local_memory_rows;
+        /* Synchronize group */
+        id.barrier(cl::sycl::access::fence_space::local_space);
+
+        /* Only the lhs performs the reduction */
+        if (local_col < stride) {
+          /* Each thread is responsible for multiple independent rows */
+          index_t local_memory_row = local_row;
+          for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+            /* Reduce left-hand and right-hand elements together */
+            scratch_ptr[local_memory_lhs + local_memory_row] +=
+                scratch_ptr[local_memory_rhs + local_memory_row];
+            local_memory_row += work_group_rows;
+          }
+        }
+      }
+    }
+
+    /* Threads of the first column write their results in the output buffer */
+    if (local_col == 0) {
+      index_t local_memory_row = local_row;
+      index_t out_memory_idx =
+          group_col * rows_ + group_row * local_memory_rows;
+      for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+        out_ptr[out_memory_idx + local_memory_row] =
+            scratch_ptr[local_memory_row];
+        local_memory_row += work_group_rows;
+      }
+    }
   }
 };
 
