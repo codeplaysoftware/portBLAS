@@ -45,6 +45,7 @@ ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>::
     : in_(in), out_(out), rows_(num_rows), cols_(num_cols), leading_dim_(num_rows) {}
 // TODO: support for leading_dim
 
+
 // Definition of the reduction step class
 template <typename input_t, typename output_t, typename temp_t, int ClSize,
           typename tile_type, typename element_t, bool IsFinal>

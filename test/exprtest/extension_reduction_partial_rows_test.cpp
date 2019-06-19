@@ -19,20 +19,21 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename extension_reduction_partial_rows.cpp
+ *  @filename extension_reduction_partial_rows_test.cpp
  *
  **************************************************************************/
 
 // TODO: cleanup
 
 #include "blas_test.hpp"
+#include "sycl_blas.hpp"
 
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, int>;
 
 const auto combi = ::testing::Combine(::testing::Values(16),    // rows
                                       ::testing::Values(24),    // columns
-                                      ::testing::Values(3),     // ld_mul
+                                      ::testing::Values(3)      // ld_mul
 );
 
 // ---------------------------
@@ -57,41 +58,50 @@ struct MatrixPrinter {
 
 using index_t = int;
 
+template<typename scalar_t, typename executor_t, typename input_t, typename output_t>
+void launch_reduction(executor_t& ex, input_t buffer_in, output_t buffer_out, index_t rows, index_t cols) {
+  blas::ReductionPartialRows<input_t, output_t, 64, Tile<4, 4, 8, 8>, scalar_t>
+      reduction(buffer_in, buffer_out, rows, cols);
+  ex.execute(reduction);
+}
+
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  int rows, columns, ld_mul;
-  std::tie(rows, columns, ld_mul) = combi;
+  index_t rows, cols, ld_mul;
+  std::tie(rows, cols, ld_mul) = combi;
 
   auto q = make_queue();
   test_executor_t ex(q);
 
   auto policy_handler = ex.get_policy_handler();
 
-  int ld = rows * ld_mul;
+  index_t ld = rows * ld_mul;
 
   std::vector<scalar_t> in_m(ld * cols);
   std::vector<scalar_t> out_v_gpu(rows);
   std::vector<scalar_t> out_v_cpu(rows);
 
   fill_random(in_m);
-  fill_random(out_v_gpu);
+  for(index_t i = 0; i < rows; i++) {
+    out_v_gpu[i] = -1;
+  }
   std::copy(out_v_gpu.begin(), out_v_gpu.end(), out_v_cpu.begin());
 
   // Reduce the reference by hand
-  for(int i = 0; i < rows; i++) {
+  for(index_t i = 0; i < rows; i++) {
     out_v_cpu[i] = 0;
-    for(int j = 0; j < rows; j++) {
-      out_v_cpu += in_m[ld * j + i];
+    for(index_t j = 0; j < rows; j++) {
+      out_v_cpu[i] += in_m[ld * j + i];
     }
   }
 
   {
-    auto m_in_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(in_m, ld * cols);
-    auto v_out_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, rows);
+    auto m_in_gpu = make_sycl_iterator_buffer<scalar_t>(in_m, ld * cols);
+    auto v_out_gpu = make_sycl_iterator_buffer<scalar_t>(out_v_gpu, rows);
+    auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
+    auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
     try {
-      // TODO: add operation here
+      launch_reduction<scalar_t>(ex, buffer_in, buffer_out, rows, cols);
     } catch (cl::sycl::exception &e) {
       std::cerr << "Exception occured:" << std::endl;
       std::cerr << e.what() << std::endl;

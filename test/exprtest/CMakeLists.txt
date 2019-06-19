@@ -26,12 +26,15 @@ cmake_minimum_required(VERSION 3.2.2)
 
 project(syclblas_exprtest)
 
+add_definitions(-D${TARGET})
+
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 # compiling tests
 set(SYCL_EXPRTEST_SRCS
   ${SYCLBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
   ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+  ${SYCLBLAS_EXPRTEST}/extension_reduction_partial_rows_test.cpp
 )
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
@@ -50,6 +53,6 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   endif()
   message("-- Created google test ${test_exec}")
-  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)  
+  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
   include_directories(${test_exec} PUBLIC ${SYCLBLAS_TEST} ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
 endforeach()
