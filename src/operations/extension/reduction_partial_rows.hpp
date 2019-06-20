@@ -29,86 +29,69 @@
 #include "views/view.h"
 #include <CL/sycl.hpp>
 #include <string>
-// #include <type_traits>
 
 namespace blas {
 
-// Constructor of the wrapper class
-template <typename input_t, typename output_t, int ClSize, typename tile_type,
-          typename element_t>
-SYCL_BLAS_INLINE
-ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>::
-    ReductionPartialRows(
-        input_t in, output_t out,
-        typename std::make_signed<typename input_t::index_t>::type num_rows,
-        typename std::make_signed<typename input_t::index_t>::type num_cols)
-    : in_(in),
-      out_(out),
-      rows_(num_rows),
-      cols_(num_cols),
-      leading_dim_(num_rows) {}
-// TODO: support for leading_dim
-
 // Definition of the reduction step class
-template <typename input_t, typename output_t, typename temp_t, int ClSize,
-          typename tile_type, typename element_t, bool IsFinal>
-class ReductionPartialRowsStep {
+template <typename input_t, typename output_t, int ClSize, int WgSize,
+          int WorkPerItem, typename element_t, bool IsFinal>
+class ReductionPartialRows {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using value_t = element_t;
 
-  static constexpr index_t cl_size = ClSize;
-  static constexpr bool is_final = IsFinal;
+  // static constexpr bool is_final = IsFinal;
+  // TODO: either use IsFinal or remove it
+
+  /* The number of elements per cache line size depends on the element type */
+  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
 
   input_t in_;
   output_t out_;
-  temp_t temp_;
 
   /* Matrix dimensions */
   const index_t rows_;
   const index_t cols_;
   const index_t leading_dim_;
 
-  /* Checking if the tile is valid */
-  // static_assert(, "");
-  // TODO: some checks here?
-
   /* Workload per work item on each dimension m and n */
-  static constexpr index_t work_per_item_rows = tile_type::item_rows;
-  static constexpr index_t work_per_item_cols = tile_type::item_cols;
+  static constexpr index_t rows_per_item = WorkPerItem;
+
+  /* Checking if the parameters are valid */
+  static_assert(cl_elems % rows_per_item == 0,
+                "The number of rows processed per item must divide the number "
+                "of elements per cache line.");
 
   /* Work group dimensions */
-  static constexpr index_t work_group_rows = tile_type::wg_rows;
-  static constexpr index_t work_group_cols = tile_type::wg_cols;
-  static constexpr index_t work_group_size = work_group_rows * work_group_cols;
+  static constexpr index_t work_group_size = WgSize;
+  static constexpr index_t work_group_rows = cl_elems / rows_per_item;
+  static constexpr index_t work_group_cols = work_group_size / work_group_rows;
   // TODO: we may want more columns there
 
   /* Local memory dimensions */
   static constexpr index_t local_memory_rows =
-      work_group_rows * work_per_item_rows;
+      work_group_rows * rows_per_item;
   static constexpr index_t local_memory_cols = work_group_cols;
   static constexpr index_t local_memory_size =
       local_memory_rows * local_memory_cols;
 
   /* Work groups per dimension */
-  const index_t group_count_rows;
-  const index_t group_count_cols;
+  const index_t group_count_rows_;
+  const index_t group_count_cols_;
 
-  SYCL_BLAS_INLINE ReductionPartialRowsStep(input_t in, output_t out,
-                                            temp_t temp, index_t num_rows,
-                                            index_t num_cols)
+  SYCL_BLAS_INLINE ReductionPartialRows(input_t in, output_t out,
+                                        index_t num_rows, index_t num_cols,
+                                        index_t group_count_cols)
       : in_(in),
         out_(out),
-        temp_(temp),
         rows_(in_.get_size_row()),
         cols_(in_.get_size_col()),
         leading_dim_(in_.getSizeL()),
-        group_count_rows((num_rows - 1) / local_memory_rows + 1),
-        group_count_cols(
-            (num_cols - 1) / (work_group_cols * work_per_item_cols) + 1) {}
+        group_count_rows_((num_rows - 1) / local_memory_rows + 1),
+        group_count_cols_(group_count_cols) {}
 
   /*!
-   * @brief Get the type of this Reduction as a human readable string.
+   * @brief Get the type of this reduction as a human readable string.
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
@@ -119,19 +102,11 @@ class ReductionPartialRowsStep {
 
   void bind(cl::sycl::handler &h) {
     in_.bind(h);
-    if (is_final) {
-      out_.bind(h);
-    } else {
-      temp_.bind(h);
-    }
+    out_.bind(h);
   }
   void adjust_access_displacement() {
     in_.adjust_access_displacement();
-    if (is_final) {
-      out_.adjust_access_displacement();
-    } else {
-      temp_.adjust_access_displacement();
-    }
+    out_.adjust_access_displacement();
   }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;
@@ -141,10 +116,8 @@ class ReductionPartialRowsStep {
    * @brief get_workgroup_cluster. This function is used to find the optimum
    * number of work_group required to execute each partial reduction step.
    */
-  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(
-      index_t num_rows, index_t num_cols, index_t compute_units) noexcept {
-    return ((num_rows - 1) / local_memory_rows + 1) *
-           ((num_cols - 1) / (work_group_cols * work_per_item_cols) + 1);
+  SYCL_BLAS_INLINE index_t get_workgroup_cluster() noexcept {
+    return ((rows_ - 1) / local_memory_rows + 1) * group_count_cols_;
   }
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
@@ -152,8 +125,7 @@ class ReductionPartialRowsStep {
    * operations are available per work group. The number 4 is used based on
    * empirical research.
    */
-  static SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(
-      index_t num_rows, index_t num_cols, index_t compute_units) noexcept {
+  SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(index_t compute_units) noexcept {
     return 1;  // TODO: optimize that later
   }
 
@@ -161,11 +133,10 @@ class ReductionPartialRowsStep {
    * @brief Get the nd_range value which has to be used for kernels that
    *        intend to call GemmPartial::run().
    */
-  static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t num_rows, index_t num_cols, index_t compute_units) noexcept {
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(index_t compute_units) noexcept {
     const cl::sycl::range<1> nwg(
-        get_workgroup_cluster(num_rows, num_cols, compute_units) *
-        get_num_workgroup_cluster(num_rows, num_cols, compute_units));
+        get_workgroup_cluster() *
+        get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(work_group_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
     // TODO: add verbose
@@ -179,7 +150,7 @@ class ReductionPartialRowsStep {
                              cl::sycl::nd_item<1> id) noexcept {
     /* references to the input and output data */
     auto in_ptr = in_.get_pointer();
-    auto out_ptr = is_final ? out_.get_pointer() : temp_.get_pointer();
+    auto out_ptr = out_.get_pointer();
 
     /* reference to the scratch memory */
     auto scratch_ptr = scratch.localAcc.get_pointer().get();
@@ -190,8 +161,8 @@ class ReductionPartialRowsStep {
     const index_t local_id = id.get_local_id(0);
 
     /* Block row and column */
-    const index_t group_row = group_id % group_count_rows;  // TODO: no modulo
-    const index_t group_col = group_id / group_count_rows;
+    const index_t group_row = group_id % group_count_rows_;  // TODO: no modulo
+    const index_t group_col = group_id / group_count_rows_;
 
     /* Item row and column within a block */
     const index_t local_row = local_id % work_group_rows;  // TODO: no modulo
@@ -202,39 +173,39 @@ class ReductionPartialRowsStep {
     const index_t global_col = group_col * local_memory_cols + local_col;
 
     /* Total number of item cols in all work groups */
-    const index_t total_item_cols = local_memory_cols * group_count_cols;
+    const index_t total_item_cols = local_memory_cols * group_count_cols_;
 
     /* Initialize private reduction registers */
-    element_t accumulators[work_per_item_rows];
-    for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
-      accumulators[wpr] = static_cast<element_t>(0);
-      // TODO: use reduction neutral element
-    }
+    element_t accumulators[rows_per_item] {element_t(0)};
+
+    if(group_id == 0 && local_id == 0) printf("%f %f\n", in_ptr[0], in_ptr[leading_dim_]);
 
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
      * store them in the local memory */
     {
       index_t elem_col = global_col;
-      for (index_t wpc = 0; wpc < work_per_item_cols; wpc++) {
+      while(elem_col < cols_) {
         index_t elem_col_idx = leading_dim_ * elem_col;
         /* Each thread is responsible for multiple independent rows */
         index_t elem_row = global_row;
-        for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
-          if (elem_row < rows_ && elem_col < cols_) {
+        #pragma unroll
+        for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
+          if (elem_row < rows_) {
             accumulators[wpr] += in_ptr[elem_col_idx + elem_row];
             // TODO: use reduction actual operation
           }
           elem_row += work_group_rows;
         }
         elem_col += total_item_cols;
-      }
+      };
     }
 
     /* Copy the accumulation registers into the local memory */
     {
       index_t local_memory_idx = local_memory_rows * local_col + local_row;
-      for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+      #pragma unroll
+      for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
         scratch_ptr[local_memory_idx] = accumulators[wpr];
         local_memory_idx += work_group_rows;
       }
@@ -245,6 +216,7 @@ class ReductionPartialRowsStep {
      * Tree-based reduction in local memory */
     {
       const index_t local_memory_lhs = local_col * local_memory_rows;
+      #pragma unroll
       for (index_t stride = work_group_cols / 2; stride > 0; stride /= 2) {
         const index_t local_memory_rhs =
             (local_col + stride) * local_memory_rows;
@@ -255,7 +227,8 @@ class ReductionPartialRowsStep {
         if (local_col < stride) {
           /* Each thread is responsible for multiple independent rows */
           index_t local_memory_row = local_row;
-          for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+          #pragma unroll
+          for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
             /* Reduce left-hand and right-hand elements together */
             scratch_ptr[local_memory_lhs + local_memory_row] +=
                 scratch_ptr[local_memory_rhs + local_memory_row];
@@ -267,10 +240,12 @@ class ReductionPartialRowsStep {
 
     /* Threads of the first column write their results in the output buffer */
     if (local_col == 0) {
+      if(local_id == 0) printf("write from group (%d, %d)\n", group_row, group_col);
       index_t local_memory_row = local_row;
       index_t out_memory_idx =
           group_col * rows_ + group_row * local_memory_rows;
-      for (index_t wpr = 0; wpr < work_per_item_rows; wpr++) {
+      #pragma unroll
+      for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
         out_ptr[out_memory_idx + local_memory_row] =
             scratch_ptr[local_memory_row];
         local_memory_row += work_group_rows;

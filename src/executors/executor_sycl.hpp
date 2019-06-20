@@ -249,7 +249,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   auto partial_event = execute(gemm_partial);
 
   // Second step: reduction
-  ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+  constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
+  Reduction<input_t, output_t, ClSize, work_group_size, tile_type::item_rows,
+            element_t, static_cast<int>(Reduction_t::partial_rows)>
       reduction(cube_buffer, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_,
                 1);
   auto reduction_event = execute(reduction);
@@ -287,28 +289,54 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
 // ReductionPartialRows
 template <>
-template <typename input_t, typename output_t, int ClSize, typename tile_type,
-          typename element_t>
+template <typename input_t, typename output_t, int ClSize, int WgSize,
+          int WorkPerItem, typename element_t>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
-    ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+    Reduction<input_t, output_t, ClSize, WgSize, WorkPerItem, element_t,
+              static_cast<int>(Reduction_t::partial_rows)>
         reduction_wrapper) {
-  // TODO: implement multi-step
-  using temp_t = output_t;
-  using reduction_step_t =
-      ReductionPartialRowsStep<input_t, output_t, temp_t, ClSize, tile_type,
-                               element_t, true>;
-  auto reduction_range = reduction_step_t::get_nd_range(
-      reduction_wrapper.rows_, reduction_wrapper.cols_,
-      policy_handler_.get_num_compute_units());
-  reduction_step_t reduction(reduction_wrapper.in_, reduction_wrapper.out_,
-                             reduction_wrapper.out_, reduction_wrapper.rows_,
-                             reduction_wrapper.cols_);
-  auto reduction_event = {execute_tree<using_local_memory::enabled>(
-      policy_handler_.get_queue(), reduction,
-      reduction_range.get_local_range()[0],
-      reduction_range.get_global_range()[0],
-      reduction_step_t::local_memory_size)};
+  /* Use type aliases for readability */
+  using temp_t = output_t; // TODO: don't systematically use the same type
+  using reduction_step1_t =
+      ReductionPartialRows<input_t, output_t, ClSize, WgSize,
+                           WorkPerItem, element_t, false>;
+  using reduction_step2_t =
+      ReductionPartialRows<input_t, output_t, ClSize, WgSize,
+                           WorkPerItem, element_t, true>;
+  using index_t = int; // TODO: don't do that! Use real index type
+
+  /* Extract data from the reduction wrapper */
+  const index_t rows_ = reduction_wrapper.rows_, cols_ = reduction_wrapper.cols_;
+  input_t& in_ = reduction_wrapper.in_, out_ = reduction_wrapper.out_;
+
+  /* Step 1: reduce the input matrix to a temporary matrix */
+  /* Create a temporary buffer */
+  auto group_count_cols = 2;//reduction_step2_t::work_group_cols;
+  std::vector<element_t> temp_vector(rows_ * group_count_cols);
+  auto temp_buffer = make_sycl_iterator_buffer<element_t>(temp_vector, rows_ * group_count_cols);
+  auto temp_ = make_matrix_view<col_major>(*this, temp_buffer, rows_, group_count_cols, rows_);
+  /* Create the reduction class and get the range */
+  reduction_step1_t reduction_step1(in_, temp_, rows_, cols_, group_count_cols);
+  auto step1_range = reduction_step1.get_nd_range(policy_handler_.get_num_compute_units());
+  /* Execute the step 1 and create the event vector */
+  typename codeplay_policy::event_t reduction_event = {execute_tree<using_local_memory::enabled>(
+      policy_handler_.get_queue(), reduction_step1,
+      step1_range.get_local_range()[0],
+      step1_range.get_global_range()[0],
+      reduction_step1_t::local_memory_size)};
+
+  /* Step 2: reduce the temporary matrix to the output vector */
+  /* Create the reduction class and get the range */
+  reduction_step2_t reduction_step2(temp_, out_, rows_, group_count_cols, 1);
+  auto step2_range = reduction_step2.get_nd_range(policy_handler_.get_num_compute_units());
+  /* Execute the step 2 and append the event to the event vector */
+  reduction_event.push_back(execute_tree<using_local_memory::enabled>(
+      policy_handler_.get_queue(), reduction_step2,
+      step2_range.get_local_range()[0],
+      step2_range.get_global_range()[0],
+      reduction_step2_t::local_memory_size));
+
   return reduction_event;
 }
 

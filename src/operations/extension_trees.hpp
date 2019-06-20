@@ -25,6 +25,7 @@
 #ifndef SYCL_BLAS_EXTENSION_TREES_HPP
 #define SYCL_BLAS_EXTENSION_TREES_HPP
 
+#include "extension/reduction.hpp"
 #include "extension/reduction_partial_rows.hpp"
 
 #endif  // SYCL_BLAS_EXTENSION_TREES_HPP

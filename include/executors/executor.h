@@ -100,11 +100,12 @@ class Executor {
                   tile_type, TransA, TransB, element_t, Gemm_memory_type>
           gemm_partial);
 
-  // ReductionPartialRows specialization
-  template <typename input_t, typename output_t, int ClSize, typename tile_type,
-            typename element_t>
+  // Reduction specialization (partial rows)
+  template <typename input_t, typename output_t, int ClSize, int WgSize,
+            int WorkPerItem, typename element_t>
   typename policy_t::event_t execute(
-      ReductionPartialRows<input_t, output_t, ClSize, tile_type, element_t>
+      Reduction<input_t, output_t, ClSize, WgSize, WorkPerItem, element_t,
+                static_cast<int>(Reduction_t::partial_rows)>
           reduction_wrapper);
 
  private:

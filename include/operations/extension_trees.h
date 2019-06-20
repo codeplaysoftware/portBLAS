@@ -29,12 +29,21 @@
 
 namespace blas {
 
+  /*
+   * @brief Determines which type of reduction to perform
+   */
+  enum class Reduction_t : int {
+    full = 0,            // Not implemented yet
+    partial_rows = 1,
+    partial_columns = 2  // Not implemented yet
+  };
+
 /*!
  * TODO: more info here
  */
 template <typename input_t, typename output_t, int ClSize,
-          typename tile_type, typename element_t>
-class ReductionPartialRows {
+          int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
+class Reduction {
 public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   input_t in_;
@@ -42,15 +51,15 @@ public:
   const index_t rows_;
   const index_t cols_;
   const index_t leading_dim_;
-  ReductionPartialRows(input_t in, output_t out, index_t num_rows, index_t num_cols);
+  Reduction(input_t in, output_t out, index_t num_rows, index_t num_cols);
 };
 
 /*!
  * TODO: more info here
  */
-template <typename input_t, typename output_t, typename temp_t, int ClSize,
-          typename tile_type, typename element_t, bool is_final>
-class ReductionPartialRowsStep;
+ template <typename input_t, typename output_t, int ClSize,
+           int WgSize, int WorkPerItem, typename element_t, bool IsFinal>
+class ReductionPartialRows;
 
 // TODO: make_reduction function
 

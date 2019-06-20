@@ -63,23 +63,27 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static constexpr index_t local_thread_size =
       local_thread_size_m * local_thread_size_n;
 
+  /* The number of elements per cache line size depends on the element type */
+  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
+
   /* Checking if the tile is valid */
-  static_assert(ClSize % local_thread_size_m == 0,
+  static_assert(cl_elems % local_thread_size_m == 0,
                 "The number of item-level tiles within each work group column "
-                "must divide the cache line size");
-  static_assert(ClSize % local_thread_size_n == 0,
+                "must divide the number of elements per cache line.");
+  static_assert(cl_elems % local_thread_size_n == 0,
                 "The number of item-level tiles within each work group row "
-                "must divide the cache line size");
+                "must divide the number of elements per cache line.");
+
 
   /* The dimensions of a single tile */
   static constexpr index_t tile_size_dim_m =
       local_thread_size_m * work_per_thread_m;
   static constexpr index_t tile_size_dim_n =
       local_thread_size_n * work_per_thread_n;
-  static constexpr index_t tile_size_dim_k = ClSize;
+  static constexpr index_t tile_size_dim_k = cl_elems;
 
   /* The number of tiles to be processed */
-  static constexpr index_t num_tiles = 3;
+  static constexpr index_t num_tiles = 12;
   // TODO: don't hardcode that!!! See Eigen
 
   /* Number of loads per thread for LHS and RHS tiles */
