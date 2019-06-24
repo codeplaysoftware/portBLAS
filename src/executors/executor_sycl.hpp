@@ -31,6 +31,7 @@
 #include "executors/kernel_constructor.h"
 #include "policy/sycl_policy_handler.h"
 #include "views/view.h"
+#include "operations/blas_operators.hpp"
 
 namespace blas {
 /*! Executor<PolicyHandler<codeplay_policy>>.
@@ -250,8 +251,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   // Second step: reduction
   constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
-  Reduction<input_t, output_t, ClSize, work_group_size, tile_type::item_rows,
-            element_t, static_cast<int>(Reduction_t::partial_rows)>
+  Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+            tile_type::item_rows, element_t,
+            static_cast<int>(Reduction_t::partial_rows)>
       reduction(cube_buffer, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_,
                 1);
   auto reduction_event = execute(reduction);
@@ -288,15 +290,15 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 }
 
 // Utility function used by the ReductionPartialRows specialization
-template <int ClSize, int WgSize, int WorkPerItem, typename element_t,
-          typename input_t, typename output_t, typename index_t,
-          typename queue_t>
+template <typename operator_t, int ClSize, int WgSize, int WorkPerItem,
+          typename element_t, typename input_t, typename output_t,
+          typename index_t, typename queue_t>
 static inline cl::sycl::event launch_row_reduction_step(
     queue_t queue, input_t& in, output_t& out, index_t rows, index_t cols,
     index_t group_count_cols, index_t local_memory_size,
     index_t num_compute_units) {
-  ReductionPartialRows<input_t, output_t, ClSize, WgSize, WorkPerItem,
-                       element_t>
+  ReductionPartialRows<operator_t, input_t, output_t, ClSize, WgSize,
+                       WorkPerItem, element_t>
       reduction_step(in, out, rows, cols, group_count_cols);
   auto step_range = reduction_step.get_nd_range(num_compute_units);
   return execute_tree<using_local_memory::enabled>(
@@ -306,15 +308,16 @@ static inline cl::sycl::event launch_row_reduction_step(
 
 // ReductionPartialRows
 template <>
-template <typename input_t, typename output_t, int ClSize, int WgSize,
-          int WorkPerItem, typename element_t>
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, int WorkPerItem, typename element_t>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
-    Reduction<input_t, output_t, ClSize, WgSize, WorkPerItem, element_t,
-              static_cast<int>(Reduction_t::partial_rows)>
+    Reduction<operator_t, input_t, output_t, ClSize, WgSize, WorkPerItem,
+              element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction_wrapper) {
   using index_t = int;  // TODO: don't do that! Use real index type
-  using params_t = blas::ReductionRows_Params<index_t, element_t, ClSize, WgSize, WorkPerItem>;
+  using params_t = blas::ReductionRows_Params<index_t, element_t, ClSize,
+                                              WgSize, WorkPerItem>;
 
   /* Extract data from the reduction wrapper */
   const index_t rows_ = reduction_wrapper.rows_,
@@ -324,9 +327,11 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
   /* Choose at run-time to do a one-step or two-step reduction */
-  const bool do_first_step = cols_ > params_t::work_group_cols * params_t::work_group_cols;
+  const bool do_first_step =
+      cols_ > params_t::work_group_cols * params_t::work_group_cols;
   // TODO: find out in which cases it is better to use two-step reduction
 
+  /* Create an empty event vector */
   typename codeplay_policy::event_t reduction_event;
 
   /* 2-step reduction */
@@ -342,20 +347,23 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
     /* 1st step */
     reduction_event.push_back(
-        launch_row_reduction_step<ClSize, WgSize, WorkPerItem, element_t>(
+        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
+                                  element_t>(
             policy_handler_.get_queue(), in_, temp_, rows_, cols_,
             group_count_cols, params_t::local_memory_size, num_compute_units));
 
     /* 2nd step */
     reduction_event.push_back(
-        launch_row_reduction_step<ClSize, WgSize, WorkPerItem, element_t>(
-            policy_handler_.get_queue(), temp_, out_, rows_, group_count_cols, 1,
-            params_t::local_memory_size, num_compute_units));
+        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
+                                  element_t>(
+            policy_handler_.get_queue(), temp_, out_, rows_, group_count_cols,
+            1, params_t::local_memory_size, num_compute_units));
   }
   /* 1-step reduction */
   else {
     reduction_event.push_back(
-        launch_row_reduction_step<ClSize, WgSize, WorkPerItem, element_t>(
+        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
+                                  element_t>(
             policy_handler_.get_queue(), in_, out_, rows_, cols_, 1,
             params_t::local_memory_size, num_compute_units));
   }

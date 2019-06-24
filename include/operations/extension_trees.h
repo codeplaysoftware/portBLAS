@@ -41,8 +41,8 @@ enum class Reduction_t : int {
 /*!
  * TODO: more info here
  */
-template <typename input_t, typename output_t, int ClSize, int WgSize,
-          int WorkPerItem, typename element_t, int Reduction_type>
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
 class Reduction {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -58,8 +58,8 @@ class Reduction {
  * @brief Calculates the parameters of the row reduction step (used by the
  * executor and the kernel)
  */
-template <typename index_t, typename element_t, int ClSize, int WgSize,
-          int WorkPerItem>
+template <typename index_t, typename element_t, int ClSize,
+          int WgSize, int WorkPerItem>
 struct ReductionRows_Params {
   /* The number of elements per cache line size depends on the element type */
   static constexpr index_t cl_elems = ClSize / sizeof(element_t);
@@ -87,7 +87,7 @@ struct ReductionRows_Params {
 /*!
  * TODO: more info here
  */
-template <typename input_t, typename output_t, int ClSize, int WgSize,
+template <typename operator_t, typename input_t, typename output_t, int ClSize, int WgSize,
           int WorkPerItem, typename element_t>
 class ReductionPartialRows;
 

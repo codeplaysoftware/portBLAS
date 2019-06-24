@@ -76,14 +76,14 @@ struct ConstValue {
 template <typename primitive_t>
 struct ConstValue<primitive_t, const_val::max> {
   constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::min();
+    return std::numeric_limits<primitive_t>::max();
   }
 };
 
 template <typename primitive_t>
 struct ConstValue<primitive_t, const_val::min> {
   constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::max();
+    return std::numeric_limits<primitive_t>::min();
   }
 };
 

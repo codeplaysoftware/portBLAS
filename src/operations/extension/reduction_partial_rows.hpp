@@ -32,8 +32,8 @@
 
 namespace blas {
 
-template <typename input_t, typename output_t, int ClSize, int WgSize,
-          int WorkPerItem, typename element_t>
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, int WorkPerItem, typename element_t>
 class ReductionPartialRows {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -51,6 +51,9 @@ class ReductionPartialRows {
   static constexpr index_t local_memory_rows = params_t::local_memory_rows;
   static constexpr index_t local_memory_cols = params_t::local_memory_cols;
   static constexpr index_t local_memory_size = params_t::local_memory_size;
+
+  /* Neutral value for this reduction operator */
+  static constexpr value_t init_val = operator_t::template init<output_t>();
 
   /* Input and output buffers */
   input_t in_;
@@ -163,7 +166,11 @@ class ReductionPartialRows {
     const index_t total_item_cols = local_memory_cols * group_count_cols_;
 
     /* Initialize private reduction registers */
-    element_t accumulators[rows_per_item]{element_t(0)};
+    element_t accumulators[rows_per_item];
+#pragma unroll
+    for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
+      accumulators[wpr] = init_val;
+    }
 
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
@@ -177,8 +184,9 @@ class ReductionPartialRows {
 #pragma unroll
         for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
           if (elem_row < rows_) {
-            accumulators[wpr] += in_ptr[elem_col_idx + elem_row];
-            // TODO: use reduction actual operation
+            const value_t lhs_val = accumulators[wpr];
+            const value_t rhs_val = in_ptr[elem_col_idx + elem_row];
+            accumulators[wpr] = operator_t::eval(lhs_val, rhs_val);
           }
           elem_row += work_group_rows;
         }
@@ -195,7 +203,6 @@ class ReductionPartialRows {
         local_memory_idx += work_group_rows;
       }
     }
-    // TODO: use finalize operation if supporting mean reductions
 
     /* Parallel-reduction level:
      * Tree-based reduction in local memory */
@@ -215,8 +222,11 @@ class ReductionPartialRows {
 #pragma unroll
           for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
             /* Reduce left-hand and right-hand elements together */
-            scratch_ptr[local_memory_lhs + local_memory_row] +=
+            const index_t lhs_location = local_memory_lhs + local_memory_row;
+            const value_t lhs_val = scratch_ptr[lhs_location];
+            const value_t rhs_val =
                 scratch_ptr[local_memory_rhs + local_memory_row];
+            scratch_ptr[lhs_location] = operator_t::eval(lhs_val, rhs_val);
             local_memory_row += work_group_rows;
           }
         }
