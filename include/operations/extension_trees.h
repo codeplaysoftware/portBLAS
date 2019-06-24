@@ -29,22 +29,22 @@
 
 namespace blas {
 
-  /*
-   * @brief Determines which type of reduction to perform
-   */
-  enum class Reduction_t : int {
-    full = 0,            // Not implemented yet
-    partial_rows = 1,
-    partial_columns = 2  // Not implemented yet
-  };
+/*
+ * @brief Determines which type of reduction to perform
+ */
+enum class Reduction_t : int {
+  full = 0,  // Not implemented yet
+  partial_rows = 1,
+  partial_columns = 2  // Not implemented yet
+};
 
 /*!
  * TODO: more info here
  */
-template <typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
+template <typename input_t, typename output_t, int ClSize, int WgSize,
+          int WorkPerItem, typename element_t, int Reduction_type>
 class Reduction {
-public:
+ public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   input_t in_;
   output_t out_;
@@ -54,11 +54,41 @@ public:
   Reduction(input_t in, output_t out, index_t num_rows, index_t num_cols);
 };
 
+/*
+ * @brief Calculates the parameters of the row reduction step (used by the
+ * executor and the kernel)
+ */
+template <typename index_t, typename element_t, int ClSize, int WgSize,
+          int WorkPerItem>
+struct ReductionRows_Params {
+  /* The number of elements per cache line size depends on the element type */
+  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
+
+  /* Workload per work item on each dimension m and n */
+  static constexpr index_t rows_per_item = WorkPerItem;
+
+  /* Checking if the parameters are valid */
+  static_assert(cl_elems % rows_per_item == 0,
+                "The number of rows processed per item must divide the number "
+                "of elements per cache line.");
+
+  /* Work group dimensions */
+  static constexpr index_t work_group_size = WgSize;
+  static constexpr index_t work_group_rows = cl_elems / rows_per_item;
+  static constexpr index_t work_group_cols = work_group_size / work_group_rows;
+
+  /* Local memory dimensions */
+  static constexpr index_t local_memory_rows = work_group_rows * rows_per_item;
+  static constexpr index_t local_memory_cols = work_group_cols;
+  static constexpr index_t local_memory_size =
+      local_memory_rows * local_memory_cols;
+};
+
 /*!
  * TODO: more info here
  */
- template <typename input_t, typename output_t, int ClSize,
-           int WgSize, int WorkPerItem, typename element_t, bool IsFinal>
+template <typename input_t, typename output_t, int ClSize, int WgSize,
+          int WorkPerItem, typename element_t>
 class ReductionPartialRows;
 
 // TODO: make_reduction function
