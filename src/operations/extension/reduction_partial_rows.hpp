@@ -178,8 +178,6 @@ class ReductionPartialRows {
     /* Initialize private reduction registers */
     element_t accumulators[rows_per_item] {element_t(0)};
 
-    if(group_id == 0 && local_id == 0) printf("%f %f\n", in_ptr[0], in_ptr[leading_dim_]);
-
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
      * store them in the local memory */
@@ -240,14 +238,16 @@ class ReductionPartialRows {
 
     /* Threads of the first column write their results in the output buffer */
     if (local_col == 0) {
-      if(local_id == 0) printf("write from group (%d, %d)\n", group_row, group_col);
+      const index_t global_row_offset = group_row * local_memory_rows;
       index_t local_memory_row = local_row;
       index_t out_memory_idx =
-          group_col * rows_ + group_row * local_memory_rows;
+          group_col * rows_ + global_row_offset;
       #pragma unroll
       for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
-        out_ptr[out_memory_idx + local_memory_row] =
-            scratch_ptr[local_memory_row];
+        if(global_row_offset + local_memory_row < rows_) {
+          out_ptr[out_memory_idx + local_memory_row] =
+              scratch_ptr[local_memory_row];
+        }
         local_memory_row += work_group_rows;
       }
     }

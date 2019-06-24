@@ -312,7 +312,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   /* Step 1: reduce the input matrix to a temporary matrix */
   /* Create a temporary buffer */
-  auto group_count_cols = 2;//reduction_step2_t::work_group_cols;
+  auto group_count_cols = reduction_step2_t::work_group_cols;
   std::vector<element_t> temp_vector(rows_ * group_count_cols);
   auto temp_buffer = make_sycl_iterator_buffer<element_t>(temp_vector, rows_ * group_count_cols);
   auto temp_ = make_matrix_view<col_major>(*this, temp_buffer, rows_, group_count_cols, rows_);

@@ -31,8 +31,8 @@
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, int>;
 
-const auto combi = ::testing::Combine(::testing::Values(65),  // rows
-                                      ::testing::Values(512),  // columns
+const auto combi = ::testing::Combine(::testing::Values(1234),  // rows
+                                      ::testing::Values(5678),  // columns
                                       ::testing::Values(3)    // ld_mul
 );
 
@@ -111,15 +111,15 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
-  std::cerr << "Before reduction: " << std::endl;
-  MatrixPrinter::eval(cols, rows, in_m, ld);
-
-  // the matrix is now in tsgf._C
-  std::cerr << "Reference reduction: " << std::endl;
-  MatrixPrinter::eval(1, rows, out_v_cpu, ld);
-
-  std::cerr << "Our reduction: " << std::endl;
-  MatrixPrinter::eval(1, rows, out_v_gpu, ld);
+  // std::cerr << "Before reduction: " << std::endl;
+  // MatrixPrinter::eval(cols, rows, in_m, ld);
+  //
+  // // the matrix is now in tsgf._C
+  // std::cerr << "Reference reduction: " << std::endl;
+  // MatrixPrinter::eval(1, rows, out_v_cpu, ld);
+  //
+  // std::cerr << "Our reduction: " << std::endl;
+  // MatrixPrinter::eval(1, rows, out_v_gpu, ld);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
