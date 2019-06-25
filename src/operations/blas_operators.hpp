@@ -175,7 +175,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperator, const_val::zero,
                                 (AbsoluteValue::eval(l) +
                                  AbsoluteValue::eval(r)))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMaxOperator, const_val::imax,
+    IMaxOperator, const_val::abs_min_idxval,
     (AbsoluteValue::eval(
          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
          AbsoluteValue::eval(
@@ -188,7 +188,7 @@ SYCLBLAS_DEFINE_BINARY_OPERATOR(
         ? static_cast<typename StripASP<rhs_t>::type>(r)
         : static_cast<typename StripASP<lhs_t>::type>(l))
 SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMinOperator, const_val::imin,
+    IMinOperator, const_val::abs_max_idxval,
     (AbsoluteValue::eval(
          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
          AbsoluteValue::eval(

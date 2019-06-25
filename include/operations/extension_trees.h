@@ -39,7 +39,9 @@ enum class Reduction_t : int {
 };
 
 /*!
- * TODO: more info here
+ * @brief Wrapper around the reduction.
+ * The executor will specialize the execution for every reduction type and use
+ * the specific reduction classes
  */
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
           int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
@@ -50,7 +52,6 @@ class Reduction {
   output_t out_;
   const index_t rows_;
   const index_t cols_;
-  const index_t leading_dim_;
   Reduction(input_t in, output_t out, index_t num_rows, index_t num_cols);
 };
 
@@ -58,8 +59,8 @@ class Reduction {
  * @brief Calculates the parameters of the row reduction step (used by the
  * executor and the kernel)
  */
-template <typename index_t, typename element_t, int ClSize,
-          int WgSize, int WorkPerItem>
+template <typename index_t, typename element_t, int ClSize, int WgSize,
+          int WorkPerItem>
 struct ReductionRows_Params {
   /* The number of elements per cache line size depends on the element type */
   static constexpr index_t cl_elems = ClSize / sizeof(element_t);
@@ -85,13 +86,16 @@ struct ReductionRows_Params {
 };
 
 /*!
- * TODO: more info here
+ * @brief This class holds the kernel for the partial reduction of the rows.
+ *
+ * The output buffer will contain the same number of rows as the input buffer
+ * and a smaller number of columns. Eventually this will result in a single
+ * column. The number of work groups can be chosen to control the number of
+ * steps before the reduction of the rows is complete.
  */
-template <typename operator_t, typename input_t, typename output_t, int ClSize, int WgSize,
-          int WorkPerItem, typename element_t>
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, int WorkPerItem, typename element_t>
 class ReductionPartialRows;
-
-// TODO: make_reduction function
 
 }  // namespace blas
 

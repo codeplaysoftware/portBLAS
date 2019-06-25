@@ -23,8 +23,6 @@
  *
  **************************************************************************/
 
-// TODO: cleanup
-
 #include <limits>
 
 #include "blas_test.hpp"
@@ -52,26 +50,6 @@ const auto combi = ::testing::Combine(
     ::testing::Values(3),               // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
                       operator_t::AbsoluteAdd));
-
-// ---------------------------
-// Utility to print matrices
-// ---------------------------
-
-struct MatrixPrinter {
-  template <typename index_t, typename VectorT>
-  static inline void eval(index_t w, index_t h, VectorT v, index_t ld) {
-    for (index_t i = 0; i < h; i++) {
-      std::cerr << "[";
-      for (index_t j = 0; j < w; j++) {
-        if (j != 0) {
-          std::cerr << ", ";
-        }
-        std::cerr << v[i + (j * ld)];
-      }
-      std::cerr << "]\n";
-    }
-  }
-};
 
 template <typename operator_t, typename scalar_t, typename executor_t,
           typename input_t, typename output_t>
@@ -205,16 +183,6 @@ void run_test(const combination_t<scalar_t> combi) {
       std::cerr << e.what() << std::endl;
     }
   }
-
-  // std::cerr << "Before reduction: " << std::endl;
-  // MatrixPrinter::eval(cols, rows, in_m, ld);
-  //
-  // // the matrix is now in tsgf._C
-  // std::cerr << "Reference reduction: " << std::endl;
-  // MatrixPrinter::eval(1, rows, out_v_cpu, ld);
-  //
-  // std::cerr << "Our reduction: " << std::endl;
-  // MatrixPrinter::eval(1, rows, out_v_gpu, ld);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }

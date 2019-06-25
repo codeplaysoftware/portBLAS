@@ -35,22 +35,14 @@ namespace blas {
  * @brief Determines the memory type of the GEMM kernel.
  * It can either use local memory or not
  */
-enum class Gemm_memory_t : int {
-  local_memory = 0,
-  no_local_memory = 1
-};
+enum class Gemm_memory_t : int { local_memory = 0, no_local_memory = 1 };
 
 /*
  * @brief Indicates the shape of the matrices involved in a GEMM kernel.
  * It can be either naive to use a naive algorithm, classic for the default
  * algorithms, or tall_skinny for tall and skinny matrices
  */
-enum class Gemm_shape_t : int {
-  naive = 0,
-  classic = 1,
-  tall_skinny = 2
-};
-
+enum class Gemm_shape_t : int { naive = 0, classic = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -116,7 +108,6 @@ struct Tile {
    */
   static std::string get_type_string() noexcept;
 };
-
 
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
@@ -209,24 +200,25 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           typename element_t, int Gemm_memory_type>
 class GemmPartial {
- // public:
- //  using index_t = typename std::make_signed<typename input_t::index_t>::type;
- //  GemmPartial(input_t A, input_t B, output_t C, element_t alpha, element_t beta);
- //   static std::string get_type_string() noexcept;
- //   static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
- //   static index_t get_num_workgroup_cluster(index_t m, index_t n,
- //                                            index_t compute_units) noexcept;
- //   static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
- //                                             index_t compute_units) noexcept;
- //   index_t get_size() const;
- //   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
- //
- //   template <typename local_memory_t>
- //   void eval(local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept;
- //
- //   void bind(cl::sycl::handler &h);
+  // public:
+  //  using index_t = typename std::make_signed<typename
+  //  input_t::index_t>::type; GemmPartial(input_t A, input_t B, output_t C,
+  //  element_t alpha, element_t beta);
+  //   static std::string get_type_string() noexcept;
+  //   static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
+  //   static index_t get_num_workgroup_cluster(index_t m, index_t n,
+  //                                            index_t compute_units) noexcept;
+  //   static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
+  //                                             index_t compute_units)
+  //                                             noexcept;
+  //   index_t get_size() const;
+  //   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  //
+  //   template <typename local_memory_t>
+  //   void eval(local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept;
+  //
+  //   void bind(cl::sycl::handler &h);
 };
-
 
 /*
  * @brief a helper function used for constructing the GEMM
@@ -243,8 +235,8 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero,
-              Gemm_memory_type, Gemm_shape_type>(
-      buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
+              Gemm_memory_type, Gemm_shape_type>(buffer_a, buffer_b, buffer_c,
+                                                 alpha, beta, batch_size);
 }
 
 }  // namespace blas

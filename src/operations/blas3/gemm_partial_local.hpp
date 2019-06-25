@@ -74,7 +74,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                 "The number of item-level tiles within each work group row "
                 "must divide the number of elements per cache line.");
 
-
   /* The dimensions of a single tile */
   static constexpr index_t tile_size_dim_m =
       local_thread_size_m * work_per_thread_m;

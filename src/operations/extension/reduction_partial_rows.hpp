@@ -79,16 +79,6 @@ class ReductionPartialRows {
         group_count_rows_((num_rows - 1) / local_memory_rows + 1),
         group_count_cols_(group_count_cols) {}
 
-  /*!
-   * @brief Get the type of this reduction as a human readable string.
-   */
-  static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
-    std::ostringstream str{};
-    str << "ReductionPartialRows<>";
-    // TODO: add type string
-    return str.str();
-  }
-
   void bind(cl::sycl::handler &h) {
     in_.bind(h);
     out_.bind(h);
@@ -103,20 +93,20 @@ class ReductionPartialRows {
 
   /*!
    * @brief get_workgroup_cluster. This function is used to find the optimum
-   * number of work_group required to execute each partial reduction step.
+   * number of work groups required to execute each partial reduction step.
    */
   SYCL_BLAS_INLINE index_t get_workgroup_cluster() noexcept {
     return ((rows_ - 1) / local_memory_rows + 1) * group_count_cols_;
   }
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
-   * number of work_group cluster, in order to make sure that at least 4
+   * number of work group clusters, in order to make sure that at least 4
    * operations are available per work group. The number 4 is used based on
    * empirical research.
    */
   SYCL_BLAS_INLINE index_t
   get_num_workgroup_cluster(index_t compute_units) noexcept {
-    return 1;  // TODO: optimize that later
+    return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
   }
 
   /*!
@@ -129,11 +119,7 @@ class ReductionPartialRows {
                                  get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(work_group_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
-    // TODO: add verbose
   }
-
-  // TODO: I'm not sure if this method should stay here or not
-  SYCL_BLAS_INLINE index_t get_size() const { return rows_; }
 
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
@@ -151,12 +137,12 @@ class ReductionPartialRows {
     const index_t local_id = id.get_local_id(0);
 
     /* Block row and column */
-    const index_t group_row = group_id % group_count_rows_;  // TODO: no modulo
     const index_t group_col = group_id / group_count_rows_;
+    const index_t group_row = group_id - group_col * group_count_rows_;
 
     /* Item row and column within a block */
-    const index_t local_row = local_id % work_group_rows;  // TODO: no modulo
     const index_t local_col = local_id / work_group_rows;
+    const index_t local_row = local_id - local_col * work_group_rows;
 
     /* Global position of the first element processed by the thread */
     const index_t global_row = group_row * local_memory_rows + local_row;
