@@ -263,7 +263,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   /* Extract data from the reduction wrapper */
   const index_t rows_ = reduction_wrapper.rows_,
                 cols_ = reduction_wrapper.cols_;
-  input_t &in_ = reduction_wrapper.in_, out_ = reduction_wrapper.out_;
+  input_t &in_ = reduction_wrapper.in_;
+  input_t &out_ = reduction_wrapper.out_;
 
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
@@ -280,9 +281,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     static constexpr index_t group_count_cols = params_t::work_group_cols;
 
     /* Create a temporary buffer */
-    std::vector<element_t> temp_vector(rows_ * group_count_cols);
     auto temp_buffer = make_sycl_iterator_buffer<element_t>(
-        temp_vector, rows_ * group_count_cols);
+        rows_ * group_count_cols);
     auto temp_ = make_matrix_view<col_major>(*this, temp_buffer, rows_,
                                              group_count_cols, rows_);
 
