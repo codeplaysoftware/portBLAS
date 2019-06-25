@@ -58,8 +58,8 @@ enum class const_val : int {
   m_two = -2,
   max = 3,
   min = 4,
-  imax = 5,
-  imin = 6
+  abs_max_idxval = 5,
+  abs_min_idxval = 6
 };
 /*!
 @def define a specialization of the constant template value for each indicator.
@@ -76,14 +76,14 @@ struct ConstValue {
 template <typename primitive_t>
 struct ConstValue<primitive_t, const_val::max> {
   constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::min();
+    return std::numeric_limits<primitive_t>::max();
   }
 };
 
 template <typename primitive_t>
 struct ConstValue<primitive_t, const_val::min> {
   constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::max();
+    return std::numeric_limits<primitive_t>::min();
   }
 };
 
@@ -102,16 +102,16 @@ struct constant {
 };
 
 template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::imax> {
+struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_min_idxval> {
   constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
     return IndexValueTuple<value_t, index_t>(
         std::numeric_limits<index_t>::max(),
-        static_cast<value_t>(0)); // This is used for absolute max, -1 == 1
+        static_cast<value_t>(0)); // For absolute values, zero is the minimum
   }
 };
 
 template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::imin> {
+struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_max_idxval> {
   constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
     return IndexValueTuple<value_t, index_t>(
         std::numeric_limits<index_t>::max(),
