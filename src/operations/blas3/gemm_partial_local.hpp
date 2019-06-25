@@ -81,10 +81,6 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       local_thread_size_n * work_per_thread_n;
   static constexpr index_t tile_size_dim_k = cl_elems;
 
-  /* The number of tiles to be processed */
-  static constexpr index_t num_tiles = 12;
-  // TODO: don't hardcode that!!! See Eigen
-
   /* Number of loads per thread for LHS and RHS tiles */
   static constexpr index_t loads_per_thread_lhs =
       (tile_size_dim_k * work_per_thread_m) / local_thread_size_n;
@@ -113,8 +109,11 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t group_count_n;
   const index_t group_count_k;
 
+  /* The number of tiles to be processed */
+  const index_t num_tiles;
+
   SYCL_BLAS_INLINE GemmPartial(input_t A, input_t B, output_t cube_buffer,
-                               element_t alpha)
+                               element_t alpha, index_t wg_count_k)
       : a_(A),
         b_(B),
         cube_(cube_buffer),
@@ -127,18 +126,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
         ldc_(cube_.getSizeL()),
         group_count_m((m_ - 1) / tile_size_dim_m + 1),
         group_count_n((n_ - 1) / tile_size_dim_n + 1),
-        group_count_k((k_ - 1) / (tile_size_dim_k * num_tiles) + 1) {}
-
-  /*!
-   * @brief Get the type of this GemmPartial as a human readable string.
-   */
-  static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
-    std::ostringstream str{};
-    str << "GemmPartial<" << double_buffer << ", "
-        << tile_type::get_type_string() << ", "
-        << type_string<element_t>::get_value() << ">";
-    return str.str();
-  }
+        group_count_k(wg_count_k),
+        num_tiles((k_ - 1) / (tile_size_dim_k * group_count_k) + 1) {}
 
   void bind(cl::sycl::handler &h) {
     a_.bind(h);
@@ -158,10 +147,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief get_workgroup_cluster. This function is used to find the optimum
    * number of work_group required to execute each partial GEMM.
    */
-  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(
-      index_t m, index_t n, index_t k, index_t compute_units) noexcept {
-    return ((m - 1) / tile_size_dim_m + 1) * ((n - 1) / tile_size_dim_n + 1) *
-           ((k - 1) / (tile_size_dim_k * num_tiles) + 1);
+  SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t compute_units) noexcept {
+    return ((m_ - 1) / tile_size_dim_m + 1) * ((n_ - 1) / tile_size_dim_n + 1) *
+           ((k_ - 1) / (tile_size_dim_k * num_tiles) + 1);
   }
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
@@ -169,24 +157,20 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * operations are available per work group. The number 4 is used based on
    * empirical research.
    */
-  static SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(
-      index_t m, index_t n, index_t k, index_t compute_units) noexcept {
-    // return ((4 * compute_units - 1) / get_workgroup_cluster(m, n) + 1);
-    return 1;  // TODO: optimize that later
+  SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(index_t compute_units) noexcept {
+    return ((4 * compute_units - 1) / get_workgroup_cluster(compute_units) + 1);
   }
 
   /*!
    * @brief Get the nd_range value which has to be used for kernels that
    *        intend to call GemmPartial::run().
    */
-  static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t m, index_t n, index_t k, index_t compute_units) noexcept {
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(index_t compute_units) noexcept {
     const cl::sycl::range<1> nwg(
-        get_workgroup_cluster(m, n, k, compute_units) *
-        get_num_workgroup_cluster(m, n, k, compute_units));
+        get_workgroup_cluster(compute_units) *
+        get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(local_thread_size);
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
-    // TODO: add verbose
   }
 
   SYCL_BLAS_INLINE index_t get_size() const { return m_ * n_; }
@@ -281,14 +265,17 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       }
 
       /* Loop over the values of a single tile */
+#pragma unroll
       for (index_t k = 0; k < tile_size_dim_k; k++) {
         auto idx = 0;
         auto rhs_index = 0;
+#pragma unroll
         for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
           // load a RHS element from the scratch buffer
           element_t privateRhs = rhs_scratch_ptr[rhs_index + rhs_offset];
 
           index_t lhs_index = 0;
+#pragma unroll
           for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
             // load a LHS element from the scratch buffer
             element_t privateLhs = scratch_ptr[lhs_index + lhs_offset];

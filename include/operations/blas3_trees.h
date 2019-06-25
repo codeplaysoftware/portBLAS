@@ -192,6 +192,7 @@ class Gemm {
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
+// TODO: define the get_type_string function for tall and tall and skinny gemm
 
 /*
  * TODO: more info here
