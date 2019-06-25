@@ -230,7 +230,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
            Gemm_type>::local_memory_size)};
 }
 
-// Utility function used by the ReductionPartialRows specialization
+/* Utility function used by the ReductionPartialRows specialization */
 template <typename operator_t, int ClSize, int WgSize, int WorkPerItem,
           typename element_t, typename input_t, typename output_t,
           typename index_t, typename queue_t>
@@ -247,7 +247,7 @@ static inline cl::sycl::event launch_row_reduction_step(
       step_range.get_global_range()[0], local_memory_size);
 }
 
-// ReductionPartialRows
+/* ReductionPartialRows */
 template <>
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
           int WgSize, int WorkPerItem, typename element_t>

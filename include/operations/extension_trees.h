@@ -29,7 +29,7 @@
 
 namespace blas {
 
-/*
+/*!
  * @brief Determines which type of reduction to perform
  */
 enum class Reduction_t : int {
@@ -40,6 +40,7 @@ enum class Reduction_t : int {
 
 /*!
  * @brief Wrapper around the reduction.
+ *
  * The executor will specialize the execution for every reduction type and use
  * the specific reduction classes
  */
@@ -55,7 +56,7 @@ class Reduction {
   Reduction(input_t in, output_t out, index_t num_rows, index_t num_cols);
 };
 
-/*
+/*!
  * @brief Calculates the parameters of the row reduction step (used by the
  * executor and the kernel)
  */
