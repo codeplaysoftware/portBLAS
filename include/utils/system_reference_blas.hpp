@@ -57,7 +57,7 @@ CBLAS_UPLO c_uplo(char x) {
     case 'L':
       return CblasLower;
     default:
-      std::cerr << "Uplo value " << x << " is invalid.\n";
+      std::cerr << "Upper/lower value " << x << " is invalid.\n";
       abort();
   }
 }
@@ -70,6 +70,9 @@ CBLAS_DIAG c_diag(char x) {
     case 'n':
     case 'N':
       return CblasNonUnit;
+    default:
+      std::cerr << "Diag value " << x << " is invalid.\n";
+      abort();
   }
 }
 
