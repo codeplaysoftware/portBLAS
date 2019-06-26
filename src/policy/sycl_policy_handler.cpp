@@ -128,12 +128,12 @@ INSTANTIATE_TEMPLATE_METHODS(double)
   PolicyHandler<codeplay_policy>::get_offset<IndexValueTuple<ind, val>>(      \
       BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> ptr) const;
 
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, int)
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, long)
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(float, long long)
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, int)
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, long)
-INSTANTIATE_TEMPLATE_METHODS_SPECIAL(double, long long)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, float)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, float)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, float)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, double)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, double)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, double)
 
 }  // namespace blas
 #endif

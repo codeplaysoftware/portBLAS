@@ -1,4 +1,5 @@
-/**************************************************************************
+/********************************* IndexValueTuple<index_t, scalar_t>
+    IndexValueTuple<index_t, scalar_t>
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
@@ -46,21 +47,21 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  blas::IndexValueTuple<scalar_t, index_t> out(0, 0);
+  blas::IndexValueTuple<index_t, scalar_t> out(0, 0);
 
   auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
   auto outI =
-      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, index_t>>(
+      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
           &out, 1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   index_t idx_ref =
       static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
-  blas::IndexValueTuple<scalar_t, index_t> idx_temp(-1, -1);
+  blas::IndexValueTuple<index_t, scalar_t> idx_temp(-1, -1);
   {
     auto idx_temp_gpu =
-        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<scalar_t, int>>(
+        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<int, scalar_t>>(
             &idx_temp, 1);
     auto event = _iamin(ex, size, inx, 1, idx_temp_gpu);
     ex.get_policy_handler().wait(event);

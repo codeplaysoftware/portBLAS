@@ -113,21 +113,15 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   // for dot after _rot
   std::vector<scalar_t> vU(1);
   // for iamax/iamin
-  constexpr auto max_val = IndexValueTuple<scalar_t, index_t>(
+  constexpr auto max_val = IndexValueTuple<index_t, scalar_t>(
       std::numeric_limits<index_t>::max(), static_cast<scalar_t>(0));
 
-  //     const_val::pair<const_val::abs_max, const_val::max>::value <
-  //     IndexValueTuple<scalar_t, index_t>();
-
-  // constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
-
-  std::vector<IndexValueTuple<scalar_t, index_t>> vImax(1, max_val);
+  std::vector<IndexValueTuple<index_t, scalar_t>> vImax(1, max_val);
 
   constexpr auto min_val =
-      IndexValueTuple<scalar_t, index_t>(std::numeric_limits<index_t>::max(),
+      IndexValueTuple<index_t, scalar_t>(std::numeric_limits<index_t>::max(),
                                          std::numeric_limits<scalar_t>::max());
-  // constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
-  std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
+  std::vector<IndexValueTuple<index_t, scalar_t>> vImin(1, min_val);
 
   auto q = make_queue();
   Executor<ExecutorType> ex(q);
@@ -139,10 +133,10 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   auto gpu_vU = ex.get_policy_handler().template allocate<scalar_t>(1);
   auto gpu_vImax =
       ex.get_policy_handler()
-          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
+          .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
   auto gpu_vImin =
       ex.get_policy_handler()
-          .template allocate<IndexValueTuple<scalar_t, index_t>>(1);
+          .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
   ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
   ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
   _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
@@ -195,7 +189,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
   ex.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
   ex.get_policy_handler()
-      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImax);
+      .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImax);
   ex.get_policy_handler()
-      .template deallocate<IndexValueTuple<scalar_t, index_t>>(gpu_vImin);
+      .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImin);
 }

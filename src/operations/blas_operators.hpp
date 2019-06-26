@@ -68,19 +68,19 @@ struct StripASP {
   GENERATE_STRIP_ASP(data_t, local_ptr)     \
   GENERATE_STRIP_ASP(data_t, global_ptr)
 
-#define GENERATE_STRIP_ASP_TUPLE(data_t, index_t, pointer_type)     \
+#define GENERATE_STRIP_ASP_TUPLE(index_t, data_t, pointer_type)     \
   template <>                                                       \
   struct StripASP<                                                  \
       typename std::remove_pointer<typename cl::sycl::pointer_type< \
-          IndexValueTuple<data_t, index_t>>::pointer_t>::type> {    \
-    typedef IndexValueTuple<data_t, index_t> type;                  \
+          IndexValueTuple<index_t, data_t>>::pointer_t>::type> {    \
+    typedef IndexValueTuple<index_t, data_t> type;                  \
   };
 
-#define INDEX_VALUE_STRIP_ASP_LOCATION(data_t, index_t)   \
-  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, constant_ptr) \
-  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, private_ptr)  \
-  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, local_ptr)    \
-  GENERATE_STRIP_ASP_TUPLE(data_t, index_t, global_ptr)
+#define INDEX_VALUE_STRIP_ASP_LOCATION(index_t, data_t)   \
+  GENERATE_STRIP_ASP_TUPLE(index_t, data_t, constant_ptr) \
+  GENERATE_STRIP_ASP_TUPLE(index_t, data_t, private_ptr)  \
+  GENERATE_STRIP_ASP_TUPLE(index_t, data_t, local_ptr)    \
+  GENERATE_STRIP_ASP_TUPLE(index_t, data_t, global_ptr)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
 /**
@@ -113,12 +113,12 @@ struct AbsoluteValue {
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__COMPUTECPP__)
 GENERATE_STRIP_ASP_LOCATION(double)
 GENERATE_STRIP_ASP_LOCATION(float)
-INDEX_VALUE_STRIP_ASP_LOCATION(float, int)
-INDEX_VALUE_STRIP_ASP_LOCATION(float, long)
-INDEX_VALUE_STRIP_ASP_LOCATION(float, long long)
-INDEX_VALUE_STRIP_ASP_LOCATION(double, int)
-INDEX_VALUE_STRIP_ASP_LOCATION(double, long)
-INDEX_VALUE_STRIP_ASP_LOCATION(double, long long)
+INDEX_VALUE_STRIP_ASP_LOCATION(int, float)
+INDEX_VALUE_STRIP_ASP_LOCATION(long, float)
+INDEX_VALUE_STRIP_ASP_LOCATION(long long, float)
+INDEX_VALUE_STRIP_ASP_LOCATION(int, double)
+INDEX_VALUE_STRIP_ASP_LOCATION(long, double)
+INDEX_VALUE_STRIP_ASP_LOCATION(long long, double)
 #endif
 
 /*!
@@ -127,14 +127,14 @@ Definitions of unary operators
 struct AdditionIdentity : public Operators {
   template <typename rhs_t>
   static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
-    return const_val::zero::value<rhs_t>();
+    return constant<rhs_t, const_val::zero>::value();
   }
 };
 
 struct ProductIdentity : public Operators {
   template <typename rhs_t>
   static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
-    return (const_val::one::value<rhs_t>());
+    return (constant<rhs_t, const_val::one>::value());
   }
 };
 
@@ -185,7 +185,7 @@ struct AddOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::zero::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::zero>::value();
   }
 };
 
@@ -198,7 +198,7 @@ struct ProductOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::one::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::one>::value();
   }
 };
 
@@ -211,7 +211,7 @@ struct DivisionOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::one::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::one>::value();
   }
 };
 
@@ -224,7 +224,7 @@ struct MaxOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::min::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::min>::value();
   }
 };
 
@@ -237,7 +237,7 @@ struct MinOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::max::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::max>::value();
   }
 };
 
@@ -250,7 +250,7 @@ struct AbsoluteAddOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::zero::value<typename rhs_t::value_t>();
+    return constant<typename rhs_t::value_t, const_val::zero>::value();
   }
 };
 
@@ -275,8 +275,8 @@ struct IMaxOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::index_val<const_val::abs_min, const_val::max>::value<
-        typename rhs_t::value_t>();
+    return constant_pair<typename rhs_t::value_t, const_val::max,
+                         const_val::zero>::value();
   }
 };
 
@@ -301,8 +301,8 @@ struct IMinOperator : public Operators {
 
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
-    return const_val::index_val<const_val::abs_max, const_val::max>::value<
-        typename rhs_t::value_t>();
+    return constant_pair<typename rhs_t::value_t, const_val::max,
+                         const_val::abs_max>::value();
   }
 };
 
