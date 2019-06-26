@@ -39,39 +39,6 @@
 namespace blas {
 struct Operators {};
 
-/*!
-@def Macro for defining a unary operator.
-@param name Name of the operator.
-@param expr Return expression of the eval function of the oeprator.
-*/
-#define SYCLBLAS_DEFINE_UNARY_OPERATOR(name, expr)      \
-  struct name : public Operators {                      \
-    template <typename rhs_t>                           \
-    static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) { \
-      return expr;                                      \
-    }                                                   \
-  };
-
-/*!
-@brief Macro for defining a binary operator.
-@param name Name of the operator.
-@param inital Initial value used in the init function of the operator.
-@param expr Return expression of the eval function of the operator.
-*/
-#define SYCLBLAS_DEFINE_BINARY_OPERATOR(Name, initial_t, expr)         \
-  struct Name : public Operators {                                     \
-    template <typename lhs_t, typename rhs_t>                          \
-    static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(       \
-        const lhs_t &l, const rhs_t &r) {                              \
-      return expr;                                                     \
-    }                                                                  \
-                                                                       \
-    template <typename rhs_t>                                          \
-    constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() { \
-      return constant<typename rhs_t::value_t, initial_t>::value();    \
-    }                                                                  \
-  };
-
 /* StripASP.
  * When using ComputeCpp CE, the Device Compiler uses Address Spaces
  * to deal with the different global memories.
@@ -155,51 +122,189 @@ INDEX_VALUE_STRIP_ASP_LOCATION(double, long long)
 #endif
 
 /*!
-Definitions of unary, bianry and ternary operators using the above macros.
+Definitions of unary operators
 */
-SYCLBLAS_DEFINE_UNARY_OPERATOR(AdditionIdentity,
-                               (constant<rhs_t, const_val::zero>::value()))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(ProductIdentity,
-                               (constant<rhs_t, const_val::one>::value()))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(IdentityOperator, (r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(NegationOperator, (-r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(SqrtOperator, (cl::sycl::sqrt(r)))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(DoubleOperator, (r + r))
-SYCLBLAS_DEFINE_UNARY_OPERATOR(SquareOperator, (r * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(AddOperator, const_val::zero, (l + r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(ProductOperator, const_val::one, (l * r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(DivisionOperator, const_val::one, (l / r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(MaxOperator, const_val::min, ((l > r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(MinOperator, const_val::max, ((l < r) ? l : r))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(AbsoluteAddOperator, const_val::zero,
-                                (AbsoluteValue::eval(l) +
-                                 AbsoluteValue::eval(r)))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMaxOperator, const_val::imax,
-    (AbsoluteValue::eval(
-         static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
-         AbsoluteValue::eval(
-             static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
-     (AbsoluteValue::eval(
-          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
-          AbsoluteValue::eval(
-              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
-      l.get_index() > r.get_index()))
-        ? static_cast<typename StripASP<rhs_t>::type>(r)
-        : static_cast<typename StripASP<lhs_t>::type>(l))
-SYCLBLAS_DEFINE_BINARY_OPERATOR(
-    IMinOperator, const_val::imin,
-    (AbsoluteValue::eval(
-         static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
-         AbsoluteValue::eval(
-             static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
-     (AbsoluteValue::eval(
-          static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
-          AbsoluteValue::eval(
-              static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
-      l.get_index() > r.get_index()))
-        ? static_cast<typename StripASP<rhs_t>::type>(r)
-        : static_cast<typename StripASP<lhs_t>::type>(l))
+struct AdditionIdentity : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return const_val::zero::value<rhs_t>();
+  }
+};
+
+struct ProductIdentity : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (const_val::one::value<rhs_t>());
+  }
+};
+
+struct IdentityOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (r);
+  }
+};
+
+struct NegationOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (-r);
+  }
+};
+
+struct SqrtOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (cl::sycl::sqrt(r));
+  }
+};
+
+struct DoubleOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (r + r);
+  }
+};
+
+struct SquareOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return (r * r);
+  }
+};
+
+/*!
+ Definitions of binary operators
+*/
+struct AddOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return (l + r);
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::zero::value<typename rhs_t::value_t>();
+  }
+};
+
+struct ProductOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return (l * r);
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::one::value<typename rhs_t::value_t>();
+  }
+};
+
+struct DivisionOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return (l / r);
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::one::value<typename rhs_t::value_t>();
+  }
+};
+
+struct MaxOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return ((l > r) ? l : r);
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::min::value<typename rhs_t::value_t>();
+  }
+};
+
+struct MinOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return ((l < r) ? l : r);
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::max::value<typename rhs_t::value_t>();
+  }
+};
+
+struct AbsoluteAddOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    return AbsoluteValue::eval(l) + AbsoluteValue::eval(r);
+  }  // namespace blas
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::zero::value<typename rhs_t::value_t>();
+  }
+};
+
+struct IMaxOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    if (AbsoluteValue::eval(
+            static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
+            AbsoluteValue::eval(
+                static_cast<typename StripASP<rhs_t>::type>(r).get_value()) or
+        (AbsoluteValue::eval(
+             static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+             AbsoluteValue::eval(
+                 static_cast<typename StripASP<rhs_t>::type>(r).get_value()) and
+         l.get_index() > r.get_index())) {
+      return static_cast<typename StripASP<rhs_t>::type>(r);
+    } else {
+      return static_cast<typename StripASP<lhs_t>::type>(l);
+    }
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::index_val<const_val::abs_min, const_val::max>::value<
+        typename rhs_t::value_t>();
+  }
+};
+
+struct IMinOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,
+                                                              const rhs_t &r) {
+    if (AbsoluteValue::eval(
+            static_cast<typename StripASP<lhs_t>::type>(l).get_value()) >
+            AbsoluteValue::eval(
+                static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
+        (AbsoluteValue::eval(
+             static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
+             AbsoluteValue::eval(
+                 static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
+         l.get_index() > r.get_index())) {
+      return static_cast<typename StripASP<rhs_t>::type>(r);
+    } else {
+      return static_cast<typename StripASP<lhs_t>::type>(l);
+    }
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return const_val::index_val<const_val::abs_max, const_val::max>::value<
+        typename rhs_t::value_t>();
+  }
+};
 
 }  // namespace blas
 

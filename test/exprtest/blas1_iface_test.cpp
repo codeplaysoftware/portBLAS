@@ -113,11 +113,20 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   // for dot after _rot
   std::vector<scalar_t> vU(1);
   // for iamax/iamin
-  constexpr auto max_val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
+  constexpr auto max_val = IndexValueTuple<scalar_t, index_t>(
+      std::numeric_limits<index_t>::max(), static_cast<scalar_t>(0));
+
+  //     const_val::pair<const_val::abs_max, const_val::max>::value <
+  //     IndexValueTuple<scalar_t, index_t>();
+
+  // constant<IndexValueTuple<scalar_t, index_t>, const_val::imax>::value();
+
   std::vector<IndexValueTuple<scalar_t, index_t>> vImax(1, max_val);
+
   constexpr auto min_val =
-      constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
+      IndexValueTuple<scalar_t, index_t>(std::numeric_limits<index_t>::max(),
+                                         std::numeric_limits<scalar_t>::max());
+  // constant<IndexValueTuple<scalar_t, index_t>, const_val::imin>::value();
   std::vector<IndexValueTuple<scalar_t, index_t>> vImin(1, min_val);
 
   auto q = make_queue();
