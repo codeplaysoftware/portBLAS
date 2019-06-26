@@ -1,5 +1,4 @@
-/********************************* IndexValueTuple<index_t, scalar_t>
-    IndexValueTuple<index_t, scalar_t>
+/**************************************************************************
  *
  *  @license
  *  Copyright (C) 2016 Codeplay Software Limited
