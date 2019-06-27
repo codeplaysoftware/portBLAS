@@ -36,7 +36,7 @@ template <typename operator_t, typename input_t, typename output_t, int ClSize,
           int WgSize, int WorkPerItem, typename element_t>
 class ReductionPartialRows {
  public:
-  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  using index_t = typename input_t::index_t;
   using value_t = element_t;
 
   /* Reading some compile-time parameters from a structure.

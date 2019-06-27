@@ -256,7 +256,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     Reduction<operator_t, input_t, output_t, ClSize, WgSize, WorkPerItem,
               element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction_wrapper) {
-  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  using index_t = typename input_t::index_t;
   using params_t = blas::ReductionRows_Params<index_t, element_t, ClSize,
                                               WgSize, WorkPerItem>;
 
