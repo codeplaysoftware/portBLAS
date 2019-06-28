@@ -75,12 +75,25 @@ struct StripASP {
           IndexValueTuple<index_t, data_t>>::pointer_t>::type> {    \
     typedef IndexValueTuple<index_t, data_t> type;                  \
   };
+#define GENERATE_STRIP_ASP_NEST_TUPLE(index_t, data_t, pointer_type)         \
+  template <>                                                                \
+  struct StripASP<typename std::remove_pointer<                              \
+      typename cl::sycl::pointer_type<IndexValueTuple<                       \
+          index_t, IndexValueTuple<index_t, data_t>>>::pointer_t>::type> {   \
+    typedef IndexValueTuple<index_t, IndexValueTuple<index_t, data_t>> type; \
+  };
 
 #define INDEX_VALUE_STRIP_ASP_LOCATION(index_t, data_t)   \
   GENERATE_STRIP_ASP_TUPLE(index_t, data_t, constant_ptr) \
   GENERATE_STRIP_ASP_TUPLE(index_t, data_t, private_ptr)  \
   GENERATE_STRIP_ASP_TUPLE(index_t, data_t, local_ptr)    \
   GENERATE_STRIP_ASP_TUPLE(index_t, data_t, global_ptr)
+
+#define NEST_INDEX_VALUE_STRIP_ASP_LOCATION(index_t, data_t)   \
+  GENERATE_STRIP_ASP_NEST_TUPLE(index_t, data_t, constant_ptr) \
+  GENERATE_STRIP_ASP_NEST_TUPLE(index_t, data_t, private_ptr)  \
+  GENERATE_STRIP_ASP_NEST_TUPLE(index_t, data_t, local_ptr)    \
+  GENERATE_STRIP_ASP_NEST_TUPLE(index_t, data_t, global_ptr)
 #endif  // __SYCL_DEVICE_ONLY__  && __COMPUTECPP__
 
 /**
@@ -119,6 +132,12 @@ INDEX_VALUE_STRIP_ASP_LOCATION(long long, float)
 INDEX_VALUE_STRIP_ASP_LOCATION(int, double)
 INDEX_VALUE_STRIP_ASP_LOCATION(long, double)
 INDEX_VALUE_STRIP_ASP_LOCATION(long long, double)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(int, float)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(long, float)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(long long, float)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(int, double)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(long, double)
+NEST_INDEX_VALUE_STRIP_ASP_LOCATION(long long, double)
 #endif
 
 /*!
@@ -306,6 +325,25 @@ struct IMinOperator : public Operators {
   }
 };
 
+struct CollapseIndexTupleOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE
+      typename ResolveReturnType<CollapseIndexTupleOperator,
+                                 typename StripASP<rhs_t>::type>::type
+      eval(const lhs_t &l, const rhs_t &r) {
+    return typename StripASP<rhs_t>::type::value_t(
+        static_cast<typename StripASP<rhs_t>::type>(r).get_index() * l +
+            static_cast<typename StripASP<rhs_t>::type>(r).val.get_index(),
+        static_cast<typename StripASP<rhs_t>::type>(r).get_value());
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return constant_pair<typename rhs_t::value_t, const_val::zero,
+                         constant_pair<typename rhs_t::value_t, const_val::zero,
+                                       const_val::zero>::value()>::value();
+  }
+};
 }  // namespace blas
 
 #endif  // BLAS_OPERATORS_HPP

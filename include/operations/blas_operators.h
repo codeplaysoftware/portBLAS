@@ -30,6 +30,20 @@
 
 namespace blas {
 struct Operators;
+
+// A template for getting the return type of a blas operator
+// This is special cased for the CollapseIndex operator, which returns a
+// different type than its input
+template <typename operator_t, typename rhs_t>
+struct ResolveReturnType {
+  using type = rhs_t;
+};
+
+struct CollapseIndexTupleOperator;
+template <typename rhs_t>
+struct ResolveReturnType<CollapseIndexTupleOperator, rhs_t> {
+  using type = typename rhs_t::value_t;
+};
 }  // namespace blas
 
 #endif

@@ -32,6 +32,29 @@
 #include "blas_meta.h"
 namespace blas {
 
+template <typename scalar_t, typename index_t>
+struct IndexValueTuple;
+
+// This template is specialised to help with the getting of the value of nested
+// tuples
+// (a, x).get_value() == x
+// (a, (b, x)).get_value() == x
+template <typename value_t>
+struct GetTupleValue {
+  using return_t = value_t;
+
+  SYCL_BLAS_INLINE static return_t get(const value_t val) { return val; }
+};
+template <typename index_t, typename value_t>
+struct GetTupleValue<IndexValueTuple<index_t, value_t>> {
+  using return_t = value_t;
+
+  SYCL_BLAS_INLINE static return_t get(
+      const IndexValueTuple<index_t, value_t> val) {
+    return val.get_value();
+  }
+};
+
 /*!
 @brief Container for a scalar value and an index.
 */
@@ -43,10 +66,26 @@ struct IndexValueTuple {
   index_t ind;
   value_t val;
 
+  // This operator is required due to a ComputeCPP bug
+  // (If the RHS of this operator is static const, then llvm.memcpy is broken)
+  constexpr IndexValueTuple(const IndexValueTuple<index_t, value_t> &other)
+      : val(other.val), ind(other.ind) {}
+
   constexpr explicit IndexValueTuple(index_t _ind, value_t _val)
       : ind(_ind), val(_val){};
   SYCL_BLAS_INLINE index_t get_index() const { return ind; }
-  SYCL_BLAS_INLINE value_t get_value() const { return val; }
+  SYCL_BLAS_INLINE typename GetTupleValue<value_t>::return_t get_value() const {
+    return GetTupleValue<value_t>::get(val);
+  }
+  // This operator is required due to a ComputeCPP bug
+  // (If the RHS of this operator is static const, then llvm.memcpy is broken)
+  IndexValueTuple<index_t, value_t> &operator=(
+      const IndexValueTuple<index_t, value_t> &other) {
+    val = other.val;
+    ind = other.ind;
+
+    return *this;
+  }
 };
 
 /*!
@@ -62,6 +101,7 @@ enum class const_val : int {
   min = 4,
   abs_max = 5,
   abs_min = 6,
+  collapse = 7,
 };
 
 /*!
@@ -103,6 +143,33 @@ template <typename value_t>
 struct constant<value_t, const_val::abs_min> {
   constexpr static SYCL_BLAS_INLINE value_t value() {
     return static_cast<value_t>(0);
+  }
+};
+
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_max> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
+    return IndexValueTuple<value_t, index_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<index_t>::max());
+  }
+};
+
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_min> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
+    return IndexValueTuple<value_t, index_t>(
+        std::numeric_limits<index_t>::max(),
+        0);
+  }
+};
+
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<value_t, index_t>, const_val::collapse> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
+    return IndexValueTuple<value_t, index_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<value_t>::max());
   }
 };
 
