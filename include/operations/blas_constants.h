@@ -35,14 +35,16 @@ namespace blas {
 /*!
 @brief Container for a scalar value and an index.
 */
-template <typename scalar_t, typename index_t>
+template <typename ix_t, typename val_t>
 struct IndexValueTuple {
-  using value_t = scalar_t;
-  value_t val;
+  using value_t = val_t;
+  using index_t = ix_t;
+
   index_t ind;
+  value_t val;
 
   constexpr explicit IndexValueTuple(index_t _ind, value_t _val)
-      : val(_val), ind(_ind){};
+      : ind(_ind), val(_val){};
   SYCL_BLAS_INLINE index_t get_index() const { return ind; }
   SYCL_BLAS_INLINE value_t get_value() const { return val; }
 };
@@ -58,71 +60,66 @@ enum class const_val : int {
   m_two = -2,
   max = 3,
   min = 4,
-  imax = 5,
-  imin = 6
-};
-/*!
-@def define a specialization of the constant template value for each indicator.
-@ref ConstValue.
-@tparam primitive_t The value type to specialize for.
-@tparam Indicator The constant to specialize for.
-*/
-template <typename primitive_t, const_val Indicator>
-struct ConstValue {
-  constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return static_cast<primitive_t>(static_cast<int>(Indicator));
-  }
-};
-template <typename primitive_t>
-struct ConstValue<primitive_t, const_val::max> {
-  constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::min();
-  }
-};
-
-template <typename primitive_t>
-struct ConstValue<primitive_t, const_val::min> {
-  constexpr static SYCL_BLAS_INLINE primitive_t init() {
-    return std::numeric_limits<primitive_t>::max();
-  }
+  abs_max = 5,
+  abs_min = 6,
 };
 
 /*!
 @brief Template struct used to represent constants within a compile-time
-expression tree, each instantiation will have a static constexpr member variable
-of the type value_t initialized to the specified constant.
+expression tree, each instantiation will have a static constexpr member
+variable of the type value_t initialized to the specified constant.
 @tparam value_t Value type of the constant.
 @tparam kIndicator Enumeration specifying the constant.
 */
 template <typename value_t, const_val Indicator>
 struct constant {
   constexpr static SYCL_BLAS_INLINE value_t value() {
-    return ConstValue<value_t, Indicator>::init();
+    return static_cast<value_t>(Indicator);
   }
 };
 
-template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::imax> {
-  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
-    return IndexValueTuple<value_t, index_t>(
-        std::numeric_limits<index_t>::max(),
-        static_cast<value_t>(0)); // This is used for absolute max, -1 == 1
+template <typename value_t>
+struct constant<value_t, const_val::max> {
+  constexpr static SYCL_BLAS_INLINE value_t value() {
+    return std::numeric_limits<value_t>::max();
   }
 };
 
-template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::imin> {
-  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
-    return IndexValueTuple<value_t, index_t>(
-        std::numeric_limits<index_t>::max(),
-        std::numeric_limits<value_t>::max());
+template <typename value_t>
+struct constant<value_t, const_val::min> {
+  constexpr static SYCL_BLAS_INLINE value_t value() {
+    return std::numeric_limits<value_t>::min();
   }
 };
+
+template <typename value_t>
+struct constant<value_t, const_val::abs_max> {
+  constexpr static SYCL_BLAS_INLINE value_t value() {
+    return std::numeric_limits<value_t>::max();
+  }
+};
+
+template <typename value_t>
+struct constant<value_t, const_val::abs_min> {
+  constexpr static SYCL_BLAS_INLINE value_t value() {
+    return static_cast<value_t>(0);
+  }
+};
+
 template <typename value_t, const_val Indicator>
 struct constant<std::complex<value_t>, Indicator> {
   constexpr static SYCL_BLAS_INLINE std::complex<value_t> value() {
-    return std::complex<value_t>(ConstValue<value_t, Indicator>::init(),
-                                 ConstValue<value_t, Indicator>::init());
+    return std::complex<value_t>(constant<value_t, Indicator>::value(),
+                                 constant<value_t, Indicator>::value());
+  }
+};
+
+template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>
+struct constant_pair {
+  constexpr static SYCL_BLAS_INLINE iv_type value() {
+    return iv_type(
+        constant<typename iv_type::index_t, IndexIndicator>::value(),
+        constant<typename iv_type::value_t, ValueIndicator>::value());
   }
 };
 

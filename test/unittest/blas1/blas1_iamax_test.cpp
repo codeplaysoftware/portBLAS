@@ -4,7 +4,7 @@
 
 template <typename scalar_t>
 void run_test(const combination_t combi) {
-  using tuple_t = IndexValueTuple<scalar_t, int>;
+  using tuple_t = IndexValueTuple<int, scalar_t>;
 
   int size;
   int incX;
