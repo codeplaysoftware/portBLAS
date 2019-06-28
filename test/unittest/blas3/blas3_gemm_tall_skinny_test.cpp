@@ -31,15 +31,15 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<int, int, int, char, char, scalar_t, scalar_t, int, int, int>;
 
-const auto combi = ::testing::Combine(::testing::Values(7),    // m
-                                      ::testing::Values(13),    // n
-                                      ::testing::Values(120),    // k
-                                      ::testing::Values('n'),  // transa
-                                      ::testing::Values('t'),  // transb
-                                      ::testing::Values(1.0),  // alpha
+const auto combi = ::testing::Combine(::testing::Values(7, 65),    // m
+                                      ::testing::Values(9, 126),    // n
+                                      ::testing::Values(1337, 5678),    // k
+                                      ::testing::Values('n', 't'),  // transa
+                                      ::testing::Values('n', 't'),  // transb
+                                      ::testing::Values(1.5),  // alpha
                                       ::testing::Values(0.0),  // beta
-                                      ::testing::Values(2),    // lda_mul
-                                      ::testing::Values(3),    // ldb_mul
+                                      ::testing::Values(3),    // lda_mul
+                                      ::testing::Values(2),    // ldb_mul
                                       ::testing::Values(1)     // ldc_mul
 );
 
@@ -147,20 +147,20 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
-  std::cerr << "A: " << std::endl;
-  if(transa == 'n') MatrixPrinter<true>::eval(k, m, a_m, lda);
-  else MatrixPrinter<false>::eval(k, m, a_m, lda);
-
-  std::cerr << "B: " << std::endl;
-  if(transb == 'n') MatrixPrinter<true>::eval(n, k, b_m, ldb);
-  else MatrixPrinter<false>::eval(n, k, b_m, ldb);
-
-  // the matrix is now in tsgf._C
-  std::cerr << "C expected: " << std::endl;
-  MatrixPrinter<true>::eval(n, m, c_m_cpu, ldc);
-
-  std::cerr << "C obtained: " << std::endl;
-  MatrixPrinter<true>::eval(n, m, c_m_gpu, ldc);
+  // std::cerr << "A: " << std::endl;
+  // if(transa == 'n') MatrixPrinter<true>::eval(k, m, a_m, lda);
+  // else MatrixPrinter<false>::eval(k, m, a_m, lda);
+  //
+  // std::cerr << "B: " << std::endl;
+  // if(transb == 'n') MatrixPrinter<true>::eval(n, k, b_m, ldb);
+  // else MatrixPrinter<false>::eval(n, k, b_m, ldb);
+  //
+  // // the matrix is now in tsgf._C
+  // std::cerr << "C expected: " << std::endl;
+  // MatrixPrinter<true>::eval(n, m, c_m_cpu, ldc);
+  //
+  // std::cerr << "C obtained: " << std::endl;
+  // MatrixPrinter<true>::eval(n, m, c_m_gpu, ldc);
 
   ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
 }

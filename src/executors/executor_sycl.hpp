@@ -246,14 +246,17 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t rows = gemm_wrapper.m_, cols = gemm_wrapper.n_;
 
   /* Depth of the cube buffer */
-  const index_t depth = 1;
-  // TODO: clever value here
+  const index_t depth =
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, Gemm_memory_type>::
+          get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows,
+                               cols, gemm_wrapper.k_);
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
   auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
-  auto cube =
-      make_matrix_view<col_major>(*this, cube_buffer, rows * cols, depth, rows);
+  auto cube = make_matrix_view<col_major>(*this, cube_buffer, rows * cols,
+                                          depth, rows * cols);
   /* Execute the partial gemm operation */
   GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
               TransA, TransB, element_t, Gemm_memory_type>
@@ -285,8 +288,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, element_t, Gemm_memory_type>
         gemm_partial) {
-  auto gemm_partial_range = gemm_partial.get_nd_range(
-      policy_handler_.get_num_compute_units());
+  auto gemm_partial_range =
+      gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());
   return {execute_tree<Choose<
       Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
       using_local_memory::enabled, using_local_memory::disabled>::type>(

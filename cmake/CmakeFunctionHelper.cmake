@@ -49,10 +49,24 @@ if(${TARGET} STREQUAL "INTEL_GPU")  # TODO: update other backends as well!
   set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory" "classic")
   set(gemm_configuration_3 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local_memory" "classic")
   set(gemm_configuration_4 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory" "classic")
-  set(gemm_configuration_5 256 "true" "false" "false" 64 2 2 4 4 1 1 "local_memory" "tall_skinny")
+
+  set(gemm_configuration_5 16 "true" "false" "false" 64 2 2 4 4 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_6 64 "true" "false" "false" 64 2 2 8 8 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_7 16 "true" "false" "false" 64 4 4 4 4 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_8 32 "true" "false" "false" 64 4 8 4 8 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_9 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_10 256 "true" "false" "false" 64 4 4 16 16 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_11 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_12 256 "true" "false" "false" 64 8 8 16 16 1 1 "local_memory" "tall_skinny")
+  set(gemm_configuration_13 32 "true" "false" "false" 64 8 4 8 4 1 1 "local_memory" "tall_skinny")
+
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2 gemm_configuration_3
-                                     gemm_configuration_4 gemm_configuration_5)
+                                       gemm_configuration_4 gemm_configuration_5
+                                       gemm_configuration_6 gemm_configuration_7
+                                       gemm_configuration_8 gemm_configuration_9
+                                       gemm_configuration_10 gemm_configuration_11
+                                       gemm_configuration_12 gemm_configuration_13)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
   set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local_memory")

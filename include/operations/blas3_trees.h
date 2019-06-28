@@ -200,26 +200,7 @@ class Gemm {
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           typename element_t, int Gemm_memory_type>
-class GemmPartial {
-  // public:
-  //  using index_t = typename std::make_signed<typename
-  //  input_t::index_t>::type; GemmPartial(input_t A, input_t B, output_t C,
-  //  element_t alpha, element_t beta);
-  //   static std::string get_type_string() noexcept;
-  //   static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
-  //   static index_t get_num_workgroup_cluster(index_t m, index_t n,
-  //                                            index_t compute_units) noexcept;
-  //   static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
-  //                                             index_t compute_units)
-  //                                             noexcept;
-  //   index_t get_size() const;
-  //   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  //
-  //   template <typename local_memory_t>
-  //   void eval(local_memory_t scratch, cl::sycl::nd_item<1> id) noexcept;
-  //
-  //   void bind(cl::sycl::handler &h);
-};
+class GemmPartial {};
 
 /*
  * @brief a helper function used for constructing the GEMM
