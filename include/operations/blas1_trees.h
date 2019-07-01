@@ -26,6 +26,7 @@
 #ifndef SYCL_BLAS_BLAS1_TREES_H
 #define SYCL_BLAS_BLAS1_TREES_H
 #include "operations/blas_constants.h"
+#include "operations/blas_operators.h"
 #include <CL/sycl.hpp>
 #include <stdexcept>
 #include <vector>
@@ -94,7 +95,7 @@ struct DoubleAssign {
 template <typename operator_t, typename scalar_t, typename rhs_t>
 struct ScalarOp {
   using index_t = typename rhs_t::index_t;
-  using value_t = typename rhs_t::value_t;
+  using value_t = typename ResolveReturnType<operator_t, rhs_t>::type::value_t;
   scalar_t scalar_;
   rhs_t rhs_;
   ScalarOp(scalar_t _scl, rhs_t &_r);
@@ -112,7 +113,7 @@ struct ScalarOp {
 template <typename operator_t, typename rhs_t>
 struct UnaryOp {
   using index_t = typename rhs_t::index_t;
-  using value_t = typename rhs_t::value_t;
+  using value_t = typename ResolveReturnType<operator_t, rhs_t>::type::value_t;
   rhs_t rhs_;
   UnaryOp(rhs_t &_r);
   index_t get_size() const;
@@ -129,7 +130,7 @@ struct UnaryOp {
 template <typename operator_t, typename lhs_t, typename rhs_t>
 struct BinaryOp {
   using index_t = typename rhs_t::index_t;
-  using value_t = typename rhs_t::value_t;
+  using value_t = typename ResolveReturnType<operator_t, rhs_t>::type::value_t;
   lhs_t lhs_;
   rhs_t rhs_;
   BinaryOp(lhs_t &_l, rhs_t &_r);
@@ -147,7 +148,7 @@ struct BinaryOp {
 template <typename rhs_t>
 struct TupleOp {
   using index_t = typename rhs_t::index_t;
-  using value_t = IndexValueTuple<typename rhs_t::value_t, index_t>;
+  using value_t = IndexValueTuple<index_t, typename rhs_t::value_t>;
   rhs_t rhs_;
   TupleOp(rhs_t &_r);
   index_t get_size() const;
@@ -164,7 +165,7 @@ struct TupleOp {
  */
 template <typename operator_t, typename lhs_t, typename rhs_t>
 struct AssignReduction {
-  using value_t = typename rhs_t::value_t;
+  using value_t = typename ResolveReturnType<operator_t, rhs_t>::type::value_t;
   using index_t = typename rhs_t::index_t;
   lhs_t lhs_;
   rhs_t rhs_;

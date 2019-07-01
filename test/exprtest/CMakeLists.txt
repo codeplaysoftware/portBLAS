@@ -32,6 +32,7 @@ set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(SYCL_EXPRTEST_SRCS
   ${SYCLBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
   ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+  ${SYCLBLAS_EXPRTEST}/collapse_nested_tuple.cpp
   ${SYCLBLAS_EXPRTEST}/extension_reduction_partial_rows_test.cpp
 )
 
