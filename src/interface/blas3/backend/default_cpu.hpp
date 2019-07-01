@@ -37,18 +37,21 @@ typename executor_t::policy_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
+#if defined(NAIVE_GEMM)
   return blas::Gemm_Launcher<
       64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
-#if defined(NAIVE_GEMM)
-
-      static_cast<int>(Gemm_t::naive)
-#else
-
-      static_cast<int>(Gemm_t::no_local_memory)
-#endif
-          ,
+      static_cast<int>(Gemm_memory_t::no_local_memory),
+      static_cast<int>(Gemm_shape_t::naive),
       is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b,
                                            _ldb, _beta, _c, _ldc, batch_size);
+#else
+  return blas::Gemm_Launcher<
+      64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
+      static_cast<int>(Gemm_memory_t::no_local_memory),
+      static_cast<int>(Gemm_shape_t::classic),
+      is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b,
+                                           _ldb, _beta, _c, _ldc, batch_size);
+#endif
 }
 }  // namespace backend
 }  // namespace gemm

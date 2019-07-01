@@ -40,14 +40,16 @@ typename executor_t::policy_t::event_t _gemm(
   if (_M == 10 && _N == 1024 && _K == 1024) {
     return blas::Gemm_Launcher<
         256, true, false, false, 64, Tile<1, 1, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_t::local_memory),
+        static_cast<int>(Gemm_memory_t::local_memory),
+        static_cast<int>(Gemm_shape_t::classic),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);
   } else {
     return blas::Gemm_Launcher<
         256, false, false, false, 64, Tile<8, 8, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_t::local_memory),
+        static_cast<int>(Gemm_memory_t::local_memory),
+        static_cast<int>(Gemm_shape_t::classic),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);

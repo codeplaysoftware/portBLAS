@@ -69,14 +69,13 @@ class ReductionPartialRows {
   const index_t group_count_cols_;
 
   SYCL_BLAS_INLINE ReductionPartialRows(input_t in, output_t out,
-                                        index_t num_rows, index_t num_cols,
                                         index_t group_count_cols)
       : in_(in),
         out_(out),
         rows_(in_.get_size_row()),
         cols_(in_.get_size_col()),
         leading_dim_(in_.getSizeL()),
-        group_count_rows_((num_rows - 1) / local_memory_rows + 1),
+        group_count_rows_((rows_ - 1) / local_memory_rows + 1),
         group_count_cols_(group_count_cols) {}
 
   void bind(cl::sycl::handler &h) {

@@ -262,20 +262,22 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
               TransA, TransB, element_t, Gemm_memory_type>
       gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube, gemm_wrapper.alpha_,
                    depth);
-  auto partial_event = execute(gemm_partial);
+  auto events = execute(gemm_partial);
 
   /* Second step: reduction */
+
   constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
   Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
             tile_type::item_rows, element_t,
             static_cast<int>(Reduction_t::partial_rows)>
-      reduction(cube, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_, 1);
-  auto reduction_event = execute(reduction);
+      reduction(cube, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_,
+                depth);
+  events = concatenate_vectors(events, execute(reduction));
 
   /* Third step: combine with beta * C */
   // TODO
 
-  return partial_event;
+  return events;
 }
 
 /* GemmPartial */
@@ -304,12 +306,11 @@ template <typename operator_t, int ClSize, int WgSize, int WorkPerItem,
           typename element_t, typename input_t, typename output_t,
           typename index_t, typename queue_t>
 static inline cl::sycl::event launch_row_reduction_step(
-    queue_t queue, input_t& in, output_t& out, index_t rows, index_t cols,
-    index_t group_count_cols, index_t local_memory_size,
-    index_t num_compute_units) {
+    queue_t queue, input_t& in, output_t& out, index_t group_count_cols,
+    index_t local_memory_size, index_t num_compute_units) {
   ReductionPartialRows<operator_t, input_t, output_t, ClSize, WgSize,
                        WorkPerItem, element_t>
-      reduction_step(in, out, rows, cols, group_count_cols);
+      reduction_step(in, out, group_count_cols);
   auto step_range = reduction_step.get_nd_range(num_compute_units);
   return execute_tree<using_local_memory::enabled>(
       queue, reduction_step, step_range.get_local_range()[0],
@@ -359,22 +360,22 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
                                   element_t>(
-            policy_handler_.get_queue(), in_, temp_, rows_, cols_,
-            group_count_cols, params_t::local_memory_size, num_compute_units));
+            policy_handler_.get_queue(), in_, temp_, group_count_cols,
+            params_t::local_memory_size, num_compute_units));
 
     /* 2nd step */
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
                                   element_t>(
-            policy_handler_.get_queue(), temp_, out_, rows_, group_count_cols,
-            1, params_t::local_memory_size, num_compute_units));
+            policy_handler_.get_queue(), temp_, out_, 1,
+            params_t::local_memory_size, num_compute_units));
   }
   /* 1-step reduction */
   else {
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
                                   element_t>(
-            policy_handler_.get_queue(), in_, out_, rows_, cols_, 1,
+            policy_handler_.get_queue(), in_, out_, 1,
             params_t::local_memory_size, num_compute_units));
   }
 
