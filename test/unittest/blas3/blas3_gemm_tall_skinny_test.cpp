@@ -31,16 +31,16 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<int, int, int, char, char, scalar_t, scalar_t, int, int, int>;
 
-const auto combi = ::testing::Combine(::testing::Values(7, 65),    // m
-                                      ::testing::Values(9, 126),    // n
-                                      ::testing::Values(1337, 5678),    // k
-                                      ::testing::Values('n', 't'),  // transa
-                                      ::testing::Values('n', 't'),  // transb
-                                      ::testing::Values(1.5),  // alpha
-                                      ::testing::Values(0.0),  // beta
-                                      ::testing::Values(3),    // lda_mul
-                                      ::testing::Values(2),    // ldb_mul
-                                      ::testing::Values(1)     // ldc_mul
+const auto combi = ::testing::Combine(::testing::Values(7, 65),      // m
+                                      ::testing::Values(9, 126),     // n
+                                      ::testing::Values(1337, 5678), // k
+                                      ::testing::Values('n', 't'),   // transa
+                                      ::testing::Values('n', 't'),   // transb
+                                      ::testing::Values(1.5),        // alpha
+                                      ::testing::Values(0.0, 0.5),   // beta
+                                      ::testing::Values(3),          // lda_mul
+                                      ::testing::Values(2),          // ldb_mul
+                                      ::testing::Values(1, 3)        // ldc_mul
 );
 
 // ---------------------------

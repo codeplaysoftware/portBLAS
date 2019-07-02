@@ -249,5 +249,91 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_Ger_Col(
   return GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>(
       lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
+
+
+/*!Scalar2DOp.
+ * @brief Implements an scalar operation.
+ * (e.g alpha OP A, with alpha scalar and A matrix)
+ */
+template <typename operator_t, typename scalar_t, typename rhs_t>
+struct Scalar2DOp {
+  using index_t = typename rhs_t::index_t;
+  using value_t = typename rhs_t::value_t;
+  scalar_t scalar_;
+  rhs_t rhs_;
+  Scalar2DOp(scalar_t _scl, rhs_t &_r);
+  index_t get_size() const;
+  index_t getSizeL() const;
+  index_t get_size_row() const;
+  index_t get_size_col() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
+/*! Unary2DOp.
+ * Implements a Unary Operation ( operator_t(z), e.g. z++), with z a vector.
+ */
+template <typename operator_t, typename rhs_t>
+struct Unary2DOp {
+  using index_t = typename rhs_t::index_t;
+  using value_t = typename rhs_t::value_t;
+  rhs_t rhs_;
+  Unary2DOp(rhs_t &_r);
+  index_t get_size() const;
+  index_t getSizeL() const;
+  index_t get_size_row() const;
+  index_t get_size_col() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
+/*! Binary2DOp.
+ * @brief Implements a Binary Operation (x OP z) with x and z vectors.
+ */
+template <typename operator_t, typename lhs_t, typename rhs_t>
+struct Binary2DOp {
+  using index_t = typename rhs_t::index_t;
+  using value_t = typename rhs_t::value_t;
+  lhs_t lhs_;
+  rhs_t rhs_;
+  Binary2DOp(lhs_t &_l, rhs_t &_r);
+  index_t get_size() const;
+  index_t getSizeL() const;
+  index_t get_size_row() const;
+  index_t get_size_col() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
+/*! Assign2D.
+ * @brief Assign the rhs to the lhs
+ */
+template <typename lhs_t, typename rhs_t>
+struct Assign2D {
+  using index_t = typename lhs_t::index_t;
+  using value_t = typename rhs_t::value_t;
+  lhs_t lhs_;
+  rhs_t rhs_;
+  Assign2D(lhs_t &_l, rhs_t _r);
+  index_t get_size() const;
+  index_t getSizeL() const;
+  index_t get_size_row() const;
+  index_t get_size_col() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
 }  // namespace blas
 #endif  // BLAS2_TREES_H

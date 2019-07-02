@@ -138,7 +138,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
         group_count_k(wg_count_k),
         num_tiles((k_ - 1) / (tile_size_dim_k * group_count_k) + 1) {}
 
-  void bind(cl::sycl::handler &h) {
+  void bind(cl::sycl::handler& h) {
     a_.bind(h);
     b_.bind(h);
     cube_.bind(h);
@@ -191,12 +191,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
-    /* references to the matrices */
-    const auto A = a_.get_pointer();
-    const auto B = b_.get_pointer();
-    auto cube_buffer = cube_.get_pointer();
-
-    /* references to the scratch memory (lhs and rhs) */
+    /* pointers to the scratch memory (lhs and rhs) */
     auto scratch_ptr = scratch.localAcc.get_pointer().get();
     auto rhs_scratch_ptr = scratch_ptr + (2 * ld_lhs_tile * tile_size_dim_k);
 
@@ -231,9 +226,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const bool check_m_limit = global_m_offset + tile_size_dim_m > m_;
     const bool check_n_limit = global_n_offset + tile_size_dim_n > n_;
 
-    extract_input_blocks(local_id, 0, m_, n_, k_, A, lda_, B, ldb_, scratch_ptr,
-                         rhs_scratch_ptr, global_m_offset, global_n_offset,
-                         global_k_offset, check_m_limit, check_n_limit);
+    extract_input_blocks(local_id, 0, scratch_ptr, rhs_scratch_ptr,
+                         global_m_offset, global_n_offset, global_k_offset,
+                         check_m_limit, check_n_limit);
 
     const index_t start_lhs_index = m_local_id;
     const index_t start_rhs_index = n_local_id;
@@ -246,10 +241,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       // Start loading the next tile
       index_t next_tile = tile_id + 1;
       if (next_tile < num_tiles) {
-        extract_input_blocks(local_id, next_tile, m_, n_, k_, A, lda_, B, ldb_,
-                             scratch_ptr, rhs_scratch_ptr, global_m_offset,
-                             global_n_offset, global_k_offset, check_m_limit,
-                             check_n_limit);
+        extract_input_blocks(local_id, next_tile, scratch_ptr, rhs_scratch_ptr,
+                             global_m_offset, global_n_offset, global_k_offset,
+                             check_m_limit, check_n_limit);
       }
 
       // Calculate offsets into the temporary memory.
@@ -289,7 +283,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
     // Store the final results in the cube buffer
     index_t slice_col = (ngroup_id * tile_size_dim_n) + (n_local_id);
-    const index_t slice_row_offset = (mgroup_id * tile_size_dim_m) + (m_local_id);
+    const index_t slice_row_offset =
+        (mgroup_id * tile_size_dim_m) + (m_local_id);
     const index_t cube_depth_offset = kgroup_id * m_ * n_;
     index_t cube_index = slice_col * m_;
     index_t private_index_offset = 0;
@@ -302,7 +297,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 #pragma unroll
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
         if (slice_row < m_ && slice_col < n_) {
-          cube_buffer[cube_index + slice_row + cube_depth_offset] =
+          cube_.eval(cube_index + slice_row + cube_depth_offset) =
               alpha * private_res[wLPTM + private_index];
         }
         slice_row += local_thread_size_m;
@@ -316,57 +311,56 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     }
   }
 
-  template <typename global_ptr_t, typename local_ptr_t>
-  static SYCL_BLAS_INLINE void extract_input_blocks(
-      index_t local_id, index_t tile_idx, index_t m_, index_t n_, index_t k_,
-      global_ptr_t A, index_t lda, global_ptr_t B, index_t ldb,
-      local_ptr_t scratch_ptr, local_ptr_t rhs_scratch_ptr,
-      index_t global_m_offset, index_t global_n_offset, index_t global_k_offset,
-      bool check_m_limit, bool check_n_limit) {
+  template <typename local_ptr_t>
+  SYCL_BLAS_INLINE void extract_input_blocks(
+      index_t local_id, index_t tile_idx, local_ptr_t scratch_ptr,
+      local_ptr_t rhs_scratch_ptr, index_t global_m_offset,
+      index_t global_n_offset, index_t global_k_offset, bool check_m_limit,
+      bool check_n_limit) {
     const bool check_k_limit =
         global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_;
     const bool check_limits = check_m_limit || check_n_limit || check_k_limit;
     if (check_limits)
-      load_blocks<true, true, true>(
-          local_id, tile_idx, m_, n_, k_, A, lda, B, ldb, scratch_ptr,
-          rhs_scratch_ptr, global_m_offset, global_n_offset, global_k_offset);
+      load_blocks<true, true, true>(local_id, tile_idx, scratch_ptr,
+                                    rhs_scratch_ptr, global_m_offset,
+                                    global_n_offset, global_k_offset);
     else
-      load_blocks<false, false, false>(
-          local_id, tile_idx, m_, n_, k_, A, lda, B, ldb, scratch_ptr,
-          rhs_scratch_ptr, global_m_offset, global_n_offset, global_k_offset);
+      load_blocks<false, false, false>(local_id, tile_idx, scratch_ptr,
+                                       rhs_scratch_ptr, global_m_offset,
+                                       global_n_offset, global_k_offset);
   }
 
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
-            typename global_ptr_t, typename local_ptr_t>
-  static SYCL_BLAS_INLINE void load_blocks(
-      index_t local_id, index_t tile_idx, index_t m_, index_t n_, index_t k_,
-      global_ptr_t A, index_t lda, global_ptr_t B, index_t ldb,
-      local_ptr_t scratch_ptr, local_ptr_t rhs_scratch_ptr,
-      index_t global_m_offset, index_t global_n_offset,
-      index_t global_k_offset) {
+            typename local_ptr_t>
+  SYCL_BLAS_INLINE void load_blocks(index_t local_id, index_t tile_idx,
+                                    local_ptr_t scratch_ptr,
+                                    local_ptr_t rhs_scratch_ptr,
+                                    index_t global_m_offset,
+                                    index_t global_n_offset,
+                                    index_t global_k_offset) {
     // LHS tile
     if (trans_a) {
       load_and_transpose_block<loads_per_thread_lhs, check_k_limit,
                                check_m_limit, tile_size_dim_k, tile_size_dim_m,
-                               ld_lhs_tile>(local_id, tile_idx, A, lda,
+                               ld_lhs_tile>(local_id, tile_idx, a_, lda_,
                                             scratch_ptr, global_k_offset,
                                             global_m_offset, k_, m_);
     } else {
       load_block<loads_per_thread_lhs, check_m_limit, check_k_limit,
                  tile_size_dim_m, tile_size_dim_k, ld_lhs_tile>(
-          local_id, tile_idx, A, lda, scratch_ptr, global_m_offset,
+          local_id, tile_idx, a_, lda_, scratch_ptr, global_m_offset,
           global_k_offset, m_, k_);
     }
     // RHS tile
     if (trans_b) {
       load_block<loads_per_thread_rhs, check_n_limit, check_k_limit,
                  tile_size_dim_n, tile_size_dim_k, ld_rhs_tile>(
-          local_id, tile_idx, B, ldb, rhs_scratch_ptr, global_n_offset,
+          local_id, tile_idx, b_, ldb_, rhs_scratch_ptr, global_n_offset,
           global_k_offset, n_, k_);
     } else {
       load_and_transpose_block<loads_per_thread_rhs, check_k_limit,
                                check_n_limit, tile_size_dim_k, tile_size_dim_n,
-                               ld_rhs_tile>(local_id, tile_idx, B, ldb,
+                               ld_rhs_tile>(local_id, tile_idx, b_, ldb_,
                                             rhs_scratch_ptr, global_k_offset,
                                             global_n_offset, k_, n_);
     }
@@ -374,10 +368,10 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   template <index_t loads_per_thread, bool check_row_limit,
             bool check_col_limit, index_t block_rows, index_t block_cols,
-            index_t ld_tile, typename global_ptr_t, typename local_ptr_t>
+            index_t ld_tile, typename local_ptr_t>
   static SYCL_BLAS_INLINE void load_block(
-      index_t local_id, index_t tile_idx, global_ptr_t global_ptr,
-      index_t leading_dim, local_ptr_t local_ptr, index_t global_row_offset,
+      index_t local_id, index_t tile_idx, input_t& in_view, index_t leading_dim,
+      local_ptr_t local_ptr, index_t global_row_offset,
       index_t global_col_offset, index_t global_rows, index_t global_cols) {
     index_t local_linear_id = local_id;
     const index_t global_tile_col_offset =
@@ -393,7 +387,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       const index_t local_thread_row =
           local_linear_id - (local_thread_col * block_rows);
 
-      const index_t global_col_index = global_tile_col_offset + local_thread_col;
+      const index_t global_col_index =
+          global_tile_col_offset + local_thread_col;
       const index_t global_row_index = global_row_offset + local_thread_row;
 
       const index_t local_mem_id =
@@ -404,7 +399,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_col_limit>(global_col_index < global_cols);
       element_t val =
           in_range
-              ? global_ptr[global_col_index * leading_dim + global_row_index]
+              ? in_view.eval(global_col_index * leading_dim + global_row_index)
               : element_t(0);
 
       local_ptr[local_mem_offset + local_mem_id] = val;
@@ -415,10 +410,10 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   template <index_t loads_per_thread, bool check_row_limit,
             bool check_col_limit, index_t block_rows, index_t block_cols,
-            index_t ld_tile, typename global_ptr_t, typename local_ptr_t>
+            index_t ld_tile, typename local_ptr_t>
   static SYCL_BLAS_INLINE void load_and_transpose_block(
-      index_t local_id, index_t tile_idx, global_ptr_t global_ptr,
-      index_t leading_dim, local_ptr_t local_ptr, index_t global_row_offset,
+      index_t local_id, index_t tile_idx, input_t& in_view, index_t leading_dim,
+      local_ptr_t local_ptr, index_t global_row_offset,
       index_t global_col_offset, index_t global_rows, index_t global_cols) {
     index_t local_linear_id = local_id;
     const index_t global_tile_row_offset =
@@ -435,7 +430,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           local_linear_id - (local_thread_col * block_rows);
 
       const index_t global_col_index = global_col_offset + local_thread_col;
-      const index_t global_row_index = global_tile_row_offset + local_thread_row;
+      const index_t global_row_index =
+          global_tile_row_offset + local_thread_row;
 
       // Transpose on the fly
       const index_t local_mem_id =
@@ -446,7 +442,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_col_limit>(global_col_index < global_cols);
       element_t val =
           in_range
-              ? global_ptr[global_col_index * leading_dim + global_row_index]
+              ? in_view.eval(global_col_index * leading_dim + global_row_index)
               : 0;
 
       local_ptr[local_mem_offset + local_mem_id] = val;

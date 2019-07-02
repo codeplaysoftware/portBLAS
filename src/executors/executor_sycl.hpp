@@ -26,10 +26,14 @@
 #ifndef SYCL_BLAS_EXECUTOR_SYCL_HPP
 #define SYCL_BLAS_EXECUTOR_SYCL_HPP
 
+#include <algorithm>
+
 #include "blas_meta.h"
 #include "executors/executor.h"
 #include "executors/kernel_constructor.h"
 #include "operations/blas_operators.hpp"
+#include "operations/blas1_trees.hpp"
+#include "operations/blas2_trees.hpp"
 #include "policy/sycl_policy_handler.h"
 #include "views/view.h"
 
@@ -243,7 +247,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
         gemm_wrapper) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
 
-  const index_t rows = gemm_wrapper.m_, cols = gemm_wrapper.n_;
+  const index_t rows = gemm_wrapper.m_;
+  const index_t cols = gemm_wrapper.n_;
+  const index_t ldc = gemm_wrapper.ldc_;
 
   /* Depth of the cube buffer */
   const index_t depth =
@@ -265,17 +271,51 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   auto events = execute(gemm_partial);
 
   /* Second step: reduction */
+  /* Best case: we can reduce directly in C */
+  if (is_beta_zero && ldc == rows) {
+    constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
+    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+              tile_type::item_rows, element_t,
+              static_cast<int>(Reduction_t::partial_rows)>
+        reduction(cube, gemm_wrapper.c_, rows * cols, depth);
+    events = concatenate_vectors(events, execute(reduction));
+  }
+  /* Otherwise we reduce to a temporary buffer */
+  else {
+    /* Create a temporary buffer to hold alpha * A * B */
+    auto temp_buffer = make_sycl_iterator_buffer<element_t>(rows * cols);
+    auto temp =
+        make_matrix_view<col_major>(*this, temp_buffer, rows, cols, rows);
 
-  constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
-  Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
-            tile_type::item_rows, element_t,
-            static_cast<int>(Reduction_t::partial_rows)>
-      reduction(cube, gemm_wrapper.c_, gemm_wrapper.m_ * gemm_wrapper.n_,
-                depth);
-  events = concatenate_vectors(events, execute(reduction));
+    /* Execute the reduction */
+    constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
+    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+              tile_type::item_rows, element_t,
+              static_cast<int>(Reduction_t::partial_rows)>
+        reduction(cube, temp, rows * cols, depth);
+    events = concatenate_vectors(events, execute(reduction));
 
-  /* Third step: combine with beta * C */
-  // TODO
+    /* If beta is zero, simply do a 2D copy from the temp buffer to C */
+    if (is_beta_zero) {
+      auto assignOp = make_op<Assign2D>(gemm_wrapper.c_, temp);
+      events = concatenate_vectors(events, execute(assignOp));
+    }
+    /* If the leading dimension is the number of rows, add temp and beta * C
+     * in C as if they were vectors */
+    else if (ldc == rows) {
+      auto scalOp = make_op<ScalarOp, ProductOperator>(gemm_wrapper.beta_, gemm_wrapper.c_);
+      auto addOp = make_op<BinaryOp, AddOperator>(temp, scalOp);
+      auto assignOp = make_op<Assign>(gemm_wrapper.c_, addOp);
+      events = concatenate_vectors(events, execute(assignOp));
+    }
+    /* Else add temp and beta * C and do a 2D copy in C */
+    else {
+      auto scalOp = make_op<Scalar2DOp, ProductOperator>(gemm_wrapper.beta_, gemm_wrapper.c_);
+      auto addOp = make_op<Binary2DOp, AddOperator>(temp, scalOp);
+      auto assignOp = make_op<Assign2D>(gemm_wrapper.c_, addOp);
+      events = concatenate_vectors(events, execute(assignOp));
+    }
+  }
 
   return events;
 }
@@ -348,7 +388,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   /* 2-step reduction */
   if (do_first_step) {
-    static constexpr index_t group_count_cols = params_t::work_group_cols;
+    static const index_t group_count_cols = std::min(
+        params_t::work_group_cols, (cols_ - 1) / params_t::work_group_cols + 1);
 
     /* Create a temporary buffer */
     auto temp_buffer =
