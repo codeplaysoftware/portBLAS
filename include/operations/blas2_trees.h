@@ -273,7 +273,7 @@ struct Scalar2DOp {
 };
 
 /*! Unary2DOp.
- * Implements a Unary Operation ( operator_t(z), e.g. z++), with z a vector.
+ * Implements a Unary Operation ( operator_t(A), e.g. A++), with A a matrix.
  */
 template <typename operator_t, typename rhs_t>
 struct Unary2DOp {
