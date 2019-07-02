@@ -293,7 +293,7 @@ struct Unary2DOp {
 };
 
 /*! Binary2DOp.
- * @brief Implements a Binary Operation (x OP z) with x and z vectors.
+ * @brief Implements a Binary Operation (A OP B) with A and B matrices.
  */
 template <typename operator_t, typename lhs_t, typename rhs_t>
 struct Binary2DOp {

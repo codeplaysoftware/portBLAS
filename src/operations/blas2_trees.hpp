@@ -141,7 +141,7 @@ Unary2DOp<operator_t, rhs_t>::adjust_access_displacement() {
 }
 
 /*! Binary2DOp.
- * @brief Implements a Binary Operation (x OP z) with x and z vectors.
+ * @brief Implements a Binary Operation (A OP B) with A and B matrices.
  */
 template <typename operator_t, typename lhs_t, typename rhs_t>
 Binary2DOp<operator_t, lhs_t, rhs_t>::Binary2DOp(lhs_t &_l, rhs_t &_r)
