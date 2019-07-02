@@ -26,6 +26,8 @@
 #ifndef SYCL_BLAS_EXECUTOR_SYCL_HPP
 #define SYCL_BLAS_EXECUTOR_SYCL_HPP
 
+#include <algorithm>
+
 #include "blas_meta.h"
 #include "executors/executor.h"
 #include "executors/kernel_constructor.h"
@@ -277,7 +279,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   /* 2-step reduction */
   if (do_first_step) {
-    static constexpr index_t group_count_cols = params_t::work_group_cols;
+    static const index_t group_count_cols = std::min(
+        params_t::work_group_cols, (cols_ - 1) / params_t::work_group_cols + 1);
 
     /* Create a temporary buffer */
     auto temp_buffer =
