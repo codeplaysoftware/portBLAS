@@ -105,9 +105,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static constexpr index_t private_res_size =
       work_per_thread_m * work_per_thread_n;
 
-  /* If double buffering should be used */
-  static constexpr bool double_buffer = DoubleBuffer;
-  // TODO: this is not used yet
+  /* If double buffering should be used
+   * Note: at the moment double buffering can't be disabled */
+  // static constexpr bool double_buffer = DoubleBuffer;
 
   /* Transpose mode for matrices A and B */
   static constexpr bool trans_a = TransA;
@@ -148,25 +148,24 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     b_.adjust_access_displacement();
     cube_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return true;
-  }
 
   /*!
-   * TODO: explain this function
+   * @brief This function returns the depth of the cube buffer that should give
+   * the best performance.
    */
   static SYCL_BLAS_INLINE index_t get_ideal_cube_depth(index_t compute_units,
                                                        index_t m, index_t n,
                                                        index_t k) noexcept {
     const index_t group_count_mn =
         ((m - 1) / tile_size_dim_m + 1) * ((n - 1) / tile_size_dim_n + 1);
-    const index_t min_workload = (4 * compute_units - 1) / group_count_mn + 1;
-    return min_workload;
+    /* The depth of the cube buffer is calculated so that each compute unit
+     * will compute 4 work groups. This value is empirical */
+    return (4 * compute_units - 1) / group_count_mn + 1;
   }
 
   /*!
-   * @brief get_workgroup_cluster. This function is used to find the optimum
-   * number of work_group required to execute each partial GEMM.
+   * @brief This function is used to find the optimum number of work groups
+   * required to execute each partial GEMM.
    */
   SYCL_BLAS_INLINE index_t
   get_workgroup_cluster(index_t compute_units) noexcept {
@@ -176,7 +175,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   /*!
    * @brief Get the nd_range value which has to be used for kernels that
-   *        intend to call GemmPartial::run().
+   * intend to call GemmPartial::run().
    */
   SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
       index_t compute_units) noexcept {
@@ -185,17 +184,14 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  // TODO: maybe remove that?
-  // SYCL_BLAS_INLINE index_t get_size() const { return m_ * n_; }
-
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
-    /* pointers to the scratch memory (lhs and rhs) */
+    /* Pointers to the scratch memory (lhs and rhs) */
     auto scratch_ptr = scratch.localAcc.get_pointer().get();
     auto rhs_scratch_ptr = scratch_ptr + (2 * ld_lhs_tile * tile_size_dim_k);
 
-    /* create and initialise the private res summation registers */
+    /* Create and initialise the private res summation registers */
     element_t private_res[private_res_size];
     for (auto i = 0; i < private_res_size; i++) {
       private_res[i] = static_cast<element_t>(0);

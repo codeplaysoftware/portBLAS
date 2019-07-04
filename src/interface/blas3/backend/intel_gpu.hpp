@@ -37,7 +37,8 @@ typename executor_t::policy_t::event_t _gemm(
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
   /* Tall & Skinny matrices. TODO: clever calculation */
-  if (_K >= 2048 && ((_M <= 128 && _N <= 256) || (_M <= 256 && _N <= 128))) {
+  if (batch_size == 1 &&
+      ((_K >= 4096 && _M * _N <= 16384) || (_K >= 1024 && _M * _N <= 4096))) {
     if (_M >= 16 && _N <= 4) {
       return blas::Gemm_Launcher<
           32, true, true, true, 64, Tile<2, 1, 8, 4>, _t_a, _t_b,

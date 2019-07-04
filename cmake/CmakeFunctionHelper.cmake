@@ -39,11 +39,12 @@ endif()
 set(boolean_list "true" "false")
 
 # gemm_configuration(work_group_size, double_buffer, conflict_a, conflict_b,
-#                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem)
+#                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem,
+#                    gemm_type)
 set(gemm_configuration_lists "")
 
 #intel GPU
-if(${TARGET} STREQUAL "INTEL_GPU")  # TODO: update other backends as well!
+if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_0 256 "true" "false" "false" 64 4 4 16 16 1 1 "local_memory" "classic")
   set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "no_local_memory" "classic")
   set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory" "classic")

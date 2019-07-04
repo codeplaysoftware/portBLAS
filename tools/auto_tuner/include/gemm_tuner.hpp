@@ -32,6 +32,7 @@
 #include <functional>
 #include <numeric>
 
+#include "blas_meta.h"
 #include "reference_gemm.hpp"
 #include "sycl_blas.hpp"
 
@@ -69,11 +70,13 @@ class TestResult : public std::vector<TestResultEntry> {
   }
 };
 
-template <bool _TransA, bool _TransB, typename _data_t, Gemm_t _Mode>
+template <bool _TransA, bool _TransB, typename _data_t,
+          Gemm_memory_t _MemoryMode, Gemm_shape_t _ShapeMode>
 struct GemmConfig {
   static const bool TransA = _TransA;
   static const bool TransB = _TransB;
-  static const Gemm_t Mode = _Mode;
+  static const Gemm_memory_t MemoryMode = _MemoryMode;
+  static const Gemm_shape_t ShapeMode = _ShapeMode;
   using data_t = _data_t;
 };
 
@@ -138,9 +141,11 @@ template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
           typename Config, typename T, typename Container, typename Executor>
 // a should not be a reference, the C buffer needs copied
 void tune(int r, GemmArgs<T, Container, Executor> a) {
-  using Gemm = Gemm<typename Config::data_t, typename Config::data_t,
-                    DoubleBuffer, Nbca, Nbcb, Cls, Tile, Config::TransA,
-                    Config::TransB, T, false, static_cast<int>(Config::Mode)>;
+  using Gemm =
+      Gemm<typename Config::data_t, typename Config::data_t, DoubleBuffer, Nbca,
+           Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
+           static_cast<int>(Config::MemoryMode),
+           static_cast<int>(Config::ShapeMode)>;
 
   using etype = typename Gemm::value_t;
   a.results.emplace_back(Gemm::get_type_string());
@@ -247,12 +252,16 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
       m,    n,     k,   E(1),       dataA, lda, dataB,  ldb,
       E(1), origC, ldc, batch_size, refC,  ex,  results};
 
-  using data_t =
-      typename MatrixViewTypeFactory<codeplay_policy, E, int>::output_t;
+  using data_t = typename MatrixViewTypeFactory<codeplay_policy, E, int,
+                                                col_major>::output_t;
 
-  using Local = GemmConfig<TransA, TransB, data_t, Gemm_t::local_memory>;
-  using NonLocal = GemmConfig<TransA, TransB, data_t, Gemm_t::no_local_memory>;
-  using Naive = GemmConfig<TransA, TransB, data_t, Gemm_t::naive>;
+  using Local = GemmConfig<TransA, TransB, data_t, Gemm_memory_t::local_memory,
+                           Gemm_shape_t::classic>;
+  using NonLocal =
+      GemmConfig<TransA, TransB, data_t, Gemm_memory_t::no_local_memory,
+                 Gemm_shape_t::classic>;
+  using Naive = GemmConfig<TransA, TransB, data_t,
+                           Gemm_memory_t::no_local_memory, Gemm_shape_t::naive>;
 
   tune_syclblas(rep, *ta_str, *tb_str, args);
 
