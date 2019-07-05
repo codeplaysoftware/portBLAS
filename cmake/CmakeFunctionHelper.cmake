@@ -64,7 +64,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                        gemm_configuration_4 gemm_configuration_5
                                        gemm_configuration_6 gemm_configuration_7
                                        gemm_configuration_8 gemm_configuration_9
-                                       gemm_configuration_10 gemm_configuration_11
+                                       gemm_configuration_10 gemm_configuration_11)
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
   set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local_memory" "classic")
