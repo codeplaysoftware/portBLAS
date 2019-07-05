@@ -64,11 +64,12 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                        gemm_configuration_4 gemm_configuration_5
                                        gemm_configuration_6 gemm_configuration_7
                                        gemm_configuration_8 gemm_configuration_9
-                                       gemm_configuration_10 gemm_configuration_11)
+                                       gemm_configuration_10 gemm_configuration_11
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
   set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local_memory" "classic")
   set(gemm_configuration_1 32 "false" "false" "false" 128 8 4 4 8 1 1 "local_memory" "classic")
+
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
 elseif(${TARGET} STREQUAL "ARM_GPU")
   set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local_memory" "classic")
@@ -211,7 +212,7 @@ foreach(executor ${executor_list})
   foreach(data ${data_list})
     set(container_list_in "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
-      set(container_list_out "BufferIterator<IndexValueTuple<${data},${index}>,codeplay_policy>")
+      set(container_list_out "BufferIterator<IndexValueTuple<${index},${data}>,codeplay_policy>")
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
           foreach(increment ${index_list})
