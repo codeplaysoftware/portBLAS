@@ -265,7 +265,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t rows_ = reduction_wrapper.rows_,
                 cols_ = reduction_wrapper.cols_;
   input_t& in_ = reduction_wrapper.in_;
-  input_t& out_ = reduction_wrapper.out_;
+  output_t& out_ = reduction_wrapper.out_;
 
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
