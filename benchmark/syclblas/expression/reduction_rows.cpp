@@ -40,7 +40,7 @@ template <typename operator_t, typename scalar_t, typename executor_t,
           typename input_t, typename output_t>
 std::vector<cl::sycl::event> launch_reduction(executor_t& ex, input_t buffer_in, output_t buffer_out,
                       index_t rows, index_t cols) {
-  blas::Reduction<operator_t, input_t, output_t, 64, 256, 4, scalar_t,
+  blas::Reduction<operator_t, input_t, output_t, 64, 64, 4, scalar_t,
                   static_cast<int>(Reduction_t::partial_rows)>
       reduction(buffer_in, buffer_out, rows, cols);
   return ex.execute(reduction);
