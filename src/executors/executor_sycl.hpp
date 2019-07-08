@@ -26,8 +26,6 @@
 #ifndef SYCL_BLAS_EXECUTOR_SYCL_HPP
 #define SYCL_BLAS_EXECUTOR_SYCL_HPP
 
-#include <algorithm>
-
 #include "blas_meta.h"
 #include "executors/executor.h"
 #include "executors/kernel_constructor.h"
@@ -270,7 +268,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
   /* Choose at run-time whether to do a one-step or two-step reduction */
-  const bool do_first_step = false;
+  constexpr bool do_first_step = false;
   // At the moment the one-step proved to be better in almost every case
 
   /* Create an empty event vector */
@@ -278,8 +276,12 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   /* 2-step reduction */
   if (do_first_step) {
-    static const index_t group_count_cols = std::min(
-        params_t::work_group_cols, (cols_ - 1) / params_t::work_group_cols + 1);
+    static const index_t max_group_count_col =
+        (cols_ - 1) / params_t::work_group_cols + 1;
+    static const index_t group_count_cols =
+        params_t::work_group_cols < max_group_count_col
+            ? params_t::work_group_cols
+            : max_group_count_col;
 
     /* Create a temporary buffer */
     auto temp_buffer =
