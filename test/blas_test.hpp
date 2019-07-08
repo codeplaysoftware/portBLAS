@@ -32,18 +32,18 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <vector>
 #include <random>
+#include <vector>
 
 #include <gtest/gtest.h>
 
 #include <sycl_blas.h>
 
 #include "blas_test_macros.hpp"
-#include "utils/system_reference_blas.hpp"
 #include "utils/cli_device_selector.hpp"
-#include "utils/print_queue_information.hpp"
 #include "utils/float_comparison.hpp"
+#include "utils/print_queue_information.hpp"
+#include "utils/system_reference_blas.hpp"
 
 struct Args {
   std::string program_name;

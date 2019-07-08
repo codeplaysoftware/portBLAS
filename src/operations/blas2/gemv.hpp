@@ -33,32 +33,33 @@
 namespace blas {
 
 /**
- * @struct AddSetColumns
- * @brief Tree node representing a column sum (reduction?) - i.e. summing a row,
- * with one row per thread
+ * @struct SumMatrixColumns
+ * @brief Tree node representing a column sum with one row per thread
  */
 template <typename rhs_t>
-AddSetColumns<rhs_t>::AddSetColumns(rhs_t &_r) : rhs_(_r) {}
+SumMatrixColumns<rhs_t>::SumMatrixColumns(rhs_t &_r) : rhs_(_r) {}
 
 template <typename rhs_t>
-SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::index_t
-AddSetColumns<rhs_t>::get_size() const {
+SYCL_BLAS_INLINE typename SumMatrixColumns<rhs_t>::index_t
+SumMatrixColumns<rhs_t>::get_size() const {
   return rhs_.get_size_row();
 }
+
 template <typename rhs_t>
-SYCL_BLAS_INLINE bool AddSetColumns<rhs_t>::valid_thread(
+SYCL_BLAS_INLINE bool SumMatrixColumns<rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
 }
+
 template <typename rhs_t>
-SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::value_t
-AddSetColumns<rhs_t>::eval(typename AddSetColumns<rhs_t>::index_t i) {
+SYCL_BLAS_INLINE typename SumMatrixColumns<rhs_t>::value_t
+SumMatrixColumns<rhs_t>::eval(typename SumMatrixColumns<rhs_t>::index_t i) {
   auto dimR = rhs_.get_size_row();
   auto dimC = rhs_.get_size_col();
 
   auto val = AdditionIdentity::eval(rhs_.eval(0));
   if (i < dimR) {
-    for (typename AddSetColumns<rhs_t>::index_t j = 0; j < dimC; j++) {
+    for (typename SumMatrixColumns<rhs_t>::index_t j = 0; j < dimC; j++) {
       val += rhs_.eval(i, j);
     }
   }
@@ -66,18 +67,305 @@ AddSetColumns<rhs_t>::eval(typename AddSetColumns<rhs_t>::index_t i) {
 }
 
 template <typename rhs_t>
-SYCL_BLAS_INLINE typename AddSetColumns<rhs_t>::value_t
-AddSetColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+SYCL_BLAS_INLINE typename SumMatrixColumns<rhs_t>::value_t
+SumMatrixColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   return eval(ndItem.get_global_id(0));
 }
+
 template <typename rhs_t>
-SYCL_BLAS_INLINE void AddSetColumns<rhs_t>::bind(cl::sycl::handler &h) {
+SYCL_BLAS_INLINE void SumMatrixColumns<rhs_t>::bind(cl::sycl::handler &h) {
   rhs_.bind(h);
 }
 
 template <typename rhs_t>
-SYCL_BLAS_INLINE void AddSetColumns<rhs_t>::adjust_access_displacement() {
+SYCL_BLAS_INLINE void SumMatrixColumns<rhs_t>::adjust_access_displacement() {
   rhs_.adjust_access_displacement();
+}
+
+/*!
+ * @brief Constructor for the Gemv class. See blas2_trees.h for details on the
+ * parameters.
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+SYCL_BLAS_INLINE
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>::Gemv(lhs_t &_l, matrix_t &_matrix_a, vector_t &_vector_x,
+                            typename vector_t::index_t &_wgs_per_nc,
+                            typename vector_t::index_t &_wgs_per_c)
+    : lhs_(_l),              // Result is stored in this
+      matrix_a_(_matrix_a),  // Input matrix a
+      vector_x_(_vector_x),  // Input vector x
+      wgs_per_nc_(
+          _wgs_per_nc),  // number of work groups per non-contracting dimension
+      wgs_per_c_(_wgs_per_c)  // number of work groups per contracting dimension
+{}
+
+/*!
+ * @brief Tells the runtime whether a work item "ndItem" should execute. We
+ * handle this in the kernel itself so always return true
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+SYCL_BLAS_INLINE bool
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+  return true;
+}
+
+/*!
+ * @brief The no-shared-memory version of the GEMV kernel. Currently this is
+ * only executed with one work group.
+ *
+ * TODO: in the future is to make this kernel more like the shared-memory
+ * version and use multiple
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+SYCL_BLAS_INLINE
+    typename Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed,
+                  cache_line_size, work_per_thread>::value_t
+    Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+         work_per_thread>::eval(cl::sycl::nd_item<1> ndItem) {
+  const index_t local_id = ndItem.get_local_id(0);
+  const index_t group_id = ndItem.get_group(0);
+  const index_t group_range = ndItem.get_group_range(0);
+  const index_t contract_dim =
+      is_transposed ? matrix_a_.get_size_row() : matrix_a_.get_size_col();
+  const index_t non_contract_dim =
+      is_transposed ? matrix_a_.get_size_col() : matrix_a_.get_size_row();
+  const index_t group_stride = group_range * local_range;
+  const index_t lda = matrix_a_.getSizeL();
+
+  const index_t thread_id = group_id * local_range + local_id;
+
+  const index_t non_contract_local_thread_stride = is_transposed ? lda : 1;
+  const index_t contract_stride = is_transposed ? 1 : lda;
+  value_t sum = 0;
+
+  index_t non_contract_dim_index = thread_id * non_contract_local_thread_stride;
+  const index_t non_contract_dim_index_stride =
+      group_stride * non_contract_local_thread_stride;
+
+  for (index_t row_id = 0; row_id < non_contract_dim; row_id += group_stride) {
+    if (thread_id + row_id >= non_contract_dim) {
+      return 0;
+    }
+
+    sum = 0;
+    for (index_t col_id = 0; col_id < contract_dim; ++col_id) {
+      sum = cl::sycl::mad(matrix_a_.template eval<true>(non_contract_dim_index),
+                          vector_x_.eval(col_id), sum);
+      non_contract_dim_index += contract_stride;
+    }
+
+    non_contract_dim_index += non_contract_dim_index_stride;
+
+    lhs_.eval(thread_id + row_id) = sum;
+  }
+
+  return 0;
+}
+
+/*!
+ * @brief The shared-memory version of the GEMV kernel.
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+template <typename local_memory_t>
+SYCL_BLAS_INLINE
+    typename Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed,
+                  cache_line_size, work_per_thread>::value_t
+    Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+         work_per_thread>::eval(local_memory_t local_mem,
+                                cl::sycl::nd_item<1> ndItem) {
+  const index_t local_id = ndItem.get_local_id(0);
+  const index_t group_id = ndItem.get_group(0);
+  const index_t group_range = ndItem.get_group_range(0);
+  const index_t lda = matrix_a_.getSizeL();
+  const index_t nc_dim =
+      is_transposed ? matrix_a_.get_size_col() : matrix_a_.get_size_row();
+  const index_t c_dim =
+      is_transposed ? matrix_a_.get_size_row() : matrix_a_.get_size_col();
+
+  // ID of the group in the non-contracting dimension of the global grid of WGs
+  const index_t nc_group_id = group_id / wgs_per_c_;
+  // ID of the group in the contracting dimension in the global grid of WGs
+  const index_t c_group_id = group_id - nc_group_id * wgs_per_c_;
+
+  value_t *vector_scratch = local_mem.localAcc.get_pointer();
+
+  // Threads pre-fetch portions of X into local group-shared memory
+  const index_t x_vec_index = local_id + c_group_id * local_range;
+  vector_scratch[local_id] =
+      x_vec_index < vector_x_.get_size() ? vector_x_.eval(x_vec_index) : 0;
+
+  // Barrier to ensure whole portion of vector X is in local memory
+  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+  // Non-contracting dimension index
+  const index_t nc_dim_index = local_id + nc_group_id * local_range;
+
+  // Stores the sum for the partial dot product computation
+  value_t sum = 0;
+
+  // In the non transposed case
+  if (!is_transposed) {
+    // Make sure nc_dim_index is within bounds
+    // This closes threads that would be calculating beyond the final row
+    if (nc_dim_index >= nc_dim) {
+      return 0;
+    }
+
+    // Calculate the matrix index
+    index_t mat_index = nc_dim_index + c_group_id * local_range * lda;
+
+    const index_t last_c_dim_id =
+        std::min(c_dim - c_group_id * local_range, local_range);
+
+    // Computes the partial dot product for a row
+    for (index_t c_dim_id = 0; c_dim_id < last_c_dim_id; ++c_dim_id) {
+      sum = cl::sycl::mad(matrix_a_.template eval<true>(mat_index),
+                          vector_scratch[c_dim_id], sum);
+      mat_index += lda;
+    }
+
+    const index_t out_index = nc_dim_index + (c_group_id * nc_dim);
+    return lhs_.eval(out_index) = sum;
+  } else {  // In the transposed case
+
+    constexpr int cl_elems = cache_line_size / sizeof(value_t);
+
+    const int tile_c_loops = local_range / cl_elems;
+
+    // Pointer to scratch space used for loading input matrix and transposing it
+    // on-the-fly
+    value_t *matrix_scratch = local_mem.localAcc.get_pointer() + local_range;
+
+    for (index_t c_tile_id = 0; c_tile_id < tile_c_loops; ++c_tile_id) {
+      // Extract a matrix block from global memory
+      extract_input_block(matrix_scratch, local_id, group_id, lda, c_tile_id);
+
+      // Ensure memory synchronization within work group
+      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+      index_t mat_index = local_id;
+
+#pragma unroll
+      for (index_t c_dim_id = 0; c_dim_id < cl_elems; ++c_dim_id) {
+        sum = cl::sycl::mad(matrix_scratch[mat_index], *vector_scratch++, sum);
+
+        mat_index += local_range + 1;  // Adding one as bank offset
+      }
+
+      // Ensure memory synchronization within work group
+      ndItem.barrier(cl::sycl::access::fence_space::local_space);
+    }
+
+    const index_t out_index = nc_dim_index + (c_group_id * nc_dim);
+
+    if (nc_dim_index < nc_dim) {
+      lhs_.eval(out_index) = sum;
+    }
+    return sum;
+  }
+}
+
+/*!
+ * @brief Extracts a block from the input matrix and transposes it on the fly,
+ * placing the transposed matrix in local scratch memory
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+template <typename ScratchPointerType>
+SYCL_BLAS_INLINE void
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>::extract_input_block(ScratchPointerType matrix_scratch,
+                                           const index_t &local_id,
+                                           const index_t &group_id,
+                                           const index_t &lda,
+                                           index_t c_tile_id) {
+  constexpr int cl_elems = cache_line_size / sizeof(value_t);
+
+  const index_t nc_dim =
+      is_transposed ? matrix_a_.get_size_col() : matrix_a_.get_size_row();
+  const index_t c_dim =
+      is_transposed ? matrix_a_.get_size_row() : matrix_a_.get_size_col();
+
+  // Group indices within global grid
+  const index_t nc_group_id = group_id / wgs_per_c_;
+  const index_t c_group_id = group_id - nc_group_id * wgs_per_c_;
+
+  // Tile dimensions
+  constexpr int tile_dim_nc = local_range / cl_elems;
+  constexpr int tile_dim_c = cl_elems;
+
+  // In-tile indices
+  const index_t tile_nc_index = local_id / tile_dim_c;
+  const index_t tile_c_index = local_id % tile_dim_c;
+
+  // Tile-group (local) indices
+  index_t local_nc_index = tile_nc_index;
+  const index_t local_c_index = tile_c_index + c_tile_id * tile_dim_c;
+
+  // Global (grid) indices
+  index_t grid_nc_index = local_nc_index + nc_group_id * local_range;
+  const index_t grid_c_index = local_c_index + c_group_id * local_range;
+
+  // Matrix index calculated based on global grid indices
+  index_t mat_index = grid_c_index + grid_nc_index * lda;
+
+  // Number of iterations to load all tiles
+  // local_range / tile_dim_nc == cl_elems
+  constexpr int tile_nc_loops = cl_elems;
+
+  // Transposed index in scratch-space with bank offset which adds 1 word of
+  // padding every 'tile_dim_c' elements
+  const index_t scratch_index = (local_range + 1) * tile_c_index;
+
+  const bool in_c_range = grid_c_index < c_dim;
+
+#pragma unroll
+  for (index_t nc_tile_id = 0; nc_tile_id < tile_nc_loops; ++nc_tile_id) {
+    // Populate the scratch memory with matrix values, ensuring we don't fetch
+    // beyond bounds
+    matrix_scratch[scratch_index + local_nc_index] =
+        in_c_range && grid_nc_index < nc_dim
+            ? matrix_a_.template eval<true>(mat_index)
+            : 0;
+
+    // Move to loading the next tile
+    mat_index += tile_dim_nc * lda;
+    local_nc_index += tile_dim_nc;
+    grid_nc_index += tile_dim_nc;
+  }
+}
+
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+SYCL_BLAS_INLINE void
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>::bind(cl::sycl::handler &h) {
+  lhs_.bind(h);
+  matrix_a_.bind(h);
+  vector_x_.bind(h);
+}
+
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
+SYCL_BLAS_INLINE void
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  matrix_a_.adjust_access_displacement();
+  vector_x_.adjust_access_displacement();
 }
 
 /**** GEMV BY ROWS M ROWS x N BLOCK ****/
@@ -396,8 +684,9 @@ SYCL_BLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
 }
 template <int interLoop, bool Lower, bool Diag, bool Upper, bool Unit,
           typename lhs_t, typename matrix_t, typename vector_t>
-SYCL_BLAS_INLINE void GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t,
-                              matrix_t, vector_t>::adjust_access_displacement() {
+SYCL_BLAS_INLINE void
+GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t,
+        vector_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   matrix_.adjust_access_displacement();
   vector_.adjust_access_displacement();

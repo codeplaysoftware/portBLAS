@@ -64,6 +64,19 @@ typename executor_t::policy_t::event_t _gemv(
 );
 
 /*!
+ * @brief Prototype for the internal implementation of the GEMV operation. See
+ * documentation in the blas2_interface.hpp file for details.
+ */
+template <uint32_t local_range, uint32_t cache_line_size,
+          gemv_memory_t memory_type, transpose_type trn, typename Executor,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
+typename Executor::policy_t::event_t _gemv_impl(
+    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
+    container_t2 _vy, increment_t _incy);
+
+/*!
  @brief Generalised matrix vector product with a triangular symmetric matrix.
 
  Generalised matrix vector product with a triangular symmetric matrix, i.e.
