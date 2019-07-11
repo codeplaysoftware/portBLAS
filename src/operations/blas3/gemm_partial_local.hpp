@@ -293,7 +293,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 #pragma unroll
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
         if (slice_row < m_ && slice_col < n_) {
-          cube_.eval(cube_index + slice_row + cube_depth_offset) =
+          cube_.template eval<true>(cube_index + slice_row +
+                                         cube_depth_offset) =
               alpha * private_res[wLPTM + private_index];
         }
         slice_row += local_thread_size_m;
@@ -394,9 +395,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_row_limit>(global_row_index < global_rows) &&
           do_check<check_col_limit>(global_col_index < global_cols);
       element_t val =
-          in_range
-              ? in_view.eval(global_col_index * leading_dim + global_row_index)
-              : element_t(0);
+          in_range ? in_view.template eval<true>(
+                         global_col_index * leading_dim + global_row_index)
+                   : element_t(0);
 
       local_ptr[local_mem_offset + local_mem_id] = val;
 
@@ -437,9 +438,9 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_row_limit>(global_row_index < global_rows) &&
           do_check<check_col_limit>(global_col_index < global_cols);
       element_t val =
-          in_range
-              ? in_view.eval(global_col_index * leading_dim + global_row_index)
-              : 0;
+          in_range ? in_view.template eval<true>(
+                         global_col_index * leading_dim + global_row_index)
+                   : 0;
 
       local_ptr[local_mem_offset + local_mem_id] = val;
 

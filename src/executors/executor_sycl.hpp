@@ -31,9 +31,9 @@
 #include "blas_meta.h"
 #include "executors/executor.h"
 #include "executors/kernel_constructor.h"
-#include "operations/blas_operators.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
+#include "operations/blas_operators.hpp"
 #include "policy/sycl_policy_handler.h"
 #include "views/view.h"
 
@@ -297,22 +297,15 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
     /* If beta is zero, simply do a 2D copy from the temp buffer to C */
     if (is_beta_zero) {
-      auto assignOp = make_op<Assign2D>(gemm_wrapper.c_, temp);
+      auto assignOp = make_op<Assign>(gemm_wrapper.c_, temp);
       events = concatenate_vectors(events, execute(assignOp));
     }
-    /* If the leading dimension is the number of rows, add temp and beta * C
-     * in C as if they were vectors */
-    else if (ldc == rows) {
-      auto scalOp = make_op<ScalarOp, ProductOperator>(gemm_wrapper.beta_, gemm_wrapper.c_);
+    /* Else add temp and beta * C and then assign to C */
+    else {
+      auto scalOp = make_op<ScalarOp, ProductOperator>(gemm_wrapper.beta_,
+                                                       gemm_wrapper.c_);
       auto addOp = make_op<BinaryOp, AddOperator>(temp, scalOp);
       auto assignOp = make_op<Assign>(gemm_wrapper.c_, addOp);
-      events = concatenate_vectors(events, execute(assignOp));
-    }
-    /* Else add temp and beta * C and do a 2D copy in C */
-    else {
-      auto scalOp = make_op<Scalar2DOp, ProductOperator>(gemm_wrapper.beta_, gemm_wrapper.c_);
-      auto addOp = make_op<Binary2DOp, AddOperator>(temp, scalOp);
-      auto assignOp = make_op<Assign2D>(gemm_wrapper.c_, addOp);
       events = concatenate_vectors(events, execute(assignOp));
     }
   }
