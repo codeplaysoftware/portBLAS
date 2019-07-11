@@ -36,7 +36,7 @@ template <typename operator_t, typename input_t, typename output_t, int ClSize,
           int WgSize, int WorkPerItem, typename element_t>
 class ReductionPartialRows {
  public:
-  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  using index_t = typename input_t::index_t;
   using value_t = element_t;
 
   /* Reading some compile-time parameters from a structure.
@@ -166,7 +166,8 @@ class ReductionPartialRows {
         for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
           if (elem_row < rows_) {
             const value_t lhs_val = accumulators[wpr];
-            const value_t rhs_val = in_.template eval<true>(elem_col_idx + elem_row);
+            const value_t rhs_val =
+                in_.template eval<true>(elem_col_idx + elem_row);
             accumulators[wpr] = operator_t::eval(lhs_val, rhs_val);
           }
           elem_row += work_group_rows;
@@ -207,8 +208,7 @@ class ReductionPartialRows {
             const value_t lhs_val = scratch_ptr[lhs_location];
             const value_t rhs_val =
                 scratch_ptr[local_memory_rhs + local_memory_row];
-            scratch_ptr[lhs_location] =
-                operator_t::eval(lhs_val, rhs_val);
+            scratch_ptr[lhs_location] = operator_t::eval(lhs_val, rhs_val);
             local_memory_row += work_group_rows;
           }
         }
