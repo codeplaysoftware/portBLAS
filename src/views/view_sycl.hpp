@@ -143,11 +143,16 @@ struct VectorView<
    */
   SYCL_BLAS_INLINE increment_t get_stride() const { return strd_; }
 
-  SYCL_BLAS_INLINE scalar_t eval(index_t i) const {
+  /**** EVALUATING ****/
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type
+  eval(index_t i) {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
-  /**** EVALUATING ****/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t i) {
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, const scalar_t>::type
+  eval(index_t i) const {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
@@ -155,8 +160,20 @@ struct VectorView<
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type
+  eval(index_t indx) {
+    return *(ptr_ + indx);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, const scalar_t>::type
+  eval(index_t indx) const noexcept {
+    return *(ptr_ + indx);
   }
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
@@ -232,15 +249,31 @@ struct MatrixView<
   SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 
   /**** EVALUATING ***/
-  SYCL_BLAS_INLINE scalar_t &eval(index_t indx) { return *(ptr_ + indx); }
-
-  SYCL_BLAS_INLINE const scalar_t eval(index_t indx) const noexcept {
-    return *(ptr_ + indx);
-  }
 
   SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
     return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
                                      : *(ptr_ + j + sizeL_ * i));
+  }
+
+  SYCL_BLAS_INLINE const scalar_t eval(index_t i, index_t j) const noexcept {
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, const scalar_t>::type
+  eval(index_t indx) const noexcept {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
@@ -252,12 +285,24 @@ struct MatrixView<
     return eval(ndItem.get_global_id(0));
   }
 
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
+    return *(ptr_ + indx);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, const scalar_t>::type
+  eval(index_t indx) const noexcept {
+    return *(ptr_ + indx);
+  }
+
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
 
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }
-};  // namespace blas
+};
 
 }  // namespace blas
 
