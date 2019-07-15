@@ -36,7 +36,7 @@ typename executor_t::policy_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
-  /* Tall & Skinny matrices. TODO: clever calculation */
+  /* Tall & Skinny matrices. */
   if (batch_size == 1 &&
       ((_K >= 4096 && _M * _N <= 16384) || (_K >= 1024 && _M * _N <= 4096))) {
     if (_M >= 16 && _N <= 4) {
