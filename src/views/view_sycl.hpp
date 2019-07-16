@@ -151,7 +151,7 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, const scalar_t>::type
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
   eval(index_t i) const {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
@@ -171,7 +171,7 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, const scalar_t>::type
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
   eval(index_t indx) const noexcept {
     return *(ptr_ + indx);
   }
@@ -255,7 +255,7 @@ struct MatrixView<
                                      : *(ptr_ + j + sizeL_ * i));
   }
 
-  SYCL_BLAS_INLINE const scalar_t eval(index_t i, index_t j) const noexcept {
+  SYCL_BLAS_INLINE scalar_t eval(index_t i, index_t j) const noexcept {
     return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
                                      : *(ptr_ + j + sizeL_ * i));
   }
@@ -269,7 +269,7 @@ struct MatrixView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, const scalar_t>::type
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
   eval(index_t indx) const noexcept {
     const index_t j = indx / sizeR_;
     const index_t i = indx - sizeR_ * j;
@@ -280,7 +280,7 @@ struct MatrixView<
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const
       noexcept {
     return eval(ndItem.get_global_id(0));
   }
@@ -292,7 +292,7 @@ struct MatrixView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, const scalar_t>::type
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
   eval(index_t indx) const noexcept {
     return *(ptr_ + indx);
   }
