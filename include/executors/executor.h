@@ -91,13 +91,23 @@ class Executor {
            static_cast<int>(Gemm_shape_t::tall_skinny)>
           gemm_wrapper);
 
+  // Alternative Gemm algorithm specialization
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, bool is_beta_zero, int Gemm_memory_type>
+  typename policy_t::event_t execute(
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
+           static_cast<int>(Gemm_shape_t::alternative)>
+          gemm_wrapper);
+
   // GemmPartial specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, int Gemm_memory_type>
+            bool IsFinal, bool IsBetaZero, typename element_t, int Gemm_memory_type>
   typename policy_t::event_t execute(
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, Gemm_memory_type>
+                  tile_type, TransA, TransB, IsFinal, IsBetaZero, element_t, Gemm_memory_type>
           gemm_partial);
 
   // Reduction specialization (partial rows)

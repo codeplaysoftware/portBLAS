@@ -94,39 +94,39 @@ typename executor_t::policy_t::event_t _gemm(
     return blas::Gemm_Launcher<
         256, true, false, false, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
         static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(Gemm_shape_t::alternative),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);
-  } else if (_M == 256 && _N == 784 && _K == 256) {
-    return blas::Gemm_Launcher<
-        256, false, false, false, 64, Tile<8, 8, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_memory_t::no_local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
-        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
-                                             _b, _ldb, _beta, _c, _ldc,
-                                             batch_size);
+  // } else if (_M == 256 && _N == 784 && _K == 256) {
+  //   return blas::Gemm_Launcher<
+  //       256, false, false, false, 64, Tile<8, 8, 16, 16>, _t_a, _t_b,
+  //       static_cast<int>(Gemm_memory_t::no_local_memory),
+  //       static_cast<int>(Gemm_shape_t::classic),
+  //       is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
+  //                                            _b, _ldb, _beta, _c, _ldc,
+  //                                            batch_size);
   } else if ((_M <= 128 && _N <= 128 && _K <= 128)) {
     return blas::Gemm_Launcher<
         64, true, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
         static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(Gemm_shape_t::alternative),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);
-  } else if (!_t_a) {
-    return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
-        static_cast<int>(Gemm_memory_t::no_local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
-        is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
-                                             _b, _ldb, _beta, _c, _ldc,
-                                             batch_size);
+  // } else if (!_t_a) {
+  //   return blas::Gemm_Launcher<
+  //       64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
+  //       static_cast<int>(Gemm_memory_t::no_local_memory),
+  //       static_cast<int>(Gemm_shape_t::classic),
+  //       is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
+  //                                            _b, _ldb, _beta, _c, _ldc,
+  //                                            batch_size);
   } else {
     return blas::Gemm_Launcher<
         64, true, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
         static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(Gemm_shape_t::alternative),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);

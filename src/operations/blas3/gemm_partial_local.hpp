@@ -31,9 +31,9 @@ namespace blas {
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t>
+          bool IsFinal, bool IsBetaZero, typename element_t>
 class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t,
+                  tile_type, TransA, TransB, IsFinal, IsBetaZero, element_t,
                   static_cast<int>(Gemm_memory_t::local_memory)> {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -43,7 +43,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   input_t b_;
   output_t cube_;
 
-  element_t alpha;
+  element_t alpha_;
+  element_t beta_;
 
   /* Matrix dimensions */
   const index_t m_;
@@ -52,6 +53,12 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t lda_;
   const index_t ldb_;
   const index_t ldc_;
+
+  /* If used for tsgemm: false ; for gemm: true */
+  static constexpr bool is_final = IsFinal;
+
+  /* Should we read C and multiply it by beta. */
+  static constexpr bool is_beta_zero = IsBetaZero;
 
   /* Workload per work item on each dimension m and n */
   static constexpr index_t work_per_thread_m = tile_type::item_rows;
@@ -122,11 +129,13 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   const index_t num_tiles;
 
   SYCL_BLAS_INLINE GemmPartial(input_t A, input_t B, output_t cube_buffer,
-                               element_t alpha, index_t wg_count_k)
+                               element_t alpha, element_t beta,
+                               index_t wg_count_k)
       : a_(A),
         b_(B),
         cube_(cube_buffer),
-        alpha(alpha),
+        alpha_(alpha),
+        beta_(beta),
         m_(a_.get_size_row()),
         n_(b_.get_size_col()),
         k_(a_.get_size_col()),
@@ -208,15 +217,17 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
     /* Workgroup id m, k and n */
     const index_t group_count_mn = group_count_m * group_count_n;
-    const index_t kgroup_id = group_id / group_count_mn;
-    const index_t mn_group_id = group_id - kgroup_id * group_count_mn;
+    const index_t kgroup_id = is_final ? 0 : (group_id / group_count_mn);
+    const index_t mn_group_id =
+        is_final ? group_id : (group_id - kgroup_id * group_count_mn);
     const index_t ngroup_id = mn_group_id / group_count_m;
     const index_t mgroup_id = mn_group_id - ngroup_id * group_count_m;
 
     /* register offsets */
     const index_t global_m_offset = mgroup_id * tile_size_dim_m;
     const index_t global_n_offset = ngroup_id * tile_size_dim_n;
-    const index_t global_k_offset = kgroup_id * tile_size_dim_k * num_tiles;
+    const index_t global_k_offset =
+        is_final ? 0 : (kgroup_id * tile_size_dim_k * num_tiles);
 
     /* Find out whether we need to check the limits when loading the tiles */
     const bool check_m_limit = global_m_offset + tile_size_dim_m > m_;
@@ -281,8 +292,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     index_t slice_col = (ngroup_id * tile_size_dim_n) + (n_local_id);
     const index_t slice_row_offset =
         (mgroup_id * tile_size_dim_m) + (m_local_id);
-    const index_t cube_depth_offset = kgroup_id * m_ * n_;
-    index_t cube_index = slice_col * m_;
+    const index_t cube_depth_offset = is_final ? 0 : (kgroup_id * ldc_ * n_);
+    index_t cube_index = slice_col * ldc_;
     index_t private_index_offset = 0;
 
 #pragma unroll
@@ -293,17 +304,19 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 #pragma unroll
       for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
         if (slice_row < m_ && slice_col < n_) {
-          cube_.template eval<true>(cube_index + slice_row +
-                                         cube_depth_offset) =
-              alpha * private_res[wLPTM + private_index];
+          const index_t write_idx = cube_index + slice_row + cube_depth_offset;
+          cube_.template eval<true>(write_idx) =
+              is_beta_zero
+                  ? (alpha_ * private_res[wLPTM + private_index])
+                  : (alpha_ * private_res[wLPTM + private_index] +
+                     beta_ * cube_.template eval<true>(write_idx));
         }
         slice_row += local_thread_size_m;
       }
-      cube_index += m_;
       private_index += work_per_thread_m;
 
       slice_col += local_thread_size_n;
-      cube_index = slice_col * m_;
+      cube_index = slice_col * ldc_;
       private_index_offset += work_per_thread_m;
     }
   }
@@ -315,7 +328,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       index_t global_n_offset, index_t global_k_offset, bool check_m_limit,
       bool check_n_limit) {
     const bool check_k_limit =
-        global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_;
+        is_final ? false
+                 : (global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_);
     const bool check_limits = check_m_limit || check_n_limit || check_k_limit;
     if (check_limits)
       load_blocks<true, true, true>(local_id, tile_idx, scratch_ptr,

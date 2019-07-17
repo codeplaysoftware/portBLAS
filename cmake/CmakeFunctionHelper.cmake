@@ -45,11 +45,11 @@ set(gemm_configuration_lists "")
 
 #intel GPU
 if(${TARGET} STREQUAL "INTEL_GPU")
-  set(gemm_configuration_0 256 "true" "false" "false" 64 4 4 16 16 1 1 "local_memory" "classic")
+  set(gemm_configuration_0 256 "true" "false" "false" 64 4 4 16 16 1 1 "local_memory" "alternative")
   set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "no_local_memory" "classic")
-  set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory" "classic")
+  set(gemm_configuration_2 64 "true" "false" "false" 64 4 4 8 8 1 1 "local_memory" "alternative")
   set(gemm_configuration_3 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local_memory" "classic")
-  set(gemm_configuration_4 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory" "classic")
+  set(gemm_configuration_4 64 "true" "false" "false" 64 8 8 8 8 1 1 "local_memory" "alternative")
 
   set(gemm_configuration_5 16 "true" "false" "false" 64 1 1 4 4 1 1 "local_memory" "tall_skinny")
   set(gemm_configuration_6 16 "true" "false" "false" 64 2 2 4 4 1 1 "local_memory" "tall_skinny")
