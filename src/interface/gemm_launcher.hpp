@@ -35,12 +35,12 @@ namespace blas {
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB,
-          int Gemm_memory_type, int Gemm_shape_type, bool is_beta_zero>
+          int GemmMemoryType, int GemmAlgorithm, bool is_beta_zero>
 template <typename Executor, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
 typename Executor::policy_t::event_t
 Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
-              TransB, Gemm_memory_type, Gemm_shape_type,
+              TransB, GemmMemoryType, GemmAlgorithm,
               is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
                                           index_t _K, element_t _alpha,
                                           container_t0 a_, index_t _lda,
@@ -52,7 +52,7 @@ Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
   auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
   auto gemm =
       make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
-                TransB, Gemm_memory_type, Gemm_shape_type, is_beta_zero>(
+                TransB, GemmMemoryType, GemmAlgorithm, is_beta_zero>(
           buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
           batch_size);
   return ex.execute(gemm);

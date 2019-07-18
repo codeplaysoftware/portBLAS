@@ -73,31 +73,31 @@ class Executor {
 
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int Gemm_memory_type,
-            int Gemm_shape_type>
+            typename element_t, bool is_beta_zero, int GemmMemoryType,
+            int GemmAlgorithm>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
-           Gemm_shape_type>
+           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           GemmAlgorithm>
           gemm_tree);
 
   // Tall and skinny Gemm specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int Gemm_memory_type>
+            typename element_t, bool is_beta_zero, int GemmMemoryType>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
-           static_cast<int>(Gemm_shape_t::tall_skinny)>
+           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           static_cast<int>(gemm_algorithm_t::tall_skinny)>
           gemm_wrapper);
 
   // GemmPartial specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, int Gemm_memory_type>
+            typename element_t, int GemmMemoryType>
   typename policy_t::event_t execute(
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, Gemm_memory_type>
+                  tile_type, TransA, TransB, element_t, GemmMemoryType>
           gemm_partial);
 
   // Reduction specialization (partial rows)

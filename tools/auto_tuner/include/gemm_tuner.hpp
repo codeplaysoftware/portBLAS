@@ -71,12 +71,12 @@ class TestResult : public std::vector<TestResultEntry> {
 };
 
 template <bool _TransA, bool _TransB, typename _data_t,
-          Gemm_memory_t _MemoryMode, Gemm_shape_t _ShapeMode>
+          gemm_memory_t _MemoryMode, gemm_algorithm_t _ShapeMode>
 struct GemmConfig {
   static const bool TransA = _TransA;
   static const bool TransB = _TransB;
-  static const Gemm_memory_t MemoryMode = _MemoryMode;
-  static const Gemm_shape_t ShapeMode = _ShapeMode;
+  static const gemm_memory_t MemoryMode = _MemoryMode;
+  static const gemm_algorithm_t ShapeMode = _ShapeMode;
   using data_t = _data_t;
 };
 
@@ -255,13 +255,13 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   using data_t = typename MatrixViewTypeFactory<codeplay_policy, E, int,
                                                 col_major>::output_t;
 
-  using Local = GemmConfig<TransA, TransB, data_t, Gemm_memory_t::local_memory,
-                           Gemm_shape_t::classic>;
+  using Local = GemmConfig<TransA, TransB, data_t, gemm_memory_t::local,
+                           gemm_algorithm_t::classic>;
   using NonLocal =
-      GemmConfig<TransA, TransB, data_t, Gemm_memory_t::no_local_memory,
-                 Gemm_shape_t::classic>;
+      GemmConfig<TransA, TransB, data_t, gemm_memory_t::no_local_memory,
+                 gemm_algorithm_t::classic>;
   using Naive = GemmConfig<TransA, TransB, data_t,
-                           Gemm_memory_t::no_local_memory, Gemm_shape_t::naive>;
+                           gemm_memory_t::no_local, gemm_algorithm_t::naive>;
 
   tune_syclblas(rep, *ta_str, *tb_str, args);
 

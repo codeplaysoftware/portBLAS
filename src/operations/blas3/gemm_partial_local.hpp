@@ -34,7 +34,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t>
 class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   tile_type, TransA, TransB, element_t,
-                  static_cast<int>(Gemm_memory_t::local_memory)> {
+                  static_cast<int>(gemm_memory_t::local)> {
  public:
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using value_t = element_t;

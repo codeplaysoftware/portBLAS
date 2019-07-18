@@ -215,20 +215,20 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_memory_type,
-          int Gemm_shape_type>
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmAlgorithm>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, Gemm_memory_type, Gemm_shape_type>
+         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm>
         gemm_tree) {
   using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                       tile_type, TransA, TransB, element_t, is_beta_zero,
-                      Gemm_memory_type, Gemm_shape_type>;
+                      GemmMemoryType, GemmAlgorithm>;
   auto rng = gemm_t::get_nd_range(gemm_tree.m_, gemm_tree.n_,
                                   policy_handler_.get_num_compute_units());
   return {execute_tree<Choose<
-      Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
+      GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
       using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0], gemm_t::local_memory_size)};
@@ -238,12 +238,12 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_memory_type>
+          typename element_t, bool is_beta_zero, int GemmMemoryType>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, Gemm_memory_type,
-         static_cast<int>(Gemm_shape_t::tall_skinny)>
+         TransB, element_t, is_beta_zero, GemmMemoryType,
+         static_cast<int>(gemm_algorithm_t::tall_skinny)>
         gemm_wrapper) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
 
@@ -254,7 +254,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   /* Depth of the cube buffer */
   const index_t depth =
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, Gemm_memory_type>::
+                  tile_type, TransA, TransB, element_t, GemmMemoryType>::
           get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows,
                                cols, gemm_wrapper.k_);
 
@@ -265,7 +265,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
                                           depth, rows * cols);
   /* Execute the partial gemm operation */
   GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-              TransA, TransB, element_t, Gemm_memory_type>
+              TransA, TransB, element_t, GemmMemoryType>
       gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube, gemm_wrapper.alpha_,
                    depth);
   auto events = execute(gemm_partial);
@@ -317,16 +317,16 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, int Gemm_memory_type>
+          typename element_t, int GemmMemoryType>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-                TransA, TransB, element_t, Gemm_memory_type>
+                TransA, TransB, element_t, GemmMemoryType>
         gemm_partial) {
   auto gemm_partial_range =
       gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());
   return {execute_tree<Choose<
-      Gemm_memory_type == static_cast<int>(Gemm_memory_t::local_memory), int,
+      GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
       using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_partial,
       gemm_partial_range.get_local_range()[0],
