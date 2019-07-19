@@ -160,7 +160,7 @@ struct VectorView<
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
