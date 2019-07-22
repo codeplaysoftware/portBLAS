@@ -41,13 +41,15 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
  private:
   /* This structure holds information about the block loading pattern */
-  template <index_t loads, index_t tile_ld, index_t tile_size_col, bool transpose,
-            bool rhs>
+  template <index_t loads, index_t tile_ld, index_t tile_size_row,
+            index_t tile_size_col, bool transpose, bool rhs>
   struct BlockProperties {
     static constexpr bool transpose_at_load = transpose;
     static constexpr index_t loads_per_thread = loads;
     static constexpr index_t tile_leading_dim = tile_ld;
-    static constexpr index_t col_stride = tile_size_col / loads_per_thread;
+    static constexpr index_t tile_row = tile_size_row;
+    static constexpr index_t tile_col = tile_size_col;
+    static constexpr index_t col_stride = tile_col / loads_per_thread;
     static constexpr index_t local_mem_increment =
         col_stride * (transpose_at_load ? 1 : tile_leading_dim);
   };
@@ -106,13 +108,27 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static constexpr index_t nb_threads =
       local_thread_size_m * local_thread_size_n;
 
-  /* Check that the number of threads is divisible by the tile size dimensions
-   * m and n (to simplify loads) */
+  /* Transpose mode for matrices A and B */
+  static constexpr bool trans_a = TransA;
+  static constexpr bool trans_b = TransB;
+
+  /* The dimensions of the LHS and RHS tiles in global memory */
+  static constexpr index_t lhs_tile_rows =
+      trans_a ? tile_size_dim_k : tile_size_dim_m;
+  static constexpr index_t lhs_tile_cols =
+      trans_a ? tile_size_dim_m : tile_size_dim_k;
+  static constexpr index_t rhs_tile_rows =
+      trans_b ? tile_size_dim_n : tile_size_dim_k;
+  static constexpr index_t rhs_tile_cols =
+      trans_b ? tile_size_dim_k : tile_size_dim_n;
+
+  /* Check that the number of threads is divisible by the numbers of rows in
+   * LHS and RHS tiles (to simplify loads) */
   static_assert(
-      nb_threads % tile_size_dim_m == 0,
+      nb_threads % lhs_tile_rows == 0,
       "The number of threads must be divisible by the tile dimension m");
   static_assert(
-      nb_threads % tile_size_dim_k == 0,
+      nb_threads % rhs_tile_rows == 0,
       "The number of threads must be divisible by the tile dimension k");
 
   /* Number of loads per thread for LHS and RHS tiles */
@@ -121,42 +137,40 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   static constexpr index_t loads_per_thread_rhs =
       (tile_size_dim_k * work_per_thread_n) / local_thread_size_m;
 
-  /* The leading dimension of the LHS and RHS tiles */
-  static constexpr index_t ld_lhs_tile = tile_size_dim_m + (NbcA && TransA);
-  static constexpr index_t ld_rhs_tile = tile_size_dim_n + (NbcB && !TransB);
+  /* The leading dimension of the LHS and RHS tiles in local memory */
+  static constexpr index_t lhs_tile_ld = tile_size_dim_m + (NbcA && TransA);
+  static constexpr index_t rhs_tile_ld = tile_size_dim_n + (NbcB && !TransB);
 
   /* Local memory size of a LHS and RHS tile */
-  static constexpr index_t lhs_tile_mem_size = ld_lhs_tile * tile_size_dim_k;
-  static constexpr index_t rhs_tile_mem_size = ld_rhs_tile * tile_size_dim_k;
+  static constexpr index_t lhs_tile_mem_size = lhs_tile_ld * tile_size_dim_k;
+  static constexpr index_t rhs_tile_mem_size = rhs_tile_ld * tile_size_dim_k;
 
   /* If double buffering should be used */
   static constexpr bool double_buffer = DoubleBuffer;
 
+  static constexpr index_t scratch_padding =
+      (NbcA && NbcB && TransB && !TransA) ? 1 : 0;
+
   /* Local memory size */
   static constexpr index_t local_memory_size =
-      (double_buffer + 1) * (lhs_tile_mem_size + rhs_tile_mem_size);
+      (double_buffer + 1) * (lhs_tile_mem_size + rhs_tile_mem_size) +
+      scratch_padding;
 
   /* Where the RHS tiles are located in the scratch buffer */
   static constexpr index_t rhs_scratch_offset =
-      (double_buffer + 1) * lhs_tile_mem_size;
+      (double_buffer + 1) * lhs_tile_mem_size + scratch_padding;
 
   // Number of private summation registers
   static constexpr index_t private_res_size =
       work_per_thread_m * work_per_thread_n;
 
-  /* Transpose mode for matrices A and B */
-  static constexpr bool trans_a = TransA;
-  static constexpr bool trans_b = TransB;
-
   /* Blocks properties */
   using LHSBlockProperties =
-      BlockProperties<loads_per_thread_lhs, ld_lhs_tile,
-                      trans_a ? tile_size_dim_m : tile_size_dim_k, trans_a,
-                      false>;
+      BlockProperties<loads_per_thread_lhs, lhs_tile_ld, lhs_tile_rows,
+                      lhs_tile_cols, trans_a, false>;
   using RHSBlockProperties =
-      BlockProperties<loads_per_thread_rhs, ld_rhs_tile,
-                      trans_b ? tile_size_dim_k : tile_size_dim_n, !trans_b,
-                      true>;
+      BlockProperties<loads_per_thread_rhs, rhs_tile_ld, rhs_tile_rows,
+                      rhs_tile_cols, !trans_b, true>;
 
   /* Work groups per dimension m, n, k */
   const index_t group_count_m;
@@ -235,8 +249,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
     /* Pointers to the scratch memory (lhs and rhs) */
-    value_t *scratch_ptr = scratch.localAcc.get_pointer().get();
-    value_t *rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
+    value_t* scratch_ptr = scratch.localAcc.get_pointer().get();
+    value_t* rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
 
     /* Create and initialise the private res summation registers */
     element_t private_res[private_res_size];
@@ -271,33 +285,39 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const bool check_m_limit = global_m_offset + tile_size_dim_m > m_;
     const bool check_n_limit = global_n_offset + tile_size_dim_n > n_;
 
+    /* Calculate the starting rows and columns for LHS and RHS tile loads */
+    const index_t lhs_row = local_id % LHSBlockProperties::tile_row;
+    const index_t lhs_col = local_id / LHSBlockProperties::tile_row;
+    const index_t rhs_row = local_id % RHSBlockProperties::tile_row;
+    const index_t rhs_col = local_id / RHSBlockProperties::tile_row;
+
     /* The first tile is pre-loaded before the loop if double buffering is
      * enabled */
     if (double_buffer) {
-      extract_input_blocks(local_id, 0, scratch_ptr, rhs_scratch_ptr,
-                           global_m_offset, global_n_offset, global_k_offset,
-                           check_m_limit, check_n_limit);
+      extract_input_blocks(lhs_row, lhs_col, rhs_row, rhs_col, 0, scratch_ptr,
+                           rhs_scratch_ptr, global_m_offset, global_n_offset,
+                           global_k_offset, check_m_limit, check_n_limit);
     }
 
-    index_t tile_id = 0;
-    /* Loop over all tiles allocated to this particular workgroup size */
-    do {
+    /* Loop over all the tiles in this work group */
+    for (index_t tile_id = 0; tile_id < num_tiles; tile_id++) {
       id.barrier(cl::sycl::access::fence_space::local_space);
 
       // Start loading the next tile
       index_t next_tile = double_buffer ? (tile_id + 1) : tile_id;
       const bool tile_nb_check = do_check<double_buffer>(next_tile < num_tiles);
       if (tile_nb_check) {
-        extract_input_blocks(local_id, next_tile, scratch_ptr, rhs_scratch_ptr,
-                             global_m_offset, global_n_offset, global_k_offset,
-                             check_m_limit, check_n_limit);
+        extract_input_blocks(lhs_row, lhs_col, rhs_row, rhs_col, next_tile,
+                             scratch_ptr, rhs_scratch_ptr, global_m_offset,
+                             global_n_offset, global_k_offset, check_m_limit,
+                             check_n_limit);
       }
 
       if (!double_buffer) {
         id.barrier(cl::sycl::access::fence_space::local_space);
       }
 
-      // Calculate offsets into the temporary memory.
+      // Calculate offsets in the temporary memory.
       index_t lhs_offset =
           (double_buffer * (tile_id & 1) * lhs_tile_mem_size) + m_local_id;
       index_t rhs_offset =
@@ -305,18 +325,18 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
       /* Loop over the values of a single tile */
       for (index_t k = 0; k < tile_size_dim_k; k++) {
-        auto idx = 0;
-        auto rhs_index = 0;
+        index_t idx = 0;
+        index_t rhs_index = 0;
 #pragma unroll
         for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
           // load a RHS element from the scratch buffer
-          const element_t privateRhs = rhs_scratch_ptr[rhs_index + rhs_offset];
+          const value_t privateRhs = rhs_scratch_ptr[rhs_index + rhs_offset];
 
           index_t lhs_index = 0;
 #pragma unroll
           for (index_t wLPTM = 0; wLPTM < work_per_thread_m; wLPTM++) {
             // load a LHS element from the scratch buffer
-            const element_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
+            const value_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
 
             // Perform a manual MAD.
             private_res[wLPTM + idx] += (privateLhs * privateRhs);
@@ -326,11 +346,10 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           idx += work_per_thread_m;
           rhs_index += local_thread_size_n;
         }
-        lhs_offset += ld_lhs_tile;
-        rhs_offset += ld_rhs_tile;
+        lhs_offset += lhs_tile_ld;
+        rhs_offset += rhs_tile_ld;
       }
-      tile_id++;
-    } while (tile_id < num_tiles);
+    }
 
     // Store the final results in the cube buffer
     index_t slice_col = (ngroup_id * tile_size_dim_n) + (n_local_id);
@@ -339,6 +358,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const index_t cube_depth_offset = is_final ? 0 : (kgroup_id * ldc_ * n_);
     index_t cube_index = slice_col * ldc_;
     index_t private_index_offset = 0;
+    const index_t cube_index_inc = local_thread_size_n * ldc_;
 
 #pragma unroll
     for (index_t wLPTN = 0; wLPTN < work_per_thread_n; wLPTN++) {
@@ -359,78 +379,75 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       private_index += work_per_thread_m;
 
       slice_col += local_thread_size_n;
-      cube_index = slice_col * ldc_;
+      cube_index += cube_index_inc;
       private_index_offset += work_per_thread_m;
     }
   }
 
   template <typename local_ptr_t>
   SYCL_BLAS_INLINE void extract_input_blocks(
-      index_t local_id, index_t tile_idx, local_ptr_t scratch_ptr,
-      local_ptr_t rhs_scratch_ptr, index_t global_m_offset,
-      index_t global_n_offset, index_t global_k_offset, bool check_m_limit,
-      bool check_n_limit) {
+      const index_t& lhs_row, const index_t& lhs_col, const index_t& rhs_row,
+      const index_t& rhs_col, const index_t& tile_idx, local_ptr_t scratch_ptr,
+      local_ptr_t rhs_scratch_ptr, const index_t& global_m_offset,
+      const index_t& global_n_offset, const index_t& global_k_offset,
+      bool check_m_limit, bool check_n_limit) {
     const bool check_k_limit =
         is_final ? ((tile_idx + 1) * tile_size_dim_k > k_)
                  : (global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_);
     const bool check_limits = check_m_limit || check_n_limit || check_k_limit;
     if (check_limits)
-      load_blocks<true, true, true>(local_id, tile_idx, scratch_ptr,
-                                    rhs_scratch_ptr, global_m_offset,
-                                    global_n_offset, global_k_offset);
+      load_blocks<true, true, true>(
+          lhs_row, lhs_col, rhs_row, rhs_col, tile_idx, scratch_ptr,
+          rhs_scratch_ptr, global_m_offset, global_n_offset, global_k_offset);
     else
-      load_blocks<false, false, false>(local_id, tile_idx, scratch_ptr,
-                                       rhs_scratch_ptr, global_m_offset,
-                                       global_n_offset, global_k_offset);
+      load_blocks<false, false, false>(
+          lhs_row, lhs_col, rhs_row, rhs_col, tile_idx, scratch_ptr,
+          rhs_scratch_ptr, global_m_offset, global_n_offset, global_k_offset);
   }
 
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename local_ptr_t>
-  SYCL_BLAS_INLINE void load_blocks(index_t local_id, index_t tile_idx,
-                                    local_ptr_t scratch_ptr,
-                                    local_ptr_t rhs_scratch_ptr,
-                                    index_t global_m_offset,
-                                    index_t global_n_offset,
-                                    index_t global_k_offset) {
+  SYCL_BLAS_INLINE void load_blocks(
+      const index_t& lhs_row, const index_t& lhs_col, const index_t& rhs_row,
+      const index_t& rhs_col, const index_t& tile_idx, local_ptr_t scratch_ptr,
+      local_ptr_t rhs_scratch_ptr, const index_t& global_m_offset,
+      const index_t& global_n_offset, const index_t& global_k_offset) {
     // LHS tile
     if (trans_a) {
-      load_block<LHSBlockProperties, check_k_limit, check_m_limit,
-                               tile_size_dim_k, tile_size_dim_m>(
-          local_id, tile_idx, a_, lda_, scratch_ptr, global_k_offset,
+      load_block<LHSBlockProperties, check_k_limit, check_m_limit>(
+          lhs_row, lhs_col, tile_idx, a_, lda_, scratch_ptr, global_k_offset,
           global_m_offset, k_, m_);
     } else {
-      load_block<LHSBlockProperties, check_m_limit, check_k_limit,
-                 tile_size_dim_m, tile_size_dim_k>(local_id, tile_idx, a_, lda_,
-                                                   scratch_ptr, global_m_offset,
-                                                   global_k_offset, m_, k_);
+      load_block<LHSBlockProperties, check_m_limit, check_k_limit>(
+          lhs_row, lhs_col, tile_idx, a_, lda_, scratch_ptr, global_m_offset,
+          global_k_offset, m_, k_);
     }
     // RHS tile
     if (trans_b) {
-      load_block<RHSBlockProperties, check_n_limit, check_k_limit,
-                 tile_size_dim_n, tile_size_dim_k>(
-          local_id, tile_idx, b_, ldb_, rhs_scratch_ptr, global_n_offset,
-          global_k_offset, n_, k_);
+      load_block<RHSBlockProperties, check_n_limit, check_k_limit>(
+          rhs_row, rhs_col, tile_idx, b_, ldb_, rhs_scratch_ptr,
+          global_n_offset, global_k_offset, n_, k_);
     } else {
-      load_block<RHSBlockProperties, check_k_limit, check_n_limit,
-                               tile_size_dim_k, tile_size_dim_n>(
-          local_id, tile_idx, b_, ldb_, rhs_scratch_ptr, global_k_offset,
-          global_n_offset, k_, n_);
+      load_block<RHSBlockProperties, check_k_limit, check_n_limit>(
+          rhs_row, rhs_col, tile_idx, b_, ldb_, rhs_scratch_ptr,
+          global_k_offset, global_n_offset, k_, n_);
     }
   }
 
   template <typename BlockPropertiesType, bool check_row_limit,
-            bool check_col_limit, index_t block_rows, index_t block_cols,
-            typename local_ptr_t>
+            bool check_col_limit, typename local_ptr_t>
   static SYCL_BLAS_INLINE void load_block(
-      index_t local_id, index_t tile_idx, input_t& in_view, index_t leading_dim,
-      local_ptr_t local_ptr, index_t global_row_offset,
-      index_t global_col_offset, index_t global_rows, index_t global_cols) {
-    const index_t global_tile_row_offset = global_row_offset + BlockPropertiesType::transpose_at_load * (block_rows * tile_idx);
-    const index_t global_tile_col_offset = global_col_offset + (1 - BlockPropertiesType::transpose_at_load) * (block_cols * tile_idx);
-
-    // TODO: calculate only once and pass that to the function
-    const index_t local_thread_row = local_id % block_rows;
-    const index_t local_thread_col = local_id / block_rows;
+      const index_t& local_row, const index_t& local_col,
+      const index_t& tile_idx, const input_t& in_view,
+      const index_t& leading_dim, local_ptr_t local_ptr,
+      const index_t& global_row_offset, const index_t& global_col_offset,
+      const index_t& global_rows, const index_t& global_cols) {
+    const index_t global_tile_row_offset =
+        global_row_offset + BlockPropertiesType::transpose_at_load *
+                                (BlockPropertiesType::tile_row * tile_idx);
+    const index_t global_tile_col_offset =
+        global_col_offset + (1 - BlockPropertiesType::transpose_at_load) *
+                                (BlockPropertiesType::tile_col * tile_idx);
 
     // Double buffering
     constexpr index_t block_size =
@@ -438,16 +455,14 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
     const index_t local_mem_offset =
         double_buffer * (tile_idx & 1) * block_size;
 
-    index_t local_mem_index =
+    const index_t local_mem_index =
         local_mem_offset +
         (BlockPropertiesType::transpose_at_load
-             ? (local_thread_col +
-                local_thread_row * BlockPropertiesType::tile_leading_dim)
-             : (local_thread_row +
-                local_thread_col * BlockPropertiesType::tile_leading_dim));
+             ? (local_col + local_row * BlockPropertiesType::tile_leading_dim)
+             : (local_row + local_col * BlockPropertiesType::tile_leading_dim));
 
-    index_t global_col_index = global_tile_col_offset + local_thread_col;
-    const index_t global_row_index = global_tile_row_offset + local_thread_row;
+    const index_t global_col_index = global_tile_col_offset + local_col;
+    const index_t global_row_index = global_tile_row_offset + local_row;
     index_t global_mem_index =
         global_col_index * leading_dim + global_row_index;
 
@@ -464,13 +479,12 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           do_check<check_col_limit>(global_col_index +
                                         lpt * BlockPropertiesType::col_stride <
                                     global_cols);
-      element_t val = in_range
-                          ? in_view.template eval<true>(
-                                global_mem_index + lpt * global_mem_increment)
-                          : element_t(0);
+      element_t val = in_range ? in_view.template eval<true>(global_mem_index)
+                               : element_t(0);
 
       local_ptr[local_mem_index +
                 lpt * BlockPropertiesType::local_mem_increment] = val;
+      global_mem_index += global_mem_increment;
     }
   }
 };
