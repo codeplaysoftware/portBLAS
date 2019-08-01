@@ -75,15 +75,13 @@ struct ReductionRows_Params {
                 "of elements per cache line.");
 
   /* Work group dimensions */
-  static constexpr index_t work_group_size = WgSize;
   static constexpr index_t work_group_rows = cl_elems / rows_per_item;
-  static constexpr index_t work_group_cols = work_group_size / work_group_rows;
+  static constexpr index_t work_group_cols = WgSize / work_group_rows;
 
   /* Local memory dimensions */
   static constexpr index_t local_memory_rows = work_group_rows * rows_per_item;
-  static constexpr index_t local_memory_cols = work_group_cols;
   static constexpr index_t local_memory_size =
-      local_memory_rows * local_memory_cols;
+      local_memory_rows * work_group_cols;
 };
 
 /*!

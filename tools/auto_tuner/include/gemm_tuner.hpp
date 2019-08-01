@@ -32,6 +32,7 @@
 #include <functional>
 #include <numeric>
 
+#include "blas_meta.h"
 #include "reference_gemm.hpp"
 #include "sycl_blas.hpp"
 
@@ -247,8 +248,8 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
       m,    n,     k,   E(1),       dataA, lda, dataB,  ldb,
       E(1), origC, ldc, batch_size, refC,  ex,  results};
 
-  using data_t =
-      typename MatrixViewTypeFactory<codeplay_policy, E, int>::output_t;
+  using data_t = typename MatrixViewTypeFactory<codeplay_policy, E, int,
+                                                col_major>::output_t;
 
   using Local = GemmConfig<TransA, TransB, data_t, Gemm_t::local_memory>;
   using NonLocal = GemmConfig<TransA, TransB, data_t, Gemm_t::no_local_memory>;
