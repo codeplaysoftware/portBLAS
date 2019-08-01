@@ -61,10 +61,18 @@ if(${TARGET} STREQUAL "INTEL_GPU")
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2 gemm_configuration_3
-                                       gemm_configuration_4 gemm_configuration_5
-                                       gemm_configuration_6 gemm_configuration_7
-                                       gemm_configuration_8 gemm_configuration_9
-                                       gemm_configuration_10 gemm_configuration_11)
+                                       gemm_configuration_4)
+
+
+  if(GEMM_TALL_SKINNY_SUPPORT)
+    list(APPEND gemm_configuration_lists gemm_configuration_5
+                                         gemm_configuration_6
+                                         gemm_configuration_7
+                                         gemm_configuration_8
+                                         gemm_configuration_9
+                                         gemm_configuration_10
+                                         gemm_configuration_11)
+  endif()
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
   set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local" "classic")
@@ -86,7 +94,11 @@ else() # default cpu backend
   set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive")
   set(gemm_configuration_1 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "classic")
 
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
+  if(NAIVE_GEMM)
+    list(APPEND gemm_configuration_lists gemm_configuration_0)
+  else()
+    list(APPEND gemm_configuration_lists gemm_configuration_1)
+  endif()
 endif()
 
 
@@ -108,6 +120,10 @@ function(set_target_compile_def in_target)
   #setting always inline attribute
   if(${SYCL_BLAS_ALWAYS_INLINE})
     target_compile_definitions(${in_target} PUBLIC SYCL_BLAS_ALWAYS_INLINE=1)
+  endif()
+  #setting tall skinny support
+  if(${GEMM_TALL_SKINNY_SUPPORT})
+    target_compile_definitions(${in_target} PUBLIC GEMM_TALL_SKINNY_SUPPORT=1)
   endif()
 
 endfunction()

@@ -36,6 +36,7 @@ typename executor_t::policy_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
+#ifdef GEMM_TALL_SKINNY_SUPPORT
   /* Tall & Skinny matrices. */
   if (batch_size == 1 &&
       ((_K >= 4096 && _M * _N <= 16384) || (_K >= 1024 && _M * _N <= 4096))) {
@@ -89,7 +90,9 @@ typename executor_t::policy_t::event_t _gemm(
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     }
-  } else if ((_M == 512 && _N == 49 && _K == 512) ||
+  }
+#endif
+  if ((_M == 512 && _N == 49 && _K == 512) ||
              (_M == 10 && _N == 1024 && _K == 1024)) {
     return blas::Gemm_Launcher<
         256, true, false, false, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
