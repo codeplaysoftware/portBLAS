@@ -145,8 +145,8 @@ struct VectorView<
 
   /**** EVALUATING ****/
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type
-  eval(index_t i) {
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+      index_t i) {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
@@ -165,8 +165,8 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type
-  eval(index_t indx) {
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
     return *(ptr_ + indx);
   }
 
