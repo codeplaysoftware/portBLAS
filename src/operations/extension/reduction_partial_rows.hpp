@@ -39,7 +39,7 @@ class ReductionPartialRows {
   using index_t = typename input_t::index_t;
   using value_t = element_t;
 
-  /* Reading some compile-time parameters from a structure.
+  /* Read some compile-time parameters from a structure.
    * See the header file for the definition of this structure */
   using params_t =
       ReductionRows_Params<index_t, element_t, ClSize, WgSize, WorkPerItem>;
@@ -124,7 +124,7 @@ class ReductionPartialRows {
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
     /* reference to the scratch memory */
-    auto scratch_ptr = scratch.localAcc.get_pointer().get();
+    element_t* scratch_ptr = scratch.localAcc.get_pointer();
 
     /* workgroup id */
     const index_t group_id = id.get_group(0);
@@ -156,25 +156,22 @@ class ReductionPartialRows {
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
      * store them in the local memory */
-    {
-      index_t elem_col = global_col;
-      while (elem_col < cols_) {
-        index_t elem_col_idx = leading_dim_ * elem_col;
-        /* Each thread is responsible for multiple independent rows */
-        index_t elem_row = global_row;
+    for (index_t elem_col = global_col; elem_col < cols_;
+         elem_col += total_item_cols) {
+      index_t elem_col_idx = leading_dim_ * elem_col;
+      /* Each thread is responsible for multiple independent rows */
+      index_t elem_row = global_row;
 #pragma unroll
-        for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
-          if (elem_row < rows_) {
-            const value_t lhs_val = accumulators[wpr];
-            const value_t rhs_val =
-                in_.template eval<true>(elem_col_idx + elem_row);
-            accumulators[wpr] = operator_t::eval(lhs_val, rhs_val);
-          }
-          elem_row += work_group_rows;
+      for (index_t wpr = 0; wpr < rows_per_item; wpr++) {
+        if (elem_row < rows_) {
+          const value_t lhs_val = accumulators[wpr];
+          const value_t rhs_val =
+              in_.template eval<true>(elem_col_idx + elem_row);
+          accumulators[wpr] = operator_t::eval(lhs_val, rhs_val);
         }
-        elem_col += total_item_cols;
-      };
-    }
+        elem_row += work_group_rows;
+      }
+    };
 
     /* Copy the accumulation registers into the local memory */
     {

@@ -267,9 +267,10 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
-  /* Choose at run-time whether to do a one-step or two-step reduction */
-  constexpr bool do_first_step = false;
-  // At the moment the one-step proved to be better in almost every case
+  /* Choose at run-time whether to do a one-step or two-step reduction.
+   * These heuristics have been selected empirically by benchmarking one-step
+    * against two-step reduction */
+  const bool do_first_step = (cols_ > 2048);
 
   /* Create an empty event vector */
   typename codeplay_policy::event_t reduction_event;
