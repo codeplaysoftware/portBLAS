@@ -227,9 +227,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
                       GemmMemoryType, GemmAlgorithm>;
   auto rng = gemm_t::get_nd_range(gemm_tree.m_, gemm_tree.n_,
                                   policy_handler_.get_num_compute_units());
-  return {execute_tree<Choose<
-      GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
-      using_local_memory::enabled, using_local_memory::disabled>::type>(
+  return {execute_tree<
+      Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0], gemm_t::local_memory_size)};
 }
@@ -275,8 +275,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   if (is_beta_zero && ldc == rows) {
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
     Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
-              tile_type::item_rows, element_t,
-              static_cast<int>(Reduction_t::partial_rows)>
+              element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube, gemm_wrapper.c_, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
   }
@@ -290,8 +289,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     /* Execute the reduction */
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
     Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
-              tile_type::item_rows, element_t,
-              static_cast<int>(Reduction_t::partial_rows)>
+              element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube, temp, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
 
@@ -325,24 +323,23 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
         gemm_partial) {
   auto gemm_partial_range =
       gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());
-  return {execute_tree<Choose<
-      GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
-      using_local_memory::enabled, using_local_memory::disabled>::type>(
+  return {execute_tree<
+      Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_partial,
       gemm_partial_range.get_local_range()[0],
       gemm_partial_range.get_global_range()[0],
       gemm_partial.local_memory_size)};
 }
 
-// Utility function used by the ReductionPartialRows specialization
-template <typename operator_t, int ClSize, int WgSize, int WorkPerItem,
-          typename element_t, typename input_t, typename output_t,
-          typename index_t, typename queue_t>
+/* Utility function used by the ReductionPartialRows specialization */
+template <typename operator_t, int ClSize, int WgSize, typename element_t,
+          typename input_t, typename output_t, typename index_t,
+          typename queue_t>
 static inline cl::sycl::event launch_row_reduction_step(
     queue_t queue, input_t& in, output_t& out, index_t group_count_cols,
     index_t local_memory_size, index_t num_compute_units) {
-  ReductionPartialRows<operator_t, input_t, output_t, ClSize, WgSize,
-                       WorkPerItem, element_t>
+  ReductionPartialRows<operator_t, input_t, output_t, ClSize, WgSize, element_t>
       reduction_step(in, out, group_count_cols);
   auto step_range = reduction_step.get_nd_range(num_compute_units);
   return execute_tree<using_local_memory::enabled>(
@@ -350,39 +347,43 @@ static inline cl::sycl::event launch_row_reduction_step(
       step_range.get_global_range()[0], local_memory_size);
 }
 
-// ReductionPartialRows
+/* ReductionPartialRows */
 template <>
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t>
+          int WgSize, typename element_t>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
-    Reduction<operator_t, input_t, output_t, ClSize, WgSize, WorkPerItem,
-              element_t, static_cast<int>(Reduction_t::partial_rows)>
+    Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
+              static_cast<int>(Reduction_t::partial_rows)>
         reduction_wrapper) {
-  using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using params_t = blas::ReductionRows_Params<index_t, element_t, ClSize,
-                                              WgSize, WorkPerItem>;
+  using index_t = typename input_t::index_t;
+  using params_t =
+      blas::ReductionRows_Params<index_t, element_t, ClSize, WgSize>;
 
   /* Extract data from the reduction wrapper */
   const index_t rows_ = reduction_wrapper.rows_,
                 cols_ = reduction_wrapper.cols_;
   input_t& in_ = reduction_wrapper.in_;
-  input_t& out_ = reduction_wrapper.out_;
+  output_t& out_ = reduction_wrapper.out_;
 
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
-  /* Choose at run-time whether to do a one-step or two-step reduction */
-  const bool do_first_step =
-      cols_ > params_t::work_group_cols * params_t::work_group_cols;
-  // TODO: find out in which cases it is better to use 2-step reduction
+  /* Choose at run-time whether to do a one-step or two-step reduction.
+   * These heuristics have been selected empirically by benchmarking one-step
+   * against two-step reduction */
+  const bool do_first_step = (cols_ > 2048);
 
   /* Create an empty event vector */
   typename codeplay_policy::event_t reduction_event;
 
   /* 2-step reduction */
   if (do_first_step) {
-    static const index_t group_count_cols = std::min(
-        params_t::work_group_cols, (cols_ - 1) / params_t::work_group_cols + 1);
+    static const index_t max_group_count_col =
+        (cols_ - 1) / params_t::work_group_cols + 1;
+    static const index_t group_count_cols =
+        params_t::work_group_cols < max_group_count_col
+            ? params_t::work_group_cols
+            : max_group_count_col;
 
     /* Create a temporary buffer */
     auto temp_buffer =
@@ -392,23 +393,20 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
     /* 1st step */
     reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
-                                  element_t>(
+        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), in_, temp_, group_count_cols,
             params_t::local_memory_size, num_compute_units));
 
     /* 2nd step */
     reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
-                                  element_t>(
+        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), temp_, out_, 1,
             params_t::local_memory_size, num_compute_units));
   }
   /* 1-step reduction */
   else {
     reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, WorkPerItem,
-                                  element_t>(
+        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), in_, out_, 1,
             params_t::local_memory_size, num_compute_units));
   }

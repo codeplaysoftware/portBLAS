@@ -147,27 +147,53 @@ struct constant<value_t, const_val::abs_min> {
 };
 
 template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_max> {
-  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
-    return IndexValueTuple<value_t, index_t>(
+struct constant<IndexValueTuple<index_t, value_t>, const_val::abs_max> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
         std::numeric_limits<index_t>::max(),
-        std::numeric_limits<index_t>::max());
+        std::numeric_limits<value_t>::max());
   }
 };
 
 template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::abs_min> {
-  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
-    return IndexValueTuple<value_t, index_t>(
-        std::numeric_limits<index_t>::max(),
-        0);
+struct constant<IndexValueTuple<index_t, value_t>, const_val::abs_min> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
+        std::numeric_limits<index_t>::max(), 0);
   }
 };
 
 template <typename value_t, typename index_t>
-struct constant<IndexValueTuple<value_t, index_t>, const_val::collapse> {
-  constexpr static SYCL_BLAS_INLINE IndexValueTuple<value_t, index_t> value() {
-    return IndexValueTuple<value_t, index_t>(
+struct constant<IndexValueTuple<index_t, value_t>, const_val::max> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<value_t>::max());
+  }
+};
+
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<index_t, value_t>, const_val::min> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
+        std::numeric_limits<index_t>::max(),
+        std::numeric_limits<value_t>::min());
+  }
+};
+
+template <typename value_t, typename index_t, const_val Indicator>
+struct constant<IndexValueTuple<index_t, value_t>, Indicator> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
+        std::numeric_limits<index_t>::max(),
+        constant<value_t, Indicator>::value());
+  }
+};
+
+template <typename value_t, typename index_t>
+struct constant<IndexValueTuple<index_t, value_t>, const_val::collapse> {
+  constexpr static SYCL_BLAS_INLINE IndexValueTuple<index_t, value_t> value() {
+    return IndexValueTuple<index_t, value_t>(
         std::numeric_limits<index_t>::max(),
         std::numeric_limits<value_t>::max());
   }

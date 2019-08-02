@@ -102,10 +102,10 @@ class Executor {
 
   // Reduction specialization (partial rows)
   template <typename operator_t, typename input_t, typename output_t,
-            int ClSize, int WgSize, int WorkPerItem, typename element_t>
+            int ClSize, int WgSize, typename element_t>
   typename policy_t::event_t execute(
-      Reduction<operator_t, input_t, output_t, ClSize, WgSize, WorkPerItem,
-                element_t, static_cast<int>(Reduction_t::partial_rows)>
+      Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
+                static_cast<int>(Reduction_t::partial_rows)>
           reduction_wrapper);
 
  private:
