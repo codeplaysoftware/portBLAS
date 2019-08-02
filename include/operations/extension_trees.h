@@ -45,7 +45,7 @@ enum class Reduction_t : int {
  * the specific reduction classes
  */
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
+          int WgSize, typename element_t, int Reduction_type>
 class Reduction {
  public:
   using index_t = typename input_t::index_t;
@@ -60,28 +60,18 @@ class Reduction {
  * @brief Calculates the parameters of the row reduction step (used by the
  * executor and the kernel)
  */
-template <typename index_t, typename element_t, int ClSize, int WgSize,
-          int WorkPerItem>
+template <typename index_t, typename element_t, int ClSize, int WgSize>
 struct ReductionRows_Params {
   /* The number of elements per cache line size depends on the element type */
   static constexpr index_t cl_elems = ClSize / sizeof(element_t);
 
-  /* Workload per work item on each dimension m and n */
-  static constexpr index_t rows_per_item = WorkPerItem;
-
-  /* Checking if the parameters are valid */
-  static_assert(cl_elems % rows_per_item == 0,
-                "The number of rows processed per item must divide the number "
-                "of elements per cache line.");
-
   /* Work group dimensions */
-  static constexpr index_t work_group_rows = cl_elems / rows_per_item;
+  static constexpr index_t work_group_rows = cl_elems;
   static constexpr index_t work_group_cols = WgSize / work_group_rows;
 
   /* Local memory dimensions */
-  static constexpr index_t local_memory_rows = work_group_rows * rows_per_item;
   static constexpr index_t local_memory_size =
-      local_memory_rows * work_group_cols;
+      work_group_rows * work_group_cols;
 };
 
 /*!
@@ -93,7 +83,7 @@ struct ReductionRows_Params {
  * steps before the reduction of the rows is complete.
  */
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t>
+          int WgSize, typename element_t>
 class ReductionPartialRows;
 
 }  // namespace blas
