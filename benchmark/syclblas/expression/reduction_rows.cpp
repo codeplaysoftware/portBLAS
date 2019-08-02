@@ -38,9 +38,10 @@ std::string get_name(int rows, int cols) {
 
 template <typename operator_t, typename scalar_t, typename executor_t,
           typename input_t, typename output_t>
-std::vector<cl::sycl::event> launch_reduction(executor_t& ex, input_t buffer_in, output_t buffer_out,
-                      index_t rows, index_t cols) {
-  blas::Reduction<operator_t, input_t, output_t, 64, 64, 4, scalar_t,
+std::vector<cl::sycl::event> launch_reduction(executor_t& ex, input_t buffer_in,
+                                              output_t buffer_out, index_t rows,
+                                              index_t cols) {
+  blas::Reduction<operator_t, input_t, output_t, 64, 256, scalar_t,
                   static_cast<int>(Reduction_t::partial_rows)>
       reduction(buffer_in, buffer_out, rows, cols);
   return ex.execute(reduction);
@@ -63,12 +64,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   ExecutorType& ex = *executorPtr;
 
   // Matrix
-  std::vector<scalar_t> mat = blas_benchmark::utils::random_data<scalar_t>(rows * cols);
+  std::vector<scalar_t> mat =
+      blas_benchmark::utils::random_data<scalar_t>(rows * cols);
   auto mat_buffer = blas::make_sycl_iterator_buffer<scalar_t>(mat, rows * cols);
   auto mat_gpu = make_matrix_view<col_major>(ex, mat_buffer, rows, cols, rows);
 
   // Output vector
-  std::vector<scalar_t> vec = blas_benchmark::utils::random_data<scalar_t>(rows);
+  std::vector<scalar_t> vec =
+      blas_benchmark::utils::random_data<scalar_t>(rows);
   auto vec_buffer = blas::make_sycl_iterator_buffer<scalar_t>(vec, rows);
   auto vec_gpu = make_vector_view(ex, vec_buffer, 1, rows);
 
@@ -84,9 +87,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   }
   std::vector<scalar_t> vec_temp = vec;
   {
-    auto vec_temp_buffer = blas::make_sycl_iterator_buffer<scalar_t>(vec_temp, rows);
+    auto vec_temp_buffer =
+        blas::make_sycl_iterator_buffer<scalar_t>(vec_temp, rows);
     auto vec_temp_gpu = make_vector_view(ex, vec_temp_buffer, 1, rows);
-    auto event = launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_temp_gpu, rows, cols);
+    auto event = launch_reduction<AddOperator, scalar_t>(
+        ex, mat_gpu, vec_temp_gpu, rows, cols);
     ex.get_policy_handler().wait(event);
   }
 
@@ -99,7 +104,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_gpu, rows, cols);
+    auto event = launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_gpu,
+                                                         rows, cols);
     ex.get_policy_handler().wait(event);
     return event;
   };
