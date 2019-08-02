@@ -255,8 +255,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
             // load a LHS element from the scratch buffer
             const element_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
 
-            // Perform a manual MAD.
-            private_res[wLPTM + idx] += (privateLhs * privateRhs);
+            private_res[wLPTM + idx] =
+                cl::sycl::mad(privateLhs, privateRhs, private_res[wLPTM + idx]);
 
             lhs_index += tile_type::wg_rows;
           }
