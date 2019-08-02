@@ -33,7 +33,7 @@
 namespace blas {
 
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t>
+          int WgSize, typename element_t>
 class ReductionPartialRows {
  public:
   using index_t = typename input_t::index_t;
@@ -41,8 +41,7 @@ class ReductionPartialRows {
 
   /* Read some compile-time parameters from a structure.
    * See the header file for the definition of this structure */
-  using params_t =
-      ReductionRows_Params<index_t, element_t, ClSize, WgSize, WorkPerItem>;
+  using params_t = ReductionRows_Params<index_t, element_t, ClSize, WgSize>;
 
   /* Neutral value for this reduction operator */
   static constexpr value_t init_val = operator_t::template init<output_t>();
@@ -67,7 +66,7 @@ class ReductionPartialRows {
         rows_(in_.get_size_row()),
         cols_(in_.get_size_col()),
         leading_dim_(in_.getSizeL()),
-        group_count_rows_((rows_ - 1) / params_t::local_memory_rows + 1),
+        group_count_rows_((rows_ - 1) / params_t::work_group_rows + 1),
         group_count_cols_(group_count_cols) {}
 
   void bind(cl::sycl::handler& h) {
@@ -87,7 +86,7 @@ class ReductionPartialRows {
    * number of work groups required to execute each partial reduction step.
    */
   SYCL_BLAS_INLINE index_t get_workgroup_cluster() noexcept {
-    return ((rows_ - 1) / params_t::local_memory_rows + 1) * group_count_cols_;
+    return ((rows_ - 1) / params_t::work_group_rows + 1) * group_count_cols_;
   }
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
@@ -133,7 +132,13 @@ class ReductionPartialRows {
 
     /* Global position of the first element processed by the thread */
     const index_t global_row =
-        group_row * params_t::local_memory_rows + local_row;
+        group_row * params_t::work_group_rows + local_row;
+
+    /* In the groups at the bottom of the matrix, some threads don't work */
+    if (global_row >= rows_) {
+      return;
+    }
+
     const index_t global_col =
         group_col * params_t::work_group_cols + local_col;
 
@@ -141,87 +146,54 @@ class ReductionPartialRows {
     const index_t total_item_cols =
         params_t::work_group_cols * group_count_cols_;
 
-    /* Initialize private reduction registers */
-    element_t accumulators[params_t::rows_per_item];
-#pragma unroll
-    for (index_t wpr = 0; wpr < params_t::rows_per_item; wpr++) {
-      accumulators[wpr] = init_val;
-    }
+    element_t accumulator = 0;
 
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
      * store them in the local memory */
-    for (index_t elem_col = global_col; elem_col < cols_;
-         elem_col += total_item_cols) {
-      index_t elem_col_idx = leading_dim_ * elem_col;
-      /* Each thread is responsible for multiple independent rows */
-      index_t elem_row = global_row;
-#pragma unroll
-      for (index_t wpr = 0; wpr < params_t::rows_per_item; wpr++) {
-        if (elem_row < rows_) {
-          const value_t lhs_val = accumulators[wpr];
-          const value_t rhs_val =
-              in_.template eval<true>(elem_col_idx + elem_row);
-          accumulators[wpr] = operator_t::eval(lhs_val, rhs_val);
-        }
-        elem_row += params_t::work_group_rows;
-      }
-    };
-
-    /* Copy the accumulation registers into the local memory */
     {
-      index_t local_memory_idx =
-          params_t::local_memory_rows * local_col + local_row;
-#pragma unroll
-      for (index_t wpr = 0; wpr < params_t::rows_per_item; wpr++) {
-        scratch_ptr[local_memory_idx] = accumulators[wpr];
-        local_memory_idx += params_t::work_group_rows;
+      index_t global_idx = leading_dim_ * global_col + global_row;
+      const index_t global_stride = total_item_cols * leading_dim_;
+      for (index_t elem_col = global_col; elem_col < cols_;
+           elem_col += total_item_cols) {
+        accumulator =
+            operator_t::eval(accumulator, in_.template eval<true>(global_idx));
+        global_idx += global_stride;
       }
     }
+
+    /* Write the accumulator into the local memory */
+    scratch_ptr[params_t::work_group_rows * local_col + local_row] =
+        accumulator;
 
     /* Parallel-reduction level:
      * Tree-based reduction in local memory */
     {
-      const index_t local_memory_lhs = local_col * params_t::local_memory_rows;
+      const index_t lhs_idx = local_col * params_t::work_group_rows + local_row;
+      index_t rhs_idx = (local_col + params_t::work_group_cols / 2) *
+                            params_t::work_group_rows +
+                        local_row;
 #pragma unroll
       for (index_t stride = params_t::work_group_cols / 2; stride > 0;
            stride /= 2) {
-        const index_t local_memory_rhs =
-            (local_col + stride) * params_t::local_memory_rows;
         /* Synchronize group */
         id.barrier(cl::sycl::access::fence_space::local_space);
 
         /* Only the lhs performs the reduction */
         if (local_col < stride) {
-          /* Each thread is responsible for multiple independent rows */
-          index_t local_memory_row = local_row;
-#pragma unroll
-          for (index_t wpr = 0; wpr < params_t::rows_per_item; wpr++) {
-            /* Reduce left-hand and right-hand elements together */
-            const index_t lhs_location = local_memory_lhs + local_memory_row;
-            const value_t lhs_val = scratch_ptr[lhs_location];
-            const value_t rhs_val =
-                scratch_ptr[local_memory_rhs + local_memory_row];
-            scratch_ptr[lhs_location] = operator_t::eval(lhs_val, rhs_val);
-            local_memory_row += params_t::work_group_rows;
-          }
+          /* Reduce left-hand and right-hand elements together */
+          scratch_ptr[lhs_idx] =
+              operator_t::eval(scratch_ptr[lhs_idx], scratch_ptr[rhs_idx]);
+
+          rhs_idx -= (stride / 2) * params_t::work_group_rows;
         }
       }
     }
 
     /* Threads of the first column write their results in the output buffer */
     if (local_col == 0) {
-      const index_t global_row_offset = group_row * params_t::local_memory_rows;
-      index_t local_memory_row = local_row;
-      index_t out_memory_idx = group_col * rows_ + global_row_offset;
-#pragma unroll
-      for (index_t wpr = 0; wpr < params_t::rows_per_item; wpr++) {
-        if (global_row_offset + local_memory_row < rows_) {
-          out_.template eval<true>(out_memory_idx + local_memory_row) =
-              scratch_ptr[local_memory_row];
-        }
-        local_memory_row += params_t::work_group_rows;
-      }
+      out_.template eval<true>(group_col * rows_ + global_row) =
+          scratch_ptr[local_row];
     }
   }
 };
