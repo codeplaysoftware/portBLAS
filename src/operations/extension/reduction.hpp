@@ -1,5 +1,4 @@
 /***************************************************************************
- *
  *  @license
  *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,37 +18,30 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.hpp
+ *  @filename reduction.hpp
  *
  **************************************************************************/
-#include "sycl_blas.h"
 
-#include "container/sycl_iterator.hpp"
+#ifndef SYCL_BLAS_EXTENSION_REDUCTION_HPP
+#define SYCL_BLAS_EXTENSION_REDUCTION_HPP
 
-#include "executors/executor_sycl.hpp"
+#include "operations/extension_trees.h"
+#include "views/view.h"
+#include <CL/sycl.hpp>
+#include <string>
 
-#include "executors/kernel_constructor.hpp"
+namespace blas {
 
-#include "interface/blas1_interface.hpp"
+/* Constructor of the wrapper class */
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, typename element_t, int Reduction_type>
+SYCL_BLAS_INLINE
+Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
+          Reduction_type>::Reduction(input_t in, output_t out,
+                                     typename input_t::index_t num_rows,
+                                     typename input_t::index_t num_cols)
+    : in_(in), out_(out), rows_(num_rows), cols_(num_cols) {}
 
-#include "interface/blas2_interface.hpp"
+}  // namespace blas
 
-#include "interface/blas3_interface.hpp"
-
-#include "interface/gemm_launcher.hpp"
-
-#include "operations/blas1_trees.hpp"
-
-#include "operations/blas2_trees.hpp"
-
-#include "operations/blas3_trees.hpp"
-
-#include "operations/extension_trees.hpp"
-
-#include "operations/blas_constants.hpp"
-
-#include "operations/blas_operators.hpp"
-
-#include "policy/sycl_policy_handler.hpp"
-
-#include "views/view_sycl.hpp"
+#endif  // SYCL_BLAS_EXTENSION_REDUCTION_HPP

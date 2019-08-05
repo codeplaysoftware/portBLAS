@@ -29,6 +29,7 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas3_trees.h"
+#include "operations/extension_trees.h"
 #include "policy/policy_handler.h"
 namespace blas {
 
@@ -76,6 +77,14 @@ class Executor {
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, Gemm_type>
           gemm_tree);
+
+  // Reduction specialization (partial rows)
+  template <typename operator_t, typename input_t, typename output_t,
+            int ClSize, int WgSize, typename element_t>
+  typename policy_t::event_t execute(
+      Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
+                static_cast<int>(Reduction_t::partial_rows)>
+          reduction_wrapper);
 
  private:
   policy_handler_t policy_handler_;
