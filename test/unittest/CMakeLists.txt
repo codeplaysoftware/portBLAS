@@ -22,7 +22,7 @@
 # *  @filename executor_base.hpp
 # *
 # **************************************************************************/
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.2)
 
 project(syclblas_unittest)
 

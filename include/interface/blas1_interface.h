@@ -34,9 +34,9 @@ namespace internal {
  * Implements AXPY \f$y = ax + y\f$
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vy  VectorView
+ * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -49,9 +49,9 @@ typename executor_t::policy_t::event_t _axpy(
  * \brief COPY copies a vector, x, to a vector, y.
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vy  VectorView
+ * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename index_t, typename container_0_t,
@@ -66,9 +66,9 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  * \brief Compute the inner product of two vectors with extended precision
     accumulation.
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -79,7 +79,7 @@ typename executor_t::policy_t::event_t _dot(
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -90,7 +90,7 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
                                              container_1_t _rs);
 /**
  * \brief IAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename ContainerI,
@@ -101,7 +101,7 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
                                               ContainerI _rs);
 /**
  * \brief IAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename ContainerI,
@@ -115,9 +115,9 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
  * \brief SWAP interchanges two vectors
  *
  * @param executor_t ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vy  VectorView
+ * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -131,7 +131,7 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
 /**
  * \brief SCALAR  operation on a vector
  * @param executor_t ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename element_t, typename container_0_t,
@@ -144,7 +144,7 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -157,9 +157,9 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
 /**
  * @brief _rot constructor given plane rotation
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  * @param _sin  sine
  * @param _cos cosine
@@ -176,9 +176,9 @@ typename executor_t::policy_t::event_t _rot(
     precision accumulation and result.
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -190,7 +190,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incy);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -199,7 +199,7 @@ index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx);
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -210,7 +210,7 @@ index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx);
  * \brief ASUM Takes the sum of the absolute values
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -222,7 +222,7 @@ typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
  * \brief NRM2 Returns the euclidian norm of a vector
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -245,9 +245,9 @@ typename executor_t::policy_t::event_t _axpy(
  * \brief COPY copies a vector, x, to a vector, y.
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vy  VectorView
+ * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename index_t, typename container_0_t,
@@ -265,9 +265,9 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  * \brief Compute the inner product of two vectors with extended precision
     accumulation.
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -283,7 +283,7 @@ typename executor_t::policy_t::event_t _dot(
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -298,7 +298,7 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
 
 /**
  * \brief IAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename ContainerI,
@@ -313,7 +313,7 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
 
 /**
  * \brief IAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename ContainerI,
@@ -330,9 +330,9 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
  * \brief SWAP interchanges two vectors
  *
  * @param executor_t ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vy  VectorView
+ * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -349,7 +349,7 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
 /**
  * \brief SCALAR  operation on a vector
  * @param executor_t ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename element_t, typename container_0_t,
@@ -365,7 +365,7 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -383,9 +383,9 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
  * @brief _rot constructor given plane rotation
  *  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  * @param _sin  sine
  * @param _cos cosine
@@ -407,9 +407,9 @@ typename executor_t::policy_t::event_t _rot(
     precision accumulation and result.
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incy Increment in Y axis
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -425,7 +425,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
 
 /**
  * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -437,7 +437,7 @@ index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -451,7 +451,7 @@ index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
  * \brief ASUM Takes the sum of the absolute values
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
@@ -467,7 +467,7 @@ typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
  * \brief NRM2 Returns the euclidian norm of a vector
  *
  * @param executor_t<ExecutorType> ex
- * @param _vx  VectorView
+ * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
 template <typename executor_t, typename container_t, typename index_t,
