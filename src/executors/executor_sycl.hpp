@@ -269,13 +269,13 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   /* Choose at run-time whether to do a one-step or two-step reduction.
    * These heuristics have been selected empirically by benchmarking one-step
    * against two-step reduction */
-  const bool do_first_step = (cols_ > 2048);
+  const bool two_step_reduction = (cols_ > 2048);
 
   /* Create an empty event vector */
   typename codeplay_policy::event_t reduction_event;
 
   /* 2-step reduction */
-  if (do_first_step) {
+  if (two_step_reduction) {
     static const index_t max_group_count_col =
         (cols_ - 1) / params_t::work_group_cols + 1;
     static const index_t group_count_cols =

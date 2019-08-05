@@ -91,12 +91,15 @@ class ReductionPartialRows {
   /*!
    * @brief get_num_workgroup_cluster. This function is used to extend the
    * number of work group clusters, in order to make sure that at least 4
-   * operations are available per work group. The number 4 is used based on
+   * operations are available per compute unit. The number 4 is based on
    * empirical research.
    */
   SYCL_BLAS_INLINE index_t
   get_num_workgroup_cluster(index_t compute_units) noexcept {
-    return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
+    constexpr index_t min_wg_per_compute_unit = 4;
+    return ((min_wg_per_compute_unit * compute_units - 1) /
+                get_workgroup_cluster() +
+            1);
   }
 
   /*!
