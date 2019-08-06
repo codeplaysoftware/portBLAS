@@ -175,7 +175,9 @@ the BLAS operations) are iterator buffers that can be created with
 `make_sycl_iterator_buffer`.
 
 We recommend checking the [samples](samples) to get started with SYCL-BLAS. It
-is better to be familiar with [BLAS](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms).
+is better to be familiar with BLAS:
+[Wikipedia](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) ;
+[Netlib reference](http://www.netlib.org/lapack/explore-html/d1/df9/group__blas.html).
 
 ### BLAS 1
 
@@ -184,7 +186,7 @@ The following table sums up the interface that can be found in
 
 For all these operations:
 
-* `vx` and `vy` are containers for vectors.
+* `vx` and `vy` are containers for vectors `x` and `y`.
 * `incx` and `incy` are their increments (number of steps to jump to the next
    value, 1 for contiguous values).
 * `N`, an integer, is the size of the vectors (less than or equal to the size of
@@ -196,22 +198,73 @@ For all these operations:
 
 | operation | arguments | description |
 |---|---|---|
-| `_axpy` | `ex`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy` | Implements AXPY: `vy = alpha * vx + vy` |
-| `_copy`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Copies a vector to another: `vy = vx` |
-| `_dot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`] | Dot product of two vectors `vx` and `vy`; written in `rs` if passed, else returned |
-| `_asum` | `ex`, `N`, `vx`, `incx` [, `rs`] | Absolute sum of the vector `vx`; written in `rs` if passed, else returned |
-| `_iamax` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the maximum element of `vx`; written in `rs` if passed, else the index only is returned |
-| `_iamin` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the minimum element of `vx`; written in `rs` if passed, else the index only is returned |
-| `_swap`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Interchanges two vectors: `vy = vx` and `vx = vy` |
-| `_scal` | `ex`, `N`, `alpha`, `vx`, `incx` | Scalar product of a vector: `vx = alpha * vx` |
-| `_nrm2` | `ex`, `N`, `vx`, `incx` [, `rs`] | Euclidean norm of the vector `vx`; written in `rs` if passed, else returned |
-| `_rot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `vx` and `vy` with a cosine `c` and a sine `s`  |
+| `_axpy` | `ex`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy` | Vector multiply-add: `y = alpha * x + y` |
+| `_copy`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Copies a vector to another: `y = x` |
+| `_dot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`] | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned |
+| `_asum` | `ex`, `N`, `vx`, `incx` [, `rs`] | Absolute sum of the vector `x`; written in `rs` if passed, else returned |
+| `_iamax` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned |
+| `_iamin` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned |
+| `_swap`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Interchanges two vectors: `y = x` and `x = y` |
+| `_scal` | `ex`, `N`, `alpha`, `vx`, `incx` | Scalar product of a vector: `x = alpha * x` |
+| `_nrm2` | `ex`, `N`, `vx`, `incx` [, `rs`] | Euclidean norm of the vector `x`; written in `rs` if passed, else returned |
+| `_rot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`  |
 
 ### BLAS 2
 
+The following table sums up the interface that can be found in
+[blas2_interface.h](include/interface/blas2_interface.h).
+
+For all these operations:
+
+* `trans` is a `char` representing the transpose mode of the matrix: `'n'`,
+  `'t'`, or `'c'`; respectively identity, tranpose and Hermitian transpose
+  (note: the latter is not relevant yet as complex numbers are not supported).
+* `uplo` is a `char` that provides information about triangular matrices: `u` for
+  upper triangular and `l` for lower triangular matrices.
+* `diag` is a `char` that provides information about the diagonal elements of a
+  triangular matrix: `u` if the matrix is unit triangular (all diagonal elements
+  are 1), else `n`.
+* `M` and `N` are the numbers of rows and columns of the matrix. They also
+  determine the sizes of the vectors so that dimensions match, depending on the
+  BLAS operation. For operations on square matrices, only `N` is given.
+* `alpha` and `beta` are scalars.
+* `mA` is a container for a column-major matrix `A`.
+* `lda` is the leading dimension of `mA`, i.e the step between an element and
+  its neighbor in the next column and same row. `lda` must be at least `M`.
+* `vx` and `vy` are containers for vectors `x` and `y`.
+* `incx` and `incy` are their increments (cf BLAS 1).
+
+| operation | arguments | description |
+|---|---|---|
+| `_gemv` | `ex`, `trans`, `M`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
+| `_trmv`  | `ex`, `uplo`, `trans`, `diag`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx` | Matrix-vector product for a triangular matrix: `x = A * x` |
+| `_symv` | `ex`, `uplo`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Variant of GEMV for a symmetric matrix (`y = alpha * A * x + beta * y`). *Note: `uplo` specifies which side of the matrix will be read* |
+| `_ger` | `ex`, `M`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector-vector product followed by a matrix sum: `A = alpha * x * yT + A` |
+| `_syr` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
+| `_syr2` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
+
 ### BLAS 3
 
+The following table sums up the interface that can be found in
+[blas3_interface.h](include/interface/blas3_interface.h).
 
+For all these operations:
+
+* `A`, `B` and `C` are containers for the column-major matrices A, B and C.
+* `lda`, `ldb` and `ldc` are the leading dimensions of the matrices A, B and C
+  (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
+  to its number of rows.
+* `transa` and `transb` are the transpose modes of the matrices A and B
+  (cf BLAS 2).
+* `M`, `N` and `K` are the dimensions of the matrices. The dimensions
+  **after transposition** are A: `M`x`K`, B: `K`x`N`, C: `M`x`N`.
+* `alpha` and `beta` are scalars.
+* `batch_size` is an integer.
+
+| operation | arguments | description |
+|---|---|---|
+| `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
+| `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
 
 ## Requirements
 

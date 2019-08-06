@@ -31,7 +31,9 @@ namespace internal {
  * @brief This is a top-level wrapper for GemmFactory, which provides a
  *        "standard" BLAS gemm interface.
  *
- * See netlib.org/blas for details.
+ * See the netlib blas interface documentation for more details of the hig
+ * level interface:
+ * http://www.netlib.org/lapack/explore-html/d4/de2/sgemm_8f.html
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
@@ -51,6 +53,7 @@ typename executor_t::policy_t::event_t _gemm_batched(
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size);
 }  // namespace internal
+
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
