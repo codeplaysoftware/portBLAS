@@ -309,8 +309,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
             // load a LHS element from the scratch buffer
             const value_t privateLhs = scratch_ptr[lhs_index + lhs_offset];
 
-            // Perform a manual MAD.
-            private_res[wLPTM + idx] += (privateLhs * privateRhs);
+            private_res[wLPTM + idx] =
+                cl::sycl::mad(privateLhs, privateRhs, private_res[wLPTM + idx]);
 
             lhs_index += tile_type::wg_rows;
           }
@@ -342,8 +342,8 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
           const index_t write_idx = cube_index + slice_row + cube_depth_offset;
           cube_.template eval<true>(write_idx) =
               IsBetaZero ? (alpha_ * private_res[wLPTM + private_index])
-                           : (alpha_ * private_res[wLPTM + private_index] +
-                              beta_ * cube_.template eval<true>(write_idx));
+                         : (alpha_ * private_res[wLPTM + private_index] +
+                            beta_ * cube_.template eval<true>(write_idx));
         }
         slice_row += tile_type::wg_rows;
       }
@@ -364,7 +364,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       bool check_m_limit, bool check_n_limit) {
     const bool check_k_limit =
         IsFinal ? ((tile_idx + 1) * tile_size_dim_k > k_)
-                 : (global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_);
+                : (global_k_offset + (tile_idx + 1) * tile_size_dim_k > k_);
     const bool check_limits = check_m_limit || check_n_limit || check_k_limit;
     if (check_limits)
       load_blocks<true, true, true>(
