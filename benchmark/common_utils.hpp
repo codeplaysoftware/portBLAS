@@ -40,6 +40,8 @@ using gemm_batched_param_t =
     std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
                scalar_t, index_t>;
 
+using reduction_param_t = std::tuple<index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -161,7 +163,8 @@ static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) {
+static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
+    Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas2_param_t<scalar_t>> blas2_default;
@@ -201,7 +204,8 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(Args& args) 
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(Args& args) {
+static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(
+    Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas3_param_t<scalar_t>> blas3_default;
@@ -284,6 +288,43 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
                 str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
                 str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
                 str_to_int<index_t>(v[7]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_reduction_params
+ * @brief Returns a vector containing the reduction benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<reduction_param_t> get_reduction_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<reduction_param_t> reduction_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+
+    for (index_t rows = dmin; rows <= dmax; rows *= 2) {
+      for (index_t cols = dmin; cols <= dmax; cols *= 2) {
+        reduction_default.push_back(std::make_tuple(rows, cols));
+      }
+    }
+
+    return reduction_default;
+  } else {
+    return parse_csv_file<reduction_param_t>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 2) {
+            throw std::runtime_error(
+                "invalid number of parameters (2 expected)");
+          }
+          try {
+            return std::make_tuple(str_to_int<index_t>(v[0]),
+                                   str_to_int<index_t>(v[1]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -427,7 +468,7 @@ static inline cl_ulong time_events(std::vector<event_t> es) {
 
 template <typename event_t, typename... other_events_t>
 static inline cl_ulong time_events(event_t first_event,
-                            other_events_t... next_events) {
+                                   other_events_t... next_events) {
   return time_events<event_t>(
       blas::concatenate_vectors(first_event, next_events...));
 }
@@ -438,7 +479,8 @@ static inline cl_ulong time_events(event_t first_event,
  * (both overall and event time, returned in nanoseconds in a tuple of double)
  */
 template <typename function_t, typename... args_t>
-static inline std::tuple<double, double> timef(function_t func, args_t&&... args) {
+static inline std::tuple<double, double> timef(function_t func,
+                                               args_t&&... args) {
   auto start = std::chrono::system_clock::now();
   auto event = func(std::forward<args_t>(args)...);
   auto end = std::chrono::system_clock::now();
@@ -457,7 +499,7 @@ static inline void init_counters(benchmark::State& state) {
 }
 
 static inline void update_counters(benchmark::State& state,
-                            std::tuple<double, double> times) {
+                                   std::tuple<double, double> times) {
   state.PauseTiming();
   double overall_time, event_time;
   std::tie(overall_time, event_time) = times;
