@@ -32,15 +32,14 @@
 
 namespace blas {
 
-// Constructor of the wrapper class
+/* Constructor of the wrapper class */
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, int WorkPerItem, typename element_t, int Reduction_type>
-SYCL_BLAS_INLINE Reduction<operator_t, input_t, output_t, ClSize, WgSize,
-                           WorkPerItem, element_t, Reduction_type>::
-    Reduction(
-        input_t in, output_t out,
-        typename std::make_signed<typename input_t::index_t>::type num_rows,
-        typename std::make_signed<typename input_t::index_t>::type num_cols)
+          int WgSize, typename element_t, int Reduction_type>
+SYCL_BLAS_INLINE
+Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
+          Reduction_type>::Reduction(input_t in, output_t out,
+                                     typename input_t::index_t num_rows,
+                                     typename input_t::index_t num_cols)
     : in_(in), out_(out), rows_(num_rows), cols_(num_cols) {}
 
 }  // namespace blas
