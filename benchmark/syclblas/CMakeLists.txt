@@ -33,9 +33,37 @@ foreach(syclblas_bench ${SYCLBLAS_BENCH_SRCS})
   add_executable(bench_${bench_exec} ${syclblas_bench} ${SYCLBLAS_BENCH}/main.cpp )
   set_target_properties(bench_${bench_exec} PROPERTIES CXX_STANDARD 11)
   add_dependencies(bench_${bench_exec} benchmark)
-  target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas ComputeCpp::ComputeCpp)
-  target_include_directories(bench_${bench_exec} PUBLIC ${ComputeCpp_INCLUDE_DIRS} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
+  target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES} sycl_blas)
+  add_sycl_to_target(
+    TARGET bench_${bench_exec}
+    SOURCES ${syclblas_bench}
+  )
+  target_include_directories(bench_${bench_exec} PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
 
   message("-- Created benchmark: ${bench_exec}")
   install(TARGETS bench_${bench_exec} RUNTIME DESTINATION sycl_blas/bin)
 endforeach()
+
+# Expression benchmarks: use source, not Library
+if(${BUILD_EXPRESSION_BENCHMARKS})
+  set(SYCLBLAS_EXPR_BENCH_SRCS
+    # Extensions
+    ${SYCLBLAS_BENCH}/expression/reduction_rows.cpp
+  )
+
+  foreach(syclblas_bench ${SYCLBLAS_EXPR_BENCH_SRCS})
+    get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
+    add_executable(bench_${bench_exec} ${syclblas_bench} ${SYCLBLAS_BENCH}/main.cpp )
+    set_target_properties(bench_${bench_exec} PROPERTIES CXX_STANDARD 11)
+    add_dependencies(bench_${bench_exec} benchmark)
+    target_link_libraries(bench_${bench_exec} PUBLIC benchmark ${BLAS_LIBRARIES})
+    add_sycl_to_target(
+      TARGET bench_${bench_exec}
+      SOURCES ${syclblas_bench}
+    )
+    target_include_directories(bench_${bench_exec} PUBLIC ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
+
+    message("-- Created expression benchmark: ${bench_exec}")
+    install(TARGETS bench_${bench_exec} RUNTIME DESTINATION sycl_blas/bin)
+  endforeach()
+endif()
