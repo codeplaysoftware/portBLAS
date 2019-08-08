@@ -12,6 +12,7 @@ find_package(SyclBLAS REQUIRED)
 include(ConfigureSYCLBLAS)
 
 file(GLOB SRC_LIST
+  ${CMAKE_CURRENT_SOURCE_DIR}/gemv.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/gemm.cpp
 )
 foreach(src_file ${SRC_LIST})

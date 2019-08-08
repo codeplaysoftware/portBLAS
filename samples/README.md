@@ -16,9 +16,14 @@ At the moment any project using SYCL-BLAS requires:
 
 ### With CMake
 
-This folder includes a basic CMake configuration file. Set the `ComputeCpp_DIR`
-option to your ComputeCpp root path, and `SyclBLAS_DIR` to your SYCL-BLAS root
-path.
+This folder contains a basic CMake configuration file and a module to find
+SYCL-BLAS (which will be used as a header-only framework). It also uses a module
+to find ComputeCpp that is located in the folder `cmake/Modules`.
+
+Usage:
+
+* set `ComputeCpp_DIR` to your ComputeCpp root path
+* set `SyclBLAS_DIR` to your SYCL-BLAS root path
 
 ```bash
 mkdir build

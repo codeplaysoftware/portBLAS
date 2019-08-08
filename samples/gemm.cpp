@@ -1,16 +1,7 @@
 #include "sycl_blas.hpp"
 #include <CL/sycl.hpp>
 
-#include <iostream>
-#include <random>
-#include <string>
-#include <vector>
-
-/* Forward-declared utility functions */
-template <typename index_t, typename matrix_t>
-void print_matrix(const matrix_t& M, index_t rows, index_t cols, index_t ld);
-template <typename index_t, typename matrix_t>
-void fill_matrix(matrix_t& M, index_t rows, index_t cols, index_t ld);
+#include "util.hpp"
 
 int main(int argc, char** argv) {
   /* Create a SYCL queue with the default device selector */
@@ -79,26 +70,4 @@ int main(int argc, char** argv) {
   print_matrix(C, m, n, ldc);
 
   return 0;
-}
-
-template <typename index_t, typename matrix_t>
-void print_matrix(const matrix_t& M, index_t rows, index_t cols, index_t ld) {
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      std::string print_friendly = std::to_string(M[j * ld + i]).substr(0, 6);
-      std::cout << print_friendly << ((j < cols - 1) ? ' ' : '\n');
-    }
-  }
-}
-
-template <typename index_t, typename matrix_t>
-void fill_matrix(matrix_t& M, index_t rows, index_t cols, index_t ld) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-10.0, 10.0);
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      M[j * ld + i] = dis(gen);
-    }
-  }
 }
