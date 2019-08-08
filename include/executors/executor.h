@@ -70,13 +70,35 @@ class Executor {
             typename local_memory_t>
   typename policy_t::event_t execute(
       AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr);
+
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int Gemm_type>
+            typename element_t, bool is_beta_zero, int GemmMemoryType,
+            int GemmAlgorithm>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, Gemm_type>
+           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           GemmAlgorithm>
           gemm_tree);
+
+  // Tall and skinny Gemm specialization
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, bool is_beta_zero, int GemmMemoryType>
+  typename policy_t::event_t execute(
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           static_cast<int>(gemm_algorithm_t::tall_skinny)>
+          gemm_wrapper);
+
+  // GemmPartial specialization
+  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+            typename element_t, int GemmMemoryType>
+  typename policy_t::event_t execute(
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, GemmMemoryType>
+          gemm_partial);
 
   // Reduction specialization (partial rows)
   template <typename operator_t, typename input_t, typename output_t,

@@ -26,9 +26,14 @@
 #ifndef SYCL_BLAS_EXECUTOR_SYCL_HPP
 #define SYCL_BLAS_EXECUTOR_SYCL_HPP
 
+#include <algorithm>
+
 #include "blas_meta.h"
 #include "executors/executor.h"
 #include "executors/kernel_constructor.h"
+#include "operations/blas1_trees.hpp"
+#include "operations/blas2_trees.hpp"
+#include "operations/blas_operators.hpp"
 #include "policy/sycl_policy_handler.h"
 #include "views/view.h"
 
@@ -206,28 +211,125 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   } while (_N > 1);
   return event;
 }
+
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmAlgorithm>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, Gemm_type>
+         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm>
         gemm_tree) {
-  auto rng =
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::get_nd_range(gemm_tree.m_, gemm_tree.n_,
-                                    policy_handler_.get_num_compute_units());
+  using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                      tile_type, TransA, TransB, element_t, is_beta_zero,
+                      GemmMemoryType, GemmAlgorithm>;
+  auto rng = gemm_t::get_nd_range(gemm_tree.m_, gemm_tree.n_,
+                                  policy_handler_.get_num_compute_units());
   return {execute_tree<
-      Choose<Gemm_type == static_cast<int>(Gemm_t::local_memory), int,
+      Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
-      rng.get_global_range()[0],
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero,
-           Gemm_type>::local_memory_size)};
+      rng.get_global_range()[0], gemm_t::local_memory_size)};
+}
+
+/* Tall and skinny Gemm */
+template <>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int GemmMemoryType>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, GemmMemoryType,
+         static_cast<int>(gemm_algorithm_t::tall_skinny)>
+        gemm_wrapper) {
+  using index_t = typename std::make_signed<typename input_t::index_t>::type;
+
+  const index_t rows = gemm_wrapper.m_;
+  const index_t cols = gemm_wrapper.n_;
+  const index_t ldc = gemm_wrapper.ldc_;
+
+  /* Depth of the cube buffer */
+  const index_t depth =
+      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, GemmMemoryType>::
+          get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows,
+                               cols, gemm_wrapper.k_);
+
+  /* First step: partial gemm */
+  /* Create the cube buffer that will hold the output of the partial gemm */
+  auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
+  auto cube = make_matrix_view<col_major>(*this, cube_buffer, rows * cols,
+                                          depth, rows * cols);
+  /* Execute the partial gemm operation */
+  GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+              TransA, TransB, element_t, GemmMemoryType>
+      gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube, gemm_wrapper.alpha_,
+                   depth);
+  auto events = execute(gemm_partial);
+
+  /* Second step: reduction */
+  /* Best case: we can reduce directly in C */
+  if (is_beta_zero && ldc == rows) {
+    constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
+    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+              element_t, static_cast<int>(Reduction_t::partial_rows)>
+        reduction(cube, gemm_wrapper.c_, rows * cols, depth);
+    events = concatenate_vectors(events, execute(reduction));
+  }
+  /* Otherwise we reduce to a temporary buffer */
+  else {
+    /* Create a temporary buffer to hold alpha * A * B */
+    auto temp_buffer = make_sycl_iterator_buffer<element_t>(rows * cols);
+    auto temp =
+        make_matrix_view<col_major>(*this, temp_buffer, rows, cols, rows);
+
+    /* Execute the reduction */
+    constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
+    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+              element_t, static_cast<int>(Reduction_t::partial_rows)>
+        reduction(cube, temp, rows * cols, depth);
+    events = concatenate_vectors(events, execute(reduction));
+
+    /* If beta is zero, simply do a 2D copy from the temp buffer to C */
+    if (is_beta_zero) {
+      auto assignOp = make_op<Assign>(gemm_wrapper.c_, temp);
+      events = concatenate_vectors(events, execute(assignOp));
+    }
+    /* Else add temp and beta * C and then assign to C */
+    else {
+      auto scalOp = make_op<ScalarOp, ProductOperator>(gemm_wrapper.beta_,
+                                                       gemm_wrapper.c_);
+      auto addOp = make_op<BinaryOp, AddOperator>(temp, scalOp);
+      auto assignOp = make_op<Assign>(gemm_wrapper.c_, addOp);
+      events = concatenate_vectors(events, execute(assignOp));
+    }
+  }
+
+  return events;
+}
+
+/* GemmPartial */
+template <>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, int GemmMemoryType>
+inline typename codeplay_policy::event_t
+Executor<PolicyHandler<codeplay_policy>>::execute(
+    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+                TransA, TransB, element_t, GemmMemoryType>
+        gemm_partial) {
+  auto gemm_partial_range =
+      gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());
+  return {execute_tree<
+      Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
+      policy_handler_.get_queue(), gemm_partial,
+      gemm_partial_range.get_local_range()[0],
+      gemm_partial_range.get_global_range()[0],
+      gemm_partial.local_memory_size)};
 }
 
 /* Utility function used by the ReductionPartialRows specialization */

@@ -151,8 +151,8 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
-  eval(index_t i) const {
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
+      index_t i) const {
     return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
@@ -160,7 +160,7 @@ struct VectorView<
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -171,8 +171,8 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
-  eval(index_t indx) const noexcept {
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
+      index_t indx) const noexcept {
     return *(ptr_ + indx);
   }
 
@@ -269,8 +269,8 @@ struct MatrixView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
-  eval(index_t indx) const noexcept {
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
+      index_t indx) const noexcept {
     const index_t j = indx / sizeR_;
     const index_t i = indx - sizeR_ * j;
     return eval(i, j);
@@ -280,8 +280,7 @@ struct MatrixView<
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const
-      noexcept {
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const noexcept {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -292,8 +291,8 @@ struct MatrixView<
   }
 
   template <bool use_as_ptr = false>
-  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
-  eval(index_t indx) const noexcept {
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
+      index_t indx) const noexcept {
     return *(ptr_ + indx);
   }
 

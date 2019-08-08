@@ -195,6 +195,7 @@ struct SquareOperator : public Operators {
 /*!
  Definitions of binary operators
 */
+
 struct AddOperator : public Operators {
   template <typename lhs_t, typename rhs_t>
   static SYCL_BLAS_INLINE typename StripASP<rhs_t>::type eval(const lhs_t &l,

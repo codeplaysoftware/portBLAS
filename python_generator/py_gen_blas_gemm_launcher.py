@@ -46,16 +46,17 @@ if __name__ == '__main__':
     trans_a = sys.argv[12]
     trans_b = sys.argv[13]
     is_beta_zero = sys.argv[14]
-    gemm_type = sys.argv[15]
-    tir = sys.argv[16]
-    tic = sys.argv[17]
-    twr = sys.argv[18]
-    twc = sys.argv[19]
-    tlr = sys.argv[20]
-    tlc = sys.argv[21]
-    wg_size = sys.argv[22]
-    cl_size = sys.argv[23]
-    file_name = sys.argv[24]
+    gemm_memory_type = sys.argv[15]
+    gemm_shape_type = sys.argv[16]
+    tir = sys.argv[17]
+    tic = sys.argv[18]
+    twr = sys.argv[19]
+    twc = sys.argv[20]
+    tlr = sys.argv[21]
+    tlc = sys.argv[22]
+    wg_size = sys.argv[23]
+    cl_size = sys.argv[24]
+    file_name = sys.argv[25]
 
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
@@ -136,8 +137,13 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='GEMM_TYPE',
-            vals=[gemm_type],
+            key='GEMM_MEMORY_TYPE',
+            vals=[gemm_memory_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='GEMM_SHAPE_TYPE',
+            vals=[gemm_shape_type],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

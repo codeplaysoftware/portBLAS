@@ -26,25 +26,17 @@
 #ifndef SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 #define SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 
-#include <algorithm>
-#include <cctype>
-#include <cmath>
-#include <iostream>
-#include <stdexcept>
-#include <vector>
-
 #include "executors/executor.h"
 #include "operations/blas3_trees.h"
 
 namespace blas {
 
 /*!
- * @brief Select the correct transpose version of GemmFactory, depending on the
- *        runtime values of transpose.
+ * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
+          int ClSize, typename TileT, bool TransA, bool TransB,
+          int GemmMemoryType, int GemmAlgorithm, bool is_beta_zero>
 struct Gemm_Launcher {
   template <typename executor_t, typename container_0_t, typename container_1_t,
             typename container_2_t, typename element_t, typename index_t>

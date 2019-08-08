@@ -32,16 +32,17 @@
 
 namespace blas {
 /*
- * @brief Determines the type of the GEMM kernel.
- * It can be either a naive kernel; a kernel uses local memory or a kernel that
- * does not use local memory
+ * @brief Determines the memory type of the GEMM kernel.
+ * It can either use local memory or not
  */
-enum class Gemm_t : int {
-  naive = 0,
-  local_memory = 1,
-  no_local_memory = 2
-};
+enum class gemm_memory_t : int { local = 0, no_local = 1 };
 
+/*
+ * @brief Indicates which Gemm algorithm to use.
+ * It can be either naive to use a naive algorithm, classic for the default
+ * algorithms, or tall_skinny for tall and skinny matrices
+ */
+enum class gemm_algorithm_t : int { naive = 0, classic = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -91,7 +92,7 @@ enum class Gemm_t : int {
  * @tparam TlCols  the number of block-level tiles within each row of
  *                 top-level tile
  *
- * @see GemmFactory
+ * @see Gemm
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
           int TlRows = 1, int TlCols = 1>
@@ -107,6 +108,7 @@ struct Tile {
    */
   static std::string get_type_string() noexcept;
 };
+
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
  *        different implementations of the GEMM device function. It also support
@@ -153,12 +155,12 @@ struct Tile {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_type>
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmAlgorithm>
 class Gemm {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  static constexpr int type = Gemm_type;
   static constexpr int wg_size = tile_type::wg_rows * tile_type::wg_cols;
   static constexpr bool trans_a = TransA;
   static constexpr bool trans_b = TransB;
@@ -191,20 +193,31 @@ class Gemm {
 };
 
 /*
+ * @brief Forward-declaration of the class that executes the partial gemm
+ * operation.
+ */
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
+          typename element_t, int GemmMemoryType>
+class GemmPartial {};
+
+/*
  * @brief a helper function used for constructing the GEMM
- *  see GEMM for the parammeters passed here.
+ *  see GEMM for the parameters passed here.
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
-          typename TileType, bool TransA, bool TransB, int Gemm_type,
-          bool is_beta_zero, typename input_t, typename output_t,
-          typename element_t, typename index_t>
+          typename TileType, bool TransA, bool TransB, int GemmMemoryType,
+          int GemmAlgorithm, bool is_beta_zero, typename input_t,
+          typename output_t, typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-            TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>
+            TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+            GemmAlgorithm>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-              TileType, TransA, TransB, element_t, is_beta_zero, Gemm_type>(
-      buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
+              TileType, TransA, TransB, element_t, is_beta_zero,
+              GemmMemoryType, GemmAlgorithm>(buffer_a, buffer_b, buffer_c,
+                                                 alpha, beta, batch_size);
 }
 
 }  // namespace blas
