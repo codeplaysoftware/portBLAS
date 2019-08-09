@@ -42,7 +42,9 @@ int main(int argc, char** argv) {
   std::cout << "---\nY (before):\n";
   print_vector(Y, m, incy);
 
-  /* Execute the GEMM operation */
+  /* Execute the GEMV operation
+   * Note: you can also use explicit copies, see the GEMM sample
+   */
   std::cout << "---\nExecuting Y = " << alpha << "*A*X + " << beta << "*Y\n";
   {
     auto a_gpu = blas::make_sycl_iterator_buffer<float>(A, lda * n);
@@ -50,7 +52,6 @@ int main(int argc, char** argv) {
     auto y_gpu = blas::make_sycl_iterator_buffer<float>(Y, ly);
     auto event = blas::_gemv(executor, 'n', m, n, alpha, a_gpu, lda, x_gpu,
                              incx, beta, y_gpu, incy);
-    policy_handler.wait(event);
   }
 
   /* Print the result after the GEMM operation */
