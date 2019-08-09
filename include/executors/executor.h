@@ -81,7 +81,6 @@ class Executor {
            GemmAlgorithm>
           gemm_tree);
 
-#ifdef GEMM_TALL_SKINNY_SUPPORT
   // Tall and skinny Gemm specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
@@ -100,7 +99,6 @@ class Executor {
       GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                   tile_type, TransA, TransB, element_t, GemmMemoryType>
           gemm_partial);
-#endif
 
   // Reduction specialization (partial rows)
   template <typename operator_t, typename input_t, typename output_t,
