@@ -258,6 +258,18 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows, cols,
                            gemm_wrapper.k_);
 
+  /* In some cases, use the tsgemm kernel as a normal gemm operation */
+  if(depth == 1 || gemm_wrapper.k_ <= 2048) {
+    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+                TransA, TransB, true, is_beta_zero, element_t, GemmMemoryType>
+        gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
+                     gemm_wrapper.alpha_, gemm_wrapper.beta_, 1);
+    auto events = execute(gemm_partial);
+
+    return events;
+  }
+  /* Else use the tall and skinny algorithm */
+
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
   auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
@@ -315,30 +327,6 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       events = concatenate_vectors(events, execute(assignOp));
     }
   }
-
-  return events;
-}
-
-/* Alternative Gemm algorithm (using GemmPartial)
- * Note: only supports local memory */
-template <>
-template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
-    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, GemmMemoryType,
-         static_cast<int>(gemm_algorithm_t::alternative)>
-        gemm_wrapper) {
-  using index_t = typename std::make_signed<typename input_t::index_t>::type;
-
-  /* Execute the gemm operation */
-  GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-              TransA, TransB, true, is_beta_zero, element_t, GemmMemoryType>
-      gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
-                   gemm_wrapper.alpha_, gemm_wrapper.beta_, 1);
-  auto events = execute(gemm_partial);
 
   return events;
 }

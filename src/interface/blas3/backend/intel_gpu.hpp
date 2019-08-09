@@ -90,25 +90,25 @@ typename executor_t::policy_t::event_t _gemm(
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     }
-  }
-#endif
-  if (batch_size == 1 && (_t_a || (_t_b && _M * _N > 1048576))) {
+  } else if (batch_size == 1 && (_t_a || (_t_b && _M * _N > 1048576))) {
     if (_M <= 64 || _N <= 64) {
       return blas::Gemm_Launcher<
           64, true, true, true, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
-          static_cast<int>(gemm_algorithm_t::alternative),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     } else {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
-          static_cast<int>(gemm_algorithm_t::alternative),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     }
-  } else if (_M <= 128 && _N <= 128) {
+  }
+#endif
+  if (_M <= 128 && _N <= 128) {
     return blas::Gemm_Launcher<
         64, true, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),

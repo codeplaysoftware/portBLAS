@@ -42,12 +42,7 @@ enum class gemm_memory_t : int { local = 0, no_local = 1 };
  * It can be either naive to use a naive algorithm, classic for the default
  * algorithms, or tall_skinny for tall and skinny matrices
  */
-enum class gemm_algorithm_t : int {
-  naive = 0,
-  classic = 1,
-  tall_skinny = 2,
-  alternative = 3
-};
+enum class gemm_algorithm_t : int { naive = 0, classic = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -203,8 +198,7 @@ class Gemm {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          bool IsFinal, bool IsBetaZero, typename element_t,
-          int GemmMemoryType>
+          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
 class GemmPartial {};
 
 /*
