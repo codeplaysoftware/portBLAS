@@ -223,7 +223,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   SYCL_BLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
     /* Pointers to the scratch memory (lhs and rhs) */
-    value_t* scratch_ptr = scratch.localAcc.get_pointer().get();
+    value_t* scratch_ptr = scratch.localAcc.get_pointer();
     value_t* rhs_scratch_ptr = scratch_ptr + rhs_scratch_offset;
 
     /* Create and initialise the private res summation registers */
