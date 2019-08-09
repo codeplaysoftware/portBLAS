@@ -384,25 +384,22 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
       local_ptr_t rhs_scratch_ptr, const index_t& global_m_offset,
       const index_t& global_n_offset, const index_t& global_k_offset) {
     // LHS tile
-    if (TransA) {
-      load_block<LHSBlockProperties, check_k_limit, check_m_limit>(
-          lhs_row, lhs_col, tile_idx, a_, lda_, scratch_ptr, global_k_offset,
-          global_m_offset, k_, m_);
-    } else {
-      load_block<LHSBlockProperties, check_m_limit, check_k_limit>(
-          lhs_row, lhs_col, tile_idx, a_, lda_, scratch_ptr, global_m_offset,
-          global_k_offset, m_, k_);
-    }
+    constexpr bool a_check_row_limit = TransA ? check_k_limit : check_m_limit;
+    constexpr bool a_check_col_limit = TransA ? check_m_limit : check_k_limit;
+    load_block<LHSBlockProperties, a_check_row_limit, a_check_col_limit>(
+        lhs_row, lhs_col, tile_idx, a_, lda_, scratch_ptr,
+        TransA ? global_k_offset : global_m_offset,
+        TransA ? global_m_offset : global_k_offset, TransA ? k_ : m_,
+        TransA ? m_ : k_);
+
     // RHS tile
-    if (TransB) {
-      load_block<RHSBlockProperties, check_n_limit, check_k_limit>(
-          rhs_row, rhs_col, tile_idx, b_, ldb_, rhs_scratch_ptr,
-          global_n_offset, global_k_offset, n_, k_);
-    } else {
-      load_block<RHSBlockProperties, check_k_limit, check_n_limit>(
-          rhs_row, rhs_col, tile_idx, b_, ldb_, rhs_scratch_ptr,
-          global_k_offset, global_n_offset, k_, n_);
-    }
+    constexpr bool b_check_row_limit = TransB ? check_n_limit : check_k_limit;
+    constexpr bool b_check_col_limit = TransB ? check_k_limit : check_n_limit;
+    load_block<RHSBlockProperties, b_check_row_limit, b_check_col_limit>(
+        rhs_row, rhs_col, tile_idx, b_, ldb_, rhs_scratch_ptr,
+        TransB ? global_n_offset : global_k_offset,
+        TransB ? global_k_offset : global_n_offset, TransB ? n_ : k_,
+        TransB ? k_ : n_);
   }
 
   template <typename BlockPropertiesType, bool check_row_limit,
