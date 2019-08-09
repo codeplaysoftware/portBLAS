@@ -39,10 +39,10 @@ enum class gemm_memory_t : int { local = 0, no_local = 1 };
 
 /*
  * @brief Indicates which Gemm algorithm to use.
- * It can be either naive to use a naive algorithm, classic for the default
+ * It can be either naive to use a naive algorithm, standard for the default
  * algorithms, or tall_skinny for tall and skinny matrices
  */
-enum class gemm_algorithm_t : int { naive = 0, classic = 1, tall_skinny = 2 };
+enum class gemm_algorithm_t : int { naive = 0, standard = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
