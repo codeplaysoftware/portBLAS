@@ -55,13 +55,14 @@ find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
 find_package(PythonInterp 2.7 REQUIRED)
+
+#by default, tall and skinny Gemm is enabled (for better performance)
+option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
+
 include(CmakeFunctionHelper)
 
 #by default always inlining the kernels
 option(SYCL_BLAS_ALWAYS_INLINE "Setting always inline attribute for all kernels" ON)
-
-#by default, tall and skinny Gemm is enabled (for better performance)
-option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
 
 add_subdirectory(src)
 #shared lib
