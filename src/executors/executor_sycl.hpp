@@ -234,6 +234,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       rng.get_global_range()[0], gemm_t::local_memory_size)};
 }
 
+#ifdef GEMM_TALL_SKINNY_SUPPORT
 /* Tall and skinny Gemm */
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -331,6 +332,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       gemm_partial_range.get_global_range()[0],
       gemm_partial.local_memory_size)};
 }
+#endif
 
 /* Utility function used by the ReductionPartialRows specialization */
 template <typename operator_t, int ClSize, int WgSize, typename element_t,

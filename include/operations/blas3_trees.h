@@ -192,6 +192,8 @@ class Gemm {
   void adjust_access_displacement();
 };
 
+
+#ifdef GEMM_TALL_SKINNY_SUPPORT
 /*
  * @brief Forward-declaration of the class that executes the partial gemm
  * operation.
@@ -200,6 +202,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           typename element_t, int GemmMemoryType>
 class GemmPartial {};
+#endif
 
 /*
  * @brief a helper function used for constructing the GEMM
