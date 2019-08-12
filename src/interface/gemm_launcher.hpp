@@ -26,32 +26,22 @@
 #ifndef SYCL_BLAS_BLAS3_LAUNCHER_HPP
 #define SYCL_BLAS_BLAS3_LAUNCHER_HPP
 
-#include <algorithm>
-#include <cctype>
-#include <cmath>
-#include <iostream>
-#include <stdexcept>
-#include <vector>
-
-#include "executors/executor.h"
 #include "interface/gemm_launcher.h"
-#include "operations/blas3_trees.h"
-#include "operations/blas_constants.hpp"
 
 namespace blas {
 
 /*!
- * @brief Select the correct transpose version of GemmFactory, depending on the
- *        runtime values of transpose.
+ * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB, int GemmType,
-          bool is_beta_zero>
+          int ClSize, typename TileT, bool TransA, bool TransB,
+          int GemmMemoryType, int GemmAlgorithm, bool is_beta_zero>
 template <typename Executor, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
-typename Executor::policy_t::event_t Gemm_Launcher<
-    WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
-    GemmType, is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
+typename Executor::policy_t::event_t
+Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+              TransB, GemmMemoryType, GemmAlgorithm,
+              is_beta_zero>::_select_gemm(Executor& ex, index_t _M, index_t _N,
                                           index_t _K, element_t _alpha,
                                           container_t0 a_, index_t _lda,
                                           container_t1 b_, index_t _ldb,
@@ -60,10 +50,11 @@ typename Executor::policy_t::event_t Gemm_Launcher<
   auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
   auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
   auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
-  auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
-                        TransA, TransB, GemmType, is_beta_zero>(
-      buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
-      batch_size);
+  auto gemm =
+      make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+                TransB, GemmMemoryType, GemmAlgorithm, is_beta_zero>(
+          buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
+          batch_size);
   return ex.execute(gemm);
 }
 

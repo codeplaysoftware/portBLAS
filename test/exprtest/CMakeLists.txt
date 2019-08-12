@@ -26,6 +26,8 @@ cmake_minimum_required(VERSION 3.4.2)
 
 project(syclblas_exprtest)
 
+add_definitions(-D${TARGET})
+
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 # compiling tests

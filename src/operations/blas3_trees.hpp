@@ -28,5 +28,6 @@
 #include "blas3/gemm_ref.hpp"
 #include "blas3/gemm_no_local.hpp"
 #include "blas3/gemm_local.hpp"
+#include "blas3/gemm_partial_local.hpp"
 
 #endif  // SYCL_BLAS_BLAS3_TREES_HPP

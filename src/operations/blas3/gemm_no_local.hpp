@@ -56,11 +56,11 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero,
-           static_cast<int>(Gemm_t::no_local_memory)> {
+           static_cast<int>(gemm_memory_t::no_local),
+           static_cast<int>(gemm_algorithm_t::classic)> {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  static constexpr int type = static_cast<int>(Gemm_t::no_local_memory);
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr index_t item_rows = tile_type::item_rows;
