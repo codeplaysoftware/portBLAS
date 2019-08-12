@@ -41,8 +41,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
       static_cast<blas_benchmark::utils::Transposition>(ti));
   const char* t_str = ts.c_str();
 
-  index_t vlen = t_str[0] == 'n' ? n : m;
-  index_t rlen = t_str[0] == 'n' ? m : n;
+  index_t xlen = t_str[0] == 'n' ? n : m;
+  index_t ylen = t_str[0] == 'n' ? m : n;
 
   index_t lda = m;
   index_t incX = 1;
@@ -58,16 +58,16 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 
   {
     double nflops_AtimesX = 2.0 * m_d * n_d;
-    double nflops_timesAlpha = m_d;
-    double nflops_addBetaY = (beta != 0) ? 2 * m_d : 0;
+    double nflops_timesAlpha = ylen;
+    double nflops_addBetaY = (beta != 0) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =
         nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
   }
   {
     double mem_readA = m_d * n_d;
-    double mem_readX = n_d;
-    double mem_writeY = m_d;
-    double mem_readY = (beta != 0) ? m_d : 0;
+    double mem_readX = xlen;
+    double mem_writeY = ylen;
+    double mem_readY = (beta != 0) ? ylen : 0;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
@@ -77,30 +77,31 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
       blas_benchmark::utils::random_data<scalar_t>(m * n);
-  std::vector<scalar_t> v_b =
-      blas_benchmark::utils::random_data<scalar_t>(vlen);
-  std::vector<scalar_t> v_c =
-      blas_benchmark::utils::const_data<scalar_t>(rlen, 0);
+  std::vector<scalar_t> v_x =
+      blas_benchmark::utils::random_data<scalar_t>(xlen);
+  std::vector<scalar_t> v_y =
+      blas_benchmark::utils::random_data<scalar_t>(ylen);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m * n);
-  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_b, vlen);
-  auto v_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c, rlen);
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
+  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, ylen);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v_c_ref = v_c;
-  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_b.data(), incX,
-                       beta, v_c_ref.data(), incY);
-  std::vector<scalar_t> v_c_temp = v_c;
+  std::vector<scalar_t> v_y_ref = v_y;
+  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_x.data(), incX,
+                       beta, v_y_ref.data(), incY);
+  std::vector<scalar_t> v_y_temp = v_y;
   {
-    auto v_c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_c_temp, m);
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
-                       v_c_temp_gpu, incY);
-    ex.get_policy_handler().wait(event);
+    auto v_y_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
+                       v_y_temp_gpu, incY);
+    ex.get_policy_handler().wait();
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref, err_stream, "")) {
+  if (!utils::compare_vectors<scalar_t>(v_y_temp, v_y_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -108,8 +109,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_b_gpu, incX, beta,
-                       v_c_gpu, incY);
+    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
+                       v_y_gpu, incY);
     ex.get_policy_handler().wait(event);
     return event;
   };
