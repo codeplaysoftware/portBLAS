@@ -39,10 +39,10 @@ enum class gemm_memory_t : int { local = 0, no_local = 1 };
 
 /*
  * @brief Indicates which Gemm algorithm to use.
- * It can be either naive to use a naive algorithm, classic for the default
+ * It can be either naive to use a naive algorithm, standard for the default
  * algorithms, or tall_skinny for tall and skinny matrices
  */
-enum class gemm_algorithm_t : int { naive = 0, classic = 1, tall_skinny = 2 };
+enum class gemm_algorithm_t : int { naive = 0, standard = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -198,7 +198,7 @@ class Gemm {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          typename element_t, int GemmMemoryType>
+          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
 class GemmPartial {};
 
 /*
@@ -215,9 +215,9 @@ inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-              TileType, TransA, TransB, element_t, is_beta_zero,
-              GemmMemoryType, GemmAlgorithm>(buffer_a, buffer_b, buffer_c,
-                                                 alpha, beta, batch_size);
+              TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+              GemmAlgorithm>(buffer_a, buffer_b, buffer_c, alpha, beta,
+                             batch_size);
 }
 
 }  // namespace blas
