@@ -252,23 +252,43 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t ldc = gemm_wrapper.ldc_;
 
   /* Depth of the cube buffer */
-  const index_t depth =
-      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, GemmMemoryType>::
-          get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows,
-                               cols, gemm_wrapper.k_);
+  const index_t depth = GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
+                                    ClSize, tile_type, TransA, TransB, false,
+                                    is_beta_zero, element_t, GemmMemoryType>::
+      get_ideal_cube_depth(policy_handler_.get_num_compute_units(), rows, cols,
+                           gemm_wrapper.k_);
+
+  /* In some cases, use the tsgemm kernel as a normal gemm operation */
+  if(depth == 1 || gemm_wrapper.k_ <= 2048) {
+    GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+                TransA, TransB, true, is_beta_zero, element_t, GemmMemoryType>
+        gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
+                     gemm_wrapper.alpha_, gemm_wrapper.beta_, 1);
+    auto events = execute(gemm_partial);
+
+    return events;
+  }
+  /* Else use the tall and skinny algorithm */
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
   auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
-  auto cube = make_matrix_view<col_major>(*this, cube_buffer, rows * cols,
-                                          depth, rows * cols);
+
+  /* Create a first matrix view used for the partial gemm */
+  auto cube_gemm =
+      make_matrix_view<col_major>(*this, cube_buffer, rows, cols * depth, rows);
   /* Execute the partial gemm operation */
+  /* Note: we set is_beta_zero to true regardless of the value of beta
+   * because this option is meant for use with a simple Gemm only */
   GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-              TransA, TransB, element_t, GemmMemoryType>
-      gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube, gemm_wrapper.alpha_,
-                   depth);
+              TransA, TransB, false, true, element_t, GemmMemoryType>
+      gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube_gemm,
+                   gemm_wrapper.alpha_, gemm_wrapper.beta_, depth);
   auto events = execute(gemm_partial);
+
+  /* Create a second view used for the reduction */
+  auto cube_reduction = make_matrix_view<col_major>(
+      *this, cube_buffer, rows * cols, depth, rows * cols);
 
   /* Second step: reduction */
   /* Best case: we can reduce directly in C */
@@ -276,7 +296,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
     Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
               element_t, static_cast<int>(Reduction_t::partial_rows)>
-        reduction(cube, gemm_wrapper.c_, rows * cols, depth);
+        reduction(cube_reduction, gemm_wrapper.c_, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
   }
   /* Otherwise we reduce to a temporary buffer */
@@ -290,7 +310,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
     Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
               element_t, static_cast<int>(Reduction_t::partial_rows)>
-        reduction(cube, temp, rows * cols, depth);
+        reduction(cube_reduction, temp, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
 
     /* If beta is zero, simply do a 2D copy from the temp buffer to C */
@@ -315,11 +335,11 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, int GemmMemoryType>
+          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-                TransA, TransB, element_t, GemmMemoryType>
+                TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
         gemm_partial) {
   auto gemm_partial_range =
       gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());

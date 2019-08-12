@@ -256,10 +256,10 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
                                                 col_major>::output_t;
 
   using Local = GemmConfig<TransA, TransB, data_t, gemm_memory_t::local,
-                           gemm_algorithm_t::classic>;
+                           gemm_algorithm_t::standard>;
   using NonLocal =
       GemmConfig<TransA, TransB, data_t, gemm_memory_t::no_local_memory,
-                 gemm_algorithm_t::classic>;
+                 gemm_algorithm_t::standard>;
   using Naive = GemmConfig<TransA, TransB, data_t,
                            gemm_memory_t::no_local, gemm_algorithm_t::naive>;
 

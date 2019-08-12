@@ -66,7 +66,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::classic)> {
+           static_cast<int>(gemm_algorithm_t::standard)> {
  public:
   using tile_type = TileType;
   using value_t = element_t;

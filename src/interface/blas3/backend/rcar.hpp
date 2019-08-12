@@ -42,7 +42,7 @@ typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
     return blas::Gemm_Launcher<
         32, false, false, false, 128, Tile<4, 8, 8, 4>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
-        static_cast<int>(gemm_algorithm_t::classic),
+        static_cast<int>(gemm_algorithm_t::standard),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, a_, _lda,
                                              b_, _ldb, _beta, _C, _ldc,
                                              batch_size);
@@ -51,7 +51,7 @@ typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
     return blas::Gemm_Launcher<
         32, false, false, false, 128, Tile<8, 4, 4, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
-        static_cast<int>(gemm_algorithm_t::classic),
+        static_cast<int>(gemm_algorithm_t::standard),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, a_, _lda,
                                              b_, _ldb, _beta, _C, _ldc,
                                              batch_size);
