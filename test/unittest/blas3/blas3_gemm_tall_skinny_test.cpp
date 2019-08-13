@@ -38,7 +38,7 @@ const auto combi = ::testing::Combine(::testing::Values(7, 65),      // m
                                       ::testing::Values(0.0, 0.5),   // beta
                                       ::testing::Values(3),          // lda_mul
                                       ::testing::Values(2),          // ldb_mul
-                                      ::testing::Values(3)           // ldc_mul
+                                      ::testing::Values(1, 3)        // ldc_mul
 );
 
 template <typename scalar_t>

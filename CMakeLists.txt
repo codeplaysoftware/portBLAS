@@ -55,6 +55,10 @@ find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
 include(ConfigureSYCLBLAS)
 find_package(PythonInterp 2.7 REQUIRED)
+
+#by default, tall and skinny Gemm is enabled (for better performance)
+option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
+
 include(CmakeFunctionHelper)
 
 #by default always inlining the kernels
@@ -95,6 +99,7 @@ option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" OFF)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
+option(BUILD_EXPRESSION_BENCHMARKS "Whether to build the expression benchmarks" OFF)
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)

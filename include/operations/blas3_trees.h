@@ -35,14 +35,14 @@ namespace blas {
  * @brief Determines the memory type of the GEMM kernel.
  * It can either use local memory or not
  */
-enum class Gemm_memory_t : int { local_memory = 0, no_local_memory = 1 };
+enum class gemm_memory_t : int { local = 0, no_local = 1 };
 
 /*
- * @brief Indicates the shape of the matrices involved in a GEMM kernel.
- * It can be either naive to use a naive algorithm, classic for the default
+ * @brief Indicates which Gemm algorithm to use.
+ * It can be either naive to use a naive algorithm, standard for the default
  * algorithms, or tall_skinny for tall and skinny matrices
  */
-enum class Gemm_shape_t : int { naive = 0, classic = 1, tall_skinny = 2 };
+enum class gemm_algorithm_t : int { naive = 0, standard = 1, tall_skinny = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -155,13 +155,12 @@ struct Tile {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int Gemm_memory_type,
-          int Gemm_shape_type>
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmAlgorithm>
 class Gemm {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  // static constexpr int memory_type = Gemm_memory_type;
   static constexpr int wg_size = tile_type::wg_rows * tile_type::wg_cols;
   static constexpr bool trans_a = TransA;
   static constexpr bool trans_b = TransB;
@@ -199,7 +198,7 @@ class Gemm {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          typename element_t, int Gemm_memory_type>
+          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
 class GemmPartial {};
 
 /*
@@ -207,18 +206,18 @@ class GemmPartial {};
  *  see GEMM for the parameters passed here.
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
-          typename TileType, bool TransA, bool TransB, int Gemm_memory_type,
-          int Gemm_shape_type, bool is_beta_zero, typename input_t,
+          typename TileType, bool TransA, bool TransB, int GemmMemoryType,
+          int GemmAlgorithm, bool is_beta_zero, typename input_t,
           typename output_t, typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-            TileType, TransA, TransB, element_t, is_beta_zero, Gemm_memory_type,
-            Gemm_shape_type>
+            TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+            GemmAlgorithm>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-              TileType, TransA, TransB, element_t, is_beta_zero,
-              Gemm_memory_type, Gemm_shape_type>(buffer_a, buffer_b, buffer_c,
-                                                 alpha, beta, batch_size);
+              TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+              GemmAlgorithm>(buffer_a, buffer_b, buffer_c, alpha, beta,
+                             batch_size);
 }
 
 }  // namespace blas

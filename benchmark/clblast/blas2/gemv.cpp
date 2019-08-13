@@ -41,8 +41,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
       static_cast<blas_benchmark::utils::Transposition>(ti));
   const char* t_str = ts.c_str();
 
-  index_t vlen = t_str[0] == 'n' ? n : m;
-  index_t rlen = t_str[0] == 'n' ? m : n;
+  index_t xlen = t_str[0] == 'n' ? n : m;
+  index_t ylen = t_str[0] == 'n' ? m : n;
 
   index_t lda = m;
   index_t incX = 1;
@@ -58,16 +58,16 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 
   {
     double nflops_AtimesX = 2.0 * m_d * n_d;
-    double nflops_timesAlpha = m_d;
-    double nflops_addBetaY = (beta != 0) ? 2 * m_d : 0;
+    double nflops_timesAlpha = ylen;
+    double nflops_addBetaY = (beta != 0) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =
         nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
   }
   {
     double mem_readA = m_d * n_d;
-    double mem_readX = n_d;
-    double mem_writeY = m_d;
-    double mem_readY = (beta != 0) ? m_d : 0;
+    double mem_readX = xlen;
+    double mem_writeY = ylen;
+    double mem_readY = (beta != 0) ? ylen : 0;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
@@ -75,10 +75,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
       blas_benchmark::utils::random_data<scalar_t>(m * n);
-  std::vector<scalar_t> v_b =
-      blas_benchmark::utils::random_data<scalar_t>(vlen);
-  std::vector<scalar_t> v_c =
-      blas_benchmark::utils::const_data<scalar_t>(rlen, 0);
+  std::vector<scalar_t> v_x =
+      blas_benchmark::utils::random_data<scalar_t>(xlen);
+  std::vector<scalar_t> v_y =
+      blas_benchmark::utils::const_data<scalar_t>(ylen, 0);
 
   // Specify the transposition
   clblast::Transpose a_tr =
@@ -92,29 +92,29 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   // Device matrices
   MemBuffer<scalar_t> m_a_gpu(executorPtr, m_a.data(),
                               static_cast<size_t>(m * n));
-  MemBuffer<scalar_t> v_b_gpu(executorPtr, v_b.data(),
-                              static_cast<size_t>(vlen));
-  MemBuffer<scalar_t> v_c_gpu(executorPtr, v_c.data(),
-                              static_cast<size_t>(rlen));
+  MemBuffer<scalar_t> v_x_gpu(executorPtr, v_x.data(),
+                              static_cast<size_t>(xlen));
+  MemBuffer<scalar_t> v_y_gpu(executorPtr, v_y.data(),
+                              static_cast<size_t>(ylen));
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v_c_ref = v_c;
-  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_b.data(), incX,
-                       beta, v_c_ref.data(), incY);
-  std::vector<scalar_t> v_c_temp = v_c;
+  std::vector<scalar_t> v_y_ref = v_y;
+  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_x.data(), incX,
+                       beta, v_y_ref.data(), incY);
+  std::vector<scalar_t> v_y_temp = v_y;
   {
-    MemBuffer<scalar_t> v_c_temp_gpu(executorPtr, v_c_temp.data(),
-                                     static_cast<size_t>(rlen));
+    MemBuffer<scalar_t> v_y_temp_gpu(executorPtr, v_y_temp.data(),
+                                     static_cast<size_t>(ylen));
     cl_event event;
     clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
-                            v_b_gpu.dev(), 0, incX, beta, v_c_temp_gpu.dev(), 0,
+                            v_x_gpu.dev(), 0, incX, beta, v_y_temp_gpu.dev(), 0,
                             incY, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v_c_temp, v_c_ref, err_stream, "")) {
+  if (!utils::compare_vectors<scalar_t>(v_y_temp, v_y_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -125,7 +125,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
     clblast::Gemv<scalar_t>(layout, a_tr, m, n, alpha, m_a_gpu.dev(), 0, lda,
-                            v_b_gpu.dev(), 0, incX, beta, v_c_gpu.dev(), 0,
+                            v_x_gpu.dev(), 0, incX, beta, v_y_gpu.dev(), 0,
                             incY, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};

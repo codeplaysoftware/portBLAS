@@ -43,60 +43,60 @@ typename executor_t::policy_t::event_t _gemm(
     if (_M <= 16 && _N > 32) {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<1, 4, 16, 16>, _t_a, _t_b,
-          static_cast<int>(Gemm_memory_t::local_memory),
-          static_cast<int>(Gemm_shape_t::tall_skinny),
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     } else if (_M > 64 && _N <= 32) {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<4, 1, 16, 16>, _t_a, _t_b,
-          static_cast<int>(Gemm_memory_t::local_memory),
-          static_cast<int>(Gemm_shape_t::tall_skinny),
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     } else if (_M <= 16 || _N <= 16) {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<1, 1, 16, 16>, _t_a, _t_b,
-          static_cast<int>(Gemm_memory_t::local_memory),
-          static_cast<int>(Gemm_shape_t::tall_skinny),
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     } else if (_M <= 32 || _N <= 32) {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<2, 2, 16, 16>, _t_a, _t_b,
-          static_cast<int>(Gemm_memory_t::local_memory),
-          static_cast<int>(Gemm_shape_t::tall_skinny),
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     } else {
       return blas::Gemm_Launcher<
           256, true, true, true, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
-          static_cast<int>(Gemm_memory_t::local_memory),
-          static_cast<int>(Gemm_shape_t::tall_skinny),
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::tall_skinny),
           is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                                _b, _ldb, _beta, _c, _ldc, 1);
     }
   } else if (_M * _N <= 65536) {
     return blas::Gemm_Launcher<
         256, false, false, false, 64, Tile<1, 1, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::classic),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);
   } else if (_M * _N <= 262144) {
     return blas::Gemm_Launcher<
         256, false, false, false, 64, Tile<4, 1, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::classic),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);
   } else {
     return blas::Gemm_Launcher<
         256, false, false, false, 64, Tile<8, 8, 16, 16>, _t_a, _t_b,
-        static_cast<int>(Gemm_memory_t::local_memory),
-        static_cast<int>(Gemm_shape_t::classic),
+        static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::classic),
         is_beta_zero>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda,
                                              _b, _ldb, _beta, _c, _ldc,
                                              batch_size);

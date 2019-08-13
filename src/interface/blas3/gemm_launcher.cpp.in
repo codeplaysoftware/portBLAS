@@ -30,6 +30,7 @@
 #include "operations/blas3_trees.hpp"
 #include "operations/extension_trees.hpp"
 #include "operations/blas_constants.hpp"
+#include "operations/extension_trees.hpp"
 #include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
@@ -37,14 +38,14 @@ namespace blas {
 template class Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
-    ${TRANS_B}, static_cast<int>(Gemm_memory_t::${GEMM_MEMORY_TYPE}),
-    static_cast<int>(Gemm_shape_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>;
+    ${TRANS_B}, static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>;
 
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
-    ${TRANS_B}, static_cast<int>(Gemm_memory_t::${GEMM_MEMORY_TYPE}),
-    static_cast<int>(Gemm_shape_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>::
+    ${TRANS_B}, static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>::
     _select_gemm<Executor<${EXECUTOR}>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,
