@@ -90,12 +90,11 @@ typename executor_t::policy_t::event_t _trmv(
 );
 
 /*!
- @brief Generalised matrix vector product with a rectangular symmetric
- matrix, followed by a vector sum.
+ @brief Generalised matrix vector product with a square symmetric matrix,
+ followed by a vector sum.
 
- Generalised matrix vector product with a rectangular symmetric
- matrix, followed by a vector sum, i.e.
- computing the mathematical operation:
+ Generalised matrix vector product with a square symmetric matrix, followed by
+ a vector sum, i.e. computing the mathematical operation:
 
  x = alpha*A*x + beta*y
 
@@ -125,10 +124,9 @@ typename executor_t::policy_t::event_t _symv(
  non-symmetric matrix.
 
  Generalised vector product followed by a sum with a rectangular non-symmetric
- matrix, i.e.
- computing the mathematical operation:
+ matrix, i.e. computing the mathematical operation:
 
- x = alpha*x*y + A
+ A = alpha*x*yT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
@@ -151,13 +149,12 @@ typename executor_t::policy_t::event_t _ger(
 );
 
 /*!
- @brief Generalised vector product sum.
+ @brief Generalised vector squaring followed by a sum with a symmetric matrix.
 
-  Generalised vector squaring followed by a sum with a rectangular symmetric
- matrix, i.e.
- computing the mathematical operation:
+ Generalised vector squaring followed by a sum with a symmetric matrix,
+ i.e. computing the mathematical operation:
 
- x = alpha*x*x**T + A
+ A = alpha*x*xT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d99/ssyr2_8f.html
@@ -177,14 +174,12 @@ typename executor_t::policy_t::event_t _syr(
 );
 
 /*!
- @brief Generalised vector product followed by a sum with a rectangular
-symmetric matrix.
+ @brief Generalised vector products followed by a sum with a symmetric matrix.
 
-Generalised vector product followed by a sum with a rectangular symmetric
- matrix, i.e.
- computing the mathematical operation:
+ Generalised vector products followed by a sum with a symmetric matrix,
+ i.e. computing the mathematical operation:
 
- x = alpha*x*y**T + alpha*y*x**T + A
+ A = alpha*x*yT + alpha*y*xT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/d6/dac/ssyr_8f.html
@@ -322,7 +317,7 @@ typename executor_t::policy_t::event_t inline _symv(
  matrix, i.e.
  computing the mathematical operation:
 
- x = alpha*x*y + A
+ A = alpha*x*yT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
@@ -356,7 +351,7 @@ typename executor_t::policy_t::event_t inline _ger(
  matrix, i.e.
  computing the mathematical operation:
 
- x = alpha*x*x**T + A
+ A = alpha*x*xT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d99/ssyr2_8f.html
@@ -387,7 +382,7 @@ Generalised vector product followed by a sum with a rectangular symmetric
  matrix, i.e.
  computing the mathematical operation:
 
- x = alpha*x*y**T + alpha*y*x**T + A
+ A = alpha*x*yT + alpha*y*xT + A
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/d6/dac/ssyr_8f.html

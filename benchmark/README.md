@@ -67,9 +67,9 @@ Here is an example of an invocation of the GEMM benchmark running on Intel GPU,
 displaying the results in the console and saving a json report:
 
 ```bash
-./bench_gemm --device intel:gpu --csv-param parameters.csv \
-    --benchmark_out ../results.json --benchmark_out_format json \
-    --benchmark_format console
+./bench_gemm --device=intel:gpu --csv-param=parameters.csv \
+    --benchmark_out=../results.json --benchmark_out_format=json \
+    --benchmark_format=console
 ```
 
 ### CSV format
@@ -81,11 +81,17 @@ it will be iterated many times for statistical accuracy).
 
 The formats for the different BLAS levels are:
 
-|blas level|format|description|
+|operations|format|description|
 |:--------:|:----:|-----------|
-| 1 | *size* | Vector size |
-| 2 | *transpose_A,m,n,alpha,beta* | Action on the matrix (`n`, `t`, `c`), dimensions, and scalars alpha and beta |
-| 3 | *transpose_A,transpose_B,m,k,n,alpha,beta* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), and scalars alpha and beta |
+| blas 1 | *size* | Vector size |
+| blas 2 | *transpose_A,m,n,alpha,beta* | Action on the matrix (`n`, `t`, `c`), dimensions, and scalars alpha and beta |
+| blas 3 | *transpose_A,transpose_B,m,k,n,alpha,beta* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), and scalars alpha and beta |
+| blas 3 (batched) | *transpose_A,transpose_B,m,k,n,alpha,beta,batch_size* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), scalars alpha and beta, batch size |
+
+Note: for operations that support a stride, the benchmarks will use a stride of
+1 (contiguous values). For operations that support a leading dimension, the
+benchmarks use the minimum possible value (the actual leading dimension of the
+matrix).
 
 Here is an example of a valid CSV file for the GEMM benchmark:
 
@@ -210,10 +216,15 @@ parameter files as described above.
 | beta | 0 |
 
 
-## JSON output files
+## Output files
 
-The benchmarks can create a report as a JSON file. This JSON file contains two
-top level sections.
+The benchmarks can create reports as CSV or JSON files (or output text e.g to
+follow the execution in the console).
+
+The JSON output contains more information, with a `context` and a `benchmarks`
+section as described below. The CSV output corresponds roughly to the
+`benchmarks` section of the JSON file described below (though some context
+information is printed as text before the actual CSV).
 
 ### Context
 
@@ -242,7 +253,9 @@ following keys:
     be accurate in some cases
 * `best_event_time`: the best of the CL/SYCL event times in nanoseconds. See
     warning above.
-* `avg_overall_time`: the average wall time in nanoseconds.
+* `avg_overall_time`: the average wall time in nanoseconds (the wall time is
+    the difference between the timestamps before and after running the blas
+    operation).
 * `best_overall_time`: the best wall time in nanoseconds.
 * `total_event_time`: this is the event time of all iterations. Warning: the
     number of iterations is variable.
@@ -255,3 +268,7 @@ following keys:
     is doing.
 * a few benchmark parameters (e.g `m`, `n`, `k` for GEMM)
 * some other keys from the benchmark library
+
+**Note:** to calculate the performance in Gflops, you can divide `n_fl_ops` by one
+of the best or average time metrics, e.g `avg_overall_time` (the event and wall
+time usually converge for large dimensions).
