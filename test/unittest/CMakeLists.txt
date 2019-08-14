@@ -53,10 +53,13 @@ set(SYCL_UNITTEST_SRCS
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
+
+if(GEMM_TALL_SKINNY_SUPPORT)
+  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
+endif()
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
