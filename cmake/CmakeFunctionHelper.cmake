@@ -83,9 +83,26 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
-  set(gemm_configuration_0 256 "true" "false" "false" 64 1 1 16 16 1 1 "local" "standard")
-  set(gemm_configuration_1 256 "false" "false" "false" 64 8 8 16 16 1 1 "local" "standard")
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
+  set(gemm_configuration_0 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard")
+  set(gemm_configuration_1 256 "false" "false" "false" 64 4 1 16 16 1 1 "local" "standard")
+  set(gemm_configuration_2 256 "false" "false" "false" 64 8 8 16 16 1 1 "local" "standard")
+
+  set(gemm_configuration_3 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny")
+  set(gemm_configuration_4 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny")
+  set(gemm_configuration_5 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny")
+  set(gemm_configuration_6 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny")
+  set(gemm_configuration_7 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny")
+
+  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
+                                       gemm_configuration_2)
+
+  if(GEMM_TALL_SKINNY_SUPPORT)
+    list(APPEND gemm_configuration_lists gemm_configuration_3
+                                         gemm_configuration_4
+                                         gemm_configuration_5
+                                         gemm_configuration_6
+                                         gemm_configuration_7)
+  endif()
 else() # default cpu backend
   set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive")
   set(gemm_configuration_1 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard")
