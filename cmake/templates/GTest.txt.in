@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.2)
 
 # This file is copied into the build directory in order to build googletest
 # See the guidelines at the URL below for a more detailed explanation

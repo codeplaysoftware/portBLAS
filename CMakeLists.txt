@@ -22,7 +22,7 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-cmake_minimum_required (VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.4.2)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
