@@ -374,7 +374,7 @@ static inline std::vector<scalar_t> random_data(size_t size,
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-2.0, 2.0);
+  std::uniform_real_distribution<> dis(-2.0, 5.0);
   for (int i = 0; i < v.size(); ++i) {
     v[i] = dis(gen);
   }

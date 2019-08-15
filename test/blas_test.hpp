@@ -94,7 +94,7 @@ template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-1.0, 1.0);
+  std::uniform_real_distribution<> dis(-2.0, 5.0);
   for (scalar_t &e : vec) {
     e = dis(gen);
   }
