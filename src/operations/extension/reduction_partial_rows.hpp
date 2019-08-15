@@ -149,7 +149,7 @@ class ReductionPartialRows {
     const index_t total_item_cols =
         params_t::work_group_cols * group_count_cols_;
 
-    element_t accumulator = 0;
+    element_t accumulator = init_val;
 
     /* Sequential reduction level:
      * Load multiple elements from the global memory, reduce them together and
