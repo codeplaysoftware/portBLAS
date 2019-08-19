@@ -29,12 +29,13 @@ After the compilation, the binaries will be available:
     `CMAKE_INSTALL_PREFIX`, and run the installation command, e.g
     `ninja install`, in your installation folder, in `sycl_blas/bin/`
 
-A verification of the results can be enabled with the CMake option
-`BLAS_VERIFY_BENCHMARK`. The verification will be run a small number of times
-(more than once because of the way the benchmark library works, but much less
-then the usual number of iterations of the benchmarks). The verification
-requires that a reference implementation of BLAS like OpenBLAS is installed,
-which path can be given with the `SYSTEM_BLAS_ROOT` CMake parameter.
+A verification of the results is enabled by default and can be disabled with the
+CMake option `BLAS_VERIFY_BENCHMARK` set to `OFF` or `0`. The verification will
+be run a small number of times (more than once because of the way the benchmark
+library works, but much less then the usual number of iterations of the
+benchmarks). The verification requires that a reference implementation of BLAS
+like OpenBLAS is installed, which path can be given with the `SYSTEM_BLAS_ROOT`
+CMake parameter.
 
 ## How to run the benchmarks
 

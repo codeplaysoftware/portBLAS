@@ -23,9 +23,9 @@ the project.
     * [Executors](#executors)
     * [Interface](#interface)
   * [API description](#api-description)
-    * [BLAS 1](#blas1)
-    * [BLAS 2](#blas2)
-    * [BLAS 3](#blas3)
+    * [BLAS 1](#blas-1)
+    * [BLAS 2](#blas-2)
+    * [BLAS 3](#blas-3)
   * [Requirements](#requirements)
   * [Setup](#setup)
     * [How to compile](#how-to-compile)
@@ -323,7 +323,7 @@ Some of the supported options are:
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BLAS_ENABLE_STATIC_LIBRARY` | `ON`/`OFF` | Build as a static library (`OFF` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
-| `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `OFF` by default |
+| `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
 
 
 ### Cross-Compile
