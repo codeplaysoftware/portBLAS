@@ -289,7 +289,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         m_ - wg_row >= block_rows && n_ - wg_col >= block_cols;
     const index_t vector_offset = internal ? packet_size : 1;
     const index_t item_id_ofs = item_id * vector_offset;
-    const index_t item_row = item_id % wg_rows * packet_size;
+    const index_t item_row = item_id % wg_rows * vector_offset;
     const index_t item_col = (item_id / wg_rows) * item_cols;
     const index_t row = wg_row + item_row;
     const index_t col = wg_col + item_col;
@@ -328,7 +328,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         (trans_a
              ? item_id / cl_elems + (item_id % cl_elems) * ldsa
              : item_id_ofs % block_rows + (item_id_ofs / block_rows) * ldsa);
-    ScratchPointerType s4 = scratch + ofs + item_id % wg_rows * packet_size;
+    ScratchPointerType s4 = scratch + ofs + item_id % wg_rows * vector_offset;
     //  printf("[%d/%d] a: %d b: %d sa: %d sb: %d m: %d n: %d\n", wg_id,
     //  item_id,
     //        static_cast<int>(orig_A - test_ptr),
@@ -493,12 +493,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     if (out_of_range) {
       return;
     }
+    const bool internal = check_m_limit && check_n_limit;
+    const index_t offset = internal ? packet_size : 1;
 #pragma unroll
     for (index_t i = 0; i < item_cols; ++i) {
 #pragma unroll
-      for (index_t j = 0; j < item_rows; j += packet_size) {
+      for (index_t j = 0; j < item_rows; j += offset) {
         const bool in_range =
-            do_check<check_m_limit>(j * wg_rows * packet_size < mc) &&
+            do_check<check_m_limit>(j * wg_rows * offset < mc) &&
             do_check<check_n_limit>(i < nc);
 
         // printf("m: %d * %d < %d n: %d < %d\n", j, wg_rows, mc, i, nc);
@@ -508,16 +510,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           if (is_beta_zero) {
             C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
           } else {
-            *reinterpret_cast<vector_t *>(C + j * wg_rows) =
-                alpha *
-                    *reinterpret_cast<vector_t *>(reg_res + i * item_rows + j) +
-                beta * *reinterpret_cast<vector_t *>(C + j * wg_rows);
-            // *reinterpret_cast<vector_t *>(C + j * wg_rows * packet_size) =
-            //     vector_t{static_cast<float>(item_id)};
-            // if (item_id == 0) C[j * wg_rows * packet_size] = j;
-            // if (item_id == 0)
-            //   C[j * wg_rows] =
-            //       alpha * reg_res[i * item_rows + j] + beta * C[j * wg_rows];
+            if (internal) {
+              *reinterpret_cast<vector_t *>(C + j * wg_rows) =
+                  alpha * *reinterpret_cast<vector_t *>(reg_res +
+                                                        i * item_rows + j) +
+                  beta * *reinterpret_cast<vector_t *>(C + j * wg_rows);
+            } else {
+              C[j * wg_rows] =
+                  alpha * reg_res[i * item_rows + j] + beta * C[j * wg_rows];
+            }
           }
         }
       }
