@@ -26,37 +26,91 @@
 #ifndef SYCL_BLAS_BLAS2_TREES_H
 #define SYCL_BLAS_BLAS2_TREES_H
 namespace blas {
-template <typename output_t, typename matrix_t, typename vector_t>
+
+/*!
+ * @brief Determines the memory type of the GEMV kernel.
+ * It can either use local memory or not
+ */
+enum class gemv_memory_t : int { local = 0, no_local = 1 };
+
+/*!
+ * @brief Gemv is a templated class whose instantiations provide different
+ * implementations of the the GEMV kernel function.
+ *
+ * The class is constructed using the make_Gemv function below.
+ *
+ * @tparam local_range  specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam is_transposed  specifies whether the input matrix should be
+ * transposed
+ * @tparam cache_line_size  specifies the size in bytes of the cache line. This
+ *                          value will determine the dimensions of tiles loaded
+ *                          into local memory in the transposed local memory
+ *                          version of the kernel
+ * @tparam memory_type  specifies whether the kernel should use local shared
+ *                      memory or not
+ * @tparam work_per_thread  (not implemented) would specify the multiplier of
+ *                          work done per each work item
+ * @param lhs_        the output buffer of the kernel
+ * @param matrix_a_   the input matrix a
+ * @param vector_x_   the input vector x
+ * @param wgs_per_nc  the number of work groups per non-contracting dimension
+ * @param wgs_per_c   the number of work groups per contracting dimension
+ *
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread>
 struct Gemv {
   using value_t = typename vector_t::value_t;
   using index_t = typename vector_t::index_t;
-  output_t lhs_;
-  matrix_t matrix_;
-  vector_t vector_;
+  lhs_t lhs_;
+  matrix_t matrix_a_;
+  vector_t vector_x_;
+  index_t wgs_per_nc_;
+  index_t wgs_per_c_;
 
-  Gemv(output_t &_l, matrix_t &_matrix, vector_t &_vector);
-  index_t get_size() const;
+  Gemv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, index_t &_wgs_per_nc,
+       index_t &_wgs_per_c);
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename local_memory_t>
+  value_t eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
+
+ private:
+  template <typename ScratchPointerType>
+  void extract_input_block(ScratchPointerType scratch, const index_t &local_id,
+                           const index_t &group_id, const index_t &lda,
+                           index_t mat_tile_id);
 };
 
-template <typename output_t, typename matrix_t, typename vector_t>
-Gemv<output_t, matrix_t, vector_t> make_gemv(output_t &lhs_, matrix_t &matrix_,
-                                             vector_t &vector_) {
-  return Gemv<output_t, matrix_t, vector_t>(lhs_, matrix_, vector_);
+/*!
+ * @brief Contructs an instance of the Gemv class used to launch Gemv operation
+ * kernels
+ */
+template <uint32_t local_range, bool is_transposed, int cache_line_size,
+          int work_per_thread, typename lhs_t, typename matrix_t,
+          typename vector_t>
+Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
+     work_per_thread>
+make_Gemv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
+          typename vector_t::index_t wgs_per_nc_,
+          typename vector_t::index_t wgs_per_c_) {
+  return Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed,
+              cache_line_size, work_per_thread>(lhs_, matrix_, vector_,
+                                                wgs_per_nc_, wgs_per_c_);
 }
 
 template <typename rhs_t>
-struct AddSetColumns {
+struct SumMatrixColumns {
   using value_t = typename rhs_t::value_t;
   using index_t = typename rhs_t::index_t;
 
   rhs_t rhs_;
 
-  AddSetColumns(rhs_t &_r);
+  SumMatrixColumns(rhs_t &_r);
 
   index_t get_size() const;
 
@@ -70,12 +124,12 @@ struct AddSetColumns {
 };
 
 /**
- * @fn make_addSetColumns
- * @brief Constructs an AddSetColumns structure.
+ * @fn make_sumMatrixColumns
+ * @brief Constructs a SumMatrixColumns structure.
  */
 template <typename rhs_t>
-AddSetColumns<rhs_t> make_addSetColumns(rhs_t &rhs_) {
-  return AddSetColumns<rhs_t>(rhs_);
+SumMatrixColumns<rhs_t> make_sumMatrixColumns(rhs_t &rhs_) {
+  return SumMatrixColumns<rhs_t>(rhs_);
 }
 
 /**

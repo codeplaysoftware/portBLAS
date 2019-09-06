@@ -42,40 +42,41 @@ void run_test(const combination_t<scalar_t> combi) {
 
   const char *t_str = trans ? "t" : "n";
 
-  int lda = m * lda_mul;
-  int x = trans ? m : n;
-  int y = trans ? n : m;
+  int a_size = m * n * lda_mul;
+  int x_size = trans ? (1 + (m - 1) * incX) : (1 + (n - 1) * incX);
+  int y_size = trans ? (1 + (n - 1) * incY) : (1 + (m - 1) * incY);
 
   // Input matrix
-  std::vector<scalar_t> a_m(lda * n);
+  std::vector<scalar_t> a_m(a_size, 1.0);
   // Input Vector
-  std::vector<scalar_t> b_v(x * incX);
+  std::vector<scalar_t> x_v(x_size, 1.0);
   // output Vector
-  std::vector<scalar_t> c_v_gpu_result(y * incY, scalar_t(10.0));
+  std::vector<scalar_t> y_v_gpu_result(y_size, scalar_t(10.0));
   // output system vector
-  std::vector<scalar_t> c_v_cpu(y * incY, scalar_t(10.0));
+  std::vector<scalar_t> y_v_cpu(y_size, scalar_t(10.0));
+
   fill_random(a_m);
-  fill_random(b_v);
+  fill_random(x_v);
 
   // SYSTEM GEMMV
-  reference_blas::gemv(t_str, m, n, alpha, a_m.data(), lda, b_v.data(), incX,
-                       beta, c_v_cpu.data(), incY);
+  reference_blas::gemv(t_str, m, n, alpha, a_m.data(), lda_mul * m, x_v.data(),
+                       incX, beta, y_v_cpu.data(), incY);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
-  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, x * incX);
-  auto v_c_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(c_v_gpu_result, y * incY);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, a_size);
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
+  auto v_y_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(y_v_gpu_result, y_size);
 
   // SYCLGEMV
-  _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda, v_b_gpu, incX, beta, v_c_gpu,
-        incY);
+  _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
+        v_y_gpu, incY);
   auto event = ex.get_policy_handler().copy_to_host(
-      v_c_gpu, c_v_gpu_result.data(), y * incY);
+      v_y_gpu, y_v_gpu_result.data(), y_size);
   ex.get_policy_handler().wait(event);
 
-  ASSERT_TRUE(utils::compare_vectors(c_v_gpu_result, c_v_cpu));
+  ASSERT_TRUE(utils::compare_vectors(y_v_gpu_result, y_v_cpu));
 }
 
 #ifdef STRESS_TESTING
@@ -96,7 +97,7 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
                                       ::testing::Values(14, 1010),     // n
                                       ::testing::Values(1.5),          // alpha
                                       ::testing::Values(0.0, 1.5),     // beta
-                                      ::testing::Values(true, false),  // trans
+                                      ::testing::Values(false, true),  // trans
                                       ::testing::Values(2),            // incX
                                       ::testing::Values(3),            // incY
                                       ::testing::Values(2)  // lda_mul

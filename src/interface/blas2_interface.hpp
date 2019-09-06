@@ -29,6 +29,7 @@
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
 #include "executors/executor.h"
+#include "interface/blas2/backend/backend.hpp"
 #include "interface/blas2_interface.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas_constants.h"
@@ -41,82 +42,134 @@
 namespace blas {
 namespace internal {
 
-/*! _gemv.
- * @brief Implementation of the General Matrix Vector product.
+/*! _gemv_impl.
+ * @brief Internal implementation of the General Matrix Vector product.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the gemv operation.
+ *
+ * This function is called by blas::internal::backend::gemv which, dependant on
+ * the platform being compiled for and other parameters, provides different
+ * template parameters to ensure the most optimal kernel is constructed
+ *
+ * @tparam local_range  specifies the number of threads per work group used by
+ *                      the kernel
+ * @tparam cache_line_size  specifies the size in bytes of the cache line. This
+ *                          value will determine the dimensions of tiles loaded
+ *                          into local memory in the transposed local memory
+ *                          version of the kernel
+ * @tparam memory_type  specifies whether the kernel should use local shared
+ *                      memory or not
+ * @tparam trn  specifies whether the input matrix should be transposed
  *
  */
-template <transpose_type trn, typename Executor, typename index_t,
-          typename element_t, typename container_t0, typename container_t1,
-          typename increment_t, typename container_t2>
+template <uint32_t local_range, uint32_t cache_line_size,
+          gemv_memory_t memory_type, transpose_type trn, typename Executor,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
 typename Executor::policy_t::event_t _gemv_impl(
     Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
-    container_t2 _vy, increment_t _incy, index_t _localSize = 0,
-    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret{};
+    container_t2 _vy, increment_t _incy) {
+  constexpr int cl_elems = cache_line_size / sizeof(element_t);
+  constexpr bool is_transposed = trn != transpose_type::Normal;
 
-  index_t M = (trn == transpose_type::Normal) ? _M : _N;
-  index_t N = (trn == transpose_type::Normal) ? _N : _M;
+  const auto x_vector_size = is_transposed ? _M : _N;
+  const auto y_vector_size = is_transposed ? _N : _M;
 
-  static constexpr auto data_layout_access =
-      Choose<trn == transpose_type::Normal, access_layout,
-             access_layout::col_major, access_layout::row_major>::type;
-  using data_layout_t = typename Layout<data_layout_access>::type;
-  auto mA = make_matrix_view<data_layout_t>(ex, _mA, M, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
-  auto vy = make_vector_view(ex, _vy, _incy, M);
+  auto mA = make_matrix_view<col_major>(ex, _mA, _M, _N, _lda);
+  auto vx = make_vector_view(ex, _vx, _incx, x_vector_size);
+  auto vy = make_vector_view(ex, _vy, _incy, y_vector_size);
 
-  const index_t interLoop = 1;
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
-  const index_t nRowsWG =
-      (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
-                      : std::min(M, _nRowsWG);
-  const index_t nColsWG =
-      (_nColsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : N)
-                      : std::min(N, _nColsWG);
-  const index_t scratchPadSize =
-      (_localSize == 0) ? localSize : _scratchPadSize;
+  // Non-local memory kernel
+  if (memory_type != gemv_memory_t::local) {
+    // Leading dimension for dot products matrix
+    const auto ld = is_transposed ? _N : _M;
 
-  const index_t nWGPerCol = (N - 1) / nColsWG + 1;
-  const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
-  const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
+    auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
+    auto dot_products_matrix =
+        make_matrix_view<col_major>(ex, dot_products_buffer, ld, 1, ld);
 
-  const index_t scratchSize =
-      (data_layout_t::is_col_major())
-          ? nWGPerCol
-          : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
+    const index_t global_size = roundUp<index_t>(ld, local_range);
 
-  auto valT1 = blas::make_sycl_iterator_buffer<element_t>(M * scratchSize);
-  // this is column major
-  auto mat1 =
-      make_matrix_view<row_major>(ex, valT1, M, scratchSize, scratchSize);
+    auto gemv = make_Gemv<local_range, is_transposed, cache_line_size, 1>(
+        dot_products_matrix, mA, vx, 1, 1);
 
-  if (data_layout_t::is_col_major()) {
-    auto gemvC =
-        make_Gemv_Col(mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    ret = concatenate_vectors(
-        ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
-  } else {
-    auto gemvR = make_Gemv_Row<interLoop>(mat1, mA, vx, nWGPerRow, nWGPerCol,
-                                          scratchPadSize);
-    ret = concatenate_vectors(
-        ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+    // Execute the GEMV kernel that calculate the partial dot products of rows
+    // auto gemvEvent = ex.execute(gemv, local_range, global_size);
+    auto gemvEvent =
+        ex.execute(gemv, static_cast<index_t>(local_range), global_size);
+
+    // vec_y * b
+    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
+
+    // alpha * vec_dot_products
+    auto alphaMulDotsOp =
+        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
+
+    // add up
+    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
+
+    // assign the result back to vec_y
+    auto assignOp = make_op<Assign>(vy, addOp);
+
+    // exectutes the above expression tree to yield the final GEMV result
+    return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+
+  } else  // Local memory kernel
+  {
+    // Calculate number of work groups per each dimension based on the local
+    // range
+    const index_t WGs_per_NC =
+        is_transposed ? (_N - 1) / local_range + 1 : (_M - 1) / local_range + 1;
+    const index_t WGs_per_C =
+        is_transposed ? (_M - 1) / local_range + 1 : (_N - 1) / local_range + 1;
+
+    // Calculate the scratch size the kernel requires
+    // When input matrix should be transposed then we add more memory to
+    // transpose it on the fly
+    // We add one to cl_elems to eliminate bank conflicts
+    const index_t kernel_scratch_size =
+        local_range + (is_transposed ? (cl_elems + 1) * local_range : 0);
+
+    // Leading dimension for partial dot products matrix
+    const auto ld = is_transposed ? _N : _M;
+    const auto dot_products_buffer_size = ld * WGs_per_C;
+
+    // Create the dot products buffer and matrix view
+    auto dot_products_buffer =
+        blas::make_sycl_iterator_buffer<element_t>(dot_products_buffer_size);
+    auto dot_products_matrix =
+        make_matrix_view<col_major>(ex, dot_products_buffer, ld, WGs_per_C, ld);
+
+    const index_t global_size = local_range * WGs_per_C * WGs_per_NC;
+
+    // Create the gemv kernel
+    auto gemv = make_Gemv<local_range, is_transposed, cache_line_size, 1>(
+        dot_products_matrix, mA, vx, WGs_per_NC, WGs_per_C);
+
+    // Execute the GEMV kernel that calculate the partial dot products of rows
+    auto gemvEvent = ex.execute(gemv, static_cast<index_t>(local_range),
+                                global_size, kernel_scratch_size);
+
+    // Sum the partial dot products results from the GEMV kernel
+    auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
+
+    // vec_y * b
+    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
+
+    // alpha * vec_dot_products
+    auto alphaMulDotsOp = make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
+
+    // add up
+    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
+
+    // assign the result back to vec_y
+    auto assignOp = make_op<Assign>(vy, addOp);
+
+    // exectutes the above expression tree to yield the final GEMV result
+    return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
   }
-
-  // beta * y
-  auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
-  // Finish the mv?
-  auto addMOp = make_addSetColumns(mat1);
-  // (..) * alpha
-  auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
-  // add up
-  auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
-  // assign the result to
-  auto assignOp = make_op<Assign>(vy, addOp);
-  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
-  return ret;
 }
 
 /*! _TRMV.
@@ -226,7 +279,7 @@ typename Executor::policy_t::event_t _trmv_impl(
       }
     }
   }
-  auto addMOp = make_addSetColumns(mat1);
+  auto addMOp = make_sumMatrixColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
   return ret;
@@ -323,8 +376,8 @@ typename Executor::policy_t::event_t _symv_impl(
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
-  auto addMOpR = make_addSetColumns(matR);
-  auto addMOpC = make_addSetColumns(matC);
+  auto addMOpR = make_sumMatrixColumns(matR);
+  auto addMOpC = make_sumMatrixColumns(matC);
   auto addMOp = make_op<BinaryOp, AddOperator>(addMOpR, addMOpC);
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
@@ -509,11 +562,11 @@ typename Executor::policy_t::event_t inline _gemv(
     increment_t _incy  // The increment for elements in y (nonzero).
 ) {
   return tolower(_trans) == 'n'
-             ? _gemv_impl<transpose_type::Normal>(ex, _M, _N, _alpha, _mA, _lda,
-                                                  _vx, _incx, _beta, _vy, _incy)
-             : _gemv_impl<transpose_type::Transposed>(ex, _M, _N, _alpha, _mA,
-                                                      _lda, _vx, _incx, _beta,
-                                                      _vy, _incy);
+             ? blas::gemv::backend::_gemv<transpose_type::Normal>(
+                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy)
+             : blas::gemv::backend::_gemv<transpose_type::Transposed>(
+                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
+                   _incy);
 }
 
 template <typename Executor, typename index_t, typename container_t0,

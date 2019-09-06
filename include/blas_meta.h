@@ -120,6 +120,11 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
 
 #define SYCL_BLAS_INLINE inline __attribute__((always_inline))
 
+template<typename index_t>
+static  SYCL_BLAS_INLINE index_t roundUp(index_t x, index_t y) {
+  return ((x + y - 1) / y) * y;
+}
+
 template <typename index_t, typename vector_t>
 index_t vec_total_size(index_t &vector_size, vector_t &&current_vector) {
   vector_size += static_cast<index_t>(current_vector.size());
