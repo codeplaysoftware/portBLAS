@@ -99,7 +99,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   static constexpr index_t packet_size =
       VectorizationParams<value_t>::packet_size;
-
+  template <typename PointerType>
+  struct PointerWrapper {
+    PointerType ptr;
+    PointerType ptr_vec;
+    // PointerWrapper &operator+=(index_t idx) {
+    //   ptr += idx;
+    //   ptr_vec += idx;
+    //   return *this;
+    // }
+  };
   // enable easier access to tile dimensions
   static constexpr index_t item_rows = tile_type::item_rows;
   static constexpr index_t item_cols = tile_type::item_cols;
@@ -268,19 +277,28 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t batch_stride =
         id.get_group_range(0) / get_workgroup_cluster(m_, n_);
 
-    auto scratch = scratch_acc.localAcc.get_pointer().get();
+    auto scratch = scratch_acc.localAcc.get_pointer();
     using ScratchPointerType = decltype(scratch);
+    PointerWrapper<ScratchPointerType> s1, s2, s3, s4;
     // The number of work-group required to executed each batch efficiently
     const index_t wg_id = id.get_group(0) % get_workgroup_cluster(m_, n_);
 
     const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
     const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
     const index_t c_size = ldc_ * n_;
-    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
-    auto test_ptr = orig_A;
-    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
-    auto test_ptrb = orig_B;
-    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
+    // PointerWrapper orig_A, orig_B, orig_C;
+
+    auto orig_A = a_.get_data().get_pointer() + a_.get_access_displacement() +
+                  (wg_batch_id * a_size);
+    auto orig_B = b_.get_data().get_pointer() + b_.get_access_displacement() +
+                  (wg_batch_id * b_size);
+    auto orig_C = c_.get_data().get_pointer() + c_.get_access_displacement() +
+                  (wg_batch_id * c_size);
+    using PointerType = decltype(orig_A);
+    PointerWrapper<PointerType> ptr_A{orig_A, orig_A};
+    PointerWrapper<PointerType> ptr_B{orig_B, orig_B};
+    PointerWrapper<PointerType> ptr_C{orig_C, orig_C};
+
     const index_t item_id = id.get_local_id(0);
     const index_t tile_id = wg_id / tile_size;
     const index_t tile_local_id = wg_id % tile_size;
@@ -301,56 +319,71 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
     element_t reg_a[item_rows];
     element_t reg_b;
-    auto test_c = orig_C;
-    orig_C = orig_C + row + col * ldc_;
+    ptr_C.ptr += wg_row + (item_id % wg_rows) + col * ldc_;
+    ptr_C.ptr_vec += row + col * ldc_;
+
     // printf("[%d/%d] row:%d col:%d c_ofs: %d\n", wg_id, item_id, row, col,
     //        static_cast<int>(orig_C - test_c));
     const index_t mc = m_ - row;
     const index_t nc = n_ - col;
 
-    orig_B = orig_B + (trans_b ? (item_id / block_cols) * ldb_ +
-                                     (wg_col + item_id % block_cols)
-                               : item_id_ofs % cl_elems +
-                                     (wg_col + item_id_ofs / cl_elems) * ldb_);
-    n_ =
-        n_ - wg_col - (trans_b ? item_id % block_cols : item_id_ofs / cl_elems);
-    orig_A = orig_A + (trans_a ? (wg_row + item_id / cl_elems) * lda_ +
-                                     (item_id % cl_elems)
-                               : (wg_row + item_id_ofs % block_rows) +
-                                     (item_id_ofs / block_rows) * lda_);
+    ptr_B.ptr_vec += (trans_b ? (item_id_ofs / block_cols) * ldb_ +
+                                    (wg_col + item_id_ofs % block_cols)
+                              : item_id_ofs % cl_elems +
+                                    (wg_col + item_id_ofs / cl_elems) * ldb_);
+    ptr_B.ptr +=
+        (trans_b
+             ? (item_id / block_cols) * ldb_ + (wg_col + item_id % block_cols)
+             : item_id % cl_elems + (wg_col + item_id / cl_elems) * ldb_);
+    n_ = n_ - wg_col -
+         (trans_b ? item_id_ofs % block_cols : item_id_ofs / cl_elems);
+    ptr_A.ptr_vec += (trans_a ? (wg_row + item_id_ofs / cl_elems) * lda_ +
+                                    (item_id_ofs % cl_elems)
+                              : (wg_row + item_id_ofs % block_rows) +
+                                    (item_id_ofs / block_rows) * lda_);
+    ptr_A.ptr +=
+        (trans_a
+             ? (wg_row + item_id / cl_elems) * lda_ + (item_id % cl_elems)
+             : (wg_row + item_id % block_rows) + (item_id / block_rows) * lda_);
 
-    m_ =
-        m_ - wg_row - (trans_a ? item_id / cl_elems : item_id_ofs % block_rows);
+    m_ = m_ - wg_row -
+         (trans_a ? item_id / cl_elems * vector_offset
+                  : item_id % block_rows * vector_offset);
 
-    ScratchPointerType s1 =
+    s1.ptr = scratch +
+             (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
+                      : item_id % cl_elems + (item_id / cl_elems) * ldsb);
+    s1.ptr_vec =
         scratch +
-        (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
+        (trans_b ? item_id_ofs / block_cols + (item_id_ofs % block_cols) * ldsb
                  : item_id_ofs % cl_elems + (item_id_ofs / cl_elems) * ldsb);
-    ScratchPointerType s2 = scratch + (item_id / wg_rows) * item_cols * ldsb;
+    s2.ptr = scratch + (item_id / wg_rows) * item_cols * ldsb;
     const index_t ofs = (double_buffer + 1) * block_cols * ldsb;
-    ScratchPointerType s3 =
+    s3.ptr = scratch + ofs +
+             (trans_a ? item_id / cl_elems + (item_id % cl_elems) * ldsa
+                      : item_id % block_rows + (item_id / block_rows) * ldsa);
+    s3.ptr_vec =
         scratch + ofs +
         (trans_a
-             ? item_id / cl_elems + (item_id % cl_elems) * ldsa
+             ? item_id_ofs / cl_elems + (item_id_ofs % cl_elems) * ldsa
              : item_id_ofs % block_rows + (item_id_ofs / block_rows) * ldsa);
-    ScratchPointerType s4 = scratch + ofs + item_id % wg_rows * vector_offset;
-    //  printf("[%d/%d] a: %d b: %d sa: %d sb: %d m: %d n: %d\n", wg_id,
-    //  item_id,
+    s4.ptr = scratch + ofs + (item_id % wg_rows * vector_offset);
+    // printf("[%d/%d] a: %d b: %d sa: %d sb: %d m: %d n: %d\n", wg_id, item_id,
     //        static_cast<int>(orig_A - test_ptr),
-    //        static_cast<int>(orig_B - test_ptrb), static_cast<int>(s1 -
-    //        scratch), static_cast<int>(s3 - (scratch + ofs)), m_, n_);
+    //        static_cast<int>(orig_B - test_ptrb), static_cast<int>(s2 -
+    //        scratch), static_cast<int>(s4 - (scratch + ofs)), m_, n_);
     if (internal) {
       compute_panel_gemm<double_buffer, false, false>(
           id, item_id, m_, mc, n_, nc, a_.get_size_col(), k_, a_size, b_size,
-          c_size, alpha_, orig_A, lda_, orig_B, ldb_, beta_, orig_C, ldc_, s1,
-          s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
-          batch_size_, test_ptr);
+          c_size, alpha_, ptr_A, lda_, ptr_B, ldb_, beta_, ptr_C, ldc_, s1, s2,
+          s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
+          batch_size_);
     } else {
       compute_panel_gemm<double_buffer, true, true>(
           id, item_id, m_, mc, n_, nc, a_.get_size_col(), k_, a_size, b_size,
-          c_size, alpha_, orig_A, lda_, orig_B, ldb_, beta_, orig_C, ldc_, s1,
-          s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
-          batch_size_, test_ptr);
+          c_size, alpha_, ptr_A, lda_, ptr_B, ldb_, beta_, ptr_C, ldc_, s1, s2,
+          s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
+          batch_size_);
     }
   }
 
@@ -436,8 +469,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       OutputPointerType orig_C, index_t ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
       element_t (&reg_a)[item_rows], element_t &reg_b, const bool out_of_range,
-      const index_t batch_stride, const index_t wg_batch_id, index_t batch_size,
-      InputPointerType test_ptr) noexcept {
+      const index_t batch_stride, const index_t wg_batch_id,
+      index_t batch_size) noexcept {
     index_t ofs = 1;
     do {
       auto A = orig_A;
@@ -446,41 +479,48 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       element_t reg_res[item_rows][item_cols] = {};
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
-            item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range, test_ptr);
+            item_id, m, n, k, A.ptr_vec, lda, B.ptr_vec, ldb, s1.ptr_vec,
+            s3.ptr_vec, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm<(!check_m_limit && !check_n_limit)>(
-            item_id, s2, s4, reg_a, reg_b, reg_res);
-        A = A + cl_elems * (trans_a ? 1 : lda);
-        B = B + cl_elems * (trans_b ? ldb : 1);
+            item_id, s2.ptr, s4.ptr, reg_a, reg_b, reg_res);
+        A.ptr += cl_elems * (trans_a ? 1 : lda);
+        A.ptr_vec += cl_elems * (trans_a ? 1 : lda);
+        B.ptr += cl_elems * (trans_b ? ldb : 1);
+        B.ptr_vec += cl_elems * (trans_b ? ldb : 1);
         k -= cl_elems;
         sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
         if (id.get_group(0) == WG_TO_PRINT)
-          print_mat<WG_TO_PRINT, cl_elems, ldsb>(item_id, s1);
+          print_mat<WG_TO_PRINT, ldsa, cl_elems>(item_id, s3.ptr);
         id.barrier();
       }
 
       if (k > 0) {
         extract_input_blocks<check_m_limit, check_n_limit, true>(
-            item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range, test_ptr);
+            item_id, m, n, k, A.ptr, lda, B.ptr, ldb, s1.ptr, s3.ptr,
+            out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm<(!check_m_limit && !check_n_limit)>(
-            item_id, s2, s4, reg_a, reg_b, reg_res);
+            item_id, s2.ptr, s4.ptr, reg_a, reg_b, reg_res);
 
         sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
         // if (id.get_group(0) == 0) print_mat<0, ldsa, cl_elems>(item_id, s3);
-        if (id.get_group(0) == WG_TO_PRINT)
-          print_mat<WG_TO_PRINT, cl_elems, ldsb>(item_id, s1);
-        id.barrier();
+        // if (id.get_group(0) == WG_TO_PRINT)
+        //   print_mat<WG_TO_PRINT, ldsa, cl_elems>(item_id, s3.ptr);
+        // id.barrier();
       }
 
       // store the output
       store_output_block<check_m_limit, check_n_limit>(
-          item_id, mc, nc, alpha, beta, C, ldc, reg_res, out_of_range);
-      orig_A += (a_size * batch_stride);
-      orig_B += (b_size * batch_stride);
-      orig_C += (c_size * batch_stride);
+          item_id, mc, nc, alpha, beta, C.ptr_vec, ldc, reg_res, out_of_range);
+      orig_A.ptr += (a_size * batch_stride);
+      orig_A.ptr_vec += (a_size * batch_stride);
+      orig_B.ptr += (b_size * batch_stride);
+      orig_B.ptr_vec += (b_size * batch_stride);
+      orig_C.ptr += (c_size * batch_stride);
+      orig_C.ptr_vec += (c_size * batch_stride);
       k = orig_k;
       // batch_size_ must be signed as the negative value has meaning here.
       batch_size -= batch_stride;
@@ -530,6 +570,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
     tmp += (alpha * out_vec);
     // tmp = vector_t{static_cast<float>(item_id)};
+    // printf("value: %f\n", reinterpret_cast<value_t *>(&out_vec)[0]);
     tmp.template store<address_t::global_space>(0, out_ptr);
   }
   /*!
@@ -602,7 +643,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         //   }
         // }
       }
-      C = C + ldc;
+      C += ldc;
     }
   }
 
@@ -616,21 +657,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static SYCL_BLAS_INLINE void extract_input_blocks(
       index_t item_id, index_t m, index_t n, index_t k, InputPointerType A,
       index_t lda, InputPointerType B, index_t ldb, ScratchPointerType sB,
-      ScratchPointerType sA, const bool out_of_range,
-      InputPointerType orig_ptr) noexcept {
+      ScratchPointerType sA, const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
-    const bool internal = !check_m_limit && !check_n_limit;
+    constexpr bool internal =
+        !check_m_limit && !check_n_limit && !check_k_limit;
     extract_block<internal, check_m_limit, check_k_limit, trans_a, block_rows,
                   cl_elems, ldsa>(
         item_id, A, lda, sA, [&](index_t ir, index_t cr) { return cr < m; },
-        [&](index_t ic, index_t cc) { return cc < k - ic; }, orig_ptr);
+        [&](index_t ic, index_t cc) { return cc < k - ic; });
     extract_block<internal, check_k_limit, check_n_limit, trans_b, cl_elems,
                   block_cols, ldsb>(
         item_id, B, ldb, sB,
         [&](index_t ir, index_t cr) { return cr < k - ir; },
-        [&](index_t ic, index_t cc) { return cc < n; }, orig_ptr);
+        [&](index_t ic, index_t cc) { return cc < n; });
   }
 
   template <bool trans, index_t lds, bool check_row_limit,
@@ -656,7 +697,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 #pragma unroll
     for (index_t i = 0; i < packet_size; ++i) {
       const bool in_range = do_check<check_row_limit>(in_row(i));
-      dest[dest_index + i * lds] =
+      *(dest + dest_index + i * lds) =
           in_range ? reinterpret_cast<value_t *>(&vec)[i] : value_t(0);
     }
   }
@@ -667,8 +708,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename RowPredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load_value(
       SrcPointerType src, index_t src_index, DestPointerType dest,
-      index_t dest_index, index_t item_id,
-      RowPredicate in_row = [] { return true; }) {
+      index_t dest_index, index_t item_id, RowPredicate in_row) {
     load_vector<trans, lds, check_row_limit>(src, src_index, dest, dest_index,
                                              in_row, item_id);
   }
@@ -679,9 +719,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename RowPredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load_value(
       SrcPointerType src, index_t src_index, DestPointerType dest,
-      index_t dest_index, index_t item_id,
-      RowPredicate in_row = [] { return true; }) {
-    dest[dest_index] = in_range ? src[src_index] : value_t{0};
+      index_t dest_index, index_t item_id, RowPredicate in_row) {
+    *(dest + dest_index) = in_range ? *(src + src_index) : value_t{0};
     // dest[dest_index] = value_t(item_id);
   }
 
@@ -722,8 +761,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename RowPredicate, typename ColPredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type extract_block(
       index_t item_id, InputPointerType ptr, index_t ld,
-      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col,
-      InputPointerType orig_ptr) {
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     const index_t bs = rows * cols;
     const index_t multiplier = internal ? packet_size : 1;
     const bool aligned = ld % packet_size == 0;
@@ -734,15 +772,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         continue;
       const index_t col_ofs = i * ((wg_size * multiplier) / rows);
       const bool in_range =
-          do_check<check_row_limit>(in_row(item_id * multiplier % rows, 0)) &&
+          do_check<check_row_limit>(in_row(item_id % rows * multiplier, 0)) &&
           do_check<check_col_limit>(
               in_col(item_id * multiplier / rows, col_ofs));
       if (in_range) {
-        load_value<internal, true>(ptr, col_ofs * ld, scratch, col_ofs * lds,
-                                   item_id);
+        load_value<internal, true, check_row_limit, false, lds>(
+            ptr, col_ofs * ld, scratch, col_ofs * lds, item_id,
+            [&](index_t ofs) {
+              return in_row(item_id % rows * multiplier + ofs, 0);
+            });
       } else {
-        load_value<internal, false>(ptr, col_ofs * ld, scratch, col_ofs * lds,
-                                    item_id);
+        load_value<internal, false, check_row_limit, false, lds>(
+            ptr, col_ofs * ld, scratch, col_ofs * lds, item_id,
+            [&](index_t ofs) {
+              return in_row(item_id % rows * multiplier + ofs, 0);
+            });
       }
       //   if (internal) {
       //     // if (print_output) {
@@ -786,8 +830,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename RowPredicate, typename ColPredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<trans>::type extract_block(
       index_t item_id, InputPointerType ptr, index_t ld,
-      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col,
-      InputPointerType orig_ptr) {
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     const index_t bs = rows * cols;
     constexpr index_t multiplier = internal ? packet_size : 1;
 #pragma unroll
@@ -834,7 +877,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     constexpr index_t stride = internal ? packet_size : 1;
 #pragma unroll
     for (int i = 0; i < stride; i++) {
-      reg[i + j * stride] = ptr[i + j * wg_rows * stride];
+      reg[i + j * stride] = *(ptr + (i + j * wg_rows * stride));
     }
   }
   template <bool internal, typename InputPointerType>
@@ -855,7 +898,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       }
 #pragma unroll
       for (index_t j = 0; j < item_cols; ++j) {
-        reg_b = B[j * ldsb];
+        reg_b = *(B + j * ldsb);
 #pragma unroll
         for (index_t l = 0; l < item_rows; ++l) {
           reg_res[l][j] = cl::sycl::mad(reg_a[l], reg_b, reg_res[l][j]);
@@ -914,7 +957,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     for (index_t i = 0; i < leading_dim; i++) {
       for (index_t j = 0; j < other_dim; j++) {
         if (id == 0) {
-          printf("%.2f ", ptr[j * leading_dim + i]);
+          printf("%.2f ", *(ptr + j * leading_dim + i));
         }
       }
       if (id == 0) printf("\n");
