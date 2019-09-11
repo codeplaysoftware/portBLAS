@@ -157,6 +157,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static_assert(item_rows % packet_size == 0,
                 "Item rows must be a multiple of the vector packet size");
 
+  static_assert(cl_elems % packet_size == 0,
+                "Cache line size must be a multiple of packet_size");
+
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in local
@@ -331,6 +334,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                     (wg_col + item_id_ofs % block_cols)
                               : item_id_ofs % cl_elems +
                                     (wg_col + item_id_ofs / cl_elems) * ldb_);
+
     ptr_B.ptr +=
         (trans_b
              ? (item_id / block_cols) * ldb_ + (wg_col + item_id % block_cols)
@@ -341,6 +345,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                     (item_id_ofs % cl_elems)
                               : (wg_row + item_id_ofs % block_rows) +
                                     (item_id_ofs / block_rows) * lda_);
+    // printf("[%d/%d] %d + %d * %d = %d\n", item_id, wg_id,
+    //        (wg_row + item_id_ofs % block_rows), (item_id_ofs / block_rows),
+    //        lda_,
+    //        (wg_row + item_id_ofs % block_rows) +
+    //            (item_id_ofs / block_rows) * lda_);
     ptr_A.ptr +=
         (trans_a
              ? (wg_row + item_id / cl_elems) * lda_ + (item_id % cl_elems)
@@ -491,9 +500,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         k -= cl_elems;
         sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
-        if (id.get_group(0) == WG_TO_PRINT)
-          print_mat<WG_TO_PRINT, ldsa, cl_elems>(item_id, s3.ptr);
-        id.barrier();
+        // if (id.get_group(0) == WG_TO_PRINT)
+        //   print_mat<WG_TO_PRINT, cl_elems, ldsb>(item_id, s1.ptr);
+        // id.barrier();
       }
 
       if (k > 0) {
@@ -842,7 +851,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       const bool in_range =
           do_check<check_row_limit>(
               in_row(item_id * multiplier / cols, row_ofs)) &&
-          do_check<check_col_limit>(in_col(item_id * multiplier % cols, 0));
+          do_check<check_col_limit>(in_col(item_id % cols * multiplier, 0));
 
       if (in_range) {
         load_value<internal, true, check_row_limit, true, lds>(
@@ -935,7 +944,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
       cl::sycl::nd_item<1> id, index_t &ofs_sign, P &s, Ps &... ss) noexcept {
-    s = s + ofs_sign * o;
+    s.ptr += ofs_sign * o;
+    s.ptr_vec += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
 
