@@ -53,6 +53,11 @@ set(SYCL_UNITTEST_SRCS
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
+<<<<<<< HEAD
+=======
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_experimental_test.cpp
+>>>>>>> Added  vector size as template param to backends
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )

@@ -33,24 +33,17 @@ namespace blas {
 #define USE_VECTORIZATION
 // Vectorization stuff
 
-template <typename T>
+template <typename T, size_t Size>
 struct VectorizationParams {
+#ifdef USE_VECTORIZATION
+  using vectorised_t = cl::sycl::vec<T, Size>;
+  static constexpr size_t packet_size = Size;
+#else
+  // In the case where vectorization is not enabled, always set to 1
   using vectorised_t = cl::sycl::vec<T, 1>;
   static constexpr size_t packet_size = 1;
-};
-
-#ifdef USE_VECTORIZATION
-template <>
-struct VectorizationParams<float> {
-  using vectorised_t = cl::sycl::float4;
-  static constexpr size_t packet_size = 4;
-};
-template <>
-struct VectorizationParams<double> {
-  using vectorised_t = cl::sycl::double4;
-  static constexpr size_t packet_size = 4;
-};
 #endif
+};
 
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
@@ -85,20 +78,20 @@ struct VectorizationParams<double> {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero>
+          typename element_t, bool is_beta_zero, int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::standard)> {
+           static_cast<int>(gemm_algorithm_t::standard), VectorSize> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
-  using vector_t = typename VectorizationParams<value_t>::vectorised_t;
+  using vector_params = VectorizationParams<value_t, VectorSize>;
+  using vector_t = typename vector_params::vectorised_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
 
-  static constexpr index_t packet_size =
-      VectorizationParams<value_t>::packet_size;
+  static constexpr index_t packet_size = vector_params::packet_size;
   template <typename PointerType>
   struct PointerWrapper {
     PointerType ptr;

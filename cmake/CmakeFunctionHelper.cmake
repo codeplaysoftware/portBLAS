@@ -45,17 +45,17 @@ set(gemm_configuration_lists "")
 
 #intel GPU
 if(${TARGET} STREQUAL "INTEL_GPU")
-  set(gemm_configuration_0 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard")
-  set(gemm_configuration_1 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard")
-  set(gemm_configuration_2 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard")
+  set(gemm_configuration_0 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" 4)
+  set(gemm_configuration_1 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard" 4)
+  set(gemm_configuration_2 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" 4)
 
-  set(gemm_configuration_3 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny")
-  set(gemm_configuration_4 16 "true" "false" "false" 64 2 2 4 4 1 1 "local" "tall_skinny")
-  set(gemm_configuration_5 64 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny")
-  set(gemm_configuration_6 64 "true" "true" "true" 64 4 4 8 8 1 1 "local" "tall_skinny")
-  set(gemm_configuration_7 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny")
-  set(gemm_configuration_8 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny")
-  set(gemm_configuration_9 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny")
+  set(gemm_configuration_3 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_4 16 "true" "false" "false" 64 2 2 4 4 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_5 64 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_6 64 "true" "true" "true" 64 4 4 8 8 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_7 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_8 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_9 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
@@ -71,27 +71,27 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   endif()
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
-  set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local" "standard")
-  set(gemm_configuration_1 32 "false" "false" "false" 128 8 4 4 8 1 1 "local" "standard")
+  set(gemm_configuration_0 32 "false" "false" "false" 128 4 8 8 4 1 1 "local" "standard" 4 )
+  set(gemm_configuration_1 32 "false" "false" "false" 128 8 4 4 8 1 1 "local" "standard" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
 elseif(${TARGET} STREQUAL "ARM_GPU")
-  set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local" "standard")
-  set(gemm_configuration_1 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local" "standard")
-  set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local" "standard")
+  set(gemm_configuration_0 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local" "standard" 4)
+  set(gemm_configuration_1 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local" "standard" 4)
+  set(gemm_configuration_2 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local" "standard" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
-  set(gemm_configuration_0 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard")
-  set(gemm_configuration_1 256 "false" "false" "false" 64 4 1 16 16 1 1 "local" "standard")
-  set(gemm_configuration_2 256 "false" "false" "false" 64 8 8 16 16 1 1 "local" "standard")
+  set(gemm_configuration_0 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" 4)
+  set(gemm_configuration_1 256 "false" "false" "false" 64 4 1 16 16 1 1 "local" "standard" 4)
+  set(gemm_configuration_2 256 "false" "false" "false" 64 8 8 16 16 1 1 "local" "standard" 4)
 
-  set(gemm_configuration_3 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny")
-  set(gemm_configuration_4 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny")
-  set(gemm_configuration_5 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny")
-  set(gemm_configuration_6 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny")
-  set(gemm_configuration_7 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny")
+  set(gemm_configuration_3 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_4 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_5 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_6 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny" 4)
+  set(gemm_configuration_7 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
@@ -104,8 +104,8 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
                                          gemm_configuration_7)
   endif()
 else() # default cpu backend
-  set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive")
-  set(gemm_configuration_1 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard")
+  set(gemm_configuration_0 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive" 16)
+  set(gemm_configuration_1 64 "true" "false" "false" 128 8 8 8 8 1 1 "local" "standard" 8)
 
   if(NAIVE_GEMM)
     list(APPEND gemm_configuration_lists gemm_configuration_0)
@@ -356,10 +356,11 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                     list(GET ${gemm_list} 10 tlc)
                     list(GET ${gemm_list} 11 gemm_memory_type)
                     list(GET ${gemm_list} 12 gemm_shape_type)
+                    list(GET ${gemm_list} 13 vector_size)
                     set(file_name "${func}_${double_buffer}_${conflict_a}_"
                                   "${conflict_b}_${trans_a}_${trans_b}_"
                                   "${is_beta_zero}_${gemm_memory_type}_"
-                                  "${gemm_shape_type}_${executor}_"
+                                  "${gemm_shape_type}_${vector_size}_${executor}_"
                                   "${data}_${index}_${tir}_${tic}_${twr}_"
                                   "${twc}_${tlr}_${tlc}_${wg_size}_"
                                   "${cl_size}.cpp")
@@ -392,6 +393,7 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                         ${wg_size}
                         ${cl_size}
                         ${file_name}
+                        ${vector_size}
                       MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                       DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
