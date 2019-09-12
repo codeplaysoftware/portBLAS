@@ -138,6 +138,10 @@ function(set_target_compile_def in_target)
   if(${GEMM_TALL_SKINNY_SUPPORT})
     target_compile_definitions(${in_target} PUBLIC GEMM_TALL_SKINNY_SUPPORT=1)
   endif()
+  #setting vectorisation support
+  if(${GEMM_VECTORISATION_SUPPORT})
+    target_compile_definitions(${in_target} PUBLIC GEMM_VECTORISATION_SUPPORT=1)
+  endif()
 
 endfunction()
 

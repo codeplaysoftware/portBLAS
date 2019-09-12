@@ -59,6 +59,8 @@ find_package(PythonInterp 2.7 REQUIRED)
 #by default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
 
+option(GEMM_VECTORISATION_SUPPORT "Whether to enable vectorisation in Gemm kernels" OFF)
+
 include(CmakeFunctionHelper)
 
 #by default always inlining the kernels

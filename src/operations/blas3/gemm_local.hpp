@@ -30,12 +30,11 @@
 namespace blas {
 #define ID_TO_PRINT 0
 #define WG_TO_PRINT 0
-#define USE_VECTORIZATION
 // Vectorization stuff
 
 template <typename T, size_t Size>
 struct VectorizationParams {
-#ifdef USE_VECTORIZATION
+#ifdef GEMM_VECTORISATION_SUPPORT
   using vectorised_t = cl::sycl::vec<T, Size>;
   static constexpr size_t packet_size = Size;
 #else
