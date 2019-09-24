@@ -52,7 +52,7 @@ ENV SYCL_IMPL=${impl}
 ENV TARGET=${target}
 
 CMD cd /sycl-blas && \
-    export CMAKE_ARGS='-DSYCL_BLAS_ALWAYS_INLINE=OFF -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF' && \
+    export CMAKE_ARGS='-DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF' && \
     if [ "${SYCL_IMPL}" = 'triSYCL' ]; then \
       ./build.sh --trisycl -DTRISYCL_INCLUDE_DIR=/tmp/triSYCL-master/include; \
     elif [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
