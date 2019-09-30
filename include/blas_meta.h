@@ -118,10 +118,12 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
   return ((!rounUp) ? (wGSize - (wGSize >> 1)) : ++wGSize);
 }
 
-#define SYCL_BLAS_INLINE inline __attribute__((always_inline))
+#define SYCL_BLAS_ALWAYS_INLINE \
+  __attribute__((flatten)) __attribute__((always_inline))
+#define SYCL_BLAS_INLINE SYCL_BLAS_ALWAYS_INLINE inline
 
-template<typename index_t>
-static  SYCL_BLAS_INLINE index_t roundUp(index_t x, index_t y) {
+template <typename index_t>
+static SYCL_BLAS_INLINE index_t roundUp(index_t x, index_t y) {
   return ((x + y - 1) / y) * y;
 }
 

@@ -130,10 +130,6 @@ function(set_target_compile_def in_target)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
-  #setting always inline attribute
-  if(${SYCL_BLAS_ALWAYS_INLINE})
-    target_compile_definitions(${in_target} PUBLIC SYCL_BLAS_ALWAYS_INLINE=1)
-  endif()
   #setting tall skinny support
   if(${GEMM_TALL_SKINNY_SUPPORT})
     target_compile_definitions(${in_target} PUBLIC GEMM_TALL_SKINNY_SUPPORT=1)
