@@ -326,6 +326,30 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
  private:
+  template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
+  static SYCL_BLAS_INLINE void preload_result(
+      element_t (&reg_res)[item_rows][item_cols], InputPointerType C,
+      index_t ldc, index_t mc, index_t nc, element_t beta, bool out_of_range) {
+    if (out_of_range) {
+      return;
+    }
+#pragma unroll
+    for (index_t i = 0; i < item_cols; ++i) {
+#pragma unroll
+      for (index_t j = 0; j < item_rows; ++j) {
+        const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
+                              do_check<check_n_limit>(i < nc);
+        if (in_range) {
+          // when C is uninitialized the element of the C can be NaN, and
+          // Nan*0 will be NaN
+          if (!is_beta_zero) {
+            reg_res[j][i] = beta * C[j * wg_rows];
+          }
+        }
+      }
+      C = C + ldc;
+    }
+  }
   /*!
    * @brief Compute a GEMM of a block-row of A (transpose) and a block-column
    *        of B (transpose).
@@ -358,6 +382,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto B = orig_B;
       auto C = orig_C;
       element_t reg_res[item_rows][item_cols] = {};
+      preload_result<check_m_limit, check_n_limit>(reg_res, C, ldc, mc, nc,
+                                                   beta, out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
@@ -426,11 +452,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         if (in_range) {
           // when C is uninitialized the element of the C can be NaN, and
           // Nan*0 will be NaN
-          if (is_beta_zero) {
-            C[j * wg_rows] = alpha * reg_res[j][i];
-          } else {
-            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
-          }
+
+          C[j * wg_rows] = alpha * reg_res[j][i];
         }
       }
       C = C + ldc;

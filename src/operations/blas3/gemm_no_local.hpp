@@ -106,7 +106,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         b_(B),
         c_(C),
         alpha_(alpha),
-        beta_(beta),
+        beta_(beta / alpha),
         m_(a_.get_size_row()),
         n_(b_.get_size_col()),
         k_(a_.get_size_col()),
@@ -279,6 +279,32 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       );
     }
   }
+
+  template <bool need_check_boundary, typename InputPointerType,
+            typename CheckBoundaryType>
+  static SYCL_BLAS_INLINE void preload_result(
+      element_t (&reg_res)[item_rows][item_cols], InputPointerType C,
+      const index_t &ldc, const index_t &dim_m_c_start,
+      const index_t &dim_n_c_start, CheckBoundaryType check_boundary,
+      const element_t &beta, bool out_of_range) {
+    if (out_of_range) {
+      return;
+    }
+    if (!is_beta_zero) {
+#pragma unroll
+      for (index_t j = 0; j < item_cols; ++j) {
+#pragma unroll
+        for (index_t i = 0; i < item_rows; ++i) {
+          if (do_check<need_check_boundary>(check_boundary(
+                  dim_m_c_start + i * wg_rows, dim_n_c_start + j * wg_cols))) {
+            reg_res[i][j] = beta * C[i * wg_rows];
+          }
+        }
+        C = C + (wg_cols * ldc);
+      }
+    }
+  }
+
   template <bool need_check_boundary, typename A_t, typename B_t, typename C_t,
             typename check_boundary_m_t, typename check_boundary_n_t,
             typename check_boundary_c_t>
@@ -306,6 +332,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
       /* 2D register array used to store the result C*/
       value_t reg_res[item_rows][item_cols] = {};
+      preload_result<need_check_boundary>(reg_res, C, ldc, dim_m_a_start,
+                                          dim_n_b_start, boundary_check_c, beta,
+                                          out_of_range);
       while (k > 0) {
         /*
          * Loading a corresponding block of matrix A into reg_a
@@ -457,11 +486,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                                                dim_n_c_start + j * wg_cols))) {
           // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
-          if (is_beta_zero) {
-            C[i * wg_rows] = alpha * reg_res[i][j];
-          } else {
-            C[i * wg_rows] = alpha * reg_res[i][j] + beta * C[i * wg_rows];
-          }
+
+          C[i * wg_rows] = alpha * reg_res[i][j];
         }
       }
       C = C + (wg_cols * ldc);
