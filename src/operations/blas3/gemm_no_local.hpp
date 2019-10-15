@@ -279,7 +279,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       );
     }
   }
-  /* @brief If beta is not zero then this function will load in values from C,
+  /** @brief If beta is not zero then this function will load in values from C,
   multiply them by the beta value and store them in the results register. If
   beta is zero then this function does nothing. */
   template <bool need_check_boundary, typename InputPointerType,
