@@ -329,27 +329,37 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   /* @brief If beta is not zero then this function will load in values from C,
   multiply them by the beta value and store them in the results register. If
   beta is zero then this function does nothing. */
-  template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
-  static SYCL_BLAS_INLINE void preload_result(
-      element_t (&reg_res)[item_rows][item_cols], InputPointerType C,
-      const index_t &ldc, const index_t &mc, const index_t &nc,
-      const element_t &beta, bool out_of_range) {
+  template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
+            bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type
+  preload_result(element_t *reg_res, InputPointerType C, const index_t &ldc,
+                 const index_t &mc, const index_t &nc, const element_t &beta,
+                 bool out_of_range) {
     if (out_of_range) {
       return;
     }
-    if (!is_beta_zero) {
 #pragma unroll
-      for (index_t i = 0; i < item_cols; ++i) {
+    for (index_t i = 0; i < item_cols; ++i) {
 #pragma unroll
-        for (index_t j = 0; j < item_rows; ++j) {
-          const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
-                                do_check<check_n_limit>(i < nc);
-          if (in_range) {
-            reg_res[j][i] = beta * C[j * wg_rows];
-          }
+      for (index_t j = 0; j < item_rows; ++j) {
+        const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
+                              do_check<check_n_limit>(i < nc);
+        if (in_range) {
+          reg_res[j * item_rows + i] = beta * C[j * wg_rows];
         }
-        C = C + ldc;
       }
+      C = C + ldc;
+    }
+  }
+
+  template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
+            bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type
+  preload_result(element_t *reg_res, InputPointerType, const index_t &,
+                 const index_t &, const index_t &, const element_t &, bool) {
+#pragma unroll
+    for (index_t i = 0; i < item_cols * item_rows; ++i) {
+      reg_res[i] = 0;
     }
   }
   /*!
@@ -383,8 +393,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
-      element_t reg_res[item_rows][item_cols] = {};
-      preload_result<check_m_limit, check_n_limit>(reg_res, C, ldc, mc, nc,
+      element_t reg_res[item_rows][item_cols];
+      preload_result<check_m_limit, check_n_limit>(reg_res[0], C, ldc, mc, nc,
                                                    beta, out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(

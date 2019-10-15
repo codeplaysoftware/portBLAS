@@ -283,27 +283,37 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   multiply them by the beta value and store them in the results register. If
   beta is zero then this function does nothing. */
   template <bool need_check_boundary, typename InputPointerType,
-            typename CheckBoundaryType>
-  static SYCL_BLAS_INLINE void preload_result(
-      element_t (&reg_res)[item_rows][item_cols], InputPointerType C,
-      const index_t &ldc, const index_t &dim_m_c_start,
-      const index_t &dim_n_c_start, CheckBoundaryType check_boundary,
-      const element_t &beta, bool out_of_range) {
+            typename CheckBoundaryType, bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type
+  preload_result(element_t *reg_res, InputPointerType C, const index_t &ldc,
+                 const index_t &dim_m_c_start, const index_t &dim_n_c_start,
+                 CheckBoundaryType check_boundary, const element_t &beta,
+                 bool out_of_range) {
     if (out_of_range) {
       return;
     }
-    if (!is_beta_zero) {
 #pragma unroll
-      for (index_t j = 0; j < item_cols; ++j) {
+    for (index_t j = 0; j < item_cols; ++j) {
 #pragma unroll
-        for (index_t i = 0; i < item_rows; ++i) {
-          if (do_check<need_check_boundary>(check_boundary(
-                  dim_m_c_start + i * wg_rows, dim_n_c_start + j * wg_cols))) {
-            reg_res[i][j] = beta * C[i * wg_rows];
-          }
+      for (index_t i = 0; i < item_rows; ++i) {
+        if (do_check<need_check_boundary>(check_boundary(
+                dim_m_c_start + i * wg_rows, dim_n_c_start + j * wg_cols))) {
+          reg_res[i * item_rows + j] = beta * C[i * wg_rows];
         }
-        C = C + (wg_cols * ldc);
       }
+      C = C + (wg_cols * ldc);
+    }
+  }
+
+  template <bool need_check_boundary, typename InputPointerType,
+            typename CheckBoundaryType, bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type
+  preload_result(element_t *reg_res, InputPointerType, const index_t &,
+                 const index_t &, const index_t &, CheckBoundaryType,
+                 const element_t &, bool) {
+#pragma unroll
+    for (index_t j = 0; j < item_cols * item_rows; ++j) {
+      reg_res[j] = 0;
     }
   }
 
@@ -333,8 +343,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* 2D register array used to store the result C*/
-      value_t reg_res[item_rows][item_cols] = {};
-      preload_result<need_check_boundary>(reg_res, C, ldc, dim_m_a_start,
+      value_t reg_res[item_rows][item_cols];
+      preload_result<need_check_boundary>(reg_res[0], C, ldc, dim_m_a_start,
                                           dim_n_b_start, boundary_check_c, beta,
                                           out_of_range);
       while (k > 0) {
