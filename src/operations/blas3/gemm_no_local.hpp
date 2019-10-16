@@ -298,7 +298,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t i = 0; i < item_rows; ++i) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + i * wg_rows, dim_n_c_start + j * wg_cols))) {
-          reg_res[i * item_rows + j] = beta * C[i * wg_rows];
+          reg_res[j * item_rows + i] = beta * C[i * wg_rows];
         }
       }
       C = C + (wg_cols * ldc);
@@ -342,8 +342,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto C = orig_C;
 
       /* 2D register array used to store the result C*/
-      value_t reg_res[item_rows][item_cols];
-      scaling_c<need_check_boundary>(reg_res[0], C, ldc, dim_m_a_start,
+      value_t reg_res[item_rows * item_cols];
+      scaling_c<need_check_boundary>(reg_res, C, ldc, dim_m_a_start,
                                      dim_n_b_start, boundary_check_c, beta,
                                      out_of_range);
       while (k > 0) {
@@ -455,12 +455,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   static SYCL_BLAS_INLINE void compute_block_gemm_no_shared(
       element_t (&reg_a)[item_rows], element_t (&reg_b)[item_cols],
-      element_t (&reg_res)[item_rows][item_cols]) noexcept {
+      element_t *reg_res) noexcept {
 #pragma unroll
     for (int j = 0; j < item_cols; j++) {
 #pragma unroll
       for (int i = 0; i < item_rows; i++) {
-        reg_res[i][j] = cl::sycl::mad(reg_a[i], reg_b[j], reg_res[i][j]);
+        reg_res[i + j * item_rows] =
+            cl::sycl::mad(reg_a[i], reg_b[j], reg_res[i + j * item_rows]);
       }
     }
   }
@@ -481,11 +482,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <bool check_block, typename PointerType, typename check_boundary>
   static SYCL_BLAS_INLINE void store(
-      PointerType C, element_t (&reg_res)[item_rows][item_cols],
-      const element_t &alpha, const element_t &beta,
-      const index_t &dim_m_c_start, const index_t &dim_n_c_start,
-      const check_boundary &chk_boundary, const bool out_of_range,
-      const index_t &ldc) noexcept {
+      PointerType C, element_t *reg_res, const element_t &alpha,
+      const element_t &beta, const index_t &dim_m_c_start,
+      const index_t &dim_n_c_start, const check_boundary &chk_boundary,
+      const bool out_of_range, const index_t &ldc) noexcept {
     if (out_of_range) {
       return;
     }
@@ -498,7 +498,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
 
-          C[i * wg_rows] = alpha * reg_res[i][j];
+          C[i * wg_rows] = alpha * reg_res[i + j * item_rows];
         }
       }
       C = C + (wg_cols * ldc);
