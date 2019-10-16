@@ -331,10 +331,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   beta is zero then this function does nothing. */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type
-  preload_result(element_t *reg_res, InputPointerType C, const index_t &ldc,
-                 const index_t &mc, const index_t &nc, const element_t &beta,
-                 bool out_of_range) {
+  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
+      element_t *reg_res, InputPointerType C, const index_t &ldc,
+      const index_t &mc, const index_t &nc, const element_t &beta,
+      bool out_of_range) {
     if (out_of_range) {
       return;
     }
@@ -354,9 +354,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type
-  preload_result(element_t *reg_res, InputPointerType, const index_t &,
-                 const index_t &, const index_t &, const element_t &, bool) {
+  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
+      element_t *reg_res, InputPointerType, const index_t &, const index_t &,
+      const index_t &, const element_t &, bool) {
 #pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
@@ -394,8 +394,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto B = orig_B;
       auto C = orig_C;
       element_t reg_res[item_rows][item_cols];
-      preload_result<check_m_limit, check_n_limit>(reg_res[0], C, ldc, mc, nc,
-                                                   beta, out_of_range);
+      scaling_c<check_m_limit, check_n_limit>(reg_res[0], C, ldc, mc, nc, beta,
+                                              out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
