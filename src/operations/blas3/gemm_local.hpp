@@ -145,7 +145,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         b_(B),
         c_(C),
         alpha_(alpha),
-        beta_(beta),
+        beta_(beta / alpha),
         m_(a_.get_size_row()),
         n_(b_.get_size_col()),
         k_(a_.get_size_col()),
@@ -326,6 +326,42 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
  private:
+  /** @brief If beta is not zero then this function will load in values from C,
+  multiply them by the beta value and store them in the results register. If
+  beta is zero then this function does nothing. */
+  template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
+            bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
+      element_t *reg_res, InputPointerType C, const index_t &ldc,
+      const index_t &mc, const index_t &nc, const element_t &beta,
+      bool out_of_range) {
+    if (out_of_range) {
+      return;
+    }
+#pragma unroll
+    for (index_t i = 0; i < item_cols; ++i) {
+#pragma unroll
+      for (index_t j = 0; j < item_rows; ++j) {
+        const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
+                              do_check<check_n_limit>(i < nc);
+        if (in_range) {
+          reg_res[j * item_rows + i] = beta * C[j * wg_rows];
+        }
+      }
+      C = C + ldc;
+    }
+  }
+
+  template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
+            bool beta_zero = is_beta_zero>
+  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
+      element_t *reg_res, InputPointerType, const index_t &, const index_t &,
+      const index_t &, const element_t &, bool) {
+#pragma unroll
+    for (index_t i = 0; i < item_cols * item_rows; ++i) {
+      reg_res[i] = 0;
+    }
+  }
   /*!
    * @brief Compute a GEMM of a block-row of A (transpose) and a block-column
    *        of B (transpose).
@@ -357,7 +393,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
-      element_t reg_res[item_rows][item_cols] = {};
+      element_t reg_res[item_rows][item_cols];
+      scaling_c<check_m_limit, check_n_limit>(reg_res[0], C, ldc, mc, nc, beta,
+                                              out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
@@ -424,13 +462,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          // when C is uninitialized the element of the C can be NaN, and
-          // Nan*0 will be NaN
-          if (is_beta_zero) {
-            C[j * wg_rows] = alpha * reg_res[j][i];
-          } else {
-            C[j * wg_rows] = alpha * reg_res[j][i] + beta * C[j * wg_rows];
-          }
+          C[j * wg_rows] = alpha * reg_res[j][i];
         }
       }
       C = C + ldc;
@@ -604,7 +636,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       cl::sycl::nd_item<1> id, index_t &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
-};  // Gemm
+};  // namespace blas
 
 }  // namespace blas
 
