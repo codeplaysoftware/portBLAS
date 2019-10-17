@@ -293,12 +293,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       return;
     }
 #pragma unroll
-    for (index_t j = 0; j < item_cols; ++j) {
+    for (index_t i = 0; i < item_cols; ++i) {
 #pragma unroll
-      for (index_t i = 0; i < item_rows; ++i) {
+      for (index_t j = 0; j < item_rows; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
-                dim_m_c_start + i * wg_rows, dim_n_c_start + j * wg_cols))) {
-          reg_res[j * item_rows + i] = beta * C[i * wg_rows];
+                dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
+          reg_res[i * item_rows + j] = beta * C[j * wg_rows];
         }
       }
       C = C + (wg_cols * ldc);
@@ -311,8 +311,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
       const index_t &, CheckBoundaryType, const element_t &, bool) {
 #pragma unroll
-    for (index_t j = 0; j < item_cols * item_rows; ++j) {
-      reg_res[j] = 0;
+    for (index_t i = 0; i < item_cols * item_rows; ++i) {
+      reg_res[i] = 0;
     }
   }
 
@@ -326,11 +326,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       const index_t &A_ptr_index, const index_t &B_ptr_index,
       const check_boundary_m_t &boundary_check_m,
       const check_boundary_n_t &boundary_check_n,
-      const check_boundary_c_t &boundary_check_c, element_t (&reg_a)[item_rows],
-      element_t (&reg_b)[item_cols], const bool out_of_range,
-      const index_t &batch_stride, const index_t &wg_batch_id,
-      index_t batch_size, const index_t &lda, const index_t &ldb,
-      const index_t &ldc, const element_t &alpha, const element_t &beta
+      const check_boundary_c_t &boundary_check_c, element_t *reg_a,
+      element_t *reg_b, const bool out_of_range, const index_t &batch_stride,
+      const index_t &wg_batch_id, index_t batch_size, const index_t &lda,
+      const index_t &ldb, const index_t &ldc, const element_t &alpha,
+      const element_t &beta
 #ifdef ARM_GPU
       ,
       cl::sycl::nd_item<1> id
@@ -429,8 +429,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
   template <index_t item_size, index_t next_element, bool check_block,
             typename PointerType, typename check_boundary>
-  static SYCL_BLAS_INLINE void load(PointerType ptr,
-                                    element_t (&reg)[item_size],
+  static SYCL_BLAS_INLINE void load(PointerType ptr, element_t *reg,
                                     const index_t &ld, index_t index,
                                     const check_boundary &chk_boundary,
                                     const bool out_of_range) noexcept {
@@ -454,14 +453,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg_res  2D register array used to store the result C
    */
   static SYCL_BLAS_INLINE void compute_block_gemm_no_shared(
-      element_t (&reg_a)[item_rows], element_t (&reg_b)[item_cols],
-      element_t *reg_res) noexcept {
+      element_t *reg_a, element_t *reg_b, element_t *reg_res) noexcept {
 #pragma unroll
-    for (int j = 0; j < item_cols; j++) {
+    for (int i = 0; i < item_cols; i++) {
 #pragma unroll
-      for (int i = 0; i < item_rows; i++) {
-        reg_res[i + j * item_rows] =
-            cl::sycl::mad(reg_a[i], reg_b[j], reg_res[i + j * item_rows]);
+      for (int j = 0; j < item_rows; j++) {
+        reg_res[i * item_rows + j] =
+            cl::sycl::mad(reg_a[j], reg_b[i], reg_res[i * item_rows + j]);
       }
     }
   }
@@ -490,15 +488,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       return;
     }
 #pragma unroll
-    for (int j = 0; j < item_cols; j++) {
+    for (int i = 0; i < item_cols; i++) {
 #pragma unroll
-      for (int i = 0; i < item_rows; i++) {
-        if (do_check<check_block>(chk_boundary(dim_m_c_start + i * wg_rows,
-                                               dim_n_c_start + j * wg_cols))) {
+      for (int j = 0; j < item_rows; j++) {
+        if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
+                                               dim_n_c_start + i * wg_cols))) {
           // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
 
-          C[i * wg_rows] = alpha * reg_res[i + j * item_rows];
+          C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
         }
       }
       C = C + (wg_cols * ldc);

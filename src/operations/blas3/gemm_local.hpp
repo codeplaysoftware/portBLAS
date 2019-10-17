@@ -385,7 +385,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t lda, InputPointerType orig_B, index_t ldb, element_t beta,
       OutputPointerType orig_C, index_t ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
-      element_t (&reg_a)[item_rows], element_t &reg_b, const bool out_of_range,
+      element_t *reg_a, element_t &reg_b, const bool out_of_range,
       const index_t batch_stride, const index_t wg_batch_id,
       index_t batch_size) noexcept {
     index_t ofs = 1;
@@ -461,7 +461,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          C[j * wg_rows] = alpha * reg_res[j + i * item_rows];
+          C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
         }
       }
       C = C + ldc;
@@ -578,7 +578,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <typename InputPointerType>
   static SYCL_BLAS_INLINE void compute_block_gemm(InputPointerType B,
                                                   InputPointerType A,
-                                                  element_t (&reg_a)[item_rows],
+                                                  element_t *reg_a,
                                                   element_t &reg_b,
                                                   element_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9 Nano.
@@ -595,8 +595,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         reg_b = B[j * ldsb];
 #pragma unroll
         for (index_t l = 0; l < item_rows; ++l) {
-          reg_res[l + j * item_rows] =
-              cl::sycl::mad(reg_a[l], reg_b, reg_res[l + j * item_rows]);
+          reg_res[j * item_rows + l] =
+              cl::sycl::mad(reg_a[l], reg_b, reg_res[j * item_rows + l]);
         }
       }
       A = A + ldsa;
