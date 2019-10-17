@@ -345,7 +345,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          reg_res[j * item_rows + i] = beta * C[j * wg_rows];
+          reg_res[i * item_rows + j] = beta * C[j * wg_rows];
         }
       }
       C = C + ldc;
@@ -385,7 +385,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t lda, InputPointerType orig_B, index_t ldb, element_t beta,
       OutputPointerType orig_C, index_t ldc, ScratchPointerType s1,
       ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
-      element_t (&reg_a)[item_rows], element_t &reg_b, const bool out_of_range,
+      element_t *reg_a, element_t &reg_b, const bool out_of_range,
       const index_t batch_stride, const index_t wg_batch_id,
       index_t batch_size) noexcept {
     index_t ofs = 1;
@@ -393,8 +393,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
-      element_t reg_res[item_rows][item_cols];
-      scaling_c<check_m_limit, check_n_limit>(reg_res[0], C, ldc, mc, nc, beta,
+      element_t reg_res[item_rows * item_cols];
+      scaling_c<check_m_limit, check_n_limit>(reg_res, C, ldc, mc, nc, beta,
                                               out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
@@ -449,8 +449,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
   static SYCL_BLAS_INLINE void store_output_block(
       index_t mc, index_t nc, element_t alpha, element_t beta,
-      OutputPointerType C, index_t ldc,
-      element_t (&reg_res)[item_rows][item_cols],
+      OutputPointerType C, index_t ldc, element_t *reg_res,
       const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
@@ -462,7 +461,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          C[j * wg_rows] = alpha * reg_res[j][i];
+          C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
         }
       }
       C = C + ldc;
@@ -577,9 +576,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param reg_res  2D register array used to store the result C
    */
   template <typename InputPointerType>
-  static SYCL_BLAS_INLINE void compute_block_gemm(
-      InputPointerType B, InputPointerType A, element_t (&reg_a)[item_rows],
-      element_t &reg_b, element_t (&reg_res)[item_rows][item_cols]) noexcept {
+  static SYCL_BLAS_INLINE void compute_block_gemm(InputPointerType B,
+                                                  InputPointerType A,
+                                                  element_t *reg_a,
+                                                  element_t &reg_b,
+                                                  element_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9 Nano.
     //       Seems that the small reduction of arithmetic operations does not
     //       amortize the cost of loading the larger kernel binary resulting
@@ -594,7 +595,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         reg_b = B[j * ldsb];
 #pragma unroll
         for (index_t l = 0; l < item_rows; ++l) {
-          reg_res[l][j] = cl::sycl::mad(reg_a[l], reg_b, reg_res[l][j]);
+          reg_res[j * item_rows + l] =
+              cl::sycl::mad(reg_a[l], reg_b, reg_res[j * item_rows + l]);
         }
       }
       A = A + ldsa;
