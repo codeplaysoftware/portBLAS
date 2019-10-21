@@ -24,6 +24,7 @@
 # **************************************************************************/
 
 find_package(OpenCL)
+find_package(npy)
 find_path(ACL_INCLUDE_DIR "arm_compute/graph.h" HINTS ${ACL_ROOT})
 find_path(ACL_SYSTEM_INCLUDE_DIR "half/half.hpp" HINTS ${ACL_ROOT} PATH_SUFFIXES include/)
 
@@ -34,13 +35,13 @@ find_library(ACL_GRAPH_LIBRARY NAME arm_compute_graph HINTS ${ACL_ROOT} PATH_SUF
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ACL REQUIRED_VARS ACL_LIBRARY ACL_CORE_LIBRARY
                                                     ACL_GRAPH_LIBRARY ACL_INCLUDE_DIR ACL_SYSTEM_INCLUDE_DIR
-                                                    OpenCL_FOUND)
+                                                    OpenCL_FOUND npy_FOUND)
 
 if(ACL_FOUND AND NOT TARGET acl)
     add_library(acl INTERFACE IMPORTED)
     set_target_properties(acl PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${ACL_INCLUDE_DIR};${ACL_SYSTEM_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
-        INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES};${ACL_LIBRARY};${ACL_CORE_LIBRARY};${ACL_GRAPH_LIBRARY}"
+        INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES};${CMAKE_DL_LIBS};${ACL_LIBRARY};${ACL_CORE_LIBRARY};${ACL_GRAPH_LIBRARY};npy::npy"
     )
     mark_as_advanced(ACL_LIBRARY ACL_CORE_LIBRARY ACL_GRAPH_LIBRARY
       ACL_INCLUDE_DIR ACL_SYSTEM_INCLUDE_DIR)

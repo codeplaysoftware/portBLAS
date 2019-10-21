@@ -22,10 +22,6 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-cmake_minimum_required(VERSION 3.4.2)
-
-project(syclblas_exprtest)
-
 add_definitions(-D${TARGET})
 
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
@@ -41,19 +37,21 @@ set(SYCL_EXPRTEST_SRCS
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
-  set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 11)
-  add_dependencies(${test_exec} gtest_main)
-  target_link_libraries(${test_exec} PUBLIC gtest_main ${BLAS_LIBRARIES})
+  target_link_libraries(${test_exec} PRIVATE gtest_main ${BLAS_LIBRARIES} sycl_blas)
+  target_include_directories(${test_exec} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.." ${CBLAS_INCLUDE} ${SYCLBLAS_SRC})
   add_sycl_to_target(
     TARGET ${test_exec}
     SOURCES ${blas_test}
   )
-  if (TEST_DEVICE)
+  if(TEST_DEVICE)
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE})
   else()
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
   endif()
   message("-- Created google test ${test_exec}")
-  install(TARGETS ${test_exec} RUNTIME DESTINATION sycl_blas/bin)
-  include_directories(${test_exec} PUBLIC ${SYCLBLAS_TEST} ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE} ${BLAS_INCLUDE_DIRS})
+  install(TARGETS ${test_exec}
+    RUNTIME
+      DESTINATION ${CMAKE_INSTALL_BINDIR}
+      COMPONENT tests
+  )
 endforeach()
