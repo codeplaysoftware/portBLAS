@@ -23,7 +23,6 @@
 # *  @filename FindSystemBLAS.cmake
 # *
 # **************************************************************************/
-include(FindBLAS)
 
 if (DEFINED SYSTEM_BLAS_ROOT)
   # If SYSTEM_BLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and

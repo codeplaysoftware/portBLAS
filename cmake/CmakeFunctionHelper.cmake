@@ -410,8 +410,8 @@ add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_gemm_objects)
 
 
-function (build_library LIB_NAME LIB_TYPE)
-add_library(${LIB_NAME} ${LIB_TYPE}
+function (build_library LIB_NAME)
+add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:sycl_policy>
                              $<TARGET_OBJECTS:axpy>
                              $<TARGET_OBJECTS:asum>
