@@ -158,7 +158,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *number of work_group required to execute each GEMM.
    *
    */
-  SYCL_BLAS_INLINE index_t get_workgroup_cluster() noexcept {
+  SYCL_BLAS_INLINE index_t get_workgroup_cluster() const noexcept {
     return (((a_.get_size_row() - 1) / big_tile_rows + 1) *
             ((b_.get_size_col() - 1) / big_tile_cols + 1) * tl_rows * tl_cols);
   }
@@ -170,7 +170,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *
    */
   SYCL_BLAS_INLINE index_t
-  get_num_workgroup_cluster(index_t compute_units) noexcept {
+  get_num_workgroup_cluster(index_t compute_units) const noexcept {
     return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
   }
 
@@ -187,7 +187,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * (This is done by manipulating wg_id and item_id parameters.)
    */
   SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t compute_units) noexcept {
+      index_t compute_units) const noexcept {
     const cl::sycl::range<1> nwg(get_workgroup_cluster() *
                                  get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(wg_size);
