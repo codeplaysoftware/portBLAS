@@ -32,7 +32,6 @@ if (DEFINED SYSTEM_BLAS_ROOT)
   set(BLAS_INCLUDE_DIRS "${SYSTEM_BLAS_ROOT}/include/")
 else()
   message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  set(BLA_STATIC on)
   # If we want to use a specific BLAS vendor, we could set it here:
   # by calling: set(BLAS_VENDOR OpenBLAS) 
   find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
