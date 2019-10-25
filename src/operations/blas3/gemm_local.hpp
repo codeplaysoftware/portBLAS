@@ -129,8 +129,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   input_t a_;
   input_t b_;
   output_t c_;
-  element_t alpha_;
-  element_t beta_;
+  const element_t alpha_;
+  const element_t beta_;
   index_t batch_size_;
 
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
@@ -195,11 +195,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
               << " , big_tile_rows: " << big_tile_rows
               << " , big_tile_cols: " << big_tile_cols
-              << " , wg_size: " << wg_size << " , nwg : "
-              << ((a_.get_size_row() - 1) / big_tile_rows + 1) *
-                     ((b_.get_size_col() - 1) / big_tile_cols + 1) * tl_rows *
-                     tl_cols
-              << std::endl;
+              << " , wg_size: " << wg_size
+              << " , nwg : " << get_workgroup_cluster() << std::endl;
 #endif
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
@@ -314,7 +311,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 

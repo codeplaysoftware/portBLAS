@@ -184,9 +184,9 @@ class Gemm {
   index_t get_num_workgroup_cluster(index_t compute_units) const noexcept;
   cl::sycl::nd_range<1> get_nd_range(index_t compute_units) const noexcept;
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(const cl::sycl::nd_item<1>& ndItem) const;
   void eval(cl::sycl::nd_item<1> id) noexcept;
-  void bind(cl::sycl::handler &h);
+  void bind(cl::sycl::handler& h);
   void adjust_access_displacement();
 };
 

@@ -161,7 +161,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE bool
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+     GemmAlgorithm>::valid_thread(const cl::sycl::nd_item<1>& ndItem) const {
   return true;
 }
 
@@ -238,7 +238,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::bind(cl::sycl::handler &h) {
+     GemmAlgorithm>::bind(cl::sycl::handler& h) {
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);

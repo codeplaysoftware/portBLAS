@@ -89,8 +89,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   input_t a_;
   input_t b_;
   output_t c_;
-  element_t alpha_;
-  element_t beta_;
+  const element_t alpha_;
+  const element_t beta_;
   index_t batch_size_;
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
                         element_t beta, index_t batch_size)
@@ -148,7 +148,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     return a_.get_size_row() * b_.get_size_col();
   }
 
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
