@@ -129,14 +129,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   input_t a_;
   input_t b_;
   output_t c_;
-  element_t alpha_;
-  element_t beta_;
-  index_t m_;
-  index_t n_;
-  index_t k_;
-  index_t lda_;
-  index_t ldb_;
-  index_t ldc_;
+  const element_t alpha_;
+  const element_t beta_;
   index_t batch_size_;
 
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
@@ -146,12 +140,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         c_(C),
         alpha_(alpha),
         beta_(beta / alpha),
-        m_(a_.get_size_row()),
-        n_(b_.get_size_col()),
-        k_(a_.get_size_col()),
-        lda_(a_.getSizeL()),
-        ldb_(b_.getSizeL()),
-        ldc_(c_.getSizeL()),
         batch_size_(batch_size) {}
 
   /*!
@@ -170,10 +158,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *number of work_group required to execute each GEMM.
    *
    */
-  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t m,
-                                                        index_t n) noexcept {
-    return (((m - 1) / big_tile_rows + 1) * ((n - 1) / big_tile_cols + 1) *
-            tl_rows * tl_cols);
+  SYCL_BLAS_INLINE index_t get_workgroup_cluster() const noexcept {
+    return (((a_.get_size_row() - 1) / big_tile_rows + 1) *
+            ((b_.get_size_col() - 1) / big_tile_cols + 1) * tl_rows * tl_cols);
   }
   /*!
    *@brief get_num_workgroup_cluster. This function is used to extend the number
@@ -182,9 +169,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *research.
    *
    */
-  static SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(
-      index_t m, index_t n, index_t compute_units) noexcept {
-    return ((4 * compute_units - 1) / get_workgroup_cluster(m, n) + 1);
+  SYCL_BLAS_INLINE index_t
+  get_num_workgroup_cluster(index_t compute_units) const noexcept {
+    return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
   }
 
   /*!
@@ -199,25 +186,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t m, index_t n, index_t compute_units) noexcept {
-    const cl::sycl::range<1> nwg(
-        get_workgroup_cluster(m, n) *
-        get_num_workgroup_cluster(m, n, compute_units));
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+      index_t compute_units) const noexcept {
+    const cl::sycl::range<1> nwg(get_workgroup_cluster() *
+                                 get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(wg_size);
 #ifdef VERBOSE
-    std::cout << " M: " << m << " , N " << n
+    std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
               << " , big_tile_rows: " << big_tile_rows
               << " , big_tile_cols: " << big_tile_cols
-              << " , wg_size: " << wg_size << " , nwg : "
-              << ((m - 1) / big_tile_rows + 1) * ((n - 1) / big_tile_cols + 1) *
-                     tl_rows * tl_cols
-              << std::endl;
+              << " , wg_size: " << wg_size
+              << " , nwg : " << get_workgroup_cluster() << std::endl;
 #endif
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  SYCL_BLAS_INLINE index_t get_size() const { return m_ * n_; }
+  SYCL_BLAS_INLINE index_t get_size() const {
+    return a_.get_size_row() * b_.get_size_col();
+  }
 
   /*!
    * @brief Run the generated GEMM device function.
@@ -228,35 +214,42 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
                              cl::sycl::nd_item<1> id) noexcept {
+    index_t m = a_.get_size_row();
+    index_t n = b_.get_size_col();
+    index_t k = a_.get_size_col();
+
+    const index_t lda = a_.getSizeL();
+    const index_t ldb = b_.getSizeL();
+    const index_t ldc = c_.getSizeL();
     // The batch index that each workgroup should start working with
-    const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster(m_, n_);
+    const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster();
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
     const index_t batch_stride =
-        id.get_group_range(0) / get_workgroup_cluster(m_, n_);
+        id.get_group_range(0) / get_workgroup_cluster();
 
     auto scratch = scratch_acc.localAcc.get_pointer().get();
     using ScratchPointerType = decltype(scratch);
     // The number of work-group required to executed each batch efficiently
-    const index_t wg_id = id.get_group(0) % get_workgroup_cluster(m_, n_);
+    const index_t wg_id = id.get_group(0) % get_workgroup_cluster();
 
-    const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
-    const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
-    const index_t c_size = ldc_ * n_;
+    const index_t a_size = trans_a ? m * lda : k * lda;
+    const index_t b_size = trans_b ? ldb * k : n * ldb;
+    const index_t c_size = ldc * n;
     auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
     auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
     auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
     const index_t item_id = id.get_local_id(0);
     const index_t tile_id = wg_id / tile_size;
     const index_t tile_local_id = wg_id % tile_size;
-    const index_t tiles_per_col = (m_ - 1) / big_tile_rows + 1;
+    const index_t tiles_per_col = (m - 1) / big_tile_rows + 1;
     const index_t tile_row = (tile_id % tiles_per_col) * tl_rows;
     const index_t tile_col = (tile_id / tiles_per_col) * tl_cols;
     const index_t wg_row = (tile_row + tile_local_id % tl_rows) * block_rows;
     const index_t wg_col = (tile_col + tile_local_id / tl_rows) * block_rows;
-    const bool out_of_range = (wg_row >= m_ || wg_col >= n_);
+    const bool out_of_range = (wg_row >= m || wg_col >= n);
     const index_t item_row = item_id % wg_rows;
     const index_t item_col = (item_id / wg_rows) * item_cols;
     const index_t row = wg_row + item_row;
@@ -265,24 +258,23 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     element_t reg_a[item_rows];
     element_t reg_b;
 
-    orig_C = orig_C + row + col * ldc_;
-    const index_t mc = m_ - row;
-    const index_t nc = n_ - col;
+    orig_C = orig_C + row + col * ldc;
+    const index_t mc = m - row;
+    const index_t nc = n - col;
 
-    const bool internal =
-        m_ - wg_row >= block_rows && n_ - wg_col >= block_cols;
+    const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
     orig_B =
         orig_B +
         (trans_b
-             ? (item_id / block_cols) * ldb_ + (wg_col + item_id % block_cols)
-             : item_id % cl_elems + (wg_col + item_id / cl_elems) * ldb_);
-    n_ = n_ - wg_col - (trans_b ? item_id % block_cols : item_id / cl_elems);
+             ? (item_id / block_cols) * ldb + (wg_col + item_id % block_cols)
+             : item_id % cl_elems + (wg_col + item_id / cl_elems) * ldb);
+    n = n - wg_col - (trans_b ? item_id % block_cols : item_id / cl_elems);
     orig_A =
         orig_A +
         (trans_a
-             ? (wg_row + item_id / cl_elems) * lda_ + (item_id % cl_elems)
-             : (wg_row + item_id % block_rows) + (item_id / block_rows) * lda_);
-    m_ = m_ - wg_row - (trans_a ? item_id / cl_elems : item_id % block_rows);
+             ? (wg_row + item_id / cl_elems) * lda + (item_id % cl_elems)
+             : (wg_row + item_id % block_rows) + (item_id / block_rows) * lda);
+    m = m - wg_row - (trans_a ? item_id / cl_elems : item_id % block_rows);
 
     ScratchPointerType s1 =
         scratch + (trans_b
@@ -298,16 +290,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
     if (internal) {
       compute_panel_gemm<double_buffer, false, false>(
-          id, item_id, m_, mc, n_, nc, a_.get_size_col(), k_, a_size, b_size,
-          c_size, alpha_, orig_A, lda_, orig_B, ldb_, beta_, orig_C, ldc_, s1,
-          s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
-          batch_size_);
+          id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, orig_A, lda,
+          orig_B, ldb, orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range,
+          batch_stride, wg_batch_id);
     } else {
       compute_panel_gemm<double_buffer, true, true>(
-          id, item_id, m_, mc, n_, nc, a_.get_size_col(), k_, a_size, b_size,
-          c_size, alpha_, orig_A, lda_, orig_B, ldb_, beta_, orig_C, ldc_, s1,
-          s2, s3, s4, reg_a, reg_b, out_of_range, batch_stride, wg_batch_id,
-          batch_size_);
+          id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, orig_A, lda,
+          orig_B, ldb, orig_C, ldc, s1, s2, s3, s4, reg_a, reg_b, out_of_range,
+          batch_stride, wg_batch_id);
     }
   }
 
@@ -321,7 +311,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
@@ -331,10 +321,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   beta is zero then this function does nothing. */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
-      element_t *reg_res, InputPointerType C, const index_t &ldc,
-      const index_t &mc, const index_t &nc, const element_t &beta,
-      bool out_of_range) {
+  SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
+      element_t *reg_res, InputPointerType C, const index_t &mc,
+      const index_t &nc, const index_t &ldc, bool out_of_range) {
     if (out_of_range) {
       return;
     }
@@ -345,7 +334,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          reg_res[i * item_rows + j] = beta * C[j * wg_rows];
+          reg_res[i * item_rows + j] = beta_ * C[j * wg_rows];
         }
       }
       C = C + ldc;
@@ -354,9 +343,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
+  SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
-      const index_t &, const element_t &, bool) {
+      const index_t &, bool) {
 #pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
@@ -378,23 +367,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool double_buffer, bool check_m_limit, bool check_n_limit,
             typename InputPointerType, typename OutputPointerType,
             typename ScratchPointerType>
-  static SYCL_BLAS_INLINE void compute_panel_gemm(
-      cl::sycl::nd_item<1> id, index_t item_id, index_t m, index_t mc,
-      index_t n, index_t nc, index_t orig_k, index_t k, index_t a_size,
-      index_t b_size, index_t c_size, element_t alpha, InputPointerType orig_A,
-      index_t lda, InputPointerType orig_B, index_t ldb, element_t beta,
-      OutputPointerType orig_C, index_t ldc, ScratchPointerType s1,
-      ScratchPointerType s2, ScratchPointerType s3, ScratchPointerType s4,
-      element_t *reg_a, element_t &reg_b, const bool out_of_range,
-      const index_t batch_stride, const index_t wg_batch_id,
-      index_t batch_size) noexcept {
+  SYCL_BLAS_INLINE void compute_panel_gemm(
+      const cl::sycl::nd_item<1> &id, const index_t &item_id, const index_t &m,
+      const index_t &n, const index_t &orig_k, const index_t &mc,
+      const index_t &nc, const index_t &a_size, const index_t &b_size,
+      const index_t &c_size, InputPointerType orig_A, const index_t &lda,
+      InputPointerType orig_B, const index_t &ldb, OutputPointerType orig_C,
+      const index_t &ldc, ScratchPointerType s1, ScratchPointerType s2,
+      ScratchPointerType s3, ScratchPointerType s4, element_t *reg_a,
+      element_t &reg_b, const bool out_of_range, const index_t &batch_stride,
+      const index_t &wg_batch_id) noexcept {
     index_t ofs = 1;
     do {
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
+      auto k = orig_k;
       element_t reg_res[item_rows * item_cols];
-      scaling_c<check_m_limit, check_n_limit>(reg_res, C, ldc, mc, nc, beta,
+      scaling_c<check_m_limit, check_n_limit>(reg_res, C, mc, nc, ldc,
                                               out_of_range);
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
@@ -418,15 +408,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       }
 
       // store the output
-      store_output_block<check_m_limit, check_n_limit>(
-          mc, nc, alpha, beta, C, ldc, reg_res, out_of_range);
+      store_output_block<check_m_limit, check_n_limit>(mc, nc, C, ldc, reg_res,
+                                                       out_of_range);
       orig_A += (a_size * batch_stride);
       orig_B += (b_size * batch_stride);
       orig_C += (c_size * batch_stride);
-      k = orig_k;
       // batch_size_ must be signed as the negative value has meaning here.
-      batch_size -= batch_stride;
-    } while (batch_size > wg_batch_id);
+      batch_size_ -= batch_stride;
+    } while (batch_size_ > wg_batch_id);
   }
 
   /*!
@@ -447,10 +436,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * thread
    */
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
-  static SYCL_BLAS_INLINE void store_output_block(
-      index_t mc, index_t nc, element_t alpha, element_t beta,
-      OutputPointerType C, index_t ldc, element_t *reg_res,
-      const bool out_of_range) noexcept {
+  SYCL_BLAS_INLINE void store_output_block(const index_t &mc, const index_t &nc,
+                                           OutputPointerType C,
+                                           const index_t &ldc,
+                                           element_t *reg_res,
+                                           const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -461,7 +451,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         const bool in_range = do_check<check_m_limit>(j * wg_rows < mc) &&
                               do_check<check_n_limit>(i < nc);
         if (in_range) {
-          C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
+          C[j * wg_rows] = alpha_ * reg_res[i * item_rows + j];
         }
       }
       C = C + ldc;
@@ -475,7 +465,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename InputPointerType, typename ScratchPointerType>
-  static SYCL_BLAS_INLINE void extract_input_blocks(
+  SYCL_BLAS_INLINE void extract_input_blocks(
       index_t item_id, index_t m, index_t n, index_t k, InputPointerType A,
       index_t lda, InputPointerType B, index_t ldb, ScratchPointerType sB,
       ScratchPointerType sA, const bool out_of_range) noexcept {
@@ -526,7 +516,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             index_t rows, index_t cols, index_t lds, typename InputPointerType,
             typename ScratchPointerType, typename RowPredicate,
             typename ColPredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type extract_block(
+  SYCL_BLAS_INLINE typename std::enable_if<!trans>::type extract_block(
       index_t item_id, InputPointerType ptr, index_t ld,
       ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     const index_t bs = rows * cols;
@@ -546,7 +536,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             index_t rows, index_t cols, index_t lds, typename InputPointerType,
             typename ScratchPointerType, typename RowPredicate,
             typename ColPredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<trans>::type extract_block(
+  SYCL_BLAS_INLINE typename std::enable_if<trans>::type extract_block(
       index_t item_id, InputPointerType ptr, index_t ld,
       ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     const index_t bs = rows * cols;
@@ -576,11 +566,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param reg_res  2D register array used to store the result C
    */
   template <typename InputPointerType>
-  static SYCL_BLAS_INLINE void compute_block_gemm(InputPointerType B,
-                                                  InputPointerType A,
-                                                  element_t *reg_a,
-                                                  element_t &reg_b,
-                                                  element_t *reg_res) noexcept {
+  SYCL_BLAS_INLINE void compute_block_gemm(InputPointerType B,
+                                           InputPointerType A, element_t *reg_a,
+                                           element_t &reg_b,
+                                           element_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9 Nano.
     //       Seems that the small reduction of arithmetic operations does not
     //       amortize the cost of loading the larger kernel binary resulting
@@ -622,20 +611,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      cl::sycl::nd_item<1> id, index_t &ofs_sign, P &s, Ps &... ss) noexcept {
+      const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
+      Ps &... ss) noexcept {
     s = s + ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }
 
   template <bool db>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      cl::sycl::nd_item<1>, index_t &ofs_sign) noexcept {
+      const cl::sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<!db>::type sync_smem(
-      cl::sycl::nd_item<1> id, index_t &, Ps &...) noexcept {
+      const cl::sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
 };  // namespace blas

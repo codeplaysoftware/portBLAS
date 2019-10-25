@@ -93,8 +93,8 @@ SYCL_BLAS_INLINE
                   GemmMemoryType, GemmAlgorithm>::index_t
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
-         GemmAlgorithm>::get_workgroup_cluster(index_t m, index_t n) noexcept {
-  return ((m * n - 1) / wg_size + 1);
+         GemmAlgorithm>::get_workgroup_cluster() const noexcept {
+  return ((m_ * n_ - 1) / wg_size + 1);
 }
 /*!
  *@brief get_num_workgroup_cluster. This function is used to extend the number
@@ -107,18 +107,19 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmAlgorithm>
-SYCL_BLAS_INLINE typename Gemm<
-    input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-    TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm>::index_t
-Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::get_num_workgroup_cluster(index_t m, index_t n,
-                                               index_t compute_units) noexcept {
+SYCL_BLAS_INLINE
+    typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  GemmMemoryType, GemmAlgorithm>::index_t
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, GemmMemoryType,
+         GemmAlgorithm>::get_num_workgroup_cluster(index_t compute_units) const
+    noexcept {
   constexpr index_t num_gemm_per_compute_units = 4;
   return ((num_gemm_per_compute_units * compute_units - 1) /
               Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                    tile_type, TransA, TransB, element_t, is_beta_zero,
-                   GemmMemoryType, GemmAlgorithm>::get_workgroup_cluster(m, n) +
+                   GemmMemoryType, GemmAlgorithm>::get_workgroup_cluster() +
           1);
 }
 
@@ -129,15 +130,14 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE cl::sycl::nd_range<1>
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::get_nd_range(index_t m, index_t n,
-                                  index_t compute_units) noexcept {
+     GemmAlgorithm>::get_nd_range(index_t compute_units) const noexcept {
   const cl::sycl::range<1> nwg(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm>::get_workgroup_cluster(m, n) *
+           GemmAlgorithm>::get_workgroup_cluster() *
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm>::get_num_workgroup_cluster(m, n, compute_units));
+           GemmAlgorithm>::get_num_workgroup_cluster(compute_units));
   const cl::sycl::range<1> wgs(wg_size);
   return cl::sycl::nd_range<1>(nwg * wgs, wgs);
 }
@@ -161,7 +161,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE bool
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+     GemmAlgorithm>::valid_thread(const cl::sycl::nd_item<1>& ndItem) const {
   return true;
 }
 
@@ -238,7 +238,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType,
-     GemmAlgorithm>::bind(cl::sycl::handler &h) {
+     GemmAlgorithm>::bind(cl::sycl::handler& h) {
   a_.bind(h);
   b_.bind(h);
   c_.bind(h);

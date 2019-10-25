@@ -225,8 +225,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                       tile_type, TransA, TransB, element_t, is_beta_zero,
                       GemmMemoryType, GemmAlgorithm>;
-  auto rng = gemm_t::get_nd_range(gemm_tree.m_, gemm_tree.n_,
-                                  policy_handler_.get_num_compute_units());
+  auto rng = gemm_tree.get_nd_range(policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
@@ -259,7 +258,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
                            gemm_wrapper.k_);
 
   /* In some cases, use the tsgemm kernel as a normal gemm operation */
-  if(depth == 1 || gemm_wrapper.k_ <= 2048) {
+  if (depth == 1 || gemm_wrapper.k_ <= 2048) {
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, true, is_beta_zero, element_t, GemmMemoryType>
         gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,

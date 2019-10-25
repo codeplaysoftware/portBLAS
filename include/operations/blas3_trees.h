@@ -180,15 +180,13 @@ class Gemm {
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
        index_t batch_size);
   static std::string get_type_string() noexcept;
-  static index_t get_workgroup_cluster(index_t m, index_t n) noexcept;
-  static index_t get_num_workgroup_cluster(index_t m, index_t n,
-                                           index_t compute_units) noexcept;
-  static cl::sycl::nd_range<1> get_nd_range(index_t m, index_t n,
-                                            index_t compute_units) noexcept;
+  index_t get_workgroup_cluster() const noexcept;
+  index_t get_num_workgroup_cluster(index_t compute_units) const noexcept;
+  cl::sycl::nd_range<1> get_nd_range(index_t compute_units) const noexcept;
   index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread(const cl::sycl::nd_item<1>& ndItem) const;
   void eval(cl::sycl::nd_item<1> id) noexcept;
-  void bind(cl::sycl::handler &h);
+  void bind(cl::sycl::handler& h);
   void adjust_access_displacement();
 };
 

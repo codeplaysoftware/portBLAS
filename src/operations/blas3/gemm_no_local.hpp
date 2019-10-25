@@ -74,8 +74,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   static constexpr index_t block_rows = wg_rows * item_rows;
   /*! @brief Number of columns within a work-group level tile */
   static constexpr index_t block_cols = wg_cols * item_cols;
-  /*! @brief The size of tile processed by a work-group */
-  static constexpr index_t tile_size = block_rows * block_cols;
   /*! @brief A boolean parameter represents wheather or not matrix A is
    * transposed */
   static constexpr bool trans_a = TransA;
@@ -91,14 +89,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   input_t a_;
   input_t b_;
   output_t c_;
-  element_t alpha_;
-  element_t beta_;
-  index_t m_;
-  index_t n_;
-  index_t k_;
-  index_t lda_;
-  index_t ldb_;
-  index_t ldc_;
+  const element_t alpha_;
+  const element_t beta_;
   index_t batch_size_;
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
                         element_t beta, index_t batch_size)
@@ -106,13 +98,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         b_(B),
         c_(C),
         alpha_(alpha),
-        beta_(beta / alpha),
-        m_(a_.get_size_row()),
-        n_(b_.get_size_col()),
-        k_(a_.get_size_col()),
-        lda_(a_.getSizeL()),
-        ldb_(b_.getSizeL()),
-        ldc_(c_.getSizeL()),
+        beta_(beta / alpha_),
         batch_size_(batch_size) {}
 
   /*!
@@ -130,10 +116,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    *number of work_group required to execute each GEMM.
    *
    */
-  static SYCL_BLAS_INLINE index_t get_workgroup_cluster(index_t m,
-                                                        index_t n) noexcept {
-    return (((m - 1) / (item_rows * wg_rows) + 1) *
-            ((n - 1) / (item_cols * wg_cols) + 1));
+  SYCL_BLAS_INLINE index_t get_workgroup_cluster() const noexcept {
+    return (((a_.get_size_row() - 1) / (item_rows * wg_rows) + 1) *
+            ((b_.get_size_col() - 1) / (item_cols * wg_cols) + 1));
   }
   /*!
    *@brief get_num_workgroup_cluster. This function is used to extend the number
@@ -142,53 +127,61 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    *research.
    *
    */
-  static SYCL_BLAS_INLINE index_t get_num_workgroup_cluster(
-      index_t m, index_t n, index_t compute_units) noexcept {
+  SYCL_BLAS_INLINE index_t
+  get_num_workgroup_cluster(index_t compute_units) const noexcept {
     constexpr index_t num_gemm_per_compute_units = 4;
     return ((num_gemm_per_compute_units * compute_units - 1) /
-                get_workgroup_cluster(m, n) +
+                get_workgroup_cluster() +
             1);
   }
 
-  static SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t m, index_t n, index_t compute_units) noexcept {
-    const cl::sycl::range<1> nwg(
-        get_workgroup_cluster(m, n) *
-        get_num_workgroup_cluster(m, n, compute_units));
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+      index_t compute_units) const noexcept {
+    const cl::sycl::range<1> nwg(get_workgroup_cluster() *
+                                 get_num_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(wg_rows * wg_cols);
 
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  SYCL_BLAS_INLINE index_t get_size() const { return m_ * n_; }
+  SYCL_BLAS_INLINE index_t get_size() const {
+    return a_.get_size_row() * b_.get_size_col();
+  }
 
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
   SYCL_BLAS_INLINE void eval(cl::sycl::nd_item<1> id) noexcept {
+    index_t m = a_.get_size_row();
+    index_t n = b_.get_size_col();
+    const index_t k = a_.get_size_col();
+    const index_t lda = a_.getSizeL();
+    const index_t ldb = b_.getSizeL();
+    const index_t ldc = c_.getSizeL();
+
     // The batch index that each workgroup should start working with
-    const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster(m_, n_);
+    const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster();
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
 
     const index_t batch_stride =
-        id.get_group_range(0) / get_workgroup_cluster(m_, n_);
+        id.get_group_range(0) / get_workgroup_cluster();
 
-    const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
-    const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
-    const index_t c_size = ldc_ * n_;
+    const index_t a_size = trans_a ? m * lda : k * lda;
+    const index_t b_size = trans_b ? ldb * k : n * ldb;
+    const index_t c_size = ldc * n;
 
     auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
     auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
     auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
-    const index_t number_of_block_per_row = ((m_ - 1) / block_rows) + 1;
+    const index_t number_of_block_per_row = ((m - 1) / block_rows) + 1;
     /* linear work group id The number of work-group required to executed each
      * batch efficiently*/
-    const index_t wg_id = id.get_group(0) % get_workgroup_cluster(m_, n_);
+    const index_t wg_id = id.get_group(0) % get_workgroup_cluster();
     /* linear work item id */
     const index_t item_id = id.get_local_id(0);
     /* row tile id  per work group */
@@ -205,8 +198,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t wg_col = tile_id_col * block_cols;
 
     /* Exiting from any threads outside of the m and n boundary */
-    const bool out_of_range = ((local_item_id_row + wg_row >= m_) ||
-                               (local_item_id_col + wg_col >= n_));
+    const bool out_of_range = ((local_item_id_row + wg_row >= m) ||
+                               (local_item_id_col + wg_col >= n));
     /*
      * The ma and na are used to adjust the start position of each work-item for
      * A, B and C matrices.
@@ -215,9 +208,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t dim_n_b_start = (local_item_id_col + wg_col);
 
     /*! @brief Adjusting the start position of A, B , and C */
-    orig_A += dim_m_a_start * (trans_a ? lda_ : 1);
-    orig_B += dim_n_b_start * (trans_b ? 1 : ldb_);
-    orig_C += dim_m_a_start + (dim_n_b_start * ldc_);
+    orig_A += dim_m_a_start * (trans_a ? lda : 1);
+    orig_B += dim_n_b_start * (trans_b ? 1 : ldb);
+    orig_C += dim_m_a_start + (dim_n_b_start * ldc);
 
     /*!
      * @brief is_internal_block_m and is_internal_block_n is used to distinguish
@@ -225,7 +218,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * check for boundaries.
      */
     const bool is_internal_block =
-        (m_ - wg_row >= block_rows) && (n_ - wg_col >= block_cols);
+        (m - wg_row >= block_rows) && (n - wg_col >= block_cols);
 
     /*
      * The following lambdas: boundary_check_m, boundary_check_n, and
@@ -233,19 +226,19 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * respectively.
      */
     const auto boundary_check_m = [&](index_t dim_m_a_start) {
-      return dim_m_a_start < m_;
+      return dim_m_a_start < m;
     };
     const auto boundary_check_n = [&](index_t dim_n_b_start) {
-      return dim_n_b_start < n_;
+      return dim_n_b_start < n;
     };
     const auto boundary_check_c = [&](index_t dim_m_c_start,
                                       index_t dim_n_c_start) {
-      return (dim_m_c_start < m_ && dim_n_c_start < n_);
+      return (dim_m_c_start < m && dim_n_c_start < n);
     };
 
     // computing the next element for a and b;
-    const index_t A_ptr_index = (trans_a ? lda_ : 1) * wg_rows;
-    const index_t B_ptr_index = (trans_b ? 1 : ldb_) * wg_cols;
+    const index_t A_ptr_index = (trans_a ? lda : 1) * wg_rows;
+    const index_t B_ptr_index = (trans_b ? 1 : ldb) * wg_cols;
     /* temporary register array used to prefetch columns of A*/
     value_t reg_a[item_rows];
     /* temporary register used to prefetch elements of B*/
@@ -255,11 +248,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      */
     if ((is_internal_block == true)) {
       compute_gemm_no_shared_pannel<false>(
-          orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k_,
+          orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
           boundary_check_m, boundary_check_n, boundary_check_c, reg_a, reg_b,
-          out_of_range, batch_stride, wg_batch_id, batch_size_, lda_, ldb_,
-          ldc_, alpha_, beta_
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
 #ifdef ARM_GPU
           ,
           id
@@ -267,11 +259,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       );
     } else {
       compute_gemm_no_shared_pannel<true>(
-          orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k_,
+          orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
           boundary_check_m, boundary_check_n, boundary_check_c, reg_a, reg_b,
-          out_of_range, batch_stride, wg_batch_id, batch_size_, lda_, ldb_,
-          ldc_, alpha_, beta_
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
 #ifdef ARM_GPU
           ,
           id
@@ -284,11 +275,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   beta is zero then this function does nothing. */
   template <bool need_check_boundary, typename InputPointerType,
             typename CheckBoundaryType, bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
+  SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType C, const index_t &ldc,
       const index_t &dim_m_c_start, const index_t &dim_n_c_start,
-      CheckBoundaryType check_boundary, const element_t &beta,
-      bool out_of_range) {
+      CheckBoundaryType check_boundary, bool out_of_range) {
     if (out_of_range) {
       return;
     }
@@ -298,7 +288,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t j = 0; j < item_rows; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-          reg_res[i * item_rows + j] = beta * C[j * wg_rows];
+          reg_res[i * item_rows + j] = beta_ * C[j * wg_rows];
         }
       }
       C = C + (wg_cols * ldc);
@@ -307,9 +297,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
   template <bool need_check_boundary, typename InputPointerType,
             typename CheckBoundaryType, bool beta_zero = is_beta_zero>
-  static SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
+  SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
-      const index_t &, CheckBoundaryType, const element_t &, bool) {
+      const index_t &, CheckBoundaryType, bool) {
 #pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
@@ -319,7 +309,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool need_check_boundary, typename A_t, typename B_t, typename C_t,
             typename check_boundary_m_t, typename check_boundary_n_t,
             typename check_boundary_c_t>
-  static void SYCL_BLAS_INLINE compute_gemm_no_shared_pannel(
+  SYCL_BLAS_INLINE void compute_gemm_no_shared_pannel(
       A_t orig_A, B_t orig_B, C_t orig_C, const index_t &a_size,
       const index_t &b_size, const index_t &c_size, index_t orig_k, index_t k,
       const index_t &dim_m_a_start, const index_t &dim_n_b_start,
@@ -329,11 +319,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       const check_boundary_c_t &boundary_check_c, element_t *reg_a,
       element_t *reg_b, const bool out_of_range, const index_t &batch_stride,
       const index_t &wg_batch_id, index_t batch_size, const index_t &lda,
-      const index_t &ldb, const index_t &ldc, const element_t &alpha,
-      const element_t &beta
+      const index_t &ldb, const index_t &ldc
 #ifdef ARM_GPU
       ,
-      cl::sycl::nd_item<1> id
+      const cl::sycl::nd_item<1> &id
 #endif
       ) noexcept {
     do {
@@ -344,7 +333,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       /* 2D register array used to store the result C*/
       value_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary>(reg_res, C, ldc, dim_m_a_start,
-                                     dim_n_b_start, boundary_check_c, beta,
+                                     dim_n_b_start, boundary_check_c,
                                      out_of_range);
       while (k > 0) {
         /*
@@ -378,9 +367,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       /*
        *  Storing the reg_res into C matrix
        */
-      store<need_check_boundary>(C, reg_res, alpha, beta, dim_m_a_start,
-                                 dim_n_b_start, boundary_check_c, out_of_range,
-                                 ldc);
+      store<need_check_boundary>(C, reg_res, dim_m_a_start, dim_n_b_start,
+                                 boundary_check_c, out_of_range, ldc);
 
       orig_A += (a_size * batch_stride);
       orig_B += (b_size * batch_stride);
@@ -429,10 +417,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
   template <index_t item_size, index_t next_element, bool check_block,
             typename PointerType, typename check_boundary>
-  static SYCL_BLAS_INLINE void load(PointerType ptr, element_t *reg,
-                                    const index_t &ld, index_t index,
-                                    const check_boundary &chk_boundary,
-                                    const bool out_of_range) noexcept {
+  SYCL_BLAS_INLINE void load(PointerType ptr, element_t *reg, const index_t &ld,
+                             index_t index, const check_boundary &chk_boundary,
+                             const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -452,7 +439,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg_b  temporary register used to prefetch elements of B
    * @param reg_res  2D register array used to store the result C
    */
-  static SYCL_BLAS_INLINE void compute_block_gemm_no_shared(
+  SYCL_BLAS_INLINE void compute_block_gemm_no_shared(
       element_t *reg_a, element_t *reg_b, element_t *reg_res) noexcept {
 #pragma unroll
     for (int i = 0; i < item_cols; i++) {
@@ -479,11 +466,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param mc and nc are indices, used to check the boundary of C
    */
   template <bool check_block, typename PointerType, typename check_boundary>
-  static SYCL_BLAS_INLINE void store(
-      PointerType C, element_t *reg_res, const element_t &alpha,
-      const element_t &beta, const index_t &dim_m_c_start,
-      const index_t &dim_n_c_start, const check_boundary &chk_boundary,
-      const bool out_of_range, const index_t &ldc) noexcept {
+  SYCL_BLAS_INLINE void store(PointerType C, element_t *reg_res,
+                              const index_t &dim_m_c_start,
+                              const index_t &dim_n_c_start,
+                              const check_boundary &chk_boundary,
+                              const bool out_of_range,
+                              const index_t &ldc) noexcept {
     if (out_of_range) {
       return;
     }
@@ -496,7 +484,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           // when C is uninitialized the element of the C can be NaN, and Nan*0
           // will be NaN
 
-          C[j * wg_rows] = alpha * reg_res[i * item_rows + j];
+          C[j * wg_rows] = alpha_ * reg_res[i * item_rows + j];
         }
       }
       C = C + (wg_cols * ldc);
