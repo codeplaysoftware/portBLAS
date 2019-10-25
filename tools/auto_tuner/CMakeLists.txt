@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.4.2)
-
 find_package(PkgConfig)
 
 message(STATUS "Path to the SYCL implementation ")

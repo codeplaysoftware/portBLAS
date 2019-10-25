@@ -22,67 +22,74 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-cmake_minimum_required(VERSION 3.4.2)
+cmake_minimum_required(VERSION 3.4.3)
+project(sycl-blas VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
 
-if(${CMAKE_VERSION} VERSION_LESS "3.9.0")
-  project(sycl-blas VERSION 0.1.0)
-else()
-  project(sycl-blas VERSION 0.1.0 DESCRIPTION "sycl-blas library")
-endif()
-
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas)
+set(CLARA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/clara)
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
+set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
-set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
-set(CLARA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/clara)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/sample/cmake)
+list(APPEND CMAKE_MODULE_PATH
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
+)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -w -Wall -Wno-long-long -pedantic")
-list(APPEND COMPUTECPP_USER_FLAGS "-O3" "-fsycl-split-modules=20" "-mllvm" "-inline-threshold=10000" "-no-serial-memop")
-list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+list(APPEND COMPUTECPP_USER_FLAGS
+  -O3
+  -fsycl-split-modules=20
+  -mllvm -inline-threshold=10000
+  -Xclang -cl-mad-enable
+  # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
+  -no-serial-memop
+)
 
+include(GNUInstallDirs)
+
+include(ConfigureSYCLBLAS)
+include(CmakeFunctionHelper)
 find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
-include(ConfigureSYCLBLAS)
 find_package(PythonInterp 2.7 REQUIRED)
 
 #by default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
 
-include(CmakeFunctionHelper)
-
+list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
 add_subdirectory(src)
-#shared lib
-build_library(sycl_blas SHARED)
-target_include_directories(sycl_blas PUBLIC ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
-set_target_properties(sycl_blas PROPERTIES VERSION ${PROJECT_VERSION})
+build_library(sycl_blas)
 
+set_target_properties(sycl_blas PROPERTIES
+  VERSION ${PROJECT_VERSION}
+  INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
+  INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE}"
+)
 install(TARGETS sycl_blas
-LIBRARY DESTINATION sycl_blas/lib
+  RUNTIME
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT sycl_blas
+  LIBRARY
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT sycl_blas
+  ARCHIVE
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT sycl_blas
 )
-
-option(BLAS_ENABLE_STATIC_LIBRARY "Whether to enable STATIC LIBRARY" OFF)
-
-#static_lib
-if(BLAS_ENABLE_STATIC_LIBRARY)
-build_library(sycl_blas_static STATIC)
-install(TARGETS sycl_blas_static
-ARCHIVE DESTINATION sycl_blas/lib
+install(DIRECTORY ${SYCLBLAS_INCLUDE}/
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/sycl_blas"
+  COMPONENT sycl_blas
+  FILES_MATCHING PATTERN "*.h"
 )
-endif()
-
-install(DIRECTORY ${SYCLBLAS_INCLUDE} DESTINATION sycl_blas
-        FILES_MATCHING PATTERN "*.h")
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
