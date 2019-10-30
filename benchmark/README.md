@@ -34,7 +34,7 @@ CMake option `BLAS_VERIFY_BENCHMARK` set to `OFF` or `0`. The verification will
 be run a small number of times (more than once because of the way the benchmark
 library works, but much less then the usual number of iterations of the
 benchmarks). The verification requires that a reference implementation of BLAS
-like OpenBLAS is installed, which path can be given with the `SYSTEM_BLAS_ROOT`
+like OpenBLAS is installed, which path can be given with the `CMAKE_PREFIX_PATH`
 CMake parameter.
 
 ## How to run the benchmarks

@@ -24,7 +24,7 @@
  **************************************************************************/
 
 #include "sycl_blas.hpp"
-#include "utils.hpp"
+#include "../utils.hpp"
 
 using namespace blas;
 

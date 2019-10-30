@@ -29,7 +29,7 @@
 #endif /*ACL_BACKEND_OPENCL */
 #endif /* ARM_COMPUTE_CL */
 
-#include "utils.hpp"
+#include "../utils.hpp"
 
 std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
   std::ostringstream str{};

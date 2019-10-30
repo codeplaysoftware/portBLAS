@@ -39,6 +39,12 @@ set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 
+if(DEFINED SYSTEM_BLAS_ROOT)
+  message(DEPRECATION
+    "SYSTEM_BLAS_ROOT is deprecated. Add the path to the reference BLAS to CMAKE_PREFIX_PATH instead")
+  list(INSERT CMAKE_PREFIX_PATH 0 ${SYSTEM_BLAS_ROOT})
+endif()
+
 list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
@@ -64,6 +70,8 @@ find_package(PythonInterp 2.7 REQUIRED)
 
 #by default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
+
+add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
 list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
 add_subdirectory(src)
