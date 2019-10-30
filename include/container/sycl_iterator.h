@@ -56,6 +56,16 @@ class BufferIterator<element_t, codeplay_policy> {
       get_range_accessor(BufferIterator<scal_t, codeplay_policy> buff_iterator,
                          size_t size);
   /*!
+   * @brief Default construct a BufferIterator.
+   * This can be used to provide a placeholder BufferIterator, but it is a user
+   * error if passed into any of the SYCL-BLAS functions.
+   *
+   * Should be removed once SYCL specifies that buffers are default
+   * constructible. See:
+   * https://github.com/codeplaysoftware/standards-proposals/blob/master/default-constructed-buffers/default-constructed-buffers.md
+   */
+  BufferIterator() : offset_{0}, buffer_{cl::sycl::range<1>{1}} {}
+  /*!
    * @brief See BufferIterator.
    */
   BufferIterator(const buff_t& buff, std::ptrdiff_t offset);
