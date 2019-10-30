@@ -64,7 +64,7 @@ class BufferIterator<element_t, codeplay_policy> {
    * constructible. See:
    * https://github.com/codeplaysoftware/standards-proposals/blob/master/default-constructed-buffers/default-constructed-buffers.md
    */
-  BufferIterator() : offset_{0}, buffer{cl::sycl::range<1>{1}} {}
+  BufferIterator() : offset_{0}, buffer_{cl::sycl::range<1>{1}} {}
   /*!
    * @brief See BufferIterator.
    */
