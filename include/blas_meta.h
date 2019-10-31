@@ -118,8 +118,13 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
   return ((!rounUp) ? (wGSize - (wGSize >> 1)) : ++wGSize);
 }
 
+#ifdef __SYCL_DEVICE_ONLY__
 #define SYCL_BLAS_ALWAYS_INLINE \
   __attribute__((flatten)) __attribute__((always_inline))
+#else
+#define SYCL_BLAS_ALWAYS_INLINE
+#endif
+
 #define SYCL_BLAS_INLINE SYCL_BLAS_ALWAYS_INLINE inline
 
 template <typename index_t>
