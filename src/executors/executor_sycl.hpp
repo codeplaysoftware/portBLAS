@@ -288,12 +288,13 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   /* Create a second view used for the reduction */
   auto cube_reduction = make_matrix_view<col_major>(
       *this, cube_buffer, rows * cols, depth, rows * cols);
+  using CubeType = decltype(cube_reduction);
 
   /* Second step: reduction */
   /* Best case: we can reduce directly in C */
   if (is_beta_zero && ldc == rows) {
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
-    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+    Reduction<blas::AddOperator, CubeType, output_t, ClSize, work_group_size,
               element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube_reduction, gemm_wrapper.c_, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
@@ -307,7 +308,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
     /* Execute the reduction */
     constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
-    Reduction<blas::AddOperator, input_t, output_t, ClSize, work_group_size,
+    Reduction<blas::AddOperator, CubeType, output_t, ClSize, work_group_size,
               element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube_reduction, temp, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
