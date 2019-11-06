@@ -39,13 +39,13 @@ template class Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
-    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>;
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}, ${VECTOR_SIZE}>;
 
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TLR}, ${TLC}>, ${TRANS_A},
     ${TRANS_B}, static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
-    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}>::
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}), ${IS_BETA_ZERO}, ${VECTOR_SIZE}>::
     _select_gemm<Executor<${EXECUTOR}>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,
                  BufferIterator<${DATA_TYPE}, codeplay_policy>,

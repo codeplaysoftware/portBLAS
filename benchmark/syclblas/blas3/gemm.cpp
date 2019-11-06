@@ -107,7 +107,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     *success = false;
   };
 #endif
-
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_gpu, ldc);
