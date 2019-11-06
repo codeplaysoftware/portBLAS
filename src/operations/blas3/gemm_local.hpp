@@ -485,10 +485,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             bool beta_zero = is_beta_zero>
   SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
-      const index_t &, const bool out_of_range) {
-    if (out_of_range) {
-      return;
-    }
+      const index_t &, const bool) {
 #pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;

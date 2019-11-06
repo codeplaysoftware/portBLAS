@@ -46,7 +46,7 @@ set(gemm_configuration_lists "")
 #intel GPU
 if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_0 "float" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" 4)
-  set(gemm_configuration_1 "float" 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard" 4)
+  set(gemm_configuration_1 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "local" "standard" 4)
   set(gemm_configuration_2 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" 4)
 
   set(gemm_configuration_3 "float" 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny" 4)
