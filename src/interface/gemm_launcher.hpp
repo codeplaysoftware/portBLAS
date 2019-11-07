@@ -51,12 +51,24 @@ Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
   auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
   auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
   auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
-  auto gemm =
-      make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
-                TransB, GemmMemoryType, GemmAlgorithm, is_beta_zero,
-                VectorSize>(buffer_a, buffer_b, buffer_c, element_t(_alpha),
-                            element_t(_beta), batch_size);
-  return ex.execute(gemm);
+  bool is_aligned =
+      ((_M % VectorSize) + (_N % VectorSize) + (_K % VectorSize)) == 0;
+
+  if (is_aligned) {
+    auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
+                          TransA, TransB, GemmMemoryType, GemmAlgorithm,
+                          is_beta_zero, VectorSize, true>(
+        buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
+        batch_size);
+    return ex.execute(gemm);
+  } else {
+    auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
+                          TransA, TransB, GemmMemoryType, GemmAlgorithm,
+                          is_beta_zero, VectorSize, false>(
+        buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
+        batch_size);
+    return ex.execute(gemm);
+  }
 }
 
 }  // namespace blas
