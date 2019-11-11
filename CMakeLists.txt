@@ -25,6 +25,10 @@
 cmake_minimum_required(VERSION 3.4.3)
 project(sycl-blas VERSION 0.1.0 LANGUAGES CXX)
 
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 set(BUILD_SHARED_LIBS ON CACHE BOOL "")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -44,6 +44,18 @@ if(PkgConfig_FOUND)
   return()
 endif()
 
+find_library(OPENBLAS_LIBRARIES NAMES openblas libopenblas)
+find_path(OPENBLAS_INCLUDE_DIRS openblas_config.h)
+if(OPENBLAS_LIBRARIES AND OPENBLAS_INCLUDE_DIRS)
+  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS OPENBLAS_LIBRARIES OPENBLAS_INCLUDE_DIRS)
+  add_library(blas::blas UNKNOWN IMPORTED)
+  set_target_properties(blas::blas PROPERTIES
+    INTERFACE_INCLUDE_DIRS "${OPENBLAS_INCLUDE_DIRS}"
+    IMPORTED_LOCATION "${OPENBLAS_LIBRARIES}"
+  )
+  return()
+endif()
+
 find_package(BLAS QUIET)
 if(NOT BLAS_FOUND)
   set(BLA_STATIC ON)
