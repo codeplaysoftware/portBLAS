@@ -49,7 +49,7 @@ if [ -z "$1" ]
 else
   OPENBLASROOT=$(readlink -f $1)
   echo "User specified OpenBLAS at: $OPENBLASROOT"
-  CMAKE_ARGS="$CMAKE_ARGS -DSYSTEM_BLAS_ROOT=$OPENBLASROOT"
+  CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_PREFIX_PATH=$OPENBLASROOT"
 fi
 
 echo "Making args"

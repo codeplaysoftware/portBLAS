@@ -18,7 +18,7 @@ The tests are built with the project by default. This can be set or unset with
 the CMake option `BLAS_ENABLE_TESTING`.
 
 A reference BLAS implementation like OpenBLAS is required to be installed on
-the machine. Use the CMake `SYSTEM_BLAS_ROOT` option to point to its root folder
+the machine. Use the CMake `CMAKE_PREFIX_PATH` option to point to its root folder
 if it is installed in a custom location.
 
 By default, only the unit tests are build. Use `-DENABLE_EXPRESSION_TESTS=ON` to

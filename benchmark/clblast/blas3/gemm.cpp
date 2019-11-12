@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "utils.hpp"
+#include "../utils.hpp"
 
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n) {

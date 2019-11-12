@@ -319,7 +319,7 @@ Some of the supported options are:
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
 | `TARGET` | name | By default SYCL-BLAS library is built for CPU. Use that flag to compile it for a specific backend (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
-| `SYSTEM_BLAS_ROOT` | path | If tests or verified benchmarks are enabled, a reference BLAS implementation like OpenBLAS is required to be installed on the machine. Use this option to point to its root folder if it is installed in a custom location |
+| `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BLAS_ENABLE_STATIC_LIBRARY` | `ON`/`OFF` | Build as a static library (`OFF` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
@@ -341,7 +341,7 @@ The following CMake command can be used to cross-compile SYCL-BLAS:
 ```bash
 cmake  -GNinja                                                                                           \
     ${SOURCE_ROOT}                                                                                       \
-   -DSYSTEM_BLAS_ROOT="${OPENBLAS_PATH}"                                                                 \
+   -DCMAKE_PREFIX_PATH="${OPENBLAS_PATH}"                                                                 \
    -DComputeCpp_DIR="${COMPUTECPP_DEVICE_PATH}"                                                          \
    -DComputeCpp_HOST_DIR="${COMPUTECPP_X86_PATH}"                                                        \
    -DCMAKE_TOOLCHAIN_FILE="${SYCL_BLAS_PATH}/external/computecpp-sdk/cmake/toolchains/gcc-generic.cmake" \

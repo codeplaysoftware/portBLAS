@@ -9,9 +9,12 @@
 #include <arm_compute/core/Window.h>
 #include <arm_compute/runtime/CL/CLFunctions.h>
 #include <arm_compute/runtime/CL/CLScheduler.h>
-#include <arm_compute/runtime/NEON/NEFunctions.h>
 #include <arm_compute/runtime/Tensor.h>
 #include <thread>
+
+#ifdef ACL_BACKEND_NEON
+#include <arm_compute/runtime/NEON/NEFunctions.h>
+#endif
 
 #include "utils/Utils.h"
 

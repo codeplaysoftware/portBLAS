@@ -24,16 +24,49 @@
 # *
 # **************************************************************************/
 
-if (DEFINED SYSTEM_BLAS_ROOT)
-  # If SYSTEM_BLAS_ROOT is defined, then use it explicitly, and set the BLAS paths and
-  # libraries based on the explicit path given 
-  message(STATUS "Using explicit OpenBLAS installation path for unit tests")
-  set(BLAS_LIBRARIES "${SYSTEM_BLAS_ROOT}/lib/libopenblas.so")
-  set(BLAS_INCLUDE_DIRS "${SYSTEM_BLAS_ROOT}/include/")
-else()
-  message(STATUS "Using Cmake FindBLAS to locate a BLAS library for unit tests")
-  # If we want to use a specific BLAS vendor, we could set it here:
-  # by calling: set(BLAS_VENDOR OpenBLAS) 
-  find_package(BLAS REQUIRED) # We need BLAS for the tests - require it
-  message(STATUS "Found BLAS library at: ${BLAS_LIBRARIES}")
+include(FindPackageHandleStandardArgs)
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(BLAS REQUIRED QUIET openblas)
+  find_library(OPENBLAS_LIBRARIES openblas PATHS ${BLAS_LIBRARY_DIRS})
+  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS OPENBLAS_LIBRARIES BLAS_LIBRARIES)
+
+  if(NOT TARGET blas::blas)
+    add_library(blas::blas UNKNOWN IMPORTED)
+    set_target_properties(blas::blas PROPERTIES
+      IMPORTED_LOCATION "${OPENBLAS_LIBRARIES}"
+      INTERFACE_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}"
+      INTERFACE_LINK_LIBRARIES "${BLAS_LDFLAGS_OTHER}"
+      INTERFACE_COMPILE_OPTIONS "${BLAS_CFLAGS_OTHER}"
+    )
+  endif()
+  return()
+endif()
+
+find_library(OPENBLAS_LIBRARIES NAMES openblas libopenblas)
+find_path(OPENBLAS_INCLUDE_DIRS openblas_config.h)
+if(OPENBLAS_LIBRARIES AND OPENBLAS_INCLUDE_DIRS)
+  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS OPENBLAS_LIBRARIES OPENBLAS_INCLUDE_DIRS)
+  add_library(blas::blas UNKNOWN IMPORTED)
+  set_target_properties(blas::blas PROPERTIES
+    INTERFACE_INCLUDE_DIRS "${OPENBLAS_INCLUDE_DIRS}"
+    IMPORTED_LOCATION "${OPENBLAS_LIBRARIES}"
+  )
+  return()
+endif()
+
+find_package(BLAS QUIET)
+if(NOT BLAS_FOUND)
+  set(BLA_STATIC ON)
+  find_package(BLAS QUIET)
+endif()
+
+if(BLAS_FOUND AND NOT TARGET blas::blas)
+  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS BLAS_LIBRARIES)
+
+  add_library(blas::blas INTERFACE IMPORTED)
+  set_target_properties(blas::blas PROPERTIES
+    INTERFACE_LINK_LIBRARIES "${BLAS_LINKER_FLAGS};${BLAS_LIBRARIES}"
+  )
 endif()
