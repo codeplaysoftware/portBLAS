@@ -56,9 +56,27 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_7 "float" 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny")
   set(gemm_configuration_8 "float" 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny")
   set(gemm_configuration_9 "float" 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny")
+  
+  set(gemm_configuration_10 "double" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard")
+  set(gemm_configuration_11 "double" 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard")
+  set(gemm_configuration_12 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard")
+
+  set(gemm_configuration_13 "double" 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny")
+  set(gemm_configuration_14 "double" 16 "true" "false" "false" 64 2 2 4 4 1 1 "local" "tall_skinny")
+  set(gemm_configuration_15 "double" 64 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny")
+  set(gemm_configuration_16 "double" 64 "true" "true" "true" 64 4 4 8 8 1 1 "local" "tall_skinny")
+  set(gemm_configuration_17 "double" 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny")
+  set(gemm_configuration_18 "double" 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny")
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
+
+  if(DOUBLE_SUPPORT)
+    list(APPEND gemm_configuration_lists
+            gemm_configuration_10
+            gemm_configuration_11
+            gemm_configuration_12)
+  endif()
 
   if(GEMM_TALL_SKINNY_SUPPORT)
     list(APPEND gemm_configuration_lists gemm_configuration_3
@@ -68,6 +86,16 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                          gemm_configuration_7
                                          gemm_configuration_8
                                          gemm_configuration_9)
+
+    if(DOUBLE_SUPPORT)
+      list(APPEND gemm_configuration_lists
+              gemm_configuration_13
+              gemm_configuration_14
+              gemm_configuration_15
+              gemm_configuration_16
+              gemm_configuration_17
+              gemm_configuration_18)
+    endif()
   endif()
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
