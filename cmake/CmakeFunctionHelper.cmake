@@ -113,7 +113,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 "float" 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" 1)
   set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 1 16 16 1 1 "local" "standard" 2)
-  set(gemm_configuration_2 "float" 256 "false" "false" "false" 64 8 8 16 16 1 1 "local" "standard" 2)
+  set(gemm_configuration_2 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" 2)
 
   set(gemm_configuration_3 "float" 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny" 2)
   set(gemm_configuration_4 "float" 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny" 2)
