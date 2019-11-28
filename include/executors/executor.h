@@ -74,21 +74,22 @@ class Executor {
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
             typename element_t, bool is_beta_zero, int GemmMemoryType,
-            int GemmAlgorithm>
+            int GemmAlgorithm, int VectorSize, bool Aligned>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm>
+           GemmAlgorithm, VectorSize, Aligned>
           gemm_tree);
 
   // Tall and skinny Gemm specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int GemmMemoryType>
+            typename element_t, bool is_beta_zero, int GemmMemoryType,
+            int VectorSize, bool Aligned>
   typename policy_t::event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           static_cast<int>(gemm_algorithm_t::tall_skinny)>
+           static_cast<int>(gemm_algorithm_t::tall_skinny), VectorSize, Aligned>
           gemm_wrapper);
 
   // GemmPartial specialization
