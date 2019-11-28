@@ -80,7 +80,7 @@ typename executor_t::policy_t::event_t _gemm(
                                     _beta, _c, _ldc, 1);
     }
   } else
-#endif
+#endif  // GEMM_TALL_SKINNY_SUPPORT
       if (_M * _N <= 65536) {
     return blas::Gemm_Launcher<
         256, false, false, false, ClSize, Tile<1, 1, tileWgSize, tileWgSize>,

@@ -33,13 +33,13 @@ packet size. SFINAE is used to select the appropriate method when called.
 * @tparam aligned If both matrix's memory is aligned then this will control the
 * use of reinterpret_cast instead of vload/vstore.
 * @tparam vector_size The desired vector size to be used. If
-GEMM_VECTORISATION_SUPPORT is not enabled in CMake a vector_size of 1 will be
+GEMM_VECTORIZATION_SUPPORT is not enabled in CMake a vector_size of 1 will be
 used no matter what value is passed here.
 * @tparam The type of the matrix data (typically float or double, if supported).
 */
 template <bool aligned, size_t vector_size, typename value_t>
 struct Packetize {
-#ifdef GEMM_VECTORISATION_SUPPORT
+#ifdef GEMM_VECTORIZATION_SUPPORT
   using PacketType = cl::sycl::vec<value_t, vector_size>;
   static constexpr size_t packet_size = vector_size;
 #else

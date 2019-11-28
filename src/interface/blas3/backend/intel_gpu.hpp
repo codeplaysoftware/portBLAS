@@ -108,7 +108,7 @@ typename executor_t::policy_t::event_t _gemm(
     }
   }
 #endif
-  if ((_M <= 128 && _N <= 128)) {
+  if (_M <= 128 && _N <= 128) {
     return blas::Gemm_Launcher<
         64, true, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),

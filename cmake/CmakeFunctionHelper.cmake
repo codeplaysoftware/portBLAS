@@ -40,7 +40,7 @@ set(boolean_list "true" "false")
 
 # gemm_configuration(data, work_group_size, double_buffer, conflict_a, conflict_b,
 #                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem,
-#                    gemm_type)
+#                    gemm_type, vector size)
 set(gemm_configuration_lists "")
 
 #intel GPU
@@ -196,9 +196,9 @@ function(set_target_compile_def in_target)
   if(${GEMM_TALL_SKINNY_SUPPORT})
     target_compile_definitions(${in_target} PUBLIC GEMM_TALL_SKINNY_SUPPORT=1)
   endif()
-  #setting vectorisation support
-  if(${GEMM_VECTORISATION_SUPPORT})
-    target_compile_definitions(${in_target} PUBLIC GEMM_VECTORISATION_SUPPORT=1)
+  #setting vectorization support
+  if(${GEMM_VECTORIZATION_SUPPORT})
+    target_compile_definitions(${in_target} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
   endif()
 
 endfunction()
