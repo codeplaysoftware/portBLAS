@@ -74,7 +74,7 @@ find_package(PythonInterp 2.7 REQUIRED)
 
 #by default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
-#By default vectorisation in gemm kernels is enabled for better performance
+#By default vectorisation in gemm kernels is disabled until fully implemented.
 option(GEMM_VECTORISATION_SUPPORT "Whether to enable vectorisation in Gemm kernels" OFF)
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)

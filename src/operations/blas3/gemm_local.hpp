@@ -26,7 +26,7 @@
 #define SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
 
 #include "gemm_common.hpp"
-#include "gemm_packetize.hpp"
+#include "gemm_load_store.hpp"
 
 namespace blas {
 #define SHOULD_PRINT
@@ -460,7 +460,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename OutputPointerType>
   SYCL_BLAS_INLINE typename std::enable_if<!internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
-    *out_ptr = alpha_ * *reg;
+    *out_ptr = alpha_ * (*reg);
   }
 
   template <bool internal, index_t p_size = packetize_t::packet_size,

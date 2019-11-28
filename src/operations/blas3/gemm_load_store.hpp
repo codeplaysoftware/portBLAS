@@ -18,12 +18,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_packetize.hpp
+ *  @filename gemm_load_store.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_GEMM_PACKETIZE_HPP
-#define SYCL_BLAS_BLAS3_GEMM_PACKETIZE_HPP
+#ifndef SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
+#define SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
 
 namespace blas {
 
@@ -179,8 +179,7 @@ struct Packetize {
       store<trans, ld>(packet, dest, dest_offset);
     }
   }
-
-};  // namespace blas
+};
 
 }  // namespace blas
-#endif  // SYCL_BLAS_BLAS3_GEMM_PACKETIZE_HPP
+#endif  // SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
