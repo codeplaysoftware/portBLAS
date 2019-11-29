@@ -79,9 +79,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
  public:
   using tile_type = TileType;
   using value_t = element_t;
-  using packetize_t = Packetize<Aligned, VectorSize, value_t>;
-  using vector_t = typename packetize_t::PacketType;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  using packetize_t = Packetize<Aligned, VectorSize, value_t, index_t>;
+  using vector_t = typename packetize_t::PacketType;
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
@@ -603,7 +603,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               in_col((item_id * multiplier / rows), col_ofs));
 
       packetize_t::template load<trans, internal, lds>(
-          in_range, ptr, col_ofs * ld, scratch, col_ofs * lds,
+          in_range, ptr + col_ofs * ld, scratch + col_ofs * lds,
           [&](const index_t &ofs) {
             return in_row((item_id * multiplier) % rows, ofs) &&
                    in_col((item_id * multiplier) / rows, col_ofs);
@@ -631,7 +631,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                 (item_id * multiplier) % cols, multiplier - 1));
 
       packetize_t::template load<trans, internal, lds>(
-          in_range, ptr, row_ofs * ld, scratch, row_ofs,
+          in_range, ptr + row_ofs * ld, scratch + row_ofs,
           [&](const index_t &ofs) SYCL_BLAS_ALWAYS_INLINE {
             return in_col((item_id * multiplier) % cols, ofs) &&
                    in_row((item_id * multiplier) / cols, row_ofs);
