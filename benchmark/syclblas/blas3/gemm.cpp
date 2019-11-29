@@ -60,13 +60,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   state.counters["n"] = n_d;
 
   {
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
-  }
-  {
     double mem_readA = m_d * k_d;
     double mem_readB = k_d * n_d;
     double mem_writeC = m_d * n_d;
@@ -130,6 +123,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     // Report
     blas_benchmark::utils::update_counters(state, times);
   }
+  {
+    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_timesAlpha = m_d * n_d;
+    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    double nflops = nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+    state.counters["n_fl_ops"] = nflops;
+    state.SetItemsProcessed(state.iterations() * nflops);
+  }
 
   blas_benchmark::utils::calc_avg_counters(state);
 };
@@ -154,7 +155,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
                                  BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta,
-                                 success);
+                                 success)
+        ->UseRealTime();
   }
 }
 
