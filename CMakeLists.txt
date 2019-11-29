@@ -126,7 +126,7 @@ endif()
 
 option(BLAS_ENABLE_AUTO_TUNERS "Whether to enable building GEMM auto tuners" OFF)
 if(${BUILD_AUTO_TUNERS})
-  # Note that the auto tuners are very slow to compiler, so we avoid adding
+  # Note that the auto tuners are very slow to compile, so we avoid adding
   # them to the ALL target.
   add_subdirectory(tools/auto_tuner EXCLUDE_FROM_ALL)
 endif()
