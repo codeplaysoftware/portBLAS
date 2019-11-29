@@ -88,13 +88,6 @@ typename executor_t::policy_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard), is_beta_zero,
         1>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
-  } else if (_M * _N <= 262144) {
-    return blas::Gemm_Launcher<
-        256, false, false, false, ClSize, Tile<4, 1, tileWgSize, tileWgSize>,
-        _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
-        static_cast<int>(gemm_algorithm_t::standard), is_beta_zero,
-        2>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
-                                  _beta, _c, _ldc, batch_size);
   } else {
     return blas::Gemm_Launcher<
         256, false, false, false, ClSize, Tile<4, 4, tileWgSize, tileWgSize>,
