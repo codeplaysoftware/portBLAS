@@ -112,49 +112,46 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 "float" 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" 1)
-  set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 1 16 16 1 1 "local" "standard" 2)
-  set(gemm_configuration_2 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" 2)
+  set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" 2)
 
-  set(gemm_configuration_3 "float" 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_4 "float" 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_5 "float" 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_6 "float" 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_7 "float" 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_2 "float" 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_3 "float" 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_4 "float" 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_5 "float" 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_6 "float" 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny" 2)
   
-  set(gemm_configuration_8 "double" 256 "false" "false" "false" 64 1 1 8 8 1 1 "local" "standard" 2)
-  set(gemm_configuration_9 "double" 256 "false" "false" "false" 64 4 1 8 8 1 1 "local" "standard" 2)
-  set(gemm_configuration_10 "double" 256 "false" "false" "false" 64 8 8 8 8 1 1 "local" "standard" 2)
+  set(gemm_configuration_7 "double" 256 "false" "false" "false" 64 1 1 8 8 1 1 "local" "standard" 1)
+  set(gemm_configuration_8 "double" 256 "false" "false" "false" 64 4 4 8 8 1 1 "local" "standard" 2)
 
-  set(gemm_configuration_11 "double" 256 "true" "true" "true" 64 1 1 8 8 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_12 "double" 256 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_13 "double" 256 "true" "true" "true" 64 4 4 8 8 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_14 "double" 256 "true" "true" "true" 64 1 4 8 8 1 1 "local" "tall_skinny" 2)
-  set(gemm_configuration_15 "double" 256 "true" "true" "true" 64 4 1 8 8 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_9 "double" 256 "true" "true" "true" 64 1 1 8 8 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_10 "double" 256 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_11 "double" 256 "true" "true" "true" 64 4 4 8 8 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_12 "double" 256 "true" "true" "true" 64 1 4 8 8 1 1 "local" "tall_skinny" 2)
+  set(gemm_configuration_13 "double" 256 "true" "true" "true" 64 4 1 8 8 1 1 "local" "tall_skinny" 2)
 
-  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
-                                       gemm_configuration_2)
+  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
 
   if(DOUBLE_SUPPORT)
     list(APPEND gemm_configuration_lists
-            gemm_configuration_8
-            gemm_configuration_9
-            gemm_configuration_10)
+            gemm_configuration_7
+            gemm_configuration_8)
   endif()
 
   if(GEMM_TALL_SKINNY_SUPPORT)
-    list(APPEND gemm_configuration_lists gemm_configuration_3
+    list(APPEND gemm_configuration_lists gemm_configuration_2
+                                         gemm_configuration_3
                                          gemm_configuration_4
                                          gemm_configuration_5
                                          gemm_configuration_6
-                                         gemm_configuration_7)
+                                         )
 
     if(DOUBLE_SUPPORT)
       list(APPEND gemm_configuration_lists
+              gemm_configuration_9
+              gemm_configuration_10
               gemm_configuration_11
               gemm_configuration_12
-              gemm_configuration_13
-              gemm_configuration_14
-              gemm_configuration_15)
+              gemm_configuration_13)
     endif()
   endif()
 else() # default cpu backend
