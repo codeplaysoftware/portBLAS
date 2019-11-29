@@ -49,32 +49,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  // The counters are double. We convert m, n and k to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
-
-  state.counters["m"] = m_d;
-  state.counters["k"] = k_d;
-  state.counters["n"] = n_d;
-
-  {
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
-  }
-  {
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != 0) ? m_d * n_d : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
-  }
-
   ExecutorType& ex = *executorPtr;
 
   // Matrices
@@ -131,6 +105,34 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  {
+    // The counters are double. We convert m, n and k to double to avoid
+    // integer overflows for n_fl_ops and bytes_processed
+    double m_d = static_cast<double>(m);
+    double n_d = static_cast<double>(n);
+    double k_d = static_cast<double>(k);
+
+    state.counters["m"] = m_d;
+    state.counters["k"] = k_d;
+    state.counters["n"] = n_d;
+
+    double mem_readA = m_d * k_d;
+    double mem_readB = k_d * n_d;
+    double mem_writeC = m_d * n_d;
+    double mem_readC = (beta != 0) ? m_d * n_d : 0;
+    double total_mem =
+        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
+    state.counters["bytes_processed"] = total_mem;
+    state.SetBytesProcessed(state.iterations() * total_mem);
+
+    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_timesAlpha = m_d * n_d;
+    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    double nflops = nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+    state.counters["n_fl_ops"] = nflops;
+    state.SetItemsProcessed(state.iterations() * nflops);
+  }
+
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
@@ -154,7 +156,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
                                  BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta,
-                                 success);
+                                 success)
+        ->UseRealTime();
   }
 }
 
