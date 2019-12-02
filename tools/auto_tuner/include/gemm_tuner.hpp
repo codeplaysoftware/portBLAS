@@ -136,8 +136,6 @@ struct GemmArgs {
   int ldc;
   int batch_size;
   const HostContainer<element_t> &expected_c;
-  SYCLExecutor &ex;
-  TestResult &results;
 };
 
 template <typename T, typename RndEngine>
@@ -196,65 +194,66 @@ static void run_tune(int rep, double flop_cnt, TestResultEntry &result,
 
 template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
           typename Config, typename T>
-static void tune(int r, GemmArgs<T> a) {
+static TestResultEntry tune(int r, GemmArgs<T> a) {
   using Gemm = Gemm<MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca,
                     Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
                     static_cast<int>(Config::MemoryMode),
-                    static_cast<int>(Config::ShapeMode), 1, false>;
+                    static_cast<int>(Config::ShapeMode), 1>;
 
-  a.results.emplace_back(Gemm::get_type_string());
-  TestResultEntry &result = a.results.back();
-  // std::fill(begin(a.output_c), end(a.output_c), 0);
+  TestResultEntry result(Gemm::get_type_string());
+  auto ex = get_sycl_executor();
   {
     {
-      auto event_list = a.ex.get_policy_handler().copy_to_device(
+      auto event_list = ex.get_policy_handler().copy_to_device(
           a.init_c.data(), a.c, a.init_c.size());
       event_list.back().wait_and_throw();
     }
 
-    auto accA = make_matrix_view<col_major>(a.ex, a.a, a.m, a.k, a.lda);
-    auto accB = make_matrix_view<col_major>(a.ex, a.b, a.k, a.n, a.ldb);
-    auto accC = make_matrix_view<col_major>(a.ex, a.c, a.m, a.n, a.ldc);
+    auto accA = make_matrix_view<col_major>(ex, a.a, a.m, a.k, a.lda);
+    auto accB = make_matrix_view<col_major>(ex, a.b, a.k, a.n, a.ldb);
+    auto accC = make_matrix_view<col_major>(ex, a.c, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
     run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
-      auto event_list = a.ex.execute(gemm);
+      auto event_list = ex.execute(gemm);
       for (auto &event : event_list) {
         event.wait_and_throw();
       }
     });
     {
-      auto event_list = a.ex.get_policy_handler().copy_to_host(
+      auto event_list = ex.get_policy_handler().copy_to_host(
           a.c, a.output_c.data(), a.output_c.size());
       event_list.back().wait_and_throw();
     }
   }
   result.error = relative_diff(a.expected_c, a.output_c);
+  return result;
 }
 
 template <typename T>
-static void tune_syclblas(int r, char transA, char transB, GemmArgs<T> a) {
-  a.results.emplace_back("SYCL-BLAS gemm");
-  TestResultEntry &result = a.results.back();
-
+static TestResultEntry tune_syclblas(int r, char transA, char transB,
+                                     GemmArgs<T> a) {
+  TestResultEntry result("SYCL-BLAS gemm");
+  auto ex = get_sycl_executor();
   {
-    auto event_list = a.ex.get_policy_handler().copy_to_device(
+    auto event_list = ex.get_policy_handler().copy_to_device(
         a.init_c.data(), a.c, a.init_c.size());
     event_list.back().wait_and_throw();
   }
   run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
     auto event_list =
-        _gemm_batched(a.ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
+        _gemm_batched(ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
                       a.b, a.ldb, a.beta, a.c, a.ldc, a.batch_size);
     for (auto &event : event_list) {
       event.wait_and_throw();
     }
   });
   {
-    auto event_list = a.ex.get_policy_handler().copy_to_host(
+    auto event_list = ex.get_policy_handler().copy_to_host(
         a.c, a.output_c.data(), a.output_c.size());
     event_list.back().wait_and_throw();
   }
   result.error = relative_diff(a.expected_c, a.output_c);
+  return result;
 }
 
 template <bool TransA, bool TransB, typename DataType>
@@ -283,10 +282,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   const DataType alpha = 1;
   const DataType beta = 1;
 
-  TestResult results{};
-
-  results.emplace_back("System GEMM implementation");
-  TestResultEntry &ref_result = results.back();
+  TestResultEntry ref_result("System GEMM implementation");
   run_tune(rep, 2.0 * m * n * k * batch_size, ref_result, [&] {
     for (int bs = 0; bs < batch_size; bs++) {
       // system gemm implementation
@@ -298,12 +294,12 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   });
   ref_result.error = 0.0;
 
-  auto ex = get_sycl_executor();
+  TestResult results{};
+  results.push_back(ref_result);
 
   GemmArgs<DataType> args{m,        n,        k,   alpha,      device_a,
                           lda,      device_b, ldb, beta,       host_c,
-                          device_c, result_c, ldc, batch_size, expected_c,
-                          ex,       results};
+                          device_c, result_c, ldc, batch_size, expected_c};
 
   using Local = GemmConfig<TransA, TransB, gemm_memory_t::local,
                            gemm_algorithm_t::standard>;
@@ -312,9 +308,20 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   using Naive = GemmConfig<TransA, TransB, gemm_memory_t::no_local,
                            gemm_algorithm_t::naive>;
 
-  tune_syclblas(rep, *ta_str, *tb_str, args);
+  {
+    auto result = tune_syclblas(rep, *ta_str, *tb_str, args);
+    results.push_back(result);
+  }
+
+#define BENCH_PARAMS(...)                       \
+  do {                                          \
+    auto result = tune<__VA_ARGS__>(rep, args); \
+    results.push_back(result);                  \
+  } while (0);
 
 #include "generate_combinations.inc.hpp"
+
+#undef BENCH_PARAMS
 
   std::sort(results.begin(), results.end());
   results.print_all();

@@ -200,7 +200,7 @@ def main():
     ]
     gemm_configs = get_gemm_configs_from_json(args.config)
     output_strings += [
-        "tune<{}>(rep, args);".format(gemm) for gemm in gemm_configs
+        "BENCH_PARAMS({})".format(gemm) for gemm in gemm_configs
     ]
     output = "\n".join(output_strings)
 
