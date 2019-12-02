@@ -29,10 +29,6 @@
 #include "gemm_load_store.hpp"
 
 namespace blas {
-#define SHOULD_PRINT
-#define ID_TO_PRINT 0
-#define WG_TO_PRINT 0
-// Vectorization stuff
 
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
