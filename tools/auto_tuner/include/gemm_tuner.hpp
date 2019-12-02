@@ -145,7 +145,7 @@ void tune(int r, GemmArgs<T, Container, Executor> a) {
       Gemm<typename Config::data_t, typename Config::data_t, DoubleBuffer, Nbca,
            Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
            static_cast<int>(Config::MemoryMode),
-           static_cast<int>(Config::ShapeMode)>;
+           static_cast<int>(Config::ShapeMode), 1, false>;
 
   using etype = typename Gemm::value_t;
   a.results.emplace_back(Gemm::get_type_string());

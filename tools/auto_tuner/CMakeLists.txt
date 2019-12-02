@@ -41,6 +41,10 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
   set(TARGET tuner_exec ${blas_tuner})
   add_executable(${tuner_exec} ${blas_tuner})
   target_link_libraries(${tuner_exec} PRIVATE m blas::blas)
+  target_include_directories(${tuner_exec} PRIVATE
+    ${SYCLBLAS_INCLUDE}
+    ${COMPUTECPP_SDK_INCLUDE}
+  )
   add_dependencies(${tuner_exec} generate_combinations)
   add_sycl_to_target(
     TARGET ${tuner_exec}

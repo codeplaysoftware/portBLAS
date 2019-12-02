@@ -178,13 +178,13 @@ SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm, VectorSize,
      Aligned>::eval(cl::sycl::nd_item<1> id) noexcept {
-  const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster(m_, n_);
+  const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster();
   // This will disable all workgroups that dont have any batch to work on
   if (wg_batch_id >= batch_size_) {
     return;
   }
   const index_t batch_stride =
-      id.get_group_range(0) / get_workgroup_cluster(m_, n_);
+      id.get_group_range(0) / get_workgroup_cluster();
 
   const index_t a_size = trans_a ? m_ * lda_ : k_ * lda_;
   const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
@@ -194,7 +194,7 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
   auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
-  index_t item_id = (id.get_group(0) % get_workgroup_cluster(m_, n_)) *
+  index_t item_id = (id.get_group(0) % get_workgroup_cluster()) *
                         (id.get_local_range(0)) +
                     id.get_local_id(0);
   if (item_id >= m_ * n_) {
