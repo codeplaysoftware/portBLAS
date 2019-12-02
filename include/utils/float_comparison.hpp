@@ -108,8 +108,8 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
  * The second vector is considered the reference.
  */
 template <typename scalar_t>
-inline bool compare_vectors(std::vector<scalar_t>& vec,
-                            std::vector<scalar_t>& ref,
+inline bool compare_vectors(std::vector<scalar_t> const& vec,
+                            std::vector<scalar_t> const& ref,
                             std::ostream& err_stream = std::cerr,
                             std::string end_line = "\n") {
   if (vec.size() != ref.size()) {
