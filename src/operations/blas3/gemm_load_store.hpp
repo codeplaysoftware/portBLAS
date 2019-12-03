@@ -39,7 +39,9 @@ used no matter what value is passed here.
 supported).
 * @tparam index_t The type of the matrix indices.
 */
-template <bool aligned, size_t vector_size, typename value_t, typename index_t>
+template <bool aligned, size_t vector_size, typename value_t, typename index_t,
+          cl::sycl::access::address_space src_space,
+          cl::sycl::access::address_space dst_space>
 struct Packetize {
 #ifdef GEMM_VECTORIZATION_SUPPORT
   using PacketType = cl::sycl::vec<value_t, vector_size>;
@@ -63,6 +65,7 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<(!internal)>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
+    // printf("LOAD in_range: %d src: %f\n", in_range, *src);
     *(dest) = in_range ? *(src) : value_t{0};
   }
   /*! @brief Performs a vectorised load using sycl::vec::load when the current
@@ -81,8 +84,7 @@ struct Packetize {
        EdgePredicate edge_in_range) {
     PacketType packet{0};
     if (in_range) {
-      using address_t = cl::sycl::access::address_space;
-      packet.template load<address_t::global_space>(0, src);
+      packet.template load<src_space>(0, src);
     } else {
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++) {
@@ -114,7 +116,7 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
-    packet.template store<address_t::local_space>(0, dest);
+    packet.template store<dst_space>(0, dest);
   }
 
   // Aligned versions of functions
