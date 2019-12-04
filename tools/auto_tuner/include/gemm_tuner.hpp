@@ -213,7 +213,8 @@ static TestResultEntry tune(int r, GemmArgs<T> a) {
     auto accB = make_matrix_view<col_major>(ex, a.b, a.k, a.n, a.ldb);
     auto accC = make_matrix_view<col_major>(ex, a.c, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
-    run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
+    const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
+    run_tune(r, flop_count, result, [&] {
       auto event_list = ex.execute(gemm);
       for (auto &event : event_list) {
         event.wait_and_throw();
@@ -238,15 +239,17 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
     auto event_list = ex.get_policy_handler().copy_to_device(
         a.init_c.data(), a.c, a.init_c.size());
     event_list.back().wait_and_throw();
+
+    const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
+    run_tune(r, flop_count, result, [&] {
+      auto event_list =
+          _gemm_batched(ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
+                        a.b, a.ldb, a.beta, a.c, a.ldc, a.batch_size);
+      for (auto &event : event_list) {
+        event.wait_and_throw();
+      }
+    });
   }
-  run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
-    auto event_list =
-        _gemm_batched(ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
-                      a.b, a.ldb, a.beta, a.c, a.ldc, a.batch_size);
-    for (auto &event : event_list) {
-      event.wait_and_throw();
-    }
-  });
   {
     auto event_list = ex.get_policy_handler().copy_to_host(
         a.c, a.output_c.data(), a.output_c.size());
@@ -281,9 +284,10 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
 
   const DataType alpha = 1;
   const DataType beta = 1;
+  const double flop_count = 2.0 * m * n * k * batch_size;
 
   TestResultEntry ref_result("System GEMM implementation");
-  run_tune(rep, 2.0 * m * n * k * batch_size, ref_result, [&] {
+  run_tune(rep, flop_count, ref_result, [&] {
     for (int bs = 0; bs < batch_size; bs++) {
       // system gemm implementation
       reference_gemm::gemm(ta_str, tb_str, m, n, k, alpha,
@@ -325,4 +329,5 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
 
   std::sort(results.begin(), results.end());
   results.print_all();
+  get_sycl_executor().get_policy_handler().wait();
 }
