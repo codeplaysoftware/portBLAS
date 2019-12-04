@@ -50,7 +50,6 @@ set(SYCL_UNITTEST_SRCS
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/gemm_alpha_zero.cpp
   # Blas buffer tests
   ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
