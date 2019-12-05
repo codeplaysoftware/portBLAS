@@ -27,7 +27,7 @@ foreach(acl_benchmark ${sources})
     target_compile_definitions(bench_acl_${acl_bench_exec} PRIVATE ACL_BACKEND_OPENCL)
   endif()
 
-  message("-- Created benchmark: ${acl_bench_exec}")
+  message(STATUS "Created benchmark: ${acl_bench_exec}")
   install(TARGETS bench_acl_${acl_bench_exec}
     RUNTIME
       DESTINATION ${CMAKE_INSTALL_BINDIR}
