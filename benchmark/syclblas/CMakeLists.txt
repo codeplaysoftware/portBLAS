@@ -34,7 +34,7 @@ foreach(syclblas_bench ${sources})
     target_link_libraries(bench_${bench_exec} PRIVATE blas::blas)
   endif()
 
-  message("-- Created benchmark: ${bench_exec}")
+  message(STATUS "Created benchmark: ${bench_exec}")
   install(TARGETS bench_${bench_exec}
     RUNTIME
       DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -61,7 +61,7 @@ if(BUILD_EXPRESSION_BENCHMARKS)
       target_link_libraries(bench_${bench_exec} PRIVATE blas::blas)
     endif()
 
-    message("-- Created expression benchmark: ${bench_exec}")
+    message(STATUS "Created expression benchmark: ${bench_exec}")
     install(TARGETS bench_${bench_exec}
       RUNTIME
         DESTINATION ${CMAKE_INSTALL_BINDIR}

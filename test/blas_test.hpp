@@ -57,7 +57,11 @@ using namespace blas;
 using test_executor_t =
     class blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
 
-inline cl::sycl::queue make_queue() {
+/**
+ * Construct a SYCL queue using the device specified in the command line, or
+ * using the default device if not specified.
+ */
+inline cl::sycl::queue make_queue_impl() {
   std::unique_ptr<cl::sycl::device_selector> selector;
   if (args.device.empty()) {
     selector = std::unique_ptr<cl::sycl::device_selector>(
@@ -84,6 +88,15 @@ inline cl::sycl::queue make_queue() {
   utils::print_queue_information(q);
   return q;
 };
+
+/**
+ * Get a SYCL queue to use in tests.
+ */
+inline cl::sycl::queue make_queue() {
+  // Provide cached SYCL queue, to avoid recompiling kernels for each test case.
+  static cl::sycl::queue queue = make_queue_impl();
+  return queue;
+}
 
 /**
  * @fn random_data
