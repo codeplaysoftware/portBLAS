@@ -30,7 +30,7 @@ using gemm_arguments_t =
     std::tuple<int, int, int, int, int, char, char, T, T, int, int, int>;
 
 template <typename scalar_t>
-void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   int offset;
   int batch;
   int m;

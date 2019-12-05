@@ -26,19 +26,65 @@
 #include "blas3_gemm_common.hpp"
 #include "blas_test.hpp"
 
-const auto BatchOneSkinny =
-    ::testing::Combine(::testing::Values(0, 10),     // offset
+const auto BetaNonZeroLDMatch =
+    ::testing::Combine(::testing::Values(0),         // offset
                        ::testing::Values(1),         // batch
                        ::testing::Values(7, 65),     // m
                        ::testing::Values(9, 126),    // n
-                       ::testing::Values(5678),      // k
+                       ::testing::Values(2049),      // k
                        ::testing::Values('n', 't'),  // transa
                        ::testing::Values('n', 't'),  // transb
                        ::testing::Values(1.5),       // alpha
-                       ::testing::Values(0.0, 0.5),  // beta
-                       ::testing::Values(3),         // lda_mul
-                       ::testing::Values(2),         // ldb_mul
-                       ::testing::Values(1, 3)       // ldc_mul
+                       ::testing::Values(0.5),       // beta
+                       ::testing::Values(1),         // lda_mul
+                       ::testing::Values(1),         // ldb_mul
+                       ::testing::Values(1)          // ldc_mul
                        );
+GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMatch);
 
-GENERATE_GEMM_TEST(TallSkinnyGemm, BatchOneSkinny);
+const auto BetaNonZeroLDMultiplied =
+    ::testing::Combine(::testing::Values(0),         // offset
+                       ::testing::Values(1),         // batch
+                       ::testing::Values(7, 65),     // m
+                       ::testing::Values(9, 126),    // n
+                       ::testing::Values(2049),      // k
+                       ::testing::Values('n', 't'),  // transa
+                       ::testing::Values('n', 't'),  // transb
+                       ::testing::Values(1.5),       // alpha
+                       ::testing::Values(0.5),       // beta
+                       ::testing::Values(2),         // lda_mul
+                       ::testing::Values(3),         // ldb_mul
+                       ::testing::Values(4)          // ldc_mul
+                       );
+GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMultiplied);
+
+const auto BetaZero = ::testing::Combine(::testing::Values(0),         // offset
+                                         ::testing::Values(1),         // batch
+                                         ::testing::Values(7),         // m
+                                         ::testing::Values(9),         // n
+                                         ::testing::Values(1026),      // k
+                                         ::testing::Values('n', 't'),  // transa
+                                         ::testing::Values('n', 't'),  // transb
+                                         ::testing::Values(1.5),       // alpha
+                                         ::testing::Values(0.0),       // beta
+                                         ::testing::Values(1),  // lda_mul
+                                         ::testing::Values(1),  // ldb_mul
+                                         ::testing::Values(1)   // ldc_mul
+                                         );
+GENERATE_GEMM_TEST(TallSkinnyGemm, BetaZero);
+
+const auto OffsetNonZero =
+    ::testing::Combine(::testing::Values(10),        // offset
+                       ::testing::Values(1),         // batch
+                       ::testing::Values(7),         // m
+                       ::testing::Values(9),         // n
+                       ::testing::Values(1026),      // k
+                       ::testing::Values('n', 't'),  // transa
+                       ::testing::Values('n', 't'),  // transb
+                       ::testing::Values(1.5),       // alpha
+                       ::testing::Values(0.5),       // beta
+                       ::testing::Values(1),         // lda_mul
+                       ::testing::Values(1),         // ldb_mul
+                       ::testing::Values(1)          // ldc_mul
+                       );
+GENERATE_GEMM_TEST(TallSkinnyGemm, OffsetNonZero);
