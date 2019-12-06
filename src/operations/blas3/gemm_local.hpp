@@ -76,11 +76,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using tile_type = TileType;
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using address_t = cl::sycl::access::address_space;
-  using packetize_t =
-      Packetize<Aligned, VectorSize, value_t, index_t, address_t::global_space,
-                address_t::local_space>;
+  using packetize_t = Packetize<Aligned, VectorSize, value_t, index_t>;
   using vector_t = typename packetize_t::PacketType;
+  using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
   static constexpr index_t item_rows = tile_type::item_rows;
