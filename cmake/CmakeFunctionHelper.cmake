@@ -156,7 +156,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   endif()
 else() # default cpu backend
   set(gemm_configuration_0 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive" 1)
-  set(gemm_configuration_1 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "local" "standard" 1)
+  set(gemm_configuration_1 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" 1)
   set(gemm_configuration_2 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive" 1)
   set(gemm_configuration_3 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" 1)
 
