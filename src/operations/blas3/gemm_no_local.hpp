@@ -585,29 +585,20 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (out_of_range) {
       return;
     }
-
-    const index_t offset = check_block ? 1 : packetize_t::packet_size;
 #pragma unroll
-    for (int i = 0; i < item_cols / b_work_per_load; ++i) {
+    for (int i = 0; i < item_cols; ++i) {
 #pragma unroll
-      for (int k = 0; k < b_work_per_load; ++k) {
-#pragma unroll
-        for (int j = 0; j < item_rows / a_work_per_load; j++) {
-          if (do_check<check_block>(chk_boundary(
-                  dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-            store_packet<!check_block, a_work_per_load>(
-                reg_res + (i * b_work_per_load + k) * item_rows +
-                    j * a_work_per_load,
-                C + j * wg_rows * a_work_per_load);
-          }
+      for (int j = 0; j < item_rows / a_work_per_load; j++) {
+        if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
+                                               dim_n_c_start + i * wg_cols))) {
+          store_packet<!check_block, a_work_per_load>(
+              reg_res + i * item_rows + j * a_work_per_load,
+              C + j * wg_rows * a_work_per_load);
         }
-        C += ldc;
-        // running_offset += 1;
-        // if (item_id == 0) printf("Running_ofs: %d\n", running_offset);
       }
-      C = C + ((wg_cols - 1) * b_work_per_load * ldc);
-      // running_offset += 1;
-      //   if (item_id == 0) printf("Running_ofs: %d\n", running_offset);
+      C += ((i + 1) % b_work_per_load == 0
+                ? ((wg_cols * b_work_per_load - (b_work_per_load - 1)) * ldc)
+                : ldc);
     }
   }
 };  // namespace blas
