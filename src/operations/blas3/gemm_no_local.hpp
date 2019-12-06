@@ -28,7 +28,6 @@
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
 
-#define ID_TO_PRINT 0
 namespace blas {
 
 /*!
@@ -65,7 +64,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   using packetize_t =
-      Packetize<Aligned, VectorSize, value_t, index_t, address_t::global_space,
+      Packetize<false, VectorSize, value_t, index_t, address_t::global_space,
                 address_t::private_space>;
   using vector_t = typename packetize_t::PacketType;
   static constexpr int local_memory_size = 0;
@@ -304,7 +303,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   /** @brief If beta is not zero then this function will load in values from C,
   multiply them by the beta value and store them in the results register. If
   beta is zero then this function does nothing. */
-  template <bool need_check_boundary, typename InputPointerType,
+  template <bool need_check_boundary, index_t a_work_per_load,
+            index_t b_work_per_load, typename InputPointerType,
             typename CheckBoundaryType, bool beta_zero = is_beta_zero>
   SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType C, const index_t &ldc,
@@ -319,15 +319,20 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t j = 0; j < item_rows; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-          reg_res[i * item_rows + j] = beta_ * C[j * wg_rows];
+          reg_res[i * item_rows + j] =
+              beta_ * C[(j % a_work_per_load) +
+                        (j / a_work_per_load) * wg_rows * a_work_per_load];
         }
       }
-      C = C + (wg_cols * ldc);
+      C += ((i + 1) % b_work_per_load == 0
+                ? ((wg_cols * b_work_per_load - (b_work_per_load - 1)) * ldc)
+                : ldc);
     }
   }
 
-  template <bool need_check_boundary, typename InputPointerType,
-            typename CheckBoundaryType, bool beta_zero = is_beta_zero>
+  template <bool need_check_boundary, index_t, index_t,
+            typename InputPointerType, typename CheckBoundaryType,
+            bool beta_zero = is_beta_zero>
   SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
       const index_t &, CheckBoundaryType, bool) {
@@ -364,9 +369,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
       /* 2D register array used to store the result C*/
       value_t reg_res[item_rows * item_cols];
-      scaling_c<need_check_boundary>(reg_res, C, ldc, dim_m_a_start,
-                                     dim_n_b_start, boundary_check_c,
-                                     out_of_range);
+      scaling_c<need_check_boundary, a_work_per_load, b_work_per_load>(
+          reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
+          out_of_range);
       while (k > 0) {
         /*
          * Loading a corresponding block of matrix A into reg_a
@@ -377,40 +382,44 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #ifdef ARM_GPU
         id.barrier(cl::sycl::access::fence_space::local_space);
 #endif
-        // if (item_id == ID_TO_PRINT) {
-        //   printf("[%d] REG A\n================================\n", item_id);
-        //   for (index_t i = 0; i < item_rows; i++) {
-        //     printf("[%d]%f\n", i, reg_a[i]);
-        //   }
-        //   printf("\n");
-        // }
-
+#ifdef PRINT_DEBUG
+        if (item_id == ID_TO_PRINT) {
+          printf("[%d] REG A\n================================\n", item_id);
+          for (index_t i = 0; i < item_rows; i++) {
+            printf("[%d]%f\n", i, reg_a[i]);
+          }
+          printf("\n");
+        }
+#endif
         /*
          * Loading a corresponding block of matrix B into reg_b
          */
         load<item_cols, wg_cols * b_work_per_load, need_check_boundary,
              b_work_per_load>(B, reg_b, B_ptr_index, dim_n_b_start,
                               boundary_check_n, out_of_range, item_id);
-        // if (item_id == ID_TO_PRINT) {
-        //   printf("[%d] REG B\n================================\n", item_id);
-        //   for (index_t i = 0; i < item_cols; i++) {
-        //     printf("[%d]%f\n", i, reg_b[i]);
-        //   }
-        //   printf("\n");
-        // }
+#ifdef PRINT_DEBUG
+        if (item_id == ID_TO_PRINT) {
+          printf("[%d] REG B\n================================\n", item_id);
+          for (index_t i = 0; i < item_cols; i++) {
+            printf("[%d]%f\n", i, reg_b[i]);
+          }
+          printf("\n");
+        }
+#endif
         /*
          * Computing a the partial GEMM for the loaded block of reg_a andd
          * reg_b and adding the result into reg_res
          */
-        compute_block_gemm_no_shared(reg_a, reg_b, reg_res);
-
-        // if (item_id == ID_TO_PRINT) {
-        //   printf("[%d] REG RES\n================================\n",
-        //   item_id); for (index_t i = 0; i < item_rows * item_cols; i++) {
-        //     printf("[%d]%f\n", i, reg_res[i]);
-        //   }
-        //   printf("\n");
-        // }
+        compute_block_gemm_no_shared(reg_a, reg_b, reg_res, item_id);
+#ifdef PRINT_DEBUG
+        if (item_id == ID_TO_PRINT) {
+          printf("[%d] REG RES\n================================\n", item_id);
+          for (index_t i = 0; i < item_rows * item_cols; i++) {
+            printf("[%d]%f\n", i, reg_res[i]);
+          }
+          printf("\n");
+        }
+#endif
         /*
          * Moving forward to the next block
          */
@@ -480,8 +489,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (out_of_range) {
       return;
     }
-    // constexpr index_t work_per_load =
-    //     !check_block && vector_load ? packetize_t::packet_size : 1;
 #pragma unroll
     for (int i = 0; i < item_size / work_per_load; i++) {
       bool in_range =
@@ -493,10 +500,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       // reg[i] =
       //     do_check<check_block>(chk_boundary(index)) ? ptr[0] :
       //     element_t(0);
-      packetize_t::template load<false, !check_block, 1>(
-          in_range, ptr, reg, [&](index_t ofs) SYCL_BLAS_ALWAYS_INLINE {
-            return chk_boundary(index + ofs);
-          });
+      // if (ptr - orig_ptr + work_per_load - 1 >= 64 * 64)
+      //   printf("thread %d oob load\n", item_id);
+      // packetize_t::template load<false, !check_block, 1>(
+      //     in_range, ptr, reg, [&](index_t ofs) SYCL_BLAS_ALWAYS_INLINE {
+      //       return chk_boundary(index + ofs);
+      //     });
+      cl::sycl::vec<element_t, work_per_load> in_vec{0};
+      if (in_range) in_vec.template load<address_t::global_space>(0, ptr);
+
+      in_vec.template store<address_t::private_space>(0, reg);
 
       ptr += ld;
       index += next_element;
@@ -511,14 +524,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg_b  temporary register used to prefetch elements of B
    * @param reg_res  2D register array used to store the result C
    */
-  SYCL_BLAS_INLINE void compute_block_gemm_no_shared(
-      element_t *reg_a, element_t *reg_b, element_t *reg_res) noexcept {
+  SYCL_BLAS_INLINE void compute_block_gemm_no_shared(element_t *reg_a,
+                                                     element_t *reg_b,
+                                                     element_t *reg_res,
+                                                     index_t item_id) noexcept {
 #pragma unroll
     for (int i = 0; i < item_cols; i++) {
 #pragma unroll
       for (int j = 0; j < item_rows; j++) {
+        // auto old_val = reg_res[i * item_rows + j];
         reg_res[i * item_rows + j] =
+            // reg_a[j] * reg_b[i] + reg_res[i * item_rows + j];
             cl::sycl::mad(reg_a[j], reg_b[i], reg_res[i * item_rows + j]);
+        // if (true || item_id == 0)
+        //   printf("reg_res: %f old_val: %f rega: %f regb: %f\n",
+        //          reg_res[i * item_rows + j], old_val, reg_a[j], reg_b[i]);
       }
     }
   }
@@ -568,30 +588,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
     const index_t offset = check_block ? 1 : packetize_t::packet_size;
 #pragma unroll
-    for (int i = 0; i < item_cols; i += b_work_per_load) {
+    for (int i = 0; i < item_cols / b_work_per_load; ++i) {
 #pragma unroll
       for (int k = 0; k < b_work_per_load; ++k) {
 #pragma unroll
         for (int j = 0; j < item_rows / a_work_per_load; j++) {
           if (do_check<check_block>(chk_boundary(
                   dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-            // when C is uninitialized the element of the C can be NaN, and
-            // Nan*0 will be NaN
-
-            // C[j * wg_rows * a_work_per_load] = element_t(item_id);
-            // alpha_ * reg_res[i * item_rows + j * a_work_per_load];
-            // vector_t out_vec{static_cast<element_t>(item_id + 1)};
             store_packet<!check_block, a_work_per_load>(
-                reg_res + (i + k) * item_rows + j * a_work_per_load,
+                reg_res + (i * b_work_per_load + k) * item_rows +
+                    j * a_work_per_load,
                 C + j * wg_rows * a_work_per_load);
-            // vector_t out_vec{0};
-            // out_vec.template load<address_t::private_space>(
-            //     0, reg_res + i * item_rows + j * offset);
-            // out_vec *= alpha_;
-
-            // // if (item_id > 15)
-            // out_vec.template store<address_t::global_space>(
-            //     0, C + j * wg_rows * offset);
           }
         }
         C += ldc;
