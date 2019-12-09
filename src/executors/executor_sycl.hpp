@@ -422,14 +422,14 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     /* 2nd step */
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler_.get_queue(), temp_, out_, 1,
+            policy_handler_.get_queue(), temp_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
   }
   /* 1-step reduction */
   else {
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler_.get_queue(), in_, out_, 1,
+            policy_handler_.get_queue(), in_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
   }
 
