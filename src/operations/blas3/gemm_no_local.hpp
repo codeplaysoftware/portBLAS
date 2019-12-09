@@ -452,8 +452,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (out_of_range) {
       return;
     }
+    // Work done in this loop is reduced proportionally to the work done per
+    // load (vector packet size).
 #pragma unroll
     for (int i = 0; i < item_size / work_per_load; i++) {
+      // Check that the last element of the packet loaded is in range
       bool in_range =
           do_check<check_block>(chk_boundary(index + (work_per_load - 1)));
 
@@ -463,6 +466,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       }
       in_vec.template store<address_t::private_space>(0, reg);
 
+      // Move pointers and update index for next load
       ptr += ld;
       index += next_element;
       reg += work_per_load;
@@ -533,7 +537,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       return;
     }
 #pragma unroll
-    for (int i = 0; i < item_cols; ++i) {
+    for (int i = 0; i < item_cols; i++) {
 #pragma unroll
       for (int j = 0; j < item_rows / a_packet_size; j++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
@@ -553,7 +557,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 : ldc);
     }
   }
-};  // namespace blas
+};  // end class Gemm
 
 }  // namespace blas
 
