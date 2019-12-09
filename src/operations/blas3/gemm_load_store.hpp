@@ -28,7 +28,7 @@
 namespace blas {
 
 /*! @brief Contains static methods for loading and storing vector packets
-from/to non-vectorised memory as well as some constants for the vector type and
+from/to non-vectorized memory as well as some constants for the vector type and
 packet size. SFINAE is used to select the appropriate method when called.
 * @tparam aligned If both matrix's memory is aligned then this will control the
 * use of reinterpret_cast instead of vload/vstore.
@@ -50,7 +50,7 @@ struct Packetize {
   static constexpr size_t packet_size = 1;
 #endif
 
-  /*! @brief Performs a coalesced non-vectorised load when the current block is
+  /*! @brief Performs a coalesced non-vectorized load when the current block is
    * not internal.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam internal True if the current block is internal and no bounds
@@ -65,7 +65,7 @@ struct Packetize {
       EdgePredicate) {
     *(dest) = in_range ? *(src) : value_t{0};
   }
-  /*! @brief Performs a vectorised load using sycl::vec::load when the current
+  /*! @brief Performs a vectorized load using sycl::vec::load when the current
    * block is internal and the memory is not aligned. In the case where k < the
    * number of elements being loaded then edge loads will be element wise with
    * additional bounds checking.
@@ -119,7 +119,7 @@ struct Packetize {
 
   // Aligned versions of functions
 
-  /*! @brief Performs a vectorised load using reinterpret_cast when the current
+  /*! @brief Performs a vectorized load using reinterpret_cast when the current
    * block is internal, the memory is aligned and the source is not transposed.
    * In the case where k < the number of elements being loaded then edge loads
    * will be element wise with additional bounds checking.
@@ -144,7 +144,7 @@ struct Packetize {
       }
     }
   }
-  /*! @brief Performs a vectorised load using sycl::vec load when the current
+  /*! @brief Performs a vectorized load using sycl::vec load when the current
    * block is internal, the memory is aligned and the source is transposed.
    * In the case where k < the number of elements being loaded then edge loads
    * will be element wise with additional bounds checking.

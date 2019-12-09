@@ -208,9 +208,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const bool is_internal_block =
         (m - wg_row >= block_rows) && (n - wg_col >= block_cols);
 
-    /// Packet size for A. It can only be vectorised if it is not transposed.
+    /// Packet size for A. It can only be vectorized if it is not transposed.
     constexpr index_t a_packet_size = (trans_a ? 1 : packetize_t::packet_size);
-    /// Packet size for B. It can only be vectorised if it is transposed.
+    /// Packet size for B. It can only be vectorized if it is transposed.
     constexpr index_t b_packet_size = (trans_b ? packetize_t::packet_size : 1);
 
     /* work item id per row */
