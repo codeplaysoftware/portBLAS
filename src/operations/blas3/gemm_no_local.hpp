@@ -63,7 +63,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
-  using packetize_t = Packetize<Aligned, VectorSize, value_t, index_t>;
+  using packetize_t = Packetize<VectorSize, value_t, index_t>;
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr index_t item_rows = tile_type::item_rows;
