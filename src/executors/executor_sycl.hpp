@@ -216,16 +216,16 @@ template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int VectorSize, bool Aligned>
+          int GemmAlgorithm, int VectorSize>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-         VectorSize, Aligned>
+         VectorSize>
         gemm_tree) {
   using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                       tile_type, TransA, TransB, element_t, is_beta_zero,
-                      GemmMemoryType, GemmAlgorithm, VectorSize, Aligned>;
+                      GemmMemoryType, GemmAlgorithm, VectorSize>;
   auto rng = gemm_tree.get_nd_range(policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
@@ -239,12 +239,12 @@ template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int VectorSize, bool Aligned>
+          int VectorSize>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
-         static_cast<int>(gemm_algorithm_t::tall_skinny), VectorSize, Aligned>
+         static_cast<int>(gemm_algorithm_t::tall_skinny), VectorSize>
         gemm_wrapper) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
 
@@ -422,14 +422,14 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
     /* 2nd step */
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler_.get_queue(), temp_, out_, 1,
+            policy_handler_.get_queue(), temp_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
   }
   /* 1-step reduction */
   else {
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler_.get_queue(), in_, out_, 1,
+            policy_handler_.get_queue(), in_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
   }
 

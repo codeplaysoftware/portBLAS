@@ -34,5 +34,9 @@ int main(int argc, char *argv[]) {
   int seed = 12345;
   srand(seed);
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  auto exit_code = RUN_ALL_TESTS();
+  // Explicitly wait just before returning from main to ensure that any SYCL
+  // work in the queue has been completed.
+  make_queue().wait_and_throw();
+  return exit_code;
 }

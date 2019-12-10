@@ -74,6 +74,21 @@ const auto SmallBetaZeroLDMultiplied =
                        );
 GENERATE_GEMM_TEST(Gemm, SmallBetaZeroLDMultiplied);
 
+const auto AlphaZero = ::testing::Combine(::testing::Values(0, 10),  // offset
+                                          ::testing::Values(1),      // batch
+                                          ::testing::Values(16),     // m
+                                          ::testing::Values(16),     // n
+                                          ::testing::Values(17),     // k
+                                          ::testing::Values('n'),    // transa
+                                          ::testing::Values('n'),    // transb
+                                          ::testing::Values(0.0),    // alpha
+                                          ::testing::Values(0.0, 1.0),  // beta
+                                          ::testing::Values(1, 2),  // lda_mul
+                                          ::testing::Values(1, 2),  // ldb_mul
+                                          ::testing::Values(1, 2)   // ldc_mul
+                                          );
+GENERATE_GEMM_TEST(Gemm, AlphaZero);
+
 const auto OffsetNonZero =
     ::testing::Combine(::testing::Values(1, 10),   // offset
                        ::testing::Values(1),       // batch

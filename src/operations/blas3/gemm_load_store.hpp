@@ -30,16 +30,13 @@ namespace blas {
 /*! @brief Contains static methods for loading and storing vector packets
 from/to non-vectorized memory as well as some constants for the vector type and
 packet size. SFINAE is used to select the appropriate method when called.
-* @tparam aligned If both matrix's memory is aligned then this will control the
-* use of reinterpret_cast instead of vload/vstore.
 * @tparam vector_size The desired vector size to be used. If
 GEMM_VECTORIZATION_SUPPORT is not enabled in CMake a vector_size of 1 will be
 used no matter what value is passed here.
 * @tparam value_t The type of the matrix data (typically float or double, if
 supported).
-* @tparam index_t The type of the matrix indices.
 */
-template <bool aligned, size_t vector_size, typename value_t, typename index_t>
+template <size_t vector_size, typename value_t, typename index_t>
 struct Packetize {
 #ifdef GEMM_VECTORIZATION_SUPPORT
   using PacketType = cl::sycl::vec<value_t, vector_size>;
@@ -57,29 +54,31 @@ struct Packetize {
    * checking is required.
    * @tparam ld The leading dimension of the destination memory.
    */
-  template <bool trans, bool internal, int ld, typename SrcPointerType,
-            typename DestPointerType, typename EdgePredicate,
-            bool align = aligned>
-  static SYCL_BLAS_INLINE typename std::enable_if<(!internal)>::type load(
+
+  template <bool trans, bool internal, int ld, typename packet_t = PacketType,
+            typename SrcPointerType, typename DestPointerType,
+            typename EdgePredicate>
+  static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
     *(dest) = in_range ? *(src) : value_t{0};
   }
-  /*! @brief Performs a vectorized load using sycl::vec::load when the current
-   * block is internal and the memory is not aligned. In the case where k < the
+  /*! @brief Performs a vectorised load using sycl::vec::load when the current
+   * block is internal. In the case where k < the
    * number of elements being loaded then edge loads will be element wise with
    * additional bounds checking.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam internal True if the current block is internal and no bounds
    * checking is required.
    * @tparam ld The leading dimension of the destination memory. */
-  template <bool trans, bool internal, int ld, typename SrcPointerType,
-            typename DestPointerType, typename EdgePredicate,
-            bool align = aligned>
-  static SYCL_BLAS_INLINE typename std::enable_if<(internal && !align)>::type
-  load(const bool in_range, SrcPointerType src, DestPointerType dest,
-       EdgePredicate edge_in_range) {
-    PacketType packet{0};
+  template <bool trans, bool internal, index_t ld,
+            typename packet_t = PacketType, typename SrcPointerType,
+            typename DestPointerType, typename EdgePredicate>
+  static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load(
+      const bool in_range, SrcPointerType src, DestPointerType dest,
+      EdgePredicate edge_in_range) {
+    packet_t packet{0};
+
     if (in_range) {
       using address_t = cl::sycl::access::address_space;
       packet.template load<address_t::global_space>(0, src);
@@ -97,7 +96,7 @@ struct Packetize {
    * the data in local memory is always consistent.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
-  template <bool trans, int ld, typename DestPointerType>
+  template <bool trans, index_t ld, typename DestPointerType>
   static SYCL_BLAS_INLINE typename std::enable_if<trans>::type store(
       PacketType &packet, DestPointerType dest) {
 #pragma unroll
@@ -115,62 +114,6 @@ struct Packetize {
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
     packet.template store<address_t::local_space>(0, dest);
-  }
-
-  // Aligned versions of functions
-
-  /*! @brief Performs a vectorized load using reinterpret_cast when the current
-   * block is internal, the memory is aligned and the source is not transposed.
-   * In the case where k < the number of elements being loaded then edge loads
-   * will be element wise with additional bounds checking.
-   * @tparam trans Whether the source matrix is transposed or not.
-   * @tparam internal True if the current block is internal and no bounds
-   * checking is required.
-   * @tparam ld The leading dimension of the destination memory. */
-  template <bool trans, bool internal, int ld, typename SrcPointerType,
-            typename DestPointerType, typename EdgePredicate,
-            bool align = aligned>
-  static SYCL_BLAS_INLINE
-      typename std::enable_if<(internal && !trans && align)>::type
-      load(const bool in_range, SrcPointerType src, DestPointerType dest,
-           EdgePredicate edge_in_range) {
-    if (in_range) {
-      *reinterpret_cast<PacketType *>(static_cast<value_t *>(dest)) =
-          *reinterpret_cast<PacketType *>(static_cast<value_t *>(src));
-    } else {
-#pragma unroll
-      for (index_t i = 0; i < packet_size; i++) {
-        *(dest) = edge_in_range(i) ? *(src + i) : value_t{0};
-      }
-    }
-  }
-  /*! @brief Performs a vectorized load using sycl::vec load when the current
-   * block is internal, the memory is aligned and the source is transposed.
-   * In the case where k < the number of elements being loaded then edge loads
-   * will be element wise with additional bounds checking.
-   * @tparam trans Whether the source matrix is transposed or not.
-   * @tparam internal True if the current block is internal and no bounds
-   * checking is required.
-   * @tparam ld The leading dimension of the destination memory. */
-  template <bool trans, bool internal, int ld, typename SrcPointerType,
-            typename DestPointerType, typename EdgePredicate,
-            bool align = aligned>
-  static SYCL_BLAS_INLINE
-      typename std::enable_if<(internal && trans && align)>::type
-      load(const bool in_range, SrcPointerType src, DestPointerType dest,
-           EdgePredicate edge_in_range) {
-    PacketType packet{0};
-    if (in_range) {
-      packet = *reinterpret_cast<PacketType *>(static_cast<value_t *>(src));
-      store<trans, ld>(packet, dest);
-    } else {
-#pragma unroll
-      for (index_t i = 0; i < packet_size; i++) {
-        reinterpret_cast<value_t *>(&packet)[i] =
-            edge_in_range(i) ? *(src + i) : 0;
-      }
-      store<trans, ld>(packet, dest);
-    }
   }
 };
 
