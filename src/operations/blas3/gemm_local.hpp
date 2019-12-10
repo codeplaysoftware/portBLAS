@@ -66,20 +66,18 @@ namespace blas {
  * @tparam element_t  type of matrix elements
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
- * @tparam Aligned True if both A and B are fully aligned aka M, N and K are
- * evenly divisible by the vector size.
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int VectorSize, bool Aligned>
+          typename element_t, bool is_beta_zero, int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::standard), VectorSize, Aligned> {
+           static_cast<int>(gemm_algorithm_t::standard), VectorSize> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
-  using packetize_t = Packetize<Aligned, VectorSize, value_t>;
+  using packetize_t = Packetize<VectorSize, value_t>;
   using vector_t = typename packetize_t::PacketType;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
