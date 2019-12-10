@@ -323,7 +323,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
     results.push_back(result);                  \
   } while (0);
 
-#include "generate_combinations.inc.hpp"
+#include "generated_combinations.def"
 
 #undef BENCH_PARAMS
 
