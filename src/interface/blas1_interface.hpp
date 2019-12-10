@@ -227,10 +227,17 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx) {
   auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
-  auto assignOp = make_op<Assign>(vx, scalOp);
-  auto ret = ex.execute(assignOp);
-  return ret;
+  if (_alpha == element_t{0}) {
+    auto zeroOp = make_op<UnaryOp, AdditionIdentity>(vx);
+    auto assignOp = make_op<Assign>(vx, zeroOp);
+    auto ret = ex.execute(assignOp);
+    return ret;
+  } else {
+    auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
+    auto assignOp = make_op<Assign>(vx, scalOp);
+    auto ret = ex.execute(assignOp);
+    return ret;
+  }
 }
 
 /**

@@ -28,6 +28,7 @@
 
 #include "blas_meta.h"
 #include "executors/executor.h"
+#include "interface/blas1_interface.h"
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
@@ -83,6 +84,22 @@ typename executor_t::policy_t::event_t _gemm_backend(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size) {
+  if (_alpha == element_t{0}) {
+    // When alpha = 0, GEMM is equivalent to C = beta * C.
+    if (_ldc == _M) {
+      // When LDC is M, we can scale the full matrix at once.
+      return ::blas::_scal(ex, _N * _M, _beta, _C, index_t{1});
+    } else {
+      // When LDC is not M, we must scale each column of C separately.
+      typename executor_t::policy_t::event_t events;
+      for (index_t i = 0; i < _N; ++i) {
+        auto ev = ::blas::_scal(ex, _M, _beta, _C + i * _ldc, index_t{1});
+        append_vector(events, ev);
+      }
+      return events;
+    }
+  }
+
   _TransA = tolower(_TransA);
   _TransB = tolower(_TransB);
 
