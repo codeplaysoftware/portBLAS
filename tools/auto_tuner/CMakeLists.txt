@@ -9,7 +9,7 @@ find_package(ComputeCpp REQUIRED)
 find_package(PythonInterp REQUIRED)
 find_package(SystemBLAS REQUIRED)
 
-set(GEN_COMB ${CMAKE_CURRENT_BINARY_DIR}/generate_combinations.inc.hpp)
+set(GEN_COMB ${CMAKE_CURRENT_BINARY_DIR}/generated_combinations.def)
 
 # The generator's configuration file - add any new jsons to this
 set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/default.json)

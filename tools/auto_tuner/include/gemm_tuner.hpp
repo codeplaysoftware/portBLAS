@@ -39,6 +39,44 @@
 using namespace cl::sycl;
 using namespace blas;
 
+using SYCLExecutor =
+    ::blas::Executor<::blas::PolicyHandler<::blas::codeplay_policy>>;
+
+template <typename DataType>
+using HostContainer = std::vector<DataType>;
+
+template <typename DataType>
+using DeviceContainer =
+    typename ::blas::BufferIterator<DataType, ::blas::codeplay_policy>;
+
+template <typename DataType>
+using MatrixContainer =
+    typename ::blas::MatrixViewTypeFactory<::blas::codeplay_policy, DataType,
+                                           int, ::blas::col_major>::output_t;
+
+SYCLExecutor make_sycl_executor() {
+  cl::sycl::queue q([=](cl::sycl::exception_list ex_list) {
+    try {
+      for (auto &e_ptr : ex_list) {
+        std::rethrow_exception(e_ptr);
+      }
+    } catch (cl::sycl::exception &e) {
+      throw std::runtime_error(e.what());
+    }
+  });
+  std::cout << "\nDevice: "
+            << q.get_device().get_info<cl::sycl::info::device::name>()
+            << std::endl;
+
+  SYCLExecutor ex(q);
+  return ex;
+}
+
+SYCLExecutor &get_sycl_executor() {
+  static SYCLExecutor executor = make_sycl_executor();
+  return executor;
+}
+
 struct TestResultEntry {
   std::string name;
   double sec;
@@ -65,44 +103,45 @@ class TestResult : public std::vector<TestResultEntry> {
   void print_all() const {
     std::cout << "== Performance Results ==\n";
     for (auto &r : *this) {
-      r.print();
+      if (r.error < 0.1) {
+        r.print();
+      }
     }
   }
 };
 
-template <bool _TransA, bool _TransB, typename _data_t,
-          gemm_memory_t _MemoryMode, gemm_algorithm_t _ShapeMode>
+template <bool _TransA, bool _TransB, gemm_memory_t _MemoryMode,
+          gemm_algorithm_t _ShapeMode>
 struct GemmConfig {
   static const bool TransA = _TransA;
   static const bool TransB = _TransB;
   static const gemm_memory_t MemoryMode = _MemoryMode;
   static const gemm_algorithm_t ShapeMode = _ShapeMode;
-  using data_t = _data_t;
 };
 
-template <typename element_t, typename container_t, typename executor_t>
+template <typename element_t>
 struct GemmArgs {
   int m;
   int n;
   int k;
   element_t alpha;
-  container_t &a;
+  const DeviceContainer<element_t> &a;
   int lda;
-  container_t &b;
+  const DeviceContainer<element_t> &b;
   int ldb;
   element_t beta;
-  container_t c;  // Not a reference - need new copy every time
+  const HostContainer<element_t> &init_c;
+  DeviceContainer<element_t> &c;
+  HostContainer<element_t> &output_c;
   int ldc;
   int batch_size;
-  container_t &refC;
-  executor_t &ex;
-  TestResult &results;
+  const HostContainer<element_t> &expected_c;
 };
 
 template <typename T, typename RndEngine>
-std::vector<T> gen_matrix(int size, T lo, T hi, RndEngine rnd) {
+HostContainer<T> get_random_vector(int size, T lo, T hi, RndEngine rnd) {
   std::uniform_real_distribution<T> dst(lo, hi);
-  std::vector<T> v(size);
+  HostContainer<T> v(size);
   for (auto &e : v) {
     e = dst(rnd);
   }
@@ -110,104 +149,131 @@ std::vector<T> gen_matrix(int size, T lo, T hi, RndEngine rnd) {
 }
 
 template <typename T>
-T relative_diff(const std::vector<T> &ref, const std::vector<T> &obt) {
+T relative_diff(const HostContainer<T> &ref, const HostContainer<T> &obt) {
+  using std::begin;
+  using std::end;
   T mag(0);
   for (auto x : ref) {
     mag += x * x;
   }
-  T diff = std::inner_product(std::begin(ref), std::end(ref), std::begin(obt),
-                              T(0), std::plus<T>(),
-                              [](T x, T y) { return (x - y) * (x - y); });
+  T diff =
+      std::inner_product(begin(ref), end(ref), begin(obt), T(0), std::plus<T>(),
+                         [](T x, T y) { return (x - y) * (x - y); });
   return std::sqrt(diff / mag);
 }
 
 template <typename TestOperator>
-void run_tune(int rep, double flop_cnt, TestResultEntry &result,
-              TestOperator op = TestOperator()) {
+static void run_tune(int rep, double flop_cnt, TestResultEntry &result,
+                     TestOperator op = TestOperator()) {
+  using Seconds = std::chrono::duration<double>;
+  using MilliSeconds = std::chrono::duration<double, std::milli>;
+  Seconds runtime_secs;
   // warmup
-  op();
-  auto start = std::chrono::steady_clock::now();
-  for (int i = 0; i < rep; ++i) {
+  try {
     op();
+    auto start = std::chrono::steady_clock::now();
+    for (int i = 0; i < rep; ++i) {
+      op();
+    }
+    auto end = std::chrono::steady_clock::now();
+    runtime_secs = end - start;
+  } catch (std::exception const &e) {
+    // If an error is detected when running a kernel, return without setting the
+    // time in the result.
+    std::cerr << "Error detected running " << result.name << "\n"
+              << e.what() << "\n";
+    return;
   }
-  auto end = std::chrono::steady_clock::now();
-  std::chrono::duration<double> sec_d = end - start;
-  double sec = sec_d.count() / rep;
-  result.sec = sec * 1e3;
-  result.gflops = flop_cnt / sec / 1e9;
+  auto seconds_per_iter = runtime_secs / rep;
+  auto milliseconds =
+      std::chrono::duration_cast<MilliSeconds>(seconds_per_iter);
+  result.sec = milliseconds.count();
+  auto gigaflop_count = flop_cnt / 1e9;
+  result.gflops = gigaflop_count / seconds_per_iter.count();
 }
 
 template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
-          typename Config, typename T, typename Container, typename Executor>
-// a should not be a reference, the C buffer needs copied
-void tune(int r, GemmArgs<T, Container, Executor> a) {
-  using Gemm =
-      Gemm<typename Config::data_t, typename Config::data_t, DoubleBuffer, Nbca,
-           Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
-           static_cast<int>(Config::MemoryMode),
-           static_cast<int>(Config::ShapeMode), 1, false>;
+          typename Config, typename T>
+static TestResultEntry tune(int r, GemmArgs<T> a) {
+  using Gemm = Gemm<MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca,
+                    Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
+                    static_cast<int>(Config::MemoryMode),
+                    static_cast<int>(Config::ShapeMode), 1>;
 
-  using etype = typename Gemm::value_t;
-  a.results.emplace_back(Gemm::get_type_string());
-  TestResultEntry &result = a.results.back();
+  TestResultEntry result(Gemm::get_type_string());
+  auto ex = get_sycl_executor();
   {
-    blas::BufferIterator<etype, codeplay_policy> m_a_gpu =
-        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.a.data()),
-                                               a.a.size());
+    {
+      auto event_list = ex.get_policy_handler().copy_to_device(
+          a.init_c.data(), a.c, a.init_c.size());
+      event_list.back().wait_and_throw();
+    }
 
-    blas::BufferIterator<etype, codeplay_policy> m_b_gpu =
-        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.b.data()),
-                                               a.b.size());
-
-    blas::BufferIterator<etype, codeplay_policy> m_c_gpu =
-        blas::make_sycl_iterator_buffer<etype>(const_cast<etype *>(a.c.data()),
-                                               a.c.size());
-
-    auto accA = make_matrix_view<col_major>(a.ex, m_a_gpu, a.m, a.k, a.lda);
-    auto accB = make_matrix_view<col_major>(a.ex, m_b_gpu, a.k, a.n, a.ldb);
-    auto accC = make_matrix_view<col_major>(a.ex, m_c_gpu, a.m, a.n, a.ldc);
+    auto accA = make_matrix_view<col_major>(ex, a.a, a.m, a.k, a.lda);
+    auto accB = make_matrix_view<col_major>(ex, a.b, a.k, a.n, a.ldb);
+    auto accC = make_matrix_view<col_major>(ex, a.c, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
-    run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
-      auto event = a.ex.execute(gemm);
-      a.ex.get_policy_handler().wait(event);
+    const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
+    run_tune(r, flop_count, result, [&] {
+      auto event_list = ex.execute(gemm);
+      for (auto &event : event_list) {
+        event.wait_and_throw();
+      }
     });
+    {
+      auto event_list = ex.get_policy_handler().copy_to_host(
+          a.c, a.output_c.data(), a.output_c.size());
+      event_list.back().wait_and_throw();
+    }
   }
-  result.error = relative_diff(a.refC, a.c);
+  result.error = relative_diff(a.expected_c, a.output_c);
+  return result;
 }
 
-template <typename T, typename Container, typename Executor>
-void tune_syclblas(int r, char transA, char transB,
-                   GemmArgs<T, Container, Executor> a) {
-  using etype = typename Container::value_type;
-  a.results.emplace_back("SYCL-BLAS gemm");
-  TestResultEntry &result = a.results.back();
+template <typename T>
+static TestResultEntry tune_syclblas(int r, char transA, char transB,
+                                     GemmArgs<T> a) {
+  TestResultEntry result("SYCL-BLAS gemm");
+  auto ex = get_sycl_executor();
   {
-    auto m_a_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(a.a.data()), a.a.size());
-    auto m_b_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(a.b.data()), a.b.size());
-    auto m_c_gpu = blas::make_sycl_iterator_buffer<etype>(
-        const_cast<etype *>(a.c.data()), a.c.size());
-    run_tune(r, 2.0 * a.m * a.n * a.k * a.batch_size, result, [&] {
-      auto event = _gemm_batched(a.ex, transA, transB, a.m, a.n, a.k, a.alpha,
-                                 m_a_gpu, a.lda, m_b_gpu, a.ldb, a.beta,
-                                 m_c_gpu, a.ldc, a.batch_size);
-      a.ex.get_policy_handler().wait(event);
+    auto event_list = ex.get_policy_handler().copy_to_device(
+        a.init_c.data(), a.c, a.init_c.size());
+    event_list.back().wait_and_throw();
+
+    const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
+    run_tune(r, flop_count, result, [&] {
+      auto event_list =
+          _gemm_batched(ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
+                        a.b, a.ldb, a.beta, a.c, a.ldc, a.batch_size);
+      for (auto &event : event_list) {
+        event.wait_and_throw();
+      }
     });
   }
-  result.error = relative_diff(a.refC, a.c);
+  {
+    auto event_list = ex.get_policy_handler().copy_to_host(
+        a.c, a.output_c.data(), a.output_c.size());
+    event_list.back().wait_and_throw();
+  }
+  result.error = relative_diff(a.expected_c, a.output_c);
+  return result;
 }
 
-template <bool TransA, bool TransB, typename E>
+template <bool TransA, bool TransB, typename DataType>
 void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   std::cout << std::scientific;
 
   std::mt19937 rnd(seed);
 
-  auto dataA = gen_matrix<E>(k * m * batch_size, -1, 1, rnd);
-  auto dataB = gen_matrix<E>(n * k * batch_size, -1, 1, rnd);
-  auto origC = gen_matrix<E>(m * n * batch_size, -1, 1, rnd);
-  auto refC = origC;
+  auto host_a = get_random_vector<DataType>(k * m * batch_size, -1, 1, rnd);
+  auto host_b = get_random_vector<DataType>(n * k * batch_size, -1, 1, rnd);
+  auto host_c = get_random_vector<DataType>(m * n * batch_size, -1, 1, rnd);
+  auto expected_c = host_c;
+  auto result_c = host_c;
+
+  const auto device_a = blas::make_sycl_iterator_buffer(host_a, host_a.size());
+  const auto device_b = blas::make_sycl_iterator_buffer(host_b, host_b.size());
+  auto device_c = blas::make_sycl_iterator_buffer(host_c, host_c.size());
 
   const char *ta_str = TransA ? "T" : "N";
   const char *tb_str = TransB ? "T" : "N";
@@ -216,57 +282,52 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   const int ldb = TransB ? n : k;
   const int ldc = m;
 
-  TestResult results{};
+  const DataType alpha = 1;
+  const DataType beta = 1;
+  const double flop_count = 2.0 * m * n * k * batch_size;
 
-  results.emplace_back("System GEMM implementation");
-  TestResultEntry &ref_result = results.back();
-  run_tune(rep, 2.0 * m * n * k * batch_size, ref_result, [&] {
+  TestResultEntry ref_result("System GEMM implementation");
+  run_tune(rep, flop_count, ref_result, [&] {
     for (int bs = 0; bs < batch_size; bs++) {
       // system gemm implementation
-      reference_gemm::gemm(ta_str, tb_str, m, n, k, E(1),
-                           dataA.data() + (bs * m * k), lda,
-                           dataB.data() + (bs * n * k), ldb, E(1),
-                           refC.data() + (bs * m * n), m);
+      reference_gemm::gemm(ta_str, tb_str, m, n, k, alpha,
+                           host_a.data() + (bs * m * k), lda,
+                           host_b.data() + (bs * n * k), ldb, beta,
+                           expected_c.data() + (bs * m * n), m);
     }
   });
   ref_result.error = 0.0;
 
-  cl::sycl::queue q([=](cl::sycl::exception_list eL) {
-    try {
-      for (auto &e : eL) {
-        std::rethrow_exception(e);
-      }
-    } catch (cl::sycl::exception &e) {
-      std::cout << " E " << e.what() << std::endl;
-    } catch (...) {
-      std::cout << " An exception " << std::endl;
-    }
-  });
-  std::cout << "\nDevice: "
-            << q.get_device().get_info<cl::sycl::info::device::name>()
-            << std::endl;
+  TestResult results{};
+  results.push_back(ref_result);
 
-  Executor<PolicyHandler<codeplay_policy>> ex(q);
+  GemmArgs<DataType> args{m,        n,        k,   alpha,      device_a,
+                          lda,      device_b, ldb, beta,       host_c,
+                          device_c, result_c, ldc, batch_size, expected_c};
 
-  GemmArgs<E, decltype(dataA), decltype(ex)> args{
-      m,    n,     k,   E(1),       dataA, lda, dataB,  ldb,
-      E(1), origC, ldc, batch_size, refC,  ex,  results};
-
-  using data_t = typename MatrixViewTypeFactory<codeplay_policy, E, int,
-                                                col_major>::output_t;
-
-  using Local = GemmConfig<TransA, TransB, data_t, gemm_memory_t::local,
+  using Local = GemmConfig<TransA, TransB, gemm_memory_t::local,
                            gemm_algorithm_t::standard>;
-  using NonLocal =
-      GemmConfig<TransA, TransB, data_t, gemm_memory_t::no_local,
-                 gemm_algorithm_t::standard>;
-  using Naive = GemmConfig<TransA, TransB, data_t,
-                           gemm_memory_t::no_local, gemm_algorithm_t::naive>;
+  using NonLocal = GemmConfig<TransA, TransB, gemm_memory_t::no_local,
+                              gemm_algorithm_t::standard>;
+  using Naive = GemmConfig<TransA, TransB, gemm_memory_t::no_local,
+                           gemm_algorithm_t::naive>;
 
-  tune_syclblas(rep, *ta_str, *tb_str, args);
+  {
+    auto result = tune_syclblas(rep, *ta_str, *tb_str, args);
+    results.push_back(result);
+  }
 
-#include "generate_combinations.inc.hpp"
+#define BENCH_PARAMS(...)                       \
+  do {                                          \
+    auto result = tune<__VA_ARGS__>(rep, args); \
+    results.push_back(result);                  \
+  } while (0);
+
+#include "generated_combinations.def"
+
+#undef BENCH_PARAMS
 
   std::sort(results.begin(), results.end());
   results.print_all();
+  get_sycl_executor().get_policy_handler().wait();
 }
