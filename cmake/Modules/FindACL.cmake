@@ -23,6 +23,7 @@
 # *
 # **************************************************************************/
 
+find_package(CLHPP)
 find_package(OpenCL)
 find_package(npy)
 find_path(ACL_INCLUDE_DIR "arm_compute/graph.h" HINTS ${ACL_ROOT})
@@ -35,14 +36,14 @@ find_library(ACL_GRAPH_LIBRARY NAME arm_compute_graph-static HINTS ${ACL_ROOT} P
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ACL REQUIRED_VARS ACL_LIBRARY ACL_CORE_LIBRARY
                                                     ACL_GRAPH_LIBRARY ACL_INCLUDE_DIR ACL_SYSTEM_INCLUDE_DIR
-                                                    OpenCL_FOUND npy_FOUND)
+                                                    CLHPP_FOUND OpenCL_FOUND npy_FOUND)
 
 if(ACL_FOUND AND NOT TARGET acl)
     add_library(acl::core STATIC IMPORTED)
     set_target_properties(acl::core PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${ACL_INCLUDE_DIR};${ACL_SYSTEM_INCLUDE_DIR};${OpenCL_INCLUDE_DIRS}"
         # This lib accidentally ships with it's own ICD loader. Allow multiple definitions.
-        INTERFACE_LINK_LIBRARIES "${OpenCL_LIBRARIES};${CMAKE_DL_LIBS};-Wl,-z,muldefs"
+        INTERFACE_LINK_LIBRARIES "CLHPP::CLHPP;${OpenCL_LIBRARIES};${CMAKE_DL_LIBS};-Wl,-z,muldefs"
         IMPORTED_LOCATION ${ACL_CORE_LIBRARY})
 
     add_library(acl::graph STATIC IMPORTED)

@@ -29,6 +29,13 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
+  # We copy the pkgconfig files here
+  list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
+endif()
+
 set(BUILD_SHARED_LIBS ON CACHE BOOL "")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,7 +43,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
 
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas)
-set(CLARA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/clara)
 set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -79,7 +85,7 @@ option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kerne
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
-list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
+list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CBLAS_INCLUDE})
 
 add_subdirectory(src)
 build_library(sycl_blas)

@@ -1,3 +1,5 @@
+find_package(Clara REQUIRED)
+
 # compile googlebench
 include(ExternalProject)
 
