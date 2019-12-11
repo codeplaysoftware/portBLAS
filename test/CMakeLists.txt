@@ -1,3 +1,5 @@
+find_package(Clara REQUIRED)
+
 # compile googletest
 include(ExternalProject)
 find_package(SystemBLAS REQUIRED)

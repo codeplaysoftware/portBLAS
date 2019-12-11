@@ -13,8 +13,8 @@ set(sources
 foreach(acl_benchmark ${sources})
   get_filename_component(acl_bench_exec ${acl_benchmark} NAME_WE)
   add_executable(bench_acl_${acl_bench_exec} ${acl_benchmark} main.cpp)
-  target_link_libraries(bench_acl_${acl_bench_exec} PRIVATE benchmark acl sycl_blas)
-  target_include_directories(bench_acl_${acl_bench_exec} PRIVATE ${CLARA_INCLUDE} ${CBLAS_INCLUDE})
+  target_link_libraries(bench_acl_${acl_bench_exec} PRIVATE benchmark acl sycl_blas Clara::Clara)
+  target_include_directories(bench_acl_${acl_bench_exec} PRIVATE ${CBLAS_INCLUDE})
 
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_acl_${acl_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
