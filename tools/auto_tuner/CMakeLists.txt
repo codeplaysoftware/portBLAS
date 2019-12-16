@@ -1,8 +1,5 @@
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../src/)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}) # For the combinations
 
 find_package(OpenCL REQUIRED)
 find_package(ComputeCpp REQUIRED)
@@ -53,11 +50,13 @@ add_custom_command(OUTPUT ${tuner_kernel_srcs}
 )
 add_custom_target(tuner_generate_kernels DEPENDS ${tuner_kernel_srcs})
 
-
 add_library(tuner_kernel_lib ${tuner_kernel_srcs})
 target_include_directories(tuner_kernel_lib PRIVATE
   ${SYCLBLAS_INCLUDE}
+  ${SYCLBLAS_SRC}
   ${COMPUTECPP_SDK_INCLUDE}
+  include/
+  ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_dependencies(tuner_kernel_lib tuner_generate_kernels)
 add_sycl_to_target(
@@ -80,7 +79,10 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
   target_link_libraries(${tuner_exec} PRIVATE m blas::blas tuner_kernel_lib)
   target_include_directories(${tuner_exec} PRIVATE
     ${SYCLBLAS_INCLUDE}
+    ${SYCLBLAS_SRC}
     ${COMPUTECPP_SDK_INCLUDE}
+    include/
+    ${CMAKE_CURRENT_BINARY_DIR}
   )
   add_dependencies(${tuner_exec} tuner_generate_def_file)
   add_sycl_to_target(
