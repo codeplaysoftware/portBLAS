@@ -76,7 +76,7 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
   get_filename_component(tuner_exec ${blas_tuner} NAME_WE)
   set(TARGET tuner_exec ${blas_tuner})
   add_executable(${tuner_exec} ${blas_tuner})
-  target_link_libraries(${tuner_exec} PRIVATE m blas::blas tuner_kernel_lib)
+  target_link_libraries(${tuner_exec} PRIVATE blas::blas tuner_kernel_lib)
   target_include_directories(${tuner_exec} PRIVATE
     ${SYCLBLAS_INCLUDE}
     ${SYCLBLAS_SRC}
