@@ -42,13 +42,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
 
-set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas)
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
-set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
-
 if(DEFINED SYSTEM_BLAS_ROOT)
   message(DEPRECATION
     "SYSTEM_BLAS_ROOT is deprecated. Add the path to the reference BLAS to CMAKE_PREFIX_PATH instead")
@@ -61,6 +54,11 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
 )
 
+find_package(ComputeCpp REQUIRED)
+find_package(PythonInterp 2.7 REQUIRED)
+
+# Add some performance flags to the calls to compute++.
+# NB: This must be after finding ComputeCpp
 list(APPEND COMPUTECPP_USER_FLAGS
   -O3
   -fsycl-split-modules=20
@@ -70,22 +68,33 @@ list(APPEND COMPUTECPP_USER_FLAGS
   -no-serial-memop
 )
 
-include(GNUInstallDirs)
-
-include(ConfigureSYCLBLAS)
-include(CmakeFunctionHelper)
-find_package(OpenCL REQUIRED)
-find_package(ComputeCpp REQUIRED)
-find_package(PythonInterp 2.7 REQUIRED)
-
-#by default, tall and skinny Gemm is enabled (for better performance)
+# By default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
-#By default vectorization in gemm kernels is disabled until fully implemented.
+# By default vectorization in gemm kernels is disabled until fully implemented.
 option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kernels" OFF)
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
+set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas)
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
+set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
+set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CBLAS_INCLUDE})
+
+# Setup datatypes, workgroup sizes and other options.
+# NB: This has to be included before CmakeFunctionHelper as it declares various options.
+include(ConfigureSYCLBLAS)
+
+# CmakeFunctionHelper has to be included after any options that it depends on are declared.
+# These include:
+# * TARGET
+# * GEMM_TALL_SKINNY_SUPPORT
+# * GEMM_VECTORIZATION_SUPPORT
+# * DOUBLE_SUPPORT
+# * NAIVE_GEMM
+include(CmakeFunctionHelper)
 
 add_subdirectory(src)
 build_library(sycl_blas)
@@ -95,6 +104,8 @@ set_target_properties(sycl_blas PROPERTIES
   INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
   INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE}"
 )
+
+include(GNUInstallDirs)
 install(TARGETS sycl_blas
   RUNTIME
     DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -131,7 +142,7 @@ if(${BLAS_ENABLE_BENCHMARK})
 endif()
 
 option(BLAS_ENABLE_AUTO_TUNERS "Whether to enable building GEMM auto tuners" OFF)
-if(${BUILD_AUTO_TUNERS})
+if(${BUILD_ENABLE_AUTO_TUNERS})
   # Note that the auto tuners are very slow to compile, so we avoid adding
   # them to the ALL target.
   add_subdirectory(tools/auto_tuner EXCLUDE_FROM_ALL)
