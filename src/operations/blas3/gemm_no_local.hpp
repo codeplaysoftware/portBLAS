@@ -85,9 +85,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   static constexpr bool trans_b = TransB;
 
   static_assert(wg_cols * item_cols == item_rows * wg_rows,
-                "Work group size should be a multiple "
-                "of the number of rows in a block\n"
-                " --- this is ensured iff: item_rows | wg_cols");
+                "Block level tile should be square");
 
   static_assert(item_rows % packetize_t::packet_size == 0,
                 "Item rows must be a multiple of the vector packet size");

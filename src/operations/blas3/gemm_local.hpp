@@ -122,6 +122,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "of the number of columns in a block\n"
                 " --- this is ensured iff: item_cols | wg_rows");
 
+  static_assert(big_tile_rows == big_tile_cols,
+                "Big tile level dimensions should be square, i.e. tl_rows * "
+                "block_rows == tl_cols * block_cols");
+
   static_assert(item_rows % packetize_t::packet_size == 0,
                 "Item rows must be a multiple of the vector packet size");
 
