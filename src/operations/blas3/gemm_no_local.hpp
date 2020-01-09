@@ -208,7 +208,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t wg_col = tile_id_col * block_cols;
     /*!
      * @brief is_internal_block is used to distinguish
-     * the internal block. Therefore, work items using these blocks dont need to
+     * the internal block. Therefore, work items using these blocks don't need to
      * check for boundaries. Checking the packet size is a workaround because
      * normally the vector size and item rows/cols must all be equal, but when
      * vectorization is disabled the vector size is always 1 and the algorithm
@@ -427,8 +427,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @tparam PointerType : Type of the input pointers for A and B matrices.
    * @param A : Input matrix A
    * @param B : Input matrix B
-   * @param boundary_check_m : Function whichs checks boundary in M dimension.
-   * @param boundary_check_n : Function whichs checks boundary in N dimension.
+   * @param boundary_check_m : Function which checks boundary in M dimension.
+   * @param boundary_check_n : Function which checks boundary in N dimension.
    * @param A_ptr_index : index of next element for A
    * @param B_ptr_index : index of next element for B
    * @param lda : leading dimension of A
