@@ -167,8 +167,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   SYCL_BLAS_INLINE void eval(cl::sycl::nd_item<1> id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
-    const index_t mc = m;
-    const index_t nc = n;
+    const index_t original_m = m;
+    const index_t original_n = n;
     const index_t k = a_.get_size_col();
     const index_t lda = a_.getSizeL();
     const index_t ldb = b_.getSizeL();
@@ -207,7 +207,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     /* the start position of the tile-column per work group */
     const index_t wg_col = tile_id_col * block_cols;
     /*!
-     * @brief is_internal_block_m and is_internal_block_n is used to distinguish
+     * @brief is_internal_block is used to distinguish
      * the internal block. Therefore, work items using these blocks dont need to
      * check for boundaries. Checking the packet size is a workaround because
      * normally the vector size and item rows/cols must all be equal, but when
@@ -254,7 +254,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const auto boundary_check_n = [&](const index_t &idx) { return idx < n; };
     const auto boundary_check_c = [&](const index_t &dim_m_c_start,
                                       const index_t &dim_n_c_start) {
-      return (dim_m_c_start < mc && dim_n_c_start < nc);
+      return (dim_m_c_start < original_m && dim_n_c_start < original_n);
     };
 
     // computing the next element for a and b;
@@ -517,8 +517,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg : the private register for A.
    * @param ptr_next: offset for the next value to be loaded.
    * @param ld : the leading dimension of the input matrix.
-   * @param in_row : function which checks the boundary in the row direction.
-   * @param in_col : function which checks the boundary in the col direction.
+   * @param is_valid_row : function which checks the boundary in the row
+   * direction.
+   * @param is_valid_col : function which checks the boundary in the col
+   * direction.
    * @param out_of_range: exits the function early if block is out of range.
    */
 
@@ -527,8 +529,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type load_block_a(
       PointerType ptr, element_t *reg, const index_t &ptr_next,
-      const index_t &ld, const RowCheckType &in_row, const ColCheckType &in_col,
-      const bool out_of_range) noexcept {
+      const index_t &ld, const RowCheckType &is_valid_row,
+      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -537,8 +539,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #pragma unroll
       for (int j = 0; j < rows / work_per_load; j++) {
         // Check that the last element of the packet loaded is in range
-        bool in_range = do_check<check_row>(in_row(work_per_load - 1)) &&
-                        do_check<check_col>(in_col(i));
+        bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
+                        do_check<check_col>(is_valid_col(i));
 
         cl::sycl::vec<element_t, work_per_load> in_vec{0};
         if (in_range) {
@@ -549,8 +551,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           // each load.
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
-            if (do_check<check_row>(in_row(l)) &&
-                do_check<check_col>(in_col(i))) {
+            if (do_check<check_row>(is_valid_row(l)) &&
+                do_check<check_col>(is_valid_col(i))) {
               reinterpret_cast<element_t *>(&in_vec)[l] =
                   *(ptr + j * ptr_next + l);
             }
@@ -589,8 +591,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg : the private register for A.
    * @param ptr_next: offset for the next value to be loaded.
    * @param ld : the leading dimension of the input matrix.
-   * @param in_row : function which checks the boundary in the row direction.
-   * @param in_col : function which checks the boundary in the col direction.
+   * @param is_valid_row : function which checks the boundary in the row
+   * direction.
+   * @param is_valid_col : function which checks the boundary in the col
+   * direction.
    * @param out_of_range: exits the function early if block is out of range.
    */
   template <index_t rows, index_t cols, index_t next_element, bool check_row,
@@ -598,8 +602,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_block_a(
       PointerType ptr, element_t *reg, const index_t &ptr_next,
-      const index_t &ld, const RowCheckType &in_row, const ColCheckType &in_col,
-      const bool out_of_range) noexcept {
+      const index_t &ld, const RowCheckType &is_valid_row,
+      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -608,8 +612,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #pragma unroll
       for (int j = 0; j < cols; j++) {
         // Check that the last element of the packet loaded is in range
-        bool in_range = do_check<check_row>(in_row(i * next_element + j)) &&
-                        do_check<check_col>(in_col(work_per_load - 1));
+        bool in_range =
+            do_check<check_row>(is_valid_row(i * next_element + j)) &&
+            do_check<check_col>(is_valid_col(work_per_load - 1));
         cl::sycl::vec<element_t, work_per_load> in_vec{0};
         if (in_range) {
           // if in range perform a vectorised load
@@ -620,8 +625,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           // each load.
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
-            if (do_check<check_row>(in_row(i * next_element + j)) &&
-                do_check<check_col>(in_col(l))) {
+            if (do_check<check_row>(is_valid_row(i * next_element + j)) &&
+                do_check<check_col>(is_valid_col(l))) {
               reinterpret_cast<element_t *>(&in_vec)[l] = *(ptr + j * ld + l);
             }
           }
@@ -662,23 +667,25 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * checking.
    * @param col_ofs : How many columns B has been offset by, used in bounds
    * checking.
-   * @param in_row : function which checks the boundary in the row direction.
-   * @param in_col : function which checks the boundary in the col direction.
+   * @param is_valid_row : function which checks the boundary in the row
+   * direction.
+   * @param is_valid_col : function which checks the boundary in the col
+   * direction.
    * @param out_of_range: exits the function early if block is out of range.
    */
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type load_single_b(
       PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &in_row,
-      const ColCheckType &in_col, const bool out_of_range) noexcept {
+      const index_t &col_ofs, const RowCheckType &is_valid_row,
+      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
 
     // Check that the last element of the packet loaded is in range
-    bool in_range = do_check<check_row>(in_row(work_per_load - 1)) &&
-                    do_check<check_col>(in_col(col_ofs));
+    bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
+                    do_check<check_col>(is_valid_col(col_ofs));
 
     cl::sycl::vec<element_t, work_per_load> in_vec{0};
     if (in_range) {
@@ -688,8 +695,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
       for (int k = 0; k < work_per_load; k++) {
-        if (do_check<check_row>(in_row(k)) &&
-            do_check<check_col>(in_col(col_ofs))) {
+        if (do_check<check_row>(is_valid_row(k)) &&
+            do_check<check_col>(is_valid_col(col_ofs))) {
           reinterpret_cast<element_t *>(&in_vec)[k] = *(ptr + k);
         }
       }
@@ -720,23 +727,25 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param reg : the private register for B
    * @param ptr_next: offset for the next value to be loaded.
    * @param ld : the leading dimension of the input matrix.
-   * @param in_row : function which checks the boundary in the row direction.
-   * @param in_col : function which checks the boundary in the col direction.
+   * @param is_valid_row : function which checks the boundary in the row
+   * direction.
+   * @param is_valid_col : function which checks the boundary in the col
+   * direction.
    * @param out_of_range: exits the function early if block is out of range.
    */
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_single_b(
       PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &in_row,
-      const ColCheckType &in_col, const bool out_of_range) noexcept {
+      const index_t &col_ofs, const RowCheckType &is_valid_row,
+      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
 
     // Check that the last element of the packet loaded is in range
-    bool in_range = do_check<check_row>(in_row(row_ofs)) &&
-                    do_check<check_col>(in_col(work_per_load - 1));
+    bool in_range = do_check<check_row>(is_valid_row(row_ofs)) &&
+                    do_check<check_col>(is_valid_col(work_per_load - 1));
 
     cl::sycl::vec<element_t, work_per_load> in_vec{0};
     if (in_range) {
@@ -746,8 +755,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
       for (int k = 0; k < work_per_load; k++) {
-        if (do_check<check_row>(in_row(row_ofs)) &&
-            do_check<check_col>(in_col(k))) {
+        if (do_check<check_row>(is_valid_row(row_ofs)) &&
+            do_check<check_col>(is_valid_col(k))) {
           reinterpret_cast<element_t *>(&in_vec)[k] = *(ptr + k);
         }
       }

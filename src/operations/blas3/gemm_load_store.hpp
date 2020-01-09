@@ -63,9 +63,8 @@ struct Packetize {
    * @tparam ld The leading dimension of the destination memory.
    */
 
-  template <bool trans, bool internal, int ld, typename packet_t = PacketType,
-            typename SrcPointerType, typename DestPointerType,
-            typename EdgePredicate>
+  template <bool trans, bool internal, int ld, typename SrcPointerType,
+            typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
@@ -79,13 +78,12 @@ struct Packetize {
    * @tparam internal True if the current block is internal and no bounds
    * checking is required.
    * @tparam ld The leading dimension of the destination memory. */
-  template <bool trans, bool internal, index_t ld,
-            typename packet_t = PacketType, typename SrcPointerType,
+  template <bool trans, bool internal, index_t ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
-    packet_t packet{0};
+    PacketType packet{0};
 
     if (in_range) {
       using address_t = cl::sycl::access::address_space;
