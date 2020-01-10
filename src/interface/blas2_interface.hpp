@@ -85,15 +85,16 @@ typename Executor::policy_t::event_t _gemv_impl(
   if (memory_type != gemv_memory_t::local) {
     // Leading dimension for dot products matrix
     const auto ld = is_transposed ? _N : _M;
+    constexpr index_t one = 1;
 
     auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
     auto dot_products_matrix =
-        make_matrix_view<col_major>(ex, dot_products_buffer, ld, 1, ld);
+        make_matrix_view<col_major>(ex, dot_products_buffer, ld, one, ld);
 
     const index_t global_size = roundUp<index_t>(ld, local_range);
 
     auto gemv = make_Gemv<local_range, is_transposed, cache_line_size, 1>(
-        dot_products_matrix, mA, vx, 1, 1);
+        dot_products_matrix, mA, vx, one, one);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
     // auto gemvEvent = ex.execute(gemv, local_range, global_size);
