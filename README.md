@@ -277,9 +277,18 @@ The build system is CMake version 3.4.2 or higher.
 We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
 build the project.
 
-A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also required to verify the test results. Instructions for building and installing OpenBLAS can be found [on this page](https://github.com/xianyi/OpenBLAS/wiki/User-Manual). Please note that although some distributions may provide packages for OpenBLAS these versions are typically quite old and may have issues with the TRMV implementation which can cause random test failures. Any version of OpenBLAS `>= 0.3.0` will not suffer from these issues.
+A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also
+required to verify the test results. Instructions for building and installing
+OpenBLAS can be found [on this
+page](https://github.com/xianyi/OpenBLAS/wiki/User-Manual). Please note that
+although some distributions may provide packages for OpenBLAS these versions are
+typically quite old and may have issues with the TRMV implementation which can
+cause random test failures. Any version of OpenBLAS `>= 0.3.0` will not suffer
+from these issues.
 
-When using OpenBLAS or any other BLAS library the installation directory must be added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see [below](###cmake-options)). 
+When using OpenBLAS or any other BLAS library the installation directory must be
+added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
+[below](###cmake-options)). 
 
 ## Setup
 
