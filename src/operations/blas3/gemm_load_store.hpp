@@ -42,7 +42,7 @@ struct Packetize {
   using PacketType = cl::sycl::vec<value_t, vector_size>;
   static constexpr size_t packet_size = vector_size;
   template <index_t dimension>
-  static constexpr bool check_size() {
+  SYCL_BLAS_INLINE static constexpr bool check_size() {
     return dimension == packet_size;
   }
 #else
@@ -50,7 +50,7 @@ struct Packetize {
   using PacketType = cl::sycl::vec<value_t, 1>;
   static constexpr size_t packet_size = 1;
   template <index_t dimension>
-  static constexpr bool check_size() {
+  SYCL_BLAS_INLINE static constexpr bool check_size() {
     return true;
   }
 #endif

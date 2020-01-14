@@ -208,8 +208,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t wg_col = tile_id_col * block_cols;
     /*!
      * @brief is_internal_block is used to distinguish
-     * the internal block. Therefore, work items using these blocks don't need to
-     * check for boundaries. Checking the packet size is a workaround because
+     * the internal block. Therefore, work items using these blocks don't need
+     * to check for boundaries. Checking the packet size is a workaround because
      * normally the vector size and item rows/cols must all be equal, but when
      * vectorization is disabled the vector size is always 1 and the algorithm
      * breaks.
@@ -250,12 +250,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * boundary_check_c  are used to check the A, B , and C boundaries
      * respectively.
      */
-    const auto boundary_check_m = [&](const index_t &idx) { return idx < m; };
-    const auto boundary_check_n = [&](const index_t &idx) { return idx < n; };
-    const auto boundary_check_c = [&](const index_t &dim_m_c_start,
-                                      const index_t &dim_n_c_start) {
-      return (dim_m_c_start < original_m && dim_n_c_start < original_n);
-    };
+    const auto boundary_check_m =
+        [&](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE { return idx < m; };
+    const auto boundary_check_n =
+        [&](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE { return idx < n; };
+    const auto boundary_check_c =
+        [&](const index_t &dim_m_c_start, const index_t &dim_n_c_start)
+            SYCL_BLAS_ALWAYS_INLINE {
+              return (dim_m_c_start < original_m && dim_n_c_start < original_n);
+            };
 
     // computing the next element for a and b;
     const index_t A_ptr_index = (trans_a ? lda : 1) * wg_rows * vector_ofs;
@@ -369,7 +372,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       while (k >= packet_size) {
         load_and_compute_block<packet_size, need_check_boundary, false>(
             A, B, boundary_check_m, boundary_check_n, A_ptr_index, B_ptr_index,
-            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range);
+            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
+#ifdef ARM_GPU
+            ,
+            id
+#endif
+        );
         /*
          * Moving forward to the next block
          */
@@ -380,7 +388,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       if (k > 0) {
         load_and_compute_block<packet_size, need_check_boundary, true>(
             A, B, boundary_check_m, boundary_check_n, A_ptr_index, B_ptr_index,
-            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range);
+            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
+#ifdef ARM_GPU
+            ,
+            id
+#endif
+        );
       }
       /*
        *  Storing the reg_res into C matrix
@@ -777,7 +790,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type
-  compute_block_gemm_no_shared(const index_t &iteration, element_t *reg_a,
+  compute_block_gemm_no_shared(index_t iteration, element_t *reg_a,
                                element_t *reg_b, element_t *reg_res) noexcept {
     reg_res += iteration * item_rows;
 #pragma unroll
@@ -805,7 +818,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   SYCL_BLAS_INLINE typename std::enable_if<(packet_size != 1 && trans)>::type
-  compute_block_gemm_no_shared(const index_t &iteration, element_t *reg_a,
+  compute_block_gemm_no_shared(index_t iteration, element_t *reg_a,
                                element_t *reg_b, element_t *reg_res) noexcept {
     reg_a += iteration * item_rows;
 #pragma unroll
@@ -831,7 +844,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   template <index_t packet_size, bool trans = trans_b>
   SYCL_BLAS_INLINE typename std::enable_if<(packet_size == 1 && trans)>::type
-  compute_block_gemm_no_shared(const index_t &iteration, element_t *reg_a,
+  compute_block_gemm_no_shared(index_t iteration, element_t *reg_a,
                                element_t *reg_b, element_t *reg_res) noexcept {
     reg_res += iteration * item_rows;
 #pragma unroll
