@@ -364,7 +364,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto B = orig_B;
       auto C = orig_C;
 
-      /* register array used to store the partial result*/
+      /* register array used to store the result*/
       value_t reg_res[item_rows * item_cols];
       scaling_c<need_check_boundary, packet_size>(
           reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
@@ -429,7 +429,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
  private:
   /*!
    * @brief Loads a full block of A and multiple partial blocks of B, computing
-   * the partial result for each iteration.
+   * the result for each iteration.
    * @tparam packet_size : Vector size
    * @tparam check_boundary : True if block is external, false if not
    * @tparam check_k : Whether to check in K dimension.
@@ -450,7 +450,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * method.
    * @param reg_a : Pointer to private register for A.
    * @param reg_b : Pointer to private register for B.
-   * @param reg_res : Pointer to private register for partial result.
+   * @param reg_res : Pointer to private register for result.
    * @param out_of_range : Controls whether to exit some functions early if
    * block is out of range of A or B.*/
   template <index_t packet_size, bool check_boundary, bool check_k,
