@@ -69,7 +69,8 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::standard), VectorSize> {
+           static_cast<int>(gemm_algorithm_t::standard),
+           static_cast<int>(gemm_vectorization_t::full), VectorSize> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
@@ -226,6 +227,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
                              const cl::sycl::nd_item<1> &id) noexcept {
+    printf("local memory full vec\n");
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     index_t k = a_.get_size_col();
