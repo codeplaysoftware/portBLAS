@@ -4,33 +4,24 @@ if(BLAS_VERIFY_BENCHMARK)
   find_package(SystemBLAS REQUIRED)
 endif()
 
-set(sources
-  # Level 3 blas
-  blas3/gemm.cpp
-)
-
-# Add individual benchmarks for each method
-foreach(acl_benchmark ${sources})
-  get_filename_component(acl_bench_exec ${acl_benchmark} NAME_WE)
-  add_executable(bench_acl_${acl_bench_exec} ${acl_benchmark} main.cpp)
-  target_link_libraries(bench_acl_${acl_bench_exec} PRIVATE benchmark acl sycl_blas Clara::Clara)
-  target_include_directories(bench_acl_${acl_bench_exec} PRIVATE ${CBLAS_INCLUDE})
+function(generate_acl_benchmark name source definition)
+  add_executable(${name} ${source} main.cpp)
+  target_link_libraries(${name} PRIVATE benchmark acl sycl_blas Clara::Clara)
+  target_include_directories(${name} PRIVATE ${CBLAS_INCLUDE})
+  target_compile_definitions(${name} PRIVATE ${definition})
 
   if(BLAS_VERIFY_BENCHMARK)
-    target_compile_definitions(bench_acl_${acl_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
-    target_link_libraries(bench_acl_${acl_bench_exec} PRIVATE blas::blas)
+    target_compile_definitions(${name} PRIVATE BLAS_VERIFY_BENCHMARK)
+    target_link_libraries(${name} PRIVATE blas::blas)
   endif()
 
-  if(ACL_BACKEND STREQUAL "NEON")
-    target_compile_definitions(bench_acl_${acl_bench_exec} PRIVATE ACL_BACKEND_NEON)
-  else()
-    target_compile_definitions(bench_acl_${acl_bench_exec} PRIVATE ACL_BACKEND_OPENCL)
-  endif()
-
-  message(STATUS "Created benchmark: ${acl_bench_exec}")
-  install(TARGETS bench_acl_${acl_bench_exec}
+  message(STATUS "Created benchmark: ${name}")
+  install(TARGETS ${name}
     RUNTIME
       DESTINATION ${CMAKE_INSTALL_BINDIR}
       COMPONENT benchmarks
   )
-endforeach()
+endfunction()
+
+generate_acl_benchmark(bench_acl_gemm_neon blas3/gemm.cpp ACL_BACKEND_NEON)
+generate_acl_benchmark(bench_acl_gemm_opencl blas3/gemm.cpp ACL_BACKEND_OPENCL)
