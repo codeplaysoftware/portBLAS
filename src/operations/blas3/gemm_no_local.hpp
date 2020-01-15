@@ -215,8 +215,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * breaks.
      */
     const bool is_internal_block =
-        packetize_t::packet_size !=
-            1 &&  // This is a workaround when vectorization is disabled.
+        (packetize_t::packet_size !=
+         1) &&  // This is a workaround when vectorization is disabled.
         (m - wg_row >= block_rows) &&
         (n - wg_col >= block_cols);
 
