@@ -241,16 +241,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * boundary_check_c  are used to check the A, B , and C boundaries
      * respectively.
      */
-    const auto boundary_check_m = [&](index_t dim_m_a_start) {
-      return dim_m_a_start < m;
-    };
-    const auto boundary_check_n = [&](index_t dim_n_b_start) {
-      return dim_n_b_start < n;
-    };
-    const auto boundary_check_c = [&](index_t dim_m_c_start,
-                                      index_t dim_n_c_start) {
-      return (dim_m_c_start < m && dim_n_c_start < n);
-    };
+    const auto boundary_check_m =
+        [&](index_t dim_m_a_start)
+            SYCL_BLAS_ALWAYS_INLINE { return dim_m_a_start < m; };
+    const auto boundary_check_n =
+        [&](index_t dim_n_b_start)
+            SYCL_BLAS_ALWAYS_INLINE { return dim_n_b_start < n; };
+    const auto boundary_check_c =
+        [&](index_t dim_m_c_start, index_t dim_n_c_start)
+            SYCL_BLAS_ALWAYS_INLINE {
+              return (dim_m_c_start < m && dim_n_c_start < n);
+            };
 
     // computing the next element for a and b;
     const index_t A_ptr_index =
