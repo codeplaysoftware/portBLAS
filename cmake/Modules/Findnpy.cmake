@@ -1,4 +1,6 @@
-find_path(NPY_INCLUDE_DIRS "libnpy/npy.hpp")
+find_path(NPY_INCLUDE_DIRS "libnpy/npy.hpp"
+  HINTS ${ACL_ROOT}/include
+)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(npy REQUIRED_VARS NPY_INCLUDE_DIRS)
