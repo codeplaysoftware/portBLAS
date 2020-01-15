@@ -16,8 +16,6 @@
 #include <arm_compute/runtime/NEON/NEFunctions.h>
 #endif
 
-#include "utils/Utils.h"
-
 #include "common_utils.hpp"
 
 namespace blas_benchmark {
@@ -26,13 +24,27 @@ void create_benchmark(blas_benchmark::Args &args, bool* success);
 
 namespace utils {
 
+template<typename Tensor>
+inline void map_if_needed(Tensor&) {}
+
+template<typename Tensor>
+inline void unmap_if_needed(Tensor&) {}
+
+inline void map_if_needed(arm_compute::CLTensor& tensor) {
+  tensor.map(true);
+}
+
+inline void unmap_if_needed(arm_compute::CLTensor& tensor) {
+  tensor.unmap();
+}
+
 template <typename tensor_t>
 void fill_tensor(tensor_t &tensor, std::vector<float> &src) {
   arm_compute::Window window;
   const arm_compute::TensorShape &shape = tensor.info()->tensor_shape();
   window.use_tensor_dimensions(shape);
 
-  arm_compute::utils::map(tensor, true);
+  map_if_needed(tensor);
 
   arm_compute::Iterator it(&tensor, window);
 
@@ -44,7 +56,7 @@ void fill_tensor(tensor_t &tensor, std::vector<float> &src) {
                                    },
                                    it);
 
-  arm_compute::utils::unmap(tensor);
+  unmap_if_needed(tensor);
 }
 
 template <typename tensor_t>
@@ -53,7 +65,7 @@ void extract_tensor(tensor_t &tensor, std::vector<float> &dst) {
   const arm_compute::TensorShape &shape = tensor.info()->tensor_shape();
   window.use_tensor_dimensions(shape);
 
-  arm_compute::utils::map(tensor, true);
+  map_if_needed(tensor);
 
   arm_compute::Iterator it(&tensor, window);
 
@@ -64,7 +76,7 @@ void extract_tensor(tensor_t &tensor, std::vector<float> &dst) {
                                    },
                                    it);
 
-  arm_compute::utils::unmap(tensor);
+  unmap_if_needed(tensor);
 }
 
 /**
