@@ -41,10 +41,18 @@ struct Packetize {
 #ifdef GEMM_VECTORIZATION_SUPPORT
   using PacketType = cl::sycl::vec<value_t, vector_size>;
   static constexpr size_t packet_size = vector_size;
+  template <index_t dimension>
+  SYCL_BLAS_INLINE static constexpr bool check_size() {
+    return dimension == packet_size;
+  }
 #else
   // In the case where vectorization is not enabled, always set to 1
   using PacketType = cl::sycl::vec<value_t, 1>;
   static constexpr size_t packet_size = 1;
+  template <index_t dimension>
+  SYCL_BLAS_INLINE static constexpr bool check_size() {
+    return true;
+  }
 #endif
 
   /*! @brief Performs a coalesced non-vectorized load when the current block is
@@ -55,9 +63,8 @@ struct Packetize {
    * @tparam ld The leading dimension of the destination memory.
    */
 
-  template <bool trans, bool internal, int ld, typename packet_t = PacketType,
-            typename SrcPointerType, typename DestPointerType,
-            typename EdgePredicate>
+  template <bool trans, bool internal, int ld, typename SrcPointerType,
+            typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
@@ -71,13 +78,12 @@ struct Packetize {
    * @tparam internal True if the current block is internal and no bounds
    * checking is required.
    * @tparam ld The leading dimension of the destination memory. */
-  template <bool trans, bool internal, index_t ld,
-            typename packet_t = PacketType, typename SrcPointerType,
+  template <bool trans, bool internal, index_t ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
-    packet_t packet{0};
+    PacketType packet{0};
 
     if (in_range) {
       using address_t = cl::sycl::access::address_space;
