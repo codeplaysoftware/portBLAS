@@ -41,7 +41,7 @@ typename executor_t::policy_t::event_t _gemm(
         64, false, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
-        static_cast<int>(gemm_vectorization_t::none), is_beta_zero,
+        static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
         4>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
   } else if (_t_a) {
@@ -49,7 +49,7 @@ typename executor_t::policy_t::event_t _gemm(
         128, false, false, false, 64, Tile<4, 8, 16, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
-        static_cast<int>(gemm_vectorization_t::none), is_beta_zero,
+        static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
         4>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
   } else {
@@ -57,7 +57,7 @@ typename executor_t::policy_t::event_t _gemm(
         32, false, false, false, 64, Tile<8, 4, 4, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
-        static_cast<int>(gemm_vectorization_t::none), is_beta_zero,
+        static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
         4>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
   }

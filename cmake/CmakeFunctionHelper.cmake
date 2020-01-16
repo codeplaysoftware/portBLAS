@@ -40,14 +40,14 @@ set(boolean_list "true" "false")
 
 # gemm_configuration(data, work_group_size, double_buffer, conflict_a, conflict_b,
 #                    cache_line_size, tir, tic, twr, twc, tlr, tlc, local_mem,
-#                    gemm_type, vector size)
+#                    gemm_type, vectorization_type, vector size)
 set(gemm_configuration_lists "")
 
 #intel GPU
 if(${TARGET} STREQUAL "INTEL_GPU")
-  set(gemm_configuration_0 "float" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "none" 4)
-  set(gemm_configuration_1 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "local" "standard" "none" 4)
-  set(gemm_configuration_2 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "none" 4)
+  set(gemm_configuration_0 "float" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "full" 4)
+  set(gemm_configuration_1 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "local" "standard" "full" 4)
+  set(gemm_configuration_2 "float" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "partial" 4)
 
   set(gemm_configuration_3 "float" 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny" "none" 4)
   set(gemm_configuration_4 "float" 16 "true" "false" "false" 64 2 2 4 4 1 1 "local" "tall_skinny" "none" 4)
@@ -57,9 +57,9 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_8 "float" 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny" "none" 4)
   set(gemm_configuration_9 "float" 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny" "none" 4)
   
-  set(gemm_configuration_10 "double" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "none" 4)
-  set(gemm_configuration_11 "double" 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard" "none" 4)
-  set(gemm_configuration_12 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "none" 4)
+  set(gemm_configuration_10 "double" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "full" 4)
+  set(gemm_configuration_11 "double" 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard" "full" 4)
+  set(gemm_configuration_12 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "partial" 4)
 
   set(gemm_configuration_13 "double" 16 "true" "false" "false" 64 1 1 4 4 1 1 "local" "tall_skinny" "none" 4)
   set(gemm_configuration_14 "double" 16 "true" "false" "false" 64 2 2 4 4 1 1 "local" "tall_skinny" "none" 4)
@@ -99,20 +99,20 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   endif()
 elseif(${TARGET} STREQUAL "RCAR") # need investigation
 
-  set(gemm_configuration_0 "float" 32 "false" "false" "false" 128 4 8 8 4 1 1 "local" "standard" "none" 4)
-  set(gemm_configuration_1 "float" 32 "false" "false" "false" 128 8 4 4 8 1 1 "local" "standard" "none" 4)
+  set(gemm_configuration_0 "float" 32 "false" "false" "false" 128 4 8 8 4 1 1 "local" "standard" "full" 4)
+  set(gemm_configuration_1 "float" 32 "false" "false" "false" 128 8 4 4 8 1 1 "local" "standard" "full" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1)
 elseif(${TARGET} STREQUAL "ARM_GPU")
-  set(gemm_configuration_0 "float" 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local" "standard" "none" 4)
-  set(gemm_configuration_1 "float" 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local" "standard" "none" 4)
-  set(gemm_configuration_2 "float" 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local" "standard" "none" 4)
+  set(gemm_configuration_0 "float" 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local" "standard" "partial" 4)
+  set(gemm_configuration_1 "float" 128 "false" "false" "false" 64 4 8 16 8 1 1 "no_local" "standard" "partial" 4)
+  set(gemm_configuration_2 "float" 32 "false" "false" "false" 64 8 4 4 8 1 1 "no_local" "standard" "partial" 4)
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
-  set(gemm_configuration_0 "float" 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" "none" 1)
-  set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" "none" 2)
+  set(gemm_configuration_0 "float" 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" "full" 1)
+  set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" "full" 2)
 
   set(gemm_configuration_2 "float" 256 "true" "true" "true" 64 1 1 16 16 1 1 "local" "tall_skinny" "none" 2)
   set(gemm_configuration_3 "float" 256 "true" "true" "true" 64 2 2 16 16 1 1 "local" "tall_skinny" "none" 2)
@@ -120,8 +120,8 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_5 "float" 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny" "none" 2)
   set(gemm_configuration_6 "float" 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny" "none" 2)
   
-  set(gemm_configuration_7 "double" 256 "false" "false" "false" 64 1 1 8 8 1 1 "local" "standard" "none" 1)
-  set(gemm_configuration_8 "double" 256 "false" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "none" 2)
+  set(gemm_configuration_7 "double" 256 "false" "false" "false" 64 1 1 8 8 1 1 "local" "standard" "full" 1)
+  set(gemm_configuration_8 "double" 256 "false" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "full" 2)
 
   set(gemm_configuration_9 "double" 256 "true" "true" "true" 64 1 1 8 8 1 1 "local" "tall_skinny" "none" 2)
   set(gemm_configuration_10 "double" 256 "true" "true" "true" 64 2 2 8 8 1 1 "local" "tall_skinny" "none" 2)
@@ -156,9 +156,9 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   endif()
 else() # default cpu backend
   set(gemm_configuration_0 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive" "none" 1)
-  set(gemm_configuration_1 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "none" 1)
+  set(gemm_configuration_1 "float"  64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "partial" 1)
   set(gemm_configuration_2 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "naive" "none" 1)
-  set(gemm_configuration_3 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "none" 1)
+  set(gemm_configuration_3 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "partial" 1)
 
   if(NAIVE_GEMM)
     list(APPEND gemm_configuration_lists gemm_configuration_0)
