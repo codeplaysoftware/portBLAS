@@ -184,6 +184,15 @@ class Gemm {
   index_t ldb_;
   index_t ldc_;
   index_t batch_size_;
+
+  // Reject GEMM configurations which do not have a partial specialization and
+  // thus would default to the naive implementation. If GemmAlgorithm is set to
+  // naive then we know that naive was intentionally selected, otherwise it must
+  // be an invalid configuration.
+  static_assert(static_cast<gemm_algorithm_t>(GemmAlgorithm) ==
+                    gemm_algorithm_t::naive,
+                "Invalid GEMM configuration options, this would cause the "
+                "naive implementation to be selected");
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
        index_t batch_size);
   static std::string get_type_string() noexcept;

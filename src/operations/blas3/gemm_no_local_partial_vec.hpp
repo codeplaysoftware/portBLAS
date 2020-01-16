@@ -18,7 +18,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_no_local.hpp
+ *  @filename gemm_no_local_partial_vec.hpp
  *
  **************************************************************************/
 
@@ -31,25 +31,25 @@
 namespace blas {
 
 /*!
- * @brief NoLocalGemmFactory is a template class whose instantiations provide
- *        different implementations of the GEMM kernel where the is no
- * local memory available on the device.
+ * @brief This partial specialization of the Gemm class is a partially
+ * vectorized, no local memory kernel. It can only vectorize loading of A when A
+ * is not transposed and vice-versa for B, only vectorizing when it is
+ * transposed. The kernel thus provides best performance when only B is
+ * transposed, however its performance even when vectorization is disabled is
+ * equal to or better than the previous no_local kernel which included no
+ * vectorization.
  *
- * To use the function, each item of a kernel dispatched with an nd_range given
- * by NoLocalGemmFactory::get_nd_range() should call eval().
  *
- * @tparam ClSize  the size of the cache line of the architecture
- *                 This parameter has been reserved for further optimisation
- *                 (If the value passed in is smaller than the actual cache
- *                 line size, some values fetched will be wasted, which can
- *                 significantly reduce performance. It can be set to a
- *                 multiple of the physical cache line size. In this case, it
- *                 will significantly increase local memory usage, but
- *                 will result in fewer local barriers.)
+ * @tparam ClSize  the size of the cache line of the architecture. This
+ * parameter is not used in this kernel.
  * @tparam TileType  determines the size of the local, work group, and top
  *                   level tiles to use, see Tile
- * @tparam TransA  iff true, matrix A will be transposed on the fly
- * @tparam TransB  iff true, matrix B will be transposed on the fly
+ * @tparam NbcA Used to control bank conflict mitigation for A, not used in this
+ * kernel.
+ * @tparam NbcB Used to control bank conflict mitigation for B, not used in this
+ * kernel.
+ * @tparam TransA  if true, matrix A will be transposed on the fly
+ * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -562,4 +562,4 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_NO_LOCAL_GEMM_HPP
+#endif  // SYCL_BLAS_BLAS3_NO_LOCAL_PARTIAL_VEC_GEMM_HPP
