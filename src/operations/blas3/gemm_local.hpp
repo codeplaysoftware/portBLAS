@@ -231,7 +231,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
                              const cl::sycl::nd_item<1> &id) noexcept {
-    printf("local memory full vec\n");
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     index_t k = a_.get_size_col();
