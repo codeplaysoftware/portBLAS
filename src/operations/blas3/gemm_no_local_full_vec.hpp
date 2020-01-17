@@ -78,10 +78,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   static constexpr index_t block_rows = wg_rows * item_rows;
   /*! @brief Number of columns within a work-group level tile */
   static constexpr index_t block_cols = wg_cols * item_cols;
-  /*! @brief A boolean parameter represents wheather or not matrix A is
+  /*! @brief A boolean parameter represents whether or not matrix A is
    * transposed */
   static constexpr bool trans_a = TransA;
-  /*! @brief A boolean parameter represents wheather or not matrix B is
+  /*! @brief A boolean parameter represents whether or not matrix B is
    * transposed */
   static constexpr bool trans_b = TransB;
 
@@ -125,7 +125,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     return str.str();
   }
   /*!
-   *@brief gt_workgroup_cluster. This function is used to find the optimum
+   *@brief get_workgroup_cluster. This function is used to find the optimum
    *number of work_group required to execute each GEMM.
    *
    */
