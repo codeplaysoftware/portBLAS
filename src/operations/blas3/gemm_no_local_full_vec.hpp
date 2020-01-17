@@ -235,8 +235,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     m -= local_item_id_row + wg_row;
     n -= local_item_id_col + wg_col;
     /*
-     * The ma and nb are used to adjust the start position of each work-item for
-     * A, B and C matrices.
+     * The dim_m_a_start and dim_n_b_start are used to adjust the start position
+     * of each work-item for A, B and C matrices.
      */
     const index_t dim_m_a_start = (local_item_id_row + wg_row);
     const index_t dim_n_b_start = (local_item_id_col + wg_col);
@@ -294,7 +294,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   }
   /** @brief If beta is not zero then this function will load in values from C,
   multiply them by the beta value and store them in the results register. If
-  beta is zero then this function does nothing. */
+  beta is zero then this function sets the values in the results array to 0 */
   template <bool need_check_boundary, index_t packet_size,
             typename InputPointerType, typename CheckBoundaryType,
             bool beta_zero = is_beta_zero>
