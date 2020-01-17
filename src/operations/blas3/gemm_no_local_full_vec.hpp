@@ -482,11 +482,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
 #pragma unroll
     for (int j = 0; j < packet_size; j++) {
+      index_t ofs = 0;
+      index_t col_ofs = 0;
 #pragma unroll
       for (int i = 0; i < item_cols / packet_size; i++) {
-        const index_t ofs = i * B_ptr_index;
-        const index_t col_ofs = i * (trans_b ? packet_size : 1) * wg_cols;
-
         /*
          * Loading a corresponding partial block of matrix B into reg_b
          */
@@ -501,6 +500,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
          */
 
         compute_block_gemm_no_shared<packet_size>(i + j, reg_a, reg_b, reg_res);
+
+        ofs += B_ptr_index;
+        col_ofs += (trans_b ? packet_size : 1) * wg_cols;
       }
       B += ldb * (trans_b ? 1 : wg_cols);
     }
