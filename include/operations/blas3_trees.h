@@ -188,9 +188,13 @@ class Gemm {
   // Reject GEMM configurations which do not have a partial specialization and
   // thus would default to the naive implementation. If GemmAlgorithm is set to
   // naive then we know that naive was intentionally selected, otherwise it must
-  // be an invalid configuration.
+  // be an invalid configuration. An exception is when the algorithm is tall
+  // skinny this assert must pass, as the tall skinny code uses this GEMM as a
+  // wrapper and does not actually call it.
   static_assert(static_cast<gemm_algorithm_t>(GemmAlgorithm) ==
-                    gemm_algorithm_t::naive,
+                        gemm_algorithm_t::naive ||
+                    static_cast<gemm_algorithm_t>(GemmAlgorithm) ==
+                        gemm_algorithm_t::tall_skinny,
                 "Invalid GEMM configuration options, this would cause the "
                 "naive implementation to be selected");
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
