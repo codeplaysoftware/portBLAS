@@ -115,13 +115,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         batch_size_(batch_size) {}
 
   /*!
-   * @brief Get the type of this NoLocalGemmFactory as a human readable string.
+   * @brief Get the type of this Gemm as a human readable string.
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
-    str << "NoLocalGemmFactory<" << ClSize << ", "
-        << tile_type::get_type_string() << ", "
-        << type_string<value_t>::get_value() << ">";
+    str << "Gemm<" << ClSize << ", " << tile_type::get_type_string() << ", "
+        << type_string<value_t>::get_value() << ", "
+        << "Vectorize Type: full, Vector Size: " << VectorSize << ">";
     return str.str();
   }
   /*!
