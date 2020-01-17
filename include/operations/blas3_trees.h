@@ -43,6 +43,13 @@ enum class gemm_memory_t : int { local = 0, no_local = 1 };
  * algorithms, or tall_skinny for tall and skinny matrices
  */
 enum class gemm_algorithm_t : int { naive = 0, standard = 1, tall_skinny = 2 };
+/*!
+ * @brief Indicates which vectorization approach to use.
+ * none: No vectorization is used.
+ * partial: vectorization is used but not in all cases.
+ * full: vectorization is used wherever possible.
+ */
+enum class gemm_vectorization_t : int { none = 0, partial = 1, full = 2 };
 
 /*!
  * @brief The Tile structure determines the tiling configuration of a gemm
@@ -156,7 +163,7 @@ struct Tile {
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int VectorSize>
+          int GemmAlgorithm, int GemmVectorization, int VectorSize>
 class Gemm {
  public:
   using value_t = element_t;
@@ -177,6 +184,15 @@ class Gemm {
   index_t ldb_;
   index_t ldc_;
   index_t batch_size_;
+
+  // Reject GEMM configurations which do not have a partial specialization and
+  // thus would default to the naive implementation. If GemmAlgorithm is set to
+  // naive then we know that naive was intentionally selected, otherwise it must
+  // be an invalid configuration.
+  static_assert(static_cast<gemm_algorithm_t>(GemmAlgorithm) ==
+                    gemm_algorithm_t::naive,
+                "Invalid GEMM configuration options, this would cause the "
+                "naive implementation to be selected");
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
        index_t batch_size);
   static std::string get_type_string() noexcept;
@@ -205,18 +221,18 @@ class GemmPartial {};
  */
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int GemmMemoryType,
-          int GemmAlgorithm, bool is_beta_zero, int VectorSize,
-          typename input_t, typename output_t, typename element_t,
-          typename index_t>
+          int GemmAlgorithm, int GemmVectorization, bool is_beta_zero,
+          int VectorSize, typename input_t, typename output_t,
+          typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-            GemmAlgorithm, VectorSize>
+            GemmAlgorithm, GemmVectorization, VectorSize>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-              GemmAlgorithm, VectorSize>(buffer_a, buffer_b, buffer_c,
-                                                  alpha, beta, batch_size);
+              GemmAlgorithm, GemmVectorization, VectorSize>(
+      buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
 }
 
 }  // namespace blas

@@ -29,10 +29,6 @@
 #include "gemm_load_store.hpp"
 
 namespace blas {
-#define SHOULD_PRINT
-#define ID_TO_PRINT 0
-#define WG_TO_PRINT 0
-// Vectorization stuff
 
 /*!
  * @brief GemmFactory is a template class whose instantiations provide
@@ -73,13 +69,14 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::standard), VectorSize> {
+           static_cast<int>(gemm_algorithm_t::standard),
+           static_cast<int>(gemm_vectorization_t::full), VectorSize> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
-  using packetize_t = Packetize<VectorSize, value_t>;
-  using vector_t = typename packetize_t::PacketType;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
+  using packetize_t = Packetize<VectorSize, value_t, index_t>;
+  using vector_t = typename packetize_t::PacketType;
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
@@ -605,7 +602,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               in_col((item_id * multiplier / rows), col_ofs));
 
       packetize_t::template load<trans, internal, lds>(
-          in_range, ptr, col_ofs * ld, scratch, col_ofs * lds,
+          in_range, ptr + col_ofs * ld, scratch + col_ofs * lds,
           [&](const index_t &ofs) {
             return in_row((item_id * multiplier) % rows, ofs) &&
                    in_col((item_id * multiplier) / rows, col_ofs);
@@ -633,7 +630,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                 (item_id * multiplier) % cols, multiplier - 1));
 
       packetize_t::template load<trans, internal, lds>(
-          in_range, ptr, row_ofs * ld, scratch, row_ofs,
+          in_range, ptr + row_ofs * ld, scratch + row_ofs,
           [&](const index_t &ofs) SYCL_BLAS_ALWAYS_INLINE {
             return in_col((item_id * multiplier) % cols, ofs) &&
                    in_row((item_id * multiplier) / cols, row_ofs);
