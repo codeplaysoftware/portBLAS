@@ -56,7 +56,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   set(gemm_configuration_7 "float" 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" "none" 4)
   set(gemm_configuration_8 "float" 32 "true" "true" "true" 64 2 1 8 4 1 1 "local" "tall_skinny" "none" 4)
   set(gemm_configuration_9 "float" 32 "true" "true" "true" 64 2 2 8 4 1 1 "local" "tall_skinny" "none" 4)
-  
+
   set(gemm_configuration_10 "double" 64 "true" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "full" 4)
   set(gemm_configuration_11 "double" 64 "true" "false" "false" 64 8 8 8 8 1 1 "local" "standard" "full" 4)
   set(gemm_configuration_12 "double" 64 "false" "false" "false" 64 8 8 8 8 1 1 "no_local" "standard" "partial" 4)
@@ -110,6 +110,15 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
 
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2)
+elseif(${TARGET} STREQUAL "POWER_VR")
+  set(gemm_configuration_0 "float" 96 "true" "false" "false" 16 4 6 12 8 1 1 "local" "standard" "full" 1)
+  set(gemm_configuration_1 "float" 64 "false" "false" "false" 128 1 1 8 8 1 1 "local" "standard" "full" 1)
+  set(gemm_configuration_2 "float" 64 "false" "false" "false" 64 4 4 8 8 1 1 "no_local" "standard" "full" 1)
+  set(gemm_configuration_3 "float" 128 "false" "false" "false" 16 4 8 16 8 1 1 "local" "standard" "full" 1)
+  set(gemm_configuration_4 "float" 64 "false" "false" "false" 32 4 4 8 8 1 1 "local" "standard" "full" 1)
+  list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
+                                    gemm_configuration_2 gemm_configuration_3
+                                    gemm_configuration_4)
 elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_0 "float" 256 "false" "false" "false" 64 1 1 16 16 1 1 "local" "standard" "full" 1)
   set(gemm_configuration_1 "float" 256 "false" "false" "false" 64 4 4 16 16 1 1 "local" "standard" "full" 2)
@@ -119,7 +128,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(gemm_configuration_4 "float" 256 "true" "true" "true" 64 4 4 16 16 1 1 "local" "tall_skinny" "none" 2)
   set(gemm_configuration_5 "float" 256 "true" "true" "true" 64 1 4 16 16 1 1 "local" "tall_skinny" "none" 2)
   set(gemm_configuration_6 "float" 256 "true" "true" "true" 64 4 1 16 16 1 1 "local" "tall_skinny" "none" 2)
-  
+
   set(gemm_configuration_7 "double" 256 "false" "false" "false" 64 1 1 8 8 1 1 "local" "standard" "full" 1)
   set(gemm_configuration_8 "double" 256 "false" "false" "false" 64 4 4 8 8 1 1 "local" "standard" "full" 2)
 
@@ -188,6 +197,8 @@ function(set_target_compile_def in_target)
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
   elseif(${TARGET} STREQUAL "ARM_GPU")
     target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
+  elseif(${TARGET} STREQUAL "POWER_VR")
+    target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
