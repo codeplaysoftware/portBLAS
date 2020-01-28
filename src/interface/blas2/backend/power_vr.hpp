@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 #ifndef SYCL_BLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
-#define SYCL_BLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
+#define SYCL_BLAS_GEMV_POWER_VR_BACKEND_HPP
 #include "interface/blas2_interface.h"
 
 namespace blas {
