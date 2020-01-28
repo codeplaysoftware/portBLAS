@@ -83,6 +83,12 @@ set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CBLAS_INCLUDE})
 
+if(IMGDNN_DIR)
+  add_definitions(-DIMGDNN_LIBRARY)
+  find_package(IMGDNN REQUIRED)
+  list(APPEND THIRD_PARTIES_INCLUDE ${IMGDNN_INCLUDE_DIRS})
+endif()
+
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
@@ -104,6 +110,9 @@ set_target_properties(sycl_blas PROPERTIES
   INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
   INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE}"
 )
+if(IMGDNN_DIR)
+  target_link_libraries(sycl_blas PUBLIC IMGDNN::IMGDNN)
+endif()
 
 include(GNUInstallDirs)
 install(TARGETS sycl_blas

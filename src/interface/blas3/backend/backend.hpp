@@ -30,6 +30,8 @@
 #include "interface/blas3/backend/amd_gpu.hpp"
 #elif ARM_GPU
 #include "interface/blas3/backend/arm_gpu.hpp"
+#elif POWER_VR
+#include "interface/blas3/backend/power_vr.hpp"
 #else
 #include "interface/blas3/backend/default_cpu.hpp"
 #endif
