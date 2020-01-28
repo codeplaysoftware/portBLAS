@@ -62,7 +62,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_transposed, int cache_line_size,
           int work_per_thread>
 struct Gemv {
-  using value_t = typename vector_t::value_t;
+  using value_t = typename std::remove_cv<typename vector_t::value_t>::type;
   using index_t = typename vector_t::index_t;
   lhs_t lhs_;
   matrix_t matrix_a_;
