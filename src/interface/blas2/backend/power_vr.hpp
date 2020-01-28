@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename default_cpu.hpp
+ *  @filename power_vr.hpp
  *
  **************************************************************************/
 #ifndef SYCL_BLAS_GEMV_DEFAULT_CPU_BACKEND_HPP
