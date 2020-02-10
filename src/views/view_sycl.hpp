@@ -34,12 +34,6 @@
 
 namespace blas {
 
-template <typename ViewScalarT, typename view_index_t,
-          typename view_increment_t>
-struct VectorView<
-    ViewScalarT,
-    typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
-    view_index_t, view_increment_t>;
 /*!
  * @brief View of a vector with an accessor.
  * @tparam scalar_t Value type of accessor.
@@ -51,31 +45,46 @@ struct VectorView<
     typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
     view_index_t, view_increment_t> {
   using scalar_t = ViewScalarT;
+  using value_t = scalar_t;
   using index_t = view_index_t;
   using increment_t = view_increment_t;
   using container_t =
       typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
   using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
-  container_t data_;
-  const index_t size_;
-  const index_t disp_;
-  const increment_t strd_;  // never size_t, because it could be negative
-  cl::sycl::global_ptr<scalar_t>
-      ptr_;  // global pointer access inside the kernel
-  using value_t = scalar_t;
 
-  // This function is used for calculating the size of the data from the
-  // container size, based on the stride value, when the size is not passed as
-  // an input parameter. Using this function it is possible to set the size from
-  // the constructor and make it to be const, so better optimisation will be
-  // provisded by compiler when it passes to the kernel.
-  static SYCL_BLAS_INLINE const index_t
-  calculate_input_data_size(container_t &data, index_t disp, increment_t strd,
+  // Accessor to the data containing the vector values.
+  container_t data_;
+
+  // Number of elements in the vector that will be read.
+  const index_t size_;
+
+  // Number of elements offset into the data buffer to start reading from.
+  const index_t disp_;
+
+  // Stride between data elements in memory.
+  // If negative the data is read backwards, from
+  //     data_.get_pointer() + (-size_ + 1) * stride_ + 1
+  // up to
+  //     data_.get_pointer()
+  const increment_t stride_;
+
+  // global pointer access inside the kernel
+  cl::sycl::global_ptr<scalar_t> ptr_;
+
+  // Round up the ration num / den, i.e. compute ceil(num / den)
+  static SYCL_BLAS_INLINE index_t round_up_ratio(index_t num, index_t den) {
+    return (num + den - 1) / den;
+  }
+
+  // Compute the number of elements to read from data. This is useful when a
+  // VectorView is created without an explicit size, so that only the necessary
+  // number of threads are launched.
+  static SYCL_BLAS_INLINE index_t
+  calculate_input_data_size(container_t &data, index_t disp, increment_t stride,
                             index_t size) noexcept {
-    const index_t sz = (strd > 0)
-                           ? (((data.get_size() - disp) + strd - 1) / strd)
-                           : ((disp + (-strd)) / (-strd));
-    return (size < sz) ? size : sz;
+    increment_t const positive_stride = stride < 0 ? -stride : stride;
+    index_t const calc_size = round_up_ratio(data.get_count(), positive_stride);
+    return std::min(size, calc_size);
   }
 
   /*!
@@ -86,7 +95,7 @@ struct VectorView<
       : data_{data},
         size_(calculate_input_data_size(data, disp, strd, size)),
         disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
-        strd_(strd) {}
+        stride_(strd) {}
 
   /*!
    * @brief See VectorView.
@@ -141,19 +150,19 @@ struct VectorView<
   /*!
    * @brief See VectorView.
    */
-  SYCL_BLAS_INLINE increment_t get_stride() const { return strd_; }
+  SYCL_BLAS_INLINE increment_t get_stride() const { return stride_; }
 
   /**** EVALUATING ****/
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
       index_t i) {
-    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
+    return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
       index_t i) const {
-    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
+    return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
   }
 
   SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
