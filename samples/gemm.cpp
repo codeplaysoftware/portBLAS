@@ -14,12 +14,12 @@ int main(int argc, char** argv) {
   /* Arguments of the Gemm operation.
    * Note: these matrix dimensions are too small to get a performance gain by
    * using SYCL-BLAS, but they are convenient for this sample */
-  const size_t m = 7;
-  const size_t k = 9;
-  const size_t n = 5;
-  const size_t lda = 12;
-  const size_t ldb = 17;
-  const size_t ldc = 10;
+  const int m = 7;
+  const int k = 9;
+  const int n = 5;
+  const int lda = 12;
+  const int ldb = 17;
+  const int ldc = 10;
   const float alpha = 1.5;
   const float beta = 0.5;
 

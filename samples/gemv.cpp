@@ -14,17 +14,17 @@ int main(int argc, char** argv) {
   /* Arguments of the Gemm operation.
    * Note: these matrix dimensions are too small to get a performance gain by
    * using SYCL-BLAS, but they are convenient for this sample */
-  const size_t m = 7;
-  const size_t n = 7;
-  const size_t lda = 12;
-  const size_t incx = 2;
-  const size_t incy = 3;
+  const int m = 7;
+  const int n = 7;
+  const int lda = 12;
+  const int incx = 2;
+  const int incy = 3;
   const float alpha = 1.5;
   const float beta = 0.5;
 
   /* Create the matrix and vectors */
-  const size_t lx = (n - 1) * incx + 1;
-  const size_t ly = (m - 1) * incy + 1;
+  const int lx = (n - 1) * incx + 1;
+  const int ly = (m - 1) * incy + 1;
   std::vector<float> A = std::vector<float>(lda * n);
   std::vector<float> X = std::vector<float>(lx);
   std::vector<float> Y = std::vector<float>(ly);
