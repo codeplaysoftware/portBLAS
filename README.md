@@ -1,5 +1,21 @@
 # SYCL-BLAS, a SYCL Basic Linear Algebra Library 
-===
+
+## Table of Contents
+
+  * [Project Description](#project-description)
+  * [Project Requirements](#project-requirements)
+  * [Supported Platforms](#supported-platforms)
+  * [Getting Started with SYCL-BLAS](#getting-started-with-sycl-blas)
+  * [Support](#support)
+  * [Basic SYCL-BLAS Concepts](#basic-sycl-blas-concepts)
+  * [API description](#api-description)
+  * [Tests and benchmarks](#tests-and-benchmarks)
+  * [CMake options](#cmake-options)
+  * [Cross-Compile](#cross-compile)
+  * [Tests and benchmarks](#tests-and-benchmarks)
+  * [Contributions](#contributions)
+
+## Project Description
 
 The SYCL-BLAS library is an implementation of the 
 [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprogram) - using [SYCL 1.2.1](
@@ -14,23 +30,18 @@ a good BLAS implementation improves the performances of all the other
 libraries.
 
 The SYCL-BLAS project is used by the [SYCL-DNN project](https://github.com/codeplaysoftware/SYCL-DNN) 
-project as a supporting library to perform some operations. SYCL-DNN is a library 
+as a supporting library to perform some operations. SYCL-DNN is a library 
 implementing neural network operations.
+
+SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation. The project is developed 
+using [ComputeCpp](https://developer.codeplay.com) on Ubuntu 16.04 using Intel CPU and Intel GPU.
+ A BLAS library, such as OpenBLAS, is also required by the project to verify the test results.
 
 SYCL-BLAS has been developed in collaboration with the 
 *High Performance Computing & Architectures (HPCA) group*
 from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
 The project is maintained by [Codeplay Software](https://developer.codeplay.com).
-
-## Project Requirements
-
-SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
-* We do not use any OpenCL interoperability so the code is pure C++.
-* The project is developed using [ComputeCpp](https://developer.codeplay.com)
- using Ubuntu 16.04 on Intel CPU and Intel GPU.
-* A BLAS library, such as OpenBLAS, is also required by the project to verify the test results
-
 
 ## Supported Platforms
 
@@ -53,8 +64,8 @@ SYCL-BLAS may also work on other hardware and platforms assuming they implement
 
 ### Building SYCL-BLAS
 
-First get OpenBLAS. Instructions on building and installing this are on 
-the [project website](https://www.openblas.net/).
+First get OpenBLAS, since this is required to verify the test results. Instructions 
+on building and installing this are on the [project website](https://www.openblas.net/).
 
 ```bash
 git clone https://github.com/xianyi/OpenBLAS.git
