@@ -127,7 +127,7 @@ SYCL-BLAS (which will be used as a header-only framework).
 mkdir build
 cd build
 cmake .. -DComputeCpp_DIR=/path/to/computecpp \
-                 -DSyclBLAS_DIR=~/path/to/syclblas
+                 -DSyclBLAS_DIR=/path/to/syclblas
 make
 ```
 
