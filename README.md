@@ -415,5 +415,5 @@ The tests and benchmarks have their own documentation:
 
 ## Contributions
 
-Please see the file CONTRIBUTING.md for further details if you would like to
+Please see the [CONTRIBUTING file](CONTRIBUTING.md) for further details if you would like to
 contribute code, build systems, bug fixes or similar.
