@@ -1,89 +1,162 @@
-SYCL-BLAS Implementation
+# SYCL-BLAS, a SYCL Basic Linear Algebra Library 
 ===
 
-SYCL-BLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprogram) - using [SYCL 1.2](
-https://www.khronos.org/registry/sycl/specs/sycl-1.2.pdf), the
-[Khronos](http://www.khronos.org) abstraction layer for [OpenCL](https://www.khronos.org/opencl/).
+The SYCL-BLAS library is an implementation of the 
+[Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprogram) - using [SYCL 1.2.1](
+https://www.khronos.org/registry/sycl/specs/sycl-1.2.1.pdf) and is written 
+using C++11 features.
 
-SYCL-BLAS is a current work in progress research project from an ongoing
-collaboration with the *High Performance Computing & Architectures (HPCA) group*
+BLAS operations are being used to solve many complex problems in a range of areas 
+including science, imaging and AI.
+
+BLAS is always the lowest level in the hierarchy of numerical libraries, such that
+a good BLAS implementation improves the performances of all the other
+libraries.
+
+The SYCL-BLAS project is used by the [SYCL-DNN project](https://github.com/codeplaysoftware/SYCL-DNN) 
+project as a supporting library to perform some operations. SYCL-DNN is a library 
+implementing neural network operations.
+
+SYCL-BLAS has been developed in collaboration with the 
+*High Performance Computing & Architectures (HPCA) group*
 from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
-SYCL-BLAS is written using modern C++. The current implementation uses C++11
-features.
-See [Roadmap](Roadmap.md) for details on the current status and plans for
-the project.
+The project is maintained by [Codeplay Software](https://developer.codeplay.com).
 
-## Table of Contents
+## Project Requirements
 
-  * [Motivation](#motivation)
-  * [Basic Concepts](#basic-concepts)
-    * [Views](#views)
-    * [Operations](#operations)
-    * [Executors](#executors)
-    * [Interface](#interface)
-  * [API description](#api-description)
-    * [BLAS 1](#blas-1)
-    * [BLAS 2](#blas-2)
-    * [BLAS 3](#blas-3)
-  * [Requirements](#requirements)
-  * [Setup](#setup)
-    * [How to compile](#how-to-compile)
-    * [CMake options](#cmake-options)
-    * [Cross-Compile](#cross-compile)
-  * [Tests and benchmarks](#tests-and-benchmarks)
-  * [Contributing to the project](#contributing-to-the-project)
+SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
+* We do not use any OpenCL interoperability so the code is pure C++.
+* The project is developed using [ComputeCpp](https://developer.codeplay.com)
+ using Ubuntu 16.04 on Intel CPU and Intel GPU.
+* A BLAS library, such as OpenBLAS, is also required by the project to verify the test results
 
-## Motivation
 
-The same numerical operations are computed to solve many scientific problems
-and engineering applications, such as image and signal processing,
-telecommunication, computational finance, materials science simulations,
-structural biology, data mining, bio-informatics, fluid dynamics, and many other
-areas. Thus, it was identified that around the 90% percent of the computational
-cost is consumed on the 10% of the code, and therefore any improvement in this
-10% of code would have a great impact in the performances of the applications.
-Numerical Linear Algebra is the science area in charge of identifying the most
-common operations and seeking their best implementation. To do this, the
-researchers should consider the numerical stability of the selected algorithm,
-and the platform on which the operation will be solved. The first analysis
-studies the accuracy of the solution while the second one compares the
-performances of the different implementations to select the best one.
+## Supported Platforms
 
-Nowadays, all the numerical computations are based on a set of standard
-libraries on which the most common operations are implemented. These libraries
-are different for dense matrices (BLAS, LAPACK, ScaLAPACK, ...) and for sparse
-matrices (SparseBLAS, ...). Moreover, there are  vendor implementations which
-are adjusted to the platform features:
-  - For multicores: ACML (AMD), ATLAS, Intel-MKL, OpenBLAS, ...
-  - For GPUs: cuBLAS (Nvidia), clBLAS, CLBlast, MAGMA, ...
+The master branch of SYCL-BLAS is regularly tested with the "Supported" hardware 
+listed on [the ComputeCpp Supported Platforms page](https://developer.codeplay.com/products/computecpp/ce/guides/platform-support).
 
-But, in any case, BLAS is always the lowest level in the hierarchy
-of numerical libraries, such that
-a good BLAS implementation improves the performances of all the other
-libraries.  The development of numerical libraries on SYCL is one of the most
-important objectives, because it will improve the performance of other SYCL
-applications. Obviously, it makes sense SYCL-BLAS was the first step in this
-task.
+SYCL-BLAS may also work on other hardware and platforms assuming they implement 
+ SPIR or SPIR-V support.
 
-On GPUs, the data communication to/from the device and the grain of the kernels
-play an important rule on the performances of the developments. On one
-hand, to reduce the communication cost, the most of the data should be mapped
-on the device, even the scalars. On the other hand, growing the size of the
-kernels allows the CPU to complete other tasks while the GPU is computing or to
-enter an energy-efficient C-state, reducing the energy consumption.
+## Getting Started with SYCL-BLAS
 
-To enlarge the grain of the kernels is a complex task, in which many aspects
-should be considered as the dependency between kernels, the grid topology, the
-grid sizes, etc. This complexity justifies that, usually, the fused kernels are
-manually written. An alternative to simplify this task could be to build a
-expression tree on which all the single operation which are required to solve a
-problem appears. This structure could be analysed by the compiler to decide how
-to merge the different kernel and the best grid topology to execute the fused
-kernel.  The use of expression trees is one of most important features of
-SYCL-BLAS.
+### Pre-requisites
 
-## Basic Concepts
+* CMake (version 3.4.2 and above)
+* OpenCL 1.2-capable hardware and drivers with SPIR 1.2 or SPIR-V support
+* OpenCL ICD Loader
+* OpenCL headers
+* gcc (version 5.4 and above)
+* [ComputeCpp](https://developer.codeplay.com)
+
+### Building SYCL-BLAS
+
+First get OpenBLAS. Instructions on building and installing this are on 
+the [project website](https://www.openblas.net/).
+
+```bash
+git clone https://github.com/xianyi/OpenBLAS.git
+make
+make install
+```
+
+SYCL-BLAS uses CMake as its build system. All the configuration options 
+can be found in the main CMakeLists.txt for the project and will show 
+up in CMake GUI if you use it.
+
+You will need to provide the location of the ComputeCpp install you are
+using with the variable `ComputeCpp_DIR`. It should point to the folder
+where `bin/`, `lib/` etc. are. This should be the only argument that is
+mandatory, everything else should be optional. The default build type is
+Release, though this can be overridden.
+
+The following command shows how to compile SYCL-BLAS. If you have installed OpenBLAS 
+in a different location adapt the path
+
+* set `ComputeCpp_DIR` to the ComputeCpp root path
+
+You may also need to tell CMake where to find the OpenBLAS binaries using the 
+```-DCMAKE_PREFIX_PATH=/opt/OpenBLAS``` argument
+
+```bash
+git clone --recursive  https://github.com/codeplaysoftware/sycl-blas.git
+mkdir build && cd build
+cmake ../ -DComputeCpp_DIR=/path/to/computecpp
+make
+```
+
+To install the SYCL-BLAS library
+
+```bash
+make install
+```
+
+Doxygen documentation can be generated by running:
+
+```bash
+doxygen doc/Doxyfile
+```
+
+### Sample Code
+
+The "samples" directory contains some sample code using SYCL-BLAS 
+ to implement GEMM and GEMV operations.
+
+#### How to compile and run the samples
+
+The "samples" folder contains a basic CMake configuration file and a module to find
+SYCL-BLAS (which will be used as a header-only framework).
+
+* set `ComputeCpp_DIR` to the ComputeCpp root path
+* set `SyclBLAS_DIR` to the SYCL-BLAS project root path
+
+```bash
+mkdir build
+cd build
+cmake .. -DComputeCpp_DIR=/path/to/computecpp \
+                 -DSyclBLAS_DIR=~/path/to/syclblas
+make
+```
+
+Execute the samples using the following commands
+```bash
+./gemm
+```
+
+or
+
+```bash
+./gemv
+```
+
+## Support
+
+### Bug reports and Issues
+
+Bug reports are vital to provide feedback to the developers about what is going
+wrong with the project, you can raise these using the ["Issues"](https://github.com/codeplaysoftware/SYCL-BLAS/issues) 
+feature in GitHub.
+
+Please make sure that your bug report contains the following information:
+
+* A clear and descriptive title.
+
+* The output of
+  `clinfo | grep -E "Platform ID|Name|Vendor|[Vv]ersion|Profile|Extensions"`.
+
+* The output of `computecpp_info`.
+
+* The exact steps and commands to run to reproduce the bug.
+
+* The exact error text shown (if applicable), otherwise the behavior you
+  expected and what you encountered instead.
+
+* Should the problem arise outside the project's test suite then please provide
+  a minimal test to allow us to reproduce the problem.
+
+## Basic SYCL-BLAS Concepts
 
 SYCL-BLAS uses C++ Expression Tree templates to generate SYCL Kernels via
 kernel composition.
@@ -113,7 +186,7 @@ Views *do not store data*, they only map a visualization of the data on top
 of a container.
 This enables the library to implement the different indexing modes of the
 BLAS API, such as strides.
-Note than a view can be of a different size than a container.
+Note that a view can be of a different size than a container.
 
 All views derive from the base view class or the base matrix view class, which
 represents a view of a container as a vector or as a matrix.
@@ -266,61 +339,14 @@ For all these operations:
 | `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
 | `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
 
-## Requirements
+## Tests and benchmarks
 
-SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
-We do not use any OpenCL interoperability, hence, the code is pure C++.
-The project is developed using [ComputeCpp CE Edition](http://www.computecpp.com)
- using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
-In order to build the sources, GCC 5.4 or higher is required.
-The build system is CMake version 3.4.2 or higher.
-We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
-build the project.
+The tests and benchmarks have their own documentation:
 
-A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also
-required to verify the test results. Instructions for building and installing
-OpenBLAS can be found [on this
-page](https://github.com/xianyi/OpenBLAS/wiki/User-Manual). Please note that
-although some distributions may provide packages for OpenBLAS these versions are
-typically quite old and may have issues with the TRMV implementation which can
-cause random test failures. Any version of OpenBLAS `>= 0.3.0` will not suffer
-from these issues.
+- [Documentation of the tests](test/README.md)
+- [Documentation of the benchmarks](benchmark/README.md)
 
-When using OpenBLAS or any other BLAS library the installation directory must be
-added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
-[below](###cmake-options)).
-
-## Setup
-
-### How to compile
-
-1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s), such as the computecpp-sdk.
-2. Create a build directory
-3. Run `CMake` from the build directory (see options in the section below):
-
-```bash
-cd build
-cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp
-ninja
-```
-
-To install the SYCL-BLAS library (see `CMAKE_INSTALL_PREFIX` below)
-
-```bash
-ninja install
-```
-
-To enable the PowerVR backend, pass: `-DTARGET=POWER_VR`
-
-To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
-
-Doxygen documentation can be generated by running:
-
-```bash
-doxygen doc/Doxyfile
-```
-
-### CMake options
+## CMake options
 
 CMake options are given using `-D` immediately followed by the option name, the
 symbol `=` and a value (`ON` and `OFF` can be used for boolean options and are
@@ -340,7 +366,7 @@ Some of the supported options are:
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
 
 
-### Cross-Compile
+## Cross-Compile
 
 To cross-compile SYCL-BLAS first the following environment variables must be
 set:
@@ -376,10 +402,7 @@ The tests and benchmarks have their own documentation:
 - [Documentation of the tests](test/README.md)
 - [Documentation of the benchmarks](benchmark/README.md)
 
+## Contributions
 
-## Contributing to the project
-
-SYCL-BLAS is an Open Source project maintained by the HPCA group and
-Codeplay Software Ltd.
-Feel free to create an issue on the Github tracker to request features or
-report bugs.
+Please see the file CONTRIBUTING.md for further details if you would like to
+contribute code, build systems, bug fixes or similar.
