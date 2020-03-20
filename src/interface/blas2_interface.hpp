@@ -101,21 +101,28 @@ typename Executor::policy_t::event_t _gemv_impl(
     auto gemvEvent =
         ex.execute(gemv, static_cast<index_t>(local_range), global_size);
 
-    // vec_y * b
-    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
+    if (_beta != static_cast<element_t>(0)) {
+      // vec_y * b
+      auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
 
-    // alpha * vec_dot_products
-    auto alphaMulDotsOp =
-        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
+      // alpha * vec_dot_products
+      auto alphaMulDotsOp =
+          make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
 
-    // add up
-    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
+      // add up
+      auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
 
-    // assign the result back to vec_y
-    auto assignOp = make_op<Assign>(vy, addOp);
+      // assign the result back to vec_y
+      auto assignOp = make_op<Assign>(vy, addOp);
 
-    // exectutes the above expression tree to yield the final GEMV result
-    return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      // exectutes the above expression tree to yield the final GEMV result
+      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+    } else {
+      auto alphaMulDotsOp =
+          make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
+      auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
+      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+    }
 
   } else  // Local memory kernel
   {
@@ -156,20 +163,28 @@ typename Executor::policy_t::event_t _gemv_impl(
     // Sum the partial dot products results from the GEMV kernel
     auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
 
-    // vec_y * b
-    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
+    if (_beta != static_cast<element_t>(0)) {
+      // vec_y * b
+      auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
 
-    // alpha * vec_dot_products
-    auto alphaMulDotsOp = make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
+      // alpha * vec_dot_products
+      auto alphaMulDotsOp =
+          make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
 
-    // add up
-    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
+      // add up
+      auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
 
-    // assign the result back to vec_y
-    auto assignOp = make_op<Assign>(vy, addOp);
+      // assign the result back to vec_y
+      auto assignOp = make_op<Assign>(vy, addOp);
 
-    // exectutes the above expression tree to yield the final GEMV result
-    return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      // exectutes the above expression tree to yield the final GEMV result
+      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+    } else {
+      auto alphaMulDotsOp =
+          make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
+      auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
+      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+    }
   }
 }
 
