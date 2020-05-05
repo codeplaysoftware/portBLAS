@@ -37,7 +37,7 @@ namespace blas {
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          bool is_beta_zero, int VectorSize>
+          bool is_beta_zero, int VectorSize, int MiniBatchSize = 1>
 struct Gemm_Launcher {
   template <typename executor_t, typename container_0_t, typename container_1_t,
             typename container_2_t, typename element_t, typename index_t>

@@ -44,7 +44,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatch);
 
 const auto BetaNonZeroLDMultiplied =
     ::testing::Combine(::testing::Values(0),         // offset
-                       ::testing::Values(5),         // batch
+                       ::testing::Values(8),         // batch
                        ::testing::Values(63, 128),   // m
                        ::testing::Values(63, 128),   // n
                        ::testing::Values(63, 128),   // k

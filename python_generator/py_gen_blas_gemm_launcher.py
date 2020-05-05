@@ -59,6 +59,7 @@ if __name__ == '__main__':
     file_name = sys.argv[25]
     vector_size = sys.argv[26]
     gemm_vectorize_type = sys.argv[27]
+    mini_batch_size = sys.argv[28]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     if not os.path.exists(source):
@@ -170,6 +171,11 @@ if __name__ == '__main__':
         Iterable(
             key='GEMM_VECTORIZE_TYPE',
             vals=[gemm_vectorize_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='MINI_BATCH_SIZE',
+            vals=[mini_batch_size],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

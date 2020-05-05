@@ -163,7 +163,8 @@ struct Tile {
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize>
+          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          int MiniBatchSize>
 class Gemm {
  public:
   using value_t = element_t;
@@ -226,16 +227,16 @@ class GemmPartial {};
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, bool is_beta_zero,
-          int VectorSize, typename input_t, typename output_t,
-          typename element_t, typename index_t>
+          int VectorSize, int MiniBatchSize, typename input_t,
+          typename output_t, typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-            GemmAlgorithm, GemmVectorization, VectorSize>
+            GemmAlgorithm, GemmVectorization, VectorSize, MiniBatchSize>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-              GemmAlgorithm, GemmVectorization, VectorSize>(
+              GemmAlgorithm, GemmVectorization, VectorSize, MiniBatchSize>(
       buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
 }
 

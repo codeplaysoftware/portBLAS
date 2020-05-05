@@ -66,11 +66,11 @@ namespace blas {
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int VectorSize>
-class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
-           TransA, TransB, element_t, is_beta_zero,
-           static_cast<int>(gemm_memory_t::local),
-           static_cast<int>(gemm_algorithm_t::standard),
-           static_cast<int>(gemm_vectorization_t::full), VectorSize> {
+class Gemm<
+    input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType, TransA,
+    TransB, element_t, is_beta_zero, static_cast<int>(gemm_memory_t::local),
+    static_cast<int>(gemm_algorithm_t::standard),
+    static_cast<int>(gemm_vectorization_t::full), VectorSize, /* MiniBatchSize= */ 1> {
  public:
   using tile_type = TileType;
   using value_t = element_t;

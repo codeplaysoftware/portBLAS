@@ -51,15 +51,19 @@ namespace blas {
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
+ * @tparam MiniBatchSize Parameter tuning how many batches are processed per
+ * block
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int VectorSize>
+          typename element_t, bool is_beta_zero, int VectorSize,
+          int MiniBatchSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
-           static_cast<int>(gemm_vectorization_t::partial), VectorSize> {
+           static_cast<int>(gemm_vectorization_t::partial), VectorSize,
+           MiniBatchSize> {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -70,6 +74,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   static constexpr index_t item_rows = tile_type::item_rows;
   /*! @brief The number of cols processed by each work item */
   static constexpr index_t item_cols = tile_type::item_cols;
+  /*! @brief The number of elements processed by each work item */
+  static constexpr index_t item_total_size = item_rows * item_cols;
   /*! @brief The number of work items in each row of work group */
   static constexpr index_t wg_rows = tile_type::wg_rows;
   /*! @brief The number of work items in each column of work group */
@@ -170,14 +176,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t ldc = c_.getSizeL();
 
     // The batch index that each workgroup should start working with
-    const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster();
+    const index_t wg_batch_id = MiniBatchSize * (id.get_group(0) / get_workgroup_cluster());
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
 
     const index_t batch_stride =
-        id.get_group_range(0) / get_workgroup_cluster();
+        MiniBatchSize * (id.get_group_range(0) / get_workgroup_cluster());
 
     const index_t a_size = trans_a ? m * lda : k * lda;
     const index_t b_size = trans_b ? ldb * k : n * ldb;
@@ -188,8 +194,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
 
     const index_t number_of_block_per_row = ((m - 1) / block_rows) + 1;
-    /* linear work group id The number of work-group required to executed each
-     * batch efficiently*/
+    /* linear work group id, the number of work-group required to execute each
+     * batch efficiently */
     const index_t wg_id = id.get_group(0) % get_workgroup_cluster();
     /* linear work item id */
     const index_t item_id = id.get_local_id(0);
@@ -326,7 +332,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
       const index_t &, CheckBoundaryType, bool) {
 #pragma unroll
-    for (index_t i = 0; i < item_cols * item_rows; ++i) {
+    for (index_t i = 0; i < item_total_size; ++i) {
       reg_res[i] = 0;
     }
   }
@@ -356,48 +362,58 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       auto B = orig_B;
       auto C = orig_C;
 
-      /* 2D register array used to store the result C*/
-      value_t reg_res[item_rows * item_cols];
-      scaling_c<need_check_boundary, a_packet_size, b_packet_size>(
-          reg_res, C, ldc, dim_m_a_start, dim_n_b_start, boundary_check_c,
-          out_of_range);
-      while (k > 0) {
-        /*
-         * Loading a corresponding block of matrix A into reg_a
-         */
-        load<item_rows, wg_rows * a_packet_size, need_check_boundary,
-             a_packet_size>(A, reg_a, A_ptr_index, dim_m_a_start,
-                            boundary_check_m, out_of_range);
+      /* 3D register array used to store the result C */
+      value_t reg_res[MiniBatchSize * item_total_size];
+#pragma unroll
+      for (int i = 0; i < MiniBatchSize; ++i) {
+        scaling_c<need_check_boundary, a_packet_size, b_packet_size>(
+            reg_res + i * item_total_size, C + i * c_size, ldc, dim_m_a_start,
+            dim_n_b_start, boundary_check_c, out_of_range);
+      }
+      do {
+#pragma unroll
+        for (int i = 0; i < MiniBatchSize; ++i) {
+          /*
+           * Loading a corresponding block of matrix A into reg_a
+           */
+          load<item_rows, wg_rows * a_packet_size, need_check_boundary,
+               a_packet_size>(A + i * a_size, reg_a, A_ptr_index, dim_m_a_start,
+                              boundary_check_m, out_of_range);
 #ifdef ARM_GPU
-        id.barrier(cl::sycl::access::fence_space::local_space);
+          id.barrier(cl::sycl::access::fence_space::local_space);
 #endif
 
-        /*
-         * Loading a corresponding block of matrix B into reg_b
-         */
-        load<item_cols, wg_cols * b_packet_size, need_check_boundary,
-             b_packet_size>(B, reg_b, B_ptr_index, dim_n_b_start,
-                            boundary_check_n, out_of_range);
+          /*
+           * Loading a corresponding block of matrix B into reg_b
+           */
+          load<item_cols, wg_cols * b_packet_size, need_check_boundary,
+               b_packet_size>(B + i * b_size, reg_b, B_ptr_index, dim_n_b_start,
+                              boundary_check_n, out_of_range);
 
-        /*
-         * Computing a the partial GEMM for the loaded block of reg_a andd
-         * reg_b and adding the result into reg_res
-         */
-        compute_block_gemm_no_shared(reg_a, reg_b, reg_res);
+          /*
+           * Computing a the partial GEMM for the loaded block of reg_a and
+           * reg_b and adding the result into reg_res
+           */
+          compute_block_gemm_no_shared(reg_a, reg_b,
+                                       reg_res + i * item_total_size);
+        }
 
         /*
          * Moving forward to the next block
          */
         --k;
-        A = A + (trans_a ? 1 : lda);
-        B = B + (trans_b ? ldb : 1);
-      }
+        A += (trans_a ? 1 : lda);
+        B += (trans_b ? ldb : 1);
+      } while (k > 0);
       /*
-       *  Storing the reg_res into C matrix
+       * Storing the reg_res into C matrix
        */
-      store<need_check_boundary, a_packet_size, b_packet_size>(
-          C, reg_res, dim_m_a_start, dim_n_b_start, boundary_check_c,
-          out_of_range, ldc);
+#pragma unroll
+      for (int i = 0; i < MiniBatchSize; ++i) {
+        store<need_check_boundary, a_packet_size, b_packet_size>(
+            C + i * c_size, reg_res + i * item_total_size, dim_m_a_start,
+            dim_n_b_start, boundary_check_c, out_of_range, ldc);
+      }
 
       orig_A += (a_size * batch_stride);
       orig_B += (b_size * batch_stride);
@@ -511,8 +527,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   }
 
   /*!
-   * @brief For each work itemThe following function store the computed block of
-   * GEMM reg_res into output matrix C
+   * @brief For each work item the following function store the computed block
+   * of GEMM reg_res into output matrix C
    * @tparam check_block: determined whether or not the requested block is
    * internal. false means no need to check the boundaries
    * @tparam a_packet_size Packet/vector size of A
