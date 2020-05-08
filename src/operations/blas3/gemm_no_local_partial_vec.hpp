@@ -527,7 +527,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   }
 
   /*!
-   * @brief For each work item the following function store the computed block
+   * @brief For each work item the following function stores the computed block
    * of GEMM reg_res into output matrix C
    * @tparam check_block: determined whether or not the requested block is
    * internal. false means no need to check the boundaries
