@@ -88,11 +88,13 @@ typename executor_t::policy_t::event_t _gemm_backend(
     // When alpha = 0, GEMM is equivalent to C = beta * C.
     if (_ldc == _M) {
       // When LDC is M, we can scale the full matrix at once.
-      return ::blas::_scal(ex, _N * _M, _beta, _C, index_t{1});
+      const auto matrix_size = _N * _M * batch_size;
+      return ::blas::_scal(ex, matrix_size, _beta, _C, index_t{1});
     } else {
       // When LDC is not M, we must scale each column of C separately.
       typename executor_t::policy_t::event_t events;
-      for (index_t i = 0; i < _N; ++i) {
+      const auto num_columns = batch_size * _N;
+      for (index_t i = 0; i < num_columns; ++i) {
         auto ev = ::blas::_scal(ex, _M, _beta, _C + i * _ldc, index_t{1});
         append_vector(events, ev);
       }
