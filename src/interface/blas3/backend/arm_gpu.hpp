@@ -36,25 +36,28 @@ typename executor_t::policy_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size) {
-  if (_M == 512 && _N == 49 && _K == 512) {
+  /* Tends to perform well for Winograd sizes (i.e. batched) */
+  if (batch_size > 1 && !_t_a) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
-        4>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
+        2>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
-  } else if (_t_a) {
+  } else if (!_t_a) {
+    /* Does well on most im2col or 1x1 convolutions, or is within 10% of
+     * best kernel. */
     return blas::Gemm_Launcher<
-        128, false, false, false, 64, Tile<4, 8, 16, 8>, _t_a, _t_b,
+        64, false, false, false, 64, Tile<4, 4, 4, 4>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
-        4>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
+        2>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _lda, _b, _ldb,
                                   _beta, _c, _ldc, batch_size);
   } else {
     return blas::Gemm_Launcher<
-        32, false, false, false, 64, Tile<8, 4, 4, 8>, _t_a, _t_b,
+        128, false, false, false, 64, Tile<4, 8, 16, 8>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero,
