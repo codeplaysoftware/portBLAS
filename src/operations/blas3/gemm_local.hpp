@@ -62,6 +62,7 @@ namespace blas {
  * @tparam element_t  type of matrix elements
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
+ * @tparam batch_type the type of batch strideded /interleaved
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
@@ -70,7 +71,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
            static_cast<int>(gemm_algorithm_t::standard),
-           static_cast<int>(gemm_vectorization_t::full), VectorSize> {
+           static_cast<int>(gemm_vectorization_t::full), VectorSize,
+           static_cast<int>(gemm_batch_type_t::strided)> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
@@ -163,10 +165,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
-    str << "GemmFactory<" << double_buffer << ", " << nbc_a << ", " << nbc_b
-        << ", " << cl_elems * sizeof(element_t) << ", "
-        << tile_type::get_type_string() << ", "
-        << type_string<value_t>::get_value() << ">";
+    str << "Gemm <" << double_buffer << ", " << nbc_a << ", " << nbc_b << ", "
+        << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
+        << ", " << type_string<value_t>::get_value() << "gemm_memory:local, "
+        << "gemm_algorithm:standard, "
+        << "gemm_vectorization:full, "
+        << "vector size" << VectorSize << ", batch_type:strided>";
     return str.str();
   }
 

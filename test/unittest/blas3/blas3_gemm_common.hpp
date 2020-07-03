@@ -23,11 +23,47 @@
  *
  **************************************************************************/
 
+#include <utility>
+
 #include "blas_test.hpp"
 
 template <typename T>
-using gemm_arguments_t =
-    std::tuple<int, int, int, int, int, char, char, T, T, int, int, int>;
+using gemm_arguments_t = std::tuple<int, int, int, int, int, char, char, T, T,
+                                    int, int, int, gemm_batch_type_t>;
+
+// Convert batch_type=strided to interleaved on the host
+template <typename scalar_t>
+inline std::vector<scalar_t> strided_to_interleaved(
+    const std::vector<scalar_t>& input, int offset, int ld_rows, int ld_cols,
+    int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int c = 0; c < ld_cols; ++c) {
+    for (int r = 0; r < ld_rows; ++r) {
+      for (int b = 0; b < batchs; ++b) {
+        output[c * ld_rows * batchs + r * batchs + b + offset] =
+            input[b * ld_cols * ld_rows + c * ld_rows + r + offset];
+      }
+    }
+  }
+  return output;
+}
+
+// Convert batch_type=interleaved to strided on the host
+template <typename scalar_t>
+inline std::vector<scalar_t> interleaved_to_strided(
+    const std::vector<scalar_t>& input, int offset, int ld_rows, int ld_cols,
+    int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int b = 0; b < batchs; ++b) {
+    for (int c = 0; c < ld_cols; ++c) {
+      for (int r = 0; r < ld_rows; ++r) {
+        output[b * ld_cols * ld_rows + c * ld_rows + r + offset] =
+            input[c * ld_rows * batchs + r * batchs + b + offset];
+      }
+    }
+  }
+  return output;
+}
 
 template <typename scalar_t>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
@@ -43,8 +79,9 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   int lda_mul;
   int ldb_mul;
   int ldc_mul;
+  gemm_batch_type_t batch_type;
   std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
-           ldb_mul, ldc_mul) = arguments;
+           ldb_mul, ldc_mul, batch_type) = arguments;
 
   const char ta_str[2] = {transa, '\0'};
   const char tb_str[2] = {transb, '\0'};
@@ -83,6 +120,14 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
                          c_m_cpu.data() + i * size_c + offset, ldc);
   }
 
+  if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
+    a_m =
+        strided_to_interleaved(a_m, offset, lda, transa == 't' ? m : k, batch);
+    b_m =
+        strided_to_interleaved(b_m, offset, ldb, transb == 't' ? k : n, batch);
+    c_m_gpu = strided_to_interleaved(c_m_gpu, offset, ldc, n, batch);
+  }
+
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_a);
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
   auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
@@ -97,12 +142,17 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
   } else {
     _gemm_batched(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-                  m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc, batch);
+                  m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc, batch,
+                  batch_type);
   }
 
   auto event =
       policy_handler.copy_to_host(m_c_gpu, c_m_gpu.data(), buffer_size_c);
   policy_handler.wait(event);
+
+  if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
+    c_m_gpu = interleaved_to_strided(c_m_gpu, offset, ldc, n, batch);
+  }
 
   ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
   ex.get_policy_handler().wait();
@@ -130,4 +180,3 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 #define GENERATE_GEMM_TEST(TESTSUITE, COMBINATION) \
   GENERATE_GEMM_FLOAT(TESTSUITE, COMBINATION);     \
   GENERATE_GEMM_DOUBLE(TESTSUITE, COMBINATION)
-

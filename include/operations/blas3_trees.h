@@ -52,6 +52,13 @@ enum class gemm_algorithm_t : int { naive = 0, standard = 1, tall_skinny = 2 };
 enum class gemm_vectorization_t : int { none = 0, partial = 1, full = 2 };
 
 /*!
+ * @brief Indicates how gemm is batched.
+ * strided: correspond to WHN data format in column major.
+ * interleaved: correspond to NWH data format in column major.
+ */
+enum class gemm_batch_type_t : int { strided = 0, interleaved = 1 };
+
+/*!
  * @brief The Tile structure determines the tiling configuration of a gemm
  *        implementation.
  *
@@ -102,12 +109,14 @@ enum class gemm_vectorization_t : int { none = 0, partial = 1, full = 2 };
  * @see Gemm
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
-          int TlRows = 1, int TlCols = 1>
+          int TlRows = 1, int TlCols = 1, int ItemBatchs = 1, int WgBatchs = 1>
 struct Tile {
   static constexpr int item_rows = ItemRows;
   static constexpr int item_cols = ItemCols;
+  static constexpr int item_batchs = ItemBatchs;
   static constexpr int wg_rows = WgRows;
   static constexpr int wg_cols = WgCols;
+  static constexpr int wg_batchs = WgBatchs;
   static constexpr int tl_rows = TlRows;
   static constexpr int tl_cols = TlCols;
   /*!
@@ -163,7 +172,8 @@ struct Tile {
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize>
+          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          int BatchType>
 class Gemm {
  public:
   using value_t = element_t;
@@ -226,16 +236,16 @@ class GemmPartial {};
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, bool is_beta_zero,
-          int VectorSize, typename input_t, typename output_t,
+          int VectorSize, int BatchType, typename input_t, typename output_t,
           typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-            GemmAlgorithm, GemmVectorization, VectorSize>
+            GemmAlgorithm, GemmVectorization, VectorSize, BatchType>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-              GemmAlgorithm, GemmVectorization, VectorSize>(
+              GemmAlgorithm, GemmVectorization, VectorSize, BatchType>(
       buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
 }
 

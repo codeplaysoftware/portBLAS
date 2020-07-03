@@ -80,12 +80,16 @@ class TestResult : public std::vector<TestResultEntry> {
 };
 
 template <bool _TransA, bool _TransB, ::blas::gemm_memory_t _MemoryMode,
-          ::blas::gemm_algorithm_t _ShapeMode>
+          ::blas::gemm_algorithm_t _ShapeMode,
+          ::blas::gemm_batch_type_t _BatchType,
+          ::blas::gemm_vectorization_t _VecType>
 struct GemmConfig {
   static constexpr auto TransA = _TransA;
   static constexpr auto TransB = _TransB;
   static constexpr auto MemoryMode = _MemoryMode;
   static constexpr auto ShapeMode = _ShapeMode;
+  static constexpr auto BatchType = _BatchType;
+  static constexpr auto VecType = _VecType;
 };
 
 template <typename element_t>

@@ -1,4 +1,16 @@
+cmake_minimum_required(VERSION 3.7)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/include)
+
+
+
+list(APPEND CMAKE_MODULE_PATH
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/Modules
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/cmake/Modules
+)
+
 
 
 find_package(OpenCL REQUIRED)
@@ -6,13 +18,40 @@ find_package(ComputeCpp REQUIRED)
 find_package(PythonInterp REQUIRED)
 find_package(SystemBLAS REQUIRED)
 
+# Setup datatypes, workgroup sizes and other options.
+# NB: This has to be included before CmakeFunctionHelper as it declares various options.
+include(ConfigureSYCLBLAS)
+
+# CmakeFunctionHelper has to be included after any options that it depends on are declared.
+# These include:
+# * TARGET
+# * GEMM_TALL_SKINNY_SUPPORT
+# * GEMM_VECTORIZATION_SUPPORT
+# * DOUBLE_SUPPORT
+# * NAIVE_GEMM
+include(CmakeFunctionHelper)
+
+# Add some performance flags to the calls to compute++.
+# NB: This must be after finding ComputeCpp
+list(APPEND COMPUTECPP_USER_FLAGS
+  -O3
+  -fsycl-split-modules=20
+  -mllvm -inline-threshold=10000
+  -Xclang -cl-mad-enable
+  # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
+  -no-serial-memop
+) 
 set(tuner_def_file ${CMAKE_CURRENT_BINARY_DIR}/generated_combinations.def)
 
 # The generator's configuration file - add any new jsons to this
 set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/default.json)
-if(${TARGET} STREQUAL "RCAR")
+if(${BACKEND_DEVICE} STREQUAL "RCAR")
   set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/rcar.json)
 endif()
+if(${BACKEND_DEVICE} STREQUAL "ARM_GPU")
+  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/arm.json)
+endif()
+
 
 add_custom_command(OUTPUT ${tuner_def_file}
   COMMAND ${PYTHON_EXECUTABLE}
@@ -29,6 +68,8 @@ set(_generator_script
   ${CMAKE_CURRENT_SOURCE_DIR}/gen/generate_combinations.py
 )
 set(_gen_src_dir ${CMAKE_CURRENT_BINARY_DIR}/gen)
+# older version of python cannot generate the dir when it does not exist
+file(MAKE_DIRECTORY ${_gen_src_dir})
 execute_process(
   COMMAND ${PYTHON_EXECUTABLE} ${_generator_script}
     ${GEN_CONFIG} --source_dir=${_gen_src_dir} --list_files
@@ -41,7 +82,6 @@ if(NOT ${_gen_src_files_exitcode} EQUAL 0)
 endif()
 
 STRING(REGEX REPLACE "\n" ";" tuner_kernel_srcs "${_gen_src_files}")
-
 add_custom_command(OUTPUT ${tuner_kernel_srcs}
   COMMAND ${PYTHON_EXECUTABLE} ${_generator_script}
     ${GEN_CONFIG} --source_dir=${_gen_src_dir}
@@ -54,8 +94,8 @@ add_library(tuner_kernel_lib ${tuner_kernel_srcs})
 target_include_directories(tuner_kernel_lib PRIVATE
   ${SYCLBLAS_INCLUDE}
   ${SYCLBLAS_SRC}
-  ${COMPUTECPP_SDK_INCLUDE}
   include/
+  ${COMPUTECPP_SDK_INCLUDE}
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_dependencies(tuner_kernel_lib tuner_generate_kernels)

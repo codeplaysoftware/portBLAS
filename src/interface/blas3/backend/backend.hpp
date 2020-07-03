@@ -22,7 +22,7 @@
  *  @filename backend.hpp
  *
  **************************************************************************/
-#ifdef RCAR
+#if RCAR
 #include "interface/blas3/backend/rcar.hpp"
 #elif INTEL_GPU
 #include "interface/blas3/backend/intel_gpu.hpp"

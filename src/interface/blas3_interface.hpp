@@ -56,9 +56,11 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
 typename executor_t::policy_t::event_t _gemm_platform_specific(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
-    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size) {
+    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size,
+    gemm_batch_type_t batch_type) {
   return blas::gemm::backend::_gemm<_t_a, _t_b, is_beta_zero>(
-      ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc, batch_size);
+      ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc, batch_size,
+      batch_type);
 }
 
 template <bool _t_a, bool _t_b, typename executor_t, typename container_0_t,
@@ -67,14 +69,15 @@ template <bool _t_a, bool _t_b, typename executor_t, typename container_0_t,
 typename executor_t::policy_t::event_t _gemm_is_beta_zero(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
-    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size) {
+    element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size,
+    gemm_batch_type_t batch_type) {
   return ((_beta == static_cast<element_t>(0))
               ? _gemm_platform_specific<_t_a, _t_b, true>(
                     ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
-                    batch_size)
+                    batch_size, batch_type)
               : _gemm_platform_specific<_t_a, _t_b, false>(
                     ex, _M, _N, _K, _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
-                    batch_size));
+                    batch_size, batch_type));
 }
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -83,7 +86,7 @@ typename executor_t::policy_t::event_t _gemm_backend(
     executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
-    index_t _ldc, index_t batch_size) {
+    index_t _ldc, index_t batch_size, gemm_batch_type_t batch_type) {
   if (_alpha == element_t{0}) {
     // When alpha = 0, GEMM is equivalent to C = beta * C.
     if (_ldc == _M) {
@@ -115,17 +118,20 @@ typename executor_t::policy_t::event_t _gemm_backend(
   bool _TrB = _TransB != 'n';
   if (_TrA && _TrB) {
     return _gemm_is_beta_zero<true, true>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
-                                          _ldb, _beta, _C, _ldc, batch_size);
+                                          _ldb, _beta, _C, _ldc, batch_size,
+                                          batch_type);
   } else if (!_TrA && _TrB) {
     return _gemm_is_beta_zero<false, true>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
-                                           _ldb, _beta, _C, _ldc, batch_size);
+                                           _ldb, _beta, _C, _ldc, batch_size,
+                                           batch_type);
   } else if (_TrA && !_TrB) {
     return _gemm_is_beta_zero<true, false>(ex, _M, _N, _K, _alpha, a_, _lda, b_,
-                                           _ldb, _beta, _C, _ldc, batch_size);
+                                           _ldb, _beta, _C, _ldc, batch_size,
+                                           batch_type);
   } else {
     return _gemm_is_beta_zero<false, false>(ex, _M, _N, _K, _alpha, a_, _lda,
                                             b_, _ldb, _beta, _C, _ldc,
-                                            batch_size);
+                                            batch_size, batch_type);
   }
 }
 
@@ -139,7 +145,8 @@ typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
                                              index_t _ldb, element_t _beta,
                                              container_2_t _C, index_t _ldc) {
   return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, b_,
-                       _ldb, _beta, _C, _ldc, index_t(1));
+                       _ldb, _beta, _C, _ldc, index_t(1),
+                       gemm_batch_type_t::strided);
 }
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -148,9 +155,9 @@ typename executor_t::policy_t::event_t _gemm_batched(
     executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
-    index_t _ldc, index_t batch_size) {
+    index_t _ldc, index_t batch_size, gemm_batch_type_t batch_type) {
   return _gemm_backend(ex, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, b_,
-                       _ldb, _beta, _C, _ldc, batch_size);
+                       _ldb, _beta, _C, _ldc, batch_size, batch_type);
 }
 
 }  // namespace internal

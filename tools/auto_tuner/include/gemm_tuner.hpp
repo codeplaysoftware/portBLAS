@@ -32,10 +32,44 @@
 
 using namespace cl::sycl;
 using namespace blas;
+// Convert batch_type=strided to interleaved on the host
+template <typename scalar_t>
+inline std::vector<scalar_t> strided_to_interleaved(
+    const std::vector<scalar_t> &input, int offset, int ld_rows, int ld_cols,
+    int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int c = 0; c < ld_cols; ++c) {
+    for (int r = 0; r < ld_rows; ++r) {
+      for (int b = 0; b < batchs; ++b) {
+        output[c * ld_rows * batchs + r * batchs + b + offset] =
+            input[b * ld_cols * ld_rows + c * ld_rows + r + offset];
+      }
+    }
+  }
+  return output;
+}
+
+// Convert batch_type=interleaved to strided on the host
+template <typename scalar_t>
+inline std::vector<scalar_t> interleaved_to_strided(
+    const std::vector<scalar_t> &input, int offset, int ld_rows, int ld_cols,
+    int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int b = 0; b < batchs; ++b) {
+    for (int c = 0; c < ld_cols; ++c) {
+      for (int r = 0; r < ld_rows; ++r) {
+        output[b * ld_cols * ld_rows + c * ld_rows + r + offset] =
+            input[c * ld_rows * batchs + r * batchs + b + offset];
+      }
+    }
+  }
+  return output;
+}
 
 template <typename T>
 static TestResultEntry tune_syclblas(int r, char transA, char transB,
-                                     GemmArgs<T> a) {
+                                     GemmArgs<T> a,
+                                     ::blas::gemm_batch_type_t batch_type) {
   TestResultEntry result("SYCL-BLAS gemm");
   auto ex = get_sycl_executor();
   {
@@ -45,9 +79,9 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
 
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
-      auto event_list =
-          _gemm_batched(ex, transA, transB, a.m, a.n, a.k, a.alpha, a.a, a.lda,
-                        a.b, a.ldb, a.beta, a.c, a.ldc, a.batch_size);
+      auto event_list = _gemm_batched(ex, transA, transB, a.m, a.n, a.k,
+                                      a.alpha, a.a, a.lda, a.b, a.ldb, a.beta,
+                                      a.c, a.ldc, a.batch_size, batch_type);
       for (auto &event : event_list) {
         event.wait_and_throw();
       }
@@ -58,12 +92,14 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
         a.c, a.output_c.data(), a.output_c.size());
     event_list.back().wait_and_throw();
   }
+
   result.error = relative_diff(a.expected_c, a.output_c);
   return result;
 }
 
 template <bool TransA, bool TransB, typename DataType>
-void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
+void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
+                   ::blas::gemm_batch_type_t batch_type) {
   std::cout << std::scientific;
 
   std::mt19937 rnd(seed);
@@ -73,10 +109,6 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
   auto host_c = get_random_vector<DataType>(m * n * batch_size, -1, 1, rnd);
   auto expected_c = host_c;
   auto result_c = host_c;
-
-  const auto device_a = blas::make_sycl_iterator_buffer(host_a, host_a.size());
-  const auto device_b = blas::make_sycl_iterator_buffer(host_b, host_b.size());
-  auto device_c = blas::make_sycl_iterator_buffer(host_c, host_c.size());
 
   const char *ta_str = TransA ? "T" : "N";
   const char *tb_str = TransB ? "T" : "N";
@@ -91,6 +123,13 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
 
   TestResultEntry ref_result("System GEMM implementation");
   run_tune(rep, flop_count, ref_result, [&] {
+    if (batch_size > 1 && batch_type == gemm_batch_type_t::interleaved) {
+      host_a =
+          interleaved_to_strided(host_a, 0, lda, TransA ? m : k, batch_size);
+      host_b =
+          interleaved_to_strided(host_b, 0, ldb, TransB ? k : n, batch_size);
+      expected_c = interleaved_to_strided(expected_c, 0, ldc, n, batch_size);
+    }
     for (int bs = 0; bs < batch_size; bs++) {
       // system gemm implementation
       reference_gemm::gemm(ta_str, tb_str, m, n, k, alpha,
@@ -98,34 +137,43 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep) {
                            host_b.data() + (bs * n * k), ldb, beta,
                            expected_c.data() + (bs * m * n), m);
     }
+    if (batch_size > 1 && batch_type == gemm_batch_type_t::interleaved) {
+      expected_c = strided_to_interleaved(expected_c, 0, ldc, n, batch_size);
+      host_a =
+          strided_to_interleaved(host_a, 0, lda, TransA ? m : k, batch_size);
+      host_b =
+          strided_to_interleaved(host_b, 0, ldb, TransB ? k : n, batch_size);
+    }
   });
   ref_result.error = 0.0;
 
   TestResult results{};
   results.push_back(ref_result);
-
+  const auto device_a = blas::make_sycl_iterator_buffer(host_a, host_a.size());
+  const auto device_b = blas::make_sycl_iterator_buffer(host_b, host_b.size());
+  auto device_c = blas::make_sycl_iterator_buffer(host_c, host_c.size());
   GemmArgs<DataType> args{m,        n,        k,   alpha,      device_a,
                           lda,      device_b, ldb, beta,       host_c,
                           device_c, result_c, ldc, batch_size, expected_c};
 
   {
-    auto result = tune_syclblas(rep, *ta_str, *tb_str, args);
+    auto result = tune_syclblas(rep, *ta_str, *tb_str, args, batch_type);
     results.push_back(result);
   }
 
-#define BENCH_PARAMS(MEM, ALG, ...)                      \
-  do {                                                                       \
-    auto result =                                                            \
-        tune<__VA_ARGS__, GemmConfig<TransA, TransB, MEM, ALG>>( \
-            rep, args);                                                      \
-    results.push_back(result);                                               \
+#define BENCH_PARAMS(MEM, ALG, BATCH, VEC, ...)                             \
+  do {                                                                      \
+    auto result =                                                           \
+        tune<__VA_ARGS__, GemmConfig<TransA, TransB, MEM, ALG, BATCH, VEC>, \
+             DataType>(rep, args);                                          \
+    results.push_back(result);                                              \
   } while (0);
 
 #include "generated_combinations.def"
 
 #undef BENCH_PARAMS
-
+  std::cout << "SIZE : " << results.size() << std::endl;
+  get_sycl_executor().get_policy_handler().wait();
   std::sort(results.begin(), results.end());
   results.print_all();
-  get_sycl_executor().get_policy_handler().wait();
 }

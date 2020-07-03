@@ -43,6 +43,6 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} batch_size);
+    ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
 }  // namespace internal
 }  // namespace blas

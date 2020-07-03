@@ -54,11 +54,14 @@ if __name__ == '__main__':
     twc = sys.argv[20]
     tlr = sys.argv[21]
     tlc = sys.argv[22]
-    wg_size = sys.argv[23]
-    cl_size = sys.argv[24]
-    file_name = sys.argv[25]
-    vector_size = sys.argv[26]
-    gemm_vectorize_type = sys.argv[27]
+    tib = sys.argv[23]
+    twb = sys.argv[24]
+    wg_size = sys.argv[25]
+    cl_size = sys.argv[26]
+    file_name = sys.argv[27]
+    gemm_vectorize_type = sys.argv[28]
+    vector_size = sys.argv[29]
+    batch_type = sys.argv[30]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     if not os.path.exists(source):
@@ -133,6 +136,16 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
+            key='TIB',
+            vals=[tib],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='TWB',
+            vals=[twb],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
             key='IS_BETA_ZERO',
             vals=[is_beta_zero],
             itermode=Itermode.combinations,
@@ -163,13 +176,18 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
+            key='GEMM_VECTORIZE_TYPE',
+            vals=[gemm_vectorize_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
             key='VECTOR_SIZE',
             vals=[vector_size],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='GEMM_VECTORIZE_TYPE',
-            vals=[gemm_vectorize_type],
+            key='BATCH_TYPE',
+            vals=[batch_type],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

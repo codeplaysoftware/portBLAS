@@ -31,15 +31,16 @@
 
 #include "sycl_blas.hpp"
 
-template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
-          typename Config, typename T>
+template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
+          bool Nbcb, typename Config, typename T>
 TestResultEntry tune(int r, GemmArgs<T> a) {
   using Gemm =
       ::blas::Gemm<MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca,
                    Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
                    static_cast<int>(Config::MemoryMode),
-                   static_cast<int>(Config::ShapeMode), 1>;
-
+                   static_cast<int>(Config::ShapeMode),
+                   static_cast<int>(Config::VecType), VecSize,
+                   static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
   auto ex = get_sycl_executor();
   {
