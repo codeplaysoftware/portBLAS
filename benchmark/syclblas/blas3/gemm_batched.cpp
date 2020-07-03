@@ -19,26 +19,61 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm.cpp
+ *  @filename gemm_batched.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
 
+// Convert batch_type=strided to interleaved on the host
+template <typename scalar_t>
+std::vector<scalar_t> strided_to_interleaved(const std::vector<scalar_t>& input,
+                                             int offset, int ld_rows,
+                                             int ld_cols, int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int c = 0; c < ld_cols; ++c) {
+    for (int r = 0; r < ld_rows; ++r) {
+      for (int b = 0; b < batchs; ++b) {
+        output[c * ld_rows * batchs + r * batchs + b + offset] =
+            input[b * ld_cols * ld_rows + c * ld_rows + r + offset];
+      }
+    }
+  }
+  return output;
+}
+
+// Convert batch_type=interleaved to strided on the host
+template <typename scalar_t>
+std::vector<scalar_t> interleaved_to_strided(const std::vector<scalar_t>& input,
+                                             int offset, int ld_rows,
+                                             int ld_cols, int batchs) {
+  std::vector<scalar_t> output(input.size());
+  for (int b = 0; b < batchs; ++b) {
+    for (int c = 0; c < ld_cols; ++c) {
+      for (int r = 0; r < ld_rows; ++r) {
+        output[b * ld_cols * ld_rows + c * ld_rows + r + offset] =
+            input[c * ld_rows * batchs + r * batchs + b + offset];
+      }
+    }
+  }
+  return output;
+}
+
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int batch_size) {
+                     int batch_size, int batch_type) {
   std::ostringstream str{};
   str << "BM_GemmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/"
-      << batch_size;
+      << batch_size << "/"
+      << blas_benchmark::utils::batch_type_to_str(batch_type);
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
          index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         index_t batch_size, bool* success) {
+         index_t batch_size, int batch_type_i, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -46,6 +81,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
       static_cast<blas_benchmark::utils::Transposition>(t2));
   const char* t_a = t1s.c_str();
   const char* t_b = t2s.c_str();
+  auto batch_type = static_cast<blas::gemm_batch_type_t>(batch_type_i);
 
   index_t lda = t_a[0] == 'n' ? m : k;
   index_t ldb = t_b[0] == 'n' ? k : n;
@@ -90,10 +126,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(m * n * batch_size, 0);
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k * batch_size);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n * batch_size);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n * batch_size);
-
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> c_ref = c;
@@ -106,13 +138,34 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
                          b.data() + _base(k, n, batch_idx), ldb, beta,
                          c_ref.data() + _base(m, n, batch_idx), ldc);
   }
+
+  if (batch_type == blas::gemm_batch_type_t::interleaved) {
+    constexpr int offset = 0;
+    a = strided_to_interleaved(a, offset, lda, t_a[0] == 't' ? m : k,
+                               batch_size);
+    b = strided_to_interleaved(b, offset, ldb, t_b[0] == 't' ? k : n,
+                               batch_size);
+    c = strided_to_interleaved(c, offset, ldc, n, batch_size);
+  }
+#endif
+
+  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k * batch_size);
+  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n * batch_size);
+  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n * batch_size);
+
+#ifdef BLAS_VERIFY_BENCHMARK
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
-    auto event = _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda,
-                               b_gpu, ldb, beta, c_temp_gpu, ldc, batch_size);
+    auto event =
+        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+                      beta, c_temp_gpu, ldc, batch_size, batch_type);
     ex.get_policy_handler().wait(event);
+  }
+  if (batch_type == blas::gemm_batch_type_t::interleaved) {
+    constexpr int offset = 0;
+    c_temp = interleaved_to_strided(c_temp, offset, ldc, n, batch_size);
   }
 
   std::ostringstream err_stream;
@@ -124,8 +177,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda,
-                               b_gpu, ldb, beta, c_gpu, ldc, batch_size);
+    auto event =
+        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+                      beta, c_gpu, ldc, batch_size, batch_type);
     ex.get_policy_handler().wait(event);
     return event;
   };
@@ -159,20 +213,22 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::string t1s, t2s;
     index_t m, n, k, batch_size;
     scalar_t alpha, beta;
-    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size) = p;
+    int batch_type;
+    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, batch_type) = p;
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
-                         bool* success) {
+                         int batch_type, bool* success) {
       run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size,
-                    success);
+                    batch_type, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
-        exPtr, t1, t2, m, k, n, alpha, beta, batch_size, success);
+        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, batch_type).c_str(),
+        BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta, batch_size, batch_type,
+        success);
   }
 }
 

@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm.cpp
+ *  @filename gemm_batched.cpp
  *
  **************************************************************************/
 

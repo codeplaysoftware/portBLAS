@@ -28,8 +28,8 @@
 
 #include "tuner_types.hpp"
 
-template <int Cls, typename Tile, bool DoubleBuffer, bool Nbca, bool Nbcb,
-          typename Config, typename T>
+template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
+          bool Nbcb, typename Config, typename T>
 TestResultEntry tune(int r, GemmArgs<T> a);
 
 #endif  // SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_

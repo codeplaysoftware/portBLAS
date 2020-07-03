@@ -59,7 +59,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
-           static_cast<int>(gemm_vectorization_t::full), VectorSize> {
+           static_cast<int>(gemm_vectorization_t::full), VectorSize,
+           static_cast<int>(gemm_batch_type_t::strided)> {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -119,9 +120,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    */
   static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
-    str << "Gemm<" << ClSize << ", " << tile_type::get_type_string() << ", "
-        << type_string<value_t>::get_value() << ", "
-        << "Vectorize Type: full, Vector Size: " << VectorSize << ">";
+    str << "Gemm <" << DoubleBuffer << ", " << NbcA << ", " << NbcB << ", "
+        << ClSize << ", " << tile_type::get_type_string() << ", "
+        << type_string<value_t>::get_value() << "gemm_memory:no_local, "
+        << "gemm_algorithm:standard, "
+        << "gemm_vectorization:full, "
+        << "vector size" << VectorSize << ", batch_type:strided>";
     return str.str();
   }
   /*!

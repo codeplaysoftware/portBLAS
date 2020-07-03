@@ -26,66 +26,71 @@
 #include "blas3_gemm_common.hpp"
 #include "blas_test.hpp"
 
-const auto BetaNonZeroLDMatch =
-    ::testing::Combine(::testing::Values(0),         // offset
-                       ::testing::Values(5),         // batch
-                       ::testing::Values(63, 128),   // m
-                       ::testing::Values(63, 128),   // n
-                       ::testing::Values(63, 128),   // k
-                       ::testing::Values('n', 't'),  // transa
-                       ::testing::Values('n', 't'),  // transb
-                       ::testing::Values(3.0),       // alpha
-                       ::testing::Values(7.0),       // beta
-                       ::testing::Values(1),         // lda_mul
-                       ::testing::Values(1),         // ldb_mul
-                       ::testing::Values(1)          // ldc_mul
-                       );
+const auto BetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values(0),                          // offset
+    ::testing::Values(5),                          // batch
+    ::testing::Values(63, 128),                    // m
+    ::testing::Values(63, 128),                    // n
+    ::testing::Values(63, 128),                    // k
+    ::testing::Values('n', 't'),                   // transa
+    ::testing::Values('n', 't'),                   // transb
+    ::testing::Values(3.0),                        // alpha
+    ::testing::Values(7.0),                        // beta
+    ::testing::Values(1),                          // lda_mul
+    ::testing::Values(1),                          // ldb_mul
+    ::testing::Values(1),                          // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)  // batch_type
+);
 GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatch);
 
-const auto BetaNonZeroLDMultiplied =
-    ::testing::Combine(::testing::Values(0),         // offset
-                       ::testing::Values(5),         // batch
-                       ::testing::Values(63, 128),   // m
-                       ::testing::Values(63, 128),   // n
-                       ::testing::Values(63, 128),   // k
-                       ::testing::Values('n', 't'),  // transa
-                       ::testing::Values('n', 't'),  // transb
-                       ::testing::Values(3.0),       // alpha
-                       ::testing::Values(7.0),       // beta
-                       ::testing::Values(2),         // lda_mul
-                       ::testing::Values(3),         // ldb_mul
-                       ::testing::Values(4)          // ldc_mul
-                       );
+const auto BetaNonZeroLDMultiplied = ::testing::Combine(
+    ::testing::Values(0),             // offset
+    ::testing::Values(1, 5),          // batch
+    ::testing::Values(63, 128, 129),  // m
+    ::testing::Values(63, 128, 129),  // n
+    ::testing::Values(63, 128, 129),  // k
+    ::testing::Values('n', 't'),      // transa
+    ::testing::Values('n', 't'),      // transb
+    ::testing::Values(3.0),           // alpha
+    ::testing::Values(7.0),           // beta
+    ::testing::Values(2),             // lda_mul
+    ::testing::Values(3),             // ldb_mul
+    ::testing::Values(4),             // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided,
+                      gemm_batch_type_t::interleaved)  // batch_type
+);
 GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultiplied);
 
-const auto BetaNonZeroLDMatchAlpha0 =
-    ::testing::Combine(::testing::Values(0),         // offset
-                       ::testing::Values(5),         // batch
-                       ::testing::Values(63, 128),   // m
-                       ::testing::Values(63, 128),   // n
-                       ::testing::Values(63, 128),   // k
-                       ::testing::Values('n', 't'),  // transa
-                       ::testing::Values('n', 't'),  // transb
-                       ::testing::Values(0.0),       // alpha
-                       ::testing::Values(7.0),       // beta
-                       ::testing::Values(1),         // lda_mul
-                       ::testing::Values(1),         // ldb_mul
-                       ::testing::Values(1)          // ldc_mul
-                       );
+const auto BetaNonZeroLDMatchAlpha0 = ::testing::Combine(
+    ::testing::Values(0),                          // offset
+    ::testing::Values(5),                          // batch
+    ::testing::Values(128),                        // m
+    ::testing::Values(128),                        // n
+    ::testing::Values(128),                        // k
+    ::testing::Values('n', 't'),                   // transa
+    ::testing::Values('n', 't'),                   // transb
+    ::testing::Values(0.0),                        // alpha
+    ::testing::Values(7.0),                        // beta
+    ::testing::Values(1),                          // lda_mul
+    ::testing::Values(1),                          // ldb_mul
+    ::testing::Values(1),                          // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)  // batch_type
+);
 GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatchAlpha0);
 
-const auto BetaNonZeroLDMultipliedAlpha0 =
-    ::testing::Combine(::testing::Values(0),         // offset
-                       ::testing::Values(5),         // batch
-                       ::testing::Values(63, 128),   // m
-                       ::testing::Values(63, 128),   // n
-                       ::testing::Values(63, 128),   // k
-                       ::testing::Values('n', 't'),  // transa
-                       ::testing::Values('n', 't'),  // transb
-                       ::testing::Values(0.0),       // alpha
-                       ::testing::Values(7.0),       // beta
-                       ::testing::Values(2),         // lda_mul
-                       ::testing::Values(3),         // ldb_mul
-                       ::testing::Values(4)          // ldc_mul
-                       );
+const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
+    ::testing::Values(0),                          // offset
+    ::testing::Values(5),                          // batch
+    ::testing::Values(63),                         // m
+    ::testing::Values(63),                         // n
+    ::testing::Values(63),                         // k
+    ::testing::Values('n', 't'),                   // transa
+    ::testing::Values('n', 't'),                   // transb
+    ::testing::Values(0.0),                        // alpha
+    ::testing::Values(7.0),                        // beta
+    ::testing::Values(2),                          // lda_mul
+    ::testing::Values(3),                          // ldb_mul
+    ::testing::Values(4),                          // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)  // batch_type
+);
 GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);

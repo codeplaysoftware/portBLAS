@@ -216,17 +216,18 @@ template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize>
+          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          int BatchType>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-         GemmVectorization, VectorSize>
+         GemmVectorization, VectorSize, BatchType>
         gemm_tree) {
   using gemm_t =
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize>;
+           GemmAlgorithm, GemmVectorization, VectorSize, BatchType>;
   auto rng = gemm_tree.get_nd_range(policy_handler_.get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
@@ -240,13 +241,13 @@ template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmVectorization, int VectorSize>
+          int GemmVectorization, int VectorSize, int BatchType>
 inline typename codeplay_policy::event_t
 Executor<PolicyHandler<codeplay_policy>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
          static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
-         VectorSize>
+         VectorSize, BatchType>
         gemm_wrapper) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
 

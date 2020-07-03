@@ -16,7 +16,7 @@ in order to clone submodule(s), such as the computecpp-sdk.
 3. Run `CMake` and `Ninja` from the build directory:
 
 ```
-$ cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp;
+$ cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp [-DTARGET=supported backend]
 $ ninja
 ```
 
@@ -41,7 +41,7 @@ seperate results for each of them.
 All these binaries are invoked as follows:
 
 ```
-$ tune M N K bs rep
+$ tune M N K bs rep [batch_type]
 ```
 
 Where the provided options mean the following:
@@ -51,6 +51,7 @@ Where the provided options mean the following:
 | `M`, `N`, `K` | Values for these parameters in the GEMM algorithm                                                  |
 | `bs`          | The number of batches to use for batched GEMM. Set to 1 to use regular GEMM                        |
 | `rep`         | The number of times to run GEMM for each combination. The mean average is taken off all executions |
+| `batch_type`  | The type of batching to be used. It can be interleaved or strided. The default is strided.         |
 
 This will execute GEMM on a number of different combinations depending on the
 current platform, and display the results of each in order from worst to best
@@ -79,12 +80,14 @@ to the list of Gemm parameters to try.
 
 The parameters are listed as follows:
 
-| Parameter            | Algorithm  | Description                                                                 |
-|----------------------|------------|-----------------------------------------------------------------------------|
-| `cache_line_size`    | All        | The size of the cache line                                                  |
-| `item`               | Not Naive  | The `[rows, cols]` processed by each work item                              |
-| `item_level_tiles`   | Not Naive  | The number of item-level tiles within each `[row, col]` of block-level tile |
-| `block_level_tiles`  | Local Only | The number of block-level tiles within each `[row, col]` of top-level tile  |
-| `double_buffer`      | Local Only | Enable the use of double buffering                                          |
-| `no_bank_conflict_a` | Local Only | Avoids bank conflicts when accessing blocks of matrix A in local memory     |
-| `no_bank_conflict_b` | Local Only | Avoids bank conflicts when accessing blocks of matrix B in local memory     |
+| Parameter            | Algorithm            | Description                                                                 |
+|----------------------|------------          |-----------------------------------------------------------------------------|
+| `cache_line_size`    | All                  | The size of the cache line                                                  |
+| `work_item_tiles`    | Not Naive            | The `[rows, cols]` processed by each work item                              |
+| `work_group_tiles`   | Not Naive            | The number of item-level tiles within each `[row, col]` of block-level tile |
+| `block_level_tiles`  | Local Only           | The number of block-level tiles within each `[row, col]` of top-level tile  |
+| `batch_level_tiles`  | non local Interleave | The number of batch work_item and batch work group . default to 1           |
+| `vectorization_size` | Not Naive            | the size of vector type                                                     |
+| `double_buffer`      | Local Only           | Enable the use of double buffering                                          |
+| `no_bank_conflict_a` | Local Only           | Avoids bank conflicts when accessing blocks of matrix A in local memory     |
+| `no_bank_conflict_b` | Local Only           | Avoids bank conflicts when accessing blocks of matrix B in local memory     |

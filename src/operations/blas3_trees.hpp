@@ -25,6 +25,7 @@
 #ifndef SYCL_BLAS_BLAS3_TREES_HPP
 #define SYCL_BLAS_BLAS3_TREES_HPP
 
+#include "blas3/gemm_interleaved.hpp"
 #include "blas3/gemm_local.hpp"
 #include "blas3/gemm_no_local_full_vec.hpp"
 #include "blas3/gemm_no_local_partial_vec.hpp"

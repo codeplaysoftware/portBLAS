@@ -28,7 +28,7 @@
 #include "gemm_tuner.hpp"
 
 int main(int argc, char *argv[]) {
-  if (argc != 6) {
+  if (argc < 6) {
     std::cerr << "Usage: " << argv[0] << " M K N bs rep" << std::endl;
     return -1;
   }
@@ -39,14 +39,29 @@ int main(int argc, char *argv[]) {
   const int n = std::atoi(argv[3]);
   const int batch_size = std::atoi(argv[4]);
   const int rep = std::atoi(argv[5]);
+  ::blas::gemm_batch_type_t batch_type = gemm_batch_type_t::strided;
+  if (argc == 7) {
+    auto b_t = std::string(argv[6]);
+    std::transform(b_t.begin(), b_t.end(), b_t.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    if (b_t.compare(std::string("interleaved")) == 0) {
+      batch_type = gemm_batch_type_t::interleaved;
+    } else if (b_t.compare(std::string("strided")) == 0) {
+      batch_type = gemm_batch_type_t::strided;
+    } else {
+      std::cerr << "batch type can be either Interleaved or strided \n";
+      return -1;
+    }
+  }
   std::cout << "======= testing nn ======" << std::endl;
-  run_tune_gemm<false, false, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<false, false, float>(seed, m, k, n, batch_size, rep,
+                                     batch_type);
   std::cout << "======= testing nt ======" << std::endl;
-  run_tune_gemm<false, true, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<false, true, float>(seed, m, k, n, batch_size, rep, batch_type);
   std::cout << "======= testing tn ======" << std::endl;
-  run_tune_gemm<true, false, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<true, false, float>(seed, m, k, n, batch_size, rep, batch_type);
   std::cout << "======= testing tt ======" << std::endl;
-  run_tune_gemm<true, true, float>(seed, m, k, n, batch_size, rep);
+  run_tune_gemm<true, true, float>(seed, m, k, n, batch_size, rep, batch_type);
 
   return 0;
 }

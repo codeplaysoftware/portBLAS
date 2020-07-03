@@ -38,13 +38,29 @@ using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
 template <typename scalar_t>
 using gemm_batched_param_t =
     std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
-               scalar_t, index_t>;
+               scalar_t, index_t, int>;
 
 using reduction_param_t = std::tuple<index_t, index_t>;
 
 namespace blas_benchmark {
 
 namespace utils {
+
+/**
+ * @brief Print the explanatory string of an exception.
+ * If the exception is nested, recurse to print the explanatory of the
+ * exception it holds.
+ * From https://en.cppreference.com/w/cpp/error/nested_exception.
+ */
+inline void print_exception(const std::exception& e, int level = 0) {
+  std::cerr << std::string(level, ' ') << "Exception: " << e.what() << '\n';
+  try {
+    std::rethrow_if_nested(e);
+  } catch (const std::exception& e) {
+    print_exception(e, level + 1);
+  } catch (...) {
+  }
+}
 
 /**
  * @fn parse_csv_file
@@ -70,8 +86,8 @@ static inline std::vector<param_t> parse_csv_file(
     try {
       csv_data.push_back(func(csv_line));
     } catch (std::exception& e) {
-      std::cerr << "Error while parsing CSV file: " << e.what()
-                << ", on line: " << line << std::endl;
+      std::cerr << "Error while parsing CSV file on line '" << line << "':\n";
+      print_exception(e);
       exit(1);
     }
   }
@@ -112,6 +128,34 @@ inline long int str_to_int<long int>(std::string str) {
 template <>
 inline long long int str_to_int<long long int>(std::string str) {
   return std::stoll(str);
+}
+
+inline int str_to_batch_type(std::string str) {
+  // Remove any null character from str
+  str.erase(std::find(str.begin(), str.end(), '\0'), str.end());
+  if (str == "strided") {
+    return 0;
+  } else if (str == "interleaved") {
+    return 1;
+  } else {
+    throw std::runtime_error("Unrecognized batch type: '" + str + "'");
+  }
+  return -1;
+}
+
+inline std::string batch_type_to_str(int batch_type) {
+  switch (batch_type) {
+    case 0:
+      return "strided";
+
+    case 1:
+      return "interleaved";
+
+    default:
+      throw std::runtime_error("Unrecognized batch type: " +
+                               std::to_string(batch_type));
+  }
+  return "";
 }
 
 /**
@@ -262,13 +306,14 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
     scalar_t alpha = 1;
     scalar_t beta = 0;
     index_t batch_size = 8;
+    int batch_type = 0;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t k = dmin; k <= dmax; k *= 2) {
             for (index_t n = dmin; n <= dmax; n *= 2) {
-              gemm_batched_default.push_back(
-                  std::make_tuple(t1, t2, m, k, n, alpha, beta, batch_size));
+              gemm_batched_default.push_back(std::make_tuple(
+                  t1, t2, m, k, n, alpha, beta, batch_size, batch_type));
             }
           }
         }
@@ -278,18 +323,18 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
   } else {
     return parse_csv_file<gemm_batched_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 8) {
+          if (v.size() != 9) {
             throw std::runtime_error(
-                "invalid number of parameters (8 expected)");
+                "invalid number of parameters (9 expected)");
           }
           try {
             return std::make_tuple(
                 v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
                 str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
                 str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_int<index_t>(v[7]));
+                str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
           } catch (...) {
-            throw std::runtime_error("invalid parameter");
+            std::throw_with_nested(std::runtime_error("invalid parameter"));
           }
         });
   }
@@ -301,8 +346,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-static inline std::vector<reduction_param_t> get_reduction_params(
-    Args& args) {
+static inline std::vector<reduction_param_t> get_reduction_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<reduction_param_t> reduction_default;
