@@ -193,7 +193,12 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::string t1s, t2s;
     index_t m, n, k, batch_size;
     scalar_t alpha, beta;
-    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size) = p;
+    int batch_type = 0;
+    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, batch_type) = p;
+    if (batch_type != 0) {
+      std::cout << "CLBLAST can only support strided batch type\n";
+      exit(1);
+    }
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
