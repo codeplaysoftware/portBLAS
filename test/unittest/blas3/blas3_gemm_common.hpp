@@ -158,25 +158,11 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   ex.get_policy_handler().wait();
 }
 
-#define GENERATE_GEMM_TEST_IMPL(TESTSUITE, TESTNAME, DTYPE, COMBINATION)      \
-  class TESTNAME : public ::testing::TestWithParam<gemm_arguments_t<DTYPE>> { \
-  };                                                                          \
-  TEST_P(TESTNAME, test) { verify_gemm<DTYPE>(GetParam()); };                 \
-  INSTANTIATE_TEST_SUITE_P(TESTSUITE, TESTNAME, COMBINATION)
-
-#define GENERATE_GEMM_WITH_DTYPE(TESTSUITE, DTYPE, COMBINATION) \
-  GENERATE_GEMM_TEST_IMPL(TESTSUITE, TESTSUITE##COMBINATION, DTYPE, COMBINATION)
-
-#define GENERATE_GEMM_FLOAT(TESTSUITE, COMBINATION) \
-  GENERATE_GEMM_WITH_DTYPE(TESTSUITE, float, COMBINATION)
-
-#ifdef DOUBLE_SUPPORT
-#define GENERATE_GEMM_DOUBLE(TESTSUITE, COMBINATION) \
-  GENERATE_GEMM_WITH_DTYPE(TESTSUITE, double, COMBINATION)
-#else
-#define GENERATE_GEMM_DOUBLE(TESTSUITE, COMBINATION)
-#endif  // DOUBLE_SUPPORT
-
-#define GENERATE_GEMM_TEST(TESTSUITE, COMBINATION) \
-  GENERATE_GEMM_FLOAT(TESTSUITE, COMBINATION);     \
-  GENERATE_GEMM_DOUBLE(TESTSUITE, COMBINATION)
+/** Registers GEMM test for all supported data types
+ * @param test_suite Name of the test suite
+ * @param combination Combinations object
+ * @see BLAS_REGISTER_TEST_CUSTOM_NAME
+ */
+#define GENERATE_GEMM_TEST(test_suite, combination)                   \
+  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination, \
+                                 verify_gemm, gemm_arguments_t, combination);

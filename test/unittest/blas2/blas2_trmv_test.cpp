@@ -30,10 +30,11 @@
 // If you are seeing fails from this, it could be that
 // Seems to have been fixed in modern OpenBLASes
 
+template <typename scalar_t>
 using combination_t = std::tuple<char, char, char, int, int, int>;
 
 template <typename scalar_t>
-void run_test(const combination_t combi) {
+void run_test(const combination_t<scalar_t> combi) {
   int n;
   int lda_mul;
   int incX;
@@ -99,12 +100,4 @@ const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
 );
 #endif
 
-class TrmvFloat : public ::testing::TestWithParam<combination_t> {};
-TEST_P(TrmvFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(trmv, TrmvFloat, combi);
-
-#if DOUBLE_SUPPORT
-class TrmvDouble : public ::testing::TestWithParam<combination_t> {};
-TEST_P(TrmvDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(trmv, TrmvDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Trmv, combination_t, combi);

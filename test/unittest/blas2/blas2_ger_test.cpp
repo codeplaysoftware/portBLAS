@@ -91,12 +91,4 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1023),  // m
 );
 #endif
 
-class GerFloat : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(GerFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(gemv, GerFloat, combi);
-
-#if DOUBLE_SUPPORT
-class GerDouble : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(GerDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(gemv, GerDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Ger, combination_t, combi);

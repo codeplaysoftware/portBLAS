@@ -25,10 +25,11 @@
 
 #include "blas_test.hpp"
 
+template <typename scalar_t>
 using combination_t = std::tuple<int, int>;
 
 template <typename scalar_t>
-void run_test(const combination_t combi) {
+void run_test(const combination_t<scalar_t> combi) {
   int size;
   int incX;
   std::tie(size, incX) = combi;
@@ -65,12 +66,4 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(1, 4)       // incX
 );
 
-class Nrm2Float : public ::testing::TestWithParam<combination_t> {};
-TEST_P(Nrm2Float, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(nrm2, Nrm2Float, combi);
-
-#if DOUBLE_SUPPORT
-class Nrm2Double : public ::testing::TestWithParam<combination_t> {};
-TEST_P(Nrm2Double, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(nrm2, Nrm2Double, combi);
-#endif
+BLAS_REGISTER_TEST(Nrm2, combination_t, combi);

@@ -566,4 +566,34 @@ static inline void calc_avg_counters(benchmark::State& state) {
 }  // namespace utils
 }  // namespace blas_benchmark
 
+/** Registers benchmark for the float data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_FLOAT(register_benchmark, args, exPtr, \
+                                      success)                         \
+  register_benchmark<float>(args, exPtr, success)
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
+/** Registers benchmark for the double data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, \
+                                       success)                         \
+  register_benchmark<double>(args, exPtr, success)
+#else
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, success)
+#endif  // BLAS_DATA_TYPE_DOUBLE
+
+/** Registers benchmark for all supported data types
+ * @param register_benchmark Name of the function to call to register benchmark
+ * @param args Reference to blas_benchmark::Args
+ * @param exPtr Pointer to ExecutorType
+ * @param[out] success Pointer to boolean indicating success
+ */
+#define BLAS_REGISTER_BENCHMARK(register_benchmark, args, exPtr, success)     \
+  do {                                                                        \
+    BLAS_REGISTER_BENCHMARK_FLOAT(register_benchmark, args, exPtr, success);  \
+    BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, success); \
+  } while (false)
+
 #endif

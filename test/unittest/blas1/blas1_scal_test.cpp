@@ -73,12 +73,4 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
 );
 #endif
 
-class ScalFloat : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(ScalFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(scal, ScalFloat, combi);
-
-#if DOUBLE_SUPPORT
-class ScalDouble : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(ScalDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(scal, ScalDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Scal, combination_t, combi);

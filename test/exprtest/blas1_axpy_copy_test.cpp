@@ -116,14 +116,4 @@ const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
                                       ::testing::Values(1, 4),       // incX
                                       ::testing::Values(1, 3));      // incY
 
-class AxpyCopyTreeFloat
-    : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(AxpyCopyTreeFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(axpycopy, AxpyCopyTreeFloat, combi);
-
-#if DOUBLE_SUPPORT
-class AxpyCopyTreeDouble
-    : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(AxpyCopyTreeDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(axpycopy, AxpyCopyTreeDouble, combi);
-#endif
+BLAS_REGISTER_TEST(AxpyCopyTree, combination_t, combi);

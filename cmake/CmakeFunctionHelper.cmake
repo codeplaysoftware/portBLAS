@@ -26,17 +26,26 @@
 set(executor_list "PolicyHandler<codeplay_policy>")
 #represent the list of supported index/increment type
 set(index_list "int" )
-#represent the list of supported data type.
+
+# BLAS_DATA_TYPES represents the list of supported data type.
 #Each data type in a data list determines the container types.
 #The container type for SYCLbackend is BufferIterator<${data}, codeplay_policy>
-set(data_list "float")
- #if double supported we add double as a data type
-if(DOUBLE_SUPPORT)
-  set(data_list "float" "double")
-endif()
 
 ## represent the list of bolean options
 set(boolean_list "true" "false")
+
+# Maps a user provided data type name to the C++ type
+# See BLAS_DATA_TYPES
+function(to_cpp_type output data)
+  set(${output} "${data}" PARENT_SCOPE)
+endfunction()
+
+# Strips some C++ symbols from the string to make it suitable to be used
+# as part of a filename
+function(cpp_type_to_name output cpp_type)
+  string(REGEX REPLACE "[<|>|,|:]+" "" temp_var "${cpp_type}")
+  set(${output} "${temp_var}" PARENT_SCOPE)
+endfunction()
 
 # gemm_configuration(data, work_group_size, double_buffer, conflict_a, conflict_b,
 #                    cache_line_size, tir, tic, twr, twc, tlr, tlc, item batch, wg batch, local_mem,
@@ -74,7 +83,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2 gemm_configuration_19)
 
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST BLAS_DATA_TYPES)
     list(APPEND gemm_configuration_lists
             gemm_configuration_10
             gemm_configuration_11
@@ -91,7 +100,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                          gemm_configuration_8
                                          gemm_configuration_9)
 
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST BLAS_DATA_TYPES)
       list(APPEND gemm_configuration_lists
               gemm_configuration_13
               gemm_configuration_14
@@ -153,7 +162,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
             gemm_configuration_1
             gemm_configuration_14)
 
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST BLAS_DATA_TYPES)
     list(APPEND gemm_configuration_lists
             gemm_configuration_7
             gemm_configuration_8
@@ -168,7 +177,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
                                          gemm_configuration_6
                                          )
 
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST BLAS_DATA_TYPES)
       list(APPEND gemm_configuration_lists
               gemm_configuration_9
               gemm_configuration_10
@@ -190,17 +199,17 @@ else() # default cpu backend
 
   if(NAIVE_GEMM)
     list(APPEND gemm_configuration_lists gemm_configuration_0)
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST BLAS_DATA_TYPES)
       list(APPEND gemm_configuration_lists gemm_configuration_3)
     endif()
   else()
     list(APPEND gemm_configuration_lists gemm_configuration_1 gemm_configuration_2)
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST BLAS_DATA_TYPES)
       list(APPEND gemm_configuration_lists gemm_configuration_4 gemm_configuration_5)
     endif()
   endif()
   list(APPEND gemm_configuration_lists gemm_configuration_6)
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST BLAS_DATA_TYPES)
     list(APPEND gemm_configuration_lists gemm_configuration_7)
   endif()
 endif()
@@ -239,12 +248,15 @@ endfunction()
 function(generate_blas_unary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
-  foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+  foreach(data ${BLAS_DATA_TYPES})
+    to_cpp_type(cpp_data "${data}")
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
+        cpp_type_to_name(container_name0 "${container0}")
         foreach(increment ${index_list})
-          set(file_name "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+          set(file_name
+            "${func}_${executor}_${data}_${index}_${container_name0}_${increment}.cpp")
           STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
           STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -255,7 +267,7 @@ foreach(executor ${executor_list})
               ${func}
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
               ${executor}
-              ${data}
+              ${cpp_data}
               ${index}
               ${increment}
               ${container0}
@@ -283,13 +295,18 @@ endfunction(generate_blas_unary_objects)
 function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
-  foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+  foreach(data ${BLAS_DATA_TYPES})
+    to_cpp_type(cpp_data "${data}")
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
+        cpp_type_to_name(container_name0 "${container0}")
         foreach(container1 ${container_list})
+          cpp_type_to_name(container_name1 "${container1}")
+          set(container_names "${container_name0}_${container_name1}")
           foreach(increment ${index_list})
-            set(file_name "${func}_${executor}_${data}_${index}_${container0}_${container1}_${increment}.cpp")
+            set(file_name
+              "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
             STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
             STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -300,7 +317,7 @@ foreach(executor ${executor_list})
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                 ${executor}
-                ${data}
+                ${cpp_data}
                 ${index}
                 ${increment}
                 ${container0}
@@ -331,14 +348,20 @@ endfunction(generate_blas_binary_objects)
 function(generate_blas_binary_special_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
-  foreach(data ${data_list})
-    set(container_list_in "BufferIterator<${data},codeplay_policy>")
+  foreach(data ${BLAS_DATA_TYPES})
+    to_cpp_type(cpp_data "${data}")
+    set(container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
-      set(container_list_out "BufferIterator<IndexValueTuple<${index},${data}>,codeplay_policy>")
+      set(container_list_out
+        "BufferIterator<IndexValueTuple<${index},${cpp_data}>,codeplay_policy>")
       foreach(container0 ${container_list_in})
+        cpp_type_to_name(container_name0 "${container0}")
         foreach(container1 ${container_list_out})
+          cpp_type_to_name(container_name1 "${container1}")
+          set(container_names "${container_name0}_${container_name1}")
           foreach(increment ${index_list})
-            set(file_name "${func}_${executor}_${data}_${index}_${container1}_${container0}_${increment}.cpp")
+            set(file_name
+              "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
             STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
             STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -349,7 +372,7 @@ foreach(executor ${executor_list})
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                 ${executor}
-                ${data}
+                ${cpp_data}
                 ${index}
                 ${increment}
                 ${container0}
@@ -380,14 +403,21 @@ endfunction(generate_blas_binary_special_objects)
 function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
-  foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+  foreach(data ${BLAS_DATA_TYPES})
+    to_cpp_type(cpp_data "${data}")
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
+        cpp_type_to_name(container_name0 "${container0}")
         foreach(container1 ${container_list})
+          cpp_type_to_name(container_name1 "${container1}")
           foreach(container2 ${container_list})
+            cpp_type_to_name(container_name2 "${container2}")
+            set(container_names
+              "${container_name0}_${container_name1}_${container_name2}")
             foreach(increment ${index_list})
-              set(file_name "${func}_${executor}_${data}_${index}_${container0}_${container1}_${container2}_${increment}.cpp")
+              set(file_name
+                "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
               STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
               STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
               add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -398,7 +428,7 @@ foreach(executor ${executor_list})
                   ${func}
                   ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                   ${executor}
-                  ${data}
+                  ${cpp_data}
                   ${index}
                   ${increment}
                   ${container0}
@@ -454,6 +484,7 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                     list(GET ${gemm_list} 16 gemm_vectorize_type)
                     list(GET ${gemm_list} 17 vector_size)
                     list(GET ${gemm_list} 18 batch_type)
+                    to_cpp_type(cpp_data "${data}")
                     set(file_name "${func}_${double_buffer}_${conflict_a}_"
                                   "${conflict_b}_${trans_a}_${trans_b}_"
                                   "${is_beta_zero}_${gemm_memory_type}_"
@@ -472,7 +503,7 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                         ${func}
                         ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                         ${executor}
-                        ${data}
+                        ${cpp_data}
                         ${index}
                         ${double_buffer}
                         ${conflict_a}

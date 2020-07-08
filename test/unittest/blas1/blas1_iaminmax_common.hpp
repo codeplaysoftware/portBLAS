@@ -35,6 +35,7 @@ enum class generation_mode_t : char {
   Decrementing = 'd'
 };
 
+template <typename scalar_t>
 using combination_t = std::tuple<int, int, generation_mode_t>;
 
 template <typename scalar_t>

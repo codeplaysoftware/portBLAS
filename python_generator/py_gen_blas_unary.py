@@ -36,7 +36,6 @@ if __name__ == '__main__':
 
     executor_list = ['PolicyHandler<codeplay_policy>']
     index_list = ['int', 'long', 'long long']
-    data_list = ['float', 'double']
 
     input_template = sys.argv[2]
     blas_level_name = sys.argv[3]
