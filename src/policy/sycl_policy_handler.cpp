@@ -83,6 +83,10 @@ INSTANTIATE_TEMPLATE_METHODS(float)
 INSTANTIATE_TEMPLATE_METHODS(double)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
+#ifdef BLAS_DATA_TYPE_HALF
+INSTANTIATE_TEMPLATE_METHODS(cl::sycl::half)
+#endif  // BLAS_DATA_TYPE_HALF
+
 #define INSTANTIATE_TEMPLATE_METHODS_SPECIAL(ind, val)                        \
   template IndexValueTuple<ind, val>                                          \
       *PolicyHandler<codeplay_policy>::allocate<IndexValueTuple<ind, val>>(   \
@@ -145,6 +149,12 @@ INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, double)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, double)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, double)
 #endif  // BLAS_DATA_TYPE_DOUBLE
+
+#ifdef BLAS_DATA_TYPE_HALF
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, cl::sycl::half)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, cl::sycl::half)
+INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, cl::sycl::half)
+#endif  // BLAS_DATA_TYPE_HALF
 
 }  // namespace blas
 #endif

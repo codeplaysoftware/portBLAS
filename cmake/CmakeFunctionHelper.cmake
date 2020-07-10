@@ -437,6 +437,7 @@ elseif(${TARGET} STREQUAL "RCAR") # need investigation
 elseif(${TARGET} STREQUAL "ARM_GPU")
   set(supported_types
     "float"
+    "cl::sycl::half"
   )
   foreach(data ${supported_types})
     if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
@@ -501,6 +502,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
 elseif(${TARGET} STREQUAL "POWER_VR")
   set(supported_types
     "float"
+    "cl::sycl::half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
@@ -526,9 +528,11 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
+    "cl::sycl::half"
   )
   set(workgroup_float 16)
   set(workgroup_double 8)
+  set(workgroup_cl::sycl::half 32)
   foreach(data ${supported_types})
     set(twr "${workgroup_${data}}")
     set(twc "${workgroup_${data}}")

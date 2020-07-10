@@ -45,7 +45,7 @@ void run_test(const combination_t<scalar_t> combi) {
   populate_data<data_t>(mode, max, x_v);
   for (int i = 0; i < size * incX; i++) {
     // There is a bug in Openblas where 0s are not handled correctly
-    if (x_v[i] == 0.0) {
+    if (x_v[i] == scalar_t{0.0}) {
       x_v[i] = 1.0;
     }
   }

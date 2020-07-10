@@ -44,6 +44,10 @@ if("double" IN_LIST BLAS_DATA_TYPES)
   add_definitions(-DBLAS_DATA_TYPE_DOUBLE)
 endif()
 
+if("cl::sycl::half" IN_LIST BLAS_DATA_TYPES)
+  add_definitions(-DBLAS_DATA_TYPE_HALF)
+endif()
+
 # If the user has specified a specific workgroup size for tests, pass that on to the compiler
 if(WG_SIZE)
   add_definitions(-DWG_SIZE=${WG_SIZE})

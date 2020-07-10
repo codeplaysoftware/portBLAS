@@ -201,8 +201,9 @@ SYCL_BLAS_INLINE
 
   // Threads pre-fetch portions of X into local group-shared memory
   const index_t x_vec_index = local_id + c_group_id * local_range;
-  vector_scratch[local_id] =
-      x_vec_index < vector_x_.get_size() ? vector_x_.eval(x_vec_index) : 0;
+  vector_scratch[local_id] = x_vec_index < vector_x_.get_size()
+                                 ? vector_x_.eval(x_vec_index)
+                                 : value_t{0};
 
   // Barrier to ensure whole portion of vector X is in local memory
   ndItem.barrier(cl::sycl::access::fence_space::local_space);
@@ -337,7 +338,7 @@ Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
     matrix_scratch[scratch_index + local_nc_index] =
         in_c_range && grid_nc_index < nc_dim
             ? matrix_a_.template eval<true>(mat_index)
-            : 0;
+            : value_t{0};
 
     // Move to loading the next tile
     mat_index += tile_dim_nc * lda;
@@ -580,7 +581,8 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
   index_t lst_col = std::min(dimC, frs_col + dimWFC);
-  static constexpr value_t init_val = AddOperator::template init<vector_t>();
+  // TODO(Peter): Does it hurt performance if this is not constexpr?
+  static const value_t init_val = AddOperator::template init<vector_t>();
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
   if ((!Upper && (((idWFC * dimWFC) + ((!Diag) ? 1 : 0)) > (lst_row - 1))) ||

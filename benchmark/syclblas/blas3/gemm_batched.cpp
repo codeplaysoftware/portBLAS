@@ -102,7 +102,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   {
     double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
     double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != 0) ? 2 * m_d * n_d : 0;
+    double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
     state.counters["n_fl_ops"] =
         (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
   }
@@ -110,7 +110,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     double mem_readA = m_d * k_d;
     double mem_readB = k_d * n_d;
     double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != 0) ? m_d * n_d : 0;
+    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d *
         sizeof(scalar_t);

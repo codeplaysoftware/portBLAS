@@ -59,7 +59,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   {
     double nflops_AtimesX = 2.0 * m_d * n_d;
     double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != 0) ? 2 * ylen : 0;
+    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =
         nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
   }
@@ -67,7 +67,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
     double mem_readA = m_d * n_d;
     double mem_readX = xlen;
     double mem_writeY = ylen;
-    double mem_readY = (beta != 0) ? ylen : 0;
+    double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }

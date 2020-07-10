@@ -92,7 +92,7 @@ struct Packetize {
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++) {
         reinterpret_cast<value_t *>(&packet)[i] =
-            edge_in_range(i) ? *(src + i) : 0;
+            edge_in_range(i) ? *(src + i) : value_t{0};
       }
     }
     store<trans, ld>(packet, dest);

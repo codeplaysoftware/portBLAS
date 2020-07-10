@@ -79,6 +79,15 @@ struct DetectScalar<double> {
  * @brief See Detect Scalar.
  */
 template <>
+struct DetectScalar<cl::sycl::half> {
+  using element_t = cl::sycl::half;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
+};
+
+/*! DetectScalar.
+ * @brief See Detect Scalar.
+ */
+template <>
 struct DetectScalar<std::complex<float>> {
   using element_t = std::complex<float>;
   static element_t get_scalar(element_t &scalar) { return scalar; }
@@ -482,7 +491,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
   index_t frs_thrd = 2 * groupid * localSz + localid;
 
   // Reduction across the grid
-  static constexpr value_t init_val = operator_t::template init<rhs_t>();
+  static const value_t init_val = operator_t::template init<rhs_t>();
   value_t val = init_val;
   for (index_t k = frs_thrd; k < vecS; k += 2 * global_num_thread_) {
     val = operator_t::eval(val, rhs_.eval(k));
