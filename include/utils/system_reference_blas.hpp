@@ -179,7 +179,7 @@ void rot(const int n, scalar_t x[], const int incX, scalar_t y[],
 template <typename scalar_t>
 void rotg(scalar_t *sa, scalar_t *sb, scalar_t *c, scalar_t *s) {
   auto func = blas_system_function<scalar_t>(&cblas_srotg, &cblas_drotg);
-  func(&sa, &sb, &c, &s);
+  func(sa, sb, c, s);
 }
 
 template <typename scalar_t>
