@@ -23,8 +23,9 @@
 # *
 # **************************************************************************/
 # py_gen import
-import sys
+import errno
 import os
+import sys
 
 if __name__ == '__main__':
 
@@ -64,8 +65,11 @@ if __name__ == '__main__':
     batch_type = sys.argv[30]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
-    if not os.path.exists(source):
+    try:
         os.makedirs(source)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
     f = open(blas_template_impl, "r")
     template = Template(f.read())
     f.close()
