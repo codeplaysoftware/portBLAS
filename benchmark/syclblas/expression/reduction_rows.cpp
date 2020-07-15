@@ -150,6 +150,6 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 namespace blas_benchmark {
 void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(register_benchmark, args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }
 }  // namespace blas_benchmark

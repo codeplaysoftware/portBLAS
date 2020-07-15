@@ -569,31 +569,29 @@ static inline void calc_avg_counters(benchmark::State& state) {
 /** Registers benchmark for the float data type
  * @see BLAS_REGISTER_BENCHMARK
  */
-#define BLAS_REGISTER_BENCHMARK_FLOAT(register_benchmark, args, exPtr, \
-                                      success)                         \
+#define BLAS_REGISTER_BENCHMARK_FLOAT(args, exPtr, success) \
   register_benchmark<float>(args, exPtr, success)
 
 #ifdef BLAS_DATA_TYPE_DOUBLE
 /** Registers benchmark for the double data type
  * @see BLAS_REGISTER_BENCHMARK
  */
-#define BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, \
-                                       success)                         \
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success) \
   register_benchmark<double>(args, exPtr, success)
 #else
-#define BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
-/** Registers benchmark for all supported data types
- * @param register_benchmark Name of the function to call to register benchmark
+/** Registers benchmark for all supported data types.
+ *  Expects register_benchmark<scalar_t> to exists.
  * @param args Reference to blas_benchmark::Args
  * @param exPtr Pointer to ExecutorType
  * @param[out] success Pointer to boolean indicating success
  */
-#define BLAS_REGISTER_BENCHMARK(register_benchmark, args, exPtr, success)     \
-  do {                                                                        \
-    BLAS_REGISTER_BENCHMARK_FLOAT(register_benchmark, args, exPtr, success);  \
-    BLAS_REGISTER_BENCHMARK_DOUBLE(register_benchmark, args, exPtr, success); \
+#define BLAS_REGISTER_BENCHMARK(args, exPtr, success)     \
+  do {                                                    \
+    BLAS_REGISTER_BENCHMARK_FLOAT(args, exPtr, success);  \
+    BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success); \
   } while (false)
 
 #endif
