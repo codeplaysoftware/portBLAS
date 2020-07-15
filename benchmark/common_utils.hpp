@@ -583,7 +583,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
 /** Registers benchmark for all supported data types.
- *  Expects register_benchmark<scalar_t> to exists.
+ *  Expects register_benchmark<scalar_t> to exist.
  * @param args Reference to blas_benchmark::Args
  * @param exPtr Pointer to ExecutorType
  * @param[out] success Pointer to boolean indicating success
