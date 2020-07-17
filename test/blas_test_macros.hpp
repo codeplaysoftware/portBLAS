@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef VERBOSE_HPP
-#define VERBOSE_HPP
+#ifndef TEST_BLAS_TEST_MACROS_HPP
+#define TEST_BLAS_TEST_MACROS_HPP
 
 #ifdef VERBOSE
 #define DEBUG_PRINT(command) command
@@ -42,4 +42,51 @@
 #undef EVALUATOR
 #endif /* ifndef SYCL_DEVICE */
 
-#endif /* end of include guard: VERBOSE_HPP */
+/** Registers test for the float type
+ * @see BLAS_REGISTER_TEST_CUSTOM_NAME
+ */
+#define BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,  \
+                                 combination_t, combination)             \
+  class class_name##Float                                                \
+      : public ::testing::TestWithParam<combination_t<float>> {};        \
+  TEST_P(class_name##Float, test) { test_function<float>(GetParam()); }; \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Float, combination);
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
+/** Registers test for the double type
+ * @see BLAS_REGISTER_TEST_CUSTOM_NAME
+ */
+#define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,   \
+                                  combination_t, combination)              \
+  class class_name##Double                                                 \
+      : public ::testing::TestWithParam<combination_t<double>> {};         \
+  TEST_P(class_name##Double, test) { test_function<double>(GetParam()); }; \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Double, combination);
+#else
+#define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function, \
+                                  combination_t, combination)
+#endif  // BLAS_DATA_TYPE_DOUBLE
+
+/** Registers test for all supported data types
+ * @param test_suite Name of the test suite
+ * @param class_name Base name of the test class
+ * @param test_function Templated function used to run the test
+ * @param combination_t Type of the combination parameter.
+ *        Must be templated for the data type.
+ * @param combination Combinations object
+ */
+#define BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, class_name, test_function, \
+                                       combination_t, combination)            \
+  BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,             \
+                           combination_t, combination);                       \
+  BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,            \
+                            combination_t, combination);
+
+/** Registers test for all supported data types
+ * @see BLAS_REGISTER_TEST_CUSTOM_NAME
+ */
+#define BLAS_REGISTER_TEST(class_name, combination_t, combination) \
+  BLAS_REGISTER_TEST_CUSTOM_NAME(class_name, class_name, run_test, \
+                                 combination_t, combination)
+
+#endif  // TEST_BLAS_TEST_MACROS_HPP

@@ -187,14 +187,4 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
 
-class ReductionPartialRowsFloat
-    : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(ReductionPartialRowsFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(reduction, ReductionPartialRowsFloat, combi);
-
-#if DOUBLE_SUPPORT
-class ReductionPartialRowsDouble
-    : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(ReductionPartialRowsDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(reduction, ReductionPartialRowsDouble, combi);
-#endif
+BLAS_REGISTER_TEST(ReductionPartialRows, combination_t, combi);

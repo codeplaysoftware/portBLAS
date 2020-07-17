@@ -24,11 +24,24 @@
 # *
 # **************************************************************************/
 
-# Check to see if we've disabled double support in the tests
-option(DOUBLE_SUPPORT "Disable double support when testing." off)
+set(BLAS_DATA_TYPES "float" CACHE STRING "Data types to test")
+
+# Check to see if we've enabled double support in tests
+option(DOUBLE_SUPPORT "Enable double support when testing." off)
 if(DOUBLE_SUPPORT)
-  # Define DOUBLE_SUPPORT for the host cxx compiler
-  add_definitions(-DDOUBLE_SUPPORT)
+  message(DEPRECATION
+    "Please add \"double\" to BLAS_DATA_TYPES instead of enabling DOUBLE_SUPPORT")
+  if(NOT ("double" IN_LIST BLAS_DATA_TYPES))
+    list(APPEND BLAS_DATA_TYPES "double")
+  endif()
+endif()
+
+if(NOT ("float" IN_LIST BLAS_DATA_TYPES))
+  message(FATAL_ERROR "float must be specified in BLAS_DATA_TYPES")
+endif()
+
+if("double" IN_LIST BLAS_DATA_TYPES)
+  add_definitions(-DBLAS_DATA_TYPE_DOUBLE)
 endif()
 
 # If the user has specified a specific workgroup size for tests, pass that on to the compiler

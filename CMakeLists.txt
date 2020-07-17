@@ -98,7 +98,7 @@ include(ConfigureSYCLBLAS)
 # * TARGET
 # * GEMM_TALL_SKINNY_SUPPORT
 # * GEMM_VECTORIZATION_SUPPORT
-# * DOUBLE_SUPPORT
+# * BLAS_DATA_TYPES
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 

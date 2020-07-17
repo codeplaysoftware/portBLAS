@@ -28,7 +28,7 @@
 #include <limits>
 
 template <typename scalar_t>
-void run_test(const combination_t combi) {
+void run_test(const combination_t<scalar_t> combi) {
   using tuple_t = IndexValueTuple<int, scalar_t>;
 
   int size;
@@ -74,12 +74,4 @@ void run_test(const combination_t combi) {
   ASSERT_EQ(x_v[out_cpu_s * incX], out_s[0].val);
 }
 
-class IaminFloat : public ::testing::TestWithParam<combination_t> {};
-TEST_P(IaminFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(iamin, IaminFloat, combi);
-
-#if DOUBLE_SUPPORT
-class IaminDouble : public ::testing::TestWithParam<combination_t> {};
-TEST_P(IaminDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(iamin, IaminDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Iamin, combination_t, combi);
