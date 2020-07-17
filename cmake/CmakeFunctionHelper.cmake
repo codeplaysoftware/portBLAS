@@ -26,17 +26,21 @@
 set(executor_list "PolicyHandler<codeplay_policy>")
 #represent the list of supported index/increment type
 set(index_list "int" )
-#represent the list of supported data type.
+
+# BLAS_DATA_TYPES was provided by the user
 #Each data type in a data list determines the container types.
 #The container type for SYCLbackend is BufferIterator<${data}, codeplay_policy>
-set(data_list "float")
- #if double supported we add double as a data type
-if(DOUBLE_SUPPORT)
-  set(data_list "float" "double")
-endif()
+set(data_list "${BLAS_DATA_TYPES}")
 
 ## represent the list of bolean options
 set(boolean_list "true" "false")
+
+# Cleans up the proposed file name so that it can be used in the file system
+function(sanitize_file_name output file_name)
+  string(REGEX REPLACE "(:|\\*|<| |,|>)" "_" file_name ${file_name})
+  string(REGEX REPLACE "(_____|____|___|__)" "_" file_name ${file_name})
+  set(${output} "${file_name}" PARENT_SCOPE)
+endfunction()
 
 # gemm_configuration(data, work_group_size, double_buffer, conflict_a, conflict_b,
 #                    cache_line_size, tir, tic, twr, twc, tlr, tlc, item batch, wg batch, local_mem,
@@ -74,7 +78,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   list(APPEND gemm_configuration_lists gemm_configuration_0 gemm_configuration_1
                                        gemm_configuration_2 gemm_configuration_19)
 
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST data_list)
     list(APPEND gemm_configuration_lists
             gemm_configuration_10
             gemm_configuration_11
@@ -91,7 +95,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
                                          gemm_configuration_8
                                          gemm_configuration_9)
 
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST data_list)
       list(APPEND gemm_configuration_lists
               gemm_configuration_13
               gemm_configuration_14
@@ -153,7 +157,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
             gemm_configuration_1
             gemm_configuration_14)
 
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST data_list)
     list(APPEND gemm_configuration_lists
             gemm_configuration_7
             gemm_configuration_8
@@ -168,7 +172,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
                                          gemm_configuration_6
                                          )
 
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST data_list)
       list(APPEND gemm_configuration_lists
               gemm_configuration_9
               gemm_configuration_10
@@ -190,17 +194,17 @@ else() # default cpu backend
 
   if(NAIVE_GEMM)
     list(APPEND gemm_configuration_lists gemm_configuration_0)
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST data_list)
       list(APPEND gemm_configuration_lists gemm_configuration_3)
     endif()
   else()
     list(APPEND gemm_configuration_lists gemm_configuration_1 gemm_configuration_2)
-    if(DOUBLE_SUPPORT)
+    if("double" IN_LIST data_list)
       list(APPEND gemm_configuration_lists gemm_configuration_4 gemm_configuration_5)
     endif()
   endif()
   list(APPEND gemm_configuration_lists gemm_configuration_6)
-  if(DOUBLE_SUPPORT)
+  if("double" IN_LIST data_list)
     list(APPEND gemm_configuration_lists gemm_configuration_7)
   endif()
 endif()
@@ -244,9 +248,8 @@ foreach(executor ${executor_list})
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(increment ${index_list})
-          set(file_name "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
-          STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-          STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+          sanitize_file_name(file_name
+            "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
             COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
               ${PROJECT_SOURCE_DIR}/external/
@@ -288,10 +291,10 @@ foreach(executor ${executor_list})
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
+          set(container_names "${container0}_${container1}")
           foreach(increment ${index_list})
-            set(file_name "${func}_${executor}_${data}_${index}_${container0}_${container1}_${increment}.cpp")
-            STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-            STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+            sanitize_file_name(file_name
+              "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
               COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
                 ${PROJECT_SOURCE_DIR}/external/
@@ -334,13 +337,14 @@ foreach(executor ${executor_list})
   foreach(data ${data_list})
     set(container_list_in "BufferIterator<${data},codeplay_policy>")
     foreach(index ${index_list})
-      set(container_list_out "BufferIterator<IndexValueTuple<${index},${data}>,codeplay_policy>")
+      set(container_list_out
+        "BufferIterator<IndexValueTuple<${index},${data}>,codeplay_policy>")
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
+          set(container_names "${container0}_${container1}")
           foreach(increment ${index_list})
-            set(file_name "${func}_${executor}_${data}_${index}_${container1}_${container0}_${increment}.cpp")
-            STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-            STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+            sanitize_file_name(file_name 
+              "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
               COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
                 ${PROJECT_SOURCE_DIR}/external/
@@ -386,10 +390,11 @@ foreach(executor ${executor_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
           foreach(container2 ${container_list})
+            set(container_names
+              "${container0}_${container1}_${container2}")
             foreach(increment ${index_list})
-              set(file_name "${func}_${executor}_${data}_${index}_${container0}_${container1}_${container2}_${increment}.cpp")
-              STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-              STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+              sanitize_file_name(file_name
+                "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
               add_custom_command(OUTPUT "${LOCATION}/${file_name}"
                 COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
                   ${PROJECT_SOURCE_DIR}/external/
@@ -462,8 +467,7 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
                                   "${data}_${index}_${tir}_${tic}_${twr}_"
                                   "${twc}_${tlr}_${tlc}_${tib}_${twb}_"
                                   "${wg_size}_${cl_size}.cpp")
-                    STRING(REGEX REPLACE "(\\*|<| |,|>)" "_" file_name ${file_name})
-                    STRING(REGEX REPLACE "(___|__)" "_" file_name ${file_name})
+                    sanitize_file_name(file_name "${file_name}")
                     add_custom_command(OUTPUT "${LOCATION}/${file_name}"
                       COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                         ${PROJECT_SOURCE_DIR}/external/

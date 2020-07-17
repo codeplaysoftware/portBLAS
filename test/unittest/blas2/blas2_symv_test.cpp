@@ -94,12 +94,4 @@ const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
 );
 #endif
 
-class SymvFloat : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(SymvFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(symv, SymvFloat, combi);
-
-#if DOUBLE_SUPPORT
-class SymvDouble : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(SymvDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(symv, SymvDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Symv, combination_t, combi);

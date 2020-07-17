@@ -100,14 +100,4 @@ const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
                                       ::testing::Values(0.0, 1.34),  // alpha
                                       ::testing::Values(1, 4));      // incX
 
-class ScalAsumTreeFloat
-    : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(ScalAsumTreeFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(scalasum, ScalAsumTreeFloat, combi);
-
-#if DOUBLE_SUPPORT
-class ScalAsumTreeDouble
-    : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(ScalAsumTreeDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(scalasum, ScalAsumTreeDouble, combi);
-#endif
+BLAS_REGISTER_TEST(ScalAsumTree, combination_t, combi);

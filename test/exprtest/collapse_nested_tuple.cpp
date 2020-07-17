@@ -99,14 +99,4 @@ void run_test(const combination_t<scalar_t> combi) {
 const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // length
                                       ::testing::Values(0, 1, 5));  // factor
 
-class CollapseNestedTupleFloat
-    : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(CollapseNestedTupleFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(collapsent, CollapseNestedTupleFloat, combi);
-
-#if DOUBLE_SUPPORT
-class CollapseNestedTupleDouble
-    : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(CollapseNestedTupleDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(collapsent, CollapseNestedTupleDouble, combi);
-#endif
+BLAS_REGISTER_TEST(CollapseNestedTuple, combination_t, combi);

@@ -73,7 +73,10 @@ namespace blas {
       BufferIterator<element_t, codeplay_policy> ptr) const;
 
 INSTANTIATE_TEMPLATE_METHODS(float)
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
 INSTANTIATE_TEMPLATE_METHODS(double)
+#endif  // BLAS_DATA_TYPE_DOUBLE
 
 #define INSTANTIATE_TEMPLATE_METHODS_SPECIAL(ind, val)                        \
   template IndexValueTuple<ind, val>                                          \
@@ -131,9 +134,12 @@ INSTANTIATE_TEMPLATE_METHODS(double)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, float)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, float)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, float)
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(int, double)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, double)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, double)
+#endif  // BLAS_DATA_TYPE_DOUBLE
 
 }  // namespace blas
 #endif

@@ -81,12 +81,4 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
 );
 #endif
 
-class AxpyFloat : public ::testing::TestWithParam<combination_t<float>> {};
-TEST_P(AxpyFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(axpy, AxpyFloat, combi);
-
-#if DOUBLE_SUPPORT
-class AxpyDouble : public ::testing::TestWithParam<combination_t<double>> {};
-TEST_P(AxpyDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(axpy, AxpyDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Axpy, combination_t, combi);

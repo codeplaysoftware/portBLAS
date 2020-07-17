@@ -25,10 +25,11 @@
 
 #include "blas_test.hpp"
 
+template <typename scalar_t>
 using combination_t = std::tuple<int, int>;
 
 template <typename scalar_t>
-void run_test(const combination_t combi) {
+void run_test(const combination_t<scalar_t> combi) {
   int size;
   int offset;
   std::tie(size, offset) = combi;
@@ -57,15 +58,7 @@ const auto combi = ::testing::Combine(::testing::Values(100, 102400),  // size
                                       ::testing::Values(0, 25)         // offset
 );
 
-class BufferFloat : public ::testing::TestWithParam<combination_t> {};
-TEST_P(BufferFloat, test) { run_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(buffer, BufferFloat, combi);
-
-#if DOUBLE_SUPPORT
-class BufferDouble : public ::testing::TestWithParam<combination_t> {};
-TEST_P(BufferDouble, test) { run_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(buffer, BufferDouble, combi);
-#endif
+BLAS_REGISTER_TEST(Buffer, combination_t, combi);
 
 template <typename data_t, typename index_t>
 inline BufferIterator<const data_t, blas::codeplay_policy> func(
@@ -74,7 +67,7 @@ inline BufferIterator<const data_t, blas::codeplay_policy> func(
 }
 
 template <typename scalar_t>
-void run_const_test(const combination_t combi) {
+void run_const_test(const combination_t<scalar_t> combi) {
   int size;
   int offset;
   std::tie(size, offset) = combi;
@@ -89,12 +82,4 @@ void run_const_test(const combination_t combi) {
       func<scalar_t>(a, offset);
 }
 
-class BufferConstFloat : public ::testing::TestWithParam<combination_t> {};
-TEST_P(BufferConstFloat, test) { run_const_test<float>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(buffer, BufferConstFloat, combi);
-
-#if DOUBLE_SUPPORT
-class BufferConstDouble : public ::testing::TestWithParam<combination_t> {};
-TEST_P(BufferConstDouble, test) { run_const_test<double>(GetParam()); };
-INSTANTIATE_TEST_SUITE_P(buffer, BufferConstDouble, combi);
-#endif
+BLAS_REGISTER_TEST(BufferConst, combination_t, combi);

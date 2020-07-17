@@ -119,9 +119,6 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 namespace blas_benchmark {
 void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                       bool* success) {
-  register_benchmark<float>(args, exPtr, success);
-#ifdef DOUBLE_SUPPORT
-  register_benchmark<double>(args, exPtr, success);
-#endif
+  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }
 }  // namespace blas_benchmark
