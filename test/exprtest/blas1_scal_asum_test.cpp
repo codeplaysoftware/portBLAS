@@ -50,6 +50,7 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t cpu_y = 0;
 
   // Reference BLAS implementation
+  // TODO(Peter): reference_blas called here
   reference_blas::scal(size, alpha, v_cpu_x.data(), incX);
   cpu_y = reference_blas::asum(size, v_cpu_x.data(), incX);
 

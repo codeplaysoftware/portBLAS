@@ -42,6 +42,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> out_s(1, scalar_t(0));
 
   // Reference implementation
+  // TODO(Peter): reference_blas called here
   scalar_t out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
 
   // SYCL implementation

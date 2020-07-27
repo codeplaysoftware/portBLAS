@@ -53,6 +53,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
+  // TODO(Peter): reference_blas called here
   scalar_t vr_ref = reference_blas::asum(size, v1.data(), 1);
   scalar_t vr_temp = 0;
   {
