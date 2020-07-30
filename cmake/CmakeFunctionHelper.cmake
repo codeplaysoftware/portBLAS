@@ -531,9 +531,68 @@ add_sycl_to_target(TARGET ${func} SOURCES ${gemm_sources})
 endfunction(generate_blas_gemm_objects)
 
 
+# Generate quantization instantiations
+function(generate_quantize)
+  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/quantize")
+  set(quantize_data_list "${data_list}")
+  # float and double don't need to be quantized
+  list(REMOVE_ITEM quantize_data_list "float" "double")
+  foreach(executor ${executor_list})
+    # First generate quantize_base.cpp.in for float and double
+    sanitize_file_name(file_name
+      "quantize_${executor}_base.cpp")
+    add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
+        ${PROJECT_SOURCE_DIR}/external/ #1
+        ${SYCLBLAS_SRC_GENERATOR}/gen #2
+        ${SYCLBLAS_SRC}/quantize/quantize_base.cpp.in #3
+        ${executor} #4
+        "DATA_TYPE" #5 # data is ignored in the file template
+        ${file_name} #6
+      MAIN_DEPENDENCY ${SYCLBLAS_SRC}/quantize/quantize_base.cpp.in
+      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+      VERBATIM
+    )
+    list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+
+    # Generate quantize.cpp.in for each special data type
+    foreach(data ${quantize_data_list})
+      sanitize_file_name(file_name
+        "quantize_${executor}_${data}.cpp")
+      add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+        COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
+          ${PROJECT_SOURCE_DIR}/external/ #1
+          ${SYCLBLAS_SRC_GENERATOR}/gen #2
+          ${SYCLBLAS_SRC}/quantize/quantize.cpp.in #3
+          ${executor} #4
+          ${data} #5
+          ${file_name} #6
+        MAIN_DEPENDENCY ${SYCLBLAS_SRC}/quantize/quantize.cpp.in
+        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        VERBATIM
+      )
+      list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+    endforeach(data)
+  endforeach(executor)
+
+  add_library(quantize OBJECT ${FUNC_SRC})
+  set_target_compile_def(quantize)
+  target_include_directories(quantize PRIVATE
+    ${SYCLBLAS_SRC}
+    ${SYCLBLAS_INCLUDE}
+    ${ComputeCpp_INCLUDE_DIRS}
+    ${COMPUTECPP_SDK_INCLUDE})
+  message(STATUS "Adding SYCL to target quantize")
+  add_sycl_to_target(TARGET quantize SOURCES ${FUNC_SRC})
+endfunction(generate_quantize)
+
+
 function (build_library LIB_NAME)
 add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:sycl_policy>
+                             $<TARGET_OBJECTS:quantize>
                              $<TARGET_OBJECTS:axpy>
                              $<TARGET_OBJECTS:asum>
                              $<TARGET_OBJECTS:asum_return>
