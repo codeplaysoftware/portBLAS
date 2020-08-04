@@ -21,6 +21,7 @@
 
 #ifdef BLAS_VERIFY_BENCHMARK
 #include "utils/float_comparison.hpp"
+#include "utils/quantization.hpp"
 #include "utils/system_reference_blas.hpp"
 #endif
 

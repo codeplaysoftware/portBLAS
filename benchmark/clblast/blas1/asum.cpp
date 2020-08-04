@@ -42,8 +42,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   scalar_t vr;
 
   // Device vectors
@@ -52,8 +54,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  scalar_t vr_ref = reference_blas::asum(size, v1.data(), 1);
-  scalar_t vr_temp = 0;
+  data_t vr_ref = reference_blas::asum(size, v1.data(), 1);
+  data_t vr_temp = 0;
   {
     MemBuffer<scalar_t, CL_MEM_READ_ONLY> vr_temp_gpu(executorPtr, &vr_temp, 1);
     cl_event event;
@@ -62,7 +64,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
     CLEventHandler::wait(event);
   }
 
-  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
+  if (!utils::almost_equal(vr_temp, vr_ref)) {
     std::ostringstream err_stream;
     err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
     const std::string& err_str = err_stream.str();

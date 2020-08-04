@@ -43,17 +43,17 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  auto alpha = blas_benchmark::utils::random_scalar<data_t>();
 
   // Device vectors
   MemBuffer<scalar_t> buf1(executorPtr, v1.data(), size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v1_ref = v1;
+  std::vector<data_t> v1_ref = v1;
   reference_blas::scal(size, alpha, v1_ref.data(), 1);
-  std::vector<scalar_t> v1_temp = v1;
+  std::vector<data_t> v1_temp = v1;
   {
     MemBuffer<scalar_t> v1_temp_gpu(executorPtr, v1_temp.data(), size);
     cl_event event;
@@ -63,7 +63,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v1_temp, v1_ref, err_stream, "")) {
+  if (!utils::compare_vectors(v1_temp, v1_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

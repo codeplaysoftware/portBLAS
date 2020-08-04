@@ -118,24 +118,27 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 
   ExecutorType& ex = *executorPtr;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   // Matrices
-  std::vector<scalar_t> a =
-      blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
-  std::vector<scalar_t> b =
-      blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
-  std::vector<scalar_t> c =
-      blas_benchmark::utils::const_data<scalar_t>(m * n * batch_size, 0);
+  std::vector<data_t> a =
+      blas_benchmark::utils::random_data<data_t>(m * k * batch_size);
+  std::vector<data_t> b =
+      blas_benchmark::utils::random_data<data_t>(k * n * batch_size);
+  std::vector<data_t> c =
+      blas_benchmark::utils::const_data<data_t>(m * n * batch_size, 0);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> c_ref = c;
+  std::vector<data_t> c_ref = c;
   auto _base = [=](index_t dim0, index_t dim1, index_t idx) {
     return dim0 * dim1 * idx;
   };
   for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
-    reference_blas::gemm(t_a, t_b, m, n, k, alpha,
+    reference_blas::gemm(t_a, t_b, m, n, k, static_cast<data_t>(alpha),
                          a.data() + _base(m, k, batch_idx), lda,
-                         b.data() + _base(k, n, batch_idx), ldb, beta,
+                         b.data() + _base(k, n, batch_idx), ldb,
+                         static_cast<data_t>(beta),
                          c_ref.data() + _base(m, n, batch_idx), ldc);
   }
 
@@ -149,15 +152,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   }
 #endif
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k * batch_size);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n * batch_size);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n * batch_size);
+  auto a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a);
+  auto b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b);
+  auto c_gpu = utils::make_quantized_buffer<scalar_t>(ex, c);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-  std::vector<scalar_t> c_temp = c;
+  std::vector<data_t> c_temp = c;
   {
-    auto c_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
+    auto c_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, c_temp);
     auto event =
         _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                       beta, c_temp_gpu, ldc, batch_size, batch_type);
@@ -169,7 +171,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(c_temp, c_ref, err_stream, "")) {
+  if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

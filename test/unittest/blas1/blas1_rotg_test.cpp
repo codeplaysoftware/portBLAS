@@ -35,28 +35,31 @@ void run_test(const combination_t<scalar_t> combi) {
   int incB;
   std::tie(size, incA, incB) = combi;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   // Input vectors
-  std::vector<scalar_t> a_v(size * incA);
+  std::vector<data_t> a_v(size * incA);
   fill_random(a_v);
-  std::vector<scalar_t> b_v(size * incB);
+  std::vector<data_t> b_v(size * incB);
   fill_random(b_v);
 
   // Output vectors
-  std::vector<scalar_t> out_s(1, 10.0);
-  std::vector<scalar_t> a_cpu_v(a_v);
-  std::vector<scalar_t> b_cpu_v(b_v);
+  std::vector<data_t> out_s(1, 10.0);
+  std::vector<data_t> a_cpu_v(a_v);
+  std::vector<data_t> b_cpu_v(b_v);
 
   // Looks like we don't have a SYCL rotg implementation
-  scalar_t c;
-  scalar_t s;
-  scalar_t sa = a_v[0];
-  scalar_t sb = a_v[1];
-  reference_blas::rotg(&sa, &sb, &c, &s);
+  data_t c_d;
+  data_t s_d;
+  data_t sa = a_v[0];
+  data_t sb = a_v[1];
+  reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
   // Reference implementation
-  std::vector<scalar_t> c_cpu_v(size * incA);
-  std::vector<scalar_t> s_cpu_v(size * incB);
-  reference_blas::rot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB, c, s);
+  std::vector<data_t> c_cpu_v(size * incA);
+  std::vector<data_t> s_cpu_v(size * incB);
+  reference_blas::rot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB, c_d,
+                      s_d);
   auto out_cpu_s =
       reference_blas::dot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB);
 
@@ -65,16 +68,16 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incA));
-  ex.get_policy_handler().copy_to_device(a_v.data(), gpu_a_v, size * incA);
-  auto gpu_b_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incB));
-  ex.get_policy_handler().copy_to_device(b_v.data(), gpu_b_v, size * incB);
-  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(int(1));
-  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+  auto gpu_a_v = utils::make_quantized_buffer<scalar_t>(ex, a_v);
+  auto gpu_b_v = utils::make_quantized_buffer<scalar_t>(ex, b_v);
+  auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+
+  auto c = static_cast<scalar_t>(c_d);
+  auto s = static_cast<scalar_t>(s_d);
 
   _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
   _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
+  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
   ex.get_policy_handler().wait(event);
 
   // Validate the result

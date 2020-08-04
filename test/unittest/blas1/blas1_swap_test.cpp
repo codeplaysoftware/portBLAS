@@ -35,14 +35,16 @@ void run_test(const combination_t<scalar_t> combi) {
   int incY;
   std::tie(size, incX, incY) = combi;
 
-  // Input/Output vector
-  std::vector<scalar_t> x_v(size * incX);
-  fill_random(x_v);
-  std::vector<scalar_t> x_cpu_v(x_v);
+  using data_t = utils::data_storage_t<scalar_t>;
 
-  std::vector<scalar_t> y_v(size * incY);
+  // Input/Output vector
+  std::vector<data_t> x_v(size * incX);
+  fill_random(x_v);
+  std::vector<data_t> x_cpu_v(x_v);
+
+  std::vector<data_t> y_v(size * incY);
   fill_random(y_v);
-  std::vector<scalar_t> y_cpu_v(y_v);
+  std::vector<data_t> y_cpu_v(y_v);
 
   // Reference implementation
   reference_blas::swap(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY);
@@ -52,17 +54,13 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
-  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
-  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incY));
-  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v, size * incY);
+  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
+  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
 
   _swap(ex, size, gpu_x_v, incX, gpu_y_v, incY);
-  auto event =
-      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
+  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_x_v, x_v);
   ex.get_policy_handler().wait(event);
-  event =
-      ex.get_policy_handler().copy_to_host(gpu_y_v, y_v.data(), size * incY);
+  event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v);
   ex.get_policy_handler().wait(event);
 
   // Validate the result

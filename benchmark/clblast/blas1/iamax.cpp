@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   int res;
 
   // Device vectors and result

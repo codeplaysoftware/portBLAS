@@ -74,34 +74,33 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 
   ExecutorType& ex = *executorPtr;
 
-  // Input matrix/vector, output vector.
-  std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(m * n);
-  std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(xlen);
-  std::vector<scalar_t> v_y =
-      blas_benchmark::utils::random_data<scalar_t>(ylen);
+  using data_t = utils::data_storage_t<scalar_t>;
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m * n);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
-  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, ylen);
+  // Input matrix/vector, output vector.
+  std::vector<data_t> m_a = blas_benchmark::utils::random_data<data_t>(m * n);
+  std::vector<data_t> v_x = blas_benchmark::utils::random_data<data_t>(xlen);
+  std::vector<data_t> v_y = blas_benchmark::utils::random_data<data_t>(ylen);
+
+  auto m_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, m_a);
+  auto v_x_gpu = utils::make_quantized_buffer<scalar_t>(ex, v_x);
+  auto v_y_gpu = utils::make_quantized_buffer<scalar_t>(ex, v_y);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v_y_ref = v_y;
-  reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_x.data(), incX,
-                       beta, v_y_ref.data(), incY);
-  std::vector<scalar_t> v_y_temp = v_y;
+  std::vector<data_t> v_y_ref = v_y;
+  reference_blas::gemv(t_str, m, n, static_cast<data_t>(alpha), m_a.data(), m,
+                       v_x.data(), incX, static_cast<data_t>(beta),
+                       v_y_ref.data(), incY);
+  std::vector<data_t> v_y_temp = v_y;
   {
-    auto v_y_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
+    auto v_y_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, v_y_temp);
     auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
                        v_y_temp_gpu, incY);
     ex.get_policy_handler().wait();
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v_y_temp, v_y_ref, err_stream, "")) {
+  if (!utils::compare_vectors(v_y_temp, v_y_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
