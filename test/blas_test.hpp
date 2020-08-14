@@ -43,6 +43,7 @@
 #include "utils/cli_device_selector.hpp"
 #include "utils/float_comparison.hpp"
 #include "utils/print_queue_information.hpp"
+#include "utils/quantization.hpp"
 #include "utils/system_reference_blas.hpp"
 
 struct Args {

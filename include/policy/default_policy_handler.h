@@ -25,6 +25,9 @@
 
 #ifndef SYCL_BLAS_DEFAULT_POLICY_H
 #define SYCL_BLAS_DEFAULT_POLICY_H
+
+#include "container/blas_iterator.h"
+
 namespace blas {
 
 template <typename blas_policy_t>
