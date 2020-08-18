@@ -57,7 +57,7 @@ namespace blas {
   template typename codeplay_policy::event_t                                   \
   PolicyHandler<codeplay_policy>::copy_to_device<element_t>(                   \
       const element_t *src, BufferIterator<element_t, codeplay_policy> dst,    \
-      size_t size = 0);                                                        \
+      size_t size);                                                            \
   template typename codeplay_policy::event_t                                   \
   PolicyHandler<codeplay_policy>::copy_to_host<element_t>(                     \
       element_t * src, element_t * dst, size_t size);                          \
@@ -65,7 +65,7 @@ namespace blas {
   template typename codeplay_policy::event_t                                   \
   PolicyHandler<codeplay_policy>::copy_to_host<element_t>(                     \
       BufferIterator<element_t, codeplay_policy> src, element_t * dst,         \
-      size_t size = 0);                                                        \
+      size_t size);                                                            \
   template ptrdiff_t PolicyHandler<codeplay_policy>::get_offset<element_t>(    \
       const element_t *ptr) const;                                             \
                                                                                \
@@ -113,7 +113,7 @@ INSTANTIATE_TEMPLATE_METHODS(double)
   PolicyHandler<codeplay_policy>::copy_to_device<IndexValueTuple<ind, val>>(  \
       const IndexValueTuple<ind, val> *src,                                   \
       BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> dst,         \
-      size_t size = 0);                                                       \
+      size_t size);                                                           \
   template typename codeplay_policy::event_t                                  \
   PolicyHandler<codeplay_policy>::copy_to_host<IndexValueTuple<ind, val>>(    \
       IndexValueTuple<ind, val> * src, IndexValueTuple<ind, val> * dst,       \
@@ -122,7 +122,7 @@ INSTANTIATE_TEMPLATE_METHODS(double)
   template typename codeplay_policy::event_t                                  \
   PolicyHandler<codeplay_policy>::copy_to_host<IndexValueTuple<ind, val>>(    \
       BufferIterator<IndexValueTuple<ind, val>, codeplay_policy> src,         \
-      IndexValueTuple<ind, val> * dst, size_t size = 0);                      \
+      IndexValueTuple<ind, val> * dst, size_t size);                          \
   template ptrdiff_t                                                          \
   PolicyHandler<codeplay_policy>::get_offset<IndexValueTuple<ind, val>>(      \
       const IndexValueTuple<ind, val> *ptr) const;                            \

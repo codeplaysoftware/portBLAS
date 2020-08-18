@@ -68,6 +68,15 @@ list(APPEND COMPUTECPP_USER_FLAGS
   -no-serial-memop
 )
 
+if (MSVC)
+  # The device compiler needs C++14 to parse the Windows headers
+  set(CMAKE_CXX_STANDARD 14)
+  set(BUILD_SHARED_LIBS FALSE CACHE BOOL
+    "Force SYCL-BLAS to be built as a static library on Windows"
+    FORCE
+  )
+endif()
+
 # By default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
 # By default vectorization in gemm kernels is disabled until fully implemented.
@@ -104,6 +113,14 @@ include(CmakeFunctionHelper)
 
 add_subdirectory(src)
 build_library(sycl_blas)
+
+if (WIN32)
+  # On Windows, all symbols must be resolved at link time for DLLs.
+  # The sycl_blas target is just a collection of other objects so
+  # the linked libraries are not going to be propagated to this target.
+  # This requires manual linking against ComputeCpp.lib on Windows.
+  target_link_libraries(sycl_blas PRIVATE ComputeCpp::ComputeCpp)
+endif()
 
 set_target_properties(sycl_blas PROPERTIES
   VERSION ${PROJECT_VERSION}

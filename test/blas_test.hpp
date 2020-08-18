@@ -56,7 +56,7 @@ using namespace blas;
 
 // The executor type used in tests
 using test_executor_t =
-    class blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
+    blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
 
 /**
  * Construct a SYCL queue using the device specified in the command line, or
