@@ -59,4 +59,6 @@
 
 #include "policy/policy_handler.h"
 
+#include "quantize/quantize.h"
+
 #include "views/view.h"
