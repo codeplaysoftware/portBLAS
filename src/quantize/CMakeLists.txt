@@ -22,6 +22,5 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-add_subdirectory(policy)
-add_subdirectory(interface)
-add_subdirectory(quantize)
+
+generate_quantize()
