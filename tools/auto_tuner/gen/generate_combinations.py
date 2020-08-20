@@ -291,7 +291,8 @@ def get_gemm_configs_from_json(json_file):
         gemm_configs += [
             NaiveGemm(cache_size=cls) for cls in r["cache_line_size"]
         ]
-    return gemm_configs
+    #Remove duplicates from the configs by converting to dictionary then back to list
+    return list(dict.fromkeys(gemm_configs))
 
 
 def write_output_definition_file(config_list, config_source, output_file):
