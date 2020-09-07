@@ -145,9 +145,14 @@ option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BUILD_EXPRESSION_BENCHMARKS "Whether to build the expression benchmarks" OFF)
+option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" OFF)
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)
+endif()
+
+if (BLAS_BUILD_SAMPLES)
+  add_subdirectory(samples)
 endif()
 
 option(BLAS_ENABLE_AUTO_TUNERS "Whether to enable building GEMM auto tuners" OFF)

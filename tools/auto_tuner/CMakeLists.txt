@@ -129,5 +129,6 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
     TARGET ${tuner_exec}
     SOURCES ${blas_tuner}
   )
+  set_target_compile_def(${tuner_exec})
   install(TARGETS ${tuner_exec} RUNTIME DESTINATION bin)
 endforeach()
