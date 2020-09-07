@@ -67,6 +67,8 @@ void run_test(const combination_t<scalar_t> combi) {
   operator_t op;
   std::tie(rows, cols, ld_mul, op) = combi;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   auto q = make_queue();
   test_executor_t ex(q);
 
@@ -74,9 +76,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   index_t ld = rows * ld_mul;
 
-  std::vector<scalar_t> in_m(ld * cols);
-  std::vector<scalar_t> out_v_gpu(rows);
-  std::vector<scalar_t> out_v_cpu(rows);
+  std::vector<data_t> in_m(ld * cols);
+  std::vector<data_t> out_v_gpu(rows);
+  std::vector<data_t> out_v_cpu(rows);
 
   fill_random(in_m);
   for (index_t i = 0; i < rows; i++) {
@@ -104,35 +106,33 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   /* Reduction function. */
-  std::function<scalar_t(scalar_t, scalar_t)> reduction_func;
+  std::function<data_t(data_t, data_t)> reduction_func;
   switch (op) {
     case operator_t::Add:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
-        return l + r;
-      };
+      reduction_func = [=](data_t l, data_t r) -> data_t { return l + r; };
       break;
     case operator_t::AbsoluteAdd:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+      reduction_func = [=](data_t l, data_t r) -> data_t {
         return abs(l) + abs(r);
       };
       break;
     case operator_t::Product:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+      reduction_func = [=](data_t l, data_t r) -> data_t {
         return abs(l) * abs(r);
       };
       break;
     case operator_t::Division:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+      reduction_func = [=](data_t l, data_t r) -> data_t {
         return abs(l) / abs(r);
       };
       break;
     case operator_t::Min:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+      reduction_func = [=](data_t l, data_t r) -> data_t {
         return l < r ? l : r;
       };
       break;
     case operator_t::Max:
-      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+      reduction_func = [=](data_t l, data_t r) -> data_t {
         return l > r ? l : r;
       };
       break;
@@ -147,8 +147,8 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   {
-    auto m_in_gpu = make_sycl_iterator_buffer<scalar_t>(in_m, ld * cols);
-    auto v_out_gpu = make_sycl_iterator_buffer<scalar_t>(out_v_gpu, rows);
+    auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
+    auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
     auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
     auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
     try {

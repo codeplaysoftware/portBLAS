@@ -44,11 +44,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   blas::IndexValueTuple<index_t, scalar_t> out(0, 0);
 
-  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
   auto outI =
       blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
           &out, 1);

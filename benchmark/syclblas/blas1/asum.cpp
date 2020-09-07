@@ -44,24 +44,26 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t vr;
+  using data_t = utils::data_storage_t<scalar_t>;
 
-  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
-  auto inr = blas::make_sycl_iterator_buffer<scalar_t>(&vr, 1);
+  // Create data
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  data_t vr;
+
+  auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
+  auto inr = utils::make_quantized_buffer<scalar_t>(ex, vr);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  scalar_t vr_ref = reference_blas::asum(size, v1.data(), 1);
-  scalar_t vr_temp = 0;
+  data_t vr_ref = reference_blas::asum(size, v1.data(), 1);
+  data_t vr_temp = 0;
   {
-    auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
+    auto vr_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, vr_temp);
     auto event = _asum(ex, size, inx, 1, vr_temp_gpu);
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
+  if (!utils::almost_equal<data_t>(vr_temp, vr_ref)) {
     std::ostringstream err_stream;
     err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
     const std::string& err_str = err_stream.str();

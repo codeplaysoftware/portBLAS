@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#include "sycl_blas.hpp"
 #include "../utils.hpp"
+#include "sycl_blas.hpp"
 
 using namespace blas;
 
@@ -63,21 +63,22 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 
   ExecutorType& ex = *executorPtr;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   // Matrix
-  std::vector<scalar_t> mat =
-      blas_benchmark::utils::random_data<scalar_t>(rows * cols);
-  auto mat_buffer = blas::make_sycl_iterator_buffer<scalar_t>(mat, rows * cols);
+  std::vector<data_t> mat =
+      blas_benchmark::utils::random_data<data_t>(rows * cols);
+  auto mat_buffer = utils::make_quantized_buffer<scalar_t>(ex, mat);
   auto mat_gpu = make_matrix_view<col_major>(ex, mat_buffer, rows, cols, rows);
 
   // Output vector
-  std::vector<scalar_t> vec =
-      blas_benchmark::utils::random_data<scalar_t>(rows);
-  auto vec_buffer = blas::make_sycl_iterator_buffer<scalar_t>(vec, rows);
+  std::vector<data_t> vec = blas_benchmark::utils::random_data<data_t>(rows);
+  auto vec_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec);
   auto vec_gpu = make_vector_view(ex, vec_buffer, 1, rows);
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
-  std::vector<scalar_t> vec_ref = vec;
+  std::vector<data_t> vec_ref = vec;
   /* Reduce the reference by hand on CPU */
   for (index_t i = 0; i < rows; i++) {
     vec_ref[i] = 0;
@@ -85,10 +86,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
       vec_ref[i] += mat[rows * j + i];
     }
   }
-  std::vector<scalar_t> vec_temp = vec;
+  std::vector<data_t> vec_temp = vec;
   {
-    auto vec_temp_buffer =
-        blas::make_sycl_iterator_buffer<scalar_t>(vec_temp, rows);
+    auto vec_temp_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec_temp);
     auto vec_temp_gpu = make_vector_view(ex, vec_temp_buffer, 1, rows);
     auto event = launch_reduction<AddOperator, scalar_t>(
         ex, mat_gpu, vec_temp_gpu, rows, cols);
@@ -96,7 +96,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(vec_temp, vec_ref, err_stream, "")) {
+  if (!utils::compare_vectors(vec_temp, vec_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

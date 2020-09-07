@@ -36,11 +36,13 @@ void run_test(const combination_t<scalar_t> combi) {
   generation_mode_t mode;
   std::tie(size, incX, mode) = combi;
 
+  using data_t = utils::data_storage_t<scalar_t>;
+
   const scalar_t max = std::numeric_limits<scalar_t>::max();
 
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
-  populate_data<scalar_t>(mode, max, x_v);
+  std::vector<data_t> x_v(size * incX);
+  populate_data<data_t>(mode, max, x_v);
   for (int i = 0; i < size * incX; i++) {
     // There is a bug in Openblas where 0s are not handled correctly
     if (x_v[i] == 0.0) {
@@ -49,7 +51,7 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   // Output scalar
-  std::vector<tuple_t> out_s(1, tuple_t(0, max));
+  tuple_t out_s{0, max};
 
   // Reference implementation
   int out_cpu_s = reference_blas::iamin(size, x_v.data(), incX);
@@ -59,19 +61,21 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(int(size * incX));
-  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v, size * incX);
+  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(int(1));
-  ex.get_policy_handler().copy_to_device(out_s.data(), gpu_out_s, 1);
+  ex.get_policy_handler().copy_to_device(&out_s, gpu_out_s, 1);
 
   _iamin(ex, size, gpu_x_v, incX, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
-  ex.get_policy_handler().wait();
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, &out_s, 1);
+  ex.get_policy_handler().wait(event);
+
+  using data_tuple_t = IndexValueTuple<int, data_t>;
+  data_tuple_t out_data_s{out_s.ind, static_cast<data_t>(out_s.val)};
 
   // Validate the result
-  ASSERT_EQ(out_cpu_s, out_s[0].ind);
-  ASSERT_EQ(x_v[out_s[0].ind * incX], out_s[0].val);
-  ASSERT_EQ(x_v[out_cpu_s * incX], out_s[0].val);
+  ASSERT_EQ(out_cpu_s, out_data_s.ind);
+  ASSERT_EQ(x_v[out_data_s.ind * incX], out_data_s.val);
+  ASSERT_EQ(x_v[out_cpu_s * incX], out_data_s.val);
 }
 
 BLAS_REGISTER_TEST(Iamin, combination_t, combi);

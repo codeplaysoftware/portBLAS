@@ -44,25 +44,27 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  using data_t = utils::data_storage_t<scalar_t>;
 
-  auto in = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  // Create data
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+
+  auto in = utils::make_quantized_buffer<scalar_t>(ex, v1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v1_ref = v1;
-  reference_blas::scal(size, alpha, v1_ref.data(), 1);
-  std::vector<scalar_t> v1_temp = v1;
+  std::vector<data_t> v1_ref = v1;
+  reference_blas::scal(size, static_cast<data_t>(alpha), v1_ref.data(), 1);
+  std::vector<data_t> v1_temp = v1;
   {
-    auto v1_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v1_temp, size);
+    auto v1_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, v1_temp);
     auto event = _scal(ex, size, alpha, v1_temp_gpu, 1);
     ex.get_policy_handler().wait(event);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v1_temp, v1_ref, err_stream, "")) {
+  if (!utils::compare_vectors(v1_temp, v1_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

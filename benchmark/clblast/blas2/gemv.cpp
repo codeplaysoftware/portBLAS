@@ -73,12 +73,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   }
 
   // Input matrix/vector, output vector.
-  std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(m * n);
-  std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(xlen);
-  std::vector<scalar_t> v_y =
-      blas_benchmark::utils::const_data<scalar_t>(ylen, 0);
+  std::vector<data_t> m_a =
+      blas_benchmark::utils::random_data<data_t>(m * n);
+  std::vector<data_t> v_x =
+      blas_benchmark::utils::random_data<data_t>(xlen);
+  std::vector<data_t> v_y =
+      blas_benchmark::utils::const_data<data_t>(ylen, 0);
 
   // Specify the transposition
   clblast::Transpose a_tr =
@@ -99,10 +99,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v_y_ref = v_y;
+  std::vector<data_t> v_y_ref = v_y;
   reference_blas::gemv(t_str, m, n, alpha, m_a.data(), m, v_x.data(), incX,
                        beta, v_y_ref.data(), incY);
-  std::vector<scalar_t> v_y_temp = v_y;
+  std::vector<data_t> v_y_temp = v_y;
   {
     MemBuffer<scalar_t> v_y_temp_gpu(executorPtr, v_y_temp.data(),
                                      static_cast<size_t>(ylen));
@@ -114,7 +114,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<scalar_t>(v_y_temp, v_y_ref, err_stream, "")) {
+  if (!utils::compare_vectors(v_y_temp, v_y_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
