@@ -59,3 +59,7 @@ endif()
 SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
 SET(BACKEND_DEVICE ${TARGET})
 message(STATUS "${TARGET} is chosen as a backend platform")
+
+# the MODEL variable defines for which model optimized configs should
+# be enabled for. Currently only affects ARM_GPU configs.
+SET(MODEL "DEFAULT" CACHE STRING "Default Model 'DEFAULT'")
