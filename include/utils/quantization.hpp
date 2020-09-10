@@ -105,7 +105,8 @@ struct MakeQuantizedBuffer {
     ex.get_policy_handler().copy_to_device(&input_scalar, data_gpu_x_v, 1);
     auto gpu_x_v =
         blas::make_sycl_iterator_buffer<scalar_t>(static_cast<int>(1));
-    blas::_quantize(ex, data_gpu_x_v, gpu_x_v);
+    auto event = blas::_quantize(ex, data_gpu_x_v, gpu_x_v);
+    ex.get_policy_handler().wait(event);
     return gpu_x_v;
   }
 };
