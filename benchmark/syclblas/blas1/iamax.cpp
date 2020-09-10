@@ -45,21 +45,20 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   ExecutorType& ex = *executorPtr;
 
   using data_t = utils::data_storage_t<scalar_t>;
+  using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
   // Create data
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
-  blas::IndexValueTuple<index_t, scalar_t> out(-1, 0);
+  tuple_scalar_t out{-1, 0};
 
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
-  auto outI =
-      blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
-          &out, 1);
+  auto outI = blas::make_sycl_iterator_buffer<tuple_scalar_t>(&out, 1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   index_t idx_ref =
       static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
-  blas::IndexValueTuple<index_t, scalar_t> idx_temp(-1, 0);
+  tuple_scalar_t idx_temp{-1, 0};
   {
     auto idx_temp_gpu =
         blas::make_sycl_iterator_buffer<blas::IndexValueTuple<int, scalar_t>>(

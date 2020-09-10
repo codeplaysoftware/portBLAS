@@ -94,8 +94,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   std::vector<data_t> v_y_temp = v_y;
   {
     auto v_y_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, v_y_temp);
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
-                       v_y_temp_gpu, incY);
+    _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
+          v_y_temp_gpu, incY);
+    auto event =
+        utils::quantized_copy_to_host<scalar_t>(ex, v_y_temp_gpu, v_y_temp);
     ex.get_policy_handler().wait();
   }
 

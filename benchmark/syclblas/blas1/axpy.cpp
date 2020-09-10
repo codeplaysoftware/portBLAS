@@ -62,7 +62,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::vector<data_t> y_temp = v2;
   {
     auto y_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, y_temp);
-    auto event = _axpy(ex, size, alpha, inx, 1, y_temp_gpu, 1);
+    _axpy(ex, size, alpha, inx, 1, y_temp_gpu, 1);
+    auto event =
+        utils::quantized_copy_to_host<scalar_t>(ex, y_temp_gpu, y_temp);
     ex.get_policy_handler().wait(event);
   }
 

@@ -90,8 +90,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   {
     auto vec_temp_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec_temp);
     auto vec_temp_gpu = make_vector_view(ex, vec_temp_buffer, 1, rows);
-    auto event = launch_reduction<AddOperator, scalar_t>(
-        ex, mat_gpu, vec_temp_gpu, rows, cols);
+    launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_temp_gpu, rows,
+                                            cols);
+    auto event =
+        utils::quantized_copy_to_host<scalar_t>(ex, vec_temp_gpu, vec_temp);
     ex.get_policy_handler().wait(event);
   }
 

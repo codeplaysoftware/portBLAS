@@ -160,9 +160,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   std::vector<data_t> c_temp = c;
   {
     auto c_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, c_temp);
+    _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb, beta,
+                  c_temp_gpu, ldc, batch_size, batch_type);
     auto event =
-        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                      beta, c_temp_gpu, ldc, batch_size, batch_type);
+        utils::quantized_copy_to_host<scalar_t>(ex, c_temp_gpu, c_temp);
     ex.get_policy_handler().wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
