@@ -29,6 +29,7 @@ _BLAS_BATCH_TYPE = {
     "interleaved": "::blas::gemm_batch_type_t::interleaved",
 }
 
+
 def _bool_to_str(val):
     """
     Convert Python bool to string 'true' or 'false'.
@@ -61,25 +62,17 @@ class Tile(
     def to_list(self):
         return [
             self.item_rows, self.item_cols, self.group_rows, self.group_cols,
-            self.tile_rows, self.tile_cols,  self.item_batchs, self.wg_batchs
+            self.tile_rows, self.tile_cols, self.item_batchs, self.wg_batchs
         ]
 
 
 class GemmParams(
         namedtuple('GemmParams', [
-            'cache_size',
-            'tile',
-            'double_buffer',
-            'bank_conf_a',
-            'bank_conf_b',
-            'mem_type',
-            'algo_type',
-            'batch_type',
-            'vec_type',
+            'cache_size', 'tile', 'double_buffer', 'bank_conf_a',
+            'bank_conf_b', 'mem_type', 'algo_type', 'batch_type', 'vec_type',
             'vec_size'
         ])):
     """ A parameter set for the non-local memory GEMM kernel.  """
-
     def __str__(self):
         return "{mem}, {algo}, {batch}, {vec}, {vec_s}, {cls}, {tile}, {db}, {bca}, {bcb}".format(
             cls=self.cache_size,
@@ -103,9 +96,10 @@ class LocalGemm(GemmParams):
 
     def __new__(self, cache_size, tile, double_buffer, bank_conf_a,
                 bank_conf_b, vec_size):
-        return super(LocalGemm, self).__new__(self, cache_size, tile,
-                                              double_buffer, bank_conf_a,
-                                              bank_conf_b, 'local', 'standard', 'strided', 'full', vec_size)
+        return super(LocalGemm,
+                     self).__new__(self, cache_size, tile, double_buffer,
+                                   bank_conf_a, bank_conf_b, 'local',
+                                   'standard', 'strided', 'full', vec_size)
 
     def is_valid(self):
         """
@@ -132,8 +126,10 @@ class NonLocalGemmStrided(GemmParams):
     __slots__ = ()
 
     def __new__(self, tile, vectorization_type, vec_size):
-        return super(NonLocalGemmStrided, self).__new__(self, 0, tile, False, False,
-                                                 False, 'no_local', 'standard', 'strided', vectorization_type , vec_size)
+        return super(NonLocalGemmStrided,
+                     self).__new__(self, 0, tile, False, False, False,
+                                   'no_local', 'standard', 'strided',
+                                   vectorization_type, vec_size)
 
     def is_valid(self):
         """
@@ -141,9 +137,17 @@ class NonLocalGemmStrided(GemmParams):
 
         The requirements here should match any asserts in the kernel.
         """
-        return (self.tile.group_cols *
-                self.tile.item_cols == self.tile.group_rows *
-                self.tile.item_rows)
+        tile_valid = (self.tile.group_cols *
+                      self.tile.item_cols == self.tile.group_rows *
+                      self.tile.item_rows)
+        vec_size_valid = False
+        if (self.vec_type == 'partial'):
+            vec_size_valid = (self.tile.item_rows % self.vec_size == 0
+                              and self.tile.item_cols % self.vec_size == 0)
+        else:
+            vec_size_valid = (self.tile.item_rows == self.vec_size
+                              and self.tile.item_cols == self.vec_size)
+        return (tile_valid and vec_size_valid)
 
 
 class NonLocalGemmnInterleaved(GemmParams):
@@ -159,8 +163,10 @@ class NonLocalGemmnInterleaved(GemmParams):
     __slots__ = ()
 
     def __new__(self, tile, vec_size):
-        return super(NonLocalGemmnInterleaved, self).__new__(self, 0, tile, False, False,
-                                                 False, 'no_local', 'standard', 'interleaved', 'full', vec_size)
+        return super(NonLocalGemmnInterleaved,
+                     self).__new__(self, 0, tile, False, False, False,
+                                   'no_local', 'standard', 'interleaved',
+                                   'full', vec_size)
 
     def is_valid(self):
         """
@@ -168,9 +174,11 @@ class NonLocalGemmnInterleaved(GemmParams):
 
         The requirements here should match any asserts in the kernel.
         """
-        return ((self.tile.item_batchs % self.vec_size ==0) and 
-                ((self.tile.wg_batchs * self.tile.group_rows * self.tile.group_rows) <= 256))
-
+        return ((self.tile.item_batchs % self.vec_size == 0)
+                and ((self.tile.wg_batchs * self.tile.group_rows *
+                      self.tile.group_rows) <= 256)
+                and self.tile.item_rows % self.vec_size == 0
+                and self.tile.item_cols % self.vec_size == 0)
 
 
 class NaiveGemm(GemmParams):
@@ -186,14 +194,18 @@ class NaiveGemm(GemmParams):
         return super(NaiveGemm,
                      self).__new__(self, cache_size,
                                    _construct_tile((1, 1), (1, 1), (1, 1)),
-                                   False, False, False, 'no_local', 'naive', 'strided', 'none', 1)
+                                   False, False, False, 'no_local', 'naive',
+                                   'strided', 'none', 1)
 
     def is_valid(self):
         """ Check whether this config is valid and can be compiled."""
         return True
 
 
-def _construct_tile(item_sizes, work_group_sizes, tile_sizes=[1, 1], batch_sizes=[1, 1]):
+def _construct_tile(item_sizes,
+                    work_group_sizes,
+                    tile_sizes=[1, 1],
+                    batch_sizes=[1, 1]):
     """ Helper function to create a new Tile parameter set. """
     return Tile(item_rows=item_sizes[0],
                 item_cols=item_sizes[1],
@@ -217,12 +229,9 @@ def generate_local_gemm_configs(cache_sizes, item_sizes, group_sizes,
     """
 
     configs = []
-    for cls, item, wg, tl, db, ncba, ncbb, vs in product(cache_sizes, item_sizes,
-                                                     group_sizes, tile_sizes,
-                                                     double_buffers,
-                                                     bank_conflicts_a,
-                                                     bank_conflicts_b,
-                                                     vec_sizes):
+    for cls, item, wg, tl, db, ncba, ncbb, vs in product(
+            cache_sizes, item_sizes, group_sizes, tile_sizes, double_buffers,
+            bank_conflicts_a, bank_conflicts_b, vec_sizes):
         new_config = LocalGemm(cache_size=cls,
                                tile=_construct_tile(item, wg, tl),
                                double_buffer=db,
@@ -243,14 +252,20 @@ def generate_no_local_gemm_strided_configs(item_sizes, group_sizes, vec_sizes):
     those configurations which would give valid kernels will be generated.
     """
     configs = []
-    for item, wg , vs, vt in product(item_sizes, group_sizes, vec_sizes,  ['partial', 'full']):
-        new_config = NonLocalGemmStrided(tile=_construct_tile(item, wg), vectorization_type=vt,  vec_size=vs, )
+    for item, wg, vs, vt in product(item_sizes, group_sizes, vec_sizes,
+                                    ['partial', 'full']):
+        new_config = NonLocalGemmStrided(
+            tile=_construct_tile(item, wg),
+            vectorization_type=vt,
+            vec_size=vs,
+        )
         if new_config.is_valid():
             configs.append(new_config)
     return configs
 
 
-def generate_no_local_gemm_interleaved_configs(item_sizes, group_sizes, batch_sizes, vec_sizes):
+def generate_no_local_gemm_interleaved_configs(item_sizes, group_sizes,
+                                               batch_sizes, vec_sizes):
     """
     Generate a list of possible configurations without local memory and interleaved batch.
 
@@ -259,8 +274,11 @@ def generate_no_local_gemm_interleaved_configs(item_sizes, group_sizes, batch_si
     those configurations which would give valid kernels will be generated.
     """
     configs = []
-    for item, wg, bs, vs in product(item_sizes, group_sizes, batch_sizes, vec_sizes):
-        new_config = NonLocalGemmnInterleaved(tile=_construct_tile(item, wg, [1,1], bs), vec_size=vs)
+    for item, wg, bs, vs in product(item_sizes, group_sizes, batch_sizes,
+                                    vec_sizes):
+        new_config = NonLocalGemmnInterleaved(tile=_construct_tile(
+            item, wg, [1, 1], bs),
+                                              vec_size=vs)
         if new_config.is_valid():
             configs.append(new_config)
     return configs
@@ -277,15 +295,14 @@ def get_gemm_configs_from_json(json_file):
             r["vectorization_size"])
 
     for r in config_json.get("non_local", []):
-        gemm_configs += generate_no_local_gemm_strided_configs(r["work_item_sizes"],
-                                                       r["work_group_sizes"],
-                                                       r["vectorization_size"])
-    
+        gemm_configs += generate_no_local_gemm_strided_configs(
+            r["work_item_sizes"], r["work_group_sizes"],
+            r["vectorization_size"])
+
     for r in config_json.get("non_local_interleaved", []):
-        gemm_configs += generate_no_local_gemm_interleaved_configs(r["work_item_sizes"],
-                                                       r["work_group_sizes"], 
-                                                       r["batch_level_tiles"], 
-                                                       r["vectorization_size"])
+        gemm_configs += generate_no_local_gemm_interleaved_configs(
+            r["work_item_sizes"], r["work_group_sizes"],
+            r["batch_level_tiles"], r["vectorization_size"])
 
     for r in config_json.get("naive", []):
         gemm_configs += [
@@ -328,6 +345,7 @@ def _get_filename(params):
 
     def _batch_to_int(batch_type):
         return {'strided': 0, 'interleaved': 1}[batch_type]
+
     def _vec_type_to_int(vec_type):
         return {'none': 0, 'partial': 1, 'full': 2}[vec_type]
 

@@ -68,7 +68,12 @@ function(set_target_compile_def in_target)
     message(STATUS "Gemm vectorization support enabled for target ${in_target}")
     target_compile_definitions(${in_target} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
   endif()
-
+  #Set optimized model configs
+  if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
+    target_compile_definitions(${in_target} PUBLIC MODEL_RESNET_50=1)
+  elseif(${BLAS_MODEL_OPTIMIZATION} STREQUAL "VGG_16")
+    target_compile_definitions(${in_target} PUBLIC MODEL_VGG_16=1)
+  endif()
 endfunction()
 
 
@@ -424,18 +429,64 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
     "float"
   )
   foreach(data ${supported_types})
+    if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 "no_local" "standard" "full" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 32 "false" "false" "false"
+        64 8 4 4 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 32 "false" "false" "false"
+        64 4 8 8 4 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 32 "false" "false" "false"
+        64 8 4 4 8 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
+      add_gemm_configuration(
+        "${data}" 32 "false" "false" "false"
+        64 8 4 4 8 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+      add_gemm_configuration(
+        "${data}" 16 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 16 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+      add_gemm_configuration(
+        "${data}" 128 "false" "false" "false"
+        64 4 8 16 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 16 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+    elseif(${BLAS_MODEL_OPTIMIZATION} STREQUAL "VGG_16")
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+      add_gemm_configuration(
+        "${data}" 128 "false" "false" "false"
+        64 4 8 16 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+    else()
+      add_gemm_configuration(
+        "${data}" 64 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 128 "false" "false" "false"
+        64 4 8 16 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      add_gemm_configuration(
+        "${data}" 32 "false" "false" "false"
+        64 8 4 4 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+    endif()
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 8 8 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
-    add_gemm_configuration(
-      "${data}" 128 "false" "false" "false"
-      64 4 8 16 8 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 2 2 4 4 1 1 4 4 "no_local" "standard" "full" 2 "interleaved")
   endforeach()
 elseif(${TARGET} STREQUAL "POWER_VR")
   set(supported_types
