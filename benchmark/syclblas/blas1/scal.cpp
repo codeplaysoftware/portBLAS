@@ -59,7 +59,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::vector<data_t> v1_temp = v1;
   {
     auto v1_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, v1_temp);
-    auto event = _scal(ex, size, alpha, v1_temp_gpu, 1);
+    _scal(ex, size, alpha, v1_temp_gpu, 1);
+    auto event =
+        utils::quantized_copy_to_host<scalar_t>(ex, v1_temp_gpu, v1_temp);
     ex.get_policy_handler().wait(event);
   }
 

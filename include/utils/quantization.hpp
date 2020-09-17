@@ -250,6 +250,9 @@ struct QuantizedCopyToHost<double>
 /**
  * @brief Constructs a buffer containing data that was quantized
  *        from the provided input vector
+ *
+ * The vector will not be written back on buffer destruction.
+ *
  * @return Buffer containing quantized data
  * @note scalar_t cannot be deduced, it has to be provided
  */
@@ -263,6 +266,9 @@ auto make_quantized_buffer(executor_t& ex,
 /**
  * @brief Constructs a buffer containing data that was quantized
  *        from the provided input scalar
+ *
+ * The scalar will not be written back on buffer destruction.
+ *
  * @return Buffer containing quantized data
  * @note scalar_t cannot be deduced, it has to be provided
  */
