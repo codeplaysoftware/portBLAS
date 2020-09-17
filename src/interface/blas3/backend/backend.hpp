@@ -22,15 +22,15 @@
  *  @filename backend.hpp
  *
  **************************************************************************/
-#if RCAR
+#if defined(RCAR)
 #include "interface/blas3/backend/rcar.hpp"
-#elif INTEL_GPU
+#elif defined INTEL_GPU
 #include "interface/blas3/backend/intel_gpu.hpp"
-#elif AMD_GPU
+#elif defined AMD_GPU
 #include "interface/blas3/backend/amd_gpu.hpp"
-#elif ARM_GPU
+#elif defined ARM_GPU
 #include "interface/blas3/backend/arm_gpu.hpp"
-#elif POWER_VR
+#elif defined POWER_VR
 #include "interface/blas3/backend/power_vr.hpp"
 #else
 #include "interface/blas3/backend/default_cpu.hpp"
