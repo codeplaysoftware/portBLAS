@@ -43,9 +43,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["bytes_processed"] = 3 * size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
-  std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
-  auto alpha = blas_benchmark::utils::random_scalar<data_t>();
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
+  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   // Device vectors
   MemBuffer<scalar_t, CL_MEM_WRITE_ONLY> buf1(executorPtr, v1.data(), size);
@@ -53,9 +53,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> y_ref = v2;
+  std::vector<scalar_t> y_ref = v2;
   reference_blas::axpy(size, alpha, v1.data(), 1, y_ref.data(), 1);
-  std::vector<data_t> y_temp = v2;
+  std::vector<scalar_t> y_temp = v2;
   {
     MemBuffer<scalar_t> y_temp_gpu(executorPtr, y_temp.data(), size);
     cl_event event;

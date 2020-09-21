@@ -81,12 +81,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   }
 
   // Matrices
-  std::vector<data_t> a =
-      blas_benchmark::utils::random_data<data_t>(m * k * batch_size);
-  std::vector<data_t> b =
-      blas_benchmark::utils::random_data<data_t>(k * n * batch_size);
-  std::vector<data_t> c =
-      blas_benchmark::utils::const_data<data_t>(m * n * batch_size, 0);
+  std::vector<scalar_t> a =
+      blas_benchmark::utils::random_data<scalar_t>(m * k * batch_size);
+  std::vector<scalar_t> b =
+      blas_benchmark::utils::random_data<scalar_t>(k * n * batch_size);
+  std::vector<scalar_t> c =
+      blas_benchmark::utils::const_data<scalar_t>(m * n * batch_size, 0);
 
   // Specify the transpositions
   clblast::Transpose a_tr = blas_benchmark::utils::translate_transposition(t_a);
@@ -106,8 +106,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
                             static_cast<size_t>(m * n * batch_size));
 
   // Alphas and betas
-  std::vector<data_t> alphas;
-  std::vector<data_t> betas;
+  std::vector<scalar_t> alphas;
+  std::vector<scalar_t> betas;
   alphas.resize(batch_size, alpha);
   betas.resize(batch_size, beta);
 
@@ -126,14 +126,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> c_ref = c;
+  std::vector<scalar_t> c_ref = c;
   for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
     reference_blas::gemm(t_a, t_b, m, n, k, alpha,
                          a.data() + a_offsets[batch_idx], lda,
                          b.data() + b_offsets[batch_idx], ldb, beta,
                          c_ref.data() + c_offsets[batch_idx], ldc);
   }
-  std::vector<data_t> c_temp = c;
+  std::vector<scalar_t> c_temp = c;
   {
     MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
                                    static_cast<size_t>(m * n * batch_size));
