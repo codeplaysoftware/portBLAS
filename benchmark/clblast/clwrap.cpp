@@ -26,6 +26,7 @@
 #include "clwrap.h"
 
 #include <algorithm>
+#include <memory>
 
 char *getCLErrorString(cl_int err) {
   switch (err) {
