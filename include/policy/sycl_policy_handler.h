@@ -124,7 +124,7 @@ class PolicyHandler<codeplay_policy> {
 
   template <typename element_t>
   typename policy_t::event_t copy_to_device(const element_t *src,
-                                            element_t *dst, size_t size);
+                                            element_t *dst, size_t size = 0);
   /*  @brief Copying the data back to device
     @tparam element_t is the type of the data
     @param src is the host pointer we want to copy from.
@@ -134,7 +134,8 @@ class PolicyHandler<codeplay_policy> {
 
   template <typename element_t>
   typename policy_t::event_t copy_to_device(
-      const element_t *src, BufferIterator<element_t, policy_t> dst, size_t);
+      const element_t *src, BufferIterator<element_t, policy_t> dst,
+      size_t size = 0);
   /*  @brief Copying the data back to device
       @tparam element_t is the type of the data
       @param src is the device pointer we want to copy from.
@@ -144,11 +145,11 @@ class PolicyHandler<codeplay_policy> {
 
   template <typename element_t>
   typename policy_t::event_t copy_to_host(element_t *src, element_t *dst,
-                                          size_t size);
+                                          size_t size = 0);
 
   template <typename element_t>
   typename policy_t::event_t copy_to_host(
-      BufferIterator<element_t, policy_t> src, element_t *dst, size_t);
+      BufferIterator<element_t, policy_t> src, element_t *dst, size_t size = 0);
 
   inline const policy_t::device_type get_device_type() const {
     return selectedDeviceType_;

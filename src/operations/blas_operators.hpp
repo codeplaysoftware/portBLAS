@@ -281,11 +281,11 @@ struct IMaxOperator : public Operators {
     if (AbsoluteValue::eval(
             static_cast<typename StripASP<lhs_t>::type>(l).get_value()) <
             AbsoluteValue::eval(
-                static_cast<typename StripASP<rhs_t>::type>(r).get_value()) or
+                static_cast<typename StripASP<rhs_t>::type>(r).get_value()) ||
         (AbsoluteValue::eval(
              static_cast<typename StripASP<lhs_t>::type>(l).get_value()) ==
              AbsoluteValue::eval(
-                 static_cast<typename StripASP<rhs_t>::type>(r).get_value()) and
+                 static_cast<typename StripASP<rhs_t>::type>(r).get_value()) &&
          l.get_index() > r.get_index())) {
       return static_cast<typename StripASP<rhs_t>::type>(r);
     } else {
