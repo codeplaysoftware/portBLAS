@@ -82,7 +82,7 @@ struct Quantize {
           const auto kernel = QuantizeKernel<input_t, output_t>{
               quantized_input_acc_t<input_t>{input, cgh},
               quantized_output_acc_t<output_t>{output, cgh}};
-          cgh.parallel_for(cl::sycl::range<1>{input.get_size()}, kernel);
+          cgh.parallel_for(cl::sycl::range<1>{input.get_count()}, kernel);
         })};
   }
 };
