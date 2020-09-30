@@ -43,8 +43,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
-  std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
   scalar_t res;
 
   // Device vectors and result
@@ -54,8 +54,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  data_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
-  data_t vr_temp = 0;
+  scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
+  scalar_t vr_temp = 0;
   {
     MemBuffer<scalar_t, CL_MEM_READ_ONLY> vr_temp_gpu(executorPtr, &vr_temp, 1);
     cl_event event;

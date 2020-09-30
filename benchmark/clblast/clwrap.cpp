@@ -26,6 +26,7 @@
 #include "clwrap.h"
 
 #include <algorithm>
+#include <memory>
 
 char *getCLErrorString(cl_int err) {
   switch (err) {
@@ -209,8 +210,8 @@ OpenCLDeviceSelector::OpenCLDeviceSelector(std::string vendor,
                                            std::string type) {
   // Get the number of platforms, and a list of IDs
   cl_uint num_platforms = get_platform_count();
-  cl_platform_id platforms[num_platforms];
-  cl_int status = clGetPlatformIDs(num_platforms, platforms, NULL);
+  std::unique_ptr<cl_platform_id[]> platforms(new cl_platform_id[num_platforms]);
+  cl_int status = clGetPlatformIDs(num_platforms, platforms.get(), NULL);
   if (status != CL_SUCCESS) {
     do_error("failure in clGetPlatformIDs");
   }
@@ -223,9 +224,9 @@ OpenCLDeviceSelector::OpenCLDeviceSelector(std::string vendor,
 
     // Get devices, etc.
     cl_uint num_devices = get_device_count(platform);
-    cl_device_id devices[num_devices];
+    std::unique_ptr<cl_device_id[]> devices(new cl_device_id[num_devices]);
     cl_int status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices,
-                                   devices, NULL);
+                                   devices.get(), NULL);
     if (status != CL_SUCCESS) {
       do_error("failure in clGetDeviceIDs");
     }

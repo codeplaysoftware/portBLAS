@@ -76,10 +76,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   }
 
   // Matrices
-  std::vector<data_t> a = blas_benchmark::utils::random_data<data_t>(m * k);
-  std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(k * n);
-  std::vector<data_t> c =
-      blas_benchmark::utils::const_data<data_t>(m * n, 0);
+  std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
+  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n);
+  std::vector<scalar_t> c =
+      blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
 
   // Specify the transpositions
   clblast::Transpose a_tr = blas_benchmark::utils::translate_transposition(t_a);
@@ -97,10 +97,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> c_ref = c;
+  std::vector<scalar_t> c_ref = c;
   reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
                        beta, c_ref.data(), ldc);
-  std::vector<data_t> c_temp = c;
+  std::vector<scalar_t> c_temp = c;
   {
     MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
                                    static_cast<size_t>(m * n));

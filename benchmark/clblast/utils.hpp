@@ -20,8 +20,8 @@ static inline void print_device_information(cl_device_id device) {
   if (!device_name_length) {
     return;
   }
-  char device_name[device_name_length];
-  clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), device_name,
+  std::string device_name(device_name_length, '\0');
+  clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name[0],
                   nullptr);
   cl_device_type device_type;
   clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type,
