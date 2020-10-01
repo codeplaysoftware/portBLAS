@@ -48,9 +48,9 @@ typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
         static_cast<int>(
             gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
                                                                     _K, _alpha,
-                                                                    _a, _lda,
-                                                                    _b, _ldb,
-                                                                    _beta, _c,
+                                                                    a_, _lda,
+                                                                    b_, _ldb,
+                                                                    _beta, _C,
                                                                     _ldc,
                                                                     batch_size);
   }
