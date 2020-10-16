@@ -42,7 +42,7 @@ typename executor_t::policy_t::event_t _gemm(
   static constexpr int tileWgSize = ClSize / sizeof(element_t);
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 4, 4>, _t_a, _t_b,
+        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,

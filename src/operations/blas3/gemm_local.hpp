@@ -86,6 +86,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr index_t item_cols = tile_type::item_cols;
   static constexpr index_t wg_rows = tile_type::wg_rows;
   static constexpr index_t wg_cols = tile_type::wg_cols;
+  static constexpr index_t sg_rows = tile_type::sg_rows;
+  static constexpr index_t sg_cols = tile_type::sg_cols;
   static constexpr index_t tl_rows = tile_type::tl_rows;
   static constexpr index_t tl_cols = tile_type::tl_cols;
   static constexpr index_t tile_size = tl_rows * tl_cols;

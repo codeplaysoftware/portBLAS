@@ -57,15 +57,15 @@ ENABLE_TYPE_STRING(double)
  * @note See the struct definition in include/operations/blas3_trees.h for more
  *       info about the tiling configuration of gemm
  */
-template <int ItemRows, int ItemCols, int WgRows, int WgCols, int TlRows,
-          int TlCols, int ItemBatchs, int WgBatchs>
+template <int ItemRows, int ItemCols, int WgRows, int WgCols, int SgRows,
+          int SgCols, int TlRows, int TlCols, int ItemBatchs, int WgBatchs>
 SYCL_BLAS_INLINE std::string
-Tile<ItemRows, ItemCols, WgRows, WgCols, TlRows, TlCols, ItemBatchs,
-     WgBatchs>::get_type_string() noexcept {
+Tile<ItemRows, ItemCols, WgRows, WgCols, SgRows, SgCols, TlRows, TlCols,
+     ItemBatchs, WgBatchs>::get_type_string() noexcept {
   std::ostringstream str{};
   str << "Tile<" << item_rows << ", " << item_cols << ", " << wg_rows << ", "
-      << wg_cols << ", " << tl_rows << ", " << tl_cols << ", " << item_batchs
-      << ", " << wg_batchs << ">";
+      << wg_cols << ", " << sg_rows << ", " << sg_cols << ", " << tl_rows
+      << ", " << tl_cols << ", " << item_batchs << ", " << wg_batchs << ">";
   return str.str();
 }
 

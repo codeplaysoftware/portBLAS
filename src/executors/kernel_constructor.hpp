@@ -48,7 +48,7 @@ struct LocalMemory {
       : localAcc(cl::sycl::range<1>(size), cgh) {}
 
   /*!
-  @brief Subscirpt operator that forwards on to the local accessor subscript
+  @brief Subscript operator that forwards on to the local accessor subscript
   operator.
   @param id SYCL id.
   @return Reference to an element of the local accessor.
@@ -79,6 +79,40 @@ struct LocalMemory<value_t, using_local_memory::disabled> {
   @param cgh SYCL command group handler.
   */
   SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh) {}
+};
+/*!
+@brief A struct for containing a local accessor if shared memory is enabled.
+Specialised case for using_local_memory == subgroup, which contains a subgroup
+local accessor.
+@tparam value_t Value type of the accessor.
+*/
+template <typename value_t>
+struct LocalMemory<value_t, using_local_memory::subgroup> {
+  /*!
+  @brief Constructor that creates a local accessor from a size and a SYCL
+  command group handler.
+  @param size Size in elements of the local accessor.
+  @param cgh SYCL command group handler.
+  */
+  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
+      : subgroupAcc(cl::sycl::range<1>(size), cgh) {}
+
+  /*!
+  @brief Subscript operator that forwards on to the subgroup accessor subscript
+  operator.
+  @param id SYCL id.
+  @return Reference to an element of the subgroup accessor.
+  */
+  SYCL_BLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
+    return subgroupAcc[id];
+  }
+
+  /*!
+  @brief subgroup accessor.
+  */
+  cl::sycl::accessor<value_t, 1, cl::sycl::access::mode::read_write,
+                     cl::sycl::access::target::subgroup_local>
+      subgroupAcc;
 };
 
 /*!
@@ -133,6 +167,32 @@ struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
     if (tree.valid_thread(index)) {
       tree.eval(index);
     }
+  }
+};
+/*! tree.
+@brief Template struct for containing an eval function, which uses shared
+subgroup memory if enabled. Specialised case for using_local_memory == subgroup,
+which calls eval on the tree with the subgroup memory object and index.
+@tparam using_local_memory Enum class specifying whether subgroup memory is
+enabled.
+@tparam expression_tree_t Type of the tree.
+@tparam local_memory_t Value type of the shared memory.
+*/
+template <typename expression_tree_t, typename subgroup_memory_t>
+struct ExpressionTreeEvaluator<using_local_memory::subgroup, expression_tree_t,
+                               subgroup_memory_t> {
+  /*!
+@brief Static function that calls eval on a tree, passing the accessor and
+index.
+@param tree Tree object.
+@param scratch subgroup memory object.
+@param index SYCL nd_item.
+*/
+  static SYCL_BLAS_INLINE void eval(
+      expression_tree_t &tree,
+      LocalMemory<subgroup_memory_t, using_local_memory::subgroup> scratch,
+      cl::sycl::nd_item<1> index) {
+    tree.eval(scratch, index);
   }
 };
 
