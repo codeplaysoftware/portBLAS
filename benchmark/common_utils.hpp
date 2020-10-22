@@ -19,9 +19,10 @@
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
 
+#include "utils/quantization.hpp"
+
 #ifdef BLAS_VERIFY_BENCHMARK
 #include "utils/float_comparison.hpp"
-#include "utils/quantization.hpp"
 #include "utils/system_reference_blas.hpp"
 #endif
 
