@@ -38,7 +38,12 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Input vector
   std::vector<data_t> x_v(size * incX);
-  fill_random(x_v);
+  fill_random<data_t>(x_v);
+
+  // We need to guarantee that cl::sycl::half can hold the sum
+  // of x_v without overflow by making sum(x_v) to be 1.0
+  std::transform(std::begin(x_v), std::end(x_v), std::begin(x_v),
+                 [=](data_t x) { return x / x_v.size(); });
 
   // Output scalar
   data_t out_s = 0;
@@ -59,7 +64,9 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  ASSERT_TRUE(utils::almost_equal(out_s, out_cpu_s));
+  const bool is_almost_equal =
+      utils::almost_equal<data_t, scalar_t>(out_s, out_cpu_s);
+  ASSERT_TRUE(is_almost_equal);
 
   ex.get_policy_handler().get_queue().wait();
 }

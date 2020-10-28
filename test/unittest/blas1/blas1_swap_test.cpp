@@ -64,6 +64,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
+  // Since this is just a swap operation, float tolerances are fine
   ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
   ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
 }

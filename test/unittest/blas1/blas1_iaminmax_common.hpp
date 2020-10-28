@@ -38,6 +38,28 @@ enum class generation_mode_t : char {
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, generation_mode_t>;
 
+namespace std {
+template <>
+class numeric_limits<cl::sycl::half> {
+ public:
+  static constexpr float min() { return -65504.0f; }
+  static constexpr float max() { return 65504.0f; }
+};
+}  // namespace std
+
+template<typename scalar_t>
+scalar_t clamp(scalar_t v) {
+  constexpr auto min_value = std::numeric_limits<scalar_t>::min();
+  constexpr auto max_value = std::numeric_limits<scalar_t>::max();
+  if (decltype(min_value)(v) < min_value) {
+    return min_value;
+  } else if (decltype(max_value)(v) > max_value) {
+    return max_value;
+  } else {
+    return v;
+  }
+}
+
 template <typename scalar_t>
 void populate_data(generation_mode_t mode, scalar_t limit,
                    std::vector<scalar_t> &vec) {

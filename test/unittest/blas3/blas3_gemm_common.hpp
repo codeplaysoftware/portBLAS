@@ -152,8 +152,12 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
     c_m_gpu = interleaved_to_strided(c_m_gpu, offset, ldc, n, batch);
   }
 
-  ASSERT_TRUE(utils::compare_vectors(c_m_gpu, c_m_cpu));
   ex.get_policy_handler().wait();
+
+  const bool isAlmostEqual =
+      utils::compare_vectors<data_t, scalar_t>(c_m_gpu, c_m_cpu);
+  ASSERT_TRUE(isAlmostEqual);
+
 }
 
 /** Registers GEMM test for all supported data types

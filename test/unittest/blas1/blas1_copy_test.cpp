@@ -61,6 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
+  // For copy, the float tolerances are ok
   ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
 }
 
