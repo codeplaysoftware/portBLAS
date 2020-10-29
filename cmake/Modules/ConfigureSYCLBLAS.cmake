@@ -44,7 +44,7 @@ if("double" IN_LIST BLAS_DATA_TYPES)
   add_definitions(-DBLAS_DATA_TYPE_DOUBLE)
 endif()
 
-if("cl::sycl::half" IN_LIST BLAS_DATA_TYPES)
+if("half" IN_LIST BLAS_DATA_TYPES)
   add_definitions(-DBLAS_DATA_TYPE_HALF)
 endif()
 

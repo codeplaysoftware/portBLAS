@@ -32,6 +32,15 @@ set(index_list "int" )
 #The container type for SYCLbackend is BufferIterator<${data}, codeplay_policy>
 set(data_list "${BLAS_DATA_TYPES}")
 
+# Converts a user specified type name into a C++ type
+function(cpp_type output data)
+  if (${data} STREQUAL "half")
+    set(${output} "cl::sycl::half" PARENT_SCOPE)
+    return()
+  endif()
+  set(${output} "${data}" PARENT_SCOPE)
+endfunction()
+
 ## represent the list of bolean options
 set(boolean_list "true" "false")
 
@@ -88,7 +97,8 @@ function(generate_blas_unary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+    cpp_type(cpp_data ${data})
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(increment ${index_list})
@@ -102,7 +112,7 @@ foreach(executor ${executor_list})
               ${func}
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
               ${executor}
-              ${data}
+              ${cpp_data}
               ${index}
               ${increment}
               ${container0}
@@ -131,7 +141,8 @@ function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+    cpp_type(cpp_data ${data})
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
@@ -147,7 +158,7 @@ foreach(executor ${executor_list})
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                 ${executor}
-                ${data}
+                ${cpp_data}
                 ${index}
                 ${increment}
                 ${container0}
@@ -179,10 +190,11 @@ function(generate_blas_binary_special_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list_in "BufferIterator<${data},codeplay_policy>")
+    cpp_type(cpp_data ${data})
+    set(container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       set(container_list_out
-        "BufferIterator<IndexValueTuple<${index},${data}>,codeplay_policy>")
+        "BufferIterator<IndexValueTuple<${index},${cpp_data}>,codeplay_policy>")
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
           set(container_names "${container0}_${container1}")
@@ -197,7 +209,7 @@ foreach(executor ${executor_list})
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                 ${executor}
-                ${data}
+                ${cpp_data}
                 ${index}
                 ${increment}
                 ${container0}
@@ -229,7 +241,8 @@ function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
-    set(container_list "BufferIterator<${data},codeplay_policy>")
+    cpp_type(cpp_data ${data})
+    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
@@ -247,7 +260,7 @@ foreach(executor ${executor_list})
                   ${func}
                   ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                   ${executor}
-                  ${data}
+                  ${cpp_data}
                   ${index}
                   ${increment}
                   ${container0}
@@ -314,6 +327,7 @@ function(add_gemm_configuration
     # Tall/skinny configurations not enabled, skip
     return()
   endif()
+  cpp_type(cpp_data ${data})
   foreach(trans_a ${boolean_list})
     foreach(trans_b ${boolean_list})
       foreach(is_beta_zero ${boolean_list})
@@ -337,7 +351,7 @@ function(add_gemm_configuration
                   ${func}
                   ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                   ${executor}
-                  ${data}
+                  ${cpp_data}
                   ${index}
                   ${double_buffer}
                   ${conflict_a}
@@ -381,7 +395,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
-    "cl::sycl::half"
+    "half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
@@ -394,7 +408,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
       "${data}" 64 "false" "false" "false"
       64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
 
-    if (${data} STREQUAL "cl::sycl::half")
+    if (${data} STREQUAL "half")
       add_gemm_configuration(
          "${data}" 16 "true" "false" "false"
          64 1 1 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
@@ -456,7 +470,7 @@ elseif(${TARGET} STREQUAL "RCAR") # need investigation
 elseif(${TARGET} STREQUAL "ARM_GPU")
   set(supported_types
     "float"
-    "cl::sycl::half"
+    "half"
   )
   foreach(data ${supported_types})
     if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
@@ -521,7 +535,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
 elseif(${TARGET} STREQUAL "POWER_VR")
   set(supported_types
     "float"
-    "cl::sycl::half"
+    "half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
@@ -547,11 +561,11 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
-    "cl::sycl::half"
+    "half"
   )
   set(workgroup_float 16)
   set(workgroup_double 8)
-  set(workgroup_cl::sycl::half 32)
+  set(workgroup_half 32)
   foreach(data ${supported_types})
     set(twr "${workgroup_${data}}")
     set(twc "${workgroup_${data}}")
@@ -643,6 +657,7 @@ function(generate_quantize)
 
     # Generate quantize.cpp.in for each special data type
     foreach(data ${quantize_data_list})
+      cpp_type(cpp_data ${data})
       sanitize_file_name(file_name
         "quantize_${executor}_${data}.cpp")
       add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -651,7 +666,7 @@ function(generate_quantize)
           ${SYCLBLAS_SRC_GENERATOR}/gen #2
           ${SYCLBLAS_SRC}/quantize/quantize.cpp.in #3
           ${executor} #4
-          ${data} #5
+          ${cpp_data} #5
           ${file_name} #6
         MAIN_DEPENDENCY ${SYCLBLAS_SRC}/quantize/quantize.cpp.in
         DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
