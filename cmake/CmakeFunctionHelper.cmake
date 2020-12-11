@@ -187,7 +187,7 @@ foreach(executor ${executor_list})
         foreach(container1 ${container_list_out})
           set(container_names "${container0}_${container1}")
           foreach(increment ${index_list})
-            sanitize_file_name(file_name 
+            sanitize_file_name(file_name
               "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
               COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
@@ -674,5 +674,6 @@ add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:trmv>
                              $<TARGET_OBJECTS:gemm_launcher>
                              $<TARGET_OBJECTS:gemm>
+                             $<TARGET_OBJECTS:trsm>
                             )
 endfunction(build_library)

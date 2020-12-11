@@ -1,0 +1,29 @@
+
+#include "container/sycl_iterator.hpp"
+#include "executors/executor_sycl.hpp"
+#include "interface/blas3_interface.hpp"
+#include "operations/blas_constants.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "views/view_sycl.hpp"
+
+#include "executors/kernel_constructor.hpp"
+#include "interface/gemm_launcher.hpp"
+#include "operations/blas3_trees.hpp"
+#include "operations/extension_trees.hpp"
+#include "operations/blas_constants.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "views/view_sycl.hpp"
+
+namespace blas {
+namespace internal {
+
+
+template typename Executor<${EXECUTOR}>::policy_t::event_t _trsm(
+  Executor<${EXECUTOR}>& ex, char Side, char Triangle, char Transpose, char Diagonal,
+  ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
+  ${container_t0} A, ${INDEX_TYPE} lda,
+  ${container_t1} B, ${INDEX_TYPE} ldb);
+
+
+} // namespace internal
+} // namespace blas

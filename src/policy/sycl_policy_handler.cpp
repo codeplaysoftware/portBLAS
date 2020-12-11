@@ -63,6 +63,11 @@ namespace blas {
       element_t * src, element_t * dst, size_t size);                          \
                                                                                \
   template typename codeplay_policy::event_t                                   \
+  PolicyHandler<codeplay_policy>::fill<element_t>(                             \
+      BufferIterator<element_t, codeplay_policy> buff, element_t value,        \
+      size_t size);                                                            \
+                                                                               \
+  template typename codeplay_policy::event_t                                   \
   PolicyHandler<codeplay_policy>::copy_to_host<element_t>(                     \
       BufferIterator<element_t, codeplay_policy> src, element_t * dst,         \
       size_t size);                                                            \

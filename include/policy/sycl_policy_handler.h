@@ -151,6 +151,11 @@ class PolicyHandler<codeplay_policy> {
   typename policy_t::event_t copy_to_host(
       BufferIterator<element_t, policy_t> src, element_t *dst, size_t size = 0);
 
+  template<typename element_t>
+  typename policy_t::event_t fill(BufferIterator<element_t, policy_t> buf,
+                                  element_t value = element_t{0},
+                                  size_t size = 0);
+
   inline const policy_t::device_type get_device_type() const {
     return selectedDeviceType_;
   };

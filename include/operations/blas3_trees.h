@@ -249,6 +249,63 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
       buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
 }
 
+/**
+ * @brief Kernel that inverts the square diagonal blocks of a matrix. This
+ * is used in the TRSM algorithm.
+ *
+ * This kernel is based on the TRSM implementation in clBlast, which in turn is
+ * based on the implementation of CUDA version present in Magma.
+ *
+ * We will use a lower triangular matrix as an example of how this kernel works:
+ *
+ * Let A be a blockSize*blockSize lower triangular matrix, and B its inverse.
+ * Decomposing the matrix into results in
+ *
+ *       A              B             I
+ *  [ A00   0  ] * [ B00   0  ] = [ I  0 ]
+ *  [ A01  A11 ]   [ B01  B11 ]   [ 0  I ]
+ *
+ * The objective is to calculate B00 and B11. Multiplying A and B yields
+ *
+ *   A00 * B00 = I     ==>    B00 = A00^{-1},
+ *   A11 * B11 = I     ==>    B11 = A11^{-1}
+ *
+ * This kernel will invert A00 and A11.
+ *
+ * Since we only invert the diagonal blocks of A, B must be a buffer that can
+ * store multiples of blockSize*blockSize.
+ *
+ * @Note This kernel assumes the column-major matrices
+ * @Note This kernel uses fixed size blocks of 16, but this can be changed
+ */
+template <bool UnitDiag, bool Upper, typename matrix_t>
+struct DiagonalBlocksInverter {
+  using index_t = size_t;
+  static constexpr index_t internalBlockSize = 16;
+  static constexpr index_t outterBlockSize = 16;
+  static constexpr bool unitDiag_ = UnitDiag;
+  static constexpr bool upper = Upper;
+  using value_t = typename std::remove_cv<typename matrix_t::value_t>::type;
+  matrix_t A_;
+  matrix_t invA_;
+  index_t lda_;
+  index_t N_;
+
+  DiagonalBlocksInverter(matrix_t& A, matrix_t& invA);
+  bool valid_thread(cl::sycl::nd_item<1> id) const;
+  void bind(cl::sycl::handler& cgh);
+  void adjust_access_displacement();
+
+  template<typename local_memory_t>
+  void eval(local_memory_t localMem, cl::sycl::nd_item<1> id) noexcept;
+};
+
+template <bool UnitDiag, bool Upper, typename matrix_t>
+DiagonalBlocksInverter<UnitDiag, Upper, matrix_t> make_diag_blocks_inverter(
+    matrix_t& A, matrix_t& invA) {
+  return DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>(A, invA);
+}
+
 }  // namespace blas
 
 #endif  // BLAS3_TREES_GEMM_H
