@@ -94,7 +94,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       value_t sum = value_t{0};
       if (i < j) {
         for (cl::sycl::cl_int k = 0; k < j; ++k) {
-          sum = cl::sycl::mad(local[k + j * internalBlockSize],
+          sum = cl::sycl::mad(local[k + i * internalBlockSize],
                           local[j + k * internalBlockSize], sum);
         }
       }
