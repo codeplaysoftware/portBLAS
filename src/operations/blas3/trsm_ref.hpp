@@ -80,51 +80,52 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       local[j + i * internalBlockSize] = value_t{0};
     }
   }
-  item.barrier(sycl::access::fence_space::local_space);
+  item.barrier(cl::sycl::access::fence_space::local_space);
 
   // Inverts the diagonal elements
   if (!unitDiag_) {
     local[i + i * internalBlockSize] =
         value_t{1} / local[i + i * internalBlockSize];
-    item.barrier(sycl::access::fence_space::local_space);
+    item.barrier(cl::sycl::access::fence_space::local_space);
   }
 
   if (upper) {
-    for (sycl::cl_int j = 1; j < internalBlockSize; ++j) {
+    for (cl::sycl::cl_int j = 1; j < internalBlockSize; ++j) {
       value_t sum = value_t{0};
       if (i < j) {
-        for (sycl::cl_int k = 0; k < j; ++k) {
-          sum = sycl::mad(local[k + j * internalBlockSize],
+        for (cl::sycl::cl_int k = 0; k < j; ++k) {
+          sum = cl::sycl::mad(local[k + j * internalBlockSize],
                           local[j + k * internalBlockSize], sum);
         }
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      item.barrier(cl::sycl::access::fence_space::local_space);
       if (i < j) {
         const value_t negDiagValue = -local[j + j * internalBlockSize];
         local[j + i * internalBlockSize] = sum * negDiagValue;
       }
+      item.barrier(cl::sycl::access::fence_space::local_space);
     }
   } else {
     // Computes the elements j+1:internalBlock-1 of the j-th column
-    for (sycl::cl_int j = internalBlockSize - 2; j >= 0; --j) {
+    for (cl::sycl::cl_int j = internalBlockSize - 2; j >= 0; --j) {
       value_t sum = value_t{0};
       if (i > j) {
-        for (sycl::cl_int k = j + 1; k < internalBlockSize; ++k) {
-          sum = sycl::mad(local[k + i * internalBlockSize],
+        for (cl::sycl::cl_int k = j + 1; k < internalBlockSize; ++k) {
+          sum = cl::sycl::mad(local[k + i * internalBlockSize],
                           local[j + k * internalBlockSize], sum);
         }
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      item.barrier(cl::sycl::access::fence_space::local_space);
       if (i > j) {
         const value_t negDiagValue = -local[j + j * internalBlockSize];
         local[j + i * internalBlockSize] = sum * negDiagValue;
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      item.barrier(cl::sycl::access::fence_space::local_space);
     }
   }
 
   // Writes the result to global memory
-  for (sycl::cl_int j = 0; j < internalBlockSize; ++j) {
+  for (cl::sycl::cl_int j = 0; j < internalBlockSize; ++j) {
     invA[j * outterBlockSize + i + destBlockOffset] =
         local[j + i * internalBlockSize];
   }
