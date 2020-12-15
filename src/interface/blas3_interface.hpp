@@ -275,13 +275,13 @@ typename executor_t::policy_t::event_t _trsm_impl(
       trsmEvents, ex.get_policy_handler().fill(invA, element_t{0}, invASize));
 
   // Create the matrix views from the input buffers
-  auto bufferA = make_matrix_view<col_major>(ex, A, M, N, lda);
-  auto bufferInvA = make_matrix_view<col_major>(ex, invA, M, N, lda);
+  auto bufferA = make_matrix_view<col_major>(ex, A, K, K, lda);
+  auto bufferInvA = make_matrix_view<col_major>(ex, invA, blockSize, blockSize, lda);
   auto bufferB = make_matrix_view<col_major>(ex, B, M, N, ldb);
 
   // Calculate the parameters for the diagonal blocks inversion
-  const index_t numBlocks = roundUp<index_t>(K, blockSize);
-  const index_t numInternalBlocks = roundUp<index_t>(K, blockSize);
+  const index_t numBlocks = roundUp<index_t>(K, blockSize) / blockSize;
+  const index_t numInternalBlocks = roundUp<index_t>(K, blockSize) / blockSize;
   const index_t globalSize = numInternalBlocks * blockSize;
   const index_t localSize = blockSize;
   const index_t localMemSize = blockSize * blockSize;
@@ -321,7 +321,7 @@ typename executor_t::policy_t::event_t _trsm_impl(
       trsmEvents, ex.execute(make_op<Assign>(bufferX, bufferB), BSize));
 
   if (isLeft) {
-    if (!isUpper || (isUpper && isTranspose)) {
+    if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
       // Solves the system AX = alpha*B, as described in the documentation of
       // the function when X is lower triangular
 
@@ -439,7 +439,7 @@ typename executor_t::policy_t::event_t _trsm_impl(
   } else {
     // Right side
 
-    if (!isUpper || (isUpper && isTranspose)) {
+    if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
       // Solves the system XA = alpha*B when A is lower triangular
 
       // True when (lower triangular) or (upper triangular and transposed)

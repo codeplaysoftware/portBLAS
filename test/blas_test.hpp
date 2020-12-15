@@ -100,6 +100,19 @@ inline cl::sycl::queue make_queue() {
 }
 
 /**
+ * @brief Generates a random scalar in the specified range
+ * @param rangeMin range minimum
+ * @param rangeMax range maximum
+ */
+template <typename scalar_t>
+static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
+  std::random_device rd;
+  std::default_random_engine gen(rd());
+  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  return dis(gen);
+}
+
+/**
  * @fn random_data
  * @brief Generates a random vector of scalar values, using a uniform
  * distribution.
@@ -111,6 +124,38 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
   std::uniform_real_distribution<> dis(-2.0, 5.0);
   for (scalar_t &e : vec) {
     e = dis(gen);
+  }
+}
+
+/**
+ * @breif Fills a lower or upper triangular matrix with random values
+ * @param A The matrix to fill. Size must be at least m * lda
+ * @param m The number of rows of matrix @p A
+ * @param n The number of columns of matrix @p A
+ * @param lda The leading dimension of matrix @p A
+ * @param triangle if 'u', @p A will be upper triangular. If 'l' @p A will be
+ * lower triangular
+ * @param diagonal Value to put in the diagonal elements
+ */
+template <typename scalar_t>
+static inline void fill_triangle(std::vector<scalar_t> &A, size_t m, size_t n,
+                                 size_t lda, char triangle,
+                                 scalar_t diagonal = scalar_t{1}) {
+  std::random_device rd;
+  std::default_random_engine gen(rd());
+  std::uniform_real_distribution<scalar_t> dis(scalar_t{-1}, scalar_t{1});
+
+  for (size_t i = 0; i < m; ++i) {
+    for (size_t j = 0; j < n; ++j) {
+      size_t index = i + j * lda;
+      if (i == j) {
+        A[index] = diagonal;
+      } else if ((triangle == 'l') && i > j) {
+        A[index] = dis(gen);
+      } else if ((triangle == 'u') && i < j) {
+        A[index] = dis(gen);
+      }
+    }
   }
 }
 
