@@ -24,7 +24,7 @@
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
 #include "executors/executor_sycl.hpp"
-#include "interface/blas3_interface.hpp"
+#include "interface/gemm.hpp"
 #include "operations/blas_constants.hpp"
 #include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"

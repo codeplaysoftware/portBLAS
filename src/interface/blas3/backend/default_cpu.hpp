@@ -24,7 +24,6 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
 #define SYCL_BLAS_GEMM_DEFAULT_CPU_BACKEND_HPP
-#include "interface/blas3_interface.h"
 #include "interface/gemm_launcher.h"
 
 namespace blas {
@@ -96,26 +95,7 @@ typename executor_t::policy_t::event_t _gemm(
 #endif
 }
 
-
-
 }  // namespace backend
 }  // namespace gemm
-
-namespace trsm {
-namespace backend {
-template <typename executor_t, typename container_0_t, typename container_1_t,
-          typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char Side,
-                                             char Triangle, char Transpose,
-                                             char Diagonal, index_t M,
-                                             index_t N, element_t alpha,
-                                             container_0_t A, index_t lda,
-                                             container_1_t B, index_t ldb) {
-  return blas::internal::_trsm_impl(ex, Side, Triangle, Transpose, Diagonal, M,
-                                    N, alpha, A, lda, B, ldb);
-}
-}  // namespace backend
-}  // namespace trsm
-
 }  // namespace blas
 #endif

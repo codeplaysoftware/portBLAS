@@ -31,5 +31,5 @@
 #include "blas3/gemm_no_local_partial_vec.hpp"
 #include "blas3/gemm_partial_local.hpp"
 #include "blas3/gemm_ref.hpp"
-#include "blas3/trsm_ref.hpp"
+#include "blas3/trsm.hpp"
 #endif  // SYCL_BLAS_BLAS3_TREES_HPP
