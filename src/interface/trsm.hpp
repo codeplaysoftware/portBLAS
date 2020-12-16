@@ -22,7 +22,7 @@ namespace internal {
  * @param M The number of rows in of matrix B, must be at least 0
  * @param N The number of columns of B, must be at least 0
  * @param alpha The scalar alpha that is applied to B
- * @param A Buffer that hold the input matrix A
+ * @param A Buffer that holds the input matrix A
  * @param lda Leading dimension of matrix A
  * @param B Buffer that holds the input/output matrix B
  * @param ldb Leading dimension of matrix B
@@ -41,7 +41,7 @@ namespace internal {
  *
  * op(A) = A    or     op(A) = A^{T}
  *
- * The matrix X, which contains the result, is copied to B and the end.
+ * The matrix X, which contains the result, is copied to B at the end.
  *
  * This is the parallel version of TRSM, that works by solving the equation
  * AX = B as X = A^{-1}B. Inverting the matrix A is usually not the recommended
@@ -423,8 +423,6 @@ typename executor_t::policy_t::event_t inline _trsm(
     executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
-  /*return blas::trsm::backend::_trsm(ex, Side, Triangle, Transpose, Diagonal, M,
-                                    N, alpha, A, lda, B, ldb);*/
   return _trsm_impl(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda, B, ldb);
 }
 
