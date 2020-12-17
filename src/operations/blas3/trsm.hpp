@@ -91,12 +91,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   for (size_t j = 0; j < internalBlockSize; ++j) {
     bool isInRange = false;
     isInRange = (upper) ? (i <= j) && (blockIndexPerBlock + j < N_) : (i >= j) && ((blockIndexPerBlock + i) < N_);
-    if (isInRange) {
-      const size_t srcIndex = j * lda_ + i + srcBlockOffset;
-      local[j + i * internalBlockSize] = A[srcIndex];
-    } else {
-      local[j + i * internalBlockSize] = value_t{0};
-    }
+    local[j + i * internalBlockSize] = (isInRange) ?  A[ j * lda_ + i + srcBlockOffset] : value_t{0};
   }
   item.barrier(cl::sycl::access::fence_space::local_space);
 
