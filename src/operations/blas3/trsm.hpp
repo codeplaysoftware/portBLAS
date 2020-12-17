@@ -114,8 +114,8 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
       if (i < j) {
-        const value_t negDiagValue = -local[j + j * internalBlockSize];
-        local[j + i * internalBlockSize] = sum * negDiagValue;
+        local[j + i * internalBlockSize] =
+            sum * -local[j + j * internalBlockSize];
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
     }
@@ -131,8 +131,8 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
       if (i > j) {
-        const value_t negDiagValue = -local[j + j * internalBlockSize];
-        local[j + i * internalBlockSize] = sum * negDiagValue;
+        local[j + i * internalBlockSize] =
+            sum * -local[j + j * internalBlockSize];
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
     }
