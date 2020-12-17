@@ -20,7 +20,6 @@
  *
  **************************************************************************/
 
-
 #ifndef SYCL_BLAS_BLAS3_REF_TRSM_HPP
 #define SYCL_BLAS_BLAS3_REF_TRSM_HPP
 
@@ -88,15 +87,17 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
 
   // Loads the source lower triangle into local memory. Any values in the upper
   // triangle or outside of the matrix are set to zero
-  for (size_t j = 0; j < internalBlockSize; ++j) {
+  for (index_t j = 0; j < internalBlockSize; ++j) {
     bool isInRange = false;
-    isInRange = (upper) ? (i <= j) && (blockIndexPerBlock + j < N_) : (i >= j) && ((blockIndexPerBlock + i) < N_);
-    local[j + i * internalBlockSize] = (isInRange) ?  A[ j * lda_ + i + srcBlockOffset] : value_t{0};
+    isInRange = (upper) ? (i <= j) && ((blockIndexPerBlock + j) < N_)
+                        : (i >= j) && ((blockIndexPerBlock + i) < N_);
+    local[j + i * internalBlockSize] =
+        (isInRange) ? A[j * lda_ + i + srcBlockOffset] : value_t{0};
   }
   item.barrier(cl::sycl::access::fence_space::local_space);
 
   // Inverts the diagonal elements
-  if (!unitDiag_) {
+  if (!unitDiag) {
     local[i + i * internalBlockSize] =
         value_t{1} / local[i + i * internalBlockSize];
     item.barrier(cl::sycl::access::fence_space::local_space);
@@ -108,7 +109,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       if (i < j) {
         for (index_t k = 0; k < j; ++k) {
           sum = cl::sycl::mad(local[k + i * internalBlockSize],
-                          local[j + k * internalBlockSize], sum);
+                              local[j + k * internalBlockSize], sum);
         }
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
@@ -125,7 +126,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
       if (i > j) {
         for (index_t k = j + 1; k < internalBlockSize; ++k) {
           sum = cl::sycl::mad(local[k + i * internalBlockSize],
-                          local[j + k * internalBlockSize], sum);
+                              local[j + k * internalBlockSize], sum);
         }
       }
       item.barrier(cl::sycl::access::fence_space::local_space);

@@ -283,7 +283,7 @@ struct DiagonalBlocksInverter {
   using index_t = typename std::make_signed<typename matrix_t::index_t>::type;
   static constexpr index_t internalBlockSize = 16;
   static constexpr index_t outterBlockSize = 16;
-  static constexpr bool unitDiag_ = UnitDiag;
+  static constexpr bool unitDiag = UnitDiag;
   static constexpr bool upper = Upper;
   using value_t = typename std::remove_cv<typename matrix_t::value_t>::type;
   matrix_t A_;
