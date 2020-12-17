@@ -112,10 +112,10 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   }
 
   if (upper) {
-    for (cl::sycl::cl_int j = 1; j < internalBlockSize; ++j) {
+    for (index_t j = 1; j < internalBlockSize; ++j) {
       value_t sum = value_t{0};
       if (i < j) {
-        for (cl::sycl::cl_int k = 0; k < j; ++k) {
+        for (index_t k = 0; k < j; ++k) {
           sum = cl::sycl::mad(local[k + i * internalBlockSize],
                           local[j + k * internalBlockSize], sum);
         }
@@ -129,10 +129,10 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
     }
   } else {
     // Computes the elements j+1:internalBlock-1 of the j-th column
-    for (cl::sycl::cl_int j = internalBlockSize - 2; j >= 0; --j) {
+    for (index_t j = internalBlockSize - 2; j >= 0; --j) {
       value_t sum = value_t{0};
       if (i > j) {
-        for (cl::sycl::cl_int k = j + 1; k < internalBlockSize; ++k) {
+        for (index_t k = j + 1; k < internalBlockSize; ++k) {
           sum = cl::sycl::mad(local[k + i * internalBlockSize],
                           local[j + k * internalBlockSize], sum);
         }
@@ -147,7 +147,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   }
 
   // Writes the result to global memory
-  for (cl::sycl::cl_int j = 0; j < internalBlockSize; ++j) {
+  for (index_t j = 0; j < internalBlockSize; ++j) {
     invA[j * outterBlockSize + i + destBlockOffset] =
         local[j + i * internalBlockSize];
   }

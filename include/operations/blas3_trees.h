@@ -280,7 +280,7 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
  */
 template <bool UnitDiag, bool Upper, typename matrix_t>
 struct DiagonalBlocksInverter {
-  using index_t = size_t;
+  using index_t = typename std::make_signed<typename matrix_t::index_t>::type;
   static constexpr index_t internalBlockSize = 16;
   static constexpr index_t outterBlockSize = 16;
   static constexpr bool unitDiag_ = UnitDiag;
