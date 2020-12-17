@@ -19,8 +19,8 @@ namespace internal {
  * @param Transpose indicates the form that the matrix A will take in the
  * multiplication
  * @param Diagonal If A has a unit or non-unit diagonal
- * @param M The number of rows in of matrix B, must be at least 0
- * @param N The number of columns of B, must be at least 0
+ * @param M The number of rows in of matrix B, must be at least 1
+ * @param N The number of columns of B, must be at least 1
  * @param alpha The scalar alpha that is applied to B
  * @param A Buffer that holds the input matrix A
  * @param lda Leading dimension of matrix A

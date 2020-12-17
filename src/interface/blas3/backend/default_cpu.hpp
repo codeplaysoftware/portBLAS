@@ -94,7 +94,6 @@ typename executor_t::policy_t::event_t _gemm(
 
 #endif
 }
-
 }  // namespace backend
 }  // namespace gemm
 }  // namespace blas
