@@ -90,11 +90,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   // triangle or outside of the matrix are set to zero
   for (size_t j = 0; j < internalBlockSize; ++j) {
     bool isInRange = false;
-    if (upper) {
-      isInRange = (i <= j) && (blockIndexPerBlock + j < N_);
-    } else {
-      isInRange = (i >= j) && ((blockIndexPerBlock + i) < N_);
-    }
+    isInRange = (upper) ? (i <= j) && (blockIndexPerBlock + j < N_) : (i >= j) && ((blockIndexPerBlock + i) < N_);
     if (isInRange) {
       const size_t srcIndex = j * lda_ + i + srcBlockOffset;
       local[j + i * internalBlockSize] = A[srcIndex];
