@@ -4,7 +4,7 @@
 
 #include "blas_meta.h"
 #include "executors/executor.h"
-#include "interface/gemm.hpp"
+#include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
 #include "policy/sycl_policy_handler.h"
 
