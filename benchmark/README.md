@@ -86,8 +86,10 @@ The formats for the different BLAS levels are:
 |:--------:|:----:|-----------|
 | blas 1 | *size* | Vector size |
 | blas 2 | *transpose_A,m,n,alpha,beta* | Action on the matrix (`n`, `t`, `c`), dimensions, and scalars alpha and beta |
-| blas 3 | *transpose_A,transpose_B,m,k,n,alpha,beta* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), and scalars alpha and beta |
-| blas 3 (batched) | *transpose_A,transpose_B,m,k,n,alpha,beta,batch_size* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), scalars alpha and beta, batch size |
+| blas 3 |  | |
+| gemm | *transpose_A,transpose_B,m,k,n,alpha,beta* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), and scalars alpha and beta |
+| gemm (Batched) | *transpose_A,transpose_B,m,k,n,alpha,beta,batch_size* | Action on the matrices (`n`, `t`, `c`), dimensions (A: mk, B:kn, C: mn), scalars alpha and beta, batch size |
+| trsm | *side,triangle,transpose,diagonal,m,n,alpha* | Position of A (`l`, `r`), A is upper or lower triangular (`u`, `l`), transposition of A (`n`, `t`), A is unit or non-unit diagonal(`u`,`n`),dimensions, scalar alpha |
 
 Note: for operations that support a stride, the benchmarks will use a stride of
 1 (contiguous values). For operations that support a leading dimension, the
@@ -175,7 +177,7 @@ The following ranges are a good starting point:
 |----------|----------------|
 | 1 | `nd_range(size_range(1024, 1048576, 2))` |
 | 2 | `nd_range(value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
-| 3 | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
+| 3 (gemm) | `nd_range(value_range('n', 't'), value_range('n', 't'), size_range(128, 1024, 2), size_range(128, 1024, 2), size_range(128, 1024, 2), value_range(1), value_range(0))` |
 
 
 ### Default parameters
@@ -205,6 +207,7 @@ parameter files as described above.
 | beta | 0 |
 
 #### BLAS 3
+##### GEMM
 
 |parameter|values|
 |---------|------|
@@ -216,6 +219,16 @@ parameter files as described above.
 | alpha | 1 |
 | beta | 0 |
 
+##### TRSM
+|parameter|values|
+|---------|------|
+| side | `"l"`, `"r"` |
+| triangle | `"u"`, `"l"` |
+| transpose | `"n"`, `"t"` |
+| diagonal | `"u"`, `"n"` |
+| m | 64, 128, ..., 1024 |
+| n | 64, 128, ..., 1024 |
+| alpha | 1 |
 
 ## Output files
 
