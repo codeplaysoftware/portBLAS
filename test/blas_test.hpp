@@ -128,7 +128,7 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
 }
 
 /**
- * @breif Fills a lower or upper triangular matrix with random values
+ * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
  * @param A The matrix to fill. Size must be at least m * lda
  * @param m The number of rows of matrix @p A
  * @param n The number of columns of matrix @p A
@@ -138,9 +138,9 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param diagonal Value to put in the diagonal elements
  */
 template <typename scalar_t>
-static inline void fill_triangle(std::vector<scalar_t> &A, size_t k, size_t lda,
-                                 char triangle,
-                                 scalar_t diagonal = scalar_t{1}) {
+static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
+                                    size_t lda, char triangle,
+                                    scalar_t diagonal = scalar_t{1}) {
   std::random_device rd;
   std::default_random_engine gen(rd());
   std::uniform_real_distribution<scalar_t> dis(scalar_t{-1}, scalar_t{1});

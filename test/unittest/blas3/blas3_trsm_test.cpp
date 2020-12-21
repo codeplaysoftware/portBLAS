@@ -52,7 +52,7 @@ void run_test(const combination_t<scalar_t> combi) {
   const scalar_t diagValue =
       diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
 
-  fill_triangle(A, k, lda, triangle, diagValue);
+  fill_trsm_matrix(A, k, lda, triangle, diagValue);
   fill_random(B);
 
   auto q = make_queue();
