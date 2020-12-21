@@ -138,23 +138,29 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param diagonal Value to put in the diagonal elements
  */
 template <typename scalar_t>
-static inline void fill_triangle(std::vector<scalar_t> &A, size_t m, size_t n,
-                                 size_t lda, char triangle,
+static inline void fill_triangle(std::vector<scalar_t> &A, size_t k, size_t lda,
+                                 char triangle,
                                  scalar_t diagonal = scalar_t{1}) {
   std::random_device rd;
   std::default_random_engine gen(rd());
   std::uniform_real_distribution<scalar_t> dis(scalar_t{-1}, scalar_t{1});
 
-  for (size_t i = 0; i < m; ++i) {
-    for (size_t j = 0; j < n; ++j) {
-      size_t index = i + j * lda;
+  for (size_t i = 0; i < k; ++i) {
+    scalar_t sum = std::abs(diagonal);
+    for (size_t j = 0; j < k; ++j) {
+      scalar_t value = scalar_t{0};
       if (i == j) {
-        A[index] = diagonal;
-      } else if ((triangle == 'l') && i > j) {
-        A[index] = dis(gen);
-      } else if ((triangle == 'u') && i < j) {
-        A[index] = dis(gen);
+        value = diagonal;
+      } else if (((triangle == 'l') && (i > j)) ||
+                 ((triangle == 'u') && (i < j))) {
+        if (sum >= scalar_t{1}) {
+          const double limit =
+              sum / std::sqrt(static_cast<double>(k) - static_cast<double>(j));
+          value = dis(rd) * limit;
+          sum -= std::abs(value);
+        }
       }
+      A[i + j * lda] = value;
     }
   }
 }

@@ -19,8 +19,6 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_gemm_test.cpp
- *
  **************************************************************************/
 
 #include "blas_test.hpp"
@@ -54,7 +52,7 @@ void run_test(const combination_t<scalar_t> combi) {
   const scalar_t diagValue =
       diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
 
-  fill_triangle(A, k, k, lda, triangle, diagValue);
+  fill_triangle(A, k, lda, triangle, diagValue);
   fill_random(B);
 
   auto q = make_queue();
@@ -84,8 +82,8 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait();
 }
 
-const auto combi = ::testing::Combine(::testing::Values(4, 7, 12, 16),  // m
-                                      ::testing::Values(4, 7, 12, 16),  // n
+const auto combi = ::testing::Combine(::testing::Values(7, 16, 70, 300),  // m
+                                      ::testing::Values(7, 16, 70, 300),  // n
                                       ::testing::Values('n', 't'),  // transA
                                       ::testing::Values('l', 'r'),  // side
                                       ::testing::Values('u', 'n'),  // diag

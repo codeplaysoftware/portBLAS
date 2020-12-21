@@ -120,7 +120,7 @@ typename executor_t::policy_t::event_t _trsm_impl(
 
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
-  const index_t invASize = roundUp<index_t>(N, blockSize) * blockSize;
+  const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
   trsmEvents = concatenate_vectors(
       trsmEvents, ex.get_policy_handler().fill(invA, element_t{0}, invASize));
@@ -168,9 +168,8 @@ typename executor_t::policy_t::event_t _trsm_impl(
   const index_t BSize = ldb * (N - 1) + M;
   const index_t ldx = ldb;
   auto X = make_sycl_iterator_buffer<element_t>(BSize);
-  auto bufferX = make_matrix_view<col_major>(ex, X, M, N, ldx);
-  trsmEvents = concatenate_vectors(
-      trsmEvents, ex.execute(make_op<Assign>(bufferX, bufferB), BSize));
+  trsmEvents =
+      concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, B, 1, X, 1));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -411,8 +410,8 @@ typename executor_t::policy_t::event_t _trsm_impl(
   }
 
   // Copy bufferX to bufferB as the TRSM result
-  trsmEvents = concatenate_vectors(
-      trsmEvents, ex.execute(make_op<Assign>(bufferB, bufferX), BSize));
+  trsmEvents =
+      concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, X, 1, B, 1));
 
   return trsmEvents;
 }
@@ -423,7 +422,8 @@ typename executor_t::policy_t::event_t inline _trsm(
     executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
-  return _trsm_impl(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda, B, ldb);
+  return _trsm_impl(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A,
+                    lda, B, ldb);
 }
 
 }  // namespace internal
