@@ -15,7 +15,7 @@ namespace internal {
  * @brief Implementation of Triangle Solve with Multiple Right Hand Sides
  * (TRSM).
  * @param Side Indicates if A is on the left or right of X
- * @param Triangle If A is lower or upper triangular
+ * @param Triangle Indicates if A is lower or upper triangular
  * @param Transpose Indicates the form that the matrix A will take in the
  * multiplication
  * @param Diagonal If A has a unit or non-unit diagonal
