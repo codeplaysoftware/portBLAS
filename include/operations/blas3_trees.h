@@ -254,7 +254,7 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
  * is used in the TRSM algorithm.
  *
  * This kernel is based on the TRSM implementation in clBlast, which in turn is
- * based on the implementation of CUDA version present in Magma.
+ * based on the implementation of the CUDA version present in Magma.
  *
  * We will use a lower triangular matrix as an example of how this kernel works:
  *
