@@ -16,7 +16,7 @@ namespace internal {
  * (TRSM).
  * @param Side Indicates if A is on the left or right of X
  * @param Triangle If A is lower or upper triangular
- * @param Transpose indicates the form that the matrix A will take in the
+ * @param Transpose Indicates the form that the matrix A will take in the
  * multiplication
  * @param Diagonal If A has a unit or non-unit diagonal
  * @param M The number of rows of matrix B, must be at least 1
