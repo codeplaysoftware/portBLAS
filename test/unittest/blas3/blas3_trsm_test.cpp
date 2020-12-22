@@ -24,8 +24,8 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t =
-    std::tuple<int, int, char, char, char, char, scalar_t, scalar_t, scalar_t>;
+using combination_t = std::tuple<int, int, char, char, char, char, scalar_t,
+                                 scalar_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -37,18 +37,17 @@ void run_test(const combination_t<scalar_t> combi) {
   char triangle;
   scalar_t alpha;
   scalar_t ldaMul;
+  scalar_t ldbMul;
   scalar_t unusedValue;
-  std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, unusedValue) =
+  std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, ldbMul,
+           unusedValue) =
       combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
-  int lda = side == 'l' ? m : n;
-  int ldb = m;
+  const int lda = (side == 'l' ? m : n) * ldaMul;
+  const int ldb = m * ldbMul;
   const int k = side == 'l' ? m : n;
-
-  // Scale LDA with the value from the test suite
-  lda *= ldaMul;
 
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
@@ -91,7 +90,8 @@ const auto combi = ::testing::Combine(::testing::Values(7, 16, 70, 300),  // m
                                       ::testing::Values('u', 'n'),  // diag
                                       ::testing::Values('l', 'u'),  // triangle
                                       ::testing::Values(1.0, 2.0),  // alpha
-                                      ::testing::Values(1.0, 2.0),  // lda_mul,
+                                      ::testing::Values(1.0, 2.0),  // lda_mul
+                                      ::testing::Values(1.0, 2.0),  // ldb_mul
                                       ::testing::Values(0.0, NaN)   // unused
 );
 
