@@ -136,11 +136,13 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param triangle if 'u', @p A will be upper triangular. If 'l' @p A will be
  * lower triangular
  * @param diagonal Value to put in the diagonal elements
+ * @param unused Value to put in the unused parts of the matrix
  */
 template <typename scalar_t>
 static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
                                     size_t lda, char triangle,
-                                    scalar_t diagonal = scalar_t{1}) {
+                                    scalar_t diagonal = scalar_t{1},
+                                    scalar_t unused = scalar_t{0}) {
   std::random_device rd;
   std::default_random_engine gen(rd());
   std::uniform_real_distribution<scalar_t> dis(scalar_t{-1}, scalar_t{1});
@@ -159,6 +161,8 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
           value = dis(rd) * limit;
           sum -= std::abs(value);
         }
+      } else {
+        value = unused;
       }
       A[i + j * lda] = value;
     }
