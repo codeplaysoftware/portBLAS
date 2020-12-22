@@ -143,22 +143,22 @@ typename executor_t::policy_t::event_t _trsm_impl(
   typename executor_t::policy_t::event_t invertBlocksEvent;
   if (isUnitDiag && isUpper) {
     auto diagInverter =
-        make_diag_blocks_inverter<true, true>(bufferA, bufferInvA);
+        make_diag_blocks_inverter<true, true, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
         ex.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (!isUnitDiag && isUpper) {
     auto diagInverter =
-        make_diag_blocks_inverter<false, true>(bufferA, bufferInvA);
+        make_diag_blocks_inverter<false, true, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
         ex.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (isUnitDiag && !isUpper) {
     auto diagInverter =
-        make_diag_blocks_inverter<true, false>(bufferA, bufferInvA);
+        make_diag_blocks_inverter<true, false, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
         ex.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (!isUnitDiag && !isUpper) {
     auto diagInverter =
-        make_diag_blocks_inverter<false, false>(bufferA, bufferInvA);
+        make_diag_blocks_inverter<false, false, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
         ex.execute(diagInverter, localSize, globalSize, localMemSize);
   }

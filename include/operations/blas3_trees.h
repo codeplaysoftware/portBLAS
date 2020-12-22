@@ -278,14 +278,12 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
  * @Note This kernel assumes the column-major matrices
  * @Note This kernel uses fixed size blocks of 16, but this can be changed
  */
-template <bool UnitDiag, bool Upper, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
 struct DiagonalBlocksInverter {
   using index_t = typename std::make_signed<typename matrix_t::index_t>::type;
-  static constexpr index_t internalBlockSize = 16;
-  static constexpr index_t outterBlockSize = 16;
-  static constexpr bool unitDiag = UnitDiag;
-  static constexpr bool upper = Upper;
   using value_t = typename std::remove_cv<typename matrix_t::value_t>::type;
+  static constexpr index_t internalBlockSize = BlockSize;
+  static constexpr index_t outterBlockSize = BlockSize;
   matrix_t A_;
   matrix_t invA_;
   index_t lda_;
@@ -296,14 +294,14 @@ struct DiagonalBlocksInverter {
   void bind(cl::sycl::handler& cgh);
   void adjust_access_displacement();
 
-  template<typename local_memory_t>
+  template <typename local_memory_t>
   void eval(local_memory_t localMem, cl::sycl::nd_item<1> id) noexcept;
 };
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
-DiagonalBlocksInverter<UnitDiag, Upper, matrix_t> make_diag_blocks_inverter(
-    matrix_t& A, matrix_t& invA) {
-  return DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>(A, invA);
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>
+make_diag_blocks_inverter(matrix_t& A, matrix_t& invA) {
+  return DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>(A, invA);
 }
 
 }  // namespace blas

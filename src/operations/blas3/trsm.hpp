@@ -30,43 +30,44 @@
 
 namespace blas {
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
-SYCL_BLAS_INLINE
-DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::DiagonalBlocksInverter(
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+SYCL_BLAS_INLINE DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::
+    DiagonalBlocksInverter(
     matrix_t& A, matrix_t& invA)
     : A_(A), invA_(invA), N_(A_.get_size_col()), lda_(A_.getSizeL()) {}
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
 SYCL_BLAS_INLINE bool
-DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::valid_thread(
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::valid_thread(
     cl::sycl::nd_item<1> id) const {
   return true;
 }
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
-SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::bind(
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+SYCL_BLAS_INLINE void
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::bind(
     cl::sycl::handler& cgh) {
   A_.bind(cgh);
   invA_.bind(cgh);
 }
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
 SYCL_BLAS_INLINE void DiagonalBlocksInverter<
-    UnitDiag, Upper, matrix_t>::adjust_access_displacement() {
+    UnitDiag, Upper, BlockSize, matrix_t>::adjust_access_displacement() {
   A_.adjust_access_displacement();
   invA_.adjust_access_displacement();
 }
 
-template <bool UnitDiag, bool Upper, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
 template <typename local_memory_t>
-SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
+SYCL_BLAS_INLINE void
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
     local_memory_t localMem, cl::sycl::nd_item<1> item) noexcept {
   auto A = A_.get_data().get_pointer() + A_.get_access_displacement();
   auto invA = invA_.get_data().get_pointer() + invA_.get_access_displacement();
   value_t* local = localMem.localAcc.get_pointer();
 
-  const size_t threadIndex = item.get_local_id(0);
-  const size_t i = threadIndex;
+  const size_t i = item.get_local_id(0);
   const size_t blockIndex = item.get_group(0);
 
   // Sets the offset for this particular block in the source and destination
@@ -89,7 +90,7 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   // triangle or outside of the matrix are set to zero
   for (index_t j = 0; j < internalBlockSize; ++j) {
     bool isInRange = false;
-    isInRange = (upper) ? (i <= j) && ((blockIndexPerBlock + j) < N_)
+    isInRange = (Upper) ? (i <= j) && ((blockIndexPerBlock + j) < N_)
                         : (i >= j) && ((blockIndexPerBlock + i) < N_);
     local[j + i * internalBlockSize] =
         (isInRange) ? A[j * lda_ + i + srcBlockOffset] : value_t{0};
@@ -97,13 +98,13 @@ SYCL_BLAS_INLINE void DiagonalBlocksInverter<UnitDiag, Upper, matrix_t>::eval(
   item.barrier(cl::sycl::access::fence_space::local_space);
 
   // Inverts the diagonal elements
-  if (!unitDiag) {
+  if (!UnitDiag) {
     local[i + i * internalBlockSize] =
         value_t{1} / local[i + i * internalBlockSize];
     item.barrier(cl::sycl::access::fence_space::local_space);
   }
 
-  if (upper) {
+  if (Upper) {
     for (index_t j = 1; j < internalBlockSize; ++j) {
       value_t sum = value_t{0};
       if (i < j) {
