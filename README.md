@@ -260,11 +260,15 @@ For all these operations:
   **after transposition** are A: `M`x`K`, B: `K`x`N`, C: `M`x`N`.
 * `alpha` and `beta` are scalars.
 * `batch_size` is an integer.
+* `side` is `l` for left or `r` for right.
+* `triangle` is `u` for upper and `l` for lower.
+* `diagonal` is `u` for a matrix with a unit diagonal and `n` for a matrix with a non-unit diagonal.
 
 | operation | arguments | description |
 |---|---|---|
 | `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
 | `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
+| `_trsm` | `ex`, `side`, `triangle`, `transA`, `diagonal`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
 ## Requirements
 
