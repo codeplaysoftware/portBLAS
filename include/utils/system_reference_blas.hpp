@@ -76,6 +76,18 @@ CBLAS_DIAG c_diag(char x) {
   }
 }
 
+CBLAS_SIDE c_side(char x) {
+  switch (std::tolower(x)) {
+    case 'l':
+      return CblasLeft;
+    case 'r':
+      return CblasRight;
+    default:
+      std::cerr << "Side value " << x << " is invalid.\n";
+      abort();
+  }
+}
+
 // i*amin is an extension, provide an implementation
 template <typename scalar_t>
 inline int iamin(const int N, const scalar_t *X, const int incX) {
@@ -255,6 +267,15 @@ void gemm(const char *transA, const char *transB, int m, int n, int k,
   auto func = blas_system_function<scalar_t>(&cblas_sgemm, &cblas_dgemm);
   func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
        lda, b, ldb, beta, c, ldc);
+}
+
+template <typename scalar_t>
+void trsm(const char* side, const char* triangle, const char* transA,
+          const char *diag, int m, int n, scalar_t alpha, scalar_t A[], int lda,
+          scalar_t B[], int ldb) {
+  auto func = blas_system_function<scalar_t>(&cblas_strsm, &cblas_dtrsm);
+  func(CblasColMajor, c_side(*side), c_uplo(*triangle), c_trans(*transA),
+       c_diag(*diag), m, n, alpha, A, lda, B, ldb);
 }
 
 }  // namespace reference_blas

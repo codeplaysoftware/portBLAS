@@ -53,12 +53,18 @@ void run_test(const combination_t<scalar_t> combi) {
 
   std::vector<scalar_t> A(sizeA);
   std::vector<scalar_t> B(sizeB);
+  std::vector<scalar_t> cpu_B(sizeB);
 
   const scalar_t diagValue =
       diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
 
   fill_trsm_matrix(A, k, lda, triangle, diagValue);
   fill_random(B);
+
+  // Create a copy of B to calculate the reference outputs
+  cpu_B = B;
+  reference_blas::trsm(&side, &triangle, &transA, &diag, m, n, alpha, A.data(),
+                       lda, cpu_B.data(), ldb);
 
   auto q = make_queue();
   test_executor_t ex(q);
@@ -67,27 +73,10 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _trsm(ex, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
-  std::vector<data_t> X(B.size(), data_t{0});
-
-  auto x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(X.size());
-  if (side == 'l') {
-    // Verification of the result. AX = alpha*B
-    _gemm(ex, transA, 'n', m, n, m, data_t{1}, a_gpu, lda, b_gpu, ldb,
-          data_t{0}, x_gpu, ldb);
-  } else {
-    // Verification of the result. XA = alpha*B
-    _gemm(ex, 'n', transA, m, n, n, data_t{1}, b_gpu, ldb, a_gpu, lda,
-          data_t{0}, x_gpu, ldb);
-  }
-
-  // Scale X by 1/alpha
-  _scal(ex, sizeB, data_t{1} / alpha, x_gpu, 1);
-
-  // Copy the verification result to X
   ex.get_policy_handler().wait(
-      ex.get_policy_handler().copy_to_host(x_gpu, X.data(), X.size()));
+      ex.get_policy_handler().copy_to_host(b_gpu, B.data(), B.size()));
 
-  ASSERT_TRUE(utils::compare_vectors(X, B));
+  ASSERT_TRUE(utils::compare_vectors(cpu_B, B));
   ex.get_policy_handler().wait();
 }
 
