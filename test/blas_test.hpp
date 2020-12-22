@@ -106,8 +106,8 @@ inline cl::sycl::queue make_queue() {
  */
 template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
-  std::random_device rd;
-  std::default_random_engine gen(rd());
+  static std::random_device rd;
+  static std::default_random_engine gen(rd());
   std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
@@ -119,11 +119,8 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
  */
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-2.0, 5.0);
   for (scalar_t &e : vec) {
-    e = dis(gen);
+    e = random_scalar(scalar_t{-2}, scalar_t{5});
   }
 }
 
@@ -143,10 +140,6 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
                                     size_t lda, char triangle,
                                     scalar_t diagonal = scalar_t{1},
                                     scalar_t unused = scalar_t{0}) {
-  std::random_device rd;
-  std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(scalar_t{-1}, scalar_t{1});
-
   for (size_t i = 0; i < k; ++i) {
     scalar_t sum = std::abs(diagonal);
     for (size_t j = 0; j < k; ++j) {
@@ -158,7 +151,7 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
         if (sum >= scalar_t{1}) {
           const double limit =
               sum / std::sqrt(static_cast<double>(k) - static_cast<double>(j));
-          value = dis(rd) * limit;
+          value = random_scalar(scalar_t{-1}, scalar_t{1}) * limit;
           sum -= std::abs(value);
         }
       } else {
