@@ -67,24 +67,24 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
   auto invA = invA_.get_data().get_pointer() + invA_.get_access_displacement();
   value_t* local = localMem.localAcc.get_pointer();
 
-  const size_t i = item.get_local_id(0);
-  const size_t blockIndex = item.get_group(0);
+  const index_t i = item.get_local_id(0);
+  const index_t blockIndex = item.get_group(0);
 
   // Sets the offset for this particular block in the source and destination
   // matrices
-  const size_t blockIndexPerBlock = blockIndex * internalBlockSize;
-  const size_t srcBlockOffset =
+  const index_t blockIndexPerBlock = blockIndex * internalBlockSize;
+  const index_t srcBlockOffset =
       blockIndex * (internalBlockSize + lda_ * internalBlockSize);
-  const size_t numInnerBlocks = outterBlockSize / internalBlockSize;
-  const size_t blockIndexDiv = blockIndex / numInnerBlocks;
-  const size_t blockIndexMod = blockIndex % numInnerBlocks;
+  const index_t numInnerBlocks = outterBlockSize / internalBlockSize;
+  const index_t blockIndexDiv = blockIndex / numInnerBlocks;
+  const index_t blockIndexMod = blockIndex % numInnerBlocks;
   // go to the blockIndexDiv outer outterBlockSize*outterBlockSize block
-  const size_t offsetPart1 = blockIndexDiv * outterBlockSize * outterBlockSize;
+  const index_t offsetPart1 = blockIndexDiv * outterBlockSize * outterBlockSize;
   // then to the blockIndexMod inner internalBlockSize*internalBlockSize block
   // inside that
-  const size_t offsetPart2 =
+  const index_t offsetPart2 =
       blockIndexMod * (outterBlockSize * internalBlockSize + internalBlockSize);
-  const size_t destBlockOffset = offsetPart1 + offsetPart2;
+  const index_t destBlockOffset = offsetPart1 + offsetPart2;
 
   // Loads the source lower triangle into local memory. Any values in the upper
   // triangle or outside of the matrix are set to zero
