@@ -40,8 +40,7 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t ldbMul;
   scalar_t unusedValue;
   std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, ldbMul,
-           unusedValue) =
-      combi;
+           unusedValue) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
@@ -83,8 +82,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
 static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
 
-const auto combi = ::testing::Combine(::testing::Values(7, 16, 70, 300),  // m
-                                      ::testing::Values(7, 16, 70, 300),  // n
+const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
+                                      ::testing::Values(7, 513, 1027),  // n
                                       ::testing::Values('n', 't'),  // transA
                                       ::testing::Values('l', 'r'),  // side
                                       ::testing::Values('u', 'n'),  // diag
