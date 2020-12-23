@@ -21,7 +21,7 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_GEMM_HPP
+#ifndef SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
 #define SYCL_BLAS_GEMM_INTERFACE_HPP
 
 #include "blas_meta.h"
