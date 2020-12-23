@@ -22,7 +22,7 @@
  **************************************************************************/
 
 #ifndef SYCL_BLAS_BLAS3_GEMM_HPP
-#define SYCL_BLAS_BLAS3_GEMM_HPP
+#define SYCL_BLAS_GEMM_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "executors/executor.h"
