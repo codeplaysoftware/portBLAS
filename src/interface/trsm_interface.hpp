@@ -179,53 +179,24 @@ typename executor_t::policy_t::event_t _trsm_impl(
       // True when (lower triangular) or (upper triangular and transposed)
       for (index_t i = 0; i < M; i += blockSize) {
         const index_t currentBlockSize = std::min(M - i, blockSize);
-        index_t gemmM = currentBlockSize;
-        index_t gemmN = N;
-        index_t gemmK = currentBlockSize;
-        char gemmTransA = isTranspose ? 't' : 'n';
-        char gemmTransB = 'n';
-        element_t gemmAlpha = (i == 0) ? alpha : element_t{1};
-        element_t gemmBeta = element_t{0};
-        index_t gemmLda = blockSize;
-        index_t gemmLdb = ldb;
-        index_t gemmLdc = ldx;
-        std::ptrdiff_t offsetA = i * blockSize;
-        std::ptrdiff_t offsetB = i;
-        std::ptrdiff_t offsetC = i;
-        auto gemmBufferA = invA + offsetA;
-        auto gemmBufferB = B + offsetB;
-        auto gemmBufferC = X + offsetC;
-        auto gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        auto gemmEvent = internal::_gemm(ex, isTranspose ? 't' : 'n', 'n',
+                                         currentBlockSize, N, currentBlockSize,
+                                         (i == 0) ? alpha : element_t{1},
+                                         invA + i * blockSize, blockSize, B + i,
+                                         ldb, element_t{0}, X + i, ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) >= M) {
           break;
         }
 
-        gemmM = M - i - blockSize;
-        gemmN = N;
-        gemmK = blockSize;
-        gemmTransA = isTranspose ? 't' : 'n';
-        gemmTransB = 'n';
-        gemmAlpha = element_t{-1};
-        gemmBeta = (i == 0) ? alpha : element_t{1};
-        gemmLda = lda;
-        gemmLdb = ldx;
-        gemmLdc = ldb;
-        offsetA = !isTranspose ? ((i + blockSize) + (i * lda))
-                               : (i + (blockSize + i) * lda);
-        offsetB = i;
-        offsetC = i + blockSize;
-        gemmBufferA = A + offsetA;
-        gemmBufferB = X + offsetB;
-        gemmBufferC = B + offsetC;
-        gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        const std::ptrdiff_t offsetA = !isTranspose
+                                           ? ((i + blockSize) + (i * lda))
+                                           : (i + (blockSize + i) * lda);
+        internal::_gemm(ex, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
+                        blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
+                        (i == 0) ? alpha : element_t{1}, B + i + blockSize,
+                        ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     } else {
@@ -238,52 +209,21 @@ typename executor_t::policy_t::event_t _trsm_impl(
       for (int i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
-        index_t gemmM = currentBlockSize;
-        index_t gemmN = N;
-        index_t gemmK = currentBlockSize;
-        char gemmTransA = isTranspose ? 't' : 'n';
-        char gemmTransB = 'n';
-        element_t gemmAlpha = (i == iStart) ? alpha : element_t{1};
-        element_t gemmBeta = element_t{0};
-        index_t gemmLda = static_cast<int>(blockSize);
-        index_t gemmLdb = static_cast<int>(ldb);
-        index_t gemmLdc = static_cast<int>(ldx);
-        std::ptrdiff_t gemmOffsetA = i * blockSize;
-        std::ptrdiff_t gemmOffsetB = i;
-        std::ptrdiff_t gemmOffsetC = i;
-        auto gemmBufferA = invA + gemmOffsetA;
-        auto gemmBufferB = B + gemmOffsetB;
-        auto gemmBufferC = X + gemmOffsetC;
-        auto gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        auto gemmEvent = internal::_gemm(ex, isTranspose ? 't' : 'n', 'n',
+                                         currentBlockSize, N, currentBlockSize,
+                                         (i == iStart) ? alpha : element_t{1},
+                                         invA + i * blockSize, blockSize, B + i,
+                                         ldb, element_t{0}, X + i, ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
           break;
         }
 
-        gemmM = i;
-        gemmN = N;
-        gemmK = currentBlockSize;
-        gemmTransA = isTranspose ? 't' : 'n';
-        gemmTransB = 'n';
-        gemmAlpha = element_t{-1};
-        gemmBeta = (i == iStart) ? alpha : element_t{1};
-        gemmLda = lda;
-        gemmLdb = ldx;
-        gemmLdc = ldb;
-        gemmOffsetA = !isTranspose ? (i * lda) : i;
-        gemmOffsetB = i;
-        gemmOffsetC = 0;
-        gemmBufferA = A + gemmOffsetA;
-        gemmBufferB = X + gemmOffsetB;
-        gemmBufferC = B + gemmOffsetC;
-        gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        gemmEvent = internal::_gemm(
+            ex, isTranspose ? 't' : 'n', 'n', i, N, currentBlockSize,
+            element_t{-1}, A + (!isTranspose ? (i * lda) : i), lda, X + i, ldx,
+            (i == iStart) ? alpha : element_t{1}, B, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     }
@@ -300,53 +240,21 @@ typename executor_t::policy_t::event_t _trsm_impl(
       for (int i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
-
-        index_t gemmM = M;
-        index_t gemmN = currentBlockSize;
-        index_t gemmK = currentBlockSize;
-        char gemmTransA = 'n';
-        char gemmTransB = isTranspose ? 't' : 'n';
-        element_t gemmAlpha = (i == iStart) ? alpha : element_t{1};
-        element_t gemmBeta = element_t{0};
-        index_t gemmLda = ldb;
-        index_t gemmLdb = blockSize;
-        index_t gemmLdc = ldx;
-        std::ptrdiff_t gemmOffsetA = i * ldb;
-        std::ptrdiff_t gemmOffsetB = i * blockSize;
-        std::ptrdiff_t gemmOffsetC = i * ldx;
-        auto gemmBufferA = B + gemmOffsetA;
-        auto gemmBufferB = invA + gemmOffsetB;
-        auto gemmBufferC = X + gemmOffsetC;
-        auto gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        auto gemmEvent = internal::_gemm(
+            ex, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
+            currentBlockSize, (i == iStart) ? alpha : element_t{1}, B + i * ldb,
+            ldb, invA + i * blockSize, blockSize, element_t{0}, X + i * ldx,
+            ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
           break;
         }
 
-        gemmM = M;
-        gemmN = i;
-        gemmK = currentBlockSize;
-        gemmTransA = 'n';
-        gemmTransB = isTranspose ? 't' : 'n';
-        gemmAlpha = element_t{-1};
-        gemmBeta = (i == iStart) ? alpha : element_t{1};
-        gemmLda = ldx;
-        gemmLdb = lda;
-        gemmLdc = ldb;
-        gemmOffsetA = i * ldx;
-        gemmOffsetB = !isTranspose ? i : (i * lda);
-        gemmOffsetC = 0;
-        gemmBufferA = X + gemmOffsetA;
-        gemmBufferB = A + gemmOffsetB;
-        gemmBufferC = B + gemmOffsetC;
-        gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        gemmEvent = internal::_gemm(
+            ex, 'n', isTranspose ? 't' : 'n', M, i, currentBlockSize,
+            element_t{-1}, X + i * ldx, ldx, A + (!isTranspose ? i : (i * lda)),
+            lda, (i == iStart) ? alpha : element_t{1}, B, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
 
@@ -357,53 +265,23 @@ typename executor_t::policy_t::event_t _trsm_impl(
       for (index_t i = 0; i < N; i += blockSize) {
         const index_t currentBlockSize = std::min(N - i, blockSize);
 
-        index_t gemmM = M;
-        index_t gemmN = currentBlockSize;
-        index_t gemmK = currentBlockSize;
-        char gemmTransA = 'n';
-        char gemmTransB = isTranspose ? 't' : 'n';
-        element_t gemmAlpha = (i == 0) ? alpha : element_t{1};
-        element_t gemmBeta = element_t{0};
-        index_t gemmLda = ldb;
-        index_t gemmLdb = blockSize;
-        index_t gemmLdc = ldx;
-        std::ptrdiff_t gemmOffsetA = i * ldb;
-        std::ptrdiff_t gemmOffsetB = i * blockSize;
-        std::ptrdiff_t gemmOffsetC = i * ldx;
-        auto gemmBufferA = B + gemmOffsetA;
-        auto gemmBufferB = invA + gemmOffsetB;
-        auto gemmBufferC = X + gemmOffsetC;
-        auto gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        auto gemmEvent = internal::_gemm(
+            ex, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
+            currentBlockSize, (i == 0) ? alpha : element_t{1}, B + i * ldb, ldb,
+            invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) > N) {
           break;
         }
 
-        gemmM = M;
-        gemmN = N - i - blockSize;
-        gemmK = blockSize;
-        gemmTransA = 'n';
-        gemmTransB = isTranspose ? 't' : 'n';
-        gemmAlpha = element_t{-1};
-        gemmBeta = (i == 0) ? alpha : element_t{1};
-        gemmLda = ldx;
-        gemmLdb = lda;
-        gemmLdc = ldb;
-        gemmOffsetA = i * ldx;
-        gemmOffsetB = !isTranspose ? (i + (blockSize + i) * lda)
-                                   : (i + blockSize) + (i * lda);
-        gemmOffsetC = (i + blockSize) * ldb;
-        gemmBufferA = X + gemmOffsetA;
-        gemmBufferB = A + gemmOffsetB;
-        gemmBufferC = B + gemmOffsetC;
-        gemmEvent =
-            internal::_gemm(ex, gemmTransA, gemmTransB, gemmM, gemmN, gemmK,
-                            gemmAlpha, gemmBufferA, gemmLda, gemmBufferB,
-                            gemmLdb, gemmBeta, gemmBufferC, gemmLdc);
+        const std::ptrdiff_t offset = !isTranspose
+                                          ? (i + (blockSize + i) * lda)
+                                          : (i + blockSize) + (i * lda);
+        gemmEvent = internal::_gemm(
+            ex, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize, blockSize,
+            element_t{-1}, X + i * ldx, ldx, A + offset, lda,
+            (i == 0) ? alpha : element_t{1}, B + (i + blockSize) * ldb, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     }
