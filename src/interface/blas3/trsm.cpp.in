@@ -19,30 +19,28 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm.cpp.in
- *
  **************************************************************************/
+
 #include "container/sycl_iterator.hpp"
 #include "executors/executor_sycl.hpp"
-#include "interface/gemm_interface.hpp"
+#include "executors/kernel_constructor.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "interface/blas1_interface.hpp"
+#include "interface/trsm_interface.hpp"
+#include "operations/blas3/trsm.hpp"
 
 namespace blas {
 namespace internal {
-// gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
-// batched gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
-}  // namespace internal
-}  // namespace blas
+
+
+template typename Executor<${EXECUTOR}>::policy_t::event_t _trsm(
+  Executor<${EXECUTOR}>& ex, char Side, char Triangle, char Transpose, char Diagonal,
+  ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
+  ${container_t0} A, ${INDEX_TYPE} lda,
+  ${container_t1} B, ${INDEX_TYPE} ldb);
+
+
+} // namespace internal
+} // namespace blas

@@ -190,5 +190,17 @@ PolicyHandler<codeplay_policy>::copy_to_host(
   });
   return {event};
 }
+
+template <typename element_t>
+inline typename codeplay_policy::event_t PolicyHandler<codeplay_policy>::fill(
+    BufferIterator<element_t, codeplay_policy> buff, element_t value, size_t size) {
+  auto event = q_.submit([&](cl::sycl::handler &cgh) {
+    auto acc = blas::get_range_accessor<cl::sycl::access::mode::write>(
+        buff, cgh, size);
+    cgh.fill(acc, value);
+  });
+  return {event};
+}
+
 }  // namespace blas
 #endif  // QUEUE_SYCL_HPP

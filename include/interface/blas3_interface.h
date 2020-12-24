@@ -56,6 +56,25 @@ typename executor_t::policy_t::event_t _gemm_batched(
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type = gemm_batch_type_t::strided);
+
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _trsm(executor_t& ex, char Side,
+                                             char Triangle, char Transpose,
+                                             char Diagonal, index_t M,
+                                             index_t N, element_t alpha,
+                                             container_0_t A, index_t lda,
+                                             container_1_t B, index_t ldb);
+
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename executor_t::policy_t::event_t _trsm_impl(executor_t& ex, char Side,
+                                                  char Triangle, char Transpose,
+                                                  char Diagonal, index_t M,
+                                                  index_t N, element_t alpha,
+                                                  container_0_t A, index_t lda,
+                                                  container_1_t B, index_t ldb);
+
 }  // namespace internal
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -87,5 +106,17 @@ typename executor_t::policy_t::event_t _gemm_batched(
                                  _beta, ex.get_policy_handler().get_buffer(_C),
                                  _ldc, batch_size, batch_type);
 }
+
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename executor_t::policy_t::event_t inline _trsm(
+    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
+    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
+    container_1_t B, index_t ldb) {
+  return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha,
+                         ex.get_policy_handler().get_buffer(A), lda,
+                         ex.get_policy_handler().get_buffer(B), ldb);
+}
+
 }  // namespace blas
 #endif  // SYCL_BLAS_BLAS3_INTERFACE

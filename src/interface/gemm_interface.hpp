@@ -19,12 +19,10 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_interface.hpp
- *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_INTERFACE_HPP
-#define SYCL_BLAS_BLAS3_INTERFACE_HPP
+#ifndef SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
+#define SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "executors/executor.h"
@@ -33,10 +31,10 @@
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
 #include "policy/sycl_policy_handler.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -161,7 +159,6 @@ typename executor_t::policy_t::event_t _gemm_batched(
 }
 
 }  // namespace internal
-
 }  // namespace blas
 
-#endif  // BLAS3_INTERFACE_HPP
+#endif  // SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
