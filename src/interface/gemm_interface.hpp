@@ -22,7 +22,7 @@
  **************************************************************************/
 
 #ifndef SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
-#define SYCL_BLAS_GEMM_INTERFACE_HPP
+#define SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "executors/executor.h"
@@ -161,4 +161,4 @@ typename executor_t::policy_t::event_t _gemm_batched(
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_GEMM_HPP
+#endif  // SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP

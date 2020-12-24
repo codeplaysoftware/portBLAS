@@ -22,8 +22,8 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TREES_GEMM_H
-#define SYCL_BLAS_BLAS3_TREES_GEMM_H
+#ifndef SYCL_BLAS_BLAS3_TREES_H
+#define SYCL_BLAS_BLAS3_TREES_H
 
 #include <CL/sycl.hpp>
 
@@ -306,4 +306,4 @@ make_diag_blocks_inverter(matrix_t& A, matrix_t& invA) {
 
 }  // namespace blas
 
-#endif  // BLAS3_TREES_GEMM_H
+#endif  // SYCL_BLAS_BLAS3_TREES_H
