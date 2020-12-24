@@ -48,31 +48,31 @@ namespace internal {
  * way of solving this system, however, being a triangular matrix, we can use
  * a block decomposition like the following:
  *
- *        A            X         B
- *   [ A00   0  ] * [ X0 ]  =  [ B0 ]
- *   [ A10  A11 ]   [ X1 ]     [ B1 ]
+ *        A            X       alpha *  B
+ *   [ A00   0  ] * [ X0 ]  =         [ B0 ]
+ *   [ A10  A11 ]   [ X1 ]            [ B1 ]
  *
  * This is an example where A is on the left side and is a lower triangular
- * matrix and alpha is 1. The matrices can be divided in as many blocks as
- * necessary. This decomposition yields:
+ * matrix. The matrices can be divided in as many blocks as necessary. This
+ * decomposition yields:
  *
- * A00*X0          = B0    ==>   X0 = A00^{-1}*B0
- * A01*X0 + A11*X1 = B1    ==>   X1 = A11^{-1}*(B1 - A01*X0)
+ * A00*X0          = alpha*B0    ==>   X0 = alpha*A00^{-1}*B0
+ * A01*X0 + A11*X1 = alpha*B1    ==>   X1 = A11^{-1}*(alpha*B1 - A10*X0)
  *
  * Which implies that we only need to invert A00 and A11 (or the diagonal blocks
- * of matrix A). The function @ref invert_diagonal_blocks can be used to perform
- * this operation. The process of obtaining X0 and X1 is now mapped into 3 GEMM
- * calls, one to solve X0, and 2 two solve X1.
+ * of matrix A). The function @ref make_diagonal_blocks_inverter can be used to
+ * perform this operation. The process of obtaining X0 and X1 is now mapped into
+ * 3 GEMM calls, one to solve X0, and 2 two solve X1.
  *
  * GEMM evaluates the expression C = alpha*A*B + beta*C, so solving for X0
  * becomes a GEMM call in the format:
  *
- *  X0 = 1 * A00^{-1}*B0 + 0*X0
+ *  X0 = alpha * A00^{-1}*B0 + 0*X0
  *
  * With X0 calculated we can solve X1 with two more GEMM calls
  *
- *  B1 = -1 * A01*X0      + 1*B1
- *  X1 =  1 * A11^{-1}*B1 + 0*X1
+ *  B1 = -1 * A01*X0      + alpha*B1
+ *  X1 =  1 * A11^{-1}*B1 +     0*X1
  *
  * This step can be repeated as many times as necessary for larger matrices.
  * Despite having to invert blocks of the matrix A, this TRSM implementation
@@ -174,7 +174,18 @@ typename executor_t::policy_t::event_t _trsm_impl(
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
       // Solves the system AX = alpha*B, as described in the documentation of
-      // the function when X is lower triangular
+      // the function when X is lower triangular.
+      //
+      //         A            X                 B
+      //    [ A00   0  ] * [ X0 ]  =  alpha * [ B0 ]
+      //    [ A10  A11 ]   [ X1 ]             [ B1 ]
+      //
+      // yields:
+      //
+      //  X0 = alpha*A00{-1}*B0
+      //  B1 = -1 * A10*X0 + alpha*B1
+      //  X1 = A11{-1}*B1  + 0*X1
+      //
 
       // True when (lower triangular) or (upper triangular and transposed)
       for (index_t i = 0; i < M; i += blockSize) {
@@ -201,6 +212,17 @@ typename executor_t::policy_t::event_t _trsm_impl(
       }
     } else {
       // Solves the system AX = alpha*B when X is upper triangular
+      //
+      //         A            X                 B
+      //    [ A00  A01  ] * [ X0 ]  =  alpha * [ B0 ]
+      //    [  0   A11  ]   [ X1 ]             [ B1 ]
+      //
+      // yields:
+      //
+      //  X1 = alpha*A11{-1}*B1
+      //  B0 = -1 * A01*X1 + alpha*B0
+      //  X0 = A00{-1}*B0  + 0*X0
+      //
 
       // True when (upper triangular) or (lower triangular and transposed)
       const index_t specialBlockSize =
@@ -233,6 +255,17 @@ typename executor_t::policy_t::event_t _trsm_impl(
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
       // Solves the system XA = alpha*B when A is lower triangular
 
+      //         X     *      A                        B
+      //    [ X0  X1 ]   [ A00   0   ]  =  alpha * [ B0  B1 ]
+      //                 [ A10  A11  ]
+      //
+      // yields:
+      //
+      //  X1 = alpha*B1*A11{-1}
+      //  B0 = -1 * X1*A10 + alpha*B0
+      //  X0 = B0*A00{-1}  + 0*X0
+      //
+
       // True when (lower triangular) or (upper triangular and transposed)
       const index_t specialBlockSize =
           (N % blockSize == 0) ? blockSize : (N % blockSize);
@@ -260,6 +293,17 @@ typename executor_t::policy_t::event_t _trsm_impl(
 
     } else {
       // Solves the system XA = alpha*B when A is upper triangular
+
+      //      X        *      A                         B
+      //    [ X0  X1 ]   [ A00  A01  ]  =  alpha * [ B0  B1 ]
+      //                 [  0   A11  ]
+      //
+      // yields:
+      //
+      //  X0 = alpha*B0*A00^{-1}
+      //  B1 = -1 * X0*A01 + alpha*B1
+      //  X1 = B1*A11{-1}  + 0*X1
+      //
 
       // True when (upper triangular) or (lower triangular and transposed)
       for (index_t i = 0; i < N; i += blockSize) {
