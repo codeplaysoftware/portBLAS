@@ -20,8 +20,8 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_REF_TRSM_HPP
-#define SYCL_BLAS_BLAS3_REF_TRSM_HPP
+#ifndef SYCL_BLAS_BLAS3_TRSM_HPP
+#define SYCL_BLAS_BLAS3_TRSM_HPP
 
 #include "operations/blas3_trees.h"
 #include "views/view.h"
@@ -148,4 +148,4 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_REF_TRSM_HPP
+#endif  // SYCL_BLAS_BLAS3_TRSM_HPP

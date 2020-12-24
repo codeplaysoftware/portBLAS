@@ -1,6 +1,28 @@
+/***************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TRSM_HPP
-#define SYCL_BLAS_BLAS3_TRSM_HPP
+#ifndef SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
+#define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "executors/executor.h"
@@ -351,4 +373,4 @@ typename executor_t::policy_t::event_t inline _trsm(
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_TRSM_HPP
+#endif  // SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
