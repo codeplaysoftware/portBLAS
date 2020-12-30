@@ -50,6 +50,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
 
+  // Make sure cl::sycl::half can hold the result of the dot product
+  std::transform(std::begin(v1), std::end(v1), std::begin(v1),
+                 [=](data_t x) { return x / v1.size(); });
+
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
   auto iny = utils::make_quantized_buffer<scalar_t>(ex, v2);
   auto inr = blas::make_sycl_iterator_buffer<scalar_t>(1);
@@ -66,7 +70,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::almost_equal(vr_temp, vr_ref)) {
+  if (!utils::almost_equal<data_t, scalar_t>(vr_temp, vr_ref)) {
     std::ostringstream err_stream;
     err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
     const std::string& err_str = err_stream.str();

@@ -102,7 +102,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(v_y_temp, v_y_ref, err_stream, "")) {
+  if (!utils::compare_vectors<data_t, scalar_t>(v_y_temp, v_y_ref, err_stream,
+                                                "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

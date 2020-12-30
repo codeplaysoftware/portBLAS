@@ -19,7 +19,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // This will remove infs from the vector
   std::transform(std::begin(x_v), std::end(x_v), std::begin(x_v),
-                 [](data_t v) { return clamp<scalar_t>(v); });
+                 [](data_t v) { return utils::clamp_to_limits<scalar_t>(v); });
 
   // Output scalar
   tuple_t out_s{0, 0.0};

@@ -36,6 +36,16 @@ inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
   os << static_cast<float>(value);
   return os;
 }
+
+namespace std {
+template <>
+class numeric_limits<cl::sycl::half> {
+ public:
+  static constexpr float min() { return -65504.0f; }
+  static constexpr float max() { return 65504.0f; }
+};
+}  // namespace std
+
 #endif  // BLAS_DATA_TYPE_HALF
 
 namespace utils {
@@ -73,6 +83,19 @@ inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
 }
 
 #endif  // BLAS_DATA_TYPE_HALF
+
+template <typename scalar_t>
+scalar_t clamp_to_limits(scalar_t v) {
+  constexpr auto min_value = std::numeric_limits<scalar_t>::min();
+  constexpr auto max_value = std::numeric_limits<scalar_t>::max();
+  if (decltype(min_value)(v) < min_value) {
+    return min_value;
+  } else if (decltype(max_value)(v) > max_value) {
+    return max_value;
+  } else {
+    return v;
+  }
+}
 
 /**
  * Indicates the tolerated margin for relative differences
