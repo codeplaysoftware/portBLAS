@@ -39,8 +39,8 @@ template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, char side,
          char triangle, char transpose, char diagonal, index_t m, index_t n,
          scalar_t alpha, bool* success) {
-  // Standard test setup.
 
+    // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
