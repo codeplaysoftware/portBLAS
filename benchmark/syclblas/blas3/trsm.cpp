@@ -127,15 +127,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
     state.counters["k"] = k_d;
     state.counters["n"] = n_d;
 
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeB = m_d * n_d;
+    double mem_read = k_d * (k_d + 1) / 2;
+    double mem_write = m_d * n_d;
 
-    double total_mem = (mem_readA + mem_readB + mem_writeB) * sizeof(scalar_t);
+    double total_mem = (mem_read * mem_write) * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
     state.SetBytesProcessed(state.iterations() * total_mem);
 
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double nflops_AtimesB = 2 * k_d * (k_d + 1) / 2 * (side == 'l' ? n_d : m_d);
     double nflops_timesAlpha = m_d * n_d;
     double nflops = nflops_AtimesB + nflops_timesAlpha;
     state.counters["n_fl_ops"] = nflops;
