@@ -44,6 +44,10 @@ using gemm_batched_param_t =
 
 using reduction_param_t = std::tuple<index_t, index_t>;
 
+template <typename scalar_t>
+using trsm_param_t =
+    std::tuple<char, char, char, char, index_t, index_t, scalar_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -379,6 +383,50 @@ static inline std::vector<reduction_param_t> get_reduction_params(Args& args) {
 }
 
 /**
+ * @fn get_trsm_params
+ * @brief Returns a vector containing the trsm benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<trsm_param_t<scalar_t>> trsm_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    for (char side : {'l', 'r'}) {
+      for (char triangle : {'u', 'l'}) {
+        for (char transpose : {'n', 't'}) {
+          for (char diagonal : {'u', 'n'}) {
+            for (index_t m = dmin; m <= dmax; m *= 2) {
+              for (index_t n = dmin; n <= dmax; n *= 2) {
+                trsm_default.push_back(std::make_tuple(
+                    side, triangle, transpose, diagonal, m, n, scalar_t{1}));
+              }
+            }
+          }
+        }
+      }
+    }
+    return trsm_default;
+  } else {
+    return parse_csv_file<trsm_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 7) {
+            throw std::runtime_error(
+                "invalid number of parameters (7 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], v[1][0], v[2][0], v[3][0], str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]), str_to_scalar<scalar_t>(v[6]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
  * @fn get_type_name
  * @brief Returns a string with the given type. The C++ specification doesn't
  * guarantee that typeid(T).name is human readable so we specify the template
@@ -409,22 +457,69 @@ static inline scalar_t random_scalar() {
 }
 
 /**
+ * @brief Generates a random scalar in the specified range
+ * @param rangeMin range minimum
+ * @param rangeMax range maximum
+ */
+template <typename scalar_t>
+static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
+  static std::random_device rd;
+  static std::default_random_engine gen(rd());
+  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+  return dis(gen);
+}
+
+/**
  * @fn random_data
  * @brief Generates a random vector of scalar values, using a uniform
  * distribution.
  */
 template <typename scalar_t>
-static inline std::vector<scalar_t> random_data(size_t size,
-                                                bool initialized = true) {
+static inline std::vector<scalar_t> random_data(size_t size) {
   std::vector<scalar_t> v = std::vector<scalar_t>(size);
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-2.0, 5.0);
-  for (int i = 0; i < v.size(); ++i) {
-    v[i] = dis(gen);
+  for (scalar_t& e : v) {
+    e = random_scalar(scalar_t{-2}, scalar_t{5});
   }
   return v;
+}
+
+/**
+ * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
+ * @param A The matrix to fill. Size must be at least m * lda
+ * @param m The number of rows of matrix @p A
+ * @param n The number of columns of matrix @p A
+ * @param lda The leading dimension of matrix @p A
+ * @param triangle if 'u', @p A will be upper triangular. If 'l' @p A will be
+ * lower triangular
+ * @param diagonal Value to put in the diagonal elements
+ * @param unused Value to put in the unused parts of the matrix
+ */
+template <typename scalar_t>
+static inline void fill_trsm_matrix(std::vector<scalar_t>& A, size_t k,
+                                    size_t lda, char triangle,
+                                    scalar_t diagonal = scalar_t{1},
+                                    scalar_t unused = scalar_t{0}) {
+  for (size_t i = 0; i < k; ++i) {
+    scalar_t sum = std::abs(diagonal);
+    for (size_t j = 0; j < k; ++j) {
+      scalar_t value = scalar_t{0};
+      if (i == j) {
+        value = diagonal;
+      } else if (((triangle == 'l') && (i > j)) ||
+                 ((triangle == 'u') && (i < j))) {
+        if (sum >= scalar_t{1}) {
+          const double limit =
+              sum / std::sqrt(static_cast<double>(k) - static_cast<double>(j));
+          value = random_scalar(scalar_t{-1}, scalar_t{1}) * limit;
+          sum -= std::abs(value);
+        }
+      } else {
+        value = unused;
+      }
+      A[i + j * lda] = value;
+    }
+  }
 }
 
 /**
