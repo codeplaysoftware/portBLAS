@@ -61,3 +61,7 @@ endif()
 if (BUILD_ACL_BENCHMARKS)
   add_subdirectory(${BLAS_BENCH}/acl)
 endif()
+
+if(BUILD_CLBLAS_BENCHMARKS)
+  add_subdirectory(${BLAS_BENCH}/clblas)
+endif()

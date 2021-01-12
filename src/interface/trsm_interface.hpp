@@ -184,6 +184,7 @@ typename executor_t::policy_t::event_t _trsm_impl(
     invertBlocksEvent =
         ex.execute(diagInverter, localSize, globalSize, localMemSize);
   }
+  trsmEvents = concatenate_vectors(trsmEvents, invertBlocksEvent);
 
   // Creates a copy of B to avoid overwriting the input in GEMM. While computing
   // output X will hold the TRSM result and will be copied to B at the end

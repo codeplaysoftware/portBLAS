@@ -1,27 +1,3 @@
-/**************************************************************************
- *
- *  @license
- *  Copyright (C) 2021 Codeplay Software Limited
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  For your convenience, a copy of the License has been included in this
- *  repository.
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  SYCL-BLAS: BLAS implementation using SYCL
- *
- *  @filename trsm.cpp
- *
- **************************************************************************/
 
 #include "../utils.hpp"
 
@@ -44,8 +20,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  ExecutorType& ex = *executorPtr;
-
   using data_t = utils::data_storage_t<scalar_t>;
 
   const int sizeA = k * lda;
@@ -55,19 +29,55 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   std::vector<data_t> a(sizeA);
   std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(sizeB);
 
-  const data_t diagValue =
-      diagonal == 'u'
-          ? data_t{1}
-          : blas_benchmark::utils::random_scalar<data_t>(data_t{1}, data_t{10});
+  const scalar_t diagValue =
+      diagonal == 'u' ? data_t{1}
+                      : blas_benchmark::utils::random_scalar<scalar_t>(
+                            scalar_t{1}, scalar_t{10});
 
   blas_benchmark::utils::fill_trsm_matrix(a, k, lda, triangle, diagValue,
-                                          data_t{0});
+                                          scalar_t{0});
 
-  auto a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a);
-  auto b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b);
+  clblasTranspose transA =
+      blas_benchmark::utils::translate_transposition(&transpose);
+  clblasSide sideA = blas_benchmark::utils::translate_side(&side);
+  clblasUplo triangleA =
+      blas_benchmark::utils::translate_triangle(&triangle);
+  clblasDiag diagA =
+      blas_benchmark::utils::translate_diagonal(&diagonal);
 
-  a_gpu.get_buffer().set_final_data(nullptr);
-  b_gpu.get_buffer().set_final_data(nullptr);
+  if (clblasSetup() != CL_SUCCESS) {
+    state.SkipWithError("error initiazing clblas");
+    *success = false;
+    return;
+  }
+
+  cl_int err = CL_SUCCESS;
+  cl_mem a_gpu = clCreateBuffer(executorPtr->ctx(), CL_MEM_READ_ONLY,
+                                sizeA * sizeof(scalar_t), nullptr, &err);
+  cl_mem b_gpu = clCreateBuffer(executorPtr->ctx(), CL_MEM_READ_WRITE,
+                                sizeB * sizeof(scalar_t), nullptr, &err);
+
+  if (err != CL_SUCCESS) {
+    state.SkipWithError("error creating opencl buffers");
+    *success = false;
+    return;
+  }
+
+  err = clEnqueueWriteBuffer(executorPtr->queue(), a_gpu, CL_TRUE, 0,
+                             sizeA * sizeof(scalar_t), a.data(), 0, nullptr,
+                             nullptr);
+  err =
+      clEnqueueWriteBuffer(executorPtr->queue(), b_gpu, CL_TRUE, 0,
+                             sizeB * sizeof(scalar_t), b.data(), 0, nullptr,
+                             nullptr);
+
+  if (err != CL_SUCCESS) {
+    state.SkipWithError("error writing opencl buffers");
+    *success = false;
+    return;
+  }
+
+  cl_command_queue clQueue = executorPtr->queue();
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run once verifying the results against the reference blas implementation.
@@ -78,14 +88,33 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
                        static_cast<data_t>(alpha), a.data(), lda, x_ref.data(),
                        ldb);
 
-  {
-    auto b_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, b_temp);
-    _trsm(ex, side, triangle, transpose, diagonal, m, n, alpha, a_gpu, lda,
-          b_temp_gpu, ldb);
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, b_temp_gpu, b_temp);
-    ex.get_policy_handler().wait(event);
+  cl_mem b_gpu_temp = clCreateBuffer(executorPtr->ctx(), CL_MEM_READ_WRITE,
+                                     sizeB * sizeof(scalar_t), nullptr, &err);
+  err = clEnqueueWriteBuffer(executorPtr->queue(), b_gpu_temp, CL_TRUE, 0,
+                             sizeB * sizeof(scalar_t), b.data(), 0, nullptr,
+                             nullptr);
+
+  if (err != CL_SUCCESS) {
+    state.SkipWithError("error writing tempb");
+    *success = false;
+    return;
   }
+
+  cl_event event;
+  err = clblasStrsm(clblasColumnMajor, sideA, triangleA, transA, diagA, m, n,
+                    alpha, a_gpu, 0, lda, b_gpu_temp, 0, ldb, 1, &clQueue, 0,
+                    nullptr, &event);
+  err = clWaitForEvents(1, &event);
+
+  if (err != CL_SUCCESS) {
+    state.SkipWithError("error running clblasStrsm");
+    *success = false;
+    return;
+  }
+
+  err = clEnqueueReadBuffer(clQueue, b_gpu_temp, CL_TRUE, 0,
+                            sizeB * sizeof(scalar_t), b_temp.data(), 0, nullptr,
+                            nullptr);
 
   std::ostringstream err_stream;
   if (!utils::compare_vectors(b_temp, x_ref, err_stream, "")) {
@@ -95,50 +124,32 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   };
 #endif
 
-  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _trsm(ex, side, triangle, transpose, diagonal, m, n, alpha,
-                       a_gpu, lda, b_gpu, ldb);
-    ex.get_policy_handler().wait(event);
-    return event;
+  auto blas_method_def = [&]() -> std::vector<cl_event> {
+    cl_event event;
+    clblasStatus ret = clblasStrsm(clblasColumnMajor, sideA, triangleA, transA,
+                                   diagA, m, n, alpha, a_gpu, 0, lda, b_gpu, 0,
+                                   ldb, 1, &clQueue, 0, nullptr, &event);
+
+    if (ret != clblasSuccess) {
+      *success = false;
+      state.SkipWithError("Failed");
+      return {};
+    } else {
+      CLEventHandler::wait(event);
+      return {event};
+    }
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
 
   blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
-    auto start = std::chrono::system_clock::now();
-    auto events = blas_method_def();
-    auto end = std::chrono::system_clock::now();
-    double overall_time = (end - start).count();
-
-    double fillTime =
-        static_cast<double>(blas_benchmark::utils::time_event(events[0]));
-    double inversionTime =
-        static_cast<double>(blas_benchmark::utils::time_event(events[1]));
-    double copyTime =
-        static_cast<double>(blas_benchmark::utils::time_event(events[2]));
-    double gemmTime = 0.0;
-    for (size_t i = 3; i <= events.size() - 2; ++i) {
-      gemmTime +=
-          static_cast<double>(blas_benchmark::utils::time_event(events[i]));
-    }
-    copyTime += static_cast<double>(
-        blas_benchmark::utils::time_event(events[events.size() - 1]));
-
-    double event_time =
-        static_cast<double>(blas_benchmark::utils::time_events(events));
-
+    // Run
     std::tuple<double, double> times =
-        std::make_tuple(overall_time, event_time);
-
-    state.counters["fill_time"] = fillTime;
-    state.counters["inversion_time"] = inversionTime;
-    state.counters["gemm_time"] = gemmTime;
-    state.counters["copy_time"] = copyTime;
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
@@ -170,7 +181,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
-};
+}
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,

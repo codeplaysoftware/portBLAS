@@ -3,7 +3,7 @@
 
 #include "clwrap.h"
 #include "common_utils.hpp"
-#include <clblast.h>
+#include <clBLAS.h>
 
 typedef Context ExecutorType;
 
@@ -64,43 +64,43 @@ static inline void print_device_information(cl_device_id device) {
  * @brief Helper function to translate transposition information from netlib
  * blas style strings into clblast types.
  */
-static inline clblast::Transpose translate_transposition(const char *t_str) {
+static inline clblasTranspose translate_transposition(const char *t_str) {
   if (t_str[0] == 'n') {
-    return clblast::Transpose::kNo;
+    return clblasNoTrans;
   } else if (t_str[0] == 't') {
-    return clblast::Transpose::kYes;
+    return clblasTrans;
   } else if (t_str[0] == 'c') {
-    return clblast::Transpose::kConjugate;
+    return clblasConjTrans;
   } else {
     throw std::runtime_error("Got invalid transpose parameter!");
   }
 }
 
-static inline clblast::Side translate_side(const char *side) {
+static inline clblasSide translate_side(const char *side) {
   if (side[0] == 'r') {
-    return clblast::Side::kRight;
+    return clblasRight;
   } else if (side[0] == 'l') {
-    return clblast::Side::kLeft;
+    return clblasLeft;
   } else {
     throw std::runtime_error("Got invalid side parameter!");
   }
 }
 
-static inline clblast::Triangle translate_triangle(const char* triangle) {
+static inline clblasUplo translate_triangle(const char* triangle) {
   if (triangle[0] == 'u') {
-    return clblast::Triangle::kUpper;
+    return clblasUpper;
   } else if (triangle[0] == 'l') {
-    return clblast::Triangle::kLower;
+    return clblasLower;
   } else {
     throw std::runtime_error("Got invalid triangle parameter!");
   }
 }
 
-static inline clblast::Diagonal translate_diagonal(const char *diag) {
+static inline clblasDiag translate_diagonal(const char *diag) {
   if (diag[0] == 'u') {
-    return clblast::Diagonal::kUnit;
+    return clblasUnit;
   } if (diag[0] == 'n') {
-    return clblast::Diagonal::kNonUnit;
+    return clblasNonUnit;
   } else {
     throw std::runtime_error("Got invalid diagonal parameter!");
   }
