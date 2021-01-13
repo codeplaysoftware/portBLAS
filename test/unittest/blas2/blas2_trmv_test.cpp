@@ -77,7 +77,9 @@ void run_test(const combination_t<scalar_t> combi) {
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, x_v_gpu, x_v);
   ex.get_policy_handler().wait(event);
 
-  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
+  const bool isAlmostEqual =
+      utils::compare_vectors<data_t, scalar_t>(x_v, x_cpu_v);
+  ASSERT_TRUE(isAlmostEqual);
 }
 
 #ifdef STRESS_TESTING

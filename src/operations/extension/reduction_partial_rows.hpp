@@ -43,8 +43,9 @@ class ReductionPartialRows {
    * See the header file for the definition of this structure */
   using params_t = ReductionRows_Params<index_t, element_t, ClSize, WgSize>;
 
-  /* Neutral value for this reduction operator */
-  static constexpr value_t init_val = operator_t::template init<output_t>();
+  /// Neutral value for this reduction operator
+  /// TODO(Peter): This should be constexpr once half supports it
+  static const value_t init_val;
 
   /* Input and output buffers */
   input_t in_;
@@ -200,6 +201,12 @@ class ReductionPartialRows {
     }
   }
 };
+
+template <typename operator_t, typename input_t, typename output_t, int ClSize,
+          int WgSize, typename element_t>
+const element_t ReductionPartialRows<operator_t, input_t, output_t, ClSize,
+                                     WgSize, element_t>::init_val =
+    operator_t::template init<output_t>();
 
 }  // namespace blas
 

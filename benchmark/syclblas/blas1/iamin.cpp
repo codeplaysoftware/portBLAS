@@ -51,6 +51,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   tuple_scalar_t out{0, 0};
 
+  std::transform(std::begin(v1), std::end(v1), std::begin(v1),
+                 [](data_t v) { return utils::clamp_to_limits<scalar_t>(v); });
+
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
   auto outI = blas::make_sycl_iterator_buffer<tuple_scalar_t>(&out, 1);
 

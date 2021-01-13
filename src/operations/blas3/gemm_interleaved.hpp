@@ -444,7 +444,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
               auto is_in = do_check<need_check_boundary>(
                   boundary_check(mb_start + (b * wg_batchs) + p, batch_size_));
               reinterpret_cast<value_t *>(reg_res)[p] =
-                  is_in ? (output[b * wg_batchs + p] * beta_) : value_t(0);
+                  is_in ? value_t{output[b * wg_batchs + p] * beta_}
+                        : value_t{0};
             }
             ++reg_res;
             continue;

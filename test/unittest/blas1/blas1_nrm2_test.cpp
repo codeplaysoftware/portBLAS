@@ -59,7 +59,9 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  ASSERT_TRUE(utils::almost_equal(out_s[0], out_cpu_s));
+  const bool isAlmostEqual =
+      utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
+  ASSERT_TRUE(isAlmostEqual);
 }
 
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size

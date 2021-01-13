@@ -26,10 +26,13 @@
 #ifndef SYCL_BLAS_CONSTANTS_H
 #define SYCL_BLAS_CONSTANTS_H
 
+#include "blas_meta.h"
+
+#include <CL/sycl.hpp>
+
 #include <complex>
 #include <limits>
-//#include <utility>
-#include "blas_meta.h"
+
 namespace blas {
 
 template <typename scalar_t, typename index_t>
@@ -206,6 +209,46 @@ struct constant<std::complex<value_t>, Indicator> {
                                  constant<value_t, Indicator>::value());
   }
 };
+
+template <>
+struct constant<cl::sycl::half, const_val::zero>
+    : constant<float, const_val::zero> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::one>
+    : constant<float, const_val::one> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::m_one>
+    : constant<float, const_val::m_one> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::two>
+    : constant<float, const_val::two> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::m_two>
+    : constant<float, const_val::m_two> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::max>
+    : constant<float, const_val::max> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::min>
+    : constant<float, const_val::min> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::abs_max>
+    : constant<float, const_val::abs_max> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::abs_min>
+    : constant<float, const_val::abs_min> {};
+
+template <>
+struct constant<cl::sycl::half, const_val::collapse>
+    : constant<float, const_val::collapse> {};
 
 template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>
 struct constant_pair {

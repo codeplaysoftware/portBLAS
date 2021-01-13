@@ -48,6 +48,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   // Create data
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+
+  // We need to guarantee that cl::sycl::half can hold the sum
+  // of x_v without overflow by making sum(x_v) to be 1.0
+  std::transform(std::begin(v1), std::end(v1), std::begin(v1),
+                 [=](data_t x) { return x / v1.size(); });
+
   data_t vr;
 
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
