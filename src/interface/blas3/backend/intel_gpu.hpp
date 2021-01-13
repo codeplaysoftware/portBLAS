@@ -70,8 +70,11 @@ typename executor_t::policy_t::event_t _gemm(
                                                                   _c, _ldc,
                                                                   batch_size);
     } else if (_M <= 4 || _N <= 4) {
+      // Need to increase the work group size for cl::sycl::half for the
+      // launcher to be instancianted
+      constexpr int wg_size = sizeof(element_t) == 2 ? 8 : 4;
       return blas::Gemm_Launcher<
-          16, true, false, false, 64, Tile<1, 1, 4, 4>, _t_a, _t_b,
+          16, true, false, false, 64, Tile<1, 1, wg_size, wg_size>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
@@ -96,8 +99,11 @@ typename executor_t::policy_t::event_t _gemm(
                                                                   _c, _ldc,
                                                                   batch_size);
     } else if (_M <= 8 || _N <= 8) {
+      // Need to increase the work group size for cl::sycl::half for the
+      // launcher to be instancianted
+      constexpr int wg_size = sizeof(element_t) == 2 ? 8 : 4;
       return blas::Gemm_Launcher<
-          16, true, false, false, 64, Tile<2, 2, 4, 4>, _t_a, _t_b,
+          16, true, false, false, 64, Tile<2, 2, wg_size, wg_size>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
@@ -135,8 +141,9 @@ typename executor_t::policy_t::event_t _gemm(
                                                                   _c, _ldc,
                                                                   batch_size);
     } else {
+      constexpr int wg_size = sizeof(element_t) == 8 ? 8 : 16;
       return blas::Gemm_Launcher<
-          256, true, true, true, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
+          256, true, true, true, 64, Tile<4, 4, wg_size, wg_size>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,
@@ -163,8 +170,11 @@ typename executor_t::policy_t::event_t _gemm(
                                                                   _c, _ldc,
                                                                   batch_size);
     } else {
+      // Need to increase the work group size for double for the
+      // launcher to be instancianted
+      constexpr int wg_size = sizeof(element_t) == 8 ? 8 : 16;
       return blas::Gemm_Launcher<
-          256, true, true, true, 64, Tile<4, 4, 16, 16>, _t_a, _t_b,
+          256, true, true, true, 64, Tile<4, 4, wg_size, wg_size>, _t_a, _t_b,
           static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 4,

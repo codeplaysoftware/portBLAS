@@ -291,7 +291,7 @@ typename executor_t::policy_t::event_t _rot(
   auto vy = make_vector_view(ex, _vy, _incy, _N);
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_cos, vx);
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_sin, vy);
-  auto scalOp3 = make_op<ScalarOp, ProductOperator>(-_sin, vx);
+  auto scalOp3 = make_op<ScalarOp, ProductOperator>(element_t{-_sin}, vx);
   auto scalOp4 = make_op<ScalarOp, ProductOperator>(_cos, vy);
   auto addOp12 = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto addOp34 = make_op<BinaryOp, AddOperator>(scalOp3, scalOp4);

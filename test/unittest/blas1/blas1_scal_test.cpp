@@ -56,7 +56,10 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
+  const bool isAlmostEqual =
+      utils::compare_vectors<data_t, scalar_t>(x_v, x_cpu_v);
+  ASSERT_TRUE(isAlmostEqual);
+
   ex.get_policy_handler().get_queue().wait();
 }
 

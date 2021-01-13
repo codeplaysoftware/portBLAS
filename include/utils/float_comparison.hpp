@@ -29,7 +29,73 @@
 #include <cmath>
 #include <iostream>
 
+#include <CL/sycl.hpp>
+
+#ifdef BLAS_DATA_TYPE_HALF
+inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
+  os << static_cast<float>(value);
+  return os;
+}
+
+namespace std {
+template <>
+class numeric_limits<cl::sycl::half> {
+ public:
+  static constexpr float min() { return -65504.0f; }
+  static constexpr float max() { return 65504.0f; }
+};
+}  // namespace std
+
+#endif  // BLAS_DATA_TYPE_HALF
+
 namespace utils {
+
+template <typename scalar_t>
+bool isnan(scalar_t value) noexcept {
+  return std::isnan(value);
+}
+
+template <typename scalar_t>
+bool isinf(scalar_t value) noexcept {
+  return std::isinf(value);
+}
+
+template <typename scalar_t>
+scalar_t abs(scalar_t value) noexcept {
+  return std::abs(value);
+}
+
+#ifdef BLAS_DATA_TYPE_HALF
+
+template <>
+inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
+  return std::isnan(static_cast<float>(value));
+}
+
+template <>
+inline bool isinf<cl::sycl::half>(cl::sycl::half value) noexcept {
+  return std::isinf(static_cast<float>(value));
+}
+
+template <>
+inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
+  return std::abs(static_cast<float>(value));
+}
+
+#endif  // BLAS_DATA_TYPE_HALF
+
+template <typename scalar_t>
+scalar_t clamp_to_limits(scalar_t v) {
+  constexpr auto min_value = std::numeric_limits<scalar_t>::min();
+  constexpr auto max_value = std::numeric_limits<scalar_t>::max();
+  if (decltype(min_value)(v) < min_value) {
+    return min_value;
+  } else if (decltype(max_value)(v) > max_value) {
+    return max_value;
+  } else {
+    return v;
+  }
+}
 
 /**
  * Indicates the tolerated margin for relative differences
@@ -54,6 +120,12 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
+template <>
+inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
+  // Measured empirically with gemm
+  return 0.05f;
+}
+
 /**
  * Indicates the tolerated margin for absolute differences (used in case the
  * scalars are close to 0)
@@ -64,7 +136,7 @@ inline scalar_t getAbsoluteErrorMargin() {
    * In the cases where the relative error is irrelevant (close to zero),
    * absolute differences of up to 0.0006 were observed for float
    */
-  return 0.001;
+  return 0.001f;
 }
 
 template <>
@@ -76,38 +148,47 @@ inline double getAbsoluteErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
+template <>
+inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
+  // Measured empirically with gemm.
+  return 1.0f;
+}
+
 /**
  * Compare two scalars and returns false if the difference is not acceptable.
  */
-template <typename scalar_t>
+template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
   // Shortcut, also handles case where both are zero
   if (scalar1 == scalar2) {
     return true;
   }
   // Handle cases where both values are NaN or inf
-  if ((std::isnan(scalar1) && std::isnan(scalar2)) ||
-      (std::isinf(scalar1) && std::isinf(scalar2))) {
+  if ((utils::isnan(scalar1) && utils::isnan(scalar2)) ||
+      (utils::isinf(scalar1) && utils::isinf(scalar2))) {
     return true;
   }
 
-  const auto absolute_diff = std::fabs(scalar1 - scalar2);
+  const scalar_t absolute_diff = utils::abs(scalar1 - scalar2);
 
   // Close to zero, the relative error doesn't work, use absolute error
-  if (scalar1 == 0 || scalar2 == 0 ||
-      absolute_diff < getAbsoluteErrorMargin<scalar_t>()) {
-    return (absolute_diff < getAbsoluteErrorMargin<scalar_t>());
+  if (scalar1 == scalar_t{0} || scalar2 == scalar_t{0} ||
+      absolute_diff < getAbsoluteErrorMargin<epsilon_t>()) {
+    return (absolute_diff < getAbsoluteErrorMargin<epsilon_t>());
   }
   // Use relative error
-  const auto absolute_sum = std::fabs(scalar1) + std::fabs(scalar2);
-  return (absolute_diff / absolute_sum) < getRelativeErrorMargin<scalar_t>();
+  const auto absolute_sum = utils::abs(scalar1) + utils::abs(scalar2);
+  return (absolute_diff / absolute_sum) < getRelativeErrorMargin<epsilon_t>();
 }
 
 /**
  * Compare two vectors and returns false if the difference is not acceptable.
  * The second vector is considered the reference.
+ * @tparam scalar_t the type of data present in the input vectors
+ * @tparam epilon_t the type used as tolerance. Lower precision types
+ * (cl::sycl::half) will have a higher tolerance for errors
  */
-template <typename scalar_t>
+template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<scalar_t> const& vec,
                             std::vector<scalar_t> const& ref,
                             std::ostream& err_stream = std::cerr,
@@ -119,7 +200,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
 
   for (int i = 0; i < vec.size(); ++i) {
-    if (!almost_equal(vec[i], ref[i])) {
+    if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i])) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref[i] << end_line;
       return false;

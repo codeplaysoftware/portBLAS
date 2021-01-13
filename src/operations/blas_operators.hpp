@@ -107,18 +107,24 @@ struct StripASP {
  */
 struct AbsoluteValue {
   template <typename value_t>
-  static SYCL_BLAS_INLINE value_t
-  eval(const value_t &val,
-       typename std::enable_if<!std::is_floating_point<
-           typename StripASP<value_t>::type>::value>::type * = 0) {
+  using stripped_t = typename StripASP<value_t>::type;
+
+  template <typename value_t>
+  using is_floating_point = std::integral_constant<
+      bool, std::is_floating_point<stripped_t<value_t>>::value ||
+                std::is_same<stripped_t<value_t>, cl::sycl::half>::value>;
+
+  template <typename value_t>
+  static SYCL_BLAS_INLINE value_t eval(
+      const value_t &val,
+      typename std::enable_if<!is_floating_point<value_t>::value>::type * = 0) {
     return cl::sycl::abs(val);
   }
 
   template <typename value_t>
   static SYCL_BLAS_INLINE value_t
   eval(const value_t &val,
-       typename std::enable_if<std::is_floating_point<
-           typename StripASP<value_t>::type>::value>::type * = 0) {
+       typename std::enable_if<is_floating_point<value_t>::value>::type * = 0) {
     return cl::sycl::fabs(val);
   }
 };
