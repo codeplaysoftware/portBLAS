@@ -35,7 +35,7 @@ namespace blas {
  * @brief Determines the memory type of the GEMM kernel.
  * It can either use local memory or not
  */
-enum class gemm_memory_t : int { local = 0, no_local = 1 };
+enum class gemm_memory_t : int { local = 0, no_local = 1, subgroup = 2 };
 
 /*
  * @brief Indicates which Gemm algorithm to use.
@@ -101,6 +101,8 @@ enum class gemm_batch_type_t : int { strided = 0, interleaved = 1 };
  *                 block-level tile
  * @tparam WgCols  the number of item-level tiles within each row of
  *                 block-level tile
+ * @tparam SgRows  the number of rows processed by each subgroup
+ * @tparam SgCols  the number of columns processed by each sub-group
  * @tparam TlRows  the number of block-level tiles within each column of
  *                 top-level tile
  * @tparam TlCols  the number of block-level tiles within each row of
@@ -109,7 +111,8 @@ enum class gemm_batch_type_t : int { strided = 0, interleaved = 1 };
  * @see Gemm
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
-          int TlRows = 1, int TlCols = 1, int ItemBatchs = 1, int WgBatchs = 1>
+          int SgRows = 1, int SgCols = 1, int TlRows = 1, int TlCols = 1,
+          int ItemBatchs = 1, int WgBatchs = 1>
 struct Tile {
   static constexpr int item_rows = ItemRows;
   static constexpr int item_cols = ItemCols;
@@ -117,6 +120,8 @@ struct Tile {
   static constexpr int wg_rows = WgRows;
   static constexpr int wg_cols = WgCols;
   static constexpr int wg_batchs = WgBatchs;
+  static constexpr int sg_rows = SgRows;
+  static constexpr int sg_cols = SgCols;
   static constexpr int tl_rows = TlRows;
   static constexpr int tl_cols = TlCols;
   /*!

@@ -53,18 +53,19 @@ if __name__ == '__main__':
     tic = sys.argv[18]
     twr = sys.argv[19]
     twc = sys.argv[20]
-    tlr = sys.argv[21]
-    tlc = sys.argv[22]
-    tib = sys.argv[23]
-    twb = sys.argv[24]
-    wg_size = sys.argv[25]
-    cl_size = sys.argv[26]
-    file_name = sys.argv[27]
-    gemm_vectorize_type = sys.argv[28]
-    vector_size = sys.argv[29]
-    batch_type = sys.argv[30]
+    tsr = sys.argv[21]
+    tsc = sys.argv[22]
+    tlr = sys.argv[23]
+    tlc = sys.argv[24]
+    tib = sys.argv[25]
+    twb = sys.argv[26]
+    wg_size = sys.argv[27]
+    cl_size = sys.argv[28]
+    file_name = sys.argv[29]
+    gemm_vectorize_type = sys.argv[30]
+    vector_size = sys.argv[31]
+    batch_type = sys.argv[32]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
-
     try:
         os.makedirs(source)
     except OSError as e:
@@ -127,6 +128,16 @@ if __name__ == '__main__':
         Iterable(
             key='TWC',
             vals=[twc],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='TSR',
+            vals=[tsr],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='TSC',
+            vals=[tsc],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

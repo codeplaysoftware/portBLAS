@@ -33,10 +33,16 @@ namespace blas {
 /*!using_local_memory.
  * @brief Indicates whether if the kernel uses shared memory or not.
  This is a work-around for the following enum class.
+ When the member of enum class is used as a template parameters of the
+ kernel functor, our duplicator cannot capture those elements.
+ One way to solve it is to replace enum with namespace and replace each member
+ of enum with static if. The other way is changing the order of stub file which
+ is not recommended.
 */
 namespace using_local_memory {
 static const int enabled = 0;
 static const int disabled = 1;
+static const int subgroup = 2;
 };  // namespace using_local_memory
 
 /*!
