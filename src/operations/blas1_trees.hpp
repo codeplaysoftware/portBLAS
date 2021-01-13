@@ -491,6 +491,7 @@ AssignReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
   index_t frs_thrd = 2 * groupid * localSz + localid;
 
   // Reduction across the grid
+  // TODO(Peter): This should be constexpr once half supports it
   static const value_t init_val = operator_t::template init<rhs_t>();
   value_t val = init_val;
   for (index_t k = frs_thrd; k < vecS; k += 2 * global_num_thread_) {

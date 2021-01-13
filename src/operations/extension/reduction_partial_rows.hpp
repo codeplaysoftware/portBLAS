@@ -43,7 +43,8 @@ class ReductionPartialRows {
    * See the header file for the definition of this structure */
   using params_t = ReductionRows_Params<index_t, element_t, ClSize, WgSize>;
 
-  /* Neutral value for this reduction operator */
+  /// Neutral value for this reduction operator
+  /// TODO(Peter): This should be constexpr once half supports it
   static const value_t init_val;
 
   /* Input and output buffers */

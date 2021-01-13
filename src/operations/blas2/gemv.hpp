@@ -581,6 +581,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
   index_t lst_col = std::min(dimC, frs_col + dimWFC);
+  // TODO(Peter): This should be constexpr once half supports it
   static const value_t init_val = AddOperator::template init<vector_t>();
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_col AND lst_col
