@@ -429,7 +429,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
       64 2 2 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
     add_gemm_configuration(
       "${data}" 64 "true" "true" "true"
-      64 4 4 8 8 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+      64 4 4 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
 
     if (${data} STREQUAL "double")
       add_gemm_configuration(
