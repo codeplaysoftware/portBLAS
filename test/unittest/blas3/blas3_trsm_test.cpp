@@ -51,32 +51,39 @@ void run_test(const combination_t<scalar_t> combi) {
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
 
-  std::vector<scalar_t> A(sizeA);
-  std::vector<scalar_t> B(sizeB);
-  std::vector<scalar_t> cpu_B(sizeB);
+  std::vector<data_t> A(sizeA);
+  std::vector<data_t> B(sizeB);
+  std::vector<data_t> cpu_B(sizeB);
 
-  const scalar_t diagValue =
-      diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
+  const data_t diagValue =
+      diag == 'u' ? data_t{1} : random_scalar(data_t{1}, data_t{10});
 
-  fill_trsm_matrix(A, k, lda, triangle, diagValue, unusedValue);
+  fill_trsm_matrix(A, k, lda, triangle, diagValue,
+                   static_cast<data_t>(unusedValue));
   fill_random(B);
 
   // Create a copy of B to calculate the reference outputs
   cpu_B = B;
-  reference_blas::trsm(&side, &triangle, &transA, &diag, m, n, alpha, A.data(),
-                       lda, cpu_B.data(), ldb);
+  reference_blas::trsm(&side, &triangle, &transA, &diag, m, n,
+                       static_cast<data_t>(alpha), A.data(), lda, cpu_B.data(),
+                       ldb);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(A, A.size());
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
+  auto a_gpu = utils::make_quantized_buffer<scalar_t>(
+      ex, A);  //::make_sycl_iterator_buffer<scalar_t>(A, A.size());
+  auto b_gpu = utils::make_quantized_buffer<scalar_t>(
+      ex, B);  // blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
 
   _trsm(ex, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
-  ex.get_policy_handler().wait(
-      ex.get_policy_handler().copy_to_host(b_gpu, B.data(), B.size()));
+  auto event = utils::quantized_copy_to_host<scalar_t>(ex, b_gpu, B);
 
-  ASSERT_TRUE(utils::compare_vectors(cpu_B, B));
+  ex.get_policy_handler().wait(event);
+
+  bool isAlmostEqual = utils::compare_vectors<data_t, scalar_t>(cpu_B, B);
+
+  ASSERT_TRUE(isAlmostEqual);
   ex.get_policy_handler().wait();
 }
 
