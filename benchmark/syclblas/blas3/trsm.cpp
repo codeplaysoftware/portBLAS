@@ -39,8 +39,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, char side,
          char triangle, char transpose, char diagonal, index_t m, index_t n,
          scalar_t alpha, bool* success) {
-
-    // Standard test setup.
+  // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
@@ -56,13 +55,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   std::vector<data_t> a(sizeA);
   std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(sizeB);
 
-  const scalar_t diagValue =
-      diagonal == 'u' ? data_t{1}
-                      : blas_benchmark::utils::random_scalar<scalar_t>(
-                            scalar_t{1}, scalar_t{10});
+  const data_t diagValue =
+      diagonal == 'u'
+          ? data_t{1}
+          : blas_benchmark::utils::random_scalar<data_t>(data_t{1}, data_t{10});
 
   blas_benchmark::utils::fill_trsm_matrix(a, k, lda, triangle, diagValue,
-                                          scalar_t{0});
+                                          data_t{0});
 
   auto a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a);
   auto b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b);
