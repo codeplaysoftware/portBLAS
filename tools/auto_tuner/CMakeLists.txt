@@ -51,6 +51,10 @@ endif()
 if(${BACKEND_DEVICE} STREQUAL "ARM_GPU")
   set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/arm.json)
 endif()
+if(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
+  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/intel_gpu.json)
+endif()
+
 
 
 add_custom_command(OUTPUT ${tuner_def_file}

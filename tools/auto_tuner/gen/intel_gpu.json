@@ -1,0 +1,12 @@
+{"local":[
+    {
+        "cache_line_size":[64, 128],
+        "work_item_sizes":[[4, 4], [4, 8], [8, 4], [8, 8]],
+        "work_group_sizes":[[4, 4], [4, 8], [8, 4], [8,8], [16,8], [8,16], [16,16]],
+        "vectorization_size":[1, 2, 4, 8],
+        "block_level_tiles":[[1, 1]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    }
+]}
