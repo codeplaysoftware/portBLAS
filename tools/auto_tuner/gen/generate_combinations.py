@@ -46,6 +46,8 @@ class Tile(
             'item_cols',
             'group_rows',
             'group_cols',
+            'sub_group_row',
+            'sub_group_col',
             'tile_rows',
             'tile_cols',
             'item_batchs',
@@ -55,14 +57,16 @@ class Tile(
     __slots__ = ()
 
     def __str__(self):
-        return "::blas::Tile<{}, {}, {}, {}, {}, {}, {}, {}>".format(
+        return "::blas::Tile<{}, {}, {}, {}, {}, {}, {}, {}, {}, {}>".format(
             self.item_rows, self.item_cols, self.group_rows, self.group_cols,
-            self.tile_rows, self.tile_cols, self.item_batchs, self.wg_batchs)
+            self.sub_group_row, self.sub_group_col, self.tile_rows, self.tile_cols,
+            self.item_batchs, self.wg_batchs)
 
     def to_list(self):
         return [
             self.item_rows, self.item_cols, self.group_rows, self.group_cols,
-            self.tile_rows, self.tile_cols, self.item_batchs, self.wg_batchs
+            self.sub_group_row, self.sub_group_col, self.tile_rows, self.tile_cols, 
+            self.item_batchs, self.wg_batchs
         ]
 
 
@@ -110,7 +114,8 @@ class LocalGemm(GemmParams):
         return (self.tile.group_rows % self.tile.item_cols == 0
                 and self.tile.group_cols % self.tile.item_rows == 0
                 and self.tile.group_rows * self.tile.group_cols %
-                (self.cache_size / 4) == 0)
+                (self.cache_size / 4) == 0 and 
+                self.tile.group_rows * self.tile.item_rows == self.tile.group_cols * self.tile.item_cols)
 
 
 class NonLocalGemmStrided(GemmParams):
@@ -193,7 +198,7 @@ class NaiveGemm(GemmParams):
     def __new__(self, cache_size):
         return super(NaiveGemm,
                      self).__new__(self, cache_size,
-                                   _construct_tile((1, 1), (1, 1), (1, 1)),
+                                   _construct_tile((1, 1), (1, 1), (1, 1), (1, 1)),
                                    False, False, False, 'no_local', 'naive',
                                    'strided', 'none', 1)
 
@@ -204,6 +209,7 @@ class NaiveGemm(GemmParams):
 
 def _construct_tile(item_sizes,
                     work_group_sizes,
+                    sub_group_sizes=[1, 1],
                     tile_sizes=[1, 1],
                     batch_sizes=[1, 1]):
     """ Helper function to create a new Tile parameter set. """
@@ -211,6 +217,8 @@ def _construct_tile(item_sizes,
                 item_cols=item_sizes[1],
                 group_rows=work_group_sizes[0],
                 group_cols=work_group_sizes[1],
+                sub_group_row=sub_group_sizes[0], 
+                sub_group_col=sub_group_sizes[1], 
                 tile_rows=tile_sizes[0],
                 tile_cols=tile_sizes[1],
                 item_batchs=batch_sizes[0],
@@ -277,7 +285,7 @@ def generate_no_local_gemm_interleaved_configs(item_sizes, group_sizes,
     for item, wg, bs, vs in product(item_sizes, group_sizes, batch_sizes,
                                     vec_sizes):
         new_config = NonLocalGemmnInterleaved(tile=_construct_tile(
-            item, wg, [1, 1], bs),
+            item, wg, [1, 1], [1, 1], bs),
                                               vec_size=vs)
         if new_config.is_valid():
             configs.append(new_config)
