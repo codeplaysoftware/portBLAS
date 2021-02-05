@@ -54,19 +54,20 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(sizeB);
 
   const scalar_t diagValue =
-      diagonal == 'u' ? data_t{1}
-                      : blas_benchmark::utils::random_scalar<scalar_t>(
-                            scalar_t{1}, scalar_t{10});
+      diagonal == 'u'
+          ? data_t{1}
+          : blas_benchmark::utils::random_scalar<data_t>(data_t{1}, data_t{10});
 
   blas_benchmark::utils::fill_trsm_matrix(a, k, lda, triangle, diagValue,
-                                          scalar_t{0});
+                                          data_t{0});
 
   clblast::Transpose transA =
       blas_benchmark::utils::translate_transposition(&transpose);
   clblast::Side sideA = blas_benchmark::utils::translate_side(&side);
   clblast::Triangle triangleA =
       blas_benchmark::utils::translate_triangle(&triangle);
-  clblast::Diagonal diagA = blas_benchmark::utils::translate_diagonal(&diagonal);
+  clblast::Diagonal diagA =
+      blas_benchmark::utils::translate_diagonal(&diagonal);
 
   MemBuffer<scalar_t> a_gpu(executorPtr, a.data(), static_cast<size_t>(sizeA));
   MemBuffer<scalar_t> b_gpu(executorPtr, b.data(), static_cast<size_t>(sizeB));
@@ -105,7 +106,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
         alpha, a_gpu.dev(), 0, lda, b_gpu.dev(), 0, ldb, executorPtr->_queue(),
         &event);
     if (ret != clblast::StatusCode::kSuccess) {
-        *success = false;
+      *success = false;
       state.SkipWithError("Failed");
       return {};
     } else {
