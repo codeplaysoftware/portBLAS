@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "clwrap.h"
+#include <common/clwrap.h>
 
 #include <algorithm>
 #include <memory>
@@ -143,18 +143,23 @@ cl_device_type OpenCLDeviceSelector::match_device_type(std::string requested) {
 
 int OpenCLDeviceSelector::score_platform(std::string requested,
                                          cl_platform_id platform) {
-  const size_t str_size = 1024 * sizeof(char);
-  char *str = (char *)malloc(str_size);
-  std::string name;
+  cl_int err = CL_SUCCESS;
 
-  cl_int status =
-      clGetPlatformInfo(platform, CL_PLATFORM_NAME, str_size, str, NULL);
-  if (status != CL_SUCCESS) {
-    free(str);
+  size_t platformNameSize = 0;
+  err = clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0, nullptr,
+                          &platformNameSize);
+  if (err != CL_SUCCESS) {
+    do_error("Error acquiring OpenCL platform name");
+    return -10;
+  }
+
+  std::string name(platformNameSize, '\0');
+
+  err = clGetPlatformInfo(platform, CL_PLATFORM_NAME, platformNameSize,
+                          &name[0], nullptr);
+  if (err != CL_SUCCESS) {
     do_error("Failure in clGetPlatformInfo");
-  } else {
-    name = std::string(str);
-    free(str);
+    return -10;
   }
 
   std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -176,6 +181,10 @@ int OpenCLDeviceSelector::score_device(std::string requested,
   cl_device_type dev_type;
   cl_int status = clGetDeviceInfo(device, CL_DEVICE_TYPE,
                                   sizeof(cl_device_type), &dev_type, NULL);
+  if (status != CL_SUCCESS) {
+    do_error("Failure in clGetDeviceInfo");
+    return -10;
+  }
   int score;
   if (req_type == dev_type || req_type == CL_DEVICE_TYPE_ALL) {
     score = 2;

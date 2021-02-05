@@ -17,13 +17,15 @@
 #include <vector>
 
 #include "benchmark_cli_args.hpp"
-#include "blas_meta.h"
+//#include "blas_meta.h"
+//
+//#include "utils/quantization.hpp"
 
-#include "utils/quantization.hpp"
+#include <common/clwrap.h>
 
 #ifdef BLAS_VERIFY_BENCHMARK
-#include "utils/float_comparison.hpp"
-#include "utils/system_reference_blas.hpp"
+#include <common/float_comparison.hpp>
+#include <common/system_reference_blas.hpp>
 #endif
 
 using index_t = int;

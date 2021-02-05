@@ -152,6 +152,10 @@ install(DIRECTORY ${SYCLBLAS_INCLUDE}/
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
 
+if(${BLAS_ENABLE_TESTING} OR ${BLAS_ENABLE_BENCHMARK})
+  add_subdirectory(common)
+endif()
+
 if(${BLAS_ENABLE_TESTING})
   enable_testing()
   add_subdirectory(test)

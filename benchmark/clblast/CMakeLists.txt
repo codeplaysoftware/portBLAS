@@ -23,8 +23,8 @@ set(sources
 # Add individual benchmarks for each method
 foreach(clblast_benchmark ${sources})
   get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
-  add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} main.cpp clwrap.cpp)
-  target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE benchmark Clara::Clara clblast sycl_blas)
+  add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} main.cpp)
+  target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE benchmark Clara::Clara clblast sycl_blas_common)
   target_include_directories(bench_clblast_${clblast_bench_exec} PRIVATE ${CBLAS_INCLUDE})
 
   if(BLAS_VERIFY_BENCHMARK)

@@ -1,6 +1,6 @@
 #include "utils.hpp"
-#include "utils/cli_device_selector.hpp"
-#include "utils/print_queue_information.hpp"
+#include <common/cli_device_selector.hpp>
+#include <common/print_queue_information.hpp>
 
 // Create a shared pointer to a sycl blas executor, so that we don't keep
 // reconstructing it each time (which is slow). Although this won't be
