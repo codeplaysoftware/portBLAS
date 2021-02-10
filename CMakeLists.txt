@@ -111,8 +111,13 @@ include(ConfigureSYCLBLAS)
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 
+# Add the common library used by sycl_blas, tests and benchmarks
+add_subdirectory(common)
+
 add_subdirectory(src)
 build_library(sycl_blas)
+
+target_link_libraries(sycl_blas PUBLIC sycl_blas_common)
 
 if (WIN32)
   # On Windows, all symbols must be resolved at link time for DLLs.
@@ -151,10 +156,6 @@ install(DIRECTORY ${SYCLBLAS_INCLUDE}/
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
-
-if(${BLAS_ENABLE_TESTING} OR ${BLAS_ENABLE_BENCHMARK})
-  add_subdirectory(common)
-endif()
 
 if(${BLAS_ENABLE_TESTING})
   enable_testing()

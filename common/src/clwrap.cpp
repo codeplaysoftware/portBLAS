@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include <common/clwrap.h>
+#include <common/clwrap.hpp>
 
 #include <algorithm>
 #include <memory>
