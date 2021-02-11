@@ -24,14 +24,7 @@
 # **************************************************************************/
 add_library(sycl_policy OBJECT ${SYCLBLAS_SRC}/policy/sycl_policy_handler.cpp)
 set_target_compile_def(sycl_policy)
-
-# This can be replaced by target_link_libraries(sycl_policy PRIVATE sycl_blas_common)
-# in CMake 3.12, but travis uses CMake 3.5 so the include directories for the common
-# library need to be manually set here
-get_target_property(_sycl_blas_common_include_dir sycl_blas_common INCLUDE_DIRECTORIES)
-
 target_include_directories(sycl_policy PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-                           ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE}
-                           ${_sycl_blas_common_include_dir})
-
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR}
+                           ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 add_sycl_to_target(TARGET sycl_policy SOURCES ${SYCLBLAS_SRC}/policy/sycl_policy_handler.cpp)
