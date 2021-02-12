@@ -86,6 +86,7 @@ Specialised case for using_local_memory == subgroup, which contains a subgroup
 local accessor.
 @tparam value_t Value type of the accessor.
 */
+#ifdef __COMPUTECPP__
 template <typename value_t>
 struct LocalMemory<value_t, using_local_memory::subgroup> {
   /*!
@@ -114,6 +115,7 @@ struct LocalMemory<value_t, using_local_memory::subgroup> {
                      cl::sycl::access::target::subgroup_local>
       subgroupAcc;
 };
+#endif
 
 /*!
 @brief Template struct for containing an eval function, which uses shared memory
@@ -213,10 +215,11 @@ struct ExpressionTreeFunctor {
   SYCL_BLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch,
                                          expression_tree_t t)
       : scratch_(scratch), t_(t) {}
-  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) {
-    t_.adjust_access_displacement();
+  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) const {
+    expression_tree_t &non_const_t = *const_cast<expression_tree_t *>(&t_);
+    non_const_t.adjust_access_displacement();
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
-                            value_t>::eval(t_, scratch_, i);
+                            value_t>::eval(non_const_t, scratch_, i);
   }
 };
 

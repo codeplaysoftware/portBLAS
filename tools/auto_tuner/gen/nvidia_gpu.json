@@ -1,0 +1,34 @@
+{"local":[
+        {
+        "cache_line_size":[64],
+        "work_item_sizes":[[12, 8], [8, 12]],
+        "work_group_sizes":[[12,8],[8,12]],
+        "vectorization_size":[1, 2, 4],
+        "block_level_tiles":[[1, 1]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    },
+     {
+        "cache_line_size":[64],
+        "work_item_sizes":[[2, 2]],
+        "work_group_sizes":[[8,8]],
+        "vectorization_size":[1, 2, 4],
+        "block_level_tiles":[[1, 1]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    },
+    {
+        "cache_line_size":[64,128],
+        "work_item_sizes":[[8, 8]],
+        "work_group_sizes":[[8,8]],
+        "vectorization_size":[1, 2, 4],
+        "block_level_tiles":[[1, 1]],
+        "double_buffer":[true, false],
+        "no_bank_conflict_a":[true, false],
+        "no_bank_conflict_b":[true, false]
+    }
+
+]
+}
