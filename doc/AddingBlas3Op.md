@@ -241,7 +241,7 @@ After this step the test defined for the new function will compile and link succ
 
 ## Adding a kernel
 
-So far we have looked on how to add a new public facing function and how to instantiate it internally so that
+So far we have looked at how to add a new public facing function and how to instantiate it internally so that
 the linker can find it when compiling user code. If the new operation can be implemented in terms of pre-existing
 operations, the job would be done, however, it is often the case that a new operation requires a new kernel
 to be implemented in order to perform some computation.
