@@ -172,7 +172,7 @@ binary is linked against SYCL-BLAS, the linker will find the definition of the m
 
 To do this, we create the source file that will contain instantiation of the new `_trsm` operation.
 The file is located at `src/interface/blas3/trsm.cpp.in`. This is not the file that will be 
-compiled, but a template file that the python script `python_generator/py_gen_blas_ternary.py`
+compiled, but a template file that the python script `python_generator/py_gen_blas_binary.py`
 will use to generate the actual source file where the instantiation of `_trsm` will happen.
 
 The file `src/interface/blas3/trsm.cpp.in` must include all files that are necessary to successfully
