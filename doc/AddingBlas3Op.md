@@ -207,8 +207,9 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t _trsm(
 Where `${EXECUTOR}, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}` and `${container_t1}` are going
 to be replaced by the appropriate types required to explicitly instantiate the new function.
 
-Finally, the file `src/interface/blas3/CMakeLists.txt` must be changed in order for the source code
-where the instantiation of `_trsm` is to be generated. The following entry must be added:
+Finally, the file `src/interface/blas3/CMakeLists.txt` must be changed
+in order to generate instantiations of `_trsm`.
+The following entry must be added:
 
 ```cmake
 generate_blas_binary_objects(blas3 trsm)
