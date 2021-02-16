@@ -289,7 +289,7 @@ The last part is to add this file in the include list in `src/operations/blas3/b
 
 ## Adding a call to the system blas version of the new operation
 
-SYCL-BLAS implements the netlib-blas interface, so there will be system blas version of the operation
+SYCL-BLAS implements the netlib-blas interface, so there will be a system blas version of the operation
 being added. In the case of `_trsm`, the [netlib-blas version of the function](http://www.netlib.org/lapack/explore-html/d2/d8b/strsm_8f.html) can be called to verify that our implementation produces the correct results for a certain combination of
 parameters.
 
