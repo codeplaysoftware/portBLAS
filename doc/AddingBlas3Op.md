@@ -10,7 +10,7 @@ actual implementation.
 ## Add the operation interface
 
 The folder `include/interface` contains the public interface of SYCL-BLAS.
-The files in this folder contains the functions that users can call to 
+The files in this folder contain the functions that users can call to 
 run the available blas operations.
 
 This folder has one file for each level of blas. For example, the `trsm`
