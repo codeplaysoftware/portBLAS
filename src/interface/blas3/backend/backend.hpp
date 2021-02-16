@@ -32,6 +32,8 @@
 #include "interface/blas3/backend/arm_gpu.hpp"
 #elif defined POWER_VR
 #include "interface/blas3/backend/power_vr.hpp"
+#elif defined NVIDIA_GPU
+#include "interface/blas3/backend/nvidia_gpu.hpp"
 #else
 #include "interface/blas3/backend/default_cpu.hpp"
 #endif

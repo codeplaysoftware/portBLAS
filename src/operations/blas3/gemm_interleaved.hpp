@@ -65,7 +65,7 @@ SYCL_BLAS_INLINE void store(T packet, PtrT ptr) {
 template <address_t Address = address_t::global_space, class T, int Dim,
           class PtrT>
 SYCL_BLAS_INLINE void load(cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
-  packet.template load<Address>(0, ptr);
+  packet.template load<Address>(0, cl::sycl::multi_ptr<const T, Address>(ptr));
 }
 
 /*!

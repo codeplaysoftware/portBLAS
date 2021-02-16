@@ -87,7 +87,8 @@ struct Packetize {
 
     if (in_range) {
       using address_t = cl::sycl::access::address_space;
-      packet.template load<address_t::global_space>(0, src);
+      packet.template load<address_t::global_space>(
+          0, cl::sycl::multi_ptr<const value_t, address_t::global_space>(src));
     } else {
 #pragma unroll
       for (index_t i = 0; i < packet_size; i++) {
