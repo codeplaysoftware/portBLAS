@@ -170,7 +170,7 @@ typename executor_t::policy_t::event_t _trsm(
 The next step is to define the `_trsm` function in a `.cpp` file. In this way, when the client
 binary is linked against SYCL-BLAS, the linker will find the definition of the missing symbol.
 
-To do this, we create the source file that will contain instantiation of the new `_trsm` operation.
+To do this, we create the source file that will contain instantiations of the new `_trsm` operation.
 The file is located at `src/interface/blas3/trsm.cpp.in`. This is not the file that will be 
 compiled, but a template file that the python script `python_generator/py_gen_blas_binary.py`
 will use to generate the actual source file where the instantiation of `_trsm` will happen.
