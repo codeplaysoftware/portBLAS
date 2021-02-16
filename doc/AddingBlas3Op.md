@@ -100,7 +100,7 @@ void run_test(const combination_t<scalar_t> combi) {
   // Invoke the newly added operation
   _trsm(ex, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
-  // Very the results
+  // Verify the results
 }
 
 // Create the combinations of parameters to invoke the test
