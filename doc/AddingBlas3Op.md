@@ -122,7 +122,7 @@ BLAS_REGISTER_TEST(Trsm, combination_t, combi);
 
 By this point, you are expected to get a linker error saying the symbol for the internal
 version of `blas::internal::_trsm` is undefined, and that is expected since we didn't 
-provide the internal implementation the newly added `_trsm` function.
+provide the internal implementation for the newly added `_trsm` function.
 
 ## Implement the internal version of `_trsm`
 
