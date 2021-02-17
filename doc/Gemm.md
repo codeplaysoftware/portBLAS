@@ -61,54 +61,67 @@ where A, B and C are matrices and alpha and beta are scalars.
 
 - `gemm_no_local_full_vec.hpp` - Doesn't use local memory. Supports full vectorization.
 
-- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses).
+- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. 
+Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses).
 
 ## Relevant CMake Variables
 
 There are several CMake variables which are specific to `GEMM` :
 
 - `NAIVE_GEMM` (Default: `OFF`) - Forces the use of the naive, reference `GEMM` implementation.
-- `GEMM_VECTORIZATION_SUPPORT` (Default: `OFF`) - Enables vectorization within the `GEMM` kernels. If `OFF` it is equivalent to passing `1` for the vector size to the `Gemm` launcher.
+- `GEMM_VECTORIZATION_SUPPORT` (Default: `OFF`) - Enables vectorization within the `GEMM` kernels. 
+If `OFF` it is equivalent to passing `1` for the vector size to the `Gemm` launcher.
 - `GEMM_TALL_SKINNY_SUPPORT` (Default: `ON`) - Enables optimizations for tall, skinny matrices. Not used on all targets.
-- `BLAS_MODEL_OPTIMIZATION` - Passing a machine learning model name here (`VGG_16` or `RESNET_50`) enables optimizations for the `Gemm` sizes used in these models. Only applies to the `ARM_GPU` target.
+- `BLAS_MODEL_OPTIMIZATION` - Passing a machine learning model name here (`VGG_16` or `RESNET_50`) enables optimizations for the `GEMM` sizes used in these models. 
+Only applies to the `ARM_GPU` target.
 
 ## Kernel Structure
 
-Kernels are created as partial template specializations of the `Gemm` class to optimize for more specific cases or use different features (such as using local memory). The `Gemm` class has a number of template parameters, some of which are typically used for partial specialization. The class definition (along with the naive, reference implementation) is located in `gemm_ref.hpp`.
+Kernels are created as partial template specializations of the `Gemm` class to optimize for more specific cases or use different features (such as using local memory). 
+The `Gemm` class has a number of template parameters, some of which are typically used for partial specialization. 
+The class definition (along with the naive, reference implementation) is located in `gemm_ref.hpp`.
 
-There are some small member functions which do things such as determine the number of work groups required to execute each `Gemm`. However, the actual work of each kernel is done in `Gemm::eval()`, though the approach each kernel takes within this function is slightly different. 
+There are some small member functions which do things such as determine the number of work groups required to execute each `GEMM`. 
+However, the actual work of each kernel is done in `Gemm::eval()`. 
 
 The general goals for programming a `GEMM` kernel can be summarized as follows:
 
 - Balance register pressure with loop unrolling to achieve an optimal balance of performance.
 - Using SFINAE and templates where applicable to minimize branching and keep as many things const and compile-time as possible for increased performance.
 
-Outside of the naive, reference `Gemm` all the kernels are tile based, where each instance of the kernel calculates a small portion of the overall matrix. Much of the work in the `::eval()` functions tends to be precalculating indices, offsets and other values for use in the actual computation. Because they are tile based one of the main considerations is whether the current tile is internal or external. If it's internal that means that boundary checks can be avoided which is a significant time save and performance increase.
+Outside of the naive, reference `GEMM` all the kernels are tile based, where each instance of the kernel calculates a small portion of the overall matrix. 
+Much of the work in the `::eval()` functions tends to be precalculating indices, offsets and other values for use in the actual computation. 
+Because they are tile based one of the main considerations is whether the current tile is internal or external. 
+If it's internal that means that boundary checks can be avoided which is a significant time save and performance increase.
 
-The core of the `Gemm` computation is as follows:
+The core of the `GEMM` computation is as follows:
 
-- Loop over the K dimension.
+1. Loop over the K dimension.
 
-  - Load a block of A and B matrices.
-  - Multiply together and store in some intermediate memory (local or not).
+    1. Load a block of A and B matrices.
+    2. Multiply together and store in some intermediate memory (local or not).
 
-- Store the final results in the appropriate part of the output matrix.
+2. Store the final results in the appropriate part of the output matrix.
 
 ## Vectorized Loading/Storing
 
-Many of the `Gemm` kernels support vectorized loads/stores using functions located in `gemm_load_store.hpp` in `src/operations/blas3/` . These functions are pretty simple but there are some special considerations for how they are used, particularly around whether the matrices are transposed or not. If a matrix is transposed this changes the data layout such that elements are no longer contiguous in memory.
+Many of the `GEMM` kernels support vectorized loads/stores using functions located in `gemm_load_store.hpp` in `src/operations/blas3/` . 
+These functions are pretty simple but there are some special considerations for how they are used, particularly around whether the matrices are transposed or not. 
+If a matrix is transposed this changes the data layout such that elements are no longer contiguous in memory.
 
 You can see examples of how to handle these issues by looking at the `gemm_local.hpp` and `gemm_no_local_full_vec.hpp` kernels.
 
 ## Batched Gemm
 
-Batched `Gemm` is not officially part of the BLAS specification but is a common use case, particularly when you have a series of smaller matrices to multiply it makes more sense to perform them as a batched operation. All `GEMM` kernels support batched operations but the interleaved `GEMM` can only be used for batched operations as it is designed specifically for it.
+Batched `GEMM` is not officially part of the BLAS specification but is a common use case, particularly when you have a series of smaller matrices to multiply it makes more sense to perform them as a batched operation. 
+All `GEMM` kernels support batched operations but the interleaved `GEMM` can only be used for batched operations as it is designed specifically for it.
 
 Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place.
 
 # GEMM Dispatch
 
-As previously mentioned, `Gemm` has a lot of template parameters, and many of these are based on values passed at runtime by the user when they call `_gemm` . So there is a series of calls to enable translating some of these runtime values to template parameters when calling subsequent parts of the `GEMM` dispatch. Typically this happens with `enum` or `bool` values and looks like:
+As previously mentioned, the `Gemm` class has a lot of template parameters, and many of these are based on values passed at runtime by the user when they call `_gemm` . 
+So there is a series of calls to enable translating some of these runtime values to template parameters when calling subsequent parts of the `GEMM` dispatch. Typically this happens with `enum` or `bool` values and looks like:
 
 ```c++
 template <bool templateParam>
@@ -127,13 +140,14 @@ void bar(bool runtimeValue)
 }
 ```
 
-You can also see this technique at work inside the `Gemm` kernels themselves.
+You can also see this technique at work inside the `GEMM` kernels themselves.
 
 The notable calls in the stack are (all located in `src/interface/gemm_interface.hpp`):
 
 - `blas::internal::_gemm`
 
-  - calls `_gemm_backend()` always passing `strided` for the `gemm` batch type (as the interleaved kernel is intended only for batch operations). The `_batch_gemm` call instead passes the batch type through.
+  - calls `_gemm_backend()` always passing `strided` for the `gemm` batch type (as the interleaved kernel is intended only for batch operations). 
+  The `_batch_gemm` call instead passes the batch type through.
 
 - `blas::internal::_gemm_backend()`
 
@@ -149,7 +163,9 @@ The notable calls in the stack are (all located in `src/interface/gemm_interface
 
 ## GEMM Backends
 
-GEMM backends are a mechanism to provide different compile-time configurations for different hardware platforms/backends. Backend selection is controlled by passing the cmake variable `TARGET` during CMake configuration, for example passing `-DTARGET=INTEL_GPU` would select the appropriate configurations for Intel GPUs. This cmake variable causes a corresponding define for the selected platform to be included in the source which then controls backend selection through `#ifdef`s in `src/interface/blas3/backend/backend.hpp` like so:
+GEMM backends are a mechanism to provide different compile-time configurations for different hardware platforms/backends. 
+Backend selection is controlled by passing the cmake variable `TARGET` during CMake configuration, for example passing `-DTARGET=INTEL_GPU` would select the appropriate configurations for Intel GPUs. 
+This cmake variable causes a corresponding define for the selected platform to be included in the source which then controls backend selection through `#ifdef`s in `src/interface/blas3/backend/backend.hpp` like so:
 
 ```c++
 #if defined(RCAR)
@@ -167,11 +183,14 @@ GEMM backends are a mechanism to provide different compile-time configurations f
 #endif
 ```
 
-These backend headers call `Gemm_Launcher::_select_gemm()` with various parameters depending on the inputs given. For example, they commonly call different configurations depending on input size to obtain optimal performance for a given size or range of sizes. Backend configurations are covered in further detail in [this section](#backend-configurations).
+These backend headers call `Gemm_Launcher::_select_gemm()` with various parameters depending on the inputs given. 
+For example, they commonly call different configurations depending on input size to obtain optimal performance for a given size or range of sizes. 
+Backend configurations are covered in further detail in [this section](#backend-configurations).
 
 ## GEMM Launcher
 
-The `Gemm_Launcher` class wraps the creation of the actual `Gemm` class as well as the creation of the matrix views (which are what is actually passed to the `Gemm` class for use in the kernel). This happens in the `::select_gemm()` member function where it also executes the created `Gemm` through the passed in executor and returns the associated event.
+The `Gemm_Launcher` class wraps the creation of the actual `Gemm` class as well as the creation of the matrix views (which are what is actually passed to the `Gemm` class for use in the kernel). 
+This happens in the `::select_gemm()` member function where it also executes the created `GEMM` through the passed in executor and returns the associated event.
 
 ```c++
 namespace blas {
@@ -216,7 +235,9 @@ typename Executor::policy_t::event_t Gemm_Launcher<
 
 ## Source Code Generation
 
-In order to correctly link a user's application to the SYCL-BLAS library the configurations for both `Gemm_Launcher` and `Gemm` must be instantiated explicitly in `.cpp` files to prevent linking errors. These instantiations are generated using a template file and several python scripts which replace variables in the template file with the appropriate types for different configurations. This is driven by CMake and covered more extensively in [this section](#cmake-configurations).
+In order to correctly link a user's application to the SYCL-BLAS library the configurations for both `Gemm_Launcher` and `Gemm` must be instantiated explicitly in `.cpp` files to prevent linking errors. 
+These instantiations are generated using a template file and several python scripts which replace variables in the template file with the appropriate types for different configurations. 
+This is driven by CMake and covered more extensively in [this section](#cmake-configurations).
 
 The templates are located in `src/interface/blas3/` while the Python scripts are located in `python_generator`.
 
@@ -249,17 +270,20 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
 }  // namespace blas
 ```
 
-It includes instantiations for both `_gemm` and `_gemm_batched` . The placeholders like `${INDEX_TYPE}` are replaced with the correct types to instantiate the various configurations.
+It includes instantiations for both `_gemm` and `_gemm_batched` . 
+The placeholders like `${INDEX_TYPE}` are replaced with the correct types to instantiate the various configurations.
 
 # GEMM Configurations
 
-As previously touched on, tailored configurations for `GEMM` are provided on a per-target basis (along with the default CPU target configurations). Typically these are based on things like input size to provide optimal configurations for different use cases.
+As previously touched on, tailored configurations for `GEMM` are provided on a per-target basis (along with the default CPU target configurations). 
+Typically these are based on things like input size to provide optimal configurations for different use cases.
 
 ## Backend Configurations
 
-Each backend header calls `Gemm_Launcher` with various configurations of template parameters to select different `GEMM` kernels and achieve the best performance within those kernels. The relevant parameters are:
+Each backend header calls `Gemm_Launcher` with various configurations of template parameters to select different `GEMM` kernels and achieve the best performance within those kernels. 
+The relevant parameters are:
 
-- Tile size by passing a `Tile<>` (found in `include/operations/blas3_trees.h`) has parameters for batch sizes and for rows and columns of tile sizes at several levels:
+- Tile size by passing a `Tile<>` (found in `include/operations/blas3_trees.h`), has parameters for batch sizes and for rows and columns of tile sizes at several levels:
 
   - Item level, the size of the block of elements processed by each work item running the `GEMM` kernel.
   - Work group level, made up of a number of item level tiles.
@@ -270,10 +294,10 @@ Each backend header calls `Gemm_Launcher` with various configurations of templat
 - Double buffering, whether to double buffer the loads and stores of the kernel, can increase performance.
 - Bank conflicts, whether to modify storage in the kernel to avoid bank conflicts.
 - Memory type, whether to use local memory or not.
-- Gemm Algorithm, whether to use naive, tall skinny or standard (everything else) `Gemm` kernels.
+- Gemm Algorithm, whether to use naive, tall skinny or standard (everything else) `GEMM` kernels.
 - Vectorization, whether to enable partial or full vectorization.
 - Vector size, the number of elements to use in vectorized loads/stores.
-- Batch type, whether to use strided (most `Gemm` kernels) or the interleaved `Gemm` for batched calls.
+- Batch type, whether to use strided (most `GEMM` kernels) or the interleaved `GEMM` for batched calls.
 
 For an example of a backend target header and some of the ways that configurations are selected let's look at `src/interface/blas3/backend/default_cpu.hpp` :
 
@@ -304,7 +328,7 @@ typename executor_t::policy_t::event_t _gemm(
   }
 ```
 
-The first configuration is only used if `interleaved` is specified for the `Gemm` batch type.
+The first configuration is only used if `interleaved` is specified for the `GEMM` batch type.
 
 ```c++
 #if defined(NAIVE_GEMM)
@@ -322,7 +346,9 @@ The first configuration is only used if `interleaved` is specified for the `Gemm
 #else
 ```
 
-Next we have an `#if` directive for when we want to force naive `gemm` configurations. This is triggered by a cmake variable. You can see other examples like this in `arm_gpu.hpp` which does similar things for different values of the cmake variable `BLAS_MODEL_OPTIMIZATION` .
+Next we have an `#if` directive for when we want to force naive `GEMM` configurations. 
+This is triggered by a cmake variable. 
+You can see other examples like this in `arm_gpu.hpp` which does similar things for different values of the cmake variable `BLAS_MODEL_OPTIMIZATION` .
 
 ```c++
 if (_M <= 128 && _N <= 128 && _K <= 128) {
@@ -360,12 +386,13 @@ Finally we provide a targeted configuration for small sizes (if all dimensions a
 
 The generation of the `Gemm`, `Gemm_Launcher` and other operation's instantiations are driven through CMake and make use of the template files and python scripts previously touched on in [the section on source code generation](#source-code-generation).
 
-The configurations to be generated, along with associated functions, are located in `cmake/CmakeFunctionHelper.cmake` and these functions are called from `src/interface/<blas_level>/CMakeLists.txt`. Configurations are provided per backend target and will be generated for each data type set during CMake configuration with the variable `BLAS_DATA_TYPES`.
+The configurations to be generated, along with associated functions, are located in `cmake/CmakeFunctionHelper.cmake` and these functions are called from `src/interface/<blas_level>/CMakeLists.txt`. 
+Configurations are provided per backend target and will be generated for each data type set during CMake configuration with the variable `BLAS_DATA_TYPES`.
 
 As an example let's look at the configurations in `CmakeFunctionHelper.cmake` for the `RCAR` target backend, inside the function `generate_blas_gemm_objects`:
 
 ```cmake
-if(${TARGET} STREQUAL "RCAR") # need investigation
+if(${TARGET} STREQUAL "RCAR")
   set(supported_types
     "float"
   )
@@ -382,25 +409,33 @@ if(${TARGET} STREQUAL "RCAR") # need investigation
   endforeach()
 ```
 
-First we are setting the data types supported by the target. In this case RCAR only supports float but other platforms might also include `half` or `double` . Then we iterate over these supported data types calling `add_gemm_configuration()` for each configuration that we want to add. If a data type is passed which the user has not explicitly enabled with `BLAS_DATA_TYPES` then that configuration will be silently skipped. The configurations listed here must mirror those in the header for the backend, in this case `interface/blas3/backend/rcar.hpp` .
+First we are setting the data types supported by the target. 
+In this case RCAR only supports float but other platforms might also include `half` or `double` . 
+Then we iterate over these supported data types calling `add_gemm_configuration()` for each configuration that we want to add. 
+If a data type is passed which the user has not explicitly enabled with `BLAS_DATA_TYPES` then that configuration will be silently skipped. 
+The configurations listed here must mirror those in the header for the backend, in this case `interface/blas3/backend/rcar.hpp` .
 
-If you encounter errors after adding a new configuration this is the first place to check for inconsistencies. Having configurations in CMake which are _not_ present in the backend target header will not cause errors.
+If you encounter errors after adding a new configuration this is the first place to check for inconsistencies. 
+Having configurations in CMake which are _not_ present in the backend target header will not cause errors.
 
 # Common Tasks
 
 ## Adding a new configuration
 
-The following is a checklist of steps to add a new `GEMM` configuration to a chosen backend. The steps are the same for modifying an existing configuration, just modify in each relevant step instead of adding a new config.
+The following is a checklist of steps to add a new `GEMM` configuration to a chosen backend. 
+The steps are the same for modifying an existing configuration, just modify in each relevant step instead of adding a new config.
 
 1. Locate your target backend's header in `src/interface/blas3/backends/`.
-2. Add your configuration to the ones already in the file. See the section on [backend configurations](#backend-configurations) for an example along with an explanation of the relevant template parameters of `Gemm_Launcher`.
+2. Add your configuration to the ones already in the file. 
+See the section on [backend configurations](#backend-configurations) for an example along with an explanation of the relevant template parameters of `Gemm_Launcher`.
 3. Mirror the configuration you've added in the chosen target's section of `CmakeFunctionHelper.cmake`, see [the section on cmake configurations](#cmake-configurations) for more detail.
 
 ## Adding a new kernel
 
 The following is a checklist of steps to add a new `GEMM` kernel to `SYCL-BLAS` .
 
-1. Create your kernel header file in `src/operations/blas3/` and give it a sensible name that follows the convention of the others. For example, if your new kernel is very fast call it `gemm_very_fast.hpp`.
+1. Create your kernel header file in `src/operations/blas3/` and give it a sensible name that follows the convention of the others. 
+For example, if your new kernel is very fast call it `gemm_very_fast.hpp`.
 2. In this header create your partial specialization of the `Gemm` class. See `gemm_local.hpp` for an example.
 3. Include your new very fast header in `src/operations/blas3_trees.hpp`
 4. Modify backend configurations as necessary to enable the usage of your new specialization. See [Gemm Configurations](#gemm-configurations) for more information.
