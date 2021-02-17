@@ -474,7 +474,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       element_t *reg, OutputPointerType out_ptr) {
     vector_t out_vec{0};
 
-    out_vec.template load<address_t::private_space>(0, reg);
+    out_vec.template load<address_t::private_space>(
+        0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
     out_vec *= alpha_;
 
     out_vec.template store<address_t::global_space>(0, out_ptr);
