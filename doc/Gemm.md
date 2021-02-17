@@ -1,6 +1,7 @@
 # SYCL-BLAS GEMM Developer Documentation
 
-The following is documentation for the `GEMM` kernels and associated areas of code within `SYCL-BLAS` . This should give you a good understanding of how everything works and where/how to do things such as:
+The following is documentation for the `GEMM` kernels and associated areas of code within `SYCL-BLAS`.
+This should give you a good understanding of how everything works and where/how to do things such as:
 
 - Work on or create a new `GEMM` kernel
 - Work with the `GEMM` dispatch system.
@@ -77,10 +78,10 @@ Kernels are created as partial template specializations of the `Gemm` class to o
 
 There are some small member functions which do things such as determine the number of work groups required to execute each `Gemm`. However, the actual work of each kernel is done in `Gemm::eval()`, though the approach each kernel takes within this function is slightly different. 
 
-The general goals for programming a `GEMM` kernel can be summarised as follows:
+The general goals for programming a `GEMM` kernel can be summarized as follows:
 
 - Balance register pressure with loop unrolling to achieve an optimal balance of performance.
-- Using SFINAE and templates where applicable to minimise branching and keep as many things const and compile-time as possible for increased performance.
+- Using SFINAE and templates where applicable to minimize branching and keep as many things const and compile-time as possible for increased performance.
 
 Outside of the naive, reference `Gemm` all the kernels are tile based, where each instance of the kernel calculates a small portion of the overall matrix. Much of the work in the `::eval()` functions tends to be precalculating indices, offsets and other values for use in the actual computation. Because they are tile based one of the main considerations is whether the current tile is internal or external. If it's internal that means that boundary checks can be avoided which is a significant time save and performance increase.
 
@@ -258,7 +259,7 @@ As previously touched on, tailored configurations for `GEMM` are provided on a p
 
 Each backend header calls `Gemm_Launcher` with various configurations of template parameters to select different `GEMM` kernels and achieve the best performance within those kernels. The relevant parameters are:
 
-- Tile size by passing a `Tile<>` (found in `include/operations/blas3_trees.h`) Has parameters for batch sizes and for rows and columns of tile sizes at several levels:
+- Tile size by passing a `Tile<>` (found in `include/operations/blas3_trees.h`) has parameters for batch sizes and for rows and columns of tile sizes at several levels:
 
   - Item level, the size of the block of elements processed by each work item running the `GEMM` kernel.
   - Work group level, made up of a number of item level tiles.
@@ -321,7 +322,7 @@ The first configuration is only used if `interleaved` is specified for the `Gemm
 #else
 ```
 
-Next we have an `#if` directive for if we want to force naive `gemm` configurations. This is triggered by a cmake variable. You can see other examples like this in `arm_gpu.hpp` which does similar things for different values of the cmake variable `BLAS_MODEL_OPTIMIZATION` .
+Next we have an `#if` directive for when we want to force naive `gemm` configurations. This is triggered by a cmake variable. You can see other examples like this in `arm_gpu.hpp` which does similar things for different values of the cmake variable `BLAS_MODEL_OPTIMIZATION` .
 
 ```c++
 if (_M <= 128 && _N <= 128 && _K <= 128) {
