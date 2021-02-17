@@ -16,8 +16,10 @@ run the available blas operations.
 This folder has one file for each level of blas. For example, the `trsm`
 function will be located in `include/interface/blas3_interface.h`.
 
-When defining a new level 3 operation, the first step is to declare the
-user-facing function in this file, similar to the following:
+When defining a new level 3 operation, the first step is to define the
+user-facing function, in this case `blas::_trsm`, and declare the
+internal function that will be implemented inside SYCL-BLAS, 
+called `blas::internal::_trsm`, similar to the following:
 
 ```c++
 namespace blas {
