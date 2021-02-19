@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_launcher.hpp
+ *  @filename gemm_launcher.hp
  *
  **************************************************************************/
 
