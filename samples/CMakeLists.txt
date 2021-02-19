@@ -5,9 +5,9 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../external/computecpp-sdk/cmake/Modules)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-find_package(ComputeCpp REQUIRED)
-find_package(SyclBLAS REQUIRED)
 include(ConfigureSYCLBLAS)
+include(SYCL)
+find_package(SyclBLAS REQUIRED)
 
 set(SAMPLES_LIST
   gemv.cpp
@@ -26,4 +26,4 @@ foreach(src_file ${SAMPLES_LIST})
   target_link_libraries(${sample_exec} PUBLIC SyclBLAS::SyclBLAS)
   install(TARGETS ${sample_exec} RUNTIME DESTINATION bin)
 endforeach()
-include_directories(${SYCLBLAS_INCLUDE} ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+include_directories(${SYCLBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})

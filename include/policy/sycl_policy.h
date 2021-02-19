@@ -28,6 +28,7 @@
 #include "blas_meta.h"
 #include <CL/sycl.hpp>
 #include <stdexcept>
+#include <algorithm>
 
 namespace blas {
 
