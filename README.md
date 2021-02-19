@@ -102,12 +102,13 @@ been used in various projects to create efficient domain-specific embedded
 languages that enable users to easily fuse GPU kernels.
 
 SYCL-BLAS can be used
-- either as a header-only framework by including sycl_blas.hpp in
-an application and passing src as pass to the application include directory.
-- or as a library by including sycl_blas.h in an application.
+- either as a header-only framework by including `sycl_blas.hpp` in
+an application and passing the `src` folder in the list of include directories
+- or as a library by including `sycl_blas.h` in an application.
 
 All the relevant files can be found in
-the include directory.
+the `include` directory.
+
 There are four components in SYCL-BLAS, the *View*, the *Operations*,
 the *Executors* and the *Interface* itself.
 
@@ -125,7 +126,8 @@ Note than a view can be of a different size than a container.
 All views derive from the base view class or the base matrix view class, which
 represents a view of a container as a vector or as a matrix.
 The container does not need to be multi-dimensional to store a matrix.
-The current restriction is that container must obey the *RandomAccessIterator*
+The current restriction is that container must obey the 
+[*LegacyRandomAccessIterator*](https://en.cppreference.com/w/cpp/named_req/RandomAccessIterator)
 properties of the C++11 standard.
 
 ### Operations
@@ -183,8 +185,9 @@ the BLAS operations) are iterator buffers that can be created with
 
 We recommend checking the [samples](samples) to get started with SYCL-BLAS. It
 is better to be familiar with BLAS:
-[Wikipedia](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) ;
-[Netlib reference](http://www.netlib.org/lapack/explore-html/d1/df9/group__blas.html).
+
+- [Wikipedia](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms)
+- [Netlib reference](http://www.netlib.org/lapack/explore-html/d1/df9/group__blas.html)
 
 ### BLAS 1
 
@@ -224,7 +227,7 @@ The following table sums up the interface that can be found in
 For all these operations:
 
 * `trans` is a `char` representing the transpose mode of the matrix: `'n'`,
-  `'t'`, or `'c'`; respectively identity, tranpose and Hermitian transpose
+  `'t'`, or `'c'`; respectively identity, transpose and Hermitian transpose
   (note: the latter is not relevant yet as complex numbers are not supported).
 * `uplo` is a `char` that provides information about triangular matrices: `u` for
   upper triangular and `l` for lower triangular matrices.
@@ -268,33 +271,37 @@ For all these operations:
 * `alpha` and `beta` are scalars.
 * `batch_size` is an integer.
 * `side` is `l` for left or `r` for right.
-* `triangle` is `u` for upper and `l` for lower.
-* `diagonal` is `u` for a matrix with a unit diagonal and `n` for a matrix with a non-unit diagonal.
+* `uplo` is a `char` that provides information about triangular matrices: `u` for
+  upper triangular and `l` for lower triangular matrices.
+* `diag` is a `char` that provides information about the diagonal elements of a
+  triangular matrix: `u` if the matrix is unit triangular (all diagonal elements
+  are 1), else `n`.
 
 | operation | arguments | description |
 |---|---|---|
 | `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
 | `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
-| `_trsm` | `ex`, `side`, `triangle`, `transA`, `diagonal`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
+| `_trsm` | `ex`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
 ## Requirements
 
 SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
 We do not use any OpenCL interoperability, hence, the code is pure C++.
 The project is developed using [ComputeCpp CE Edition](http://www.computecpp.com)
- using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
+using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
 In order to build the sources, GCC 5.4 or higher is required.
 The build system is CMake version 3.4.2 or higher.
-We rely on the `FindComputeCpp.cmake` imported from the Computecpp SDK to
-build the project.
+We rely on the `FindComputeCpp.cmake` imported from the 
+[ComputeCpp SDK](https://github.com/codeplaysoftware/computecpp-sdk)
+to build the project.
 
 A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also
-required to verify the test results. Instructions for building and installing
-OpenBLAS can be found [on this
-page](https://github.com/xianyi/OpenBLAS/wiki/User-Manual). Please note that
-although some distributions may provide packages for OpenBLAS these versions are
-typically quite old and may have issues with the TRMV implementation which can
-cause random test failures. Any version of OpenBLAS `>= 0.3.0` will not suffer
+required to build and verify the test results. 
+Instructions for building and installing
+OpenBLAS can be found [on this page](https://github.com/xianyi/OpenBLAS/wiki/User-Manual). 
+Please note that although some distributions may provide packages for OpenBLAS 
+these versions are typically quite old and may have issues with the TRMV implementation 
+which can cause random test failures. Any version of OpenBLAS `>= 0.3.0` will not suffer
 from these issues.
 
 When using OpenBLAS or any other BLAS library the installation directory must be
@@ -358,10 +365,10 @@ Some of the supported options are:
 | `TARGET` | name | By default SYCL-BLAS library is built for CPU. Use that flag to compile it for a specific backend (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
-| `BLAS_ENABLE_STATIC_LIBRARY` | `ON`/`OFF` | Build as a static library (`OFF` by default) |
+| `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
-| `BLAS_MODEL_OPTIMIZATION` | name | Pass a model name here to use optimized GEMM configurations for specific convolution models/sizes. Currently this only affects the `ARM_GPU` platform. The supported models are: `RESNET_50`, `VGG_16` |
+| `BLAS_MODEL_OPTIMIZATION` | name | Pass a model name here to use optimized GEMM configurations for specific convolution models/sizes. Currently this only affects the `ARM_GPU` target. The supported models are: `RESNET_50`, `VGG_16` |
 
 
 ### Cross-Compile (ComputeCpp Only)
@@ -407,3 +414,7 @@ SYCL-BLAS is an Open Source project maintained by the HPCA group and
 Codeplay Software Ltd.
 Feel free to create an issue on the Github tracker to request features or
 report bugs.
+
+### Guides and Other Documents
+
+- [How to add a new operation](doc/AddingBlas3Op.md)
