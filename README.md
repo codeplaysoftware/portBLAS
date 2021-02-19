@@ -1,6 +1,8 @@
 SYCL-BLAS Implementation
 ===
 
+[![Build and Test](https://github.com/codeplaysoftware/sycl-blas/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/sycl-blas/actions/workflows/build-and-test.yml)
+
 SYCL-BLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL 1.2](
 https://www.khronos.org/registry/sycl/specs/sycl-1.2.pdf), the
 [Khronos](http://www.khronos.org) abstraction layer for [OpenCL](https://www.khronos.org/opencl/).
