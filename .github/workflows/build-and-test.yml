@@ -1,7 +1,7 @@
 name: Build and Test
 
 on:
-# Run only on pushes to master to avoid trigger too many builds
+# Run only on pushes to master to avoid triggering too many builds
 # Individual branches can be run manually if desired.
   push:
     branches: [ master ]
@@ -26,6 +26,7 @@ jobs:
         with:
           concurrent_skipping: 'never'
           skip_after_successful_duplicate: 'true'
+          # Skip builds for changes to documentation
           paths_ignore: '["**/README.md", "**/doc/**"]'
           do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
 # Main job, builds the dockerfile in the repo and uses that to run 
