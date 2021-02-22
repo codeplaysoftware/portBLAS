@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  using data_t = utils::data_storage_t<scalar_t>;
+  using data_t = scalar_t;
 
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
