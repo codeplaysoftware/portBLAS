@@ -24,7 +24,7 @@
  **************************************************************************/
 
 #include "utils.hpp"
-#include <common/extract_vendor_type.hpp>
+#include "utils/extract_vendor_type.hpp"
 
 int main(int argc, char** argv) {
   // Read the command-line arguments

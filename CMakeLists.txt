@@ -53,6 +53,17 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
   ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
 )
+
+# This turns the long file names that are generated into short versions using a hash
+# This is required to build SYCL-BLAS on Windows and on WSL since Windows doesn't
+# have good support for long file names
+option(SYCLBLAS_USE_SHORT_NAMES "Whether to use short names for generated files" OFF)
+if (WIN32)
+  # On WIN32 we can force this option to be true, but when building on WSL this
+  # must be set in the command line
+  set(SYCLBLAS_USE_SHORT_NAMES ON CACHE BOOL "Enable short names for generated files in Windows" FORCE)
+endif()
+
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
@@ -167,7 +178,8 @@ endif()
 
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
-option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
+option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
+option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BUILD_EXPRESSION_BENCHMARKS "Whether to build the expression benchmarks" OFF)
 option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)

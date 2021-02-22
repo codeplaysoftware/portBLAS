@@ -48,8 +48,8 @@ set(boolean_list "true" "false")
 function(sanitize_file_name output file_name)
   string(REGEX REPLACE "(:|\\*|<| |,|>)" "_" file_name ${file_name})
   string(REGEX REPLACE "(_____|____|___|__)" "_" file_name ${file_name})
-  if (WIN32)
-    # Long paths are problematic on Windows so we hash the filename
+  if (SYCLBLAS_USE_SHORT_NAMES)
+    # Long paths are problematic on Windows and WSL so we hash the filename
     # to reduce its size
     string(MD5 file_name ${file_name})
     set(file_name ${file_name}.cpp)

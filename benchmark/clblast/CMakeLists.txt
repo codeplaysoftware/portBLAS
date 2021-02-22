@@ -18,6 +18,7 @@ set(sources
   # Level 3 blas
   blas3/gemm.cpp
   blas3/gemm_batched.cpp
+  blas3/trsm.cpp
 )
 
 # Add individual benchmarks for each method
@@ -32,7 +33,7 @@ foreach(clblast_benchmark ${sources})
     target_compile_definitions(bench_clblast_${clblast_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
   endif()
 
-  message(STATUS "Created benchmark: ${clblast_bench_exec}")
+  message(STATUS "Created clBLAST benchmark: ${clblast_bench_exec}")
   install(TARGETS bench_clblast_${clblast_bench_exec}
     RUNTIME
       DESTINATION ${CMAKE_INSTALL_BINDIR}
