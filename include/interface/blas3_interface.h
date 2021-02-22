@@ -59,21 +59,12 @@ typename executor_t::policy_t::event_t _gemm_batched(
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char Side,
-                                             char Triangle, char Transpose,
-                                             char Diagonal, index_t M,
+typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
+                                             char uplo, char trans,
+                                             char diag, index_t M,
                                              index_t N, element_t alpha,
                                              container_0_t A, index_t lda,
                                              container_1_t B, index_t ldb);
-
-template <typename executor_t, typename container_0_t, typename container_1_t,
-          typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm_impl(executor_t& ex, char Side,
-                                                  char Triangle, char Transpose,
-                                                  char Diagonal, index_t M,
-                                                  index_t N, element_t alpha,
-                                                  container_0_t A, index_t lda,
-                                                  container_1_t B, index_t ldb);
 
 }  // namespace internal
 
@@ -110,10 +101,10 @@ typename executor_t::policy_t::event_t _gemm_batched(
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename executor_t::policy_t::event_t inline _trsm(
-    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
-    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
-    container_1_t B, index_t ldb) {
-  return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha,
+    executor_t& ex, char side, char uplo, char trans, char diag, index_t M,
+    index_t N, element_t alpha, container_0_t A, index_t lda, container_1_t B,
+    index_t ldb) {
+  return internal::_trsm(ex, side, uplo, trans, diag, M, N, alpha,
                          ex.get_policy_handler().get_buffer(A), lda,
                          ex.get_policy_handler().get_buffer(B), ldb);
 }

@@ -130,24 +130,24 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param m The number of rows of matrix @p A
  * @param n The number of columns of matrix @p A
  * @param lda The leading dimension of matrix @p A
- * @param triangle if 'u', @p A will be upper triangular. If 'l' @p A will be
+ * @param uplo if 'u', @p A will be upper triangular. If 'l' @p A will be
  * lower triangular
- * @param diagonal Value to put in the diagonal elements
+ * @param diag Value to put in the diagonal elements
  * @param unused Value to put in the unused parts of the matrix
  */
 template <typename scalar_t>
 static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
-                                    size_t lda, char triangle,
-                                    scalar_t diagonal = scalar_t{1},
+                                    size_t lda, char uplo,
+                                    scalar_t diag = scalar_t{1},
                                     scalar_t unused = scalar_t{0}) {
   for (size_t i = 0; i < k; ++i) {
-    scalar_t sum = std::abs(diagonal);
+    scalar_t sum = std::abs(diag);
     for (size_t j = 0; j < k; ++j) {
       scalar_t value = scalar_t{0};
       if (i == j) {
-        value = diagonal;
-      } else if (((triangle == 'l') && (i > j)) ||
-                 ((triangle == 'u') && (i < j))) {
+        value = diag;
+      } else if (((uplo == 'l') && (i > j)) ||
+                 ((uplo == 'u') && (i < j))) {
         if (sum >= scalar_t{1}) {
           const double limit =
               sum / std::sqrt(static_cast<double>(k) - static_cast<double>(j));
