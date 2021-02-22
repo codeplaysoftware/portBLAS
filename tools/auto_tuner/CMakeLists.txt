@@ -11,16 +11,12 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/cmake/Modules
 )
 
-
-
-find_package(OpenCL REQUIRED)
-find_package(ComputeCpp REQUIRED)
-find_package(PythonInterp REQUIRED)
-find_package(SystemBLAS REQUIRED)
-
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
+include(SYCL)
+find_package(PythonInterp REQUIRED)
+find_package(SystemBLAS REQUIRED)
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -31,16 +27,6 @@ include(ConfigureSYCLBLAS)
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 
-# Add some performance flags to the calls to compute++.
-# NB: This must be after finding ComputeCpp
-list(APPEND COMPUTECPP_USER_FLAGS
-  -O3
-  -fsycl-split-modules=20
-  -mllvm -inline-threshold=10000
-  -Xclang -cl-mad-enable
-  # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-  -no-serial-memop
-) 
 set(tuner_def_file ${CMAKE_CURRENT_BINARY_DIR}/generated_combinations.def)
 
 # The generator's configuration file - add any new jsons to this
@@ -53,6 +39,9 @@ if(${BACKEND_DEVICE} STREQUAL "ARM_GPU")
 endif()
 if(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
   set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/intel_gpu.json)
+endif()
+if(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
+  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/nvidia_gpu.json)
 endif()
 
 
@@ -103,6 +92,10 @@ target_include_directories(tuner_kernel_lib PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_dependencies(tuner_kernel_lib tuner_generate_kernels)
+if(is_dpcpp)
+  target_link_libraries(tuner_kernel_lib PRIVATE DPCPP::DPCPP)
+endif()
+
 add_sycl_to_target(
   TARGET tuner_kernel_lib
   SOURCES ${tuner_kernel_srcs}
@@ -129,6 +122,9 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
     ${CMAKE_CURRENT_BINARY_DIR}
   )
   add_dependencies(${tuner_exec} tuner_generate_def_file)
+  if(is_dpcpp)
+    target_link_libraries(${tuner_exec} PRIVATE DPCPP::DPCPP)
+  endif()
   add_sycl_to_target(
     TARGET ${tuner_exec}
     SOURCES ${blas_tuner}

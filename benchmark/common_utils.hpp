@@ -634,8 +634,8 @@ static inline std::tuple<double, double> timef(function_t func,
 // Functions to initialize and update the counters
 
 static inline void init_counters(benchmark::State& state) {
-  state.counters["best_event_time"] = ULONG_MAX;
-  state.counters["best_overall_time"] = ULONG_MAX;
+  state.counters["best_event_time"] = double(ULONG_MAX);
+  state.counters["best_overall_time"] = double(ULONG_MAX);
 }
 
 static inline void update_counters(benchmark::State& state,

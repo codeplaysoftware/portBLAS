@@ -38,13 +38,13 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /sycl-blas
 
 #OpenBLAS
-RUN bash /sycl-blas/.travis/build_OpenBLAS.sh
+RUN bash /sycl-blas/.scripts/build_OpenBLAS.sh
 # Intel OpenCL Runtime
-RUN if [ "${target}" = 'opencl' ]; then bash /sycl-blas/.travis/install_intel_opencl.sh; fi
+RUN if [ "${target}" = 'opencl' ]; then bash /sycl-blas/.scripts/install_intel_opencl.sh; fi
 
 # SYCL
-RUN if [ "${impl}" = 'triSYCL' ]; then cd /sycl-blas && bash /sycl-blas/.travis/build_triSYCL.sh; fi
-RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /sycl-blas && bash /sycl-blas/.travis/build_computecpp.sh; fi
+RUN if [ "${impl}" = 'triSYCL' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_triSYCL.sh; fi
+RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_computecpp.sh; fi
 
 ENV CC=${c_compiler}
 ENV CXX=${cxx_compiler}
