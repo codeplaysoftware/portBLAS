@@ -36,11 +36,11 @@ namespace internal {
 /**
  * @brief Implementation of Triangle Solve with Multiple Right Hand Sides
  * (TRSM).
- * @param Side Indicates if A is on the left or right of X
- * @param Triangle Indicates if A is lower or upper triangular
- * @param Transpose Indicates the form that the matrix A will take in the
+ * @param side Indicates if A is on the left or right of X
+ * @param uplo Indicates if A is lower or upper triangular
+ * @param trans Indicates the form that the matrix A will take in the
  * multiplication
- * @param Diagonal Indicates if A has a unit or non-unit diagonal
+ * @param diag Indicates if A has a unit or non-unit diagonal
  * @param M The number of rows of matrix B, must be at least 1
  * @param N The number of columns of B, must be at least 1
  * @param alpha The scalar alpha that is applied to B
@@ -103,38 +103,40 @@ namespace internal {
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm_impl(
-    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
-    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
-    container_1_t B, index_t ldb) {
+typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
+                                             char uplo, char trans,
+                                             char diag, index_t M,
+                                             index_t N, element_t alpha,
+                                             container_0_t A, index_t lda,
+                                             container_1_t B, index_t ldb) {
   // Makes sure all dimensions are larger than zero
   if ((M == 0) || (N == 0) || (lda == 0) || (ldb == 0)) {
     throw std::invalid_argument("invalid matrix size argument");
   }
 
-  Side = tolower(Side);
-  Triangle = tolower(Triangle);
-  Transpose = tolower(Transpose);
-  Diagonal = tolower(Diagonal);
+  side = tolower(side);
+  uplo = tolower(uplo);
+  trans = tolower(trans);
+  diag = tolower(diag);
 
-  if (Side != 'l' && Side != 'r') {
+  if (side != 'l' && side != 'r') {
     throw std::invalid_argument("invalid Side argument");
-  } else if (Triangle != 'u' && Triangle != 'l') {
+  } else if (uplo != 'u' && uplo != 'l') {
     throw std::invalid_argument("invalid Triangle argument");
-  } else if (Transpose != 'n' && Transpose != 't') {
+  } else if (trans != 'n' && trans != 't') {
     throw std::invalid_argument("invalid Transpose argument");
-  } else if (Diagonal != 'u' && Diagonal != 'n') {
+  } else if (diag != 'u' && diag != 'n') {
     throw std::invalid_argument("invalid Diagonal argument");
   }
 
   // Computes the k dimension. This is based on whether or not matrix is A (on
   // the left) or B (on the right) in the gemm routine.
-  const index_t K = (Side == 'l') ? M : N;
+  const index_t K = (side == 'l') ? M : N;
 
-  const bool isUnitDiag = Diagonal == 'u';
-  const bool isUpper = Triangle == 'u';
-  const bool isLeft = Side == 'l';
-  const bool isTranspose = Transpose == 't';
+  const bool isUnitDiag = diag == 'u';
+  const bool isUpper = uplo == 'u';
+  const bool isLeft = side == 'l';
+  const bool isTranspose = trans == 't';
 
   constexpr index_t blockSize = 16;
 
@@ -358,16 +360,6 @@ typename executor_t::policy_t::event_t _trsm_impl(
       concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, X, 1, B, 1));
 
   return trsmEvents;
-}
-
-template <typename executor_t, typename container_0_t, typename container_1_t,
-          typename element_t, typename index_t>
-typename executor_t::policy_t::event_t inline _trsm(
-    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
-    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
-    container_1_t B, index_t ldb) {
-  return _trsm_impl(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A,
-                    lda, B, ldb);
 }
 
 }  // namespace internal
