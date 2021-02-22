@@ -43,7 +43,7 @@ struct Packetize {
   static constexpr size_t packet_size = vector_size;
   template <index_t dimension>
   SYCL_BLAS_INLINE static constexpr bool check_size() {
-    return dimension == packet_size;
+    return packet_size == 1 || dimension == packet_size;
   }
 #else
   // In the case where vectorization is not enabled, always set to 1
