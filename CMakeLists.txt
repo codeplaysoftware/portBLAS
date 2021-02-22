@@ -53,20 +53,11 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
   ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
 )
-
-find_package(ComputeCpp REQUIRED)
+# Setup datatypes, workgroup sizes and other options.
+# NB: This has to be included before CmakeFunctionHelper as it declares various options.
+include(ConfigureSYCLBLAS)
+include(SYCL)
 find_package(PythonInterp 2.7 REQUIRED)
-
-# Add some performance flags to the calls to compute++.
-# NB: This must be after finding ComputeCpp
-list(APPEND COMPUTECPP_USER_FLAGS
-  -O3
-  -fsycl-split-modules=20
-  -mllvm -inline-threshold=10000
-  -Xclang -cl-mad-enable
-  # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
-  -no-serial-memop
-)
 
 if (MSVC)
   # The device compiler needs C++14 to parse the Windows headers
@@ -79,8 +70,8 @@ endif()
 
 # By default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
-# By default vectorization in gemm kernels is disabled until fully implemented.
-option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kernels" OFF)
+# By default vectorization in gemm kernels is enabled as it imrpove the performance on all Devices.
+option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kernels" ON)
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
@@ -91,7 +82,7 @@ set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SYCLBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
-list(APPEND THIRD_PARTIES_INCLUDE ${ComputeCpp_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE} ${CBLAS_INCLUDE})
+list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 
 if(IMGDNN_DIR)
   add_definitions(-DIMGDNN_LIBRARY)
@@ -99,9 +90,7 @@ if(IMGDNN_DIR)
   list(APPEND THIRD_PARTIES_INCLUDE ${IMGDNN_INCLUDE_DIRS})
 endif()
 
-# Setup datatypes, workgroup sizes and other options.
-# NB: This has to be included before CmakeFunctionHelper as it declares various options.
-include(ConfigureSYCLBLAS)
+
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -124,15 +113,28 @@ if (WIN32)
   # On Windows, all symbols must be resolved at link time for DLLs.
   # The sycl_blas target is just a collection of other objects so
   # the linked libraries are not going to be propagated to this target.
-  # This requires manual linking against ComputeCpp.lib on Windows.
-  target_link_libraries(sycl_blas PRIVATE ComputeCpp::ComputeCpp)
+  # This requires manual linking against SYCL on Windows.
+  if(is_computecpp)
+    target_link_libraries(sycl_blas PRIVATE ComputeCpp::ComputeCpp)
+  elseif(is_dpcpp)
+    target_link_libraries(sycl_blas PRIVATE DPCPP::DPCPP)
+  endif()
+endif()
+if(is_computecpp)
+  set_target_properties(sycl_blas PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
+  )
+elseif(is_dpcpp)
+  set_target_properties(sycl_blas PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    INTERFACE_LINK_LIBRARIES DPCPP::DPCPP
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
+  )
+  add_sycl_to_target(TARGET sycl_blas SOURCES)
 endif()
 
-set_target_properties(sycl_blas PROPERTIES
-  VERSION ${PROJECT_VERSION}
-  INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
-  INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE}"
-)
 if(IMGDNN_DIR)
   target_link_libraries(sycl_blas PUBLIC IMGDNN::IMGDNN)
 endif()
@@ -168,7 +170,7 @@ option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build CLBLAST benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BUILD_EXPRESSION_BENCHMARKS "Whether to build the expression benchmarks" OFF)
-option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" OFF)
+option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)
