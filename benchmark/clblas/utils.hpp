@@ -1,34 +1,9 @@
-/**************************************************************************
- *
- *  @license
- *  Copyright (C) 2021 Codeplay Software Limited
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  For your convenience, a copy of the License has been included in this
- *  repository.
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  SYCL-BLAS: BLAS implementation using SYCL
- *
- *  @filename utils.hpp
- *
- **************************************************************************/
-
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
 #include "clwrap.h"
 #include "common_utils.hpp"
-#include <clblast.h>
+#include <clBLAS.h>
 
 typedef Context ExecutorType;
 
@@ -89,43 +64,43 @@ static inline void print_device_information(cl_device_id device) {
  * @brief Helper function to translate transposition information from netlib
  * blas style strings into clblast types.
  */
-static inline clblast::Transpose translate_transposition(const char *t_str) {
+static inline clblasTranspose translate_transposition(const char *t_str) {
   if (t_str[0] == 'n') {
-    return clblast::Transpose::kNo;
+    return clblasNoTrans;
   } else if (t_str[0] == 't') {
-    return clblast::Transpose::kYes;
+    return clblasTrans;
   } else if (t_str[0] == 'c') {
-    return clblast::Transpose::kConjugate;
+    return clblasConjTrans;
   } else {
     throw std::runtime_error("Got invalid transpose parameter!");
   }
 }
 
-static inline clblast::Side translate_side(const char *side) {
+static inline clblasSide translate_side(const char *side) {
   if (side[0] == 'r') {
-    return clblast::Side::kRight;
+    return clblasRight;
   } else if (side[0] == 'l') {
-    return clblast::Side::kLeft;
+    return clblasLeft;
   } else {
     throw std::runtime_error("Got invalid side parameter!");
   }
 }
 
-static inline clblast::Triangle translate_triangle(const char* triangle) {
+static inline clblasUplo translate_triangle(const char* triangle) {
   if (triangle[0] == 'u') {
-    return clblast::Triangle::kUpper;
+    return clblasUpper;
   } else if (triangle[0] == 'l') {
-    return clblast::Triangle::kLower;
+    return clblasLower;
   } else {
     throw std::runtime_error("Got invalid triangle parameter!");
   }
 }
 
-static inline clblast::Diagonal translate_diagonal(const char *diag) {
+static inline clblasDiag translate_diagonal(const char *diag) {
   if (diag[0] == 'u') {
-    return clblast::Diagonal::kUnit;
+    return clblasUnit;
   } if (diag[0] == 'n') {
-    return clblast::Diagonal::kNonUnit;
+    return clblasNonUnit;
   } else {
     throw std::runtime_error("Got invalid diagonal parameter!");
   }
