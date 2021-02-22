@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
-  using data_t = utils::data_storage_t<scalar_t>;
+  using data_t = scalar_t;
 
   // Create data
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);

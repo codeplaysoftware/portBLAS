@@ -90,6 +90,7 @@ set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas/include)
 set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SYCLBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
 list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
@@ -111,8 +112,13 @@ endif()
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 
+# Add the common library used by sycl_blas, tests and benchmarks
+add_subdirectory(common)
+
 add_subdirectory(src)
 build_library(sycl_blas)
+
+target_link_libraries(sycl_blas PUBLIC sycl_blas_common)
 
 if (WIN32)
   # On Windows, all symbols must be resolved at link time for DLLs.

@@ -132,7 +132,8 @@ foreach(executor ${executor_list})
 endforeach(executor)
 add_library(${func} OBJECT ${FUNC_SRC})
 set_target_compile_def(${func})
-target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_unary_objects)
@@ -180,7 +181,8 @@ foreach(executor ${executor_list})
 endforeach(executor)
 add_library(${func} OBJECT ${FUNC_SRC})
 set_target_compile_def(${func})
-target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_binary_objects)
@@ -231,7 +233,8 @@ foreach(executor ${executor_list})
 endforeach(executor)
 add_library(${func} OBJECT ${FUNC_SRC})
 set_target_compile_def(${func})
-target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_binary_special_objects)
@@ -284,7 +287,8 @@ foreach(executor ${executor_list})
 endforeach(executor)
 add_library(${func} OBJECT ${FUNC_SRC})
 set_target_compile_def(${func})
-target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_ternary_objects)
@@ -641,7 +645,8 @@ endif()
 add_library(${func} OBJECT ${gemm_sources})
 set_target_compile_def(${func})
 # The blas library depends on FindComputeCpp
-target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} ${THIRD_PARTIES_INCLUDE})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${gemm_sources})
 endfunction(generate_blas_gemm_objects)
@@ -699,6 +704,7 @@ function(generate_quantize)
   target_include_directories(quantize PRIVATE
     ${SYCLBLAS_SRC}
     ${SYCLBLAS_INCLUDE}
+    ${SYCLBLAS_COMMON_INCLUDE_DIR}
     ${SYCL_INCLUDE_DIRS}
     ${COMPUTECPP_SDK_INCLUDE})
   message(STATUS "Adding SYCL to target quantize")

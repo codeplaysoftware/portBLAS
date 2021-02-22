@@ -11,8 +11,8 @@ set(sources
 
 foreach(clblas_benchmark ${sources})
   get_filename_component(clblas_bench_exec ${clblas_benchmark} NAME_WE)
-  add_executable(bench_clblas_${clblas_bench_exec} ${clblas_benchmark} "main.cpp" "clwrap.cpp" "utils.hpp")
-  target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE benchmark Clara::Clara sycl_blas)
+  add_executable(bench_clblas_${clblas_bench_exec} ${clblas_benchmark} "main.cpp")
+  target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE benchmark Clara::Clara sycl_blas_common sycl_blas)
   target_include_directories(bench_clblas_${clblas_bench_exec} PRIVATE ${CLBLAS_INCLUDE_DIRS})
   target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE ${CLBLAS_LIBRARIES})
 

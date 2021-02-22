@@ -24,6 +24,7 @@
 # **************************************************************************/
 add_library(sycl_policy OBJECT ${SYCLBLAS_SRC}/policy/sycl_policy_handler.cpp)
 set_target_compile_def(sycl_policy)
-target_include_directories(sycl_policy PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE} 
+target_include_directories(sycl_policy PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR}
                            ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
 add_sycl_to_target(TARGET sycl_policy SOURCES ${SYCLBLAS_SRC}/policy/sycl_policy_handler.cpp)

@@ -1,8 +1,7 @@
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
-#include "clwrap.h"
-#include "common_utils.hpp"
+#include <common/common_utils.hpp>
 #include <clBLAS.h>
 
 typedef Context ExecutorType;
