@@ -318,7 +318,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           cl::sycl::vec<element_t, packet_size> out_vec{0};
 
           out_vec.template load<address_t::global_space>(
-              0, C + j * wg_rows * packet_size);
+              0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
+                     C + j * wg_rows * packet_size));
           out_vec *= beta_;
 
           out_vec.template store<address_t::private_space>(
@@ -565,7 +566,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         cl::sycl::vec<element_t, work_per_load> in_vec{0};
         if (in_range) {
           // if in range perform a vectorised load
-          in_vec.template load<address_t::global_space>(0, ptr + j * ptr_next);
+          in_vec.template load<address_t::global_space>(
+              0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
+                     ptr + j * ptr_next));
         } else {
           // if not in range perform element-wise load checking boundaries at
           // each load.
@@ -638,7 +641,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         cl::sycl::vec<element_t, work_per_load> in_vec{0};
         if (in_range) {
           // if in range perform a vectorised load
-          in_vec.template load<address_t::global_space>(0, ptr + j * ld);
+          in_vec.template load<address_t::global_space>(
+              0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
+                     ptr + j * ld));
 
         } else {
           // if not in range perform element-wise load checking boundaries at
@@ -710,7 +715,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     cl::sycl::vec<element_t, work_per_load> in_vec{0};
     if (in_range) {
       // If in range perform a vectorised load.
-      in_vec.template load<address_t::global_space>(0, ptr);
+      in_vec.template load<address_t::global_space>(
+          0,
+          cl::sycl::multi_ptr<const element_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
@@ -770,7 +777,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     cl::sycl::vec<element_t, work_per_load> in_vec{0};
     if (in_range) {
       // If in range perform a vectorised load.
-      in_vec.template load<address_t::global_space>(0, ptr);
+      in_vec.template load<address_t::global_space>(
+          0,
+          cl::sycl::multi_ptr<const element_t, address_t::global_space>(ptr));
     } else {
       // Otherwise perform an element-wise load, checking boundaries each load.
 #pragma unroll
@@ -900,7 +909,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           cl::sycl::vec<element_t, packet_size> out_vec{0};
 
           out_vec.template load<address_t::private_space>(
-              0, reg_res + i * item_rows + j * packet_size);
+              0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
+                     reg_res + i * item_rows + j * packet_size));
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(

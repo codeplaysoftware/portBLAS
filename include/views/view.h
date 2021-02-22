@@ -187,7 +187,7 @@ struct MatrixView {
   /*! adjust_access_displacement.
    * @brief set displacement from the origin.
    */
-  void adjust_access_displacement() const;
+  void adjust_access_displacement();
 
   /*! get_access_displacement.
    * @brief get displacement from the origin.

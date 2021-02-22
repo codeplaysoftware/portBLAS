@@ -70,6 +70,8 @@ function(set_target_compile_def in_target)
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
   elseif(${BACKEND_DEVICE} STREQUAL "POWER_VR")
     target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
+  elseif(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
+    target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
@@ -597,6 +599,21 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
+elseif(${TARGET} STREQUAL "NVIDIA_GPU")
+ set(supported_types
+    "float"
+  )
+  foreach(data ${supported_types})
+    add_gemm_configuration(
+        "${data}" 128 "false" "false" "true"
+        128 2 2 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+    add_gemm_configuration(
+        "${data}"  64 "false" "false" "true"
+        64 8 8 8 8 1 1 2 2 1 1 "local" "standard" "full" 1 "strided")
+    add_gemm_configuration(
+      "${data}" 64 "false" "false" "false"
+      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+  endforeach()
 else() # default cpu backend
   set(supported_types
     "float"
@@ -682,7 +699,7 @@ function(generate_quantize)
   target_include_directories(quantize PRIVATE
     ${SYCLBLAS_SRC}
     ${SYCLBLAS_INCLUDE}
-    ${ComputeCpp_INCLUDE_DIRS}
+    ${SYCL_INCLUDE_DIRS}
     ${COMPUTECPP_SDK_INCLUDE})
   message(STATUS "Adding SYCL to target quantize")
   add_sycl_to_target(TARGET quantize SOURCES ${FUNC_SRC})

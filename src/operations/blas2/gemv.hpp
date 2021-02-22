@@ -225,8 +225,8 @@ SYCL_BLAS_INLINE
     // Calculate the matrix index
     index_t mat_index = nc_dim_index + c_group_id * local_range * lda;
 
-    const index_t last_c_dim_id =
-        std::min(c_dim - c_group_id * local_range, local_range);
+    const index_t last_c_dim_id = cl::sycl::min(
+        index_t(c_dim - c_group_id * local_range), index_t(local_range));
 
     // Computes the partial dot product for a row
     for (index_t c_dim_id = 0; c_dim_id < last_c_dim_id; ++c_dim_id) {
@@ -456,10 +456,10 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
-  index_t lst_row = std::min(dimR, frs_row + rowSz);
+  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + rowSz));
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
-  index_t lst_col = std::min(dimC, frs_col + dimWFC);
+  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
 
   index_t id_col_thr = idWFC * localSz + localid;
 
@@ -518,15 +518,18 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
              id_col += localSz * interLoop) {
           // If the row length isn't a multiple of localSz * interLoop
           // we need to go for fewer columns. Pick the min.
-          auto lst_k_int = std::min(id_col + interLoop, lst_col);
+          auto lst_k_int =
+              cl::sycl::min(index_t(id_col + interLoop), index_t(lst_col));
           // Handle lower diagonal etc
           for (index_t k_int =
-                   ((Lower)
-                        ? id_col
-                        : std::max(row + ((!Diag || Unit) ? 1 : 0), id_col));
-               k_int <
-               ((Upper) ? lst_k_int
-                        : std::min(row + ((!Diag || Unit) ? 0 : 1), lst_k_int));
+                   ((Lower) ? id_col
+                            : cl::sycl::max(
+                                  index_t(row + ((!Diag || Unit) ? 1 : 0)),
+                                  index_t(id_col)));
+               k_int < ((Upper) ? lst_k_int
+                                : cl::sycl::min(
+                                      index_t(row + ((!Diag || Unit) ? 0 : 1)),
+                                      index_t(lst_k_int)));
                k_int++) {
             // calculate the product between the row and the vector_.
             auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
@@ -577,10 +580,10 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       ((dimC + (localSz * nWG_col_) - 1) / (localSz * nWG_col_)) * localSz;
 
   index_t frs_row = idWFR * rowSz;
-  index_t lst_row = std::min(dimR, frs_row + rowSz);
+  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + rowSz));
 
   index_t frs_col = idWFC * dimWFC + interLoop * localid;
-  index_t lst_col = std::min(dimC, frs_col + dimWFC);
+  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + dimWFC));
   // TODO(Peter): This should be constexpr once half supports it
   static const value_t init_val = AddOperator::template init<vector_t>();
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
@@ -597,7 +600,7 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
   } else {
     for (index_t rowid = frs_row; rowid < lst_row; rowid += shrSz) {
       value_t val = init_val;
-      auto blqSz = std::min(shrSz, lst_row - rowid);
+      auto blqSz = cl::sycl::min(index_t(shrSz), index_t(lst_row - rowid));
       if (interLoop == 1) {
         for (index_t row = 0, id_row = rowid; row < blqSz; row++, id_row++) {
           val = (Diag && Unit &&
@@ -627,7 +630,9 @@ GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
           for (index_t id_col = frs_col; id_col < lst_col;
                id_col += localSz * interLoop) {
             for (index_t k_int = id_col;
-                 k_int < std::min(id_col + interLoop, lst_col); k_int++) {
+                 k_int <
+                 cl::sycl::min(index_t(id_col + interLoop), index_t(lst_col));
+                 k_int++) {
               if (Lower && Upper && Diag && !Unit) {
                 auto prod = ProductOperator::eval(matrix_.eval(id_row, k_int),
                                                   vector_.eval(k_int));
@@ -770,10 +775,10 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
-  index_t lst_row = std::min(dimR, frs_row + dimWFR);
+  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
 
   index_t frs_col = idWFC * colSz;
-  index_t lst_col = std::min(dimC, frs_col + colSz);
+  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + colSz));
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
   if ((!Upper &&
@@ -791,11 +796,14 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
                      ? matrix_.eval(rowid, rowid)
                      : AdditionIdentity::eval(vector_.eval(0));
       for (index_t id_col =
-               ((Lower) ? frs_col
-                        : std::max(rowid + ((!Diag || Unit) ? 1 : 0), frs_col));
+               ((Lower)
+                    ? frs_col
+                    : cl::sycl::max(index_t(rowid + ((!Diag || Unit) ? 1 : 0)),
+                                    index_t(frs_col)));
            id_col <
            ((Upper) ? lst_col
-                    : std::min(rowid + ((!Diag || Unit) ? 0 : 1), lst_col));
+                    : cl::sycl::min(index_t(rowid + ((!Diag || Unit) ? 0 : 1)),
+                                    index_t(lst_col)));
            id_col++) {
         auto prod = ProductOperator::eval(matrix_.eval(rowid, id_col),
                                           vector_.eval(id_col));
@@ -832,10 +840,10 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
       (dimR + (localSz * nWG_row_) - 1) / (localSz * nWG_row_) * localSz;
 
   index_t frs_row = idWFR * dimWFR + localid;
-  index_t lst_row = std::min(dimR, frs_row + dimWFR);
+  index_t lst_row = cl::sycl::min(index_t(dimR), index_t(frs_row + dimWFR));
 
   index_t frs_col = idWFC * colSz;
-  index_t lst_col = std::min(dimC, frs_col + colSz);
+  index_t lst_col = cl::sycl::min(index_t(dimC), index_t(frs_col + colSz));
 
   // PROBLEM IF ONLY SOME THREADS OF A WORKGROUP ARE CANCELED
   // TO SOLVE IT, USE GLOBAL VALUES OF frs_row AND lst_row
@@ -855,7 +863,8 @@ GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>::eval(
         // memory
         ndItem.barrier(cl::sycl::access::fence_space::local_space);
       }
-      auto blqSz = std::min(local_memory_size_, lst_col - colid);
+      auto blqSz =
+          cl::sycl::min(index_t(local_memory_size_), index_t(lst_col - colid));
       // Copy a block of elements of vector_ vector_ to the shared memory,
       // executing the expresion tree if it is needed
       for (index_t col = localid; (col < blqSz); col += localSz) {
