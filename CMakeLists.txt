@@ -53,6 +53,17 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
   ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
 )
+
+# This turns the long file names that are generated into short versions using a hash
+# This is required to build SYCL-BLAS on Windows and on WSL since Windows doesn't
+# have good support for long file names
+option(SYCLBLAS_USE_SHORT_NAMES "Whether to use short names for generated files" OFF)
+if (WIN32)
+  # On WIN32 we can force this option to be true, but when building on WSL this
+  # must be set in the command line
+  set(SYCLBLAS_USE_SHORT_NAMES ON CACHE BOOL "Enable short names for generated files in Windows" FORCE)
+endif()
+
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
