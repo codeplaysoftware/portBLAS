@@ -270,11 +270,11 @@ void gemm(const char *transA, const char *transB, int m, int n, int k,
 }
 
 template <typename scalar_t>
-void trsm(const char *side, const char *triangle, const char *transA,
+void trsm(const char *side, const char *uplo, const char *trans,
           const char *diag, int m, int n, scalar_t alpha, const scalar_t A[],
           int lda, scalar_t B[], int ldb) {
   auto func = blas_system_function<scalar_t>(&cblas_strsm, &cblas_dtrsm);
-  func(CblasColMajor, c_side(*side), c_uplo(*triangle), c_trans(*transA),
+  func(CblasColMajor, c_side(*side), c_uplo(*uplo), c_trans(*trans),
        c_diag(*diag), m, n, alpha, A, lda, B, ldb);
 }
 

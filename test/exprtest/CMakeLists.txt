@@ -37,7 +37,7 @@ set(SYCL_EXPRTEST_SRCS
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
-  target_link_libraries(${test_exec} PRIVATE gtest_main blas::blas sycl_blas)
+  target_link_libraries(${test_exec} PRIVATE gtest_main blas::blas sycl_blas_common sycl_blas)
   target_include_directories(${test_exec} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.." ${CBLAS_INCLUDE} ${SYCLBLAS_SRC})
   add_sycl_to_target(
     TARGET ${test_exec}

@@ -18,13 +18,14 @@ set(sources
   # Level 3 blas
   blas3/gemm.cpp
   blas3/gemm_batched.cpp
+  blas3/trsm.cpp
 )
 
 # Add individual benchmarks for each method
 foreach(clblast_benchmark ${sources})
   get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
-  add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} main.cpp clwrap.cpp)
-  target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE benchmark Clara::Clara clblast sycl_blas)
+  add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} main.cpp)
+  target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE benchmark Clara::Clara clblast sycl_blas_common)
   target_include_directories(bench_clblast_${clblast_bench_exec} PRIVATE ${CBLAS_INCLUDE})
 
   if(BLAS_VERIFY_BENCHMARK)
@@ -32,7 +33,7 @@ foreach(clblast_benchmark ${sources})
     target_compile_definitions(bench_clblast_${clblast_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
   endif()
 
-  message(STATUS "Created benchmark: ${clblast_bench_exec}")
+  message(STATUS "Created clBLAST benchmark: ${clblast_bench_exec}")
   install(TARGETS bench_clblast_${clblast_bench_exec}
     RUNTIME
       DESTINATION ${CMAKE_INSTALL_BINDIR}

@@ -31,15 +31,15 @@ template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   int m;
   int n;
-  char transA;
+  char trans;
   char side;
   char diag;
-  char triangle;
+  char uplo;
   scalar_t alpha;
   scalar_t ldaMul;
   scalar_t ldbMul;
   scalar_t unusedValue;
-  std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, ldbMul,
+  std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul,
            unusedValue) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
@@ -58,13 +58,13 @@ void run_test(const combination_t<scalar_t> combi) {
   const data_t diagValue =
       diag == 'u' ? data_t{1} : random_scalar(data_t{1}, data_t{10});
 
-  fill_trsm_matrix(A, k, lda, triangle, diagValue,
+  fill_trsm_matrix(A, k, lda, uplo, diagValue,
                    static_cast<data_t>(unusedValue));
   fill_random(B);
 
   // Create a copy of B to calculate the reference outputs
   cpu_B = B;
-  reference_blas::trsm(&side, &triangle, &transA, &diag, m, n,
+  reference_blas::trsm(&side, &uplo, &trans, &diag, m, n,
                        static_cast<data_t>(alpha), A.data(), lda, cpu_B.data(),
                        ldb);
 
@@ -75,7 +75,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto b_gpu = utils::make_quantized_buffer<scalar_t>(
       ex, B);  // blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
 
-  _trsm(ex, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+  _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, b_gpu, B);
 
@@ -91,14 +91,17 @@ static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
 
 const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
                                       ::testing::Values(7, 513, 1027),  // n
-                                      ::testing::Values('n', 't'),  // transA
+                                      ::testing::Values('n', 't'),  // trans
                                       ::testing::Values('l', 'r'),  // side
                                       ::testing::Values('u', 'n'),  // diag
-                                      ::testing::Values('l', 'u'),  // triangle
+                                      ::testing::Values('l', 'u'),  // uplo
                                       ::testing::Values(1.0, 2.0),  // alpha
                                       ::testing::Values(1.0, 2.0),  // lda_mul
                                       ::testing::Values(1.0, 2.0),  // ldb_mul
                                       ::testing::Values(0.0, NaN)   // unused
 );
+
+// unused is a value that will be placed in the input matrix and is not meant to
+// be accessed by the trsm implementation
 
 BLAS_REGISTER_TEST(Trsm, combination_t, combi);

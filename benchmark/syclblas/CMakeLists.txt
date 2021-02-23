@@ -23,7 +23,7 @@ set(sources
 foreach(syclblas_bench ${sources})
   get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
   add_executable(bench_${bench_exec} ${syclblas_bench} main.cpp)
-  target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara sycl_blas)
+  target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara sycl_blas_common sycl_blas)
   add_sycl_to_target(
     TARGET bench_${bench_exec}
     SOURCES ${syclblas_bench}
@@ -50,7 +50,7 @@ if(BUILD_EXPRESSION_BENCHMARKS)
   foreach(syclblas_bench ${extensions})
     get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
     add_executable(bench_${bench_exec} ${syclblas_bench} main.cpp)
-    target_link_libraries(bench_${bench_exec} PUBLIC benchmark Clara::Clara sycl_blas)
+    target_link_libraries(bench_${bench_exec} PUBLIC benchmark Clara::Clara sycl_blas_common sycl_blas)
     add_sycl_to_target(
       TARGET bench_${bench_exec}
       SOURCES ${syclblas_bench}
