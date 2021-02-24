@@ -6,7 +6,7 @@ endif()
 
 function(generate_acl_benchmark name source definition)
   add_executable(${name} ${source} main.cpp)
-  target_link_libraries(${name} PRIVATE benchmark acl sycl_blas Clara::Clara)
+  target_link_libraries(${name} PRIVATE benchmark acl sycl_blas_common sycl_blas Clara::Clara)
   target_include_directories(${name} PRIVATE ${CBLAS_INCLUDE})
   target_compile_definitions(${name} PRIVATE ${definition})
 
