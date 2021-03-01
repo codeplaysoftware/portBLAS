@@ -538,7 +538,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 2 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "POWER_VR")
+elseif(${TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   set(supported_types
     "float"
     "half"
