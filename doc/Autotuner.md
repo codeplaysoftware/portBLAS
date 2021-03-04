@@ -1,6 +1,6 @@
 # SYCL-BLAS Autotuner Developer Documentation
-This documentation aims to cover the inner workings of the auto tuner from a developer perspective.
-It should be useful if you need to work on or extend the autotuner in future, or just want to better understand how it works.
+This documentation aims to cover the inner workings of the autotuner from a developer perspective.
+It should be useful if you need to work on or extend the autotuner in the future, or just want to better understand how it works.
 
 For information on building and using the autotuner please see the readme [here](../tools/auto_tuner/README.md).
 # Table of Contents
@@ -17,7 +17,7 @@ For information on building and using the autotuner please see the readme [here]
 # Overview
 The Autotuner is comprised of several parts:
 - The `C++ binaries` that are run by the user to do the tuning. 
-Comprised of 5 different binaries which benchmark different combinations of transposition of the inputs and print the results.
+Comprised of five different binaries which benchmark different combinations of transposition of the inputs and print the results.
 - `Python scripts` which generate macro calls and source files for each GEMM configuration specified.
 - `JSON files` which specify the parameter combinations to test when tuning.
 # C++ Binaries
@@ -41,7 +41,9 @@ The generated combinations are then run with the following macro:
 
 #undef BENCH_PARAMS
 ```
-The file `generated_combinations.def` contains calls to `BENCH_PARAMS` for each combination to be tested, and the stored results are sorted from worst to best before being printed. For more information on this file and how it is generated, see [this section](#generated_combinations.def).
+The file `generated_combinations.def` contains calls to `BENCH_PARAMS` for each combination to be tested,
+and the stored results are sorted from worst to best before being printed.
+For more information on this file and how it is generated, see [this section](#generated_combinations.def).
 
 There are several wrapper functions which wrap the function `run_tune()`: `tune()` and `tune_syclblas()`. 
 The `run_tune()` function takes a function object, runs it and measures the execution time. 
@@ -56,8 +58,11 @@ The autotuner includes configs for various target backends along with a set of d
 Detailed information about the config parameters can be found in the autotuner's [readme](../tools/auto_tuner/README.md#configuration).
 # Python Generation
 The python script `tools/auto_tuner/gen/generate_combinations.py` produces two types of output:
-- A single file, `generated_combinations.def`, which contains generated calls to the `BENCH_PARAMS` macro. As seen earlier this file is included inside the `run_tune_gemm()` function after the `BENCH_PARAMS` macro is defined. This handles the execution of each test configuration.
-- A number of `C++` source files which instantiate calls to the `tune<>` method, with one file for each configuration. This keeps the kernels for each configuration in separate translation units.
+- A single file, `generated_combinations.def`, which contains generated calls to the `BENCH_PARAMS` macro.
+  As seen earlier this file is included inside the `run_tune_gemm()` function after the `BENCH_PARAMS` macro is defined.
+  This handles the execution of each test configuration.
+- A number of `C++` source files which instantiate calls to the `tune<>` method, with one file for each configuration.
+  This keeps the kernels for each configuration in separate translation units.
 
 Most of the work in the python script is in parsing the configurations from `JSON`. 
 ```python
@@ -285,7 +290,9 @@ add_custom_command(OUTPUT ${tuner_kernel_srcs}
 )
 add_custom_target(tuner_generate_kernels DEPENDS ${tuner_kernel_srcs})
 ```
-The third execution of the script generates the source file instantiations (covered in [this section](#instantiation-source-files)) and adds the list of sources to another custom target. The source files are added as a library, `tuner_kernel_lib` and the `tuner_generate_kernels` target is added as a dependency of this library.
+The third execution of the script generates the source file instantiations (covered in [this section](#instantiation-source-files))
+and adds the list of sources to another custom target.
+The source files are added as a library, `tuner_kernel_lib` and the `tuner_generate_kernels` target is added as a dependency of this library.
 
 # Common Tasks
 ## Adding a new set of configurations
