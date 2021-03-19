@@ -23,12 +23,12 @@ set(sources
 foreach(syclblas_bench ${sources})
   get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
   add_executable(bench_${bench_exec} ${syclblas_bench} main.cpp)
-  target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara sycl_blas_common sycl_blas)
+  target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara sycl_blas)
   add_sycl_to_target(
     TARGET bench_${bench_exec}
     SOURCES ${syclblas_bench}
   )
-  target_include_directories(bench_${bench_exec} PRIVATE ${CBLAS_INCLUDE})
+  target_include_directories(bench_${bench_exec} PRIVATE ${SYCLBLAS_INCLUDE} ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
@@ -50,12 +50,12 @@ if(BUILD_EXPRESSION_BENCHMARKS)
   foreach(syclblas_bench ${extensions})
     get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
     add_executable(bench_${bench_exec} ${syclblas_bench} main.cpp)
-    target_link_libraries(bench_${bench_exec} PUBLIC benchmark Clara::Clara sycl_blas_common sycl_blas)
+    target_link_libraries(bench_${bench_exec} PUBLIC benchmark Clara::Clara sycl_blas)
     add_sycl_to_target(
       TARGET bench_${bench_exec}
       SOURCES ${syclblas_bench}
     )
-    target_include_directories(bench_${bench_exec} PRIVATE ${SYCLBLAS_SRC} ${CBLAS_INCLUDE})
+    target_include_directories(bench_${bench_exec} PRIVATE ${SYCLBLAS_INCLUDE} ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
     if(BLAS_VERIFY_BENCHMARK)
       target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)

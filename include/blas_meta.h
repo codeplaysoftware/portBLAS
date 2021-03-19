@@ -27,8 +27,7 @@
 #define SYCL_BLAS_META_H
 
 #include <type_traits>
-
-#include <common/vector_utils.hpp>
+#include <utility>
 
 namespace blas {
 
@@ -134,6 +133,30 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
 template <typename index_t>
 static SYCL_BLAS_INLINE index_t roundUp(index_t x, index_t y) {
   return ((x + y - 1) / y) * y;
+}
+
+template <typename index_t, typename vector_t>
+index_t vec_total_size(index_t &vector_size, vector_t &&current_vector) {
+  vector_size += static_cast<index_t>(current_vector.size());
+  return 0;
+}
+
+template <typename vector_t>
+int append_vector(vector_t &lhs_vector, vector_t const &rhs_vector) {
+  lhs_vector.insert(lhs_vector.end(), rhs_vector.begin(), rhs_vector.end());
+  return 0;
+}
+
+template <typename first_vector_t, typename... other_vector_t>
+first_vector_t concatenate_vectors(first_vector_t first_vector,
+                                   other_vector_t &&... other_vectors) {
+  int first_Vector_size = static_cast<int>(first_vector.size());
+  int s[] = {vec_total_size(first_Vector_size, other_vectors)..., 0};
+  first_vector.reserve(first_Vector_size);
+  int val[] = {append_vector(first_vector,
+                             std::forward<other_vector_t>(other_vectors))...,
+               0};
+  return std::move(first_vector);
 }
 
 }  // namespace blas

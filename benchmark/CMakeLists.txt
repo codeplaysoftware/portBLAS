@@ -55,13 +55,13 @@ include_directories(${BLAS_BENCH})
 add_subdirectory(${BLAS_BENCH}/syclblas)
 
 if (BUILD_CLBLAST_BENCHMARKS)
-  add_subdirectory(${BLAS_BENCH}/clblast)
+  add_subdirectory(${BLAS_BENCH}/clBench/clblast)
 endif()
 
 if (BUILD_ACL_BENCHMARKS)
-  add_subdirectory(${BLAS_BENCH}/acl)
+  add_subdirectory(${BLAS_BENCH}/clBench/acl)
 endif()
 
 if(BUILD_CLBLAS_BENCHMARKS)
-  add_subdirectory(${BLAS_BENCH}/clblas)
+  add_subdirectory(${BLAS_BENCH}/clBench/clblas)
 endif()
