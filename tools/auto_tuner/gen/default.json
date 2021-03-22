@@ -4,4 +4,13 @@
         "work_group_sizes":[[4, 4], [8, 4], [4, 8], [8, 8],[16, 8], [8, 16]],
         "vectorization_size":[1, 2, 4, 8, 16]
     }
+],
+"non_local_interleaved":[
+    {
+        "cache_line_size":[64],
+        "work_item_sizes":[[1, 2], [2,1], [4, 1], [1, 4], [4, 4], [2, 2], [4, 2], [2, 4]],
+        "work_group_sizes":[[4, 1], [1, 4], [8, 1], [1, 8], [4, 4], [8, 4], [4, 8], [8, 8]],
+        "batch_level_tiles":[[2, 4], [2, 8], [4, 2], [4, 4], [4, 8], [8,2], [8,4], [2, 2]],
+        "vectorization_size":[2, 4, 8]
+    }
 ]}

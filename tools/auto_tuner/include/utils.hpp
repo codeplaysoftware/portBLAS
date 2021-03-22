@@ -35,7 +35,7 @@
 #include <random>
 
 inline SYCLExecutor make_sycl_executor() {
-  cl::sycl::queue q((cl::sycl::cpu_selector()), [=](cl::sycl::exception_list ex_list) {
+  cl::sycl::queue q([=](cl::sycl::exception_list ex_list) {
     try {
       for (auto &e_ptr : ex_list) {
         std::rethrow_exception(e_ptr);
