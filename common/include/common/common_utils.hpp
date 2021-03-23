@@ -18,7 +18,6 @@
 
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
-//#include <common/clwrap.hpp>
 #include <common/float_comparison.hpp>
 #include <common/system_reference_blas.hpp>
 
@@ -593,7 +592,7 @@ static inline double time_event(event_t&);
  * @fn time_events
  * @brief Times n events, and returns the aggregate time.
  */
-template < typename event_t>
+template <typename event_t>
 static inline double time_events(std::vector<event_t> es) {
   double total_time = 0;
   for (auto e : es) {
@@ -603,10 +602,9 @@ static inline double time_events(std::vector<event_t> es) {
 }
 
 template <typename event_t, typename... other_events_t>
-static inline  double time_events(event_t first_event,
-                                   other_events_t... next_events) {
-  return time_events(
-      blas::concatenate_vectors(first_event, next_events...));
+static inline double time_events(event_t first_event,
+                                 other_events_t... next_events) {
+  return time_events(blas::concatenate_vectors(first_event, next_events...));
 }
 /**
  * @fn timef
