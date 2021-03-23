@@ -60,7 +60,7 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         echo "GIT_SLUG=${{github.event.pull_request.head.repo.full_name}}" >> $GITHUB_ENV
-        echo "GIT_BRANCH=${{ env.GITHUB_HEAD_REF_SLUG }}" >> $GITHUB_ENV
+        echo "GIT_BRANCH=${{ env.GITHUB_HEAD_REF_SLUG_CS }}" >> $GITHUB_ENV
     - name: Build the Docker image
       env:
         C_COMPILER: ${{matrix.cc_compiler}}
