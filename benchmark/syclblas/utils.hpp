@@ -26,7 +26,7 @@ namespace utils {
  * on a queue with profiling.
  */
 template <>
-inline cl_ulong time_event<cl::sycl::event>(cl::sycl::event& e) {
+inline double time_event<cl::sycl::event>(cl::sycl::event& e) {
   // get start and end times
   cl_ulong start_time = e.template get_profiling_info<
       cl::sycl::info::event_profiling::command_start>();
@@ -35,7 +35,7 @@ inline cl_ulong time_event<cl::sycl::event>(cl::sycl::event& e) {
       cl::sycl::info::event_profiling::command_end>();
 
   // return the delta
-  return (end_time - start_time);
+  return static_cast<double>(end_time - start_time);
 }
 
 }  // namespace utils

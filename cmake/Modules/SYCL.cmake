@@ -30,6 +30,7 @@ if(NOT is_dpcpp)
 endif()
 
 if(is_computecpp)
+  find_package(ComputeCpp REQUIRED)
   # Add some performance flags to the calls to compute++.
   # NB: This must be after finding ComputeCpp
   list(APPEND COMPUTECPP_USER_FLAGS
@@ -40,7 +41,6 @@ if(is_computecpp)
     # We add some flags to workaround OpenCL platform bugs, see ComputeCpp documentation
     -no-serial-memop
   )
-  find_package(ComputeCpp REQUIRED)
   set(SYCL_INCLUDE_DIRS ${ComputeCpp_INCLUDE_DIRS})
 
   

@@ -50,7 +50,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-    - uses: rlespinasse/github-slug-action@v3.x
     - name: Push Event Environment Vars
       if: github.event_name == 'push'
       run: |
@@ -60,7 +59,7 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         echo "GIT_SLUG=${{github.event.pull_request.head.repo.full_name}}" >> $GITHUB_ENV
-        echo "GIT_BRANCH=${{ env.GITHUB_HEAD_REF_SLUG }}" >> $GITHUB_ENV
+        echo "GIT_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
     - name: Build the Docker image
       env:
         C_COMPILER: ${{matrix.cc_compiler}}
