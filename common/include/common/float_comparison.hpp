@@ -29,9 +29,9 @@
 #include <cmath>
 #include <iostream>
 
-#include <CL/sycl.hpp>
 
 #ifdef BLAS_DATA_TYPE_HALF
+#include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
   os << static_cast<float>(value);
   return os;
@@ -66,7 +66,6 @@ scalar_t abs(scalar_t value) noexcept {
 }
 
 #ifdef BLAS_DATA_TYPE_HALF
-
 template <>
 inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
@@ -120,12 +119,14 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
+#ifdef BLAS_DATA_TYPE_HALF
+
 template <>
 inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm
   return 0.05f;
 }
-
+#endif
 /**
  * Indicates the tolerated margin for absolute differences (used in case the
  * scalars are close to 0)
@@ -147,12 +148,14 @@ inline double getAbsoluteErrorMargin<double>() {
    */
   return 0.0000000001;  // 10^-10
 }
+#ifdef BLAS_DATA_TYPE_HALF
 
 template <>
 inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm.
   return 1.0f;
 }
+#endif
 
 /**
  * Compare two scalars and returns false if the difference is not acceptable.

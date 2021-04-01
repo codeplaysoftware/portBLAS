@@ -2,6 +2,7 @@
 #define ACL_UTILS_HPP
 
 #include <CL/cl.h>
+#include <clBench/clwrap.hpp>
 #include <arm_compute/core/Helpers.h>
 #include <arm_compute/core/ITensor.h>
 #include <arm_compute/core/Types.h>
@@ -81,8 +82,8 @@ void extract_tensor(tensor_t &tensor, std::vector<float> &dst) {
  * @brief No event time for ACL. Return 0
  */
 template <>
-inline cl_ulong time_event<void *>(void *&e) {
-  return 0;
+inline double time_event<void *>(void *&e) {
+  return double(0);
 }
 
 }  // namespace utils

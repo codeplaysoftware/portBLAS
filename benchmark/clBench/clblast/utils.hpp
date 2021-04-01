@@ -1,8 +1,34 @@
+/**************************************************************************
+ *
+ *  @license
+ *  Copyright (C) 2021 Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename utils.hpp
+ *
+ **************************************************************************/
+
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
 #include <common/common_utils.hpp>
-#include <clBLAS.h>
+#include <clBench/clwrap.hpp>
+#include <clblast.h>
 
 typedef Context ExecutorType;
 
@@ -63,43 +89,43 @@ static inline void print_device_information(cl_device_id device) {
  * @brief Helper function to translate transposition information from netlib
  * blas style strings into clblast types.
  */
-static inline clblasTranspose translate_transposition(const char *t_str) {
+static inline clblast::Transpose translate_transposition(const char *t_str) {
   if (t_str[0] == 'n') {
-    return clblasNoTrans;
+    return clblast::Transpose::kNo;
   } else if (t_str[0] == 't') {
-    return clblasTrans;
+    return clblast::Transpose::kYes;
   } else if (t_str[0] == 'c') {
-    return clblasConjTrans;
+    return clblast::Transpose::kConjugate;
   } else {
     throw std::runtime_error("Got invalid transpose parameter!");
   }
 }
 
-static inline clblasSide translate_side(const char *side) {
+static inline clblast::Side translate_side(const char *side) {
   if (side[0] == 'r') {
-    return clblasRight;
+    return clblast::Side::kRight;
   } else if (side[0] == 'l') {
-    return clblasLeft;
+    return clblast::Side::kLeft;
   } else {
     throw std::runtime_error("Got invalid side parameter!");
   }
 }
 
-static inline clblasUplo translate_triangle(const char* triangle) {
+static inline clblast::Triangle translate_triangle(const char* triangle) {
   if (triangle[0] == 'u') {
-    return clblasUpper;
+    return clblast::Triangle::kUpper;
   } else if (triangle[0] == 'l') {
-    return clblasLower;
+    return clblast::Triangle::kLower;
   } else {
     throw std::runtime_error("Got invalid triangle parameter!");
   }
 }
 
-static inline clblasDiag translate_diagonal(const char *diag) {
+static inline clblast::Diagonal translate_diagonal(const char *diag) {
   if (diag[0] == 'u') {
-    return clblasUnit;
+    return clblast::Diagonal::kUnit;
   } if (diag[0] == 'n') {
-    return clblasNonUnit;
+    return clblast::Diagonal::kNonUnit;
   } else {
     throw std::runtime_error("Got invalid diagonal parameter!");
   }
@@ -111,7 +137,7 @@ static inline clblasDiag translate_diagonal(const char *diag) {
  * CLEventHandler class in clwrap.h)
  */
 template <>
-inline cl_ulong time_event<cl_event>(cl_event &e) {
+inline double time_event<cl_event>(cl_event &e) {
   cl_ulong start_time, end_time;
   bool all_ok = true;
   // Declare a lambda to check the result of the calls
@@ -155,10 +181,10 @@ inline cl_ulong time_event<cl_event>(cl_event &e) {
 
   // Return the delta
   if (all_ok) {
-    return (end_time - start_time);
+    return static_cast<double>(end_time - start_time);
   } else {
     // Return a really big number to show that we've failed.
-    return 0xFFFFFFFFFFFFFFFF;
+    return static_cast<double>(0xFFFFFFFFFFFFFFFF);
   }
 }
 
