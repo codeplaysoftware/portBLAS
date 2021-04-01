@@ -418,3 +418,4 @@ report bugs.
 ### Guides and Other Documents
 
 - [How to add a new operation](doc/AddingBlas3Op.md)
+- [Autotuner Developer Guide](doc/Autotuner.md)
