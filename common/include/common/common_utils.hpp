@@ -17,9 +17,7 @@
 #include <vector>
 
 #include "benchmark_cli_args.hpp"
-
-#include <common/vector_utils.hpp>
-#include <common/clwrap.hpp>
+#include "blas_meta.h"
 #include <common/float_comparison.hpp>
 #include <common/system_reference_blas.hpp>
 
@@ -587,7 +585,7 @@ static inline void warmup(function_t func, args_t&&... args) {
  * @brief Times 1 event, and returns the aggregate time.
  */
 template <typename event_t>
-static inline cl_ulong time_event(event_t&);
+static inline double time_event(event_t&);
 // Declared here, defined separately in the specific utils.hpp files
 
 /**
@@ -595,8 +593,8 @@ static inline cl_ulong time_event(event_t&);
  * @brief Times n events, and returns the aggregate time.
  */
 template <typename event_t>
-static inline cl_ulong time_events(std::vector<event_t> es) {
-  cl_ulong total_time = 0;
+static inline double time_events(std::vector<event_t> es) {
+  double total_time = 0;
   for (auto e : es) {
     total_time += time_event(e);
   }
@@ -604,12 +602,10 @@ static inline cl_ulong time_events(std::vector<event_t> es) {
 }
 
 template <typename event_t, typename... other_events_t>
-static inline cl_ulong time_events(event_t first_event,
-                                   other_events_t... next_events) {
-  return time_events<event_t>(
-      blas::concatenate_vectors(first_event, next_events...));
+static inline double time_events(event_t first_event,
+                                 other_events_t... next_events) {
+  return time_events(blas::concatenate_vectors(first_event, next_events...));
 }
-
 /**
  * @fn timef
  * @brief Calculates the time spent executing the function func
@@ -623,7 +619,7 @@ static inline std::tuple<double, double> timef(function_t func,
   auto end = std::chrono::system_clock::now();
   double overall_time = (end - start).count();
 
-  double event_time = static_cast<double>(time_events(event));
+  double event_time = time_events(event);
 
   return std::make_tuple(overall_time, event_time);
 }

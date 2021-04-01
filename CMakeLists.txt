@@ -68,7 +68,7 @@ endif()
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
 include(SYCL)
-find_package(PythonInterp 2.7 REQUIRED)
+find_package(PythonInterp REQUIRED)
 
 if (MSVC)
   # The device compiler needs C++14 to parse the Windows headers
@@ -112,13 +112,8 @@ endif()
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 
-# Add the common library used by sycl_blas, tests and benchmarks
-add_subdirectory(common)
-
 add_subdirectory(src)
 build_library(sycl_blas)
-
-target_link_libraries(sycl_blas PUBLIC sycl_blas_common)
 
 if (WIN32)
   # On Windows, all symbols must be resolved at link time for DLLs.

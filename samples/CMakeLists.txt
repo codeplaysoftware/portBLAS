@@ -27,7 +27,7 @@ foreach(src_file ${SAMPLES_LIST})
     TARGET ${sample_exec}
     SOURCES ${src_file}
   )
-  target_link_libraries(${sample_exec} PRIVATE SyclBLAS::SyclBLAS sycl_blas_common)
+  target_link_libraries(${sample_exec} PRIVATE SyclBLAS::SyclBLAS)
   install(TARGETS ${sample_exec} RUNTIME DESTINATION bin)
 endforeach()
 include_directories(${SYCLBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
