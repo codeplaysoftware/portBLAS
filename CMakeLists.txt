@@ -68,7 +68,7 @@ endif()
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
 include(SYCL)
-find_package(PythonInterp 2.7 REQUIRED)
+find_package(PythonInterp REQUIRED)
 
 if (MSVC)
   # The device compiler needs C++14 to parse the Windows headers
