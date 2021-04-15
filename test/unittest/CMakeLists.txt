@@ -27,6 +27,11 @@ set(SYCLBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
+if(${BLAS_HEADER_ONLY_TESTING})
+  set(SyclBLAS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+	  find_package(SyclBLAS REQUIRED)
+endif()
+
 # compiling tests
 set(SYCL_UNITTEST_SRCS
   # Blas 1 tests
@@ -73,8 +78,20 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   if(STRESS_TESTING)
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
+
+  if(${BLAS_HEADER_ONLY_TESTING})
+  add_sycl_to_target(
+    TARGET ${test_exec}
+    SOURCES ${blas_test}
+  )
+  target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas SyclBLAS::SyclBLAS)
+  target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+else()
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas sycl_blas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+endif()
+
+  
   if(TEST_DEVICE)
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE})
   else()

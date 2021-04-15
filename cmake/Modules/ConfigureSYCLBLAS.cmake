@@ -59,6 +59,13 @@ if(NAIVE_GEMM)
   add_definitions(-DNAIVE_GEMM)
 endif()
 
+# If the user has specified that we should use fpga optimizations/fixes, enable that
+option(SYCL_BLAS_FPGA "Using fpga optimizations/fixes" off)
+if(SYCL_BLAS_FPGA)
+  add_definitions(-DSYCL_BLAS_FPGA)
+endif()
+
+
 # the TARGET variable defines the platform for which the sycl library is built
 SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
 SET(BACKEND_DEVICE ${TARGET})
