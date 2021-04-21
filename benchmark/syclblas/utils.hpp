@@ -7,6 +7,7 @@
 
 #include <common/common_utils.hpp>
 #include <common/quantization.hpp>
+
 #ifdef SYCL_BLAS_FPGA
 #include <common/cli_device_selector.hpp>
 #include <common/print_queue_information.hpp>
