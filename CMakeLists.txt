@@ -194,9 +194,9 @@ export(EXPORT sycl_blas
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
 # Header-only tests
-option(BLAS_HEADER_ONLY_TESTING "Whether to use sycl-blas testing in header-only mode" OFF)
-if(BLAS_HEADER_ONLY_TESTING)
-  add_definitions(-DBLAS_HEADER_ONLY_TESTING)
+option(BLAS_HEADER_ONLY "Whether to use sycl-blas testing in header-only mode" OFF)
+if(BLAS_HEADER_ONLY)
+  add_definitions(-DBLAS_HEADER_ONLY)
 endif()
 
 if(${BLAS_ENABLE_TESTING})

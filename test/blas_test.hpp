@@ -37,7 +37,7 @@
 
 #include <gtest/gtest.h>
 
-#ifdef BLAS_HEADER_ONLY_TESTING
+#ifdef BLAS_HEADER_ONLY
 #include <sycl_blas.hpp>
 #else
 #include <sycl_blas.h>

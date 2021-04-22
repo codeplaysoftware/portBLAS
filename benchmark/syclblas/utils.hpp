@@ -7,7 +7,11 @@
 
 #include <common/common_utils.hpp>
 #include <common/quantization.hpp>
-#include "sycl_blas.h"
+#ifdef BLAS_HEADER_ONLY
+#include <sycl_blas.hpp>
+#else
+#include <sycl_blas.h>
+#endif
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
