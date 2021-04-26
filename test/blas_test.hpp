@@ -37,7 +37,11 @@
 
 #include <gtest/gtest.h>
 
+#ifdef BLAS_HEADER_ONLY_TESTING
+#include <sycl_blas.hpp>
+#else
 #include <sycl_blas.h>
+#endif
 
 #include <common/cli_device_selector.hpp>
 #include <common/float_comparison.hpp>
