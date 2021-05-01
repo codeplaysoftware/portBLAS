@@ -64,6 +64,18 @@ SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
 SET(BACKEND_DEVICE ${TARGET})
 message(STATUS "${TARGET} is chosen as a backend platform")
 
+if(NOT HISPYCL_TARGETS)
+if(${TARGET} STREQUAL "NVIDIA_GPU")
+  set(HIPSYCL_TARGETS "cuda:sm_60") # todo: need to make this specifyable
+elseif(${TARGET} STREQUAL "AMD_GPU")
+  set(HISPYCL_TARGETS "hip:gfx900") # todo: need to make this specifyable
+elseif(${TARGET} STREQUAL "INTEL_GPU")
+  set(HISPYCL_TARGETS "spirv")
+else()
+  set(HIPSYCL_TARGETS "omp")
+endif()
+endif()
+
 # the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
 # be enabled for. Currently only affects ARM_GPU configs.
 SET(BLAS_MODEL_OPTIMIZATION "DEFAULT" CACHE STRING "Default Model 'DEFAULT'")
