@@ -64,16 +64,14 @@ using test_executor_t =
  * using the default device if not specified.
  */
 inline cl::sycl::queue make_queue_impl() {
-  std::unique_ptr<cl::sycl::device_selector> selector;
+  std::function<int(const cl::sycl::device&)> selector;
   if (args.device.empty()) {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new cl::sycl::default_selector());
+    selector = cl::sycl::default_selector();
   } else {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new utils::cli_device_selector(args.device));
+    selector = utils::cli_device_selector(args.device);
   }
 
-  auto q = cl::sycl::queue(*selector, [=](cl::sycl::exception_list eL) {
+  auto q = cl::sycl::queue(selector, [=](cl::sycl::exception_list eL) {
     for (auto &e : eL) {
       try {
         std::rethrow_exception(e);
