@@ -29,6 +29,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include <CL/sycl.hpp>
@@ -109,10 +110,15 @@ struct AbsoluteValue {
   template <typename value_t>
   using stripped_t = typename StripASP<value_t>::type;
 
+#ifdef BLAS_DATA_TYPE_HALF
   template <typename value_t>
   using is_floating_point = std::integral_constant<
       bool, std::is_floating_point<stripped_t<value_t>>::value ||
                 std::is_same<stripped_t<value_t>, cl::sycl::half>::value>;
+#else 
+  template <typename value_t>
+  using is_floating_point = std::is_floating_point<value_t>;
+#endif // BLAS_DATA_TYPE_HALF
 
   template <typename value_t>
   static SYCL_BLAS_INLINE value_t eval(
