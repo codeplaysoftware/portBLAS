@@ -325,7 +325,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     for (int i = 0; i < item_size; ++i) {
       auto in_range = boundary_check(i + index_start, dim_size);
       if (!in_range) {
-        *reg_res = packet_type{0};
+        *reg_res = packet_type{};
         input += stride;
         ++reg_res;
         continue;
@@ -467,7 +467,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
 #pragma unroll
     for (int i = 0; i < item_rows * item_cols * (item_batchs / VectorSize);
          ++i) {
-      reg_res[i] = packet_type(0);
+      reg_res[i] = packet_type{};
     }
   }
 

@@ -315,7 +315,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t j = 0; j < item_rows / packet_size; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-          cl::sycl::vec<element_t, packet_size> out_vec{0};
+          cl::sycl::vec<element_t, packet_size> out_vec{};
 
           out_vec.template load<address_t::global_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
@@ -563,7 +563,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
                         do_check<check_col>(is_valid_col(i));
 
-        cl::sycl::vec<element_t, work_per_load> in_vec{0};
+        cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
@@ -638,7 +638,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         bool in_range =
             do_check<check_row>(is_valid_row(i * next_element + j)) &&
             do_check<check_col>(is_valid_col(work_per_load - 1));
-        cl::sycl::vec<element_t, work_per_load> in_vec{0};
+        cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
@@ -712,7 +712,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
                     do_check<check_col>(is_valid_col(col_ofs));
 
-    cl::sycl::vec<element_t, work_per_load> in_vec{0};
+    cl::sycl::vec<element_t, work_per_load> in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
@@ -774,7 +774,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     bool in_range = do_check<check_row>(is_valid_row(row_ofs)) &&
                     do_check<check_col>(is_valid_col(work_per_load - 1));
 
-    cl::sycl::vec<element_t, work_per_load> in_vec{0};
+    cl::sycl::vec<element_t, work_per_load> in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
@@ -906,7 +906,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (int j = 0; j < item_rows / packet_size; j++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
                                                dim_n_c_start + i * wg_cols))) {
-          cl::sycl::vec<element_t, packet_size> out_vec{0};
+          cl::sycl::vec<element_t, packet_size> out_vec{};
 
           out_vec.template load<address_t::private_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
