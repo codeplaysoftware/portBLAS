@@ -396,31 +396,7 @@ function(add_gemm_configuration
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction()
-
-if(is_hipsycl)
-  set(supported_types
-  "float"
-  "double"
-  )
-  foreach(data ${supported_types})
-  if(NAIVE_GEMM)
-    add_gemm_configuration(
-      "${data}"  64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 "no_local" "naive" "none" 1 "strided")
-  else()
-    add_gemm_configuration(
-      "${data}"  64 "false" "false" "false"
-      64 2 2 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 2 "strided")
-    add_gemm_configuration(
-      "${data}"  64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
-  endif()
-
-  add_gemm_configuration(
-    "${data}" 64 "false" "false" "false"
-    64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
-  endforeach()
-elseif(${TARGET} STREQUAL "INTEL_GPU")
+if(${TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
