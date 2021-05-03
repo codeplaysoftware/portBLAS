@@ -472,7 +472,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename OutputPointerType>
   SYCL_BLAS_INLINE typename std::enable_if<internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
-    vector_t out_vec{0};
+    vector_t out_vec{};
 
     out_vec.template load<address_t::private_space>(
         0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
