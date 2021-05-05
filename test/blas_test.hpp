@@ -64,14 +64,7 @@ using test_executor_t =
  * using the default device if not specified.
  */
 inline cl::sycl::queue make_queue_impl() {
-  std::function<int(const cl::sycl::device&)> selector;
-  if (args.device.empty()) {
-    selector = cl::sycl::default_selector();
-  } else {
-    selector = utils::cli_device_selector(args.device);
-  }
-
-  auto q = cl::sycl::queue(selector, [=](cl::sycl::exception_list eL) {
+  auto async_handler = [=](cl::sycl::exception_list eL) {
     for (auto &e : eL) {
       try {
         std::rethrow_exception(e);
@@ -83,7 +76,27 @@ inline cl::sycl::queue make_queue_impl() {
         std::cout << "An exception " << std::endl;
       }
     }
-  });
+  };
+
+#ifdef HAS_SYCL2020_SELECTORS
+  std::function<int(const cl::sycl::device&)> selector;
+  if (args.device.empty()) {
+    selector = cl::sycl::default_selector_v;
+  } else {
+    selector = utils::cli_device_selector(args.device);
+  }
+  auto q = cl::sycl::queue(selector, async_handler);
+#else
+  std::unique_ptr<cl::sycl::device_selector> selector;
+  if (args.device.empty()) {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new cl::sycl::default_selector());
+  } else {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new utils::cli_device_selector(args.device));
+  }
+  auto q = cl::sycl::queue(*selector, async_handler);
+#endif
 
   utils::print_queue_information(q);
   return q;
