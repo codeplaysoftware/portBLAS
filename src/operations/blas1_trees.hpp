@@ -75,6 +75,7 @@ struct DetectScalar<double> {
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
+#ifdef BLAS_DATA_TYPE_HALF
 /*! DetectScalar.
  * @brief See Detect Scalar.
  */
@@ -83,6 +84,7 @@ struct DetectScalar<cl::sycl::half> {
   using element_t = cl::sycl::half;
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
+#endif // BLAS_DATA_TYPE_HALF
 
 /*! DetectScalar.
  * @brief See Detect Scalar.

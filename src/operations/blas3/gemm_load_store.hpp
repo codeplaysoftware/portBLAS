@@ -83,7 +83,7 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
-    PacketType packet{0};
+    PacketType packet{};
 
     if (in_range) {
       using address_t = cl::sycl::access::address_space;
