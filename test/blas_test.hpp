@@ -96,7 +96,7 @@ inline cl::sycl::queue make_queue_impl() {
         new utils::cli_device_selector(args.device));
   }
   auto q = cl::sycl::queue(*selector, async_handler);
-#endif
+#endif  // HAS_SYCL2020_SELECTORS
 
   utils::print_queue_information(q);
   return q;
