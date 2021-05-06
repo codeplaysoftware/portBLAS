@@ -88,7 +88,13 @@ inline cl::sycl::queue make_queue_impl() {
   } else {
     selector = utils::cli_device_selector(args.device);
   }
-  auto q = cl::sycl::queue(selector, async_handler);
+  auto q = cl::sycl::queue(selector,
+#ifdef SYCL_BLAS_FPGA // If compiling for fpga use overloaded queue constructor
+   async_handler ,true);
+#else
+  async_handler);
+#endif
+
 #else
   std::unique_ptr<cl::sycl::device_selector> selector;
   if (args.device.empty()) {
@@ -98,7 +104,11 @@ inline cl::sycl::queue make_queue_impl() {
     selector = std::unique_ptr<cl::sycl::device_selector>(
         new utils::cli_device_selector(args.device));
   }
-  auto q = cl::sycl::queue(*selector, async_handler);
+#ifdef SYCL_BLAS_FPGA // If compiling for fpga use overloaded queue constructor
+   auto q = cl::sycl::queue(*selector, async_handler, true);
+#else
+   auto q = cl::sycl::queue(*selector, async_handler);
+#endif  // SYCL_BLAS_FPGA
 #endif  // HAS_SYCL2020_SELECTORS
 
   utils::print_queue_information(q);
