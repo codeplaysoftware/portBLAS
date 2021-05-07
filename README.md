@@ -315,10 +315,9 @@ added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
 3. Run `CMake` from the build directory (see options in the section below):
 
 ### Compile with ComputeCpp
-
 ```bash
 cd build
-cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp
+cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp -DSYCL_COMPILER=computecpp
 ninja
 ```
 
@@ -327,9 +326,18 @@ ninja
 export CC=[path/to/intel/clang]
 export CXX=[path/to/intel/clang++]
 cd build
-cmake -GNinja ../
+cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
 ```
+
+### Compile with hipSYCL
+```bash
+cd build
+cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
+ninja
+```
+To build for other than the default devices, set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+
 ### Instaling SYCL-BLAS
 To install the SYCL-BLAS library (see `CMAKE_INSTALL_PREFIX` below)
 
@@ -362,6 +370,7 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
 | `TARGET` | name | By default SYCL-BLAS library is built for CPU. Use that flag to compile it for a specific backend (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
