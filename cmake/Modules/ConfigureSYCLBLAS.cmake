@@ -67,10 +67,3 @@ message(STATUS "${TARGET} is chosen as a backend platform")
 # the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
 # be enabled for. Currently only affects ARM_GPU configs.
 SET(BLAS_MODEL_OPTIMIZATION "DEFAULT" CACHE STRING "Default Model 'DEFAULT'")
-
-# SYCL 2020 feature flags
-option(HAS_SYCL2020_SELECTORS "Enable use of SYCL 2020 selector API" Off)
-
-if(HAS_SYCL2020_SELECTORS)
-  add_definitions(-DHAS_SYCL2020_SELECTORS)
-endif()

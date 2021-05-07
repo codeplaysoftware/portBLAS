@@ -78,7 +78,7 @@ inline cl::sycl::queue make_queue_impl() {
     }
   };
 
-#ifdef HAS_SYCL2020_SELECTORS
+#if SYCL_LANGUAGE_VERSION >= 202002
   std::function<int(const cl::sycl::device&)> selector;
   if (args.device.empty()) {
     selector = cl::sycl::default_selector_v;
