@@ -34,8 +34,13 @@ std::string get_name(std::string t, int m, int n) {
 }
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void run(benchmark::State& state, int ti, index_t m,
+         index_t n, scalar_t alpha, scalar_t beta, bool* success) {
+#else
 void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
          index_t n, scalar_t alpha, scalar_t beta, bool* success) {
+#endif
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
@@ -72,7 +77,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
+#ifdef SYCL_BLAS_FPGA
+  auto q = blas_benchmark::utils::make_queue();
+  ExecutorType ex(q); 
+#else
   ExecutorType& ex = *executorPtr;
+#endif
 
   using data_t = utils::data_storage_t<scalar_t>;
 
@@ -137,8 +147,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 }
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void register_benchmark(Args& args,
+                        bool* success) {
+#else
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
+#endif
   auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
@@ -147,7 +162,16 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     scalar_t alpha, beta;
     std::tie(ts, m, n, alpha, beta) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
-
+#ifdef SYCL_BLAS_FPGA
+    auto BM_lambda = [&](benchmark::State& st, int t,
+                         index_t m, index_t n, scalar_t alpha, scalar_t beta,
+                         bool* success) {
+      run<scalar_t>(st, t, m, n, alpha, beta, success);
+    };
+    benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
+                                 BM_lambda, t, m, n, alpha, beta,
+                                 success);
+#else
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
                          index_t m, index_t n, scalar_t alpha, scalar_t beta,
                          bool* success) {
@@ -156,12 +180,20 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
                                  BM_lambda, exPtr, t, m, n, alpha, beta,
                                  success);
+#endif
   }
 }
 
 namespace blas_benchmark {
+#ifdef SYCL_BLAS_FPGA
+void create_benchmark(Args& args,
+                      bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, success);
+}
+#else
 void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }
+#endif
 }  // namespace blas_benchmark

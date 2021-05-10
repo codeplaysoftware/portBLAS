@@ -34,15 +34,25 @@ std::string get_name(int size) {
 }
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void run(benchmark::State& state, index_t size,
+         bool* success) {
+#else
 void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
          bool* success) {
+#endif
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
+#ifdef SYCL_BLAS_FPGA
+  auto q = blas_benchmark::utils::make_queue();
+  ExecutorType ex(q); 
+#else
   ExecutorType& ex = *executorPtr;
+#endif
 
   using data_t = utils::data_storage_t<scalar_t>;
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
@@ -106,23 +116,44 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 }
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void register_benchmark(Args& args,
+                        bool* success) {
+#else
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
+#endif
   auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
+#ifdef SYCL_BLAS_FPGA
+ auto BM_lambda = [&](benchmark::State& st,
+                         index_t size, bool* success) {
+      run<scalar_t>(st, size, success);
+    };
+    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
+                                 size, success);
+#else
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
                          index_t size, bool* success) {
       run<scalar_t>(st, exPtr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
                                  exPtr, size, success);
+#endif
   }
 }
 
 namespace blas_benchmark {
+#ifdef SYCL_BLAS_FPGA
+void create_benchmark(Args& args,
+                      bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, success);
+}
+#else
 void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }
+#endif
 }  // namespace blas_benchmark

@@ -6,14 +6,24 @@
 
 #include "clara.hpp"
 
-namespace blas_benchmark {
+#ifdef SYCL_BLAS_FPGA
+struct Args{
+  std::string program_name;
+  std::string device;
+  std::string csv_param;
+};
 
+#endif
+
+namespace blas_benchmark {
+#ifndef SYCL_BLAS_FPGA
 typedef struct {
   std::string program_name;
   std::string device;
   std::string csv_param;
 } Args;
 
+#endif
 namespace utils {
 
 /**

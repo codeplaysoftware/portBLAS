@@ -1,20 +1,26 @@
 #include "utils.hpp"
+#ifndef SYCL_BLAS_FPGA
 #include <common/cli_device_selector.hpp>
 #include <common/print_queue_information.hpp>
-
+#endif
 // Create a shared pointer to a sycl blas executor, so that we don't keep
 // reconstructing it each time (which is slow). Although this won't be
 // cleaned up if RunSpecifiedBenchmarks exits badly, that's okay, as those
 // are presumably exceptional circumstances.
+#ifdef SYCL_BLAS_FPGA
+struct Args args{};
+#else
 std::unique_ptr<utils::cli_device_selector> cdsp;
 void free_device_selector() { cdsp.reset(); }
-
+#endif
 int main(int argc, char** argv) {
   // Read the command-line arguments
   auto args = blas_benchmark::utils::parse_args(argc, argv);
 
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
+  
+#ifndef SYCL_BLAS_FPGA
 
   cl::sycl::queue q;
 
@@ -49,6 +55,12 @@ int main(int argc, char** argv) {
 
   // Create the benchmarks
   blas_benchmark::create_benchmark(args, &executor, &success);
+#else 
+  // This will be set to false by a failing benchmark
+  bool success = true;
+
+  blas_benchmark::create_benchmark(args, &success);
+#endif // SYCL_BLAS_FPGA
 
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
