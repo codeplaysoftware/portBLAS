@@ -137,6 +137,13 @@ elseif(is_dpcpp)
 elseif(is_hipsycl)
   set(sycl_impl hipSYCL::hipSYCL-rt)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
+elseif(is_hipsycl)
+  set_target_properties(sycl_blas PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    INTERFACE_LINK_LIBRARIES hipSYCL::hipSYCL-rt
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
+  )
+  add_sycl_to_target(TARGET sycl_blas SOURCES)
 endif()
 set_target_properties(sycl_blas PROPERTIES
   VERSION ${PROJECT_VERSION}
