@@ -124,6 +124,8 @@ if (WIN32)
     target_link_libraries(sycl_blas PRIVATE ComputeCpp::ComputeCpp)
   elseif(is_dpcpp)
     target_link_libraries(sycl_blas PRIVATE DPCPP::DPCPP)
+  elseif(is_hipsycl)
+    target_link_libraries(sycl_blas PRIVATE hipSYCL::hipSYCL-rt)
   endif()
 endif()
 if(is_computecpp)
@@ -136,6 +138,13 @@ elseif(is_dpcpp)
   set_target_properties(sycl_blas PROPERTIES
     VERSION ${PROJECT_VERSION}
     INTERFACE_LINK_LIBRARIES DPCPP::DPCPP
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
+  )
+  add_sycl_to_target(TARGET sycl_blas SOURCES)
+elseif(is_hipsycl)
+  set_target_properties(sycl_blas PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    INTERFACE_LINK_LIBRARIES hipSYCL::hipSYCL-rt
     INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
   )
   add_sycl_to_target(TARGET sycl_blas SOURCES)

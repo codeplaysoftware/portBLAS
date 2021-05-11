@@ -396,7 +396,6 @@ function(add_gemm_configuration
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction()
-
 if(${TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
