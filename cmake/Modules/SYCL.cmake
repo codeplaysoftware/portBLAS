@@ -25,8 +25,7 @@
 include(CheckCXXCompilerFlag)
 include(ConfigureSYCLBLAS)
 
-# set hipSYCL defaults if not set before the package is searched
-# as that would fail otherwise
+# find_package(hipSYCL) requires HIPSYCL_TARGETS to be set, so set it to a default value before find_package(hipSYCL)
 if(NOT HISPYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})
   if(${TARGET} STREQUAL "NVIDIA_GPU")
     set(HIPSYCL_TARGETS "cuda:sm_35")
