@@ -79,10 +79,10 @@ inline cl::sycl::queue make_queue_impl() {
     // Create a queue from the device selector - do this after initialising
     // googlebench, as otherwise we may not be able to delete the queue before
     // we exit (if Initialise calls exit(0)), and dump some information about it
-    q = cl::sycl::queue(true ,*cdsp.get(),
+    q = cl::sycl::queue(*cdsp.get(),
                         {cl::sycl::property::queue::enable_profiling()});
   } else {
-    q = cl::sycl::queue(true, cl::sycl::default_selector(),
+    q = cl::sycl::queue(cl::sycl::default_selector(),
                         {cl::sycl::property::queue::enable_profiling()});
   }
   ::utils::print_queue_information(q);
