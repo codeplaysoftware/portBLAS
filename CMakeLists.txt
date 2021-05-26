@@ -200,6 +200,11 @@ option(BLAS_HEADER_ONLY "Whether to use sycl-blas testing in header-only mode" O
 if(BLAS_HEADER_ONLY)
   add_definitions(-DBLAS_HEADER_ONLY)
 endif()
+# Enable first kernel in queue constructor
+option(ENQUEUE_FIRST_KERNEL "Whether to enqueue dummy kernel in queue constructor" OFF)
+if(ENQUEUE_FIRST_KERNEL)
+  add_definitions(-DENQUEUE_FIRST_KERNEL)
+endif()
 
 if(${BLAS_ENABLE_TESTING})
   enable_testing()
