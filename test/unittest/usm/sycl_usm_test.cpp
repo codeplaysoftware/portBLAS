@@ -19,12 +19,11 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_buffer_test.cpp
+ *  @filename sycl_usm_test.cpp
  *
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include <CL/sycl.hpp>
 
 template <typename scalar_t>
 using combination_t = std::tuple<int>;
@@ -34,10 +33,10 @@ void run_test(const combination_t<scalar_t> combi) {
   int dataSize;
   std::tie(dataSize) = combi;
 
-  float a[dataSize], b[dataSize], r[dataSize], z=0.0f;
+  float a[dataSize], b[dataSize];
   for (int i = 0; i < dataSize; ++i) {
     a[i] = static_cast<float>(i);
-    r[i] = 0.0f;
+    b[i] = 0.0f;
   }
 
   auto queue = make_queue();
@@ -45,17 +44,15 @@ void run_test(const combination_t<scalar_t> combi) {
   auto devicePtr = blas::sycl_usm_malloc_device(sizeof(float) * dataSize, queue);
 
   queue.memcpy(devicePtr, a, sizeof(float) * dataSize).wait();
-  queue.memcpy(r, devicePtr, sizeof(float) * dataSize).wait();
+  queue.memcpy(b, devicePtr, sizeof(float) * dataSize).wait();
 
   blas::sycl_usm_free(devicePtr, queue);
 
   queue.throw_asynchronous();
 
   for (int i = 0; i < dataSize; ++i) {
-    z += r[i] - a[i];
+    EXPECT_EQ(b[i], a[i]);
   }
-
-  EXPECT_EQ(z, 0);
 }
 
 const auto combi = ::testing::Combine(::testing::Values(100, 1024000));

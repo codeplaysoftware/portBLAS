@@ -24,9 +24,6 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_USM_H
 #define SYCL_BLAS_USM_H
-#include "blas_meta.h"
-#include "container/blas_iterator.h"
-#include "policy/sycl_policy.h"
 #include <CL/sycl.hpp>
 
 namespace blas {
