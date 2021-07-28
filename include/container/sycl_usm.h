@@ -19,48 +19,28 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.h
+ *  @filename sycl_usm.h
  *
  **************************************************************************/
-
+#ifndef SYCL_BLAS_USM_H
+#define SYCL_BLAS_USM_H
+#include "blas_meta.h"
+#include "container/blas_iterator.h"
+#include "policy/sycl_policy.h"
 #include <CL/sycl.hpp>
 
-#include "blas_meta.h"
+namespace blas {
+template <typename scalar_t, typename queue_t>
+inline void *
+sycl_usm_malloc_device(scalar_t numBytes, const queue_t& syclQueue) {
+  return cl::sycl::malloc_device(numBytes, syclQueue);
+}
 
-#include "policy/sycl_policy.h"
+template <typename pointer_t, typename queue_t>
+inline void
+sycl_usm_free(pointer_t *ptr, queue_t& syclQueue) {
+  return cl::sycl::free(ptr, syclQueue);
+}
+}  // end namespace blas
 
-#include "container/blas_iterator.h"
-
-#include "container/sycl_iterator.h"
-
-#include "container/sycl_usm.h"
-
-#include "executors/executor.h"
-
-#include "executors/kernel_constructor.h"
-
-#include "interface/blas1_interface.h"
-
-#include "interface/blas2_interface.h"
-
-#include "interface/blas3_interface.h"
-
-#include "interface/gemm_launcher.h"
-
-#include "operations/blas1_trees.h"
-
-#include "operations/blas2_trees.h"
-
-#include "operations/blas3_trees.h"
-
-#include "operations/extension_trees.h"
-
-#include "operations/blas_constants.h"
-
-#include "operations/blas_operators.h"
-
-#include "policy/policy_handler.h"
-
-#include "quantize/quantize.h"
-
-#include "views/view.h"
+#endif  // SYCL_BLAS_USM_H

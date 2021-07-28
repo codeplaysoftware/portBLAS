@@ -42,6 +42,8 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+  # Blas USM tests
+  ${SYCLBLAS_UNITTEST}/usm/sycl_usm_test.cpp
 )
 
 # Temporary disabling the following tests fro Intel DPC++ as currently Intel compiler crashes while running the following tests

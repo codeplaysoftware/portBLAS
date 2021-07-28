@@ -19,48 +19,45 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.h
+ *  @filename sycl_buffer_test.cpp
  *
  **************************************************************************/
 
+#include "blas_test.hpp"
 #include <CL/sycl.hpp>
 
-#include "blas_meta.h"
+template <typename scalar_t>
+using combination_t = std::tuple<int>;
 
-#include "policy/sycl_policy.h"
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  int dataSize;
+  std::tie(dataSize) = combi;
 
-#include "container/blas_iterator.h"
+  float a[dataSize], b[dataSize], r[dataSize], z=0.0f;
+  for (int i = 0; i < dataSize; ++i) {
+    a[i] = static_cast<float>(i);
+    r[i] = 0.0f;
+  }
 
-#include "container/sycl_iterator.h"
+  auto queue = make_queue();
 
-#include "container/sycl_usm.h"
+  auto devicePtr = blas::sycl_usm_malloc_device(sizeof(float) * dataSize, queue);
 
-#include "executors/executor.h"
+  queue.memcpy(devicePtr, a, sizeof(float) * dataSize).wait();
+  queue.memcpy(r, devicePtr, sizeof(float) * dataSize).wait();
 
-#include "executors/kernel_constructor.h"
+  blas::sycl_usm_free(devicePtr, queue);
 
-#include "interface/blas1_interface.h"
+  queue.throw_asynchronous();
 
-#include "interface/blas2_interface.h"
+  for (int i = 0; i < dataSize; ++i) {
+    z += r[i] - a[i];
+  }
 
-#include "interface/blas3_interface.h"
+  EXPECT_EQ(z, 0);
+}
 
-#include "interface/gemm_launcher.h"
+const auto combi = ::testing::Combine(::testing::Values(100, 1024000));
 
-#include "operations/blas1_trees.h"
-
-#include "operations/blas2_trees.h"
-
-#include "operations/blas3_trees.h"
-
-#include "operations/extension_trees.h"
-
-#include "operations/blas_constants.h"
-
-#include "operations/blas_operators.h"
-
-#include "policy/policy_handler.h"
-
-#include "quantize/quantize.h"
-
-#include "views/view.h"
+BLAS_REGISTER_TEST(Usm, combination_t, combi);
