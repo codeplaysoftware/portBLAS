@@ -24,6 +24,7 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+#include <iostream>
 
 template <typename scalar_t>
 using combination_t = std::tuple<int>;
@@ -39,14 +40,21 @@ void run_test(const combination_t<scalar_t> combi) {
     b[i] = 0.0f;
   }
 
+#ifdef SYCL_BLAS_USE_USM
+  std::cout << "SYCL_BLAS_USE_USM Defined" << std::endl;
+#else
+  std::cout << "SYCL_BLAS_USE_USM Not Defined" << std::endl;
+#endif
   auto queue = make_queue();
 
-  auto devicePtr = blas::sycl_usm_malloc_device(sizeof(float) * dataSize, queue);
+  //auto devicePtr = blas::sycl_usm_malloc_device(sizeof(float) * dataSize, queue);
+  auto devicePtr = cl::sycl::malloc_device(sizeof(float) * dataSize, queue);
 
   queue.memcpy(devicePtr, a, sizeof(float) * dataSize).wait();
   queue.memcpy(b, devicePtr, sizeof(float) * dataSize).wait();
 
-  blas::sycl_usm_free(devicePtr, queue);
+  //blas::sycl_usm_free(devicePtr, queue);
+  cl::sycl::free(devicePtr, queue);
 
   queue.throw_asynchronous();
 

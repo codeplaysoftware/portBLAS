@@ -33,8 +33,6 @@
 
 #include "container/sycl_iterator.h"
 
-#include "container/sycl_usm.h"
-
 #include "executors/executor.h"
 
 #include "executors/kernel_constructor.h"

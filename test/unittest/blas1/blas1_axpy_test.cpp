@@ -24,6 +24,7 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+#include <iostream>
 
 template <typename scalar_t>
 using combination_t = std::tuple<int, scalar_t, int, int>;
@@ -55,17 +56,35 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
+#ifdef SYCL_BLAS_USE_USM
+  auto gpu_x_v = cl::sycl::malloc_device<data_t>(sizeof(data_t) * size * incX, q);
+  auto gpu_y_v = cl::sycl::malloc_device<data_t>(sizeof(data_t) * size * incY, q);
+
+  q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX).wait();
+  q.memcpy(gpu_y_v, y_v.data(), sizeof(data_t) * size * incY).wait();
+#else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
+#endif
 
-  _axpy(ex, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
+ _axpy(ex, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
+
+#ifdef SYCL_BLAS_USE_USM
+  q.memcpy(y_v.data(), gpu_y_v, sizeof(data_t) * size * incY).wait();
+#else
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v);
   ex.get_policy_handler().wait(event);
+#endif
 
   // Validate the result
   const bool isAlmostEqual =
       utils::compare_vectors<data_t, scalar_t>(y_v, y_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(gpu_x_v, q);
+  cl::sycl::free(gpu_y_v, q);
+#endif
 }
 
 #ifdef STRESS_TESTING

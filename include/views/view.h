@@ -235,7 +235,11 @@ static inline
   using leaf_node_t =
       typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, increment_t>::output_t;
+#ifdef SYCL_BLAS_USE_USM
+  return leaf_node_t{buff, inc, sz};
+#else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
+#endif
 }
 
 template <typename access_mode_t, typename executor_t, typename container_t,
@@ -248,7 +252,11 @@ static inline
   using leaf_node_t =
       typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, access_mode_t>::output_t;
+#ifdef SYCL_BLAS_USE_USM
+  return leaf_node_t{buff, m, n, lda};
+#else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, lda};
+#endif
 }
 
 }  // namespace blas
