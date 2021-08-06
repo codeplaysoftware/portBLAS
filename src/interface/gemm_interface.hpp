@@ -30,7 +30,7 @@
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 
 #include <algorithm>
 #include <cctype>

@@ -208,7 +208,12 @@ struct MatrixView {
 template <typename policy_t, typename data_t, typename index_t,
           typename increment_t>
 struct VectorViewTypeFactory {
+#ifdef SYCL_BLAS_USE_USM
+  //using scalar_t = typename std::remove_pointer<data_t>::type();
+  using scalar_t = data_t;
+#else
   using scalar_t = typename ValueType<data_t>::type;
+#endif
   using output_t =
       VectorView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,

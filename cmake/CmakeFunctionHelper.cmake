@@ -713,31 +713,31 @@ endfunction(generate_quantize)
 
 function (build_library LIB_NAME)
 add_library(${LIB_NAME}
-                             $<TARGET_OBJECTS:sycl_policy>
-                             $<TARGET_OBJECTS:quantize>
+#                             $<TARGET_OBJECTS:sycl_policy>
+#                             $<TARGET_OBJECTS:quantize>
                              $<TARGET_OBJECTS:axpy>
-                             $<TARGET_OBJECTS:asum>
-                             $<TARGET_OBJECTS:asum_return>
-                             $<TARGET_OBJECTS:copy>
-                             $<TARGET_OBJECTS:dot>
-                             $<TARGET_OBJECTS:dot_return>
-                             $<TARGET_OBJECTS:iamax>
-                             $<TARGET_OBJECTS:iamax_return>
-                             $<TARGET_OBJECTS:iamin>
-                             $<TARGET_OBJECTS:iamin_return>
-                             $<TARGET_OBJECTS:nrm2>
-                             $<TARGET_OBJECTS:nrm2_return>
-                             $<TARGET_OBJECTS:rot>
-                             $<TARGET_OBJECTS:scal>
-                             $<TARGET_OBJECTS:swap>
-                             $<TARGET_OBJECTS:gemv>
-                             $<TARGET_OBJECTS:ger>
-                             $<TARGET_OBJECTS:symv>
-                             $<TARGET_OBJECTS:syr>
-                             $<TARGET_OBJECTS:syr2>
-                             $<TARGET_OBJECTS:trmv>
-                             $<TARGET_OBJECTS:gemm_launcher>
-                             $<TARGET_OBJECTS:gemm>
-                             $<TARGET_OBJECTS:trsm>
+#                             $<TARGET_OBJECTS:asum>
+#                             $<TARGET_OBJECTS:asum_return>
+#                             $<TARGET_OBJECTS:copy>
+#                             $<TARGET_OBJECTS:dot>
+#                             $<TARGET_OBJECTS:dot_return>
+#                             $<TARGET_OBJECTS:iamax>
+#                             $<TARGET_OBJECTS:iamax_return>
+#                             $<TARGET_OBJECTS:iamin>
+#                             $<TARGET_OBJECTS:iamin_return>
+#                             $<TARGET_OBJECTS:nrm2>
+#                             $<TARGET_OBJECTS:nrm2_return>
+#                             $<TARGET_OBJECTS:rot>
+#                             $<TARGET_OBJECTS:scal>
+#                             $<TARGET_OBJECTS:swap>
+#                             $<TARGET_OBJECTS:gemv>
+#                             $<TARGET_OBJECTS:ger>
+#                             $<TARGET_OBJECTS:symv>
+#                             $<TARGET_OBJECTS:syr>
+#                             $<TARGET_OBJECTS:syr2>
+#                             $<TARGET_OBJECTS:trmv>
+#                             $<TARGET_OBJECTS:gemm_launcher>
+#                             $<TARGET_OBJECTS:gemm>
+#                             $<TARGET_OBJECTS:trsm>
                             )
 endfunction(build_library)

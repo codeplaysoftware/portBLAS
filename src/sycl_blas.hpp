@@ -50,6 +50,10 @@
 
 #include "operations/blas_operators.hpp"
 
+#ifdef SYCL_BLAS_USE_USM
+#include "policy/usm_policy_handler.hpp"
+#else
 #include "policy/sycl_policy_handler.hpp"
+#endif
 
 #include "views/view_sycl.hpp"

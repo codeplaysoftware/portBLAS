@@ -56,8 +56,13 @@ extern Args args;
 using namespace blas;
 
 // The executor type used in tests
+#ifdef SYCL_BLAS_USE_USM
+using test_executor_t =
+    blas::Executor<blas::PolicyHandler<blas::usm_policy>>;
+#else
 using test_executor_t =
     blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
+#endif
 
 /**
  * Construct a SYCL queue using the device specified in the command line, or

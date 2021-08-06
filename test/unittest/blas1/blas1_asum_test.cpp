@@ -56,8 +56,16 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
+#ifdef SYCL_BLAS_USE_USM
+  auto gpu_x_v = cl::sycl::malloc_device(sizeof(data_t) * size * incX, q);
+  auto gpu_out_s = cl::sycl::malloc_device(sizeof(data_t), q);
+
+  q.memcpy(gpu_x_v, x_v, sizeof(data_t) * size * incX).wait();
+  q.memcpy(gpu_out_s, out_s, sizeof(data_t)).wait();
+#else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+#endif
 
   _asum(ex, size, gpu_x_v, incX, gpu_out_s);
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
@@ -69,6 +77,11 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(is_almost_equal);
 
   ex.get_policy_handler().get_queue().wait();
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(gpu_x_v, q);
+  cl::sycl::free(gpu_out_s, q);
+#endif
 }
 
 const auto combi =

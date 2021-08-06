@@ -27,7 +27,7 @@
 #define SYCL_BLAS_QUANTIZE_HPP
 
 #include "executors/executor.h"
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 
 namespace blas {
 namespace internal {

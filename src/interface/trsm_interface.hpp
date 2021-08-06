@@ -28,7 +28,7 @@
 #include "executors/executor.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 
 namespace blas {
 namespace internal {
