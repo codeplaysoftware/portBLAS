@@ -74,9 +74,9 @@ class PolicyHandler<codeplay_policy> {
   user can apply arithmetic operation on the host side
   */
 
-  template <typename buffer_t>
-  buffer_t get_buffer(
-      buffer_t buff) const;
+  template <typename element_t>
+  BufferIterator<element_t, policy_t> get_buffer(
+      BufferIterator<element_t, policy_t> buff) const;
 
   /*  @brief Getting range accessor from the buffer created by virtual pointer
       @tparam element_t is the type of the data

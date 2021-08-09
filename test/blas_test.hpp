@@ -43,7 +43,10 @@
 #include <common/float_comparison.hpp>
 #include <common/print_queue_information.hpp>
 #include <common/system_reference_blas.hpp>
+
+#ifndef SYCL_BLAS_USE_USM
 #include <common/quantization.hpp>
+#endif
 
 #include "blas_test_macros.hpp"
 

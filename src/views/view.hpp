@@ -39,17 +39,6 @@ namespace blas {
 @param disp
 @param strd
 */
-//#ifdef SYCL_BLAS_USE_USM
-//template <class _value_t, class _container_t, typename _IndexType,
-//          typename _IncrementType>
-//VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-//    _container_t data, _IndexType disp, _IncrementType strd)
-//    : data_(data),
-//      size_data_(data_.size()),
-//      size_(data_.size()),
-//      disp_(disp),
-//      strd_(strd) {}
-//#else
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
@@ -59,7 +48,6 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
       size_(data_.size()),
       disp_(disp),
       strd_(strd) {}
-//#endif
 
 /*!
 @brief Creates a view with a size smaller than the container size.
@@ -123,21 +111,12 @@ inline void VectorView<_value_t, _container_t, _IndexType,
 /*!
  * @brief Returns a reference to the container
  */
-#ifdef SYCL_BLAS_USE_USM
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-inline VectorView<_value_t, _container_t, _IndexType, _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_data() {
-  return data_;
-}
-#else
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 inline _container_t &
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_data() {
   return data_;
 }
-#endif
 
 /*!
  * @brief Returns a reference to the container

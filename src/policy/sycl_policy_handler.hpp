@@ -29,27 +29,6 @@
 
 namespace blas {
 
-#ifdef SYCL_BLAS_USE_USM
-using policy_t = usm_policy;
-#else
-using policy_t = codeplay_policy;
-#endif
-
-// template <typename T>
-// struct element_traits<T> {
-//   using element_t = T;
-// };
-
-template <typename T>
-struct element_traits {
-  using element_t = void*;
-};
-
-template <typename T>
-struct element_traits< BufferIterator<T, codeplay_policy> > {
-  using element_t = BufferIterator<T, codeplay_policy>;
-};
-
 template <typename element_t>
 inline element_t *PolicyHandler<codeplay_policy>::allocate(
     size_t num_elements) const {
@@ -68,7 +47,7 @@ inline void PolicyHandler<codeplay_policy>::deallocate(element_t *p) const {
 @tparam bufferT<element_t> is the type of the buffer points to the data. on the
 host side buffer<element_t> and element_t are the same
 */
-#ifndef SYCL_BLAS_USE_USM
+
 template <typename element_t>
 inline BufferIterator<element_t, codeplay_policy>
 PolicyHandler<codeplay_policy>::get_buffer(element_t *ptr) const {
@@ -83,7 +62,6 @@ PolicyHandler<codeplay_policy>::get_buffer(element_t *ptr) const {
   return BufferIterator<element_t, codeplay_policy>(buff, offset);
 }
 
-
 /*
 @brief this class is to return the dedicated buffer to the user
 @ tparam element_t is the type of the buffer
@@ -92,9 +70,9 @@ that user can apply arithmetic operation on the host side
 */
 
 template <typename element_t>
-inline element_t
+inline BufferIterator<element_t, codeplay_policy>
 PolicyHandler<codeplay_policy>::get_buffer(
-    element_t buff) const {
+    BufferIterator<element_t, codeplay_policy> buff) const {
   return buff;
 }
 
@@ -148,7 +126,6 @@ inline std::ptrdiff_t PolicyHandler<codeplay_policy>::get_offset(
     BufferIterator<element_t, codeplay_policy> buff) const {
   return buff.get_offset();
 }
-#endif
 
 /*  @brief Copying the data back to device
     @tparam element_t is the type of the data

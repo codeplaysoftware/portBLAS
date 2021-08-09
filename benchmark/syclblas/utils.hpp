@@ -6,7 +6,9 @@
 #include <tuple>
 
 #include <common/common_utils.hpp>
+#ifndef SYCL_BLAS_USE_USM
 #include <common/quantization.hpp>
+#endif
 #include "sycl_blas.h"
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
