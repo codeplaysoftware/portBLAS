@@ -124,11 +124,15 @@ struct codeplay_policy: public device_policy {
 };  // struct codeplay_policy
 
 struct usm_policy: public device_policy {
-  using buffer_t = void*;
-  using accessor_t = buffer_t;
-  using placeholder_accessor_t = accessor_t;
+  template <typename scalar_t>
+  using buffer_t = scalar_t*;
+  template <typename scalar_t>
+  using accessor_t = buffer_t<scalar_t>;
+  template <typename scalar_t>
+  using placeholder_accessor_t = accessor_t<scalar_t>;
   using queue_t = cl::sycl::queue;
-  using default_accessor_t = placeholder_accessor_t;
+  template <typename scalar_t>
+  using default_accessor_t = placeholder_accessor_t<scalar_t>;
   using event_t = std::vector<cl::sycl::event>;
 }; // struct usm_policy
 

@@ -57,25 +57,30 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-//#ifdef SYCL_BLAS_USE_USM
-  auto gpu_x_v = cl::sycl::malloc_device(sizeof(data_t) * size * incX, q);
-  auto gpu_y_v = cl::sycl::malloc_device(sizeof(data_t) * size * incY, q);
+#ifdef SYCL_BLAS_USE_USM
+  data_t* gpu_x_v = cl::sycl::malloc_device<data_t>(size * incX, q);
+  data_t* gpu_y_v = cl::sycl::malloc_device<data_t>(size * incY, q);
 
+  // q.copy(gpu_x_v, x_v.data(), (size_t) size * incX).wait();
+  // q.copy(gpu_y_v, y_v.data(), (size_t) size * incY).wait();
   q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX).wait();
   q.memcpy(gpu_y_v, y_v.data(), sizeof(data_t) * size * incY).wait();
-//#else
-  // auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  // auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
-//#endif
-
- _axpy(ex, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
-
-#ifdef SYCL_BLAS_USE_USM
-  q.memcpy(y_v.data(), gpu_y_v, sizeof(data_t) * size * incY).wait();
 #else
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v);
-  ex.get_policy_handler().wait(event);
+  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
+  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
 #endif
+
+ auto ev = _axpy(ex, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
+ ex.get_policy_handler().wait(ev);
+
+  auto event =
+#ifdef SYCL_BLAS_USE_USM
+  q.memcpy(y_v.data(), gpu_y_v, sizeof(data_t) * size * incY);
+  // q.copy(y_v.data(), gpu_y_v, (size_t) size * incY);
+#else
+  utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v);
+#endif
+  ex.get_policy_handler().wait({event});
 
   // Validate the result
   const bool isAlmostEqual =

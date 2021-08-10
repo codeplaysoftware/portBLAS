@@ -84,8 +84,8 @@ struct Choose<false, val_t, value_one_t, value_two_t> {
 /// \tparam element_t : the type we are interested in
 template <typename element_t>
 struct RemoveAll {
-  using Type = typename std::remove_reference<
-      typename std::remove_cv<element_t>::type>::type;
+  using Type = typename std::remove_pointer<typename std::remove_reference<
+      typename std::remove_cv<element_t>::type>::type>::type;
 };
 
 template <typename container_t>

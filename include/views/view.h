@@ -53,7 +53,7 @@ struct VectorView {
   using index_t = view_index_t;
   using increment_t = view_increment_t;
   using self_t = VectorView<value_t, container_t, index_t, increment_t>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;
   index_t size_;
   index_t disp_;
@@ -115,7 +115,14 @@ struct VectorView {
   increment_t get_stride();
 
   /**** EVALUATING ****/
-  value_t &eval(index_t i);
+  //template <bool use_as_ptr = false>
+  //typename std::enable_if<!use_as_ptr, value_t>::type 
+  value_t& eval(index_t i);
+  //template <bool use_as_ptr = false>
+  //typename std::enable_if<!use_as_ptr, const value_t>::type 
+  const value_t eval(index_t i) const;
+  value_t &eval(cl::sycl::nd_item<1> ndItem);
+  const value_t eval(cl::sycl::nd_item<1> ndItem) const;
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
 };
@@ -212,20 +219,12 @@ struct MatrixView {
 template <typename policy_t, typename data_t, typename index_t,
           typename increment_t>
 struct VectorViewTypeFactory {
-#ifdef SYCL_BLAS_USE_USM
-  //using scalar_t = typename std::remove_pointer<data_t>::type();
-  using scalar_t = data_t;
-  using output_t =
-      VectorView<scalar_t,
-                 typename policy_t::default_accessor_t,
-                 index_t, increment_t>;
-#else
   using scalar_t = typename ValueType<data_t>::type;
+
   using output_t =
       VectorView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,
                  index_t, increment_t>;
-#endif
 };
 
 template <typename policy_t, typename element_t, typename index_t,

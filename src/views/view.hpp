@@ -26,6 +26,8 @@
 #ifndef SYCL_BLAS_VIEW_HPP
 #define SYCL_BLAS_VIEW_HPP
 
+#include <CL/sycl.hpp>
+
 #include "views/view.h"
 #include <iostream>
 #include <stdexcept>
@@ -144,7 +146,7 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 inline void VectorView<_value_t, _container_t, _IndexType,
                        _IncrementType>::adjust_access_displacement() {
-  return data_ += disp_;
+  data_ += disp_;
 }
 
 /*!
@@ -178,22 +180,65 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_stride() {
 }
 
 /**** EVALUATING ****/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-_value_t &VectorView<_value_t, _container_t, _IndexType, _IncrementType>::eval(
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE scalar_t&
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(
     index_t i) {
-  auto ind = disp_;
-  if (strd_ > 0) {
-    ind += strd_ * i;
-  } else {
-    ind -= strd_ * (size_ - i - 1);
-  }
-  if (ind >= size_data_) {
-    // out of range access
-    throw std::invalid_argument("Out of range access");
-  }
-  return data_[ind];
+  return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
 }
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE const scalar_t 
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(
+    index_t i) const {
+  return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE scalar_t& 
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return eval(ndItem.get_global_id(0));
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE const scalar_t
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(cl::sycl::nd_item<1> ndItem) const {
+  return eval(ndItem.get_global_id(0));
+}
+
+// template <bool use_as_ptr = false>
+// SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
+//     index_t indx) {
+//   return *(ptr_ + indx);
+// }
+
+// template <bool use_as_ptr = false>
+// SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
+//     index_t indx) const noexcept {
+//   return *(ptr_ + indx);
+// }
+
+/**** EVALUATING ****/
+// template <class _value_t, class _container_t, typename _IndexType,
+//           typename _IncrementType>
+// _value_t &VectorView<_value_t, _container_t, _IndexType, _IncrementType>::eval(
+//     index_t i) {
+//   auto ind = disp_;
+//   if (strd_ > 0) {
+//     ind += strd_ * i;
+//   } else {
+//     ind -= strd_ * (size_ - i - 1);
+//   }
+//   if (ind >= size_data_) {
+//     // out of range access
+//     // throw std::invalid_argument("Out of range access");
+//   }
+//   return data_[ind];
+// }
 // template <class _value_t, class _container_t, typename _IndexType,
 //           typename _IncrementType>
 // void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
