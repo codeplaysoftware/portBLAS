@@ -59,8 +59,10 @@ struct VectorView {
   index_t disp_;
   increment_t strd_;  // never size_t, because it could be negative
 
+#ifndef SYCL_BLAS_USE_USM
   VectorView(view_container_t &data, view_index_t disp = 0,
              view_increment_t strd = 1);
+#endif
   VectorView(view_container_t &data, view_index_t disp, view_increment_t strd,
              view_index_t size);
   VectorView(
@@ -114,6 +116,8 @@ struct VectorView {
 
   /**** EVALUATING ****/
   value_t &eval(index_t i);
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
 };
 
 /*! MatrixView
@@ -211,13 +215,17 @@ struct VectorViewTypeFactory {
 #ifdef SYCL_BLAS_USE_USM
   //using scalar_t = typename std::remove_pointer<data_t>::type();
   using scalar_t = data_t;
+  using output_t =
+      VectorView<scalar_t,
+                 typename policy_t::default_accessor_t,
+                 index_t, increment_t>;
 #else
   using scalar_t = typename ValueType<data_t>::type;
-#endif
   using output_t =
       VectorView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,
                  index_t, increment_t>;
+#endif
 };
 
 template <typename policy_t, typename element_t, typename index_t,
@@ -241,7 +249,7 @@ static inline
       typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, increment_t>::output_t;
 #ifdef SYCL_BLAS_USE_USM
-  return leaf_node_t{buff, inc, sz};
+  return leaf_node_t{buff, 0, inc, sz};
 #else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
 #endif

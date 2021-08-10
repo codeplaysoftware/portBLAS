@@ -42,31 +42,31 @@ namespace blas {
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-    _container_t &data, _IndexType disp, _IncrementType strd)
+    _container_t &data, _IndexType disp, _IncrementType strd, _IndexType size)
     : data_(data),
-      size_data_(data_.size()),
-      size_(data_.size()),
+      size_data_(size),
+      size_(size),
       disp_(disp),
       strd_(strd) {}
 
-/*!
-@brief Creates a view with a size smaller than the container size.
-@param data
-@param disp
-@param strd
-@param size
-*/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-    _container_t &data, _IndexType disp, _IncrementType strd, _IndexType size)
-    : data_(data),
-      size_data_(data_.size()),
-      size_(0),
-      disp_(disp),
-      strd_(strd) {
-  initialize(size);
-}
+// /*!
+// @brief Creates a view with a size smaller than the container size.
+// @param data
+// @param disp
+// @param strd
+// @param size
+// */
+// template <class _value_t, class _container_t, typename _IndexType,
+//           typename _IncrementType>
+// VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
+//     _container_t &data, _IndexType disp, _IncrementType strd, _IndexType size)
+//     : data_(data),
+//       size_data_(size),
+//       size_(0),
+//       disp_(disp),
+//       strd_(strd) {
+//   initialize(size);
+// }
 
 /*!
  @brief Creates a view from an existing view.
@@ -194,21 +194,21 @@ _value_t &VectorView<_value_t, _container_t, _IndexType, _IncrementType>::eval(
   }
   return data_[ind];
 }
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
-    const char *name) {
-  int frst = 1;
-  std::cout << name << " = [ ";
-  for (index_t i = 0; i < size_; i++) {
-    if (frst)
-      std::cout << eval(i);
-    else
-      std::cout << " , " << eval(i);
-    frst = 0;
-  }
-  std::cout << " ]" << std::endl;
-}
+// template <class _value_t, class _container_t, typename _IndexType,
+//           typename _IncrementType>
+// void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
+//     const char *name) {
+//   int frst = 1;
+//   std::cout << name << " = [ ";
+//   for (index_t i = 0; i < size_; i++) {
+//     if (frst)
+//       std::cout << eval(i);
+//     else
+//       std::cout << " , " << eval(i);
+//     frst = 0;
+//   }
+//   std::cout << " ]" << std::endl;
+// }
 
 /*!
  * @brief Constructs a matrix view on the container.
@@ -224,31 +224,9 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
       size_data_(data_.get_size()),
       sizeR_(sizeR),
       sizeC_(sizeC),
-      sizeL_((MatrixView<_value_t, _container_t, _IndexType, layout>::is_col_major())
+      sizeL_((layout::is_col_major())
           ? sizeR_
-          : sizeC_)),
-      disp_(0) {}
-
-/*!
- * @brief Constructs a matrix view on the container.
- * @param data Reference to the container.
- * @param accessDev Row-major or column-major.
- * @param sizeR Number of rows.
- * @param sizeC Number of columns.
- * @param accessOpr
- * @param sizeL Size of the leading dimension.
- * @param disp Displacement from the start.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
-    _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
-    _IndexType disp)
-    : data_(data + disp),
-      size_data_(data_.size()),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(sizeL),
+          : sizeC_),
       disp_(0) {}
 
 /*!
@@ -266,29 +244,6 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     _IndexType disp)
     : data_(data + disp),
       size_data_(data_.size()),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(sizeL),
-      disp_(0) {}
-
-/*!
- *@brief Creates a matrix view from the given one but with different access
- * parameters.
- * @param opM Matrix view.
- * @param accessDev Row-major or column-major.
- * @param sizeR Number of rows.
- * @param sizeC Number of columns.
- * @param accessorOpr
- * @param sizeL Size of the leading dimension.
- * @param disp Displacement from the start.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
-    MatrixView<_value_t, _container_t, _IndexType, layout> opM,
-    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL, _IndexType disp)
-    : data_(opM.data_ + disp),
-      size_data_(opM.size_data_),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),

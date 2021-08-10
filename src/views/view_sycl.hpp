@@ -185,11 +185,8 @@ struct VectorView<
     return *(ptr_ + indx);
   }
 
-#ifdef SYCL_BLAS_USE_USM
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { }
-#else
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
-#endif
+
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }
