@@ -393,23 +393,23 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
-  /* Choose at run-time whether to do a one-step or two-step reduction.
-   * These heuristics have been selected empirically by benchmarking one-step
-   * against two-step reduction */
-  const bool two_step_reduction = (cols_ > 2048);
-
   /* Create an empty event vector */
   typename codeplay_policy::event_t reduction_event;
 
+  const index_t max_group_count_col =
+      (cols_ - 1) / params_t::work_group_cols + 1;
+
+  const index_t group_count_cols =
+      params_t::work_group_cols < max_group_count_col
+          ? params_t::work_group_cols
+          : max_group_count_col;
+
+  /* Choose at run-time whether to do a one-step or two-step reduction.
+   * Two-step reduction is needed when we have more than 1 valid work groups
+   * along the columns */
+  const bool two_step_reduction = group_count_cols > 1;
   /* 2-step reduction */
   if (two_step_reduction) {
-    static const index_t max_group_count_col =
-        (cols_ - 1) / params_t::work_group_cols + 1;
-    static const index_t group_count_cols =
-        params_t::work_group_cols < max_group_count_col
-            ? params_t::work_group_cols
-            : max_group_count_col;
-
     /* Create a temporary buffer */
     auto temp_buffer =
         make_sycl_iterator_buffer<element_t>(rows_ * group_count_cols);

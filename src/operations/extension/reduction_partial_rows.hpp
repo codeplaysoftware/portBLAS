@@ -130,6 +130,14 @@ class ReductionPartialRows {
     const index_t group_col = group_id / group_count_rows_;
     const index_t group_row = group_id - group_col * group_count_rows_;
 
+    /* Suspend the threads if the entire workgroup does not have work */
+    if (group_row * params_t::work_group_rows >= rows_) {
+      return;
+    }
+    if (group_col * params_t::work_group_cols >= cols_) {
+      return;
+    }
+
     /* Item row and column within a block */
     const index_t local_col = local_id / params_t::work_group_rows;
     const index_t local_row = local_id - local_col * params_t::work_group_rows;
@@ -137,11 +145,6 @@ class ReductionPartialRows {
     /* Global position of the first element processed by the thread */
     const index_t global_row =
         group_row * params_t::work_group_rows + local_row;
-
-    /* In the groups at the bottom of the matrix, some threads don't work */
-    if (global_row >= rows_) {
-      return;
-    }
 
     const index_t global_col =
         group_col * params_t::work_group_cols + local_col;
@@ -160,8 +163,10 @@ class ReductionPartialRows {
       const index_t global_stride = total_item_cols * leading_dim_;
       for (index_t elem_col = global_col; elem_col < cols_;
            elem_col += total_item_cols) {
-        accumulator =
-            operator_t::eval(accumulator, in_.template eval<true>(global_idx));
+        accumulator = operator_t::eval(accumulator,
+                                       (global_row < rows_)
+                                           ? in_.template eval<true>(global_idx)
+                                           : init_val);
         global_idx += global_stride;
       }
     }
@@ -195,7 +200,7 @@ class ReductionPartialRows {
     }
 
     /* Threads of the first column write their results in the output buffer */
-    if (local_col == 0) {
+    if (local_col == 0 && (global_row < rows_)) {
       out_.template eval<true>(group_col * rows_ + global_row) =
           scratch_ptr[local_row];
     }
