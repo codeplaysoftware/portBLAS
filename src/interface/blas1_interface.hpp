@@ -300,6 +300,7 @@ typename executor_t::policy_t::event_t _rot(
   return ret;
 }
 
+#ifndef SYCL_BLAS_USE_USM
 /**
  * \brief Compute the inner product of two vectors with extended
     precision accumulation and result.
@@ -400,6 +401,7 @@ typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
   ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
   return res[0];
 }
+#endif
 
 }  // namespace internal
 }  // namespace blas

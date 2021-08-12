@@ -132,14 +132,16 @@ Executor<PolicyHandler<executor_policy_t>>::execute(
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
   #ifdef SYCL_BLAS_USE_USM
-  auto shMem1 = cl::sycl::malloc_device(sizeof(typename lhs_t::value_t) * sharedSize);
-  auto shMem2 = cl::sycl::malloc_device(sizeof(typename lhs_t::value_t) * sharedSize);
+  auto shMem1 = cl::sycl::malloc_device<typename lhs_t::value_t>(sharedSize, policy_handler_.get_queue());
+  auto shMem2 = cl::sycl::malloc_device<typename lhs_t::value_t>(sharedSize, policy_handler_.get_queue());
+  auto opShMem1 = lhs_t(shMem1, 0, 1, sharedSize);
+  auto opShMem2 = lhs_t(shMem2, 0, 1, sharedSize);
   #else
   auto shMem1 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
   auto shMem2 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
-  #endif
   auto opShMem1 = lhs_t(shMem1, 1, sharedSize);
   auto opShMem2 = lhs_t(shMem2, 1, sharedSize);
+  #endif
   typename executor_policy_t::event_t event;
   bool frst = true;
   bool even = false;

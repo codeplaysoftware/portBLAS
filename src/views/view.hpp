@@ -288,7 +288,7 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
     _IndexType disp)
     : data_(data + disp),
-      size_data_(data_.size()),
+      size_data_(sizeR * sizeC),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),

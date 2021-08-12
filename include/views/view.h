@@ -141,7 +141,7 @@ struct MatrixView {
   using container_t = view_container_t;
   using index_t = view_index_t;
   using self_t = MatrixView<value_t, container_t, index_t, layout>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;  // real size of the data
   index_t sizeR_;      // number of rows
   index_t sizeC_;      // number of columns
@@ -220,7 +220,6 @@ template <typename policy_t, typename data_t, typename index_t,
           typename increment_t>
 struct VectorViewTypeFactory {
   using scalar_t = typename ValueType<data_t>::type;
-
   using output_t =
       VectorView<scalar_t,
                  typename policy_t::template default_accessor_t<scalar_t>,
@@ -265,7 +264,7 @@ static inline
       typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, access_mode_t>::output_t;
 #ifdef SYCL_BLAS_USE_USM
-  return leaf_node_t{buff, m, n, lda};
+  return leaf_node_t{buff, m, n, lda, 0};
 #else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, lda};
 #endif
