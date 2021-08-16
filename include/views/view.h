@@ -214,6 +214,35 @@ struct MatrixView {
    * @brief Evaluation for the pair of row/col.
    */
   value_t &eval(index_t i, index_t j);
+
+  /*! eval.
+   * @brief Evaluation for the pair of row/col.
+   */
+  value_t eval(index_t i, index_t j) const;
+
+  /**** EVALUATING ****/
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  // value_t &eval(cl::sycl::nd_item<1> ndItem);
+  // const value_t eval(cl::sycl::nd_item<1> ndItem) const;
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
+
+  SYCL_BLAS_INLINE const index_t getSizeL() const { return sizeL_; }
 };
 
 template <typename policy_t, typename data_t, typename index_t,

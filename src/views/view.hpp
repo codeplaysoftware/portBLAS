@@ -386,7 +386,7 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 inline void MatrixView<_value_t, _container_t, _IndexType,
                        layout>::adjust_access_displacement() {
-  return data_ += disp_;
+  data_ += disp_;
 }
 
 /*! eval.
@@ -408,6 +408,53 @@ _value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
     _IndexType i, _IndexType j) {
   return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
                                    : data_[(sizeL_ * j) + i]);
+}
+
+/*! eval.
+ * @brief Evaluation for the pair of row/col.
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+_value_t MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
+    _IndexType i, _IndexType j) const {
+  return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
+                                   : data_[(sizeL_ * j) + i]);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, _value_t &>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType indx) {
+  const _IndexType j = indx / sizeR_;
+  const _IndexType i = indx - sizeR_ * j;
+  return eval(i, j);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, _value_t>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType indx) const {
+  const _IndexType j = indx / sizeR_;
+  const _IndexType i = indx - sizeR_ * j;
+  return eval(i, j);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, _value_t &>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType i) {
+  return *(data_ + i);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, _value_t>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType i) const {
+  return *(data_ + i);
 }
 
 }  // namespace blas
