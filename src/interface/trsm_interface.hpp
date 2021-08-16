@@ -147,9 +147,9 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
 #ifdef SYCL_BLAS_USE_USM
   auto invA = cl::sycl::malloc_device<element_t>(invASize, ex.get_policy_handler().get_queue());
-  auto fillEvent = ex.get_policy_handler().get_queue().memset(invA, element_t{0}, invASize);
+  auto fillEvent = {ex.get_policy_handler().get_queue().memset(invA, element_t{0}, invASize)};
   trsmEvents = concatenate_vectors(
-      trsmEvents, {fillEvent});
+      trsmEvents, static_cast<typename executor_t::policy_t::event_t>(fillEvent));
 #else
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
   trsmEvents = concatenate_vectors(

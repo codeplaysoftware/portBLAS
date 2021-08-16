@@ -389,6 +389,16 @@ inline void MatrixView<_value_t, _container_t, _IndexType,
   data_ += disp_;
 }
 
+/*!
+ * @brief Returns a reference to the container
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _value_t *
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_pointer() {
+  return data_;
+}
+
 /*! eval.
  * @brief Evaluation for the given linear value.
  */

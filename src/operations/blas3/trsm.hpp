@@ -63,8 +63,13 @@ template <typename local_memory_t>
 SYCL_BLAS_INLINE void
 DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
     local_memory_t localMem, cl::sycl::nd_item<1> item) noexcept {
+#ifdef SYCL_BLAS_USE_USM
+  auto A = A_.get_data() + A_.get_access_displacement();
+  auto invA = invA_.get_data() + invA_.get_access_displacement();
+#else
   auto A = A_.get_data().get_pointer() + A_.get_access_displacement();
   auto invA = invA_.get_data().get_pointer() + invA_.get_access_displacement();
+#endif
   value_t* local = localMem.localAcc.get_pointer();
 
   const index_t i = item.get_local_id(0);

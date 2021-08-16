@@ -61,16 +61,16 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
     ${IS_BETA_ZERO}, ${VECTOR_SIZE},
     static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>::
     _select_gemm<Executor<${EXECUTOR}>,
-                 typename ${usm_policy}::template buffer_t<${DATA_TYPE}>,
-                 typename ${usm_policy}::template buffer_t<${DATA_TYPE}>,
-                 typename ${usm_policy}::template buffer_t<${DATA_TYPE}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
                  ${DATA_TYPE},
                  ${INDEX_TYPE}>(
         Executor<${EXECUTOR}>& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha,
-        typename ${usm_policy}::template buffer_t<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
-        typename ${usm_policy}::template buffer_t<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
-        ${DATA_TYPE} _beta, typename ${usm_policy}::template buffer_t<${DATA_TYPE}> _C,
+        typename usm_policy::template buffer_t<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
+        typename usm_policy::template buffer_t<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
+        ${DATA_TYPE} _beta, typename usm_policy::template buffer_t<${DATA_TYPE}> _C,
         ${INDEX_TYPE} _ldc, ${INDEX_TYPE} batch_size);
 #else
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
