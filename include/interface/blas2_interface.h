@@ -250,10 +250,17 @@ typename executor_t::policy_t::event_t inline _gemv(
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_gemv(ex, _trans, _M, _N, _alpha,
+                         _mA, _lda,
+                         _vx, _incx, _beta,
+                         _vy, _incy);
+#else
   return internal::_gemv(ex, _trans, _M, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /*!

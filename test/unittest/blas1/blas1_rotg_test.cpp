@@ -89,8 +89,10 @@ void run_test(const combination_t<scalar_t> combi) {
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s).wait();
-  _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s).wait();
+  auto ev = _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
+  ex.get_policy_handler().wait(ev);
+  ev = _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
+  ex.get_policy_handler().wait(ev);
 
   auto event = 
 #ifdef SYCL_BLAS_USE_USM

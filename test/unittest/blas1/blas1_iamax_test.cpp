@@ -41,7 +41,7 @@ void run_test(const combination_t<scalar_t> combi) {
   tuple_t* gpu_out_s = cl::sycl::malloc_device<tuple_t>(int(1), q);
 
   q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX).wait();
-  q.memcpy(gpu_out_s, out_s.data(), sizeof(tuple_t)).wait();
+  q.memcpy(gpu_out_s, &out_s, sizeof(tuple_t)).wait();
 #else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(int(1));
@@ -53,7 +53,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto event = 
 #ifdef SYCL_BLAS_USE_USM
-  q.memcpy(out_s.data(), gpu_out_s, sizeof(data_t));
+  q.memcpy(&out_s, gpu_out_s, sizeof(tuple_t));
 #else 
   ex.get_policy_handler().copy_to_host(gpu_out_s, &out_s, 1);
 #endif

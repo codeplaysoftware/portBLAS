@@ -371,6 +371,12 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
   trsmEvents =
       concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, X, 1, B, 1));
 
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(trsmEvents);
+  cl::sycl::free(invA, ex.get_policy_handler().get_queue());
+  cl::sycl::free(X, ex.get_policy_handler().get_queue());
+#endif
+
   return trsmEvents;
 }
 

@@ -122,6 +122,7 @@ typename Executor::policy_t::event_t _gemv_impl(
       // exectutes the above expression tree to yield the final GEMV result
       auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
 #ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
 #endif
       return ret;
@@ -131,6 +132,7 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
       auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
 #ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
 #endif
       return ret;
@@ -197,6 +199,7 @@ typename Executor::policy_t::event_t _gemv_impl(
       // exectutes the above expression tree to yield the final GEMV result
       auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
 #ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
 #endif
       return ret;
@@ -206,6 +209,7 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
       auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
 #ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
 #endif
       return ret;
@@ -328,6 +332,7 @@ typename Executor::policy_t::event_t _trmv_impl(
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
 #ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ret);
   cl::sycl::free(valT1, ex.get_policy_handler().get_queue());
 #endif
   return ret;
@@ -440,6 +445,7 @@ typename Executor::policy_t::event_t _symv_impl(
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
 #ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ret);
   cl::sycl::free(valTR, ex.get_policy_handler().get_queue());
   cl::sycl::free(valTC, ex.get_policy_handler().get_queue());
 #endif

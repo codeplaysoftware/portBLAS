@@ -24,7 +24,6 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include <iostream>
 
 template <typename scalar_t>
 using combination_t = std::tuple<int, int>;
@@ -52,10 +51,6 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Output scalar
   data_t out_s = 0;
-#ifdef SYCL_BLAS_USE_USM
-  data_t *out_s_ptr = new data_t(out_s);
-#endif
-  std::cout << *out_s_ptr << " - " << out_s << std::endl;
 
   // Reference implementation
   data_t out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
@@ -69,34 +64,24 @@ void run_test(const combination_t<scalar_t> combi) {
   data_t* gpu_x_v = cl::sycl::malloc_device<data_t>(size * incX, q);
   data_t* gpu_out_s = cl::sycl::malloc_device<data_t>(1, q);
 
-  auto memev = q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX);
-  ex.get_policy_handler().wait({memev});
-  memev = q.memcpy(gpu_out_s, out_s_ptr, sizeof(data_t));
-  ex.get_policy_handler().wait({memev});
+  q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX).wait();
+  q.memcpy(gpu_out_s, &out_s, sizeof(data_t)).wait();
 #else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
 #endif
-  std::cout << *out_s_ptr << " - " << out_s << std::endl;
 
   auto ev = _asum(ex, size, gpu_x_v, incX, gpu_out_s);
   ex.get_policy_handler().wait(ev);
-  std::cout << *out_s_ptr << " - " << out_s << std::endl;
 
   auto event = 
 #ifdef SYCL_BLAS_USE_USM
-  q.memcpy(out_s_ptr, gpu_out_s, sizeof(data_t));
+  q.memcpy(&out_s, gpu_out_s, sizeof(data_t));
 #else 
   utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
 #endif
   ex.get_policy_handler().wait({event});
-  std::cout << *out_s_ptr << " - " << out_s << std::endl;
 
-#ifdef SYCL_BLAS_USE_USM
-  out_s = *out_s_ptr;
-#endif
-
-  std::cout << *out_s_ptr << " - " << out_s << " - " << out_cpu_s << std::endl;
   // Validate the result
   const bool is_almost_equal =
       utils::almost_equal<data_t, scalar_t>(out_s, out_cpu_s);
@@ -105,7 +90,6 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().get_queue().wait();
 
 #ifdef SYCL_BLAS_USE_USM
-  free(out_s_ptr);
   cl::sycl::free(gpu_x_v, q);
   cl::sycl::free(gpu_out_s, q);
 #endif

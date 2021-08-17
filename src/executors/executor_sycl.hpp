@@ -154,6 +154,9 @@ Executor<PolicyHandler<executor_policy_t>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
       auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
@@ -162,12 +165,22 @@ Executor<PolicyHandler<executor_policy_t>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif      
     }
     _N = nWG;
     nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
     frst = false;
     even = !even;
   } while (_N > 1);
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(event);
+  cl::sycl::free(shMem1, policy_handler_.get_queue());
+  cl::sycl::free(shMem2, policy_handler_.get_queue());
+#endif
+
   return event;
 }
 
@@ -349,6 +362,11 @@ Executor<PolicyHandler<executor_policy_t>>::execute(
       events = concatenate_vectors(events, execute(assignOp));
     }
   }
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(events);
+  cl::sycl::free(cube_buffer, policy_handler_.get_queue());
+#endif
 
   return events;
 }
