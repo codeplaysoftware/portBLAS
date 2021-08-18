@@ -45,9 +45,9 @@ using combination_t = std::tuple<index_t, index_t, index_t, operator_t>;
 /* Note: the product and division are not tested because our random data may
  * contain values close to zero */
 const auto combi = ::testing::Combine(
-    ::testing::Values(7, 513),          // rows
-    ::testing::Values(15, 1337, 8195),  // columns
-    ::testing::Values(3),               // ld_mul
+    ::testing::Values(1, 7, 513),                // rows
+    ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
+    ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
                       operator_t::AbsoluteAdd));
 

@@ -134,7 +134,8 @@ class ReductionPartialRows {
     if (group_row * params_t::work_group_rows >= rows_) {
       return;
     }
-    if (group_col * params_t::work_group_cols >= cols_) {
+    if (group_col * params_t::work_group_cols >= cols_ ||
+        group_col >= group_count_cols_) {
       return;
     }
 
