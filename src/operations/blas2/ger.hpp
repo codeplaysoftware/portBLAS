@@ -438,6 +438,8 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
         auto val = rhs_1_.eval(id_row);
         for (index_t id_col = colid, col = 0; col < blqSz; id_col++, col++) {
           if (Lower && Upper && Diag) {
+            // printf("%f, %f\n", val, shrMem[col]);
+            std::cout << val << ", " << shrMem[col] << std::endl;
             lhs_.eval(id_row, id_col) += val * shrMem[col];
           } else {
             if ((Lower && ((id_col + ((!Diag) ? 1 : 0)) <= id_row)) ||

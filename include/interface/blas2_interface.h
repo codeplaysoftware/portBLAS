@@ -358,10 +358,17 @@ typename executor_t::policy_t::event_t inline _ger(
     container_2_t _mA,  // (_lda, n) array containing A, the output
     index_t _lda        // >max(1, m), Leading dimension of A
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_ger(ex, _M, _N, _alpha,
+                        _vx, _incx,
+                        _vy, _incy,
+                        _mA, _lda);
+#else
   return internal::_ger(ex, _M, _N, _alpha,
                         ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
+#endif
 }
 
 /*!
@@ -389,9 +396,15 @@ typename executor_t::policy_t::event_t inline _syr(
     container_1_t _mA,  // (_lda, _N) The output matrix
     index_t _lda        // >max(1, _N) The first dimension of _mA
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_syr(ex, _Uplo, _N, _alpha,
+                        _vx, _incx,
+                        _mA, _lda);
+#else
   return internal::_syr(ex, _Uplo, _N, _alpha,
                         ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
+#endif
 }
 
 /*!

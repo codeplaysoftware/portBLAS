@@ -104,6 +104,9 @@ typename Executor::policy_t::event_t _gemv_impl(
     // auto gemvEvent = ex.execute(gemv, local_range, global_size);
     auto gemvEvent =
         ex.execute(gemv, static_cast<index_t>(local_range), global_size);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(gemvEvent);
+#endif
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -120,7 +123,11 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
 #ifdef SYCL_BLAS_USE_USM
       ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
@@ -130,7 +137,11 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
 #ifdef SYCL_BLAS_USE_USM
       ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
@@ -178,6 +189,9 @@ typename Executor::policy_t::event_t _gemv_impl(
     // Execute the GEMV kernel that calculate the partial dot products of rows
     auto gemvEvent = ex.execute(gemv, static_cast<index_t>(local_range),
                                 global_size, kernel_scratch_size);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(gemvEvent);
+#endif
 
     // Sum the partial dot products results from the GEMV kernel
     auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
@@ -197,7 +211,11 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
 #ifdef SYCL_BLAS_USE_USM
       ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
@@ -207,7 +225,11 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      auto ret = concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
 #ifdef SYCL_BLAS_USE_USM
       ex.get_policy_handler().wait(ret);
       cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
@@ -485,7 +507,8 @@ typename Executor::policy_t::event_t _ger_impl(
   typename Executor::policy_t::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-  return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  ret = ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  return ret;
 }
 
 /*! _SYR.
@@ -529,15 +552,23 @@ typename Executor::policy_t::event_t _syr_impl(
   if (triangOpr) {
     auto assignOp = make_Ger_Col<true, false, true, true>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ret = concatenate_vectors(
+    ret = concatenate_vectors(
                ret,
                ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ret);
+#endif
+    return ret;
   } else {
     auto assignOp = make_Ger_Col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ret = concatenate_vectors(
+    ret = concatenate_vectors(
                ret,
                ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ret);
+#endif
+    return ret;
   }
 }
 

@@ -40,7 +40,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int lda_mul;
   std::tie(m, n, alpha, beta, trans, incX, incY, lda_mul) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   const char *t_str = trans ? "t" : "n";
 
@@ -67,20 +71,43 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   test_executor_t ex(q);
+
+#ifdef SYCL_BLAS_USE_USM
+  data_t* m_a_gpu = cl::sycl::malloc_device<data_t>(a_size, q);
+  data_t* v_x_gpu = cl::sycl::malloc_device<data_t>(x_size, q);
+  data_t* v_y_gpu = cl::sycl::malloc_device<data_t>(y_size, q);
+
+  q.memcpy(m_a_gpu, a_m.data(), sizeof(data_t) * a_size).wait();
+  q.memcpy(v_x_gpu, x_v.data(), sizeof(data_t) * x_size).wait();
+  q.memcpy(v_y_gpu, y_v_gpu_result.data(), sizeof(data_t) * y_size).wait();
+#else  
   auto m_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
   auto v_x_gpu = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto v_y_gpu = utils::make_quantized_buffer<scalar_t>(ex, y_v_gpu_result);
+#endif
 
   // SYCLGEMV
-  _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
+  auto ev = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
         v_y_gpu, incY);
+  ex.get_policy_handler().wait(ev);
+
   auto event =
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(y_v_gpu_result.data(), v_y_gpu, sizeof(data_t) * y_size);
+#else
       utils::quantized_copy_to_host<scalar_t>(ex, v_y_gpu, y_v_gpu_result);
-  ex.get_policy_handler().wait(event);
+#endif
+  ex.get_policy_handler().wait({event});
 
   const bool isAlmostEqual =
       utils::compare_vectors<data_t, scalar_t>(y_v_gpu_result, y_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(m_a_gpu, q);
+  cl::sycl::free(v_x_gpu, q);
+  cl::sycl::free(v_y_gpu, q);
+#endif
 }
 
 #ifdef STRESS_TESTING
@@ -97,14 +124,23 @@ const auto combi =
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
 // (the stress_test above takes about ~5 minutes)
-const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
-                                      ::testing::Values(14, 1010),     // n
-                                      ::testing::Values(1.5),          // alpha
-                                      ::testing::Values(0.0, 1.5),     // beta
+// const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
+//                                       ::testing::Values(14, 1010),     // n
+//                                       ::testing::Values(1.5),          // alpha
+//                                       ::testing::Values(0.0, 1.5),     // beta
+//                                       ::testing::Values(false, true),  // trans
+//                                       ::testing::Values(2),            // incX
+//                                       ::testing::Values(3),            // incY
+//                                       ::testing::Values(2)  // lda_mul
+// );
+const auto combi = ::testing::Combine(::testing::Values(10),     // m
+                                      ::testing::Values(10),     // n
+                                      ::testing::Values(1),          // alpha
+                                      ::testing::Values(0.0),     // beta
                                       ::testing::Values(false, true),  // trans
-                                      ::testing::Values(2),            // incX
-                                      ::testing::Values(3),            // incY
-                                      ::testing::Values(2)  // lda_mul
+                                      ::testing::Values(1),            // incX
+                                      ::testing::Values(1),            // incY
+                                      ::testing::Values(1)  // lda_mul
 );
 #endif
 
