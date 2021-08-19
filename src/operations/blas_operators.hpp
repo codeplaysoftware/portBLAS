@@ -115,10 +115,10 @@ struct AbsoluteValue {
   using is_floating_point = std::integral_constant<
       bool, std::is_floating_point<stripped_t<value_t>>::value ||
                 std::is_same<stripped_t<value_t>, cl::sycl::half>::value>;
-#else 
+#else
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;
-#endif // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_DATA_TYPE_HALF
 
   template <typename value_t>
   static SYCL_BLAS_INLINE value_t eval(
@@ -157,7 +157,7 @@ Definitions of unary operators
 */
 struct AdditionIdentity : public Operators {
   template <typename rhs_t>
-  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t) {
     return constant<rhs_t, const_val::zero>::value();
   }
 };
