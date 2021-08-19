@@ -416,8 +416,8 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 _value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
     _IndexType i, _IndexType j) {
-  return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
-                                   : data_[(sizeL_ * j) + i]);
+  return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                   : *(data_ + j + sizeL_ * i));
 }
 
 /*! eval.
@@ -427,8 +427,8 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 _value_t MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
     _IndexType i, _IndexType j) const {
-  return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
-                                   : data_[(sizeL_ * j) + i]);
+  return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                   : *(data_ + j + sizeL_ * i));
 }
 
 template <class _value_t, class _container_t, typename _IndexType,

@@ -89,7 +89,9 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYCLGEMV
   auto ev = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
         v_y_gpu, incY);
+#ifdef SYCL_BLAS_USE_USM
   ex.get_policy_handler().wait(ev);
+#endif
 
   auto event =
 #ifdef SYCL_BLAS_USE_USM
@@ -122,25 +124,16 @@ const auto combi =
                        ::testing::Values(1, 2)                // lda_mul
     );
 #else
-// For the purpose of travis and other slower platforms, we need a faster test
-// (the stress_test above takes about ~5 minutes)
-// const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
-//                                       ::testing::Values(14, 1010),     // n
-//                                       ::testing::Values(1.5),          // alpha
-//                                       ::testing::Values(0.0, 1.5),     // beta
-//                                       ::testing::Values(false, true),  // trans
-//                                       ::testing::Values(2),            // incX
-//                                       ::testing::Values(3),            // incY
-//                                       ::testing::Values(2)  // lda_mul
-// );
-const auto combi = ::testing::Combine(::testing::Values(10),     // m
-                                      ::testing::Values(10),     // n
-                                      ::testing::Values(1),          // alpha
-                                      ::testing::Values(0.0),     // beta
+For the purpose of travis and other slower platforms, we need a faster test
+(the stress_test above takes about ~5 minutes)
+const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
+                                      ::testing::Values(14, 1010),     // n
+                                      ::testing::Values(1.5),          // alpha
+                                      ::testing::Values(0.0, 1.5),     // beta
                                       ::testing::Values(false, true),  // trans
-                                      ::testing::Values(1),            // incX
-                                      ::testing::Values(1),            // incY
-                                      ::testing::Values(1)  // lda_mul
+                                      ::testing::Values(2),            // incX
+                                      ::testing::Values(3),            // incY
+                                      ::testing::Values(2)  // lda_mul
 );
 #endif
 

@@ -113,9 +113,9 @@ const auto combi =
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
-const auto combi = ::testing::Combine(::testing::Values(1023),  // m
-                                      ::testing::Values(14),  // n
-                                      ::testing::Values(0.0),  // alpha
+const auto combi = ::testing::Combine(::testing::Values(11, 1023),  // m
+                                      ::testing::Values(14, 1010),  // n
+                                      ::testing::Values(0.0, 1.5),  // alpha
                                       ::testing::Values(2),         // incX
                                       ::testing::Values(3),         // incY
                                       ::testing::Values(2)          // lda_mul

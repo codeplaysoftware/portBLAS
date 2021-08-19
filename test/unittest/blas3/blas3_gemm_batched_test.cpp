@@ -76,7 +76,7 @@ const auto BetaNonZeroLDMatchAlpha0 = ::testing::Combine(
     ::testing::Values(1),                          // ldc_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
-GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatchAlpha0);
+// GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatchAlpha0);
 
 const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
     ::testing::Values(0),                          // offset
@@ -93,4 +93,4 @@ const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
     ::testing::Values(4),                          // ldc_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
-GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);
+// GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);

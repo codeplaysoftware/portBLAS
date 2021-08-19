@@ -42,7 +42,11 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul,
            unusedValue) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   const int lda = (side == 'l' ? m : n) * ldaMul;
   const int ldb = m * ldbMul;
@@ -70,21 +74,42 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   test_executor_t ex(q);
+
+#ifdef SYCL_BLAS_USE_USM
+  data_t* a_gpu = cl::sycl::malloc_device<data_t>(sizeA, q);
+  data_t* b_gpu = cl::sycl::malloc_device<data_t>(sizeB, q);
+
+  q.memcpy(a_gpu, A.data(), sizeof(data_t) * sizeA).wait();
+  q.memcpy(b_gpu, B.data(), sizeof(data_t) * sizeB).wait();
+#else
   auto a_gpu = utils::make_quantized_buffer<scalar_t>(
       ex, A);  //::make_sycl_iterator_buffer<scalar_t>(A, A.size());
   auto b_gpu = utils::make_quantized_buffer<scalar_t>(
       ex, B);  // blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
+#endif
 
-  _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+  auto ev = _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, b_gpu, B);
-
-  ex.get_policy_handler().wait(event);
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(B.data(), b_gpu, sizeof(data_t) * sizeB);
+#else
+      utils::quantized_copy_to_host<scalar_t>(ex, b_gpu, B);
+#endif
+  ex.get_policy_handler().wait({event});
 
   bool isAlmostEqual = utils::compare_vectors<data_t, scalar_t>(cpu_B, B);
 
   ASSERT_TRUE(isAlmostEqual);
   ex.get_policy_handler().wait();
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(a_gpu, q);
+  cl::sycl::free(b_gpu, q);
+#endif
 }
 
 static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
