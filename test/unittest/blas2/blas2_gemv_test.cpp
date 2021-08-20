@@ -124,8 +124,8 @@ const auto combi =
                        ::testing::Values(1, 2)                // lda_mul
     );
 #else
-For the purpose of travis and other slower platforms, we need a faster test
-(the stress_test above takes about ~5 minutes)
+// For the purpose of travis and other slower platforms, we need a faster test
+// (the stress_test above takes about ~5 minutes)
 const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
                                       ::testing::Values(14, 1010),     // n
                                       ::testing::Values(1.5),          // alpha

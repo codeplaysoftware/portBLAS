@@ -180,21 +180,21 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_stride() {
 }
 
 /**** EVALUATING ****/
-template <class scalar_t, class container_t, typename index_t,
-          typename increment_t>
-SYCL_BLAS_INLINE scalar_t&
-VectorView<scalar_t, container_t, index_t, increment_t>::eval(
-    index_t i) {
-  return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
-}
+// template <class scalar_t, class container_t, typename index_t,
+//           typename increment_t>
+// SYCL_BLAS_INLINE scalar_t&
+// VectorView<scalar_t, container_t, index_t, increment_t>::eval(
+//     index_t i) {
+//   return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+// }
 
-template <class scalar_t, class container_t, typename index_t,
-          typename increment_t>
-SYCL_BLAS_INLINE const scalar_t 
-VectorView<scalar_t, container_t, index_t, increment_t>::eval(
-    index_t i) const {
-  return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
-}
+// template <class scalar_t, class container_t, typename index_t,
+//           typename increment_t>
+// SYCL_BLAS_INLINE const scalar_t 
+// VectorView<scalar_t, container_t, index_t, increment_t>::eval(
+//     index_t i) const {
+//   return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+// }
 
 template <class scalar_t, class container_t, typename index_t,
           typename increment_t>
@@ -208,6 +208,38 @@ template <class scalar_t, class container_t, typename index_t,
 SYCL_BLAS_INLINE const scalar_t
 VectorView<scalar_t, container_t, index_t, increment_t>::eval(cl::sycl::nd_item<1> ndItem) const {
   return eval(ndItem.get_global_id(0));
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t indx) {
+  return (strd_ == 1) ? *(data_ + indx) : *(data_ + indx * strd_);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t indx) const {
+  return (strd_ == 1) ? *(data_ + indx) : *(data_ + indx * strd_);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t i) {
+  return *(data_ + i);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t i) const {
+  return *(data_ + i);
 }
 
 // template <bool use_as_ptr = false>

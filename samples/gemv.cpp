@@ -47,11 +47,31 @@ int main(int argc, char** argv) {
    */
   std::cout << "---\nExecuting Y = " << alpha << "*A*X + " << beta << "*Y\n";
   {
+#ifdef SYCL_BLAS_USE_USM
+    float* a_gpu = cl::sycl::malloc_device<float>(lda * k, q);
+    float* x_gpu = cl::sycl::malloc_device<float>(lx, q);
+    float* y_gpu = cl::sycl::malloc_device<float>(ly, q);
+
+    q.memcpy(a_gpu, A.data(), sizeof(float) * lda * k).wait();
+    q.memcpy(x_gpu, X.data(), sizeof(float) * lx).wait();
+    q.memcpy(y_gpu, Y.data(), sizeof(float) * ly).wait();
+#else
     auto a_gpu = blas::make_sycl_iterator_buffer<float>(A, lda * n);
     auto x_gpu = blas::make_sycl_iterator_buffer<float>(X, lx);
     auto y_gpu = blas::make_sycl_iterator_buffer<float>(Y, ly);
+#endif
     auto event = blas::_gemv(executor, 'n', m, n, alpha, a_gpu, lda, x_gpu,
                              incx, beta, y_gpu, incy);
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler.wait(event);
+
+    event = q.memcpy(Y.data(), y_gpu, sizeof(float) * ly);
+    policy_handler.wait(event);
+
+    cl::sycl::free(a_gpu, q);
+    cl::sycl::free(x_gpu, q);
+    cl::sycl::free(y_gpu, q);
+#endif
   }
 
   /* Print the result after the GEMM operation */

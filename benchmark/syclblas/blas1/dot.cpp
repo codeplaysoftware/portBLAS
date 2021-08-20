@@ -44,7 +44,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   // Create data
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
@@ -54,20 +58,49 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](data_t x) { return x / v1.size(); });
 
+#ifdef SYCL_BLAS_USE_USM
+  data_t* inx = cl::sycl::malloc_device<data_t>(size, ex.get_policy_handler().get_queue());
+  data_t* iny = cl::sycl::malloc_device<data_t>(size, ex.get_policy_handler().get_queue());
+  data_t* inr = cl::sycl::malloc_device<data_t>(1, ex.get_policy_handler().get_queue());
+
+  ex.get_policy_handler().get_queue().memcpy(inx, v1.data(), sizeof(data_t) * size).wait();
+  ex.get_policy_handler().get_queue().memcpy(iny, v2.data(), sizeof(data_t) * size).wait();
+  ex.get_policy_handler().get_queue().memset(inr, int{0}, sizeof(data_t)).wait();
+#else
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
   auto iny = utils::make_quantized_buffer<scalar_t>(ex, v2);
   auto inr = blas::make_sycl_iterator_buffer<scalar_t>(1);
+#endif
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   data_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
   data_t vr_temp = 0;
   {
-    auto vr_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, vr_temp);
-    _dot(ex, size, inx, 1, iny, 1, vr_temp_gpu);
+    auto vr_temp_gpu = 
+#ifdef SYCL_BLAS_USE_USM
+        cl::sycl::malloc_device<data_t>(1, ex.get_policy_handler().get_queue());
+    ex.get_policy_handler().get_queue().memcpy(vr_temp_gpu, &vr_temp, sizeof(data_t)).wait();
+#else
+        utils::make_quantized_buffer<scalar_t>(ex, vr_temp);
+#endif
+
+    auto ev = _dot(ex, size, inx, 1, iny, 1, vr_temp_gpu);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ev);
+#endif
+
     auto event =
+#ifdef SYCL_BLAS_USE_USM
+        ex.get_policy_handler().get_queue().memcpy(&vr_temp, vr_temp_gpu, sizeof(data_t));
+#else
         utils::quantized_copy_to_host<scalar_t>(ex, vr_temp_gpu, vr_temp);
-    ex.get_policy_handler().wait(event);
+#endif
+    ex.get_policy_handler().wait({event});
+
+#ifdef SYCL_BLAS_USE_USM
+    cl::sycl::free(vr_temp_gpu, ex.get_policy_handler().get_queue());
+#endif
   }
 
   if (!utils::almost_equal<data_t, scalar_t>(vr_temp, vr_ref)) {
@@ -102,6 +135,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(inx, ex.get_policy_handler().get_queue());
+  cl::sycl::free(iny, ex.get_policy_handler().get_queue());
+  cl::sycl::free(inr, ex.get_policy_handler().get_queue());
+#endif
 }
 
 template <typename scalar_t>
