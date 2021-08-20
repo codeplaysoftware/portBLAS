@@ -150,6 +150,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
   auto fillEvent = {ex.get_policy_handler().get_queue().memset(invA, element_t{0}, invASize)};
   trsmEvents = concatenate_vectors(
       trsmEvents, static_cast<typename executor_t::policy_t::event_t>(fillEvent));
+  ex.get_policy_handler().wait(trsmEvents);
 #else
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
   trsmEvents = concatenate_vectors(
@@ -206,6 +207,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
 #endif
   trsmEvents =
       concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, B, 1, X, 1));
+  ex.get_policy_handler().wait(trsmEvents);
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
