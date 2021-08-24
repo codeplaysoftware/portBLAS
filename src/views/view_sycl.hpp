@@ -186,6 +186,7 @@ struct VectorView<
   }
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
+
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
   }

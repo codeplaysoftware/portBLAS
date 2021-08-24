@@ -43,7 +43,10 @@
 #include <common/float_comparison.hpp>
 #include <common/print_queue_information.hpp>
 #include <common/system_reference_blas.hpp>
+
+#ifndef SYCL_BLAS_USE_USM
 #include <common/quantization.hpp>
+#endif
 
 #include "blas_test_macros.hpp"
 
@@ -56,8 +59,13 @@ extern Args args;
 using namespace blas;
 
 // The executor type used in tests
+#ifdef SYCL_BLAS_USE_USM
+using test_executor_t =
+    blas::Executor<blas::PolicyHandler<blas::usm_policy>>;
+#else
 using test_executor_t =
     blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
+#endif
 
 /**
  * Construct a SYCL queue using the device specified in the command line, or
@@ -132,7 +140,8 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
   for (scalar_t &e : vec) {
-    e = random_scalar(scalar_t{-2}, scalar_t{5});
+    // e = random_scalar(scalar_t{-2}, scalar_t{5});
+    e = scalar_t{1};
   }
 }
 

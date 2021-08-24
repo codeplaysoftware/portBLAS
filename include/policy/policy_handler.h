@@ -24,4 +24,8 @@
  **************************************************************************/
 #include "policy/default_policy_handler.h"
 
+#ifdef SYCL_BLAS_USE_USM
+#include "policy/usm_policy_handler.h"
+#else
 #include "policy/sycl_policy_handler.h"
+#endif

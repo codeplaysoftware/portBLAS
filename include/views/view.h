@@ -53,14 +53,16 @@ struct VectorView {
   using index_t = view_index_t;
   using increment_t = view_increment_t;
   using self_t = VectorView<value_t, container_t, index_t, increment_t>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;
   index_t size_;
   index_t disp_;
   increment_t strd_;  // never size_t, because it could be negative
 
+#ifndef SYCL_BLAS_USE_USM
   VectorView(view_container_t &data, view_index_t disp = 0,
              view_increment_t strd = 1);
+#endif
   VectorView(view_container_t &data, view_index_t disp, view_increment_t strd,
              view_index_t size);
   VectorView(
@@ -113,7 +115,32 @@ struct VectorView {
   increment_t get_stride();
 
   /**** EVALUATING ****/
-  value_t &eval(index_t i);
+  //template <bool use_as_ptr = false>
+  //typename std::enable_if<!use_as_ptr, value_t>::type 
+  // value_t& eval(index_t i);
+  // //template <bool use_as_ptr = false>
+  // //typename std::enable_if<!use_as_ptr, const value_t>::type 
+  // const value_t eval(index_t i) const;
+  value_t &eval(cl::sycl::nd_item<1> ndItem);
+  const value_t eval(cl::sycl::nd_item<1> ndItem) const;
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
 };
 
 /*! MatrixView
@@ -130,7 +157,7 @@ struct MatrixView {
   using container_t = view_container_t;
   using index_t = view_index_t;
   using self_t = MatrixView<value_t, container_t, index_t, layout>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;  // real size of the data
   index_t sizeR_;      // number of rows
   index_t sizeC_;      // number of columns
@@ -203,6 +230,35 @@ struct MatrixView {
    * @brief Evaluation for the pair of row/col.
    */
   value_t &eval(index_t i, index_t j);
+
+  /*! eval.
+   * @brief Evaluation for the pair of row/col.
+   */
+  value_t eval(index_t i, index_t j) const;
+
+  /**** EVALUATING ****/
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type 
+  eval(index_t i);
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type 
+  eval(index_t i) const;
+
+  // value_t &eval(cl::sycl::nd_item<1> ndItem);
+  // const value_t eval(cl::sycl::nd_item<1> ndItem) const;
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
+
+  SYCL_BLAS_INLINE const index_t getSizeL() const { return sizeL_; }
 };
 
 template <typename policy_t, typename data_t, typename index_t,
@@ -235,7 +291,11 @@ static inline
   using leaf_node_t =
       typename VectorViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, increment_t>::output_t;
+#ifdef SYCL_BLAS_USE_USM
+  return leaf_node_t{buff, 0, inc, sz};
+#else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), inc, sz};
+#endif
 }
 
 template <typename access_mode_t, typename executor_t, typename container_t,
@@ -248,7 +308,11 @@ static inline
   using leaf_node_t =
       typename MatrixViewTypeFactory<typename executor_t::policy_t, container_t,
                                      index_t, access_mode_t>::output_t;
+#ifdef SYCL_BLAS_USE_USM
+  return leaf_node_t{buff, m, n, lda, 0};
+#else
   return leaf_node_t{ex.get_policy_handler().get_buffer(buff), m, n, lda};
+#endif
 }
 
 }  // namespace blas

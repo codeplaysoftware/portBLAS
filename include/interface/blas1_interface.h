@@ -236,9 +236,13 @@ template <typename executor_t, typename container_0_t, typename container_1_t,
 typename executor_t::policy_t::event_t _axpy(
     executor_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_axpy(ex, _N, _alpha, _vx, _incx, _vy, _incy);
+#else
   return internal::_axpy(ex, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /**
@@ -257,8 +261,12 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_copy(ex, _N, _vx, _incx, _vy, _incy);
+#else
   return internal::_copy(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /**
@@ -275,9 +283,13 @@ template <typename executor_t, typename container_0_t, typename container_1_t,
 typename executor_t::policy_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_dot(ex, _N, _vx, _incx, _vy, _incy, _rs);
+#else
   return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_rs));
+#endif
 }
 
 /**
@@ -292,8 +304,12 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_asum(ex, _N, _vx, _incx, _rs);
+#else
   return internal::_asum(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_rs));
+#endif
 }
 
 /**
@@ -307,8 +323,12 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_iamax(ex, _N, _vx, _incx, _rs);
+#else
   return internal::_iamax(ex, _N, ex.get_policy_handler().get_buffer(_vx),
                           _incx, ex.get_policy_handler().get_buffer(_rs));
+#endif
 }
 
 /**
@@ -322,8 +342,12 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_iamin(ex, _N, _vx, _incx, _rs);
+#else
   return internal::_iamin(ex, _N, ex.get_policy_handler().get_buffer(_vx),
                           _incx, ex.get_policy_handler().get_buffer(_rs));
+#endif
 }
 
 /**
@@ -342,8 +366,12 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_swap(ex, _N, _vx, _incx, _vy, _incy);
+#else
   return internal::_swap(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /**
@@ -358,8 +386,12 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_scal(ex, _N, _alpha, _vx, _incx);
+#else
   return internal::_scal(ex, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_vx), _incx);
+#endif
 }
 
 /**
@@ -374,8 +406,12 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_nrm2(ex, _N, _vx, _incx, _rs);
+#else
   return internal::_nrm2(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_rs));
+#endif
 }
 
 /**
@@ -397,11 +433,16 @@ template <typename executor_t, typename container_0_t, typename container_1_t,
 typename executor_t::policy_t::event_t _rot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_rot(ex, _N, _vx, _incx, _vy, _incy, _cos, _sin);
+#else
   return internal::_rot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy, _cos,
                         _sin);
+#endif
 }
 
+#ifndef SYCL_BLAS_USE_USM
 /**
  * \brief Compute the inner product of two vectors with extended
     precision accumulation and result.
@@ -478,6 +519,7 @@ typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
   return internal::_nrm2(ex, _N, ex.get_policy_handler().get_buffer(_vx),
                          _incx);
 }
+#endif
 
 }  // end namespace blas
 #endif  // SYCL_BLAS_BLAS1_INTERFACE

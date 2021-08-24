@@ -83,7 +83,11 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, batch_type) = arguments;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   const char ta_str[2] = {transa, '\0'};
   const char tb_str[2] = {transb, '\0'};
@@ -131,22 +135,43 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
     c_m_gpu = strided_to_interleaved(c_m_gpu, offset, ldc, n, batch);
   }
 
+#ifdef SYCL_BLAS_USE_USM
+  data_t* m_a_gpu = cl::sycl::malloc_device<data_t>(buffer_size_a, q);
+  data_t* m_b_gpu = cl::sycl::malloc_device<data_t>(buffer_size_b, q);
+  data_t* m_c_gpu = cl::sycl::malloc_device<data_t>(buffer_size_c, q);
+
+  q.memcpy(m_a_gpu, a_m.data(), sizeof(data_t) * buffer_size_a).wait();
+  q.memcpy(m_b_gpu, b_m.data(), sizeof(data_t) * buffer_size_b).wait();
+  q.memcpy(m_c_gpu, c_m_gpu.data(), sizeof(data_t) * buffer_size_c).wait();
+#else  
   auto m_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
   auto m_b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b_m);
   auto m_c_gpu = utils::make_quantized_buffer<scalar_t>(ex, c_m_gpu);
+#endif
 
   // SYCL BLAS GEMM implementation
   if (batch == 1) {
-    _gemm(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+    auto ev = _gemm(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler.wait(ev);
+#endif
   } else {
-    _gemm_batched(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+    auto ev = _gemm_batched(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
                   m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc, batch,
                   batch_type);
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler.wait(ev);
+#endif
   }
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, m_c_gpu, c_m_gpu);
-  policy_handler.wait(event);
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(c_m_gpu.data(), m_c_gpu, sizeof(data_t) * buffer_size_c);
+#else
+      utils::quantized_copy_to_host<scalar_t>(ex, m_c_gpu, c_m_gpu);
+#endif
+  policy_handler.wait({event});
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
     c_m_gpu = interleaved_to_strided(c_m_gpu, offset, ldc, n, batch);
@@ -158,6 +183,11 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
       utils::compare_vectors<data_t, scalar_t>(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(m_a_gpu, q);
+  cl::sycl::free(m_b_gpu, q);
+  cl::sycl::free(m_c_gpu, q);
+#endif
 }
 
 /** Registers GEMM test for all supported data types

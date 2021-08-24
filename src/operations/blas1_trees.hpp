@@ -28,7 +28,11 @@
 
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
+#ifdef SYCL_BLAS_USE_USM
+#include "views/view.hpp"
+#else
 #include "views/view_sycl.hpp"
+#endif
 #include <stdexcept>
 #include <vector>
 

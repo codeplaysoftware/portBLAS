@@ -42,6 +42,15 @@ int main(int argc, char** argv) {
   print_matrix(C, m, n, ldc);
 
   /* Create the buffers */
+#ifdef SYCL_BLAS_USE_USM
+  float* a_gpu = cl::sycl::malloc_device<float>(lda * k, q);
+  float* b_gpu = cl::sycl::malloc_device<float>(ldb * n, q);
+  float* c_gpu = cl::sycl::malloc_device<float>(ldc * n, q);
+
+  q.memcpy(a_gpu, A.data(), sizeof(float) * lda * k).wait();
+  q.memcpy(b_gpu, B.data(), sizeof(float) * ldb * n).wait();
+  q.memcpy(c_gpu, C.data(), sizeof(float) * ldc * n).wait();
+#else
   auto a_gpu = blas::make_sycl_iterator_buffer<float>(lda * k);
   auto b_gpu = blas::make_sycl_iterator_buffer<float>(ldb * n);
   auto c_gpu = blas::make_sycl_iterator_buffer<float>(ldc * n);
@@ -54,20 +63,35 @@ int main(int argc, char** argv) {
   policy_handler.copy_to_device(A.data(), a_gpu, lda * k);
   policy_handler.copy_to_device(B.data(), b_gpu, ldb * n);
   policy_handler.copy_to_device(C.data(), c_gpu, ldc * n);
+#endif
 
   /* Execute the GEMM operation */
   std::cout << "Executing C = " << alpha << "*A*B + " << beta << "*C\n";
-  blas::_gemm(executor, 'n', 'n', m, n, k, alpha, a_gpu, lda, b_gpu, ldb, beta,
+  auto ev = blas::_gemm(executor, 'n', 'n', m, n, k, alpha, a_gpu, lda, b_gpu, ldb, beta,
               c_gpu, ldc);
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler.wait(ev);
+#endif
 
   /* Copy the result to the host */
   std::cout << "Copying C to host\n";
-  auto event = policy_handler.copy_to_host(c_gpu, C.data(), ldc * n);
-  policy_handler.wait(event);
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(C.data(), c_gpu, sizeof(float) * ldc * n);
+#else
+      policy_handler.copy_to_host(c_gpu, C.data(), ldc * n);
+#endif
+  policy_handler.wait({event});
 
   /* Print the result after the GEMM operation */
   std::cout << "---\nC (after):" << std::endl;
   print_matrix(C, m, n, ldc);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(a_gpu, q);
+  cl::sycl::free(b_gpu, q);
+  cl::sycl::free(c_gpu, q);
+#endif
 
   return 0;
 }

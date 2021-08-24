@@ -87,7 +87,11 @@ typename Executor::policy_t::event_t _gemv_impl(
     const auto ld = is_transposed ? _N : _M;
     constexpr index_t one = 1;
 
+#ifdef SYCL_BLAS_USE_USM
+    auto dot_products_buffer = cl::sycl::malloc_device<element_t>(ld, ex.get_policy_handler().get_queue());
+#else
     auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
+#endif
     auto dot_products_matrix =
         make_matrix_view<col_major>(ex, dot_products_buffer, ld, one, ld);
 
@@ -100,6 +104,9 @@ typename Executor::policy_t::event_t _gemv_impl(
     // auto gemvEvent = ex.execute(gemv, local_range, global_size);
     auto gemvEvent =
         ex.execute(gemv, static_cast<index_t>(local_range), global_size);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(gemvEvent);
+#endif
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -116,12 +123,30 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
+      cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
+#endif
+      return ret;
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
+      cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
+#endif
+      return ret;
     }
 
   } else  // Local memory kernel
@@ -145,8 +170,13 @@ typename Executor::policy_t::event_t _gemv_impl(
     const auto dot_products_buffer_size = ld * WGs_per_C;
 
     // Create the dot products buffer and matrix view
+#ifdef SYCL_BLAS_USE_USM
+    auto dot_products_buffer =
+        cl::sycl::malloc_device<element_t>(dot_products_buffer_size, ex.get_policy_handler().get_queue());
+#else
     auto dot_products_buffer =
         blas::make_sycl_iterator_buffer<element_t>(dot_products_buffer_size);
+#endif
     auto dot_products_matrix =
         make_matrix_view<col_major>(ex, dot_products_buffer, ld, WGs_per_C, ld);
 
@@ -159,6 +189,9 @@ typename Executor::policy_t::event_t _gemv_impl(
     // Execute the GEMV kernel that calculate the partial dot products of rows
     auto gemvEvent = ex.execute(gemv, static_cast<index_t>(local_range),
                                 global_size, kernel_scratch_size);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(gemvEvent);
+#endif
 
     // Sum the partial dot products results from the GEMV kernel
     auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
@@ -178,12 +211,30 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
+      cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
+#endif
+      return ret;
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      auto ev = ex.execute(assignOp, local_range);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ev);
+#endif
+      auto ret = concatenate_vectors(gemvEvent, ev);
+#ifdef SYCL_BLAS_USE_USM
+      ex.get_policy_handler().wait(ret);
+      cl::sycl::free(dot_products_buffer, ex.get_policy_handler().get_queue());
+#endif
+      return ret;
     }
   }
 }
@@ -238,7 +289,11 @@ typename Executor::policy_t::event_t _trmv_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   using element_t = typename ValueType<container_t0>::type;
+#ifdef SYCL_BLAS_USE_USM
+  auto valT1 = cl::sycl::malloc_device<element_t>(N * scratchSize, ex.get_policy_handler().get_queue());
+#else
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize);
+#endif
   auto mat1 =
       make_matrix_view<row_major>(ex, valT1, N, scratchSize, scratchSize);
 
@@ -298,6 +353,10 @@ typename Executor::policy_t::event_t _trmv_impl(
   auto addMOp = make_sumMatrixColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ret);
+  cl::sycl::free(valT1, ex.get_policy_handler().get_queue());
+#endif
   return ret;
 }
 
@@ -361,13 +420,21 @@ typename Executor::policy_t::event_t _symv_impl(
   const index_t scratchSize_R =
       ((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol_R;
 
+#ifdef SYCL_BLAS_USE_USM
+  auto valTR = cl::sycl::malloc_device<element_t>(N * scratchSize_R, ex.get_policy_handler().get_queue());
+#else
   auto valTR = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_R);
+#endif
   auto matR =
       make_matrix_view<row_major>(ex, valTR, N, scratchSize_R, scratchSize_R);
 
   const index_t scratchSize_C = nWGPerCol_C;
 
+#ifdef SYCL_BLAS_USE_USM
+  auto valTC = cl::sycl::malloc_device<element_t>(N * scratchSize_C, ex.get_policy_handler().get_queue());
+#else
   auto valTC = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_C);
+#endif
   auto matC =
       make_matrix_view<row_major>(ex, valTC, N, scratchSize_C, scratchSize_C);
 
@@ -399,6 +466,11 @@ typename Executor::policy_t::event_t _symv_impl(
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ret);
+  cl::sycl::free(valTR, ex.get_policy_handler().get_queue());
+  cl::sycl::free(valTC, ex.get_policy_handler().get_queue());
+#endif
   return ret;
 }
 
@@ -435,7 +507,8 @@ typename Executor::policy_t::event_t _ger_impl(
   typename Executor::policy_t::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-  return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  ret = ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  return ret;
 }
 
 /*! _SYR.
@@ -479,15 +552,23 @@ typename Executor::policy_t::event_t _syr_impl(
   if (triangOpr) {
     auto assignOp = make_Ger_Col<true, false, true, true>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ret = concatenate_vectors(
+    ret = concatenate_vectors(
                ret,
                ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ret);
+#endif
+    return ret;
   } else {
     auto assignOp = make_Ger_Col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ret = concatenate_vectors(
+    ret = concatenate_vectors(
                ret,
                ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ret);
+#endif
+    return ret;
   }
 }
 

@@ -32,34 +32,7 @@
 
 namespace blas {
 
-struct codeplay_policy {
-  template <typename scalar_t, int dim = 1>
-  using buffer_t = cl::sycl::buffer<scalar_t, dim>;
-  template <typename scalar_t,
-            cl::sycl::access::mode acc_md_t =
-                cl::sycl::access::mode::read_write,
-            cl::sycl::access::target access_t =
-                cl::sycl::access::target::global_buffer,
-            cl::sycl::access::placeholder place_holder_t =
-                cl::sycl::access::placeholder::false_t>
-  using accessor_t =
-      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
-  template <typename scalar_t,
-            cl::sycl::access::mode acc_md_t =
-                cl::sycl::access::mode::read_write,
-            cl::sycl::access::target access_t =
-                cl::sycl::access::target::global_buffer,
-            cl::sycl::access::placeholder place_holder_t =
-                cl::sycl::access::placeholder::true_t>
-  using placeholder_accessor_t =
-      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
-  using access_mode_t = cl::sycl::access::mode;
-  using queue_t = cl::sycl::queue;
-  template <typename value_t,
-            access_mode_t acc_md_t = cl::sycl::access::mode::read_write>
-  using default_accessor_t = placeholder_accessor_t<value_t, acc_md_t>;
-  using event_t = std::vector<cl::sycl::event>;
-
+struct device_policy {
   enum class device_type : int {
     cpu,
     host,
@@ -118,7 +91,50 @@ struct codeplay_policy {
     }
     throw std::runtime_error("couldn't find device");
   }
-};  // namespace blas
+}; // struct device_policy
+
+struct codeplay_policy: public device_policy {
+  template <typename scalar_t, int dim = 1>
+  using buffer_t = cl::sycl::buffer<scalar_t, dim>;
+  template <typename scalar_t,
+            cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
+                cl::sycl::access::target::global_buffer,
+            cl::sycl::access::placeholder place_holder_t =
+                cl::sycl::access::placeholder::false_t>
+  using accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  template <typename scalar_t,
+            cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
+                cl::sycl::access::target::global_buffer,
+            cl::sycl::access::placeholder place_holder_t =
+                cl::sycl::access::placeholder::true_t>
+  using placeholder_accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  using access_mode_t = cl::sycl::access::mode;
+  using queue_t = cl::sycl::queue;
+  template <typename value_t,
+            access_mode_t acc_md_t = cl::sycl::access::mode::read_write>
+  using default_accessor_t = placeholder_accessor_t<value_t, acc_md_t>;
+  using event_t = std::vector<cl::sycl::event>;
+
+};  // struct codeplay_policy
+
+struct usm_policy: public device_policy {
+  template <typename scalar_t>
+  using buffer_t = scalar_t*;
+  template <typename scalar_t>
+  using accessor_t = buffer_t<scalar_t>;
+  template <typename scalar_t>
+  using placeholder_accessor_t = accessor_t<scalar_t>;
+  using queue_t = cl::sycl::queue;
+  template <typename scalar_t>
+  using default_accessor_t = placeholder_accessor_t<scalar_t>;
+  using event_t = std::vector<cl::sycl::event>;
+}; // struct usm_policy
 
 }  // namespace blas
 #endif  // QUEUE_SYCL_HPP

@@ -45,7 +45,11 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   index_t strd = TestClass::template test_strd<test>();
   scalar_t prec = TestClass::template test_prec<test>();
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);

@@ -58,7 +58,10 @@ void launch_reduction(executor_t& ex, input_t buffer_in, output_t buffer_out,
   blas::Reduction<operator_t, input_t, output_t, 64, 256, scalar_t,
                   static_cast<int>(Reduction_t::partial_rows)>
       reduction(buffer_in, buffer_out, rows, cols);
-  ex.execute(reduction);
+  auto ev = ex.execute(reduction);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
 }
 
 template <typename scalar_t>
@@ -67,7 +70,11 @@ void run_test(const combination_t<scalar_t> combi) {
   operator_t op;
   std::tie(rows, cols, ld_mul, op) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   auto q = make_queue();
   test_executor_t ex(q);
@@ -146,8 +153,16 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
+#ifdef SYCL_BLAS_USE_USM
+  data_t* m_in_gpu = cl::sycl::malloc_device<data_t>(ld * cols, q);
+  data_t* v_out_gpu = cl::sycl::malloc_device<data_t>(rows, q);
+
+  q.memcpy(m_in_gpu, in_m.data(), sizeof(data_t) * ld * cols).wait();
+  q.memcpy(v_out_gpu, out_v_gpu.data(), sizeof(data_t) * rows).wait();
+#else
   auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
   auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
+#endif
   auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
   auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
   try {
@@ -181,6 +196,10 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(m_in_gpu, q);
+  cl::sycl::free(v_out_gpu, q);
+#endif
   auto event =
       utils::quantized_copy_to_host<scalar_t>(ex, v_out_gpu, out_v_gpu);
   ex.get_policy_handler().wait({event});

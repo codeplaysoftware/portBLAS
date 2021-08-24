@@ -35,7 +35,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int incB;
   std::tie(size, incA, incB) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   // Input vectors
   std::vector<data_t> a_v(size * incA);
@@ -68,22 +72,50 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
+#ifdef SYCL_BLAS_USE_USM
+  data_t* gpu_a_v = cl::sycl::malloc_device<data_t>(size * incA, q);
+  data_t* gpu_b_v = cl::sycl::malloc_device<data_t>(size * incB, q);
+  data_t* gpu_out_s = cl::sycl::malloc_device<data_t>(1, q);
+
+  q.memcpy(gpu_a_v, a_v.data(), sizeof(data_t) * size * incA).wait();
+  q.memcpy(gpu_b_v, b_v.data(), sizeof(data_t) * size * incB).wait();
+  q.memcpy(gpu_out_s, out_s.data(), sizeof(data_t)).wait();
+#else
   auto gpu_a_v = utils::make_quantized_buffer<scalar_t>(ex, a_v);
   auto gpu_b_v = utils::make_quantized_buffer<scalar_t>(ex, b_v);
   auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+#endif
 
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
-  _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
-  ex.get_policy_handler().wait(event);
+  auto ev = _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
+  ev = _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
+
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+  q.memcpy(out_s.data(), gpu_out_s, sizeof(data_t));
+#else 
+  utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
+#endif
+  ex.get_policy_handler().wait({event});
 
   // Validate the result
   const bool isAlmostEqual =
       utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(gpu_a_v, q);
+  cl::sycl::free(gpu_b_v, q);
+  cl::sycl::free(gpu_out_s, q);
+#endif
 }
 
 #ifdef STRESS_TESTING

@@ -77,9 +77,9 @@ class PolicyHandler {
   apply arithmetic operation on the host side
   */
 
-  template <typename element_t>
-  BufferIterator<element_t, policy_t> get_buffer(
-      BufferIterator<element_t, policy_t> buff) const;
+  template <typename buffer_t>
+  buffer_t get_buffer(
+      buffer_t buff) const;
   /*  @brief Getting range accessor from the buffer created by virtual pointer
       @tparam element_t is the type of the data
       @tparam acc_md_t is the access mode
@@ -92,18 +92,17 @@ class PolicyHandler {
       @param container is the  data we want to get range accessor
   */
 
-  template <typename element_t>
-  typename policy_t::template default_accessor_t<
-      typename ValueType<element_t>::type>
-  get_range_access(BufferIterator<element_t, policy_t> buff);
+  template <typename buffer_t>
+  buffer_t
+  get_range_access(buffer_t buff);
 
   /*
   @brief this function is to get the offset from the actual pointer
   @tparam element_t is the type of the pointer
   */
 
-  template <typename element_t>
-  ptrdiff_t get_offset(const BufferIterator<element_t, policy_t> ptr) const;
+  template <typename buffer_t>
+  ptrdiff_t get_offset(const buffer_t ptr) const;
   /*
   @brief this function is to get the offset from the actual pointer
   @tparam element_t is the type of the container_type<element_t>
@@ -116,9 +115,9 @@ class PolicyHandler {
     @param size is the number of elements to be copied
   */
 
-  template <typename element_t>
+  template <typename element_t, typename buffer_t>
   typename policy_t::event_t copy_to_device(
-      const element_t *src, BufferIterator<element_t, policy_t> dst, size_t);
+      const element_t *src, buffer_t dst, size_t);
 
   /*  @brief Copying the data back to device
     @tparam element_t is the type of the data
@@ -127,9 +126,9 @@ class PolicyHandler {
     @param size is the number of elements to be copied
   */
 
-  template <typename element_t>
+  template <typename element_t, typename buffer_t>
   typename policy_t::event_t copy_to_host(
-      BufferIterator<element_t, policy_t> src, element_t *dst, size_t);
+      buffer_t src, element_t *dst, size_t);
 
   /*  @brief waiting for a sycl::queue.wait()
    */

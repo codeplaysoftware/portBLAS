@@ -44,7 +44,11 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(uplo, trans, diag, n, incX, lda_mul) = combi;
   int lda = n * lda_mul;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   // Input matrix
   std::vector<data_t> a_m(lda * n);
@@ -68,18 +72,40 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   test_executor_t ex(q);
+
+#ifdef SYCL_BLAS_USE_USM
+  data_t* a_m_gpu = cl::sycl::malloc_device<data_t>(n * lda, q);
+  data_t* x_v_gpu = cl::sycl::malloc_device<data_t>(n * incX, q);
+
+  q.memcpy(a_m_gpu, a_m.data(), sizeof(data_t) * n * lda).wait();
+  q.memcpy(x_v_gpu, x_v.data(), sizeof(data_t) * n * incX).wait();
+#else
   auto a_m_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
   auto x_v_gpu = utils::make_quantized_buffer<scalar_t>(ex, x_v);
+#endif
 
   // SYCLtrmv
-  _trmv(ex, uplo, trans, diag, n, a_m_gpu, lda, x_v_gpu, incX);
+  auto ev = _trmv(ex, uplo, trans, diag, n, a_m_gpu, lda, x_v_gpu, incX);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, x_v_gpu, x_v);
-  ex.get_policy_handler().wait(event);
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(x_v.data(), x_v_gpu, sizeof(data_t) * n * incX);
+#else
+      utils::quantized_copy_to_host<scalar_t>(ex, x_v_gpu, x_v);
+#endif
+  ex.get_policy_handler().wait({event});
 
   const bool isAlmostEqual =
       utils::compare_vectors<data_t, scalar_t>(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(a_m_gpu, q);
+  cl::sycl::free(x_v_gpu, q);
+#endif
 }
 
 #ifdef STRESS_TESTING

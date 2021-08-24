@@ -36,7 +36,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int factor;
   std::tie(size, factor) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   auto q = make_queue();
   test_executor_t ex(q);
@@ -53,16 +57,34 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Load v_int with v_in as tuples
   {
+#ifdef SYCL_BLAS_USE_USM
+    data_t* gpu_v_in = cl::sycl::malloc_device<data_t>(size, q);
+    q.memcpy(gpu_v_in, v_in.data(), sizeof(data_t) * size).wait();
+#else
     const auto gpu_v_in = utils::make_quantized_buffer<scalar_t>(ex, v_in);
+#endif
+
     auto gpu_v_in_vv = make_vector_view(ex, gpu_v_in, 1, size);
+
+#ifdef SYCL_BLAS_USE_USM
+    IndexValueTuple<int, data_t>* gpu_v_int = 
+        cl::sycl::malloc_device<IndexValueTuple<int, data_t>>(size, q);
+    q.memcpy(gpu_v_int, v_int.data(), sizeof(IndexValueTuple<int, data_t>) * size).wait();
+#else
     auto gpu_v_int =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_int.data(), size);
+#endif
     auto gpu_v_int_vv = make_vector_view(ex, gpu_v_int, 1, size);
 
     auto tuples = make_tuple_op(gpu_v_in_vv);
     auto assign_tuple = make_op<Assign>(gpu_v_int_vv, tuples);
-    ex.execute(assign_tuple);
+    auto ev = ex.execute(assign_tuple);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ev);
+    cl::sycl::free(gpu_v_in, q);
+    cl::sycl::free(gpu_v_int, q);
+#endif
   }
 
   // Increment the indexes, so they are different to the ones in the next step
@@ -73,20 +95,39 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // And the final tuple and collapse
   {
+#ifdef SYCL_BLAS_USE_USM
+    IndexValueTuple<int, data_t>* gpu_v_int = 
+        cl::sycl::malloc_device<IndexValueTuple<int, data_t>>(size, q);
+    q.memcpy(gpu_v_int, v_int.data(), sizeof(IndexValueTuple<int, data_t>) * size).wait();
+#else
     auto gpu_v_int =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_int.data(), size);
+#endif
+
     auto gpu_v_int_vv = make_vector_view(ex, gpu_v_int, 1, size);
+    
+#ifdef SYCL_BLAS_USE_USM
+    IndexValueTuple<int, data_t>* gpu_v_out = 
+        cl::sycl::malloc_device<IndexValueTuple<int, data_t>>(size, q);
+    q.memcpy(gpu_v_out, v_out.data(), sizeof(IndexValueTuple<int, data_t>) * size).wait();
+#else
     auto gpu_v_out =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_out.data(), size);
+#endif
     auto gpu_v_out_vv = make_vector_view(ex, gpu_v_out, 1, size);
 
     auto tuples = make_tuple_op(gpu_v_int_vv);
     auto collapsed =
         make_op<ScalarOp, CollapseIndexTupleOperator>(factor, tuples);
     auto assign_tuple = make_op<Assign>(gpu_v_out_vv, collapsed);
-    ex.execute(assign_tuple);
+    auto ev = ex.execute(assign_tuple);
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().wait(ev);
+    cl::sycl::free(gpu_v_int, q);
+    cl::sycl::free(gpu_v_out, q);
+#endif
   }
 
   // Check the result

@@ -34,29 +34,40 @@
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_operators.hpp"
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 #include "views/view.h"
 
 namespace blas {
-/*! Executor<PolicyHandler<codeplay_policy>>.
+/*! Executor<PolicyHandler<executor_policy_t>>.
  * @brief Executes an Expression expression_tree_t using SYCL.
  */
-template class Executor<PolicyHandler<codeplay_policy>>;
+#ifdef SYCL_BLAS_USE_USM
+using executor_policy_t = usm_policy;
+#else
+using executor_policy_t = codeplay_policy;
+#endif
+
+template class Executor<PolicyHandler<executor_policy_t>>;
 
 /*!
  * @brief Executes the tree without defining required shared memory.
  */
 template <>
 template <typename expression_tree_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t) {
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(expression_tree_t t) {
   const auto localSize = policy_handler_.get_work_group_size();
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
 
-  return {execute_tree<using_local_memory::disabled>(
+  typename executor_policy_t::event_t ret = 
+      {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 };
 
 /*!
@@ -65,14 +76,19 @@ Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t) {
  */
 template <>
 template <typename expression_tree_t, typename index_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(expression_tree_t t,
                                                   index_t localSize) {
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
-  return {execute_tree<using_local_memory::disabled>(
+  typename executor_policy_t::event_t ret = 
+      {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 };
 
 /*!
@@ -81,12 +97,17 @@ Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
  */
 template <>
 template <typename expression_tree_t, typename index_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(expression_tree_t t,
                                                   index_t localSize,
                                                   index_t globalSize) {
-  return {execute_tree<using_local_memory::disabled>(
+  typename executor_policy_t::event_t ret = 
+      {execute_tree<using_local_memory::disabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, 0)};
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 }
 
 /*!
@@ -95,13 +116,18 @@ Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
  */
 template <>
 template <typename expression_tree_t, typename index_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(expression_tree_t t,
                                                   index_t localSize,
                                                   index_t globalSize,
                                                   index_t shMem) {
-  return {execute_tree<using_local_memory::enabled>(
+  typename executor_policy_t::event_t ret = 
+      {execute_tree<using_local_memory::enabled>(
       policy_handler_.get_queue(), t, localSize, globalSize, shMem)};
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 }
 
 /*!
@@ -109,8 +135,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(expression_tree_t t,
  */
 template <>
 template <typename operator_t, typename lhs_t, typename rhs_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
@@ -125,11 +151,18 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
+  #ifdef SYCL_BLAS_USE_USM
+  auto shMem1 = cl::sycl::malloc_device<typename lhs_t::value_t>(sharedSize, policy_handler_.get_queue());
+  auto shMem2 = cl::sycl::malloc_device<typename lhs_t::value_t>(sharedSize, policy_handler_.get_queue());
+  auto opShMem1 = lhs_t(shMem1, 0, 1, sharedSize);
+  auto opShMem2 = lhs_t(shMem2, 0, 1, sharedSize);
+  #else
   auto shMem1 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
   auto shMem2 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
   auto opShMem1 = lhs_t(shMem1, 1, sharedSize);
   auto opShMem2 = lhs_t(shMem2, 1, sharedSize);
-  typename codeplay_policy::event_t event;
+  #endif
+  typename executor_policy_t::event_t event;
   bool frst = true;
   bool even = false;
   do {
@@ -141,6 +174,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
       auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
@@ -149,12 +185,22 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif      
     }
     _N = nWG;
     nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
     frst = false;
     even = !even;
   } while (_N > 1);
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(event);
+  cl::sycl::free(shMem1, policy_handler_.get_queue());
+  cl::sycl::free(shMem2, policy_handler_.get_queue());
+#endif
+
   return event;
 }
 
@@ -165,8 +211,8 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 template <>
 template <typename operator_t, typename lhs_t, typename rhs_t,
           typename local_memory_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
@@ -178,7 +224,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   auto nWG = (t.global_num_thread_ + (2 * localSize) - 1) / (2 * localSize);
   auto lhs = t.lhs_;
   auto rhs = t.rhs_;
-  typename codeplay_policy::event_t event;
+  typename executor_policy_t::event_t event;
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
   auto opShMem1 = lhs_t(scr, 1, sharedSize);
@@ -195,6 +241,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
       auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
@@ -203,6 +252,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       event.push_back(execute_tree<using_local_memory::enabled>(
           policy_handler_.get_queue(), localTree, localSize, globalSize,
           sharedSize));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(event);
+#endif
     }
     _N = nWG;
     nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -218,8 +270,8 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
          GemmVectorization, VectorSize, BatchType>
@@ -229,11 +281,16 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
            GemmAlgorithm, GemmVectorization, VectorSize, BatchType>;
   auto rng = gemm_tree.get_nd_range(policy_handler_.get_num_compute_units());
-  return {execute_tree<
+  typename executor_policy_t::event_t ret = 
+      {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_tree, rng.get_local_range()[0],
       rng.get_global_range()[0], gemm_t::local_memory_size)};
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 }
 
 /* Tall and skinny Gemm */
@@ -242,8 +299,8 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmVectorization, int VectorSize, int BatchType>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
          static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
@@ -269,14 +326,20 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
         gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
                      gemm_wrapper.alpha_, gemm_wrapper.beta_, 1);
     auto events = execute(gemm_partial);
-
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler_.wait(events);
+#endif
     return events;
   }
   /* Else use the tall and skinny algorithm */
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
+#ifdef SYCL_BLAS_USE_USM
+  auto cube_buffer = cl::sycl::malloc_device(sizeof(element_t) * rows * cols * depth);
+#else
   auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
+#endif
 
   /* Create a first matrix view used for the partial gemm */
   auto cube_gemm =
@@ -289,6 +352,10 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube_gemm,
                    gemm_wrapper.alpha_, gemm_wrapper.beta_, depth);
   auto events = execute(gemm_partial);
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(events);
+#endif
 
   /* Create a second view used for the reduction */
   auto cube_reduction = make_matrix_view<col_major>(
@@ -303,6 +370,9 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
               element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube_reduction, gemm_wrapper.c_, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler_.wait(events);
+#endif
   }
   /* Otherwise we reduce to a temporary buffer */
   else {
@@ -317,11 +387,17 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
               element_t, static_cast<int>(Reduction_t::partial_rows)>
         reduction(cube_reduction, temp, rows * cols, depth);
     events = concatenate_vectors(events, execute(reduction));
+#ifdef SYCL_BLAS_USE_USM
+    policy_handler_.wait(events);
+#endif
 
     /* If beta is zero, simply do a 2D copy from the temp buffer to C */
     if (is_beta_zero) {
       auto assignOp = make_op<Assign>(gemm_wrapper.c_, temp);
       events = concatenate_vectors(events, execute(assignOp));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(events);
+#endif
     }
     /* Else add temp and beta * C and then assign to C */
     else {
@@ -330,8 +406,16 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
       auto addOp = make_op<BinaryOp, AddOperator>(temp, scalOp);
       auto assignOp = make_op<Assign>(gemm_wrapper.c_, addOp);
       events = concatenate_vectors(events, execute(assignOp));
+#ifdef SYCL_BLAS_USE_USM
+      policy_handler_.wait(events);
+#endif
     }
   }
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(events);
+  cl::sycl::free(cube_buffer, policy_handler_.get_queue());
+#endif
 
   return events;
 }
@@ -341,20 +425,25 @@ template <>
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
         gemm_partial) {
   auto gemm_partial_range =
       gemm_partial.get_nd_range(policy_handler_.get_num_compute_units());
-  return {execute_tree<
+  auto ret = {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
       policy_handler_.get_queue(), gemm_partial,
       gemm_partial_range.get_local_range()[0],
       gemm_partial_range.get_global_range()[0],
       gemm_partial.local_memory_size)};
+
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(ret);
+#endif
+  return ret;
 }
 
 /* Utility function used by the ReductionPartialRows specialization */
@@ -376,8 +465,8 @@ static inline cl::sycl::event launch_row_reduction_step(
 template <>
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
           int WgSize, typename element_t>
-inline typename codeplay_policy::event_t
-Executor<PolicyHandler<codeplay_policy>>::execute(
+inline typename executor_policy_t::event_t
+Executor<PolicyHandler<executor_policy_t>>::execute(
     Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
               static_cast<int>(Reduction_t::partial_rows)>
         reduction_wrapper) {
@@ -394,7 +483,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   const index_t num_compute_units = policy_handler_.get_num_compute_units();
 
   /* Create an empty event vector */
-  typename codeplay_policy::event_t reduction_event;
+  typename executor_policy_t::event_t reduction_event;
 
   const index_t max_group_count_col =
       (cols_ - 1) / params_t::work_group_cols + 1;
@@ -412,7 +501,11 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   if (two_step_reduction) {
     /* Create a temporary buffer */
     auto temp_buffer =
+#ifdef SYCL_BLAS_USE_USM
+        cl::sycl::malloc_device<element_t>(rows_ * group_count_cols, policy_handler_.get_queue());
+#else
         make_sycl_iterator_buffer<element_t>(rows_ * group_count_cols);
+#endif
     auto temp_ = make_matrix_view<col_major>(*this, temp_buffer, rows_,
                                              group_count_cols, rows_);
 
@@ -421,12 +514,14 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), in_, temp_, group_count_cols,
             params_t::local_memory_size, num_compute_units));
+    policy_handler_.wait(reduction_event);
 
     /* 2nd step */
     reduction_event.push_back(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), temp_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
+    policy_handler_.wait(reduction_event);
   }
   /* 1-step reduction */
   else {
@@ -434,8 +529,12 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
         launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
             policy_handler_.get_queue(), in_, out_, index_t(1),
             params_t::local_memory_size, num_compute_units));
+    policy_handler_.wait(reduction_event);
   }
 
+#ifdef SYCL_BLAS_USE_USM
+  policy_handler_.wait(reduction_event);
+#endif
   return reduction_event;
 }
 

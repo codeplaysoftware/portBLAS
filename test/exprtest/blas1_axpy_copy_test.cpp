@@ -37,7 +37,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int incY;
   std::tie(size, alpha, incX, incY) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   // Dimensions of input vectors x and y
   int x_dim = size * incX;
@@ -67,10 +71,20 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
+#ifdef SYCL_BLAS_USE_USM
+  data_t* gpu_x_v = cl::sycl::malloc_device<data_t>(x_dim, q);
+  data_t* gpu_y_v = cl::sycl::malloc_device<data_t>(y_dim, q);
+  data_t* gpu_xcopy_v = cl::sycl::malloc_device<data_t>(x_dim, q);
+  data_t* gpu_ycopy_v = cl::sycl::malloc_device<data_t>(y_dim, q);
+
+  q.memcpy(gpu_x_v, v_x.data(), sizeof(data_t) * x_dim).wait();
+  q.memcpy(gpu_y_v, v_y.data(), sizeof(data_t) * y_dim).wait();
+#else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, v_x);
   auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, v_y);
   auto gpu_xcopy_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
   auto gpu_ycopy_v = blas::make_sycl_iterator_buffer<scalar_t>(y_dim);
+#endif
 
   // Dimensions of vector view for AXPY operations
   int view_x_dim = (x_dim + incX - 1) / incX;
@@ -99,10 +113,22 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(axpy_event);
 
   // Copy the result back to host memory
-  auto getResultEv = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, v_y);
-  ex.get_policy_handler().wait(getResultEv);
+  auto getResultEv = 
+#ifdef SYCL_BLAS_USE_USM
+  q.memcpy(v_y.data(), gpu_y_v, sizeof(data_t) * y_dim);
+#else
+  utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, v_y);
+#endif
+  ex.get_policy_handler().wait({getResultEv});
 
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(gpu_x_v, q);
+  cl::sycl::free(gpu_y_v, q);
+  cl::sycl::free(gpu_xcopy_v, q);
+  cl::sycl::free(gpu_ycopy_v, q);
+#endif
 }
 
 const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size

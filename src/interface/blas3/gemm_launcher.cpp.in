@@ -31,8 +31,13 @@
 #include "operations/extension_trees.hpp"
 #include "operations/blas_constants.hpp"
 #include "operations/extension_trees.hpp"
+#ifdef SYCL_BLAS_USE_USM
+#include "policy/usm_policy_handler.hpp"
+#include "views/view.hpp"
+#else
 #include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
+#endif
 
 namespace blas {
 template class Gemm_Launcher<
@@ -45,6 +50,29 @@ template class Gemm_Launcher<
     ${IS_BETA_ZERO}, ${VECTOR_SIZE},
     static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>;
 
+#ifdef SYCL_BLAS_USE_USM
+template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
+    ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
+    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB}, ${TWB}>,
+    ${TRANS_A}, ${TRANS_B},
+    static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
+    static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
+    ${IS_BETA_ZERO}, ${VECTOR_SIZE},
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>::
+    _select_gemm<Executor<${EXECUTOR}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
+                 typename usm_policy::template buffer_t<${DATA_TYPE}>,
+                 ${DATA_TYPE},
+                 ${INDEX_TYPE}>(
+        Executor<${EXECUTOR}>& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+        ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha,
+        typename usm_policy::template buffer_t<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
+        typename usm_policy::template buffer_t<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
+        ${DATA_TYPE} _beta, typename usm_policy::template buffer_t<${DATA_TYPE}> _C,
+        ${INDEX_TYPE} _ldc, ${INDEX_TYPE} batch_size);
+#else
 template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB}, ${TWB}>,
@@ -65,5 +93,6 @@ template typename Executor<${EXECUTOR}>::policy_t::event_t Gemm_Launcher<
         BufferIterator<${DATA_TYPE}, codeplay_policy> b_, ${INDEX_TYPE} _ldb,
         ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}, codeplay_policy> _C,
         ${INDEX_TYPE} _ldc, ${INDEX_TYPE} batch_size);
+#endif
 
 }  // namespace blas

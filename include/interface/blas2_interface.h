@@ -250,10 +250,17 @@ typename executor_t::policy_t::event_t inline _gemv(
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_gemv(ex, _trans, _M, _N, _alpha,
+                         _mA, _lda,
+                         _vx, _incx, _beta,
+                         _vy, _incy);
+#else
   return internal::_gemv(ex, _trans, _M, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /*!
@@ -281,9 +288,15 @@ typename executor_t::policy_t::event_t inline _trmv(
     container_1_t _vx,  // (1 + (_N-1)*abs(_incx)), output vector X
     increment_t _incx   // !=0 The increment for the elements of X
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_trmv(ex, _Uplo, _trans, _Diag, _N,
+                         _mA, _lda,
+                         _vx, _incx);
+#else
   return internal::_trmv(ex, _Uplo, _trans, _Diag, _N,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx);
+#endif
 }
 
 /*!
@@ -316,10 +329,17 @@ typename executor_t::policy_t::event_t inline _symv(
     container_2_t _vy,  // (1 + (_N-1)*abs(_incy)), output vector Y
     increment_t _incy   // !=0 The increment for the elements of Y
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_symv(ex, _Uplo, _N, _alpha,
+                         _mA, _lda,
+                         _vx, _incx, _beta,
+                         _vy, _incy);
+#else
   return internal::_symv(ex, _Uplo, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_mA), _lda,
                          ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
                          ex.get_policy_handler().get_buffer(_vy), _incy);
+#endif
 }
 
 /*!
@@ -351,10 +371,17 @@ typename executor_t::policy_t::event_t inline _ger(
     container_2_t _mA,  // (_lda, n) array containing A, the output
     index_t _lda        // >max(1, m), Leading dimension of A
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_ger(ex, _M, _N, _alpha,
+                        _vx, _incx,
+                        _vy, _incy,
+                        _mA, _lda);
+#else
   return internal::_ger(ex, _M, _N, _alpha,
                         ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
+#endif
 }
 
 /*!
@@ -382,9 +409,15 @@ typename executor_t::policy_t::event_t inline _syr(
     container_1_t _mA,  // (_lda, _N) The output matrix
     index_t _lda        // >max(1, _N) The first dimension of _mA
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_syr(ex, _Uplo, _N, _alpha,
+                        _vx, _incx,
+                        _mA, _lda);
+#else
   return internal::_syr(ex, _Uplo, _N, _alpha,
                         ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_mA), _lda);
+#endif
 }
 
 /*!
@@ -416,10 +449,17 @@ typename executor_t::policy_t::event_t inline _syr2(
     container_2_t _mA,  // (_lda, _N) The output matrix
     index_t _lda        // >max(1, _N) The first dimension of _mA
 ) {
+#ifdef SYCL_BLAS_USE_USM
+  return internal::_syr2(ex, _Uplo, _N, _alpha,
+                         _vx, _incx,
+                         _vy, _incy,
+                         _mA, _lda);
+#else
   return internal::_syr2(ex, _Uplo, _N, _alpha,
                          ex.get_policy_handler().get_buffer(_vx), _incx,
                          ex.get_policy_handler().get_buffer(_vy), _incy,
                          ex.get_policy_handler().get_buffer(_mA), _lda);
+#endif
 }
 }  // namespace blas
 

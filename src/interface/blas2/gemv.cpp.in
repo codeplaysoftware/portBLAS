@@ -29,8 +29,13 @@
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
+#ifdef SYCL_BLAS_USE_USM
+#include "views/view.hpp"
+#include "policy/usm_policy_handler.hpp"
+#else
 #include "views/view_sycl.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#endif
 
 namespace blas {
 namespace internal {

@@ -34,7 +34,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int incX;
   std::tie(size, incX) = combi;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
 
   // Input vector
   std::vector<data_t> x_v(size * incX);
@@ -56,12 +60,29 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
+#ifdef SYCL_BLAS_USE_USM
+  data_t* gpu_x_v = cl::sycl::malloc_device<data_t>(size * incX, q);
+  data_t* gpu_out_s = cl::sycl::malloc_device<data_t>(1, q);
+
+  q.memcpy(gpu_x_v, x_v.data(), sizeof(data_t) * size * incX).wait();
+  q.memcpy(gpu_out_s, &out_s, sizeof(data_t)).wait();
+#else
   auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
   auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+#endif
 
-  _asum(ex, size, gpu_x_v, incX, gpu_out_s);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
-  ex.get_policy_handler().wait(event);
+  auto ev = _asum(ex, size, gpu_x_v, incX, gpu_out_s);
+#ifdef SYCL_BLAS_USE_USM
+  ex.get_policy_handler().wait(ev);
+#endif
+
+  auto event = 
+#ifdef SYCL_BLAS_USE_USM
+  q.memcpy(&out_s, gpu_out_s, sizeof(data_t));
+#else 
+  utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
+#endif
+  ex.get_policy_handler().wait({event});
 
   // Validate the result
   const bool is_almost_equal =
@@ -69,6 +90,11 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(is_almost_equal);
 
   ex.get_policy_handler().get_queue().wait();
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(gpu_x_v, q);
+  cl::sycl::free(gpu_out_s, q);
+#endif
 }
 
 const auto combi =

@@ -6,12 +6,18 @@
 #include <tuple>
 
 #include <common/common_utils.hpp>
+#ifndef SYCL_BLAS_USE_USM
 #include <common/quantization.hpp>
+#endif
 #include "sycl_blas.h"
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
+#ifdef SYCL_BLAS_USE_USM
+typedef blas::Executor<blas::PolicyHandler<blas::usm_policy>> ExecutorType;
+#else
 typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> ExecutorType;
+#endif
 
 namespace blas_benchmark {
 

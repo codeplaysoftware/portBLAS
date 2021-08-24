@@ -26,7 +26,7 @@
 #include "quantize/quantize.hpp"
 
 #include "executors/executor_sycl.hpp"
-#include "policy/sycl_policy_handler.h"
+#include "policy/policy_handler.h"
 
 namespace blas {
 namespace internal {

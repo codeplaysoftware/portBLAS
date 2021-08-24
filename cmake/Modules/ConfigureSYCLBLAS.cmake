@@ -59,6 +59,11 @@ if(NAIVE_GEMM)
   add_definitions(-DNAIVE_GEMM)
 endif()
 
+option(SYCL_BLAS_USE_USM "Whether to use USM instead of buffers for functionality" OFF)
+if(SYCL_BLAS_USE_USM)
+  add_compile_definitions(SYCL_BLAS_USE_USM)
+endif()
+
 # the TARGET variable defines the platform for which the sycl library is built
 SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
 SET(BACKEND_DEVICE ${TARGET})

@@ -26,6 +26,8 @@
 #ifndef SYCL_BLAS_VIEW_HPP
 #define SYCL_BLAS_VIEW_HPP
 
+#include <CL/sycl.hpp>
+
 #include "views/view.h"
 #include <iostream>
 #include <stdexcept>
@@ -42,31 +44,12 @@ namespace blas {
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-    _container_t &data, _IndexType disp, _IncrementType strd)
-    : data_(data),
-      size_data_(data_.size()),
-      size_(data_.size()),
-      disp_(disp),
-      strd_(strd) {}
-
-/*!
-@brief Creates a view with a size smaller than the container size.
-@param data
-@param disp
-@param strd
-@param size
-*/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
     _container_t &data, _IndexType disp, _IncrementType strd, _IndexType size)
     : data_(data),
-      size_data_(data_.size()),
-      size_(0),
+      size_data_(size),
+      size_(size),
       disp_(disp),
-      strd_(strd) {
-  initialize(size);
-}
+      strd_(strd) {}
 
 /*!
  @brief Creates a view from an existing view.
@@ -144,7 +127,7 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 inline void VectorView<_value_t, _container_t, _IndexType,
                        _IncrementType>::adjust_access_displacement() {
-  return data_ += disp_;
+  data_ += disp_;
 }
 
 /*!
@@ -177,37 +160,50 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_stride() {
   return strd_;
 }
 
-/**** EVALUATING ****/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-_value_t &VectorView<_value_t, _container_t, _IndexType, _IncrementType>::eval(
-    index_t i) {
-  auto ind = disp_;
-  if (strd_ > 0) {
-    ind += strd_ * i;
-  } else {
-    ind -= strd_ * (size_ - i - 1);
-  }
-  if (ind >= size_data_) {
-    // out of range access
-    throw std::invalid_argument("Out of range access");
-  }
-  return data_[ind];
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE scalar_t& 
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return eval(ndItem.get_global_id(0));
 }
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
-    const char *name) {
-  int frst = 1;
-  std::cout << name << " = [ ";
-  for (index_t i = 0; i < size_; i++) {
-    if (frst)
-      std::cout << eval(i);
-    else
-      std::cout << " , " << eval(i);
-    frst = 0;
-  }
-  std::cout << " ]" << std::endl;
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+SYCL_BLAS_INLINE const scalar_t
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(cl::sycl::nd_item<1> ndItem) const {
+  return eval(ndItem.get_global_id(0));
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t indx) {
+  return (strd_ == 1) ? *(data_ + indx) : *(data_ + indx * strd_);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t indx) const {
+  return (strd_ == 1) ? *(data_ + indx) : *(data_ + indx * strd_);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t i) {
+  return *(data_ + i);
+}
+
+template <class scalar_t, class container_t, typename index_t,
+          typename increment_t>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
+VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t i) const {
+  return *(data_ + i);
 }
 
 /*!
@@ -224,31 +220,9 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
       size_data_(data_.get_size()),
       sizeR_(sizeR),
       sizeC_(sizeC),
-      sizeL_((MatrixView<_value_t, _container_t, _IndexType, layout>::is_col_major())
+      sizeL_((layout::is_col_major())
           ? sizeR_
-          : sizeC_)),
-      disp_(0) {}
-
-/*!
- * @brief Constructs a matrix view on the container.
- * @param data Reference to the container.
- * @param accessDev Row-major or column-major.
- * @param sizeR Number of rows.
- * @param sizeC Number of columns.
- * @param accessOpr
- * @param sizeL Size of the leading dimension.
- * @param disp Displacement from the start.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
-    _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
-    _IndexType disp)
-    : data_(data + disp),
-      size_data_(data_.size()),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(sizeL),
+          : sizeC_),
       disp_(0) {}
 
 /*!
@@ -265,30 +239,7 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     _container_t &data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
     _IndexType disp)
     : data_(data + disp),
-      size_data_(data_.size()),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(sizeL),
-      disp_(0) {}
-
-/*!
- *@brief Creates a matrix view from the given one but with different access
- * parameters.
- * @param opM Matrix view.
- * @param accessDev Row-major or column-major.
- * @param sizeR Number of rows.
- * @param sizeC Number of columns.
- * @param accessorOpr
- * @param sizeL Size of the leading dimension.
- * @param disp Displacement from the start.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
-    MatrixView<_value_t, _container_t, _IndexType, layout> opM,
-    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL, _IndexType disp)
-    : data_(opM.data_ + disp),
-      size_data_(opM.size_data_),
+      size_data_(sizeR * sizeC),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
@@ -386,7 +337,17 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 inline void MatrixView<_value_t, _container_t, _IndexType,
                        layout>::adjust_access_displacement() {
-  return data_ += disp_;
+  data_ += disp_;
+}
+
+/*!
+ * @brief Returns a reference to the container
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+inline _value_t *
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_pointer() {
+  return data_;
 }
 
 /*! eval.
@@ -406,8 +367,55 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 _value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
     _IndexType i, _IndexType j) {
-  return ((layout::is_col_major()) ? data_[(sizeL_ * i) + j]
-                                   : data_[(sizeL_ * j) + i]);
+  return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                   : *(data_ + j + sizeL_ * i));
+}
+
+/*! eval.
+ * @brief Evaluation for the pair of row/col.
+ */
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+_value_t MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
+    _IndexType i, _IndexType j) const {
+  return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                   : *(data_ + j + sizeL_ * i));
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, _value_t &>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType indx) {
+  const _IndexType j = indx / sizeR_;
+  const _IndexType i = indx - sizeR_ * j;
+  return eval(i, j);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, _value_t>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType indx) const {
+  const _IndexType j = indx / sizeR_;
+  const _IndexType i = indx - sizeR_ * j;
+  return eval(i, j);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, _value_t &>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType i) {
+  return *(data_ + i);
+}
+
+template <class _value_t, class _container_t, typename _IndexType,
+          typename layout>
+template <bool use_as_ptr>
+SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, _value_t>::type
+MatrixView<_value_t, _container_t, _IndexType, layout>::eval(_IndexType i) const {
+  return *(data_ + i);
 }
 
 }  // namespace blas

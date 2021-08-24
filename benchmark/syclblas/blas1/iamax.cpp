@@ -44,7 +44,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
+#ifdef SYCL_BLAS_USE_USM
+  using data_t = scalar_t;
+#else
   using data_t = utils::data_storage_t<scalar_t>;
+#endif
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
   // Create data
@@ -55,8 +59,16 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [](data_t v) { return utils::clamp_to_limits<scalar_t>(v); });
 
+#ifdef SYCL_BLAS_USE_USM
+  data_t* inx = cl::sycl::malloc_device<data_t>(size, ex.get_policy_handler().get_queue());
+  tuple_scalar_t* outI = cl::sycl::malloc_device<tuple_scalar_t>(1, ex.get_policy_handler().get_queue());
+
+  ex.get_policy_handler().get_queue().memcpy(inx, v1.data(), sizeof(data_t) * size).wait();
+  ex.get_policy_handler().get_queue().memcpy(outI, &out, sizeof(tuple_scalar_t)).wait();
+#else
   auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
   auto outI = blas::make_sycl_iterator_buffer<tuple_scalar_t>(&out, 1);
+#endif
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -65,10 +77,21 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   tuple_scalar_t idx_temp{-1, 0};
   {
     auto idx_temp_gpu =
+#ifdef SYCL_BLAS_USE_USM
+        cl::sycl::malloc_device<tuple_scalar_t>(1, ex.get_policy_handler().get_queue());
+    ex.get_policy_handler().get_queue().memcpy(idx_temp_gpu, &idx_temp, sizeof(tuple_scalar_t)).wait();
+#else
         blas::make_sycl_iterator_buffer<blas::IndexValueTuple<int, scalar_t>>(
             &idx_temp, 1);
+#endif
+
     auto event = _iamax(ex, size, inx, 1, idx_temp_gpu);
     ex.get_policy_handler().wait(event);
+
+#ifdef SYCL_BLAS_USE_USM
+    ex.get_policy_handler().get_queue().memcpy(&idx_temp, idx_temp_gpu, sizeof(tuple_scalar_t)).wait();
+    cl::sycl::free(idx_temp_gpu, ex.get_policy_handler().get_queue());
+#endif
   }
 
   if (idx_temp.ind != idx_ref) {
@@ -104,6 +127,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(inx, ex.get_policy_handler().get_queue());
+  cl::sycl::free(outI, ex.get_policy_handler().get_queue());
+#endif
 }
 
 template <typename scalar_t>

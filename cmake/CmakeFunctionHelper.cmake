@@ -23,7 +23,12 @@
 # *
 # **************************************************************************/
 # represent the list of supported handler for executor
-set(executor_list "PolicyHandler<codeplay_policy>")
+if(SYCL_BLAS_USE_USM)
+set(sycl_blas_policy "usm_policy")
+else()
+set(sycl_blas_policy "codeplay_policy")
+endif()
+set(executor_list "PolicyHandler<${sycl_blas_policy}>")
 #represent the list of supported index/increment type
 set(index_list "int" )
 
@@ -100,7 +105,11 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
+    if(SYCL_BLAS_USE_USM)
+    set(container_list "typename ${sycl_blas_policy}::template buffer_t<${cpp_data}>")
+    else()
     set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+    endif()
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(increment ${index_list})
@@ -145,7 +154,11 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
+    if(SYCL_BLAS_USE_USM)
+    set(container_list "typename ${sycl_blas_policy}::template buffer_t<${cpp_data}>")
+    else()
     set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+    endif()
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
@@ -195,10 +208,17 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
+    if(SYCL_BLAS_USE_USM)
+    set(container_list_in "typename ${sycl_blas_policy}::template buffer_t<${cpp_data}>")
+    else()
     set(container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
+    endif()
     foreach(index ${index_list})
-      set(container_list_out
-        "BufferIterator<IndexValueTuple<${index},${cpp_data}>,codeplay_policy>")
+      if(SYCL_BLAS_USE_USM)
+      set(container_list_out "typename ${sycl_blas_policy}::template buffer_t<IndexValueTuple<${index},${cpp_data}> >")
+      else()
+      set(container_list_out "BufferIterator<IndexValueTuple<${index},${cpp_data}>,codeplay_policy>")
+      endif()
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
           set(container_names "${container0}_${container1}")
@@ -247,7 +267,11 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
+    if(SYCL_BLAS_USE_USM)
+    set(container_list "typename ${sycl_blas_policy}::template buffer_t<${cpp_data}>")
+    else()
     set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+    endif()
     foreach(index ${index_list})
       foreach(container0 ${container_list})
         foreach(container1 ${container_list})
@@ -712,6 +736,31 @@ endfunction(generate_quantize)
 
 
 function (build_library LIB_NAME)
+if(SYCL_BLAS_USE_USM)
+add_library(${LIB_NAME}
+                             $<TARGET_OBJECTS:sycl_policy>
+                             $<TARGET_OBJECTS:quantize>
+                             $<TARGET_OBJECTS:axpy>
+                             $<TARGET_OBJECTS:asum>
+                             $<TARGET_OBJECTS:copy>
+                             $<TARGET_OBJECTS:dot>
+                             $<TARGET_OBJECTS:iamax>
+                             $<TARGET_OBJECTS:iamin>
+                             $<TARGET_OBJECTS:nrm2>
+                             $<TARGET_OBJECTS:rot>
+                             $<TARGET_OBJECTS:scal>
+                             $<TARGET_OBJECTS:swap>
+                             $<TARGET_OBJECTS:gemv>
+                             $<TARGET_OBJECTS:ger>
+                             $<TARGET_OBJECTS:symv>
+                             $<TARGET_OBJECTS:syr>
+                             $<TARGET_OBJECTS:syr2>
+                             $<TARGET_OBJECTS:trmv>
+                             $<TARGET_OBJECTS:gemm_launcher>
+                             $<TARGET_OBJECTS:gemm>
+                             $<TARGET_OBJECTS:trsm>
+                            )
+else()
 add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:sycl_policy>
                              $<TARGET_OBJECTS:quantize>
@@ -740,4 +789,5 @@ add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:gemm>
                              $<TARGET_OBJECTS:trsm>
                             )
+endif()
 endfunction(build_library)
