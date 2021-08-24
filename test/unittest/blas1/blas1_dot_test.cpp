@@ -74,7 +74,9 @@ void run_test(const combination_t<scalar_t> combi) {
 #endif
 
   auto ev = _dot(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+#ifdef SYCL_BLAS_USE_USM
   ex.get_policy_handler().wait(ev);
+#endif
 
   auto event = 
 #ifdef SYCL_BLAS_USE_USM

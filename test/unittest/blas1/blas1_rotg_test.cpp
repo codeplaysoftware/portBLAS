@@ -90,9 +90,13 @@ void run_test(const combination_t<scalar_t> combi) {
   auto s = static_cast<scalar_t>(s_d);
 
   auto ev = _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
+#ifdef SYCL_BLAS_USE_USM
   ex.get_policy_handler().wait(ev);
+#endif
   ev = _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
+#ifdef SYCL_BLAS_USE_USM
   ex.get_policy_handler().wait(ev);
+#endif
 
   auto event = 
 #ifdef SYCL_BLAS_USE_USM

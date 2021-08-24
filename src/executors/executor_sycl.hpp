@@ -501,7 +501,11 @@ Executor<PolicyHandler<executor_policy_t>>::execute(
 
     /* Create a temporary buffer */
     auto temp_buffer =
+#ifdef SYCL_BLAS_USE_USM
+        cl::sycl::malloc_device<element_t>(rows_ * group_count_cols, policy_handler_.get_queue());
+#else
         make_sycl_iterator_buffer<element_t>(rows_ * group_count_cols);
+#endif
     auto temp_ = make_matrix_view<col_major>(*this, temp_buffer, rows_,
                                              group_count_cols, rows_);
 

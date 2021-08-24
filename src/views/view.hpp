@@ -51,25 +51,6 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
       disp_(disp),
       strd_(strd) {}
 
-// /*!
-// @brief Creates a view with a size smaller than the container size.
-// @param data
-// @param disp
-// @param strd
-// @param size
-// */
-// template <class _value_t, class _container_t, typename _IndexType,
-//           typename _IncrementType>
-// VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-//     _container_t &data, _IndexType disp, _IncrementType strd, _IndexType size)
-//     : data_(data),
-//       size_data_(size),
-//       size_(0),
-//       disp_(disp),
-//       strd_(strd) {
-//   initialize(size);
-// }
-
 /*!
  @brief Creates a view from an existing view.
 */
@@ -179,23 +160,6 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_stride() {
   return strd_;
 }
 
-/**** EVALUATING ****/
-// template <class scalar_t, class container_t, typename index_t,
-//           typename increment_t>
-// SYCL_BLAS_INLINE scalar_t&
-// VectorView<scalar_t, container_t, index_t, increment_t>::eval(
-//     index_t i) {
-//   return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
-// }
-
-// template <class scalar_t, class container_t, typename index_t,
-//           typename increment_t>
-// SYCL_BLAS_INLINE const scalar_t 
-// VectorView<scalar_t, container_t, index_t, increment_t>::eval(
-//     index_t i) const {
-//   return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
-// }
-
 template <class scalar_t, class container_t, typename index_t,
           typename increment_t>
 SYCL_BLAS_INLINE scalar_t& 
@@ -241,51 +205,6 @@ SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type
 VectorView<scalar_t, container_t, index_t, increment_t>::eval(index_t i) const {
   return *(data_ + i);
 }
-
-// template <bool use_as_ptr = false>
-// SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
-//     index_t indx) {
-//   return *(ptr_ + indx);
-// }
-
-// template <bool use_as_ptr = false>
-// SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
-//     index_t indx) const noexcept {
-//   return *(ptr_ + indx);
-// }
-
-/**** EVALUATING ****/
-// template <class _value_t, class _container_t, typename _IndexType,
-//           typename _IncrementType>
-// _value_t &VectorView<_value_t, _container_t, _IndexType, _IncrementType>::eval(
-//     index_t i) {
-//   auto ind = disp_;
-//   if (strd_ > 0) {
-//     ind += strd_ * i;
-//   } else {
-//     ind -= strd_ * (size_ - i - 1);
-//   }
-//   if (ind >= size_data_) {
-//     // out of range access
-//     // throw std::invalid_argument("Out of range access");
-//   }
-//   return data_[ind];
-// }
-// template <class _value_t, class _container_t, typename _IndexType,
-//           typename _IncrementType>
-// void VectorView<_value_t, _container_t, _IndexType, _IncrementType>::print_h(
-//     const char *name) {
-//   int frst = 1;
-//   std::cout << name << " = [ ";
-//   for (index_t i = 0; i < size_; i++) {
-//     if (frst)
-//       std::cout << eval(i);
-//     else
-//       std::cout << " , " << eval(i);
-//     frst = 0;
-//   }
-//   std::cout << " ]" << std::endl;
-// }
 
 /*!
  * @brief Constructs a matrix view on the container.
