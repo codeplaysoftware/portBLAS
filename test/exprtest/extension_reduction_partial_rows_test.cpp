@@ -45,9 +45,9 @@ using combination_t = std::tuple<index_t, index_t, index_t, operator_t>;
 /* Note: the product and division are not tested because our random data may
  * contain values close to zero */
 const auto combi = ::testing::Combine(
-    ::testing::Values(7, 513),          // rows
-    ::testing::Values(15, 1337, 8195),  // columns
-    ::testing::Values(3),               // ld_mul
+    ::testing::Values(1, 7, 513),                // rows
+    ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
+    ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
                       operator_t::AbsoluteAdd));
 
@@ -153,55 +153,56 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
-  {
 #ifdef SYCL_BLAS_USE_USM
-    data_t* m_in_gpu = cl::sycl::malloc_device<data_t>(ld * cols, q);
-    data_t* v_out_gpu = cl::sycl::malloc_device<data_t>(rows, q);
+  data_t* m_in_gpu = cl::sycl::malloc_device<data_t>(ld * cols, q);
+  data_t* v_out_gpu = cl::sycl::malloc_device<data_t>(rows, q);
 
-    q.memcpy(m_in_gpu, in_m.data(), sizeof(data_t) * ld * cols).wait();
-    q.memcpy(v_out_gpu, out_v_gpu.data(), sizeof(data_t) * rows).wait();
+  q.memcpy(m_in_gpu, in_m.data(), sizeof(data_t) * ld * cols).wait();
+  q.memcpy(v_out_gpu, out_v_gpu.data(), sizeof(data_t) * rows).wait();
 #else
-    auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
-    auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
+  auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
+  auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
 #endif
-    auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
-    auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
-    try {
-      switch (op) {
-        case operator_t::Add:
-          launch_reduction<AddOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                  rows, cols);
-          break;
-        case operator_t::Product:
-          launch_reduction<ProductOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                      rows, cols);
-          break;
-        case operator_t::Division:
-          launch_reduction<DivisionOperator, scalar_t>(ex, buffer_in,
-                                                       buffer_out, rows, cols);
-          break;
-        case operator_t::Max:
-          launch_reduction<MaxOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                  rows, cols);
-          break;
-        case operator_t::Min:
-          launch_reduction<MinOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                  rows, cols);
-          break;
-        case operator_t::AbsoluteAdd:
-          launch_reduction<AbsoluteAddOperator, scalar_t>(
-              ex, buffer_in, buffer_out, rows, cols);
-          break;
-      }
-    } catch (cl::sycl::exception& e) {
-      std::cerr << "Exception occured:" << std::endl;
-      std::cerr << e.what() << std::endl;
+  auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
+  auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
+  try {
+    switch (op) {
+      case operator_t::Add:
+        launch_reduction<AddOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
+                                                cols);
+        break;
+      case operator_t::Product:
+        launch_reduction<ProductOperator, scalar_t>(ex, buffer_in, buffer_out,
+                                                    rows, cols);
+        break;
+      case operator_t::Division:
+        launch_reduction<DivisionOperator, scalar_t>(ex, buffer_in, buffer_out,
+                                                     rows, cols);
+        break;
+      case operator_t::Max:
+        launch_reduction<MaxOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
+                                                cols);
+        break;
+      case operator_t::Min:
+        launch_reduction<MinOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
+                                                cols);
+        break;
+      case operator_t::AbsoluteAdd:
+        launch_reduction<AbsoluteAddOperator, scalar_t>(ex, buffer_in,
+                                                        buffer_out, rows, cols);
+        break;
     }
-#ifdef SYCL_BLAS_USE_USM
-    cl::sycl::free(m_in_gpu, q);
-    cl::sycl::free(v_out_gpu, q);
-#endif
+  } catch (cl::sycl::exception& e) {
+    std::cerr << "Exception occured:" << std::endl;
+    std::cerr << e.what() << std::endl;
   }
+#ifdef SYCL_BLAS_USE_USM
+  cl::sycl::free(m_in_gpu, q);
+  cl::sycl::free(v_out_gpu, q);
+#endif
+  auto event =
+      utils::quantized_copy_to_host<scalar_t>(ex, v_out_gpu, out_v_gpu);
+  ex.get_policy_handler().wait({event});
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
