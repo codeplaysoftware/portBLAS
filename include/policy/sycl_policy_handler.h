@@ -136,7 +136,7 @@ class PolicyHandler<codeplay_policy> {
   typename policy_t::event_t copy_to_device(
       const element_t *src, BufferIterator<element_t, policy_t> dst,
       size_t size = 0);
-  /*  @brief Copying the data back to device
+  /*  @brief Copying the data back to host
       @tparam element_t is the type of the data
       @param src is the device pointer we want to copy from.
       @param dst is the host pointer we want to copy to.

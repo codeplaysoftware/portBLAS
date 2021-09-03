@@ -18,7 +18,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_policy_handler.cpp
+ *  @filename usm_policy_handler.cpp
  *
  **************************************************************************/
 

@@ -18,7 +18,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_policy_handler.hpp
+ *  @filename usm_policy_handler.hpp
  *
  **************************************************************************/
 
@@ -56,4 +56,4 @@ PolicyHandler<usm_policy>::copy_to_host(element_t *src, element_t *dst,
 }
 
 }  // namespace blas
-#endif  // QUEUE_SYCL_HPP
+#endif  // SYCL_BLAS_USM_POLICY_HANDLER_HPPQUEUE_SYCL_HPP

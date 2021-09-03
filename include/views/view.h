@@ -115,13 +115,8 @@ struct VectorView {
   increment_t get_stride();
 
   /**** EVALUATING ****/
-  //template <bool use_as_ptr = false>
-  //typename std::enable_if<!use_as_ptr, value_t>::type 
-  // value_t& eval(index_t i);
-  // //template <bool use_as_ptr = false>
-  // //typename std::enable_if<!use_as_ptr, const value_t>::type 
-  // const value_t eval(index_t i) const;
   value_t &eval(cl::sycl::nd_item<1> ndItem);
+
   const value_t eval(cl::sycl::nd_item<1> ndItem) const;
 
   template <bool use_as_ptr = false>
@@ -252,9 +247,6 @@ struct MatrixView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type 
   eval(index_t i) const;
-
-  // value_t &eval(cl::sycl::nd_item<1> ndItem);
-  // const value_t eval(cl::sycl::nd_item<1> ndItem) const;
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { };
 

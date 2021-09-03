@@ -45,27 +45,25 @@ class PolicyHandler<usm_policy> {
         localMemorySupport_(usm_policy::has_local_memory(q)),
         computeUnits_(usm_policy::get_num_compute_units(q)) {}
 
-  // template <typename element_t>
-  // element_t *allocate(size_t num_elements) const;
-
-  // template <typename element_t>
-  // void deallocate(element_t *p) const;
-
-  // template <typename element_t>
-  // ptrdiff_t get_offset(const element_t *ptr) const;
-
+  /*  @brief Copying the data back to device
+      @tparam element_t is the type of the data
+      @param src is the host pointer we want to copy from.
+      @param dst is the device pointer we want to copy to.
+      @param size is the number of elements to be copied
+  */
   template <typename element_t>
   typename policy_t::event_t copy_to_device(const element_t *src,
                                             element_t *dst, size_t size = 0);
 
+  /*  @brief Copying the data back to host
+      @tparam element_t is the type of the data
+      @param src is the device pointer we want to copy from.
+      @param dst is the host pointer we want to copy to.
+      @param size is the number of elements to be copied
+  */
   template <typename element_t>
   typename policy_t::event_t copy_to_host(element_t *src, element_t *dst,
                                           size_t size = 0);
-
-  // template<typename element_t>
-  // typename policy_t::event_t fill(element_t *buf,
-  //                                 element_t value = element_t{0},
-  //                                 size_t size = 0);
 
   inline const policy_t::device_type get_device_type() const {
     return selectedDeviceType_;
@@ -100,4 +98,4 @@ class PolicyHandler<usm_policy> {
 };
 
 }  // namespace blas
-#endif  // QUEUE_SYCL_HPP
+#endif  // SYCL_BLAS_USM_POLICY_HANDLER_HQUEUE_SYCL_HPP
