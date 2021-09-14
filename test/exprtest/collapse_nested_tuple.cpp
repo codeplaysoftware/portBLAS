@@ -82,6 +82,8 @@ void run_test(const combination_t<scalar_t> combi) {
     auto ev = ex.execute(assign_tuple);
 #ifdef SYCL_BLAS_USE_USM
     ex.get_policy_handler().wait(ev);
+    auto cpy_ev = q.memcpy(v_int.data(), gpu_v_int, sizeof(IndexValueTuple<int, data_t>) * size);
+    ex.get_policy_handler().wait({cpy_ev});
     cl::sycl::free(gpu_v_in, q);
     cl::sycl::free(gpu_v_int, q);
 #endif
@@ -125,6 +127,8 @@ void run_test(const combination_t<scalar_t> combi) {
     auto ev = ex.execute(assign_tuple);
 #ifdef SYCL_BLAS_USE_USM
     ex.get_policy_handler().wait(ev);
+    auto cpy_ev = q.memcpy(v_out.data(), gpu_v_out, sizeof(IndexValueTuple<int, data_t>) * size);
+    ex.get_policy_handler().wait({cpy_ev});
     cl::sycl::free(gpu_v_int, q);
     cl::sycl::free(gpu_v_out, q);
 #endif

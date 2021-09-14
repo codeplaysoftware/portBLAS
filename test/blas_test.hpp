@@ -140,8 +140,7 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
   for (scalar_t &e : vec) {
-    // e = random_scalar(scalar_t{-2}, scalar_t{5});
-    e = scalar_t{1};
+    e = random_scalar(scalar_t{-2}, scalar_t{5});
   }
 }
 

@@ -196,15 +196,20 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
+  auto event =
+#ifdef SYCL_BLAS_USE_USM
+      q.memcpy(out_v_gpu.data(), v_out_gpu, sizeof(data_t) * rows);
+#else
+      utils::quantized_copy_to_host<scalar_t>(ex, v_out_gpu, out_v_gpu);
+#endif
+  ex.get_policy_handler().wait({event});
+
+  ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
+
 #ifdef SYCL_BLAS_USE_USM
   cl::sycl::free(m_in_gpu, q);
   cl::sycl::free(v_out_gpu, q);
 #endif
-  auto event =
-      utils::quantized_copy_to_host<scalar_t>(ex, v_out_gpu, out_v_gpu);
-  ex.get_policy_handler().wait({event});
-
-  ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
 
 BLAS_REGISTER_TEST(ReductionPartialRows, combination_t, combi);
