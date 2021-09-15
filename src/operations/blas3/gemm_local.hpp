@@ -254,7 +254,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         id.get_group_range(0) / get_workgroup_cluster();
 
     auto scratch = scratch_acc.localAcc.get_pointer();
-    // using ScratchPointerType = decltype(scratch);
+
     // The number of work-group required to executed each batch efficiently
     const index_t wg_id = id.get_group(0) % get_workgroup_cluster();
 

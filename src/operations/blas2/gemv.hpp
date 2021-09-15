@@ -185,7 +185,7 @@ SYCL_BLAS_INLINE
                                 cl::sycl::nd_item<1> ndItem) {
   const index_t local_id = ndItem.get_local_id(0);
   const index_t group_id = ndItem.get_group(0);
-  // const index_t group_range = ndItem.get_group_range(0);
+
   const index_t lda = matrix_a_.getSizeL();
   const index_t nc_dim =
       is_transposed ? matrix_a_.get_size_col() : matrix_a_.get_size_row();
