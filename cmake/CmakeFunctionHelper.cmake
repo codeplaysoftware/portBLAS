@@ -244,14 +244,24 @@ endfunction(generate_blas_binary_special_objects)
 # blas ternary function for generating source code
 function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+string(FIND ${func} "_const" pos)
+if(pos)
+  string(REPLACE "_const" "" actualfunc ${func})
+endif()
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
-    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+    set(container_list_in)
+    if(pos EQUAL -1)
+      list(APPEND container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
+    else()
+      list(APPEND container_list_in "BufferIterator<${cpp_data} const,codeplay_policy>")
+    endif()
+    set(container_list_out "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
-      foreach(container0 ${container_list})
-        foreach(container1 ${container_list})
-          foreach(container2 ${container_list})
+      foreach(container0 ${container_list_in})
+        foreach(container1 ${container_list_in})
+          foreach(container2 ${container_list_out})
             set(container_names
               "${container0}_${container1}_${container2}")
             foreach(increment ${index_list})
@@ -263,7 +273,7 @@ foreach(executor ${executor_list})
                   ${SYCLBLAS_SRC_GENERATOR}/gen
                   ${blas_level}
                   ${func}
-                  ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                   ${executor}
                   ${cpp_data}
                   ${index}
@@ -272,7 +282,7 @@ foreach(executor ${executor_list})
                   ${container1}
                   ${container2}
                   ${file_name}
-                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                 DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
                 WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                 VERBATIM
@@ -740,4 +750,7 @@ add_library(${LIB_NAME}
                              $<TARGET_OBJECTS:gemm>
                              $<TARGET_OBJECTS:trsm>
                             )
+  if(BLAS_ENABLE_CONST_INPUT)
+    target_sources(${LIB_NAME} PRIVATE $<TARGET_OBJECTS:gemv_const>  $<TARGET_OBJECTS:gemm_const>)
+  endif()
 endfunction(build_library)
