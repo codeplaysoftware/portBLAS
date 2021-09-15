@@ -118,7 +118,7 @@ struct AbsoluteValue {
 #else 
   template <typename value_t>
   using is_floating_point = std::is_floating_point<value_t>;
-#endif   // BLAS_DATA_TYPE_HALF
+#endif // BLAS_DATA_TYPE_HALF
 
   template <typename value_t>
   static SYCL_BLAS_INLINE value_t eval(
