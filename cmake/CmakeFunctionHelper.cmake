@@ -244,7 +244,7 @@ endfunction(generate_blas_binary_special_objects)
 # blas ternary function for generating source code
 function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-string(FIND ${func} "_const" pos)
+string(FIND ${func} "_const" const_pos)
 if(pos)
   string(REPLACE "_const" "" actualfunc ${func})
 endif()
