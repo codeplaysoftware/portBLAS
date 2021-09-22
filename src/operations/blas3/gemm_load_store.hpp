@@ -36,11 +36,11 @@ used no matter what value is passed here.
 * @tparam value_t The type of the matrix data (typically float or double, if
 supported).
 */
-template <size_t vector_size, typename value_t, typename index_t>
+template <int vector_size, typename value_t, typename index_t>
 struct Packetize {
 #ifdef GEMM_VECTORIZATION_SUPPORT
   using PacketType = cl::sycl::vec<value_t, vector_size>;
-  static constexpr size_t packet_size = vector_size;
+  static constexpr int packet_size = vector_size;
   template <index_t dimension>
   SYCL_BLAS_INLINE static constexpr bool check_size() {
     return packet_size == 1 || dimension == packet_size;
@@ -48,7 +48,7 @@ struct Packetize {
 #else
   // In the case where vectorization is not enabled, always set to 1
   using PacketType = cl::sycl::vec<value_t, 1>;
-  static constexpr size_t packet_size = 1;
+  static constexpr int packet_size = 1;
   template <index_t dimension>
   SYCL_BLAS_INLINE static constexpr bool check_size() {
     return true;

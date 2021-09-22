@@ -165,7 +165,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     return a_.get_size_row() * b_.get_size_col();
   }
 
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
     return true;
   }
 
@@ -624,9 +624,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_block_a(
-      PointerType ptr, element_t *reg, const index_t &ptr_next,
-      const index_t &ld, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &, const index_t &ld,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -701,9 +701,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type load_single_b(
-      PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &, const index_t &col_ofs,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -763,9 +763,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_single_b(
-      PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &row_ofs, const index_t &,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }

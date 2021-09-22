@@ -157,7 +157,7 @@ Definitions of unary operators
 */
 struct AdditionIdentity : public Operators {
   template <typename rhs_t>
-  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t) {
     return constant<rhs_t, const_val::zero>::value();
   }
 };
