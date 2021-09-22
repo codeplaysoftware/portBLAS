@@ -174,7 +174,7 @@ INSTANTIATE_CONST_TEMPLATE_METHODS(double const)
 #ifdef BLAS_DATA_TYPE_HALF
 INSTANTIATE_CONST_TEMPLATE_METHODS(cl::sycl::half const)
 #endif  // BLAS_DATA_TYPE_HALF
-#endif
+#endif // BLAS_ENABLE_CONST_INPUT
 
 }  // namespace blas
 #endif
