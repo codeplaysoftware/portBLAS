@@ -170,7 +170,9 @@ Assign<lhs_t, rhs_t>::get_size() const {
 template <typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
-  return ((ndItem.get_global_id(0) < Assign<lhs_t, rhs_t>::get_size()));
+  using index_t = typename Assign<lhs_t, rhs_t>::index_t;
+  return (static_cast<index_t>(ndItem.get_global_id(0)) <
+          Assign<lhs_t, rhs_t>::get_size());
 }
 
 template <typename lhs_t, typename rhs_t>

@@ -254,7 +254,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         id.get_group_range(0) / get_workgroup_cluster();
 
     auto scratch = scratch_acc.localAcc.get_pointer();
-    using ScratchPointerType = decltype(scratch);
+
     // The number of work-group required to executed each batch efficiently
     const index_t wg_id = id.get_group(0) % get_workgroup_cluster();
 
@@ -499,9 +499,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
-  SYCL_BLAS_INLINE void store_output_block(index_t item_id, index_t mc,
-                                           index_t nc, OutputPointerType C,
-                                           index_t ldc, element_t *reg_res,
+  SYCL_BLAS_INLINE void store_output_block(index_t, index_t mc, index_t nc,
+                                           OutputPointerType C, index_t ldc,
+                                           element_t *reg_res,
                                            const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
@@ -544,7 +544,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     extract_block<!check_m_limit && !check_n_limit, check_m_limit,
                   check_k_limit, trans_a, block_rows, cl_elems, ldsa>(
         item_id, A, lda, sA,
-        [&](index_t ir, index_t cr) SYCL_BLAS_ALWAYS_INLINE { return cr < m; },
+        [&](index_t, index_t cr) SYCL_BLAS_ALWAYS_INLINE { return cr < m; },
         [&](index_t ic, index_t cc)
             SYCL_BLAS_ALWAYS_INLINE { return cc < k - ic; });
     extract_block<!check_m_limit && !check_n_limit, check_k_limit,
@@ -552,7 +552,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         item_id, B, ldb, sB,
         [&](index_t ir, index_t cr)
             SYCL_BLAS_ALWAYS_INLINE { return cr < k - ir; },
-        [&](index_t ic, index_t cc) SYCL_BLAS_ALWAYS_INLINE { return cc < n; });
+        [&](index_t, index_t cc) SYCL_BLAS_ALWAYS_INLINE { return cc < n; });
   }
 
   /*!
@@ -659,7 +659,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param reg_res  2D register array used to store the result C
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
-  SYCL_BLAS_INLINE void compute_block_gemm(index_t item_id, InputPointerType B,
+  SYCL_BLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
                                            InputPointerType A, element_t *reg_a,
                                            element_t &reg_b,
                                            element_t *reg_res) noexcept {

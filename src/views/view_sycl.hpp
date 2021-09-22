@@ -79,9 +79,8 @@ struct VectorView<
   // Compute the number of elements to read from data. This is useful when a
   // VectorView is created without an explicit size, so that only the necessary
   // number of threads are launched.
-  static SYCL_BLAS_INLINE index_t
-  calculate_input_data_size(container_t &data, index_t disp, increment_t stride,
-                            index_t size) noexcept {
+  static SYCL_BLAS_INLINE index_t calculate_input_data_size(
+      container_t &data, index_t, increment_t stride, index_t size) noexcept {
     increment_t const positive_stride = stride < 0 ? -stride : stride;
     index_t const calc_size = round_up_ratio(data.get_count(), positive_stride);
     return std::min(size, calc_size);

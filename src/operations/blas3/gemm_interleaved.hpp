@@ -185,8 +185,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     return str.str();
   }
 
-  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
-      index_t compute_units) const noexcept {
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(index_t) const noexcept {
     const index_t number_of_block_per_row = ((m_ - 1) / block_rows) + 1;
     const index_t number_of_block_per_cols = ((n_ - 1) / block_cols) + 1;
 
@@ -201,7 +200,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
     return true;
   }
 
@@ -303,8 +302,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   template <index_t item_size, bool need_check_boundary, typename check_t,
             typename ptr_t>
   SYCL_BLAS_INLINE typename std::enable_if<!need_check_boundary>::type load(
-      check_t boundary_check, index_t index_start, index_t mb_start,
-      index_t dim_size, packet_type *reg_res, ptr_t input, index_t stride) {
+      check_t, index_t, index_t, index_t, packet_type *reg_res, ptr_t input,
+      index_t stride) {
 #pragma unroll
     for (int i = 0; i < item_size; ++i) {
 #pragma unroll
@@ -400,8 +399,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   // The internal block that does not need any boundary check
   template <bool need_check_boundary, typename check_t, typename ptr_t>
   SYCL_BLAS_INLINE typename std::enable_if<!need_check_boundary>::type store(
-      check_t boundary_check, index_t m_start, index_t n_start,
-      index_t mb_start, packet_type *reg_res, ptr_t C) {
+      check_t, index_t, index_t, index_t, packet_type *reg_res, ptr_t C) {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
       auto output = C;
