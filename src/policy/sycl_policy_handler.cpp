@@ -156,5 +156,25 @@ INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long, cl::sycl::half)
 INSTANTIATE_TEMPLATE_METHODS_SPECIAL(long long, cl::sycl::half)
 #endif  // BLAS_DATA_TYPE_HALF
 
+#ifdef BLAS_ENABLE_CONST_INPUT
+#define INSTANTIATE_CONST_TEMPLATE_METHODS(element_t)                        \
+  template BufferIterator<element_t, codeplay_policy>                        \
+      PolicyHandler<codeplay_policy>::get_buffer<element_t>(element_t * ptr) \
+          const;                                                             \
+  template BufferIterator<element_t, codeplay_policy>                        \
+  PolicyHandler<codeplay_policy>::get_buffer<element_t>(                     \
+      BufferIterator<element_t, codeplay_policy> buff) const;
+
+INSTANTIATE_CONST_TEMPLATE_METHODS(float const)
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
+INSTANTIATE_CONST_TEMPLATE_METHODS(double const)
+#endif  // BLAS_DATA_TYPE_DOUBLE
+
+#ifdef BLAS_DATA_TYPE_HALF
+INSTANTIATE_CONST_TEMPLATE_METHODS(cl::sycl::half const)
+#endif  // BLAS_DATA_TYPE_HALF
+#endif // BLAS_ENABLE_CONST_INPUT
+
 }  // namespace blas
 #endif
