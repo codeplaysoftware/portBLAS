@@ -44,6 +44,14 @@ template <typename rhs_t>
 struct ResolveReturnType<CollapseIndexTupleOperator, rhs_t> {
   using type = typename rhs_t::value_t;
 };
+
+struct AddOperator;
+struct ProductOperator;
+struct DivisionOperator;
+struct MaxOperator;
+struct MinOperator;
+struct AbsoluteAddOperator;
+
 }  // namespace blas
 
 #endif

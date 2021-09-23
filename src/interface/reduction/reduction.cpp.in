@@ -19,48 +19,29 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.h
+ *  @filename reduction.cpp.in
  *
  **************************************************************************/
 
-#include <CL/sycl.hpp>
+#include "operations/extension_trees.hpp"
+#include "container/sycl_iterator.hpp"
+#include "executors/executor_sycl.hpp"
+#include "executors/kernel_constructor.hpp"
+#include "interface/blas1_interface.hpp"
+#include "interface/reduction_interface.hpp"
+#include "operations/blas_constants.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "views/view_sycl.hpp"
 
-#include "blas_meta.h"
+namespace blas {
+namespace extension {
+namespace internal {
 
-#include "policy/sycl_policy.h"
+template 
+typename Executor<${EXECUTOR}>::policy_t::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
+    Executor<${EXECUTOR}>& ex, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
+    ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols);
 
-#include "container/blas_iterator.h"
-
-#include "container/sycl_iterator.h"
-
-#include "executors/executor.h"
-
-#include "executors/kernel_constructor.h"
-
-#include "interface/blas1_interface.h"
-
-#include "interface/blas2_interface.h"
-
-#include "interface/blas3_interface.h"
-
-#include "interface/gemm_launcher.h"
-
-#include "interface/reduction_interface.h"
-
-#include "operations/blas1_trees.h"
-
-#include "operations/blas2_trees.h"
-
-#include "operations/blas3_trees.h"
-
-#include "operations/extension_trees.h"
-
-#include "operations/blas_constants.h"
-
-#include "operations/blas_operators.h"
-
-#include "policy/policy_handler.h"
-
-#include "quantize/quantize.h"
-
-#include "views/view.h"
+}  // namespace internal
+}  // namespace extension
+}  // namespace blas

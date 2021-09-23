@@ -83,7 +83,7 @@ struct ReductionRows_Params {
  * steps before the reduction of the rows is complete.
  */
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, typename element_t>
+          int WgSize, typename element_t, typename index_t>
 class ReductionPartialRows;
 
 }  // namespace blas

@@ -19,14 +19,13 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename extension_reduction_partial_rows_test.cpp
+ *  @filename reduction_test.cpp
  *
  **************************************************************************/
 
 #include <limits>
 
 #include "blas_test.hpp"
-#include "sycl_blas.hpp"
 
 enum operator_t : int {
   Add = 0,
@@ -51,16 +50,6 @@ const auto combi = ::testing::Combine(
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
                       operator_t::AbsoluteAdd));
 
-template <typename operator_t, typename scalar_t, typename executor_t,
-          typename input_t, typename output_t>
-void launch_reduction(executor_t& ex, input_t buffer_in, output_t buffer_out,
-                      index_t rows, index_t cols) {
-  blas::Reduction<operator_t, input_t, output_t, 64, 256, scalar_t,
-                  static_cast<int>(Reduction_t::partial_rows)>
-      reduction(buffer_in, buffer_out, rows, cols);
-  ex.execute(reduction);
-}
-
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t rows, cols, ld_mul;
@@ -81,12 +70,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<data_t> out_v_cpu(rows);
 
   fill_random(in_m);
-  for (index_t i = 0; i < rows; i++) {
-    out_v_gpu[i] = -1;
-  }
-  std::copy(out_v_gpu.begin(), out_v_gpu.end(), out_v_cpu.begin());
 
-  /* Initialization value of the reduction accumulators. */
   scalar_t init_val;
   switch (op) {
     case operator_t::Add:
@@ -101,7 +85,7 @@ void run_test(const combination_t<scalar_t> combi) {
       init_val = std::numeric_limits<scalar_t>::max();
       break;
     case operator_t::Max:
-      init_val = std::numeric_limits<scalar_t>::min();
+      init_val = std::numeric_limits<scalar_t>::lowest();
       break;
   }
 
@@ -113,18 +97,14 @@ void run_test(const combination_t<scalar_t> combi) {
       break;
     case operator_t::AbsoluteAdd:
       reduction_func = [=](data_t l, data_t r) -> data_t {
-        return abs(l) + abs(r);
+        return std::abs(l) + std::abs(r);
       };
       break;
     case operator_t::Product:
-      reduction_func = [=](data_t l, data_t r) -> data_t {
-        return l * r;
-      };
+      reduction_func = [=](data_t l, data_t r) -> data_t { return l * r; };
       break;
     case operator_t::Division:
-      reduction_func = [=](data_t l, data_t r) -> data_t {
-        return l / r;
-      };
+      reduction_func = [=](data_t l, data_t r) -> data_t { return l / r; };
       break;
     case operator_t::Min:
       reduction_func = [=](data_t l, data_t r) -> data_t {
@@ -149,33 +129,33 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
   auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
-  auto buffer_in = make_matrix_view<col_major>(ex, m_in_gpu, rows, cols, ld);
-  auto buffer_out = make_matrix_view<col_major>(ex, v_out_gpu, rows, 1, rows);
+
+  test_executor_t::policy_t::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
-        launch_reduction<AddOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
-                                                cols);
+        ev = extension::_reduction<AddOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
       case operator_t::Product:
-        launch_reduction<ProductOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                    rows, cols);
+        ev = extension::_reduction<ProductOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
       case operator_t::Division:
-        launch_reduction<DivisionOperator, scalar_t>(ex, buffer_in, buffer_out,
-                                                     rows, cols);
+        ev = extension::_reduction<DivisionOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
       case operator_t::Max:
-        launch_reduction<MaxOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
-                                                cols);
+        ev = extension::_reduction<MaxOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
       case operator_t::Min:
-        launch_reduction<MinOperator, scalar_t>(ex, buffer_in, buffer_out, rows,
-                                                cols);
+        ev = extension::_reduction<MinOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
       case operator_t::AbsoluteAdd:
-        launch_reduction<AbsoluteAddOperator, scalar_t>(ex, buffer_in,
-                                                        buffer_out, rows, cols);
+        ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
         break;
     }
   } catch (cl::sycl::exception& e) {
