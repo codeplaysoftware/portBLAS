@@ -378,6 +378,7 @@ Some of the supported options are:
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
 | `BLAS_MODEL_OPTIMIZATION` | name | Pass a model name here to use optimized GEMM configurations for specific convolution models/sizes. Currently this only affects the `ARM_GPU` target. The supported models are: `RESNET_50`, `VGG_16` |
+| `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
 
 
 ### Cross-Compile (ComputeCpp Only)

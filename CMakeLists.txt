@@ -180,6 +180,7 @@ if(${BLAS_ENABLE_TESTING})
   add_subdirectory(test)
 endif()
 
+option(BLAS_ENABLE_CONST_INPUT "Whether to enable kernel instantiation with const input buffer" ON)
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
