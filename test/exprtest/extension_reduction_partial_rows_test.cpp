@@ -91,11 +91,11 @@ void run_test(const combination_t<scalar_t> combi) {
   switch (op) {
     case operator_t::Add:
     case operator_t::AbsoluteAdd:
-      init_val = 0;
+      init_val = scalar_t{0};
       break;
     case operator_t::Product:
     case operator_t::Division:
-      init_val = 1;
+      init_val = scalar_t{1};
       break;
     case operator_t::Min:
       init_val = std::numeric_limits<scalar_t>::max();
@@ -118,12 +118,12 @@ void run_test(const combination_t<scalar_t> combi) {
       break;
     case operator_t::Product:
       reduction_func = [=](data_t l, data_t r) -> data_t {
-        return abs(l) * abs(r);
+        return l * r;
       };
       break;
     case operator_t::Division:
       reduction_func = [=](data_t l, data_t r) -> data_t {
-        return abs(l) / abs(r);
+        return l / r;
       };
       break;
     case operator_t::Min:
@@ -141,6 +141,7 @@ void run_test(const combination_t<scalar_t> combi) {
   /* Reduce the reference by hand */
   for (index_t i = 0; i < rows; i++) {
     out_v_cpu[i] = init_val;
+    out_v_gpu[i] = init_val;
     for (index_t j = 0; j < cols; j++) {
       out_v_cpu[i] = reduction_func(out_v_cpu[i], in_m[ld * j + i]);
     }
