@@ -33,10 +33,9 @@
 namespace blas {
 
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, typename element_t>
+          int WgSize, typename element_t, typename index_t>
 class ReductionPartialRows {
  public:
-  using index_t = typename input_t::index_t;
   using value_t = element_t;
 
   /* Read some compile-time parameters from a structure.
@@ -209,9 +208,9 @@ class ReductionPartialRows {
 };
 
 template <typename operator_t, typename input_t, typename output_t, int ClSize,
-          int WgSize, typename element_t>
+          int WgSize, typename element_t, typename index_t>
 const element_t ReductionPartialRows<operator_t, input_t, output_t, ClSize,
-                                     WgSize, element_t>::init_val =
+                                     WgSize, element_t, index_t>::init_val =
     operator_t::template init<output_t>();
 
 }  // namespace blas

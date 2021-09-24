@@ -131,7 +131,7 @@ struct constant<value_t, const_val::max> {
 template <typename value_t>
 struct constant<value_t, const_val::min> {
   constexpr static SYCL_BLAS_INLINE value_t value() {
-    return std::numeric_limits<value_t>::min();
+    return std::numeric_limits<value_t>::lowest();
   }
 };
 
@@ -250,7 +250,7 @@ struct constant<cl::sycl::half, const_val::abs_min>
 template <>
 struct constant<cl::sycl::half, const_val::collapse>
     : constant<float, const_val::collapse> {};
-#endif // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_DATA_TYPE_HALF
 
 template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>
 struct constant_pair {
