@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 
-#include "operations/extension_trees.hpp"
+#include "operations/extension/reduction.hpp"
 #include "container/sycl_iterator.hpp"
 #include "executors/executor_sycl.hpp"
 #include "executors/kernel_constructor.hpp"
@@ -40,7 +40,7 @@ namespace internal {
 template 
 typename Executor<${EXECUTOR}>::policy_t::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
     Executor<${EXECUTOR}>& ex, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
-    ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols);
+    ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type);
 
 }  // namespace internal
 }  // namespace extension

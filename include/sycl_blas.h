@@ -53,7 +53,7 @@
 
 #include "operations/blas3_trees.h"
 
-#include "operations/extension_trees.h"
+#include "operations/extension/reduction.h"
 
 #include "operations/blas_constants.h"
 

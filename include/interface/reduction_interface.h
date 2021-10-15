@@ -27,7 +27,7 @@
 #define SYCL_BLAS_REDUCTION_INTERFACE_H
 
 #include "executors/executor.h"
-#include "operations/extension_trees.h"
+#include "operations/extension/reduction.h"
 
 namespace blas {
 
@@ -35,31 +35,25 @@ namespace extension {
 
 namespace internal {
 
-template <typename operator_t, typename element_t,
-          typename executor_t, typename input_t, typename output_t,
-          typename index_t>
-typename executor_t::policy_t::event_t _reduction(executor_t& ex,
-                                                  input_t buffer_in,
-                                                  index_t ld,
-                                                  output_t buffer_out,
-                                                  index_t rows, index_t cols);
+template <typename operator_t, typename element_t, typename executor_t,
+          typename input_t, typename output_t, typename index_t>
+typename executor_t::policy_t::event_t _reduction(
+    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols, reduction_dim_t reduction_dim);
 
 }  // namespace internal
 
-template <typename operator_t, typename element_t,
-          typename executor_t, typename input_t, typename output_t,
-          typename index_t>
-typename executor_t::policy_t::event_t _reduction(executor_t& ex,
-                                                  input_t buffer_in,
-                                                  index_t ld,
-                                                  output_t buffer_out,
-                                                  index_t rows, index_t cols) {
+template <typename operator_t, typename element_t, typename executor_t,
+          typename input_t, typename output_t, typename index_t>
+typename executor_t::policy_t::event_t _reduction(
+    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols, reduction_dim_t reduction_dim) {
   return internal::_reduction<operator_t, element_t>(
       ex, ex.get_policy_handler().get_buffer(buffer_in), ld,
-      ex.get_policy_handler().get_buffer(buffer_out), rows, cols);
+      ex.get_policy_handler().get_buffer(buffer_out), rows, cols,
+      reduction_dim);
 }
-
-}
+}  // namespace extension
 
 }  // namespace blas
 

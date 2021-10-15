@@ -19,37 +19,26 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename reduction_rows.cpp
+ *  @filename reduction.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
-#include "sycl_blas.hpp"
 
 using namespace blas;
 
 template <typename scalar_t>
-std::string get_name(int rows, int cols) {
+std::string get_name(int rows, int cols, reduction_dim_t reduction_dim) {
   std::ostringstream str{};
-  str << "BM_RedRows<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << rows << "/" << cols;
+  str << "BM_Reduction<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/" << rows << "/" << cols << "/"
+      << (reduction_dim == reduction_dim_t::inner ? "inner" : "outer");
   return str.str();
-}
-
-template <typename operator_t, typename scalar_t, typename executor_t,
-          typename input_t, typename output_t>
-std::vector<cl::sycl::event> launch_reduction(executor_t& ex, input_t buffer_in,
-                                              output_t buffer_out, index_t rows,
-                                              index_t cols) {
-  blas::Reduction<operator_t, input_t, output_t, 64, 256, scalar_t,
-                  static_cast<int>(Reduction_t::partial_rows)>
-      reduction(buffer_in, buffer_out, rows, cols);
-  return ex.execute(reduction);
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
-         index_t cols, bool* success) {
+         index_t cols, reduction_dim_t dim, bool* success) {
   // The counters are double. We convert m, n and k to double to avoid integer
   // overflows for n_fl_ops and bytes_processed
   double rows_d = static_cast<double>(rows);
@@ -69,29 +58,36 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   std::vector<data_t> mat =
       blas_benchmark::utils::random_data<data_t>(rows * cols);
   auto mat_buffer = utils::make_quantized_buffer<scalar_t>(ex, mat);
-  auto mat_gpu = make_matrix_view<col_major>(ex, mat_buffer, rows, cols, rows);
 
   // Output vector
-  std::vector<data_t> vec = blas_benchmark::utils::random_data<data_t>(rows);
+  std::vector<data_t> vec = blas_benchmark::utils::random_data<data_t>(
+      (dim == reduction_dim_t::outer) ? rows : cols);
   auto vec_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec);
-  auto vec_gpu = make_vector_view(ex, vec_buffer, 1, rows);
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
   std::vector<data_t> vec_ref = vec;
   /* Reduce the reference by hand on CPU */
-  for (index_t i = 0; i < rows; i++) {
-    vec_ref[i] = 0;
-    for (index_t j = 0; j < cols; j++) {
-      vec_ref[i] += mat[rows * j + i];
+  if (dim == reduction_dim_t::outer) {
+    for (index_t i = 0; i < rows; i++) {
+      vec_ref[i] = 0;
+      for (index_t j = 0; j < cols; j++) {
+        vec_ref[i] += mat[rows * j + i];
+      }
+    }
+  } else if (dim == reduction_dim_t::inner) {
+    for (index_t i = 0; i < cols; i++) {
+      vec_ref[i] = 0;
+      for (index_t j = 0; j < rows; j++) {
+        vec_ref[i] += mat[rows * i + j];
+      }
     }
   }
   std::vector<data_t> vec_temp = vec;
   {
     auto vec_temp_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec_temp);
-    auto vec_temp_gpu = make_vector_view(ex, vec_temp_buffer, 1, rows);
-    launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_temp_gpu, rows,
-                                            cols);
+    extension::_reduction<AddOperator, scalar_t>(
+        ex, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
     auto event =
         utils::quantized_copy_to_host<scalar_t>(ex, vec_temp_buffer, vec_temp);
     ex.get_policy_handler().wait(event);
@@ -106,8 +102,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = launch_reduction<AddOperator, scalar_t>(ex, mat_gpu, vec_gpu,
-                                                         rows, cols);
+    auto event = extension::_reduction<AddOperator, scalar_t>(
+        ex, mat_buffer, rows, vec_buffer, rows, cols, dim);
     ex.get_policy_handler().wait(event);
     return event;
   };
@@ -141,11 +137,16 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::tie(rows, cols) = p;
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
-                         index_t rows, index_t cols, bool* success) {
-      run<scalar_t>(st, exPtr, rows, cols, success);
+                         index_t rows, index_t cols, reduction_dim_t dim,
+                         bool* success) {
+      run<scalar_t>(st, exPtr, rows, cols, dim, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(rows, cols).c_str(),
-                                 BM_lambda, exPtr, rows, cols, success);
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(rows, cols, reduction_dim_t::inner).c_str(),
+        BM_lambda, exPtr, rows, cols, reduction_dim_t::inner, success);
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(rows, cols, reduction_dim_t::outer).c_str(),
+        BM_lambda, exPtr, rows, cols, reduction_dim_t::outer, success);
   }
 }
 
