@@ -17,9 +17,11 @@ set(sources
   blas3/gemm.cpp
   blas3/gemm_batched.cpp
   blas3/trsm.cpp
-  # Extensions
-  extension/reduction.cpp
 )
+
+if(${BLAS_ENABLE_EXTENSIONS})
+  list(APPEND sources "extension/reduction.cpp")
+endif()
 
 # Add individual benchmarks for each method
 foreach(syclblas_bench ${sources})

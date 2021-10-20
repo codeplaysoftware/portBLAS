@@ -49,6 +49,11 @@ the input matrix
 18
 ```
 
+## Relevant CMake Variables
+
+The CMake option `BLAS_ENABLE_EXTENSIONS` (`ON` by default) can be used to
+enable/disable compilation of the `Reduction` operation.
+
 ## SYCL-BLAS Reduction kernel
 
 Currently `SYCL-BLAS` supports a partial reduction kernel. Its implementation
