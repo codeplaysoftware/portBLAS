@@ -51,6 +51,7 @@ struct DivisionOperator;
 struct MaxOperator;
 struct MinOperator;
 struct AbsoluteAddOperator;
+struct MeanOperator;
 
 }  // namespace blas
 

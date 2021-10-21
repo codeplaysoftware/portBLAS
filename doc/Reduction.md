@@ -15,6 +15,7 @@ operators are:
 - `DivisionOperator`
 - `MinOperator`
 - `MaxOperator`
+- `MeanOperator`
 
 Currently in `SYCL-BLAS` only partial reduction is supported. Unlike full
 reduction, it reduces the columns or rows of a matrix to a single row or column
