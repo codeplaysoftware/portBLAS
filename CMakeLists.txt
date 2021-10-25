@@ -87,7 +87,8 @@ option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kerne
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas/include)
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
+set(COMPUTECPP_SDK_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include>
+  $<INSTALL_INTERFACE:include>)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -138,11 +139,7 @@ elseif(is_hipsycl)
   set(sycl_impl hipSYCL::hipSYCL-rt)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
 elseif(is_hipsycl)
-  set_target_properties(sycl_blas PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    INTERFACE_LINK_LIBRARIES hipSYCL::hipSYCL-rt
-    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
-  )
+  set(sycl_impl hipSYCL::hipSYCL-rt)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
 endif()
 set_target_properties(sycl_blas PROPERTIES
