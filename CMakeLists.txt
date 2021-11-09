@@ -87,8 +87,7 @@ option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kerne
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas/include)
-set(COMPUTECPP_SDK_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include>
-  $<INSTALL_INTERFACE:include>)
+set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
