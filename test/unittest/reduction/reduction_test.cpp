@@ -39,7 +39,8 @@ enum operator_t : int {
 using index_t = int;
 
 template <typename scalar_t>
-using combination_t = std::tuple<index_t, index_t, index_t, operator_t>;
+using combination_t =
+    std::tuple<index_t, index_t, index_t, operator_t, reduction_dim_t>;
 
 /* Note: the product and division are not tested because our random data may
  * contain values close to zero */
@@ -48,13 +49,15 @@ const auto combi = ::testing::Combine(
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
-                      operator_t::AbsoluteAdd));
+                      operator_t::AbsoluteAdd),
+    ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t rows, cols, ld_mul;
   operator_t op;
-  std::tie(rows, cols, ld_mul, op) = combi;
+  reduction_dim_t reduction_dim;
+  std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
@@ -66,8 +69,9 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t ld = rows * ld_mul;
 
   std::vector<data_t> in_m(ld * cols);
-  std::vector<data_t> out_v_gpu(rows);
-  std::vector<data_t> out_v_cpu(rows);
+  const auto out_size = reduction_dim == reduction_dim_t::outer ? rows : cols;
+  std::vector<data_t> out_v_gpu(out_size);
+  std::vector<data_t> out_v_cpu(out_size);
 
   fill_random(in_m);
 
@@ -119,11 +123,21 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   /* Reduce the reference by hand */
-  for (index_t i = 0; i < rows; i++) {
-    out_v_cpu[i] = init_val;
-    out_v_gpu[i] = init_val;
-    for (index_t j = 0; j < cols; j++) {
-      out_v_cpu[i] = reduction_func(out_v_cpu[i], in_m[ld * j + i]);
+  if (reduction_dim == reduction_dim_t::outer) {
+    for (index_t i = 0; i < rows; i++) {
+      out_v_cpu[i] = init_val;
+      out_v_gpu[i] = init_val;
+      for (index_t j = 0; j < cols; j++) {
+        out_v_cpu[i] = reduction_func(out_v_cpu[i], in_m[ld * j + i]);
+      }
+    }
+  } else if (reduction_dim == reduction_dim_t::inner) {
+    for (index_t i = 0; i < cols; i++) {
+      out_v_cpu[i] = init_val;
+      out_v_gpu[i] = init_val;
+      for (index_t j = 0; j < rows; j++) {
+        out_v_cpu[i] = reduction_func(out_v_cpu[i], in_m[ld * i + j]);
+      }
     }
   }
 
@@ -135,27 +149,27 @@ void run_test(const combination_t<scalar_t> combi) {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Division:
         ev = extension::_reduction<DivisionOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols);
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
     }
   } catch (cl::sycl::exception& e) {
@@ -169,4 +183,4 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
 
-BLAS_REGISTER_TEST(ReductionPartialRows, combination_t, combi);
+BLAS_REGISTER_TEST(ReductionPartial, combination_t, combi);

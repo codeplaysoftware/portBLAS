@@ -20,7 +20,6 @@ class SyclblasConan(ConanFile):
         "build_acl_benchmarks": [True, False],
         "build_benchmarks": [True, False],
         "build_clblast_benchmarks": [True, False],
-        "build_expression_benchmarks": [True, False],
         "build_expression_tests": [True, False],
         "build_testing": [True, False],
         "sycl_target": "ANY",
@@ -32,7 +31,6 @@ class SyclblasConan(ConanFile):
         "build_acl_benchmarks": False,
         "build_benchmarks": False,
         "build_clblast_benchmarks": False,
-        "build_expression_benchmarks": False,
         "build_expression_tests": False,
         "build_testing": False,
         "khronos-opencl-icd-loader:shared": True,
@@ -70,8 +68,6 @@ class SyclblasConan(ConanFile):
                 raise ConanInvalidConfiguration("build_acl_benchmarks requires build_benchmarks")
             if self.options.build_clblast_benchmarks:
                 raise ConanInvalidConfiguration("build_clblast_benchmarks requires build_benchmarks")
-            if self.options.build_expression_benchmarks:
-                raise ConanInvalidConfiguration("build_expression_benchmarks requires build_benchmarks")
         if not self.options.build_testing:
             if self.options.build_expression_tests:
                 raise ConanInvalidConfiguration("build_expression_tests requires build_testing")
@@ -108,7 +104,6 @@ class SyclblasConan(ConanFile):
             self._cmake = CMake(self)
             ccp_path = os.path.join(self.build_folder,
                                     "ComputeCpp-CE-1.1.6-Ubuntu-16.04-x86_64")
-            exp_benchmarks = self.options.build_expression_benchmarks
             clblast_benchmarks = self.options.build_clblast_benchmarks
 
             config = {
@@ -118,7 +113,6 @@ class SyclblasConan(ConanFile):
                 "BLAS_VERIFY_BENCHMARK": self.options.build_benchmarks,
                 "BUILD_ACL_BENCHMARKS": self.options.build_acl_benchmarks,
                 "BUILD_CLBLAST_BENCHMARKS": clblast_benchmarks,
-                "BUILD_EXPRESSION_BENCHMARKS": exp_benchmarks,
                 "COMPUTECPP_BITCODE": self.options.sycl_target,
                 "ComputeCpp_DIR": ccp_path,
                 "ENABLE_EXPRESSION_TESTS": self.options.build_expression_tests,
@@ -147,5 +141,4 @@ class SyclblasConan(ConanFile):
         del self.info.options.build_benchmarks
         del self.info.options.build_acl_benchmarks
         del self.info.options.build_clblast_benchmarks
-        del self.info.options.build_expression_benchmarks
         del self.info.options.acl_backend

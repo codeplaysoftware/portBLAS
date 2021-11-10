@@ -200,7 +200,6 @@ option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
-option(BUILD_EXPRESSION_BENCHMARKS "Whether to build the expression benchmarks" OFF)
 option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)
 
 if(${BLAS_ENABLE_BENCHMARK})

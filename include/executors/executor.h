@@ -29,7 +29,7 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas3_trees.h"
-#include "operations/extension_trees.h"
+#include "operations/extension/reduction.h"
 #include "policy/policy_handler.h"
 namespace blas {
 
@@ -105,13 +105,11 @@ class Executor {
                   GemmMemoryType>
           gemm_partial);
 
-  // Reduction specialization (partial rows)
-  template <typename operator_t, typename input_t, typename output_t,
-            int ClSize, int WgSize, typename element_t>
+  // Reduction specialization (inner or outer dimension)
+  template <typename operator_t, typename params_t, typename input_t,
+            typename output_t>
   typename policy_t::event_t execute(
-      Reduction<operator_t, input_t, output_t, ClSize, WgSize, element_t,
-                static_cast<int>(Reduction_t::partial_rows)>
-          reduction_wrapper);
+      Reduction<operator_t, params_t, input_t, output_t> reduction_wrapper);
 
  private:
   policy_handler_t policy_handler_;

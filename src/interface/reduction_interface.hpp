@@ -28,80 +28,99 @@
 
 #include "blas_meta.h"
 #include "executors/executor.h"
-#include "interface/gemm_interface.hpp"
-#include "operations/blas3_trees.h"
+#include "operations/extension/reduction.h"
 #include "policy/policy_handler.h"
 
 namespace blas {
 namespace extension {
 namespace internal {
 
-template <typename operator_t, typename element_t,
-          typename executor_t, typename input_t, typename output_t,
-          typename index_t>
-typename executor_t::policy_t::event_t _reduction(executor_t& ex,
-                                                  input_t buffer_in, index_t ld,
-                                                  output_t buffer_out,
-                                                  index_t rows, index_t cols) {
+/*!
+ * @brief Wrapper around Reduction. Creates the views, then makes and launches
+ * the Reduction kernel
+ */
+template <typename operator_t, reduction_dim_t reduction_dim,
+          typename element_t, typename executor_t, typename input_t,
+          typename output_t, typename index_t>
+typename executor_t::policy_t::event_t launch_type_based_reduction(
+    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols) {
   constexpr int ClSize = 64;
   constexpr int WgSize = 256;
+  constexpr index_t reductions_per_thread = 64;
 
-  using params_t =
-      blas::ReductionRows_Params<index_t, element_t, ClSize, WgSize>;
-  auto policy_handler = ex.get_policy_handler();
+  using params_t = blas::ReductionParams<index_t, element_t, ClSize, WgSize,
+                                         reductions_per_thread,
+                                         static_cast<int>(reduction_dim)>;
+  constexpr index_t local_range = params_t::get_local_thread_size_preserve() *
+                                  params_t::get_local_thread_size_reduce();
 
-  const index_t num_compute_units = policy_handler.get_num_compute_units();
+  const auto reduced_group_count =
+      params_t::calculate_reduced_group_count(rows, cols);
 
   /* Create an empty event vector */
   typename executor_t::policy_t::event_t reduction_event;
 
-  const index_t max_group_count_col =
-      (cols - 1) / params_t::work_group_cols + 1;
+  auto matrix_buffer_in =
+      make_matrix_view<col_major>(ex, buffer_in, rows, cols, ld);
+  const index_t out_rows =
+      reduction_dim == reduction_dim_t::outer ? rows : index_t(1);
+  const index_t out_cols =
+      reduction_dim == reduction_dim_t::outer ? index_t(1) : cols;
+  auto matrix_buffer_out =
+      make_matrix_view<col_major>(ex, buffer_out, out_rows, out_cols, out_rows);
 
-  const index_t group_count_cols =
-      params_t::work_group_cols < max_group_count_col
-          ? params_t::work_group_cols
-          : max_group_count_col;
-
-  /* Choose at run-time whether to do a one-step or two-step reduction.
-   * Two-step reduction is needed when we have more than 1 valid work groups
-   * along the columns */
-  const bool two_step_reduction = group_count_cols > 1;
-
-  auto matrix_buffer_in = make_matrix_view<col_major>(ex, buffer_in, rows, cols, ld);
-  auto matrix_buffer_out = make_matrix_view<col_major>(ex, buffer_out, rows, 1, rows);
+  const bool two_step_reduction = reduced_group_count > 1;
   /* 2-step reduction */
   if (two_step_reduction) {
     /* Create a temporary buffer */
-    auto temp_buffer =
-        make_sycl_iterator_buffer<element_t>(rows * group_count_cols);
-    auto temp_ = make_matrix_view<col_major>(ex, temp_buffer, rows,
-                                             group_count_cols, rows);
+    auto temp_buffer = make_sycl_iterator_buffer<element_t>(
+        (reduction_dim == reduction_dim_t::outer ? rows : cols) *
+        reduced_group_count);
+
+    const index_t temp_rows =
+        reduction_dim == reduction_dim_t::outer ? rows : reduced_group_count;
+    const index_t temp_cols =
+        reduction_dim == reduction_dim_t::outer ? reduced_group_count : cols;
+    auto temp_ = make_matrix_view<col_major>(ex, temp_buffer, temp_rows,
+                                             temp_cols, temp_rows);
 
     /* 1st step */
-    reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler.get_queue(), matrix_buffer_in, temp_, group_count_cols,
-            params_t::local_memory_size, num_compute_units));
-    policy_handler.wait(reduction_event);
+    auto reduction = blas::make_reduction<operator_t, params_t>(
+        matrix_buffer_in, temp_, reduced_group_count);
+    reduction_event =
+        concatenate_vectors(reduction_event, ex.execute(reduction));
 
     /* 2nd step */
-    reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler.get_queue(), temp_, matrix_buffer_out, index_t(1),
-            params_t::local_memory_size, num_compute_units));
-    policy_handler.wait(reduction_event);
-  }
-  /* 1-step reduction */
-  else {
-    reduction_event.push_back(
-        launch_row_reduction_step<operator_t, ClSize, WgSize, element_t>(
-            policy_handler.get_queue(), matrix_buffer_in, matrix_buffer_out, index_t(1),
-            params_t::local_memory_size, num_compute_units));
-    policy_handler.wait(reduction_event);
+    auto reduction_step_2 = blas::make_reduction<operator_t, params_t>(
+        temp_, matrix_buffer_out, index_t(1));
+    reduction_event =
+        concatenate_vectors(reduction_event, ex.execute(reduction_step_2));
+  } else {
+    /* 1-step reduction */
+    auto reduction = blas::make_reduction<operator_t, params_t>(
+        matrix_buffer_in, matrix_buffer_out, index_t(1));
+    reduction_event =
+        concatenate_vectors(reduction_event, ex.execute(reduction));
   }
 
   return reduction_event;
+}
+
+template <typename operator_t, typename element_t, typename executor_t,
+          typename input_t, typename output_t, typename index_t>
+typename executor_t::policy_t::event_t _reduction(
+    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols, reduction_dim_t reduction_dim) {
+  if (reduction_dim == reduction_dim_t::inner) {
+    return launch_type_based_reduction<operator_t, reduction_dim_t::inner,
+                                       element_t>(ex, buffer_in, ld, buffer_out,
+                                                  rows, cols);
+  } else {  // reduction_dim_t::outer
+    return launch_type_based_reduction<operator_t, reduction_dim_t::outer,
+                                       element_t>(ex, buffer_in, ld, buffer_out,
+                                                  rows, cols);
+  }
 }
 
 }  // namespace internal

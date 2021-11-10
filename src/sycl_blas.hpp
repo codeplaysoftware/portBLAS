@@ -46,7 +46,7 @@
 
 #include "operations/blas3_trees.hpp"
 
-#include "operations/extension_trees.hpp"
+#include "operations/extension/reduction.hpp"
 
 #include "operations/blas_constants.hpp"
 
