@@ -89,19 +89,18 @@ add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas/include)
 set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SYCLBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 set(SYCLBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
-list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${COMPUTECPP_SDK_INCLUDE})
+list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE} ${COMPUTECPP_SDK_INCLUDE})
 
 if(IMGDNN_DIR)
   add_definitions(-DIMGDNN_LIBRARY)
   find_package(IMGDNN REQUIRED)
   list(APPEND THIRD_PARTIES_INCLUDE ${IMGDNN_INCLUDE_DIRS})
 endif()
-
-
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -121,55 +120,70 @@ if (WIN32)
   # the linked libraries are not going to be propagated to this target.
   # This requires manual linking against SYCL on Windows.
   if(is_computecpp)
-    target_link_libraries(sycl_blas PRIVATE ComputeCpp::ComputeCpp)
+    target_link_libraries(sycl_blas PUBLIC ComputeCpp::ComputeCpp)
   elseif(is_dpcpp)
-    target_link_libraries(sycl_blas PRIVATE DPCPP::DPCPP)
+    target_link_libraries(sycl_blas PUBLIC DPCPP::DPCPP)
   elseif(is_hipsycl)
-    target_link_libraries(sycl_blas PRIVATE hipSYCL::hipSYCL-rt)
+    target_link_libraries(sycl_blas PUBLIC hipSYCL::hipSYCL-rt)
   endif()
 endif()
 if(is_computecpp)
-  set_target_properties(sycl_blas PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp
-    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
-  )
+  set(sycl_impl ComputeCpp::ComputeCpp)
 elseif(is_dpcpp)
-  set_target_properties(sycl_blas PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    INTERFACE_LINK_LIBRARIES DPCPP::DPCPP
-    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
-  )
+  set(sycl_impl DPCPP::DPCPP)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
 elseif(is_hipsycl)
-  set_target_properties(sycl_blas PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    INTERFACE_LINK_LIBRARIES hipSYCL::hipSYCL-rt
-    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};${COMPUTECPP_SDK_INCLUDE};${SYCL_INCLUDE_DIRS}"
-  )
+  set(sycl_impl hipSYCL::hipSYCL-rt)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
 endif()
+set_target_properties(sycl_blas PROPERTIES
+  VERSION ${PROJECT_VERSION}
+  INTERFACE_LINK_LIBRARIES ${sycl_impl}
+  INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE}"
+)
+target_include_directories(sycl_blas INTERFACE
+  $<BUILD_INTERFACE:${COMPUTECPP_SDK_INCLUDE}>
+)
 
 if(IMGDNN_DIR)
   target_link_libraries(sycl_blas PUBLIC IMGDNN::IMGDNN)
 endif()
 
+include(CMakePackageConfigHelpers)
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/sycl_blas-version.cmake")
+write_basic_package_version_file(${version_file}
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
 include(GNUInstallDirs)
 install(TARGETS sycl_blas
-  RUNTIME
-    DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT sycl_blas
-  LIBRARY
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    COMPONENT sycl_blas
-  ARCHIVE
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    COMPONENT sycl_blas
+  EXPORT sycl_blas
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-install(DIRECTORY ${SYCLBLAS_INCLUDE}/
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/sycl_blas"
+
+install(DIRECTORY ${SYCLBLAS_INCLUDE}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}
   COMPONENT sycl_blas
   FILES_MATCHING PATTERN "*.h"
+)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/computecpp-sdk/include/vptr
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  COMPONENT sycl_blas
+)
+set(cmake_config_dest "lib/sycl_blas/cmake")
+install(FILES ${version_file} DESTINATION ${cmake_config_dest})
+install(EXPORT sycl_blas
+  DESTINATION ${cmake_config_dest}
+  NAMESPACE SYCL_BLAS::
+  FILE sycl_blas-config.cmake
+)
+
+export(EXPORT sycl_blas
+  NAMESPACE SYCL_BLAS::
+  FILE sycl_blas-config.cmake
 )
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
