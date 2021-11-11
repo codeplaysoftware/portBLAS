@@ -102,6 +102,8 @@ if(IMGDNN_DIR)
   list(APPEND THIRD_PARTIES_INCLUDE ${IMGDNN_INCLUDE_DIRS})
 endif()
 
+option(BLAS_ENABLE_EXTENSIONS "Whether to enable sycl-blas extensions" ON)
+
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
 # * TARGET
@@ -112,7 +114,7 @@ endif()
 include(CmakeFunctionHelper)
 
 add_subdirectory(src)
-build_library(sycl_blas)
+build_library(sycl_blas ${BLAS_ENABLE_EXTENSIONS})
 
 if (WIN32)
   # On Windows, all symbols must be resolved at link time for DLLs.
