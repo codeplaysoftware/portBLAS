@@ -12,7 +12,6 @@ operators are:
 - `AddOperator`
 - `AbsoluteAddOperator`
 - `ProductOperator`
-- `DivisionOperator`
 - `MinOperator`
 - `MaxOperator`
 - `MeanOperator`

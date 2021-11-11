@@ -125,19 +125,32 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
 }
 
 /**
- * @fn random_data
+ * @brief Generates a random vector of scalar values, using a uniform
+ * distribution.
+ * @param vec Input vector to fill
+ * @param rangeMin Minimum value for the uniform distribution
+ * @param rangeMax Maximum value for the uniform distribution
+ */
+template <typename scalar_t>
+static inline void fill_random_with_range(std::vector<scalar_t> &vec,
+                                          scalar_t rangeMin,
+                                          scalar_t rangeMax) {
+  for (scalar_t &e : vec) {
+    e = random_scalar(rangeMin, rangeMax);
+  }
+}
+
+/**
  * @brief Generates a random vector of scalar values, using a uniform
  * distribution.
  */
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
-  for (scalar_t &e : vec) {
-    e = random_scalar(scalar_t{-2}, scalar_t{5});
-  }
+  fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
 }
 
 /**
- * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
+ * @brief Fills a lower or upper triangular matrix suitable for TRSM testing
  * @param A The matrix to fill. Size must be at least m * lda
  * @param m The number of rows of matrix @p A
  * @param n The number of columns of matrix @p A
