@@ -207,6 +207,7 @@ SYCL_BLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
   // Reduce elements from global memory
   reduce(global_reduce_id, global_preserve_id, accumulator);
 
+  accumulator = operator_t::get_final_value(accumulator, num_elems_to_reduce_);
   const index_t scratch_idx =
       preserve_local_id +
       reduce_local_id * (params_t::get_local_thread_size_preserve() +

@@ -33,7 +33,8 @@ enum operator_t : int {
   Division = 2,
   Max = 3,
   Min = 4,
-  AbsoluteAdd = 5
+  AbsoluteAdd = 5,
+  Mean = 6,
 };
 
 using index_t = int;
@@ -49,7 +50,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
-                      operator_t::AbsoluteAdd),
+                      operator_t::AbsoluteAdd, operator_t::Mean),
     ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
 template <typename scalar_t>
@@ -79,6 +80,7 @@ void run_test(const combination_t<scalar_t> combi) {
   switch (op) {
     case operator_t::Add:
     case operator_t::AbsoluteAdd:
+    case operator_t::Mean:
       init_val = scalar_t{0};
       break;
     case operator_t::Product:
@@ -97,6 +99,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::function<data_t(data_t, data_t)> reduction_func;
   switch (op) {
     case operator_t::Add:
+    case operator_t::Mean:
       reduction_func = [=](data_t l, data_t r) -> data_t { return l + r; };
       break;
     case operator_t::AbsoluteAdd:
@@ -141,6 +144,14 @@ void run_test(const combination_t<scalar_t> combi) {
     }
   }
 
+  if (op == operator_t::Mean) {
+    const auto nelems = reduction_dim == reduction_dim_t::outer ? cols : rows;
+    std::transform(out_v_cpu.begin(), out_v_cpu.end(), out_v_cpu.begin(),
+                   [=](scalar_t val) -> scalar_t {
+                     return val / static_cast<scalar_t>(nelems);
+                   });
+  }
+
   auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
   auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
 
@@ -169,6 +180,10 @@ void run_test(const combination_t<scalar_t> combi) {
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
+            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+        break;
+      case operator_t::Mean:
+        ev = extension::_reduction<MeanOperator, scalar_t>(
             ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
     }
