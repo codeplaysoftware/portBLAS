@@ -191,7 +191,7 @@ endfunction(generate_blas_binary_objects)
 # blas binary function for generating source code
 function(generate_blas_reduction_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-set(operator_list "AddOperator" "MinOperator" "MaxOperator" "DivisionOperator" "ProductOperator" "AbsoluteAddOperator" "MeanOperator")
+set(operator_list "AddOperator" "MinOperator" "MaxOperator" "ProductOperator" "AbsoluteAddOperator" "MeanOperator")
 string(FIND ${func} "_const" pos)
 if(pos)
   string(REPLACE "_const" "" actualfunc ${func})

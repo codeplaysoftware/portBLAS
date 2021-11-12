@@ -30,11 +30,10 @@
 enum operator_t : int {
   Add = 0,
   Product = 1,
-  Division = 2,
-  Max = 3,
-  Min = 4,
-  AbsoluteAdd = 5,
-  Mean = 6,
+  Max = 2,
+  Min = 3,
+  AbsoluteAdd = 4,
+  Mean = 5,
 };
 
 using index_t = int;
@@ -43,14 +42,12 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<index_t, index_t, index_t, operator_t, reduction_dim_t>;
 
-/* Note: the product and division are not tested because our random data may
- * contain values close to zero */
 const auto combi = ::testing::Combine(
     ::testing::Values(1, 7, 513),                // rows
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
-                      operator_t::AbsoluteAdd, operator_t::Mean),
+                      operator_t::AbsoluteAdd, operator_t::Mean, operator_t::Product),
     ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
 template <typename scalar_t>
@@ -74,7 +71,13 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<data_t> out_v_gpu(out_size);
   std::vector<data_t> out_v_cpu(out_size);
 
-  fill_random(in_m);
+  if (op == operator_t::Product) {
+    // Use smaller input range for Product tests since the product
+    // operation saturates float overflow faster than the other operations
+    fill_random_with_range(in_m, -2.f, 1.f);
+  } else {
+    fill_random(in_m);
+  }
 
   scalar_t init_val;
   switch (op) {
@@ -84,7 +87,6 @@ void run_test(const combination_t<scalar_t> combi) {
       init_val = scalar_t{0};
       break;
     case operator_t::Product:
-    case operator_t::Division:
       init_val = scalar_t{1};
       break;
     case operator_t::Min:
@@ -109,9 +111,6 @@ void run_test(const combination_t<scalar_t> combi) {
       break;
     case operator_t::Product:
       reduction_func = [=](data_t l, data_t r) -> data_t { return l * r; };
-      break;
-    case operator_t::Division:
-      reduction_func = [=](data_t l, data_t r) -> data_t { return l / r; };
       break;
     case operator_t::Min:
       reduction_func = [=](data_t l, data_t r) -> data_t {
@@ -164,10 +163,6 @@ void run_test(const combination_t<scalar_t> combi) {
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
-        break;
-      case operator_t::Division:
-        ev = extension::_reduction<DivisionOperator, scalar_t>(
             ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Max:
