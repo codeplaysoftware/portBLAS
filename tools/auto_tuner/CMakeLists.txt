@@ -15,7 +15,7 @@ list(APPEND CMAKE_MODULE_PATH
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
 include(ConfigureSYCLBLAS)
 include(SYCL)
-find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 3 REQUIRED)
 find_package(SystemBLAS REQUIRED)
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
