@@ -78,7 +78,7 @@ struct LocalMemory<value_t, using_local_memory::disabled> {
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh) {}
+  SYCL_BLAS_INLINE LocalMemory(size_t, cl::sycl::handler &) {}
 };
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
@@ -159,12 +159,11 @@ struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
   /*!
   @brief Static function that calls eval on a tree, passing only the index.
   @param tree Tree object.
-  @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
   static SYCL_BLAS_INLINE void eval(
       expression_tree_t &tree,
-      LocalMemory<local_memory_t, using_local_memory::disabled> scratch,
+      LocalMemory<local_memory_t, using_local_memory::disabled>,
       cl::sycl::nd_item<1> index) {
     if (tree.valid_thread(index)) {
       tree.eval(index);

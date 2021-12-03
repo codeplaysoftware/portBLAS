@@ -26,4 +26,6 @@ add_subdirectory(blas1)
 add_subdirectory(blas2)
 add_subdirectory(blas3)
 
-
+if(${BLAS_ENABLE_EXTENSIONS})
+    add_subdirectory(reduction)
+endif()

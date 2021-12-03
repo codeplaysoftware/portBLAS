@@ -165,7 +165,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     return a_.get_size_row() * b_.get_size_col();
   }
 
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &) const {
     return true;
   }
 
@@ -315,7 +315,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (index_t j = 0; j < item_rows / packet_size; ++j) {
         if (do_check<need_check_boundary>(check_boundary(
                 dim_m_c_start + j * wg_rows, dim_n_c_start + i * wg_cols))) {
-          cl::sycl::vec<element_t, packet_size> out_vec{0};
+          cl::sycl::vec<element_t, packet_size> out_vec{};
 
           out_vec.template load<address_t::global_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
@@ -563,7 +563,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
                         do_check<check_col>(is_valid_col(i));
 
-        cl::sycl::vec<element_t, work_per_load> in_vec{0};
+        cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
@@ -624,9 +624,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_block_a(
-      PointerType ptr, element_t *reg, const index_t &ptr_next,
-      const index_t &ld, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &, const index_t &ld,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -638,7 +638,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         bool in_range =
             do_check<check_row>(is_valid_row(i * next_element + j)) &&
             do_check<check_col>(is_valid_col(work_per_load - 1));
-        cl::sycl::vec<element_t, work_per_load> in_vec{0};
+        cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
@@ -701,9 +701,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type load_single_b(
-      PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &, const index_t &col_ofs,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -712,7 +712,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
                     do_check<check_col>(is_valid_col(col_ofs));
 
-    cl::sycl::vec<element_t, work_per_load> in_vec{0};
+    cl::sycl::vec<element_t, work_per_load> in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
@@ -763,9 +763,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_row, bool check_col, index_t work_per_load, bool trans,
             typename PointerType, typename RowCheckType, typename ColCheckType>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type load_single_b(
-      PointerType ptr, element_t *reg, const index_t &row_ofs,
-      const index_t &col_ofs, const RowCheckType &is_valid_row,
-      const ColCheckType &is_valid_col, const bool out_of_range) noexcept {
+      PointerType ptr, element_t *reg, const index_t &row_ofs, const index_t &,
+      const RowCheckType &is_valid_row, const ColCheckType &is_valid_col,
+      const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -774,7 +774,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     bool in_range = do_check<check_row>(is_valid_row(row_ofs)) &&
                     do_check<check_col>(is_valid_col(work_per_load - 1));
 
-    cl::sycl::vec<element_t, work_per_load> in_vec{0};
+    cl::sycl::vec<element_t, work_per_load> in_vec{};
     if (in_range) {
       // If in range perform a vectorised load.
       in_vec.template load<address_t::global_space>(
@@ -906,7 +906,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (int j = 0; j < item_rows / packet_size; j++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
                                                dim_n_c_start + i * wg_cols))) {
-          cl::sycl::vec<element_t, packet_size> out_vec{0};
+          cl::sycl::vec<element_t, packet_size> out_vec{};
 
           out_vec.template load<address_t::private_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(

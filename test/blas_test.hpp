@@ -47,8 +47,8 @@
 #include <common/float_comparison.hpp>
 #include <common/print_queue_information.hpp>
 #include <common/system_reference_blas.hpp>
+#include <common/quantization.hpp>
 
-#include <utils/quantization.hpp>
 #include "blas_test_macros.hpp"
 
 struct Args {
@@ -68,16 +68,7 @@ using test_executor_t =
  * using the default device if not specified.
  */
 inline cl::sycl::queue make_queue_impl() {
-  std::unique_ptr<cl::sycl::device_selector> selector;
-  if (args.device.empty()) {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new cl::sycl::default_selector());
-  } else {
-    selector = std::unique_ptr<cl::sycl::device_selector>(
-        new utils::cli_device_selector(args.device));
-  }
-
-  auto q = cl::sycl::queue(*selector, [=](cl::sycl::exception_list eL) {
+  auto async_handler = [=](cl::sycl::exception_list eL) {
     for (auto &e : eL) {
       try {
         std::rethrow_exception(e);
@@ -89,7 +80,27 @@ inline cl::sycl::queue make_queue_impl() {
         std::cout << "An exception " << std::endl;
       }
     }
-  });
+  };
+
+#if SYCL_LANGUAGE_VERSION >= 202002
+  std::function<int(const cl::sycl::device&)> selector;
+  if (args.device.empty()) {
+    selector = cl::sycl::default_selector_v;
+  } else {
+    selector = utils::cli_device_selector(args.device);
+  }
+  auto q = cl::sycl::queue(selector, async_handler);
+#else
+  std::unique_ptr<cl::sycl::device_selector> selector;
+  if (args.device.empty()) {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new cl::sycl::default_selector());
+  } else {
+    selector = std::unique_ptr<cl::sycl::device_selector>(
+        new utils::cli_device_selector(args.device));
+  }
+  auto q = cl::sycl::queue(*selector, async_handler);
+#endif  // HAS_SYCL2020_SELECTORS
 
   utils::print_queue_information(q);
   return q;
@@ -118,19 +129,32 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
 }
 
 /**
- * @fn random_data
+ * @brief Generates a random vector of scalar values, using a uniform
+ * distribution.
+ * @param vec Input vector to fill
+ * @param rangeMin Minimum value for the uniform distribution
+ * @param rangeMax Maximum value for the uniform distribution
+ */
+template <typename scalar_t>
+static inline void fill_random_with_range(std::vector<scalar_t> &vec,
+                                          scalar_t rangeMin,
+                                          scalar_t rangeMax) {
+  for (scalar_t &e : vec) {
+    e = random_scalar(rangeMin, rangeMax);
+  }
+}
+
+/**
  * @brief Generates a random vector of scalar values, using a uniform
  * distribution.
  */
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
-  for (scalar_t &e : vec) {
-    e = random_scalar(scalar_t{-2}, scalar_t{5});
-  }
+  fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
 }
 
 /**
- * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
+ * @brief Fills a lower or upper triangular matrix suitable for TRSM testing
  * @param A The matrix to fill. Size must be at least m * lda
  * @param m The number of rows of matrix @p A
  * @param n The number of columns of matrix @p A

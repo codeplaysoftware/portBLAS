@@ -38,13 +38,15 @@
 
 #include "interface/gemm_launcher.hpp"
 
+#include "interface/reduction_interface.hpp"
+
 #include "operations/blas1_trees.hpp"
 
 #include "operations/blas2_trees.hpp"
 
 #include "operations/blas3_trees.hpp"
 
-#include "operations/extension_trees.hpp"
+#include "operations/extension/reduction.hpp"
 
 #include "operations/blas_constants.hpp"
 

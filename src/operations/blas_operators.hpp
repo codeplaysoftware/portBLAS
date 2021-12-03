@@ -29,6 +29,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include <CL/sycl.hpp>
@@ -109,10 +110,15 @@ struct AbsoluteValue {
   template <typename value_t>
   using stripped_t = typename StripASP<value_t>::type;
 
+#ifdef BLAS_DATA_TYPE_HALF
   template <typename value_t>
   using is_floating_point = std::integral_constant<
       bool, std::is_floating_point<stripped_t<value_t>>::value ||
                 std::is_same<stripped_t<value_t>, cl::sycl::half>::value>;
+#else 
+  template <typename value_t>
+  using is_floating_point = std::is_floating_point<value_t>;
+#endif // BLAS_DATA_TYPE_HALF
 
   template <typename value_t>
   static SYCL_BLAS_INLINE value_t eval(
@@ -151,7 +157,7 @@ Definitions of unary operators
 */
 struct AdditionIdentity : public Operators {
   template <typename rhs_t>
-  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t) {
     return constant<rhs_t, const_val::zero>::value();
   }
 };
@@ -213,6 +219,12 @@ struct AddOperator : public Operators {
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::zero>::value();
   }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
+  }
 };
 
 struct ProductOperator : public Operators {
@@ -225,6 +237,12 @@ struct ProductOperator : public Operators {
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::one>::value();
+  }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
   }
 };
 
@@ -239,6 +257,31 @@ struct DivisionOperator : public Operators {
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::one>::value();
   }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
+  }
+};
+
+struct MeanOperator : public Operators {
+  template <typename element_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type eval(
+      const element_t &accumulator, const element_t &val) {
+    return accumulator + val;
+  }
+
+  template <typename rhs_t>
+  constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
+    return constant<typename rhs_t::value_t, const_val::zero>::value();
+  }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &r) {
+    return (l / static_cast<element_t>(r));
+  }
 };
 
 struct MaxOperator : public Operators {
@@ -251,6 +294,12 @@ struct MaxOperator : public Operators {
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::min>::value();
+  }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
   }
 };
 
@@ -265,6 +314,12 @@ struct MinOperator : public Operators {
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::max>::value();
   }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
+  }
 };
 
 struct AbsoluteAddOperator : public Operators {
@@ -277,6 +332,12 @@ struct AbsoluteAddOperator : public Operators {
   template <typename rhs_t>
   constexpr static SYCL_BLAS_INLINE typename rhs_t::value_t init() {
     return constant<typename rhs_t::value_t, const_val::zero>::value();
+  }
+
+  template <typename element_t, typename index_t>
+  static SYCL_BLAS_INLINE typename StripASP<element_t>::type get_final_value(
+      const element_t &l, const index_t &) {
+    return l;
   }
 };
 

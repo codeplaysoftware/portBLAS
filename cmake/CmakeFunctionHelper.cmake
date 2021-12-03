@@ -188,6 +188,69 @@ add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_binary_objects)
 
 
+# blas binary function for generating source code
+function(generate_blas_reduction_objects blas_level func)
+set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+set(operator_list "AddOperator" "MinOperator" "MaxOperator" "ProductOperator" "AbsoluteAddOperator" "MeanOperator")
+string(FIND ${func} "_const" pos)
+if(pos)
+  string(REPLACE "_const" "" actualfunc ${func})
+endif()
+foreach(executor ${executor_list})
+  foreach(data ${data_list})
+    cpp_type(cpp_data ${data})
+    set(container_list_in)
+    if(pos EQUAL -1)
+      list(APPEND container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
+    else()
+      list(APPEND container_list_in "BufferIterator<${cpp_data} const,codeplay_policy>")
+    endif()
+    set(container_list_out "BufferIterator<${cpp_data},codeplay_policy>")
+    foreach(index ${index_list})
+      set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+      foreach(operator ${operator_list})
+        foreach(container0 ${container_list_in})
+          foreach(container1 ${container_list_out})
+            set(container_names "${container0}_${container1}")
+            foreach(increment ${index_list})
+              sanitize_file_name(file_name
+                "${func}_${operator}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+              add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_reduction.py
+                  ${PROJECT_SOURCE_DIR}/external/
+                  ${SYCLBLAS_SRC_GENERATOR}/gen
+                  ${blas_level}
+                  ${func}
+                  ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
+                  ${executor}
+                  ${cpp_data}
+                  ${index}
+                  ${increment}
+                  ${container0}
+                  ${container1}
+                  ${operator}
+                  ${file_name}
+                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
+                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_reduction.py
+                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                VERBATIM
+              )
+              list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+              endforeach(increment)
+          endforeach(container1)
+        endforeach(container0)
+      endforeach(operator)
+    endforeach(index)
+  endforeach(data)
+endforeach(executor)
+add_library(${func} OBJECT ${FUNC_SRC})
+set_target_compile_def(${func})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
+message(STATUS "Adding SYCL to target ${func}")
+add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
+endfunction(generate_blas_reduction_objects)
+
 
 # blas special binary function for generating source code
 function(generate_blas_binary_special_objects blas_level func)
@@ -244,14 +307,24 @@ endfunction(generate_blas_binary_special_objects)
 # blas ternary function for generating source code
 function(generate_blas_ternary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+string(FIND ${func} "_const" const_pos)
+if(const_pos)
+  string(REPLACE "_const" "" actualfunc ${func})
+endif()
 foreach(executor ${executor_list})
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
-    set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+    set(container_list_in)
+    if(const_pos EQUAL -1)
+      list(APPEND container_list_in "BufferIterator<${cpp_data},codeplay_policy>")
+    else()
+      list(APPEND container_list_in "BufferIterator<${cpp_data} const,codeplay_policy>")
+    endif()
+    set(container_list_out "BufferIterator<${cpp_data},codeplay_policy>")
     foreach(index ${index_list})
-      foreach(container0 ${container_list})
-        foreach(container1 ${container_list})
-          foreach(container2 ${container_list})
+      foreach(container0 ${container_list_in})
+        foreach(container1 ${container_list_in})
+          foreach(container2 ${container_list_out})
             set(container_names
               "${container0}_${container1}_${container2}")
             foreach(increment ${index_list})
@@ -263,7 +336,7 @@ foreach(executor ${executor_list})
                   ${SYCLBLAS_SRC_GENERATOR}/gen
                   ${blas_level}
                   ${func}
-                  ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                   ${executor}
                   ${cpp_data}
                   ${index}
@@ -272,7 +345,7 @@ foreach(executor ${executor_list})
                   ${container1}
                   ${container2}
                   ${file_name}
-                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                 DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
                 WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                 VERBATIM
@@ -396,7 +469,6 @@ function(add_gemm_configuration
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction()
-
 if(${TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
@@ -712,33 +784,48 @@ function(generate_quantize)
 endfunction(generate_quantize)
 
 
-function (build_library LIB_NAME)
-add_library(${LIB_NAME}
-                             $<TARGET_OBJECTS:sycl_policy>
-                             $<TARGET_OBJECTS:quantize>
-                             $<TARGET_OBJECTS:axpy>
-                             $<TARGET_OBJECTS:asum>
-                             $<TARGET_OBJECTS:asum_return>
-                             $<TARGET_OBJECTS:copy>
-                             $<TARGET_OBJECTS:dot>
-                             $<TARGET_OBJECTS:dot_return>
-                             $<TARGET_OBJECTS:iamax>
-                             $<TARGET_OBJECTS:iamax_return>
-                             $<TARGET_OBJECTS:iamin>
-                             $<TARGET_OBJECTS:iamin_return>
-                             $<TARGET_OBJECTS:nrm2>
-                             $<TARGET_OBJECTS:nrm2_return>
-                             $<TARGET_OBJECTS:rot>
-                             $<TARGET_OBJECTS:scal>
-                             $<TARGET_OBJECTS:swap>
-                             $<TARGET_OBJECTS:gemv>
-                             $<TARGET_OBJECTS:ger>
-                             $<TARGET_OBJECTS:symv>
-                             $<TARGET_OBJECTS:syr>
-                             $<TARGET_OBJECTS:syr2>
-                             $<TARGET_OBJECTS:trmv>
-                             $<TARGET_OBJECTS:gemm_launcher>
-                             $<TARGET_OBJECTS:gemm>
-                             $<TARGET_OBJECTS:trsm>
-                            )
+function (build_library LIB_NAME ENABLE_EXTENSIONS)
+  set(LIB_SRCS  $<TARGET_OBJECTS:sycl_policy>
+                $<TARGET_OBJECTS:quantize>
+                $<TARGET_OBJECTS:axpy>
+                $<TARGET_OBJECTS:asum>
+                $<TARGET_OBJECTS:asum_return>
+                $<TARGET_OBJECTS:copy>
+                $<TARGET_OBJECTS:dot>
+                $<TARGET_OBJECTS:dot_return>
+                $<TARGET_OBJECTS:iamax>
+                $<TARGET_OBJECTS:iamax_return>
+                $<TARGET_OBJECTS:iamin>
+                $<TARGET_OBJECTS:iamin_return>
+                $<TARGET_OBJECTS:nrm2>
+                $<TARGET_OBJECTS:nrm2_return>
+                $<TARGET_OBJECTS:rot>
+                $<TARGET_OBJECTS:scal>
+                $<TARGET_OBJECTS:swap>
+                $<TARGET_OBJECTS:gemv>
+                $<TARGET_OBJECTS:ger>
+                $<TARGET_OBJECTS:symv>
+                $<TARGET_OBJECTS:syr>
+                $<TARGET_OBJECTS:syr2>
+                $<TARGET_OBJECTS:trmv>
+                $<TARGET_OBJECTS:gemm_launcher>
+                $<TARGET_OBJECTS:gemm>
+                $<TARGET_OBJECTS:trsm>)
+
+  if (${ENABLE_EXTENSIONS})
+    list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
+  endif()
+
+  add_library(${LIB_NAME} ${LIB_SRCS})
+
+  if(BLAS_ENABLE_CONST_INPUT)
+    set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>
+                   $<TARGET_OBJECTS:gemm_const>)
+
+    if(${ENABLE_EXTENSIONS})
+      list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
+    endif()
+
+    target_sources(${LIB_NAME} PRIVATE ${CONST_SRCS})
+  endif()
 endfunction(build_library)

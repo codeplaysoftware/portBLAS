@@ -111,7 +111,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           int work_per_thread>
 SYCL_BLAS_INLINE bool
 Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
-     work_per_thread>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+     work_per_thread>::valid_thread(cl::sycl::nd_item<1>) const {
   return true;
 }
 
@@ -185,7 +185,7 @@ SYCL_BLAS_INLINE
                                 cl::sycl::nd_item<1> ndItem) {
   const index_t local_id = ndItem.get_local_id(0);
   const index_t group_id = ndItem.get_group(0);
-  const index_t group_range = ndItem.get_group_range(0);
+
   const index_t lda = matrix_a_.getSizeL();
   const index_t nc_dim =
       is_transposed ? matrix_a_.get_size_col() : matrix_a_.get_size_row();
