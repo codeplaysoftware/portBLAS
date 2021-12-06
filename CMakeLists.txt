@@ -37,7 +37,9 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 endif()
 
 set(BUILD_SHARED_LIBS ON CACHE BOOL "")
-set(CMAKE_CXX_STANDARD 11)
+if(NOT "${CMAKE_CXX_STANDARD}")
+  set(CMAKE_CXX_STANDARD 11)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
@@ -194,6 +196,11 @@ option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" O
 option(BLAS_HEADER_ONLY_TESTING "Whether to use sycl-blas testing in header-only mode" OFF)
 if(BLAS_HEADER_ONLY_TESTING)
   add_definitions(-DBLAS_HEADER_ONLY_TESTING)
+endif()
+# Enable first kernel in queue constructor
+option(ENQUEUE_FIRST_KERNEL "Whether to enqueue dummy kernel in queue constructor" OFF)
+if(ENQUEUE_FIRST_KERNEL)
+  add_definitions(-DENQUEUE_FIRST_KERNEL)
 endif()
 
 if(${BLAS_ENABLE_TESTING})

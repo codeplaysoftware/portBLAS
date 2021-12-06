@@ -655,6 +655,47 @@ static inline void calc_avg_counters(benchmark::State& state) {
 }  // namespace utils
 }  // namespace blas_benchmark
 
+#ifdef SYCL_BLAS_FPGA
+/** Registers benchmark for the float data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_FLOAT(args, success) \
+  register_benchmark<float>(args,  success)
+
+#ifdef BLAS_DATA_TYPE_DOUBLE
+/** Registers benchmark for the double data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args,  success) \
+  register_benchmark<double>(args,  success)
+#else
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args,  success)
+#endif  // BLAS_DATA_TYPE_DOUBLE
+
+#ifdef BLAS_DATA_TYPE_HALF
+/** Registers benchmark for the cl::sycl::half data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_HALF(args, success) \
+  register_benchmark<cl::sycl::half>(args, success)
+#else
+#define BLAS_REGISTER_BENCHMARK_HALF(args, success)
+#endif  // BLAS_DATA_TYPE_HALF
+
+/** Registers benchmark for all supported data types.
+ *  Expects register_benchmark<scalar_t> to exist.
+ * @param args Reference to blas_benchmark::Args
+ * @param exPtr Pointer to ExecutorType
+ * @param[out] success Pointer to boolean indicating success
+ */
+#define BLAS_REGISTER_BENCHMARK(args, success)     \
+  do {                                                    \
+    BLAS_REGISTER_BENCHMARK_FLOAT(args, success);  \
+    BLAS_REGISTER_BENCHMARK_DOUBLE(args, success); \
+    BLAS_REGISTER_BENCHMARK_HALF(args, success);   \
+  } while (false)
+
+#else 
 /** Registers benchmark for the float data type
  * @see BLAS_REGISTER_BENCHMARK
  */
@@ -694,4 +735,5 @@ static inline void calc_avg_counters(benchmark::State& state) {
     BLAS_REGISTER_BENCHMARK_HALF(args, exPtr, success);   \
   } while (false)
 
+#endif // SYCL_BLAS_FPGA
 #endif

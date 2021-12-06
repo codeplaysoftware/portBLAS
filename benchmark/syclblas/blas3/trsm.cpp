@@ -36,15 +36,26 @@ std::string get_name(char side, char uplo, char trans, char diag, index_t m,
 }
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void run(benchmark::State& state, char side,
+         char uplo, char trans, char diag, index_t m, index_t n, scalar_t alpha,
+         bool* success) {
+#else
 void run(benchmark::State& state, ExecutorType* executorPtr, char side,
          char uplo, char trans, char diag, index_t m, index_t n, scalar_t alpha,
          bool* success) {
+#endif
   // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
+#ifdef SYCL_BLAS_FPGA
+  auto q = blas_benchmark::utils::make_queue();
+  ExecutorType ex(q); 
+#else
   ExecutorType& ex = *executorPtr;
+#endif
 
   using data_t = utils::data_storage_t<scalar_t>;
 
@@ -173,8 +184,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 };
 
 template <typename scalar_t>
+#ifdef SYCL_BLAS_FPGA
+void register_benchmark(Args& args, 
+                        bool* success) {
+#else
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
+#endif
   auto trsm_params = blas_benchmark::utils::get_trsm_params<scalar_t>(args);
 
   for (auto p : trsm_params) {
@@ -182,7 +198,19 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     index_t m, n;
     scalar_t alpha;
     std::tie(side, uplo, trans, diag, m, n, alpha) = p;
-
+#ifdef SYCL_BLAS_FPGA
+    auto BM_lambda = [&](benchmark::State& st, char side,
+                         char uplo, char trans, char diag,
+                         index_t m, index_t n, scalar_t alpha, bool* success) {
+      run<scalar_t>(st, side, uplo, trans, diag, m, n, alpha,
+                    success);
+    };
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(side, uplo, trans, diag, m, n).c_str(), BM_lambda,
+        side, uplo, trans, diag, m, n, alpha, success)
+        ->UseRealTime();
+  }
+#else
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, char side,
                          char uplo, char trans, char diag,
                          index_t m, index_t n, scalar_t alpha, bool* success) {
@@ -194,11 +222,19 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
         exPtr, side, uplo, trans, diag, m, n, alpha, success)
         ->UseRealTime();
   }
+#endif
 }
 
 namespace blas_benchmark {
+#ifdef SYCL_BLAS_FPGA
+void create_benchmark(Args& args,
+                      bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, success);
+}
+#else
 void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }
+#endif  
 }  // namespace blas_benchmark

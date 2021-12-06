@@ -27,22 +27,6 @@
 
 #include "policy/sycl_policy_handler.h"
 
-#ifdef SYCL_BLAS_FPGA
-template<typename Acc, typename Data_Acc>
-class Kernel_Copy{
-  public:
-    Kernel_Copy(Acc accessor, Data_Acc data_accessor)
-    : accessor(accessor)
-    , data_accessor(data_accessor){}
-    void operator() (cl::sycl::id<1> wiID){
-      accessor[wiID] = data_accessor[wiID];
-    }
-  private:
-    Acc accessor;
-    Data_Acc data_accessor;
-};
-#endif
-
 namespace blas {
 
 template <typename element_t>
@@ -156,30 +140,6 @@ PolicyHandler<codeplay_policy>::copy_to_device(const element_t *src,
   return copy_to_device(src, get_buffer(dst), size);
 }
 
-#ifdef SYCL_BLAS_FPGA
-/*  @brief Copying the data to device using a kernel
-  @tparam element_t is the type of the data
-  @param src is the host pointer we want to copy from.
-  @param dst is the BufferIterator we want to copy to.
-  @param size is the number of elements to be copied
-*/
-template <typename element_t>
-inline typename codeplay_policy::event_t
-PolicyHandler<codeplay_policy>::copy_to_device(
-    const element_t *src, BufferIterator<element_t, codeplay_policy> dst,
-    size_t size) {
-      cl::sycl::range<1> numOfItems{size};
-      cl::sycl::buffer<element_t,1> data_buf(src, numOfItems);
-      auto event = q_.submit([&](sycl::handler& cgh){
-        //Copy host to device
-        auto acc = blas::get_range_accessor<cl::sycl::access::mode::write>(dst, cgh, size);
-        auto data_acc = data_buf.template get_access<cl::sycl::access::mode::read>(cgh);
-        cgh.parallel_for(numOfItems, Kernel_Copy<decltype(acc), decltype(data_acc)>(acc, data_acc));
-      });
-      return {event};
-}
-#else
-
 /*  @brief Copying the data back to device
   @tparam element_t is the type of the data
   @param src is the host pointer we want to copy from.
@@ -198,7 +158,6 @@ PolicyHandler<codeplay_policy>::copy_to_device(
   });
   return {event};
 }
-#endif
 
 /*  @brief Copying the data back to device
     @tparam element_t is the type of the data

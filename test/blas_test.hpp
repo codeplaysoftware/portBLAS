@@ -48,7 +48,6 @@
 #include <common/print_queue_information.hpp>
 #include <common/system_reference_blas.hpp>
 #include <common/quantization.hpp>
-
 #include "blas_test_macros.hpp"
 
 struct Args {
@@ -90,6 +89,7 @@ inline cl::sycl::queue make_queue_impl() {
     selector = utils::cli_device_selector(args.device);
   }
   auto q = cl::sycl::queue(selector, async_handler);
+
 #else
   std::unique_ptr<cl::sycl::device_selector> selector;
   if (args.device.empty()) {

@@ -34,6 +34,8 @@
 #include "interface/blas3/backend/power_vr.hpp"
 #elif defined NVIDIA_GPU
 #include "interface/blas3/backend/nvidia_gpu.hpp"
+#elif defined SYCL_BLAS_FPGA
+#include "interface/blas3/backend/fpga.hpp"
 #else
 #include "interface/blas3/backend/default_cpu.hpp"
 #endif
