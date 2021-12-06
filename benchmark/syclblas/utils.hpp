@@ -13,7 +13,7 @@
 #include <common/print_queue_information.hpp>
 #endif
 
-#ifdef BLAS_HEADER_ONLY
+#ifdef BLAS_HEADER_ONLY_TESTING
 #include <sycl_blas.hpp>
 #else
 #include <sycl_blas.h>

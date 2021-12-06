@@ -27,7 +27,7 @@ set(SYCLBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
-if(${BLAS_HEADER_ONLY})
+if(${BLAS_HEADER_ONLY_TESTING})
   set(SyclBLAS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
   find_package(SyclBLAS REQUIRED)
 endif()
@@ -83,7 +83,7 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
 
-  if(${BLAS_HEADER_ONLY})
+  if(${BLAS_HEADER_ONLY_TESTING})
   add_sycl_to_target(
     TARGET ${test_exec}
     SOURCES ${blas_test}
