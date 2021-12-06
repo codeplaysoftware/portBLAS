@@ -139,9 +139,6 @@ elseif(is_dpcpp)
 elseif(is_hipsycl)
   set(sycl_impl hipSYCL::hipSYCL-rt)
   add_sycl_to_target(TARGET sycl_blas SOURCES)
-elseif(is_hipsycl)
-  set(sycl_impl hipSYCL::hipSYCL-rt)
-  add_sycl_to_target(TARGET sycl_blas SOURCES)
 endif()
 set_target_properties(sycl_blas PROPERTIES
   VERSION ${PROJECT_VERSION}
