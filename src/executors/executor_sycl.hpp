@@ -304,8 +304,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
   /* Best case: we can reduce directly in C */
   if (is_beta_zero && ldc == rows) {
     Reduction<blas::AddOperator, params_t, CubeType, output_t> reduction(
-        cube_reduction, gemm_wrapper.c_,
-        params_t::calculate_reduced_group_count(rows * cols, depth));
+        cube_reduction, gemm_wrapper.c_);
     events = concatenate_vectors(events, execute(reduction));
   }
   /* Otherwise we reduce to a temporary buffer */
@@ -317,8 +316,7 @@ Executor<PolicyHandler<codeplay_policy>>::execute(
 
     /* Execute the reduction */
     Reduction<blas::AddOperator, params_t, CubeType, output_t> reduction(
-        cube_reduction, temp,
-        params_t::calculate_reduced_group_count(rows * cols, depth));
+        cube_reduction, temp);
     events = concatenate_vectors(events, execute(reduction));
 
     /* If beta is zero, simply do a 2D copy from the temp buffer to C */

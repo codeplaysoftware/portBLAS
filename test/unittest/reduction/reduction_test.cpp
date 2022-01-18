@@ -47,7 +47,8 @@ const auto combi = ::testing::Combine(
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
-                      operator_t::AbsoluteAdd, operator_t::Mean, operator_t::Product),
+                      operator_t::AbsoluteAdd, operator_t::Mean,
+                      operator_t::Product),
     ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
 template <typename scalar_t>
@@ -74,7 +75,7 @@ void run_test(const combination_t<scalar_t> combi) {
   if (op == operator_t::Product) {
     // Use smaller input range for Product tests since the product
     // operation saturates float overflow faster than the other operations
-    fill_random_with_range(in_m, -2.f, 1.f);
+    fill_random_with_range(in_m, scalar_t{-2}, scalar_t{1});
   } else {
     fill_random(in_m);
   }

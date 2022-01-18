@@ -35,6 +35,16 @@ namespace blas {
 namespace extension {
 namespace internal {
 
+template <typename operator_t>
+struct get_second_step_op {
+  using type = operator_t;
+};
+
+template <>
+struct get_second_step_op<MeanOperator> {
+  using type = AddOperator;
+};
+
 /*!
  * @brief Wrapper around Reduction. Creates the views, then makes and launches
  * the Reduction kernel
@@ -45,15 +55,18 @@ template <typename operator_t, reduction_dim_t reduction_dim,
 typename executor_t::policy_t::event_t launch_type_based_reduction(
     executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols) {
+#ifdef POWER_VR
+  constexpr int ClSize = 32;
+  constexpr int WgSize = 64;
+#else
   constexpr int ClSize = 64;
   constexpr int WgSize = 256;
+#endif
   constexpr index_t reductions_per_thread = 64;
 
   using params_t = blas::ReductionParams<index_t, element_t, ClSize, WgSize,
                                          reductions_per_thread,
                                          static_cast<int>(reduction_dim)>;
-  constexpr index_t local_range = params_t::get_local_thread_size_preserve() *
-                                  params_t::get_local_thread_size_reduce();
 
   const auto reduced_group_count =
       params_t::calculate_reduced_group_count(rows, cols);
@@ -86,20 +99,21 @@ typename executor_t::policy_t::event_t launch_type_based_reduction(
                                              temp_cols, temp_rows);
 
     /* 1st step */
-    auto reduction = blas::make_reduction<operator_t, params_t>(
-        matrix_buffer_in, temp_, reduced_group_count);
+    auto reduction =
+        blas::make_reduction<operator_t, params_t>(matrix_buffer_in, temp_);
     reduction_event =
         concatenate_vectors(reduction_event, ex.execute(reduction));
 
     /* 2nd step */
-    auto reduction_step_2 = blas::make_reduction<operator_t, params_t>(
-        temp_, matrix_buffer_out, index_t(1));
+    auto reduction_step_2 =
+        blas::make_reduction<typename get_second_step_op<operator_t>::type,
+                             params_t>(temp_, matrix_buffer_out);
     reduction_event =
         concatenate_vectors(reduction_event, ex.execute(reduction_step_2));
   } else {
     /* 1-step reduction */
     auto reduction = blas::make_reduction<operator_t, params_t>(
-        matrix_buffer_in, matrix_buffer_out, index_t(1));
+        matrix_buffer_in, matrix_buffer_out);
     reduction_event =
         concatenate_vectors(reduction_event, ex.execute(reduction));
   }
