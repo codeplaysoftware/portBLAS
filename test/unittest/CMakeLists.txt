@@ -44,10 +44,6 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
 )
 
-if(${BLAS_ENABLE_EXTENSIONS})
-  list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/reduction/reduction_test.cpp")
-endif()
-
 # Temporary disabling the following tests fro Intel DPC++ as currently Intel compiler crashes while running the following tests
 if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
@@ -65,6 +61,10 @@ if(is_computecpp)
     # Blas buffer tests
     ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
   )
+
+  if(${BLAS_ENABLE_EXTENSIONS})
+    list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/reduction/reduction_test.cpp")
+  endif()
 endif()
 
 if(GEMM_TALL_SKINNY_SUPPORT)
