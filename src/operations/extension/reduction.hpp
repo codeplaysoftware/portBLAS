@@ -25,6 +25,7 @@
 #ifndef SYCL_BLAS_EXTENSION_REDUCTION_HPP
 #define SYCL_BLAS_EXTENSION_REDUCTION_HPP
 
+#include "blas_meta.h"
 #include "operations/extension/reduction.h"
 #include "views/view.h"
 #include <CL/sycl.hpp>
@@ -34,19 +35,21 @@ namespace blas {
 template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 SYCL_BLAS_INLINE Reduction<operator_t, params_t, input_t, output_t>::Reduction(
-    input_t in, output_t out, index_t reduced_group_count)
+    input_t in, output_t out)
     : in_(in),
       out_(out),
       rows_(in_.get_size_row()),
       cols_(in_.get_size_col()),
       leading_dim_(in_.getSizeL()),
       ld_mul_(in.getSizeL() / in_.get_size_row()),
+      reduced_group_count_(
+          params_t::calculate_reduced_group_count(rows_, cols_)),
       group_count_rows_(params_t::is_outer_dim()
                             ? ((rows_ - 1) / params_t::get_workgroup_row() + 1)
-                            : reduced_group_count),
+                            : reduced_group_count_),
       group_count_cols_(
           params_t::is_outer_dim()
-              ? reduced_group_count
+              ? reduced_group_count_
               : ((rows_ - 1) / params_t::get_workgroup_row() + 1)),
       preserve_elements_num_groups_(
           params_t::is_outer_dim() ? group_count_rows_ : group_count_cols_),
@@ -92,41 +95,16 @@ template <typename operator_t, typename params_t, typename input_t,
 SYCL_BLAS_INLINE cl::sycl::nd_range<1>
 Reduction<operator_t, params_t, input_t, output_t>::get_nd_range(
     index_t compute_units) noexcept {
-  auto get_nearest_power_of_2 = [](size_t val) -> size_t {
-    val--;
-    val |= val >> 1;
-    val |= val >> 2;
-    val |= val >> 4;
-    val |= val >> 8;
-    val |= val >> 16;
-    // If 64-bit
-    if (sizeof(void*) == 8) {
-      val |= val >> 32;
-    }
-
-    return val++;
-  };
-
-  auto round_up = [](index_t x, index_t y) -> index_t {
-    return ((x + y - 1) / y) * y;
-  };
-
   constexpr index_t local_range = params_t::get_local_thread_size_preserve() *
                                   params_t::get_local_thread_size_reduce();
-  const index_t round_up_p = round_up(
+  const index_t round_up_p = roundUp(
       num_elems_to_preserve_, params_t::get_local_thread_size_preserve());
-  constexpr index_t reductions_per_thread = 64;
+  constexpr index_t reductions_per_thread =
+      params_t::get_reductions_per_thread();
   const index_t preserve_num_groups =
       round_up_p / params_t::get_local_thread_size_preserve();
-  index_t reduce_groups =
-      (get_nearest_power_of_2(compute_units) + preserve_num_groups - 1) /
-      preserve_num_groups;
-  index_t reduce_num_groups =
-      num_elems_to_reduce_ > reductions_per_thread * local_range
-          ? std::min(reduce_groups, local_range)
-          : 1;
   const index_t global_range =
-      preserve_num_groups * reduce_num_groups * local_range;
+      preserve_num_groups * reduced_group_count_ * local_range;
 
   return cl::sycl::nd_range<1>(cl::sycl::range<1>(global_range),
                                cl::sycl::range<1>(local_range));
@@ -181,11 +159,11 @@ SYCL_BLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
   index_t preserve_local_id =
       params_t::is_outer_dim()
           ? local_id % params_t::get_local_thread_size_preserve()
-          : local_id / params_t::get_local_thread_size_preserve();
+          : local_id / params_t::get_local_thread_size_reduce();
   index_t reduce_local_id =
       params_t::is_outer_dim()
           ? local_id / params_t::get_local_thread_size_preserve()
-          : local_id % params_t::get_local_thread_size_preserve();
+          : local_id % params_t::get_local_thread_size_reduce();
   const index_t preserve_group_id =
       params_t::is_outer_dim() ? group_id % preserve_elements_num_groups_
                                : group_id / reduce_elements_num_groups_;
@@ -228,8 +206,8 @@ SYCL_BLAS_INLINE void Reduction<operator_t, params_t, input_t, output_t>::eval(
     accumulator = *out_scratch_ptr;
   }
 
-// Perform reduction on the element with current local id and the corresponding
-// element in the second half of tne local memory
+// Perform reduction on the element with current local id and the
+// corresponding element in the second half of tne local memory
 #pragma unroll
   for (index_t offset = params_t::get_local_thread_size_reduce() >> 1;
        offset > 0; offset >>= 1) {

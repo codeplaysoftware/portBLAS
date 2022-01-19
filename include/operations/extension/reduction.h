@@ -98,7 +98,7 @@ struct ReductionParams {
   }
 
   static index_t calculate_reduced_group_count(index_t rows, index_t cols) {
-    constexpr index_t reductions_per_thread = 64;
+    constexpr index_t reductions_per_thread = get_reductions_per_thread();
     constexpr index_t local_range =
         get_local_thread_size_preserve() * get_local_thread_size_reduce();
     const auto num_elems_to_reduce = is_outer_dim() ? cols : rows;
@@ -161,13 +161,14 @@ class Reduction {
   const index_t leading_dim_;
   const index_t ld_mul_;
   /* Work groups per dimension */
+  const index_t reduced_group_count_;
   const index_t group_count_rows_;
   const index_t group_count_cols_;
   const index_t preserve_elements_num_groups_;
   const index_t reduce_elements_num_groups_;
   const index_t num_elems_to_preserve_;
   const index_t num_elems_to_reduce_;
-  Reduction(input_t in, output_t out, index_t reduced_group_count);
+  Reduction(input_t in, output_t out);
   bool valid_thread(cl::sycl::nd_item<1> id) const;
   void bind(cl::sycl::handler& h);
   void adjust_access_displacement();
@@ -193,9 +194,8 @@ class Reduction {
 template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 inline Reduction<operator_t, params_t, input_t, output_t> make_reduction(
-    input_t in, output_t out, typename params_t::index_t reduced_group_count) {
-  return Reduction<operator_t, params_t, input_t, output_t>(
-      in, out, reduced_group_count);
+    input_t in, output_t out) {
+  return Reduction<operator_t, params_t, input_t, output_t>(in, out);
 }
 
 }  // namespace blas
