@@ -66,13 +66,8 @@ const auto combi = ::testing::Combine(::testing::Values(100, 102400),  // size
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size;
-  int offset;
-  std::tie(size, offset) = info.param;
-  std::stringstream ss;
-  ss << "size_" << size;
-  ss << "__offset_" << offset;
-  return ss.str();
+  int size, offset;
+  BLAS_GENERATE_NAME(info.param, size, offset);
 }
 
 BLAS_REGISTER_TEST(Buffer, combination_t, combi, generate_name);

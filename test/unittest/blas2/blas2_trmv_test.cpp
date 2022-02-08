@@ -106,21 +106,9 @@ const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char upl0;
-  char trans;
-  char diag;
-  int n;
-  int incX;
-  int lda_mul;
-  std::tie(upl0, trans, diag, n, incX, lda_mul) = info.param;
-  std::stringstream ss;
-  ss << "upl0_" << upl0;
-  ss << "__trans_" << trans;
-  ss << "__diag_" << diag;
-  ss << "__n_" << n;
-  ss << "__incX_" << incX;
-  ss << "__ldaMul_" << lda_mul;
-  return ss.str();
+  char upl0, trans, diag;
+  int n, incX, ldaMul;
+  BLAS_GENERATE_NAME(info.param, upl0, trans, diag, n, incX, ldaMul);
 }
 
 BLAS_REGISTER_TEST(Trmv, combination_t, combi, generate_name);

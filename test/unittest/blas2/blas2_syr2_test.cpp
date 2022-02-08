@@ -96,20 +96,9 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   char upl0;
-  int n;
+  int n, incX, incY, ldaMul;
   T alpha;
-  int incX;
-  int incY;
-  int lda_mul;
-  std::tie(upl0, n, alpha, incX, incY, lda_mul) = info.param;
-  std::stringstream ss;
-  ss << "upl0_" << upl0;
-  ss << "__n_" << n;
-  ss << "__alpha_" << format_fp(alpha);
-  ss << "__incX_" << incX;
-  ss << "__incY_" << incY;
-  ss << "__ldaMul_" << lda_mul;
-  return ss.str();
+  BLAS_GENERATE_NAME(info.param, upl0, n, alpha, incX, incY, ldaMul);
 }
 
 BLAS_REGISTER_TEST(Syr2, combination_t, combi, generate_name);

@@ -51,20 +51,24 @@ const auto combi = ::testing::Combine(
                       operator_t::Product),
     ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
+template <>
+inline void dump_arg<operator_t>(std::ostream& ss, operator_t op) {
+  ss << (int)op;
+}
+
+template <>
+inline void dump_arg<reduction_dim_t>(std::ostream& ss,
+                                      reduction_dim_t reductionDim) {
+  ss << (int)reductionDim;
+}
+
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  index_t rows, cols, ld_mul;
+  index_t rows, cols, ldMul;
   operator_t op;
-  reduction_dim_t reduction_dim;
-  std::tie(rows, cols, ld_mul, op, reduction_dim) = info.param;
-  std::stringstream ss;
-  ss << "rows_" << rows;
-  ss << "__cols_" << cols;
-  ss << "__ldMul_" << ld_mul;
-  ss << "__op_" << (int)op;
-  ss << "__dim_" << (int)reduction_dim;
-  return ss.str();
+  reduction_dim_t reductionDim;
+  BLAS_GENERATE_NAME(info.param, rows, cols, ldMul, op, reductionDim);
 }
 
 template <typename scalar_t>

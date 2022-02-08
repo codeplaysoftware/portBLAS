@@ -30,6 +30,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -188,16 +189,31 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
 }
 
 /**
- * @brief Format floating point numbers for GTest. A test name cannot contain
+ * @brief Dump an argument to a stream.
+ *
+ * @param ss Output stream
+ * @param arg Argument to format
+ */
+template <class T>
+inline void dump_arg(std::ostream &ss, T arg) {
+  ss << arg;
+}
+
+/**
+ * @brief Dump an argument to a stream.
+ * Format floating point numbers for GTest. A test name cannot contain
  * "-" nor "." so they are replaced with "m" and "p" respectively. The
- * fractional part is printed with up to 2 digits.
+ * fractional part is ignored if null otherwise it is printed with 2 digits.
+ *
+ * @param ss Output stream
  * @param f Floating point number to format
  */
-static inline std::string format_fp(float f) {
+template <>
+inline void dump_arg<float>(std::ostream &ss, float f) {
   if (std::isnan(f)) {
-    return "nan";
+    ss << "nan";
+    return;
   }
-  std::stringstream ss;
   if (f < 0) {
     ss << "m";
     f = std::fabs(f);
@@ -208,7 +224,56 @@ static inline std::string format_fp(float f) {
   if (frac_part > 0) {
     ss << "p" << (int)(frac_part * 100);
   }
+}
+
+/**
+ * @brief End of the recursion.
+ */
+inline void generate_name_helper(std::ostream &) {}
+
+/**
+ * @brief Recursively dump the list of arguments in the form
+ * (__<ArgName>_<ArgValue>)*
+ *
+ * @param ss Output stream
+ * @param arg Argument to dump
+ * @param args Remaining arguments
+ */
+template <class T, class... Args>
+inline void generate_name_helper(std::ostream &ss, T arg, Args... args) {
+  auto token = strtok(nullptr, ", ");
+  ss << "__" << token << "_";
+  dump_arg(ss, arg);
+  generate_name_helper(ss, args...);
+}
+
+/**
+ * @brief Return a string of the list of arguments compatible with GTest
+ * in the form <ArgName>_<ArgValue>(__<ArgName>_<ArgValue>)*
+ *
+ * @param str_args Writeable null-terminated string of the form
+ *                 <ArgName>(, <ArgName>)*
+ * @param arg First argument to dump
+ * @param args List of remaining arguments to dump
+ */
+template <class T, class... Args>
+inline std::string generate_name_helper(char *str_args, T arg, Args... args) {
+  std::stringstream ss;
+  auto token = strtok(str_args, ", ");
+  ss << token << "_";
+  dump_arg(ss, arg);
+  generate_name_helper(ss, args...);
   return ss.str();
 }
+
+// Helper macro to generate tests name from a list of test parameters.
+// The list of arguments is stored as a writeable null-terminated string for
+// strtok.
+#define BLAS_GENERATE_NAME(tuple, ...)                  \
+  do {                                                  \
+    char str_args[] = #__VA_ARGS__;                     \
+    std::tie(__VA_ARGS__) = tuple;                      \
+    return generate_name_helper(str_args, __VA_ARGS__); \
+  } while (0)
 
 #endif /* end of include guard: BLAS_TEST_HPP */

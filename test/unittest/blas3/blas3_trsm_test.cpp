@@ -107,30 +107,11 @@ const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int m;
-  int n;
-  char trans;
-  char side;
-  char diag;
-  char uplo;
-  T alpha;
-  T ldaMul;
-  T ldbMul;
-  T unusedValue;
-  std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul, unusedValue) =
-      info.param;
-  std::stringstream ss;
-  ss << "m_" << m;
-  ss << "__n_" << n;
-  ss << "__trans_" << trans;
-  ss << "__side_" << side;
-  ss << "__diag_" << diag;
-  ss << "__uplo_" << uplo;
-  ss << "__alpha_" << format_fp(alpha);
-  ss << "__ldaMul_" << format_fp(ldaMul);
-  ss << "__ldbMul_" << format_fp(ldbMul);
-  ss << "__unused_" << format_fp(unusedValue);
-  return ss.str();
+  int m, n;
+  char trans, side, diag, uplo;
+  T alpha, ldaMul, ldbMul, unusedValue;
+  BLAS_GENERATE_NAME(info.param, m, n, trans, side, diag, uplo, alpha, ldaMul,
+                     ldbMul, unusedValue);
 }
 
 BLAS_REGISTER_TEST(Trsm, combination_t, combi, generate_name);

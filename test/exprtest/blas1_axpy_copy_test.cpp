@@ -113,17 +113,9 @@ const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size;
+  int size, incX, incY;
   T alpha;
-  int incX;
-  int incY;
-  std::tie(size, alpha, incX, incY) = info.param;
-  std::stringstream ss;
-  ss << "size_" << size;
-  ss << "__alpha_" << format_fp(alpha);
-  ss << "__incX_" << incX;
-  ss << "__incY_" << incY;
-  return ss.str();
+  BLAS_GENERATE_NAME(info.param, size, alpha, incX, incY);
 }
 
 BLAS_REGISTER_TEST(AxpyCopyTree, combination_t, combi, generate_name);

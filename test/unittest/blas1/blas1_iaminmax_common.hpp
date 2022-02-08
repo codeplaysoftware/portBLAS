@@ -77,18 +77,18 @@ const auto combi = ::testing::Combine(
                       generation_mode_t::Decrementing));
 #endif
 
+template <>
+inline void dump_arg<generation_mode_t>(std::ostream &ss,
+                                        generation_mode_t mode) {
+  ss << (char)mode;
+}
+
 template <class T>
 static std::string generate_name(
-    const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size;
-  int incX;
+    const ::testing::TestParamInfo<combination_t<T>> &info) {
+  int size, incX;
   generation_mode_t mode;
-  std::tie(size, incX, mode) = info.param;
-  std::stringstream ss;
-  ss << "size_" << size;
-  ss << "__incX_" << incX;
-  ss << "__mode_" << (char)mode;
-  return ss.str();
+  BLAS_GENERATE_NAME(info.param, size, incX, mode);
 }
 
 #endif

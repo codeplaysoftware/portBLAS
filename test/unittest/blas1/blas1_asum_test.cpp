@@ -79,13 +79,8 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size;
-  int incX;
-  std::tie(size, incX) = info.param;
-  std::stringstream ss;
-  ss << "size_" << size;
-  ss << "__incX_" << incX;
-  return ss.str();
+  int size, incX;
+  BLAS_GENERATE_NAME(info.param, size, incX);
 }
 
 BLAS_REGISTER_TEST(Asum, combination_t, combi, generate_name);

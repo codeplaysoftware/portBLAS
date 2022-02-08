@@ -103,13 +103,8 @@ const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // size
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size;
-  int factor;
-  std::tie(size, factor) = info.param;
-  std::stringstream ss;
-  ss << "size_" << size;
-  ss << "__factor_" << factor;
-  return ss.str();
+  int size, factor;
+  BLAS_GENERATE_NAME(info.param, size, factor);
 }
 
 BLAS_REGISTER_TEST(CollapseNestedTuple, combination_t, combi, generate_name);

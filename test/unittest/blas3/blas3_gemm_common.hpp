@@ -160,39 +160,21 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
 }
 
+template <>
+inline void dump_arg<gemm_batch_type_t>(std::ostream& ss,
+                                        gemm_batch_type_t batch_type) {
+  ss << (int)batch_type;
+}
+
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<gemm_arguments_t<T>>& info) {
-  int offset;
-  int batch;
-  int m;
-  int n;
-  int k;
-  char transa;
-  char transb;
-  T alpha;
-  T beta;
-  int lda_mul;
-  int ldb_mul;
-  int ldc_mul;
-  gemm_batch_type_t batch_type;
-  std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
-           ldb_mul, ldc_mul, batch_type) = info.param;
-  std::stringstream ss;
-  ss << "offset_" << offset;
-  ss << "__batch_" << batch;
-  ss << "__m_" << m;
-  ss << "__n_" << n;
-  ss << "__k_" << k;
-  ss << "__transa_" << transa;
-  ss << "__transb_" << transb;
-  ss << "__alpha_" << format_fp(alpha);
-  ss << "__beta_" << format_fp(beta);
-  ss << "__ldaMul_" << lda_mul;
-  ss << "__ldbMul_" << ldb_mul;
-  ss << "__ldcMul_" << ldc_mul;
-  ss << "__batchType_" << (int)batch_type;
-  return ss.str();
+  int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul;
+  char transa, transb;
+  T alpha, beta;
+  gemm_batch_type_t batchType;
+  BLAS_GENERATE_NAME(info.param, offset, batch, m, n, k, transa, transb, alpha,
+                     beta, ldaMul, ldbMul, ldcMul, batchType);
 }
 
 /** Registers GEMM test for all supported data types
