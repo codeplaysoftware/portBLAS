@@ -86,4 +86,22 @@ const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
 );
 #endif
 
-BLAS_REGISTER_TEST(Syr, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  char upl0;
+  int n;
+  T alpha;
+  int incX;
+  int lda_mul;
+  std::tie(upl0, n, alpha, incX, lda_mul) = info.param;
+  std::stringstream ss;
+  ss << "upl0_" << upl0;
+  ss << "__n_" << n;
+  ss << "__alpha_" << format_fp(alpha);
+  ss << "__incX_" << incX;
+  ss << "__ldaMul_" << lda_mul;
+  return ss.str();
+}
+
+BLAS_REGISTER_TEST(Syr, combination_t, combi, generate_name);

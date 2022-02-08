@@ -108,4 +108,28 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1023),     // m
 );
 #endif
 
-BLAS_REGISTER_TEST(Gemv, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int m;
+  int n;
+  T alpha;
+  T beta;
+  bool trans;
+  int incX;
+  int incY;
+  int lda_mul;
+  std::tie(m, n, alpha, beta, trans, incX, incY, lda_mul) = info.param;
+  std::stringstream ss;
+  ss << "m_" << m;
+  ss << "__n_" << n;
+  ss << "__alpha_" << format_fp(alpha);
+  ss << "__beta_" << format_fp(beta);
+  ss << "__trans_" << trans;
+  ss << "__incX_" << incX;
+  ss << "__incY_" << incY;
+  ss << "__ldaMul_" << lda_mul;
+  return ss.str();
+}
+
+BLAS_REGISTER_TEST(Gemv, combination_t, combi, generate_name);

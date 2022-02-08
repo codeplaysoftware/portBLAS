@@ -96,4 +96,18 @@ const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
                                       ::testing::Values(0.0, 1.34),  // alpha
                                       ::testing::Values(1, 4));      // incX
 
-BLAS_REGISTER_TEST(ScalAsumTree, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size;
+  T alpha;
+  int incX;
+  std::tie(size, alpha, incX) = info.param;
+  std::stringstream ss;
+  ss << "size_" << size;
+  ss << "__alpha_" << format_fp(alpha);
+  ss << "__incX_" << incX;
+  return ss.str();
+}
+
+BLAS_REGISTER_TEST(ScalAsumTree, combination_t, combi, generate_name);

@@ -68,4 +68,16 @@ const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(1, 4)       // incX
 );
 
-BLAS_REGISTER_TEST(Nrm2, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size;
+  int incX;
+  std::tie(size, incX) = info.param;
+  std::stringstream ss;
+  ss << "size_" << size;
+  ss << "__incX_" << incX;
+  return ss.str();
+}
+
+BLAS_REGISTER_TEST(Nrm2, combination_t, combi, generate_name);

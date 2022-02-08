@@ -45,43 +45,46 @@
 /** Registers test for the float type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,  \
-                                 combination_t, combination)             \
-  class class_name##Float                                                \
-      : public ::testing::TestWithParam<combination_t<float>> {};        \
-  TEST_P(class_name##Float, test) { test_function<float>(GetParam()); }; \
-  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Float, combination);
+#define BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,      \
+                                 combination_t, combination, name_generator) \
+  class class_name##Float                                                    \
+      : public ::testing::TestWithParam<combination_t<float>> {};            \
+  TEST_P(class_name##Float, test) { test_function<float>(GetParam()); };     \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Float, combination,       \
+                           name_generator<float>);
 
 #ifdef BLAS_DATA_TYPE_DOUBLE
 /** Registers test for the double type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,   \
-                                  combination_t, combination)              \
-  class class_name##Double                                                 \
-      : public ::testing::TestWithParam<combination_t<double>> {};         \
-  TEST_P(class_name##Double, test) { test_function<double>(GetParam()); }; \
-  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Double, combination);
+#define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,      \
+                                  combination_t, combination, name_generator) \
+  class class_name##Double                                                    \
+      : public ::testing::TestWithParam<combination_t<double>> {};            \
+  TEST_P(class_name##Double, test) { test_function<double>(GetParam()); };    \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Double, combination,       \
+                           name_generator<double>);
 #else
 #define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function, \
-                                  combination_t, combination)
+                                  combination_t, combination, name_generator)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
 #ifdef BLAS_DATA_TYPE_HALF
 /** Registers test for the cl::sycl::half type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function,     \
-                                combination_t, combination)                \
-  class class_name##Half                                                   \
-      : public ::testing::TestWithParam<combination_t<cl::sycl::half>> {}; \
-  TEST_P(class_name##Half, test) {                                         \
-    test_function<cl::sycl::half>(GetParam());                             \
-  };                                                                       \
-  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half, combination);
+#define BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function,      \
+                                combination_t, combination, name_generator) \
+  class class_name##Half                                                    \
+      : public ::testing::TestWithParam<combination_t<cl::sycl::half>> {};  \
+  TEST_P(class_name##Half, test) {                                          \
+    test_function<cl::sycl::half>(GetParam());                              \
+  };                                                                        \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half, combination,       \
+                           name_generator<cl::sycl::half>);
 #else
 #define BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function, \
-                                combination_t, combination)
+                                combination_t, combination, name_generator)
 #endif  // BLAS_DATA_TYPE_HALF
 
 /** Registers test for all supported data types
@@ -91,21 +94,24 @@
  * @param combination_t Type of the combination parameter.
  *        Must be templated for the data type.
  * @param combination Combinations object
+ * @param name_generator Function used to generate test names
  */
 #define BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, class_name, test_function, \
-                                       combination_t, combination)            \
+                                       combination_t, combination,            \
+                                       name_generator)                        \
   BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,             \
-                           combination_t, combination);                       \
+                           combination_t, combination, name_generator);       \
   BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,            \
-                            combination_t, combination);                      \
+                            combination_t, combination, name_generator);      \
   BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function,              \
-                          combination_t, combination);
+                          combination_t, combination, name_generator);
 
 /** Registers test for all supported data types
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST(class_name, combination_t, combination) \
+#define BLAS_REGISTER_TEST(class_name, combination_t, combination, \
+                           name_generator)                         \
   BLAS_REGISTER_TEST_CUSTOM_NAME(class_name, class_name, run_test, \
-                                 combination_t, combination)
+                                 combination_t, combination, name_generator)
 
 #endif  // TEST_BLAS_TEST_MACROS_HPP

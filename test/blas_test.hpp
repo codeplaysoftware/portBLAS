@@ -187,4 +187,28 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
   }
 }
 
+/**
+ * @brief Format floating point numbers for GTest. A test name cannot contain
+ * "-" nor "." so they are replaced with "m" and "p" respectively. The
+ * fractional part is printed with up to 2 digits.
+ * @param f Floating point number to format
+ */
+static inline std::string format_fp(float f) {
+  if (std::isnan(f)) {
+    return "nan";
+  }
+  std::stringstream ss;
+  if (f < 0) {
+    ss << "m";
+    f = std::fabs(f);
+  }
+  float int_part;
+  float frac_part = modff(f, &int_part);
+  ss << int_part;
+  if (frac_part > 0) {
+    ss << "p" << (int)(frac_part * 100);
+  }
+  return ss.str();
+}
+
 #endif /* end of include guard: BLAS_TEST_HPP */

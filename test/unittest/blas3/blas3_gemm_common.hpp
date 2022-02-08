@@ -160,11 +160,47 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
 }
 
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<gemm_arguments_t<T>>& info) {
+  int offset;
+  int batch;
+  int m;
+  int n;
+  int k;
+  char transa;
+  char transb;
+  T alpha;
+  T beta;
+  int lda_mul;
+  int ldb_mul;
+  int ldc_mul;
+  gemm_batch_type_t batch_type;
+  std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
+           ldb_mul, ldc_mul, batch_type) = info.param;
+  std::stringstream ss;
+  ss << "offset_" << offset;
+  ss << "__batch_" << batch;
+  ss << "__m_" << m;
+  ss << "__n_" << n;
+  ss << "__k_" << k;
+  ss << "__transa_" << transa;
+  ss << "__transb_" << transb;
+  ss << "__alpha_" << format_fp(alpha);
+  ss << "__beta_" << format_fp(beta);
+  ss << "__ldaMul_" << lda_mul;
+  ss << "__ldbMul_" << ldb_mul;
+  ss << "__ldcMul_" << ldc_mul;
+  ss << "__batchType_" << (int)batch_type;
+  return ss.str();
+}
+
 /** Registers GEMM test for all supported data types
  * @param test_suite Name of the test suite
  * @param combination Combinations object
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define GENERATE_GEMM_TEST(test_suite, combination)                   \
-  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination, \
-                                 verify_gemm, gemm_arguments_t, combination);
+#define GENERATE_GEMM_TEST(test_suite, combination)                          \
+  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination,        \
+                                 verify_gemm, gemm_arguments_t, combination, \
+                                 generate_name);

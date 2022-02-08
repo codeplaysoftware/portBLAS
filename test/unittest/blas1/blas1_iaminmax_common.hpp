@@ -77,4 +77,18 @@ const auto combi = ::testing::Combine(
                       generation_mode_t::Decrementing));
 #endif
 
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size;
+  int incX;
+  generation_mode_t mode;
+  std::tie(size, incX, mode) = info.param;
+  std::stringstream ss;
+  ss << "size_" << size;
+  ss << "__incX_" << incX;
+  ss << "__mode_" << (char)mode;
+  return ss.str();
+}
+
 #endif

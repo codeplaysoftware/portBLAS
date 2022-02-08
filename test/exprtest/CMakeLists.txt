@@ -43,9 +43,9 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
     SOURCES ${blas_test}
   )
   if(TEST_DEVICE)
-    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE})
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE} --gtest_output=xml:output/)
   else()
-    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec})
+    add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --gtest_output=xml:output/)
   endif()
   message(STATUS "Created google test ${test_exec}")
   install(TARGETS ${test_exec}

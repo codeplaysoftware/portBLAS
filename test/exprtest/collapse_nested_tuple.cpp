@@ -97,8 +97,19 @@ void run_test(const combination_t<scalar_t> combi) {
         utils::almost_equal(static_cast<data_t>(v_out[i].val), v_in[i]));
   }
 }
-
-const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // length
+const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // size
                                       ::testing::Values(0, 1, 5));  // factor
 
-BLAS_REGISTER_TEST(CollapseNestedTuple, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size;
+  int factor;
+  std::tie(size, factor) = info.param;
+  std::stringstream ss;
+  ss << "size_" << size;
+  ss << "__factor_" << factor;
+  return ss.str();
+}
+
+BLAS_REGISTER_TEST(CollapseNestedTuple, combination_t, combi, generate_name);

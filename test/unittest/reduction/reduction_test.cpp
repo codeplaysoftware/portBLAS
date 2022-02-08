@@ -51,6 +51,22 @@ const auto combi = ::testing::Combine(
                       operator_t::Product),
     ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
 
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  index_t rows, cols, ld_mul;
+  operator_t op;
+  reduction_dim_t reduction_dim;
+  std::tie(rows, cols, ld_mul, op, reduction_dim) = info.param;
+  std::stringstream ss;
+  ss << "rows_" << rows;
+  ss << "__cols_" << cols;
+  ss << "__ldMul_" << ld_mul;
+  ss << "__op_" << (int)op;
+  ss << "__dim_" << (int)reduction_dim;
+  return ss.str();
+}
+
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t rows, cols, ld_mul;
@@ -194,4 +210,4 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
 
-BLAS_REGISTER_TEST(ReductionPartial, combination_t, combi);
+BLAS_REGISTER_TEST(ReductionPartial, combination_t, combi, generate_name);
