@@ -76,4 +76,11 @@ const auto combi =
                        ::testing::Values(1, 4)                     // incX
     );
 
-BLAS_REGISTER_TEST(Asum, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size, incX;
+  BLAS_GENERATE_NAME(info.param, size, incX);
+}
+
+BLAS_REGISTER_TEST(Asum, combination_t, combi, generate_name);

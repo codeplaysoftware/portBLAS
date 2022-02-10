@@ -31,16 +31,16 @@ using combination_t = std::tuple<int, int, int>;
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   int size;
-  int incA;
-  int incB;
-  std::tie(size, incA, incB) = combi;
+  int incX;
+  int incY;
+  std::tie(size, incX, incY) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
   // Input vectors
-  std::vector<data_t> a_v(size * incA);
+  std::vector<data_t> a_v(size * incX);
   fill_random(a_v);
-  std::vector<data_t> b_v(size * incB);
+  std::vector<data_t> b_v(size * incY);
   fill_random(b_v);
 
   // Output vectors
@@ -56,12 +56,12 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
   // Reference implementation
-  std::vector<data_t> c_cpu_v(size * incA);
-  std::vector<data_t> s_cpu_v(size * incB);
-  reference_blas::rot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB, c_d,
+  std::vector<data_t> c_cpu_v(size * incX);
+  std::vector<data_t> s_cpu_v(size * incY);
+  reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
                       s_d);
   auto out_cpu_s =
-      reference_blas::dot(size, a_cpu_v.data(), incA, b_cpu_v.data(), incB);
+      reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
 
   // SYCL implementation
   auto q = make_queue();
@@ -75,8 +75,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(ex, size, gpu_a_v, incA, gpu_b_v, incB, c, s);
-  _dot(ex, size, gpu_a_v, incA, gpu_b_v, incB, gpu_out_s);
+  _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+  _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
   ex.get_policy_handler().wait(event);
 
@@ -94,9 +94,16 @@ const auto combi =
     );
 #else
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(4),         // incA
-                                      ::testing::Values(3)          // incB
+                                      ::testing::Values(4),         // incX
+                                      ::testing::Values(3)          // incY
 );
 #endif
 
-BLAS_REGISTER_TEST(Rotg, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size, incX, incY;
+  BLAS_GENERATE_NAME(info.param, size, incX, incY);
+}
+
+BLAS_REGISTER_TEST(Rotg, combination_t, combi, generate_name);

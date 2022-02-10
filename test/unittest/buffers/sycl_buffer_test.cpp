@@ -63,7 +63,14 @@ const auto combi = ::testing::Combine(::testing::Values(100, 102400),  // size
                                       ::testing::Values(0, 25)         // offset
 );
 
-BLAS_REGISTER_TEST(Buffer, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int size, offset;
+  BLAS_GENERATE_NAME(info.param, size, offset);
+}
+
+BLAS_REGISTER_TEST(Buffer, combination_t, combi, generate_name);
 
 template <typename data_t, typename index_t>
 inline BufferIterator<const data_t, blas::codeplay_policy> func(
@@ -87,4 +94,4 @@ void run_const_test(const combination_t<scalar_t> combi) {
       func<scalar_t>(a, offset);
 }
 
-BLAS_REGISTER_TEST(BufferConst, combination_t, combi);
+BLAS_REGISTER_TEST(BufferConst, combination_t, combi, generate_name);

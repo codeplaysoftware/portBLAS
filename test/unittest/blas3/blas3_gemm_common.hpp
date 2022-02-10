@@ -160,11 +160,29 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
 }
 
+template <>
+inline void dump_arg<gemm_batch_type_t>(std::ostream& ss,
+                                        gemm_batch_type_t batch_type) {
+  ss << (int)batch_type;
+}
+
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<gemm_arguments_t<T>>& info) {
+  int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul;
+  char transa, transb;
+  T alpha, beta;
+  gemm_batch_type_t batchType;
+  BLAS_GENERATE_NAME(info.param, offset, batch, m, n, k, transa, transb, alpha,
+                     beta, ldaMul, ldbMul, ldcMul, batchType);
+}
+
 /** Registers GEMM test for all supported data types
  * @param test_suite Name of the test suite
  * @param combination Combinations object
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define GENERATE_GEMM_TEST(test_suite, combination)                   \
-  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination, \
-                                 verify_gemm, gemm_arguments_t, combination);
+#define GENERATE_GEMM_TEST(test_suite, combination)                          \
+  BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, test_suite##combination,        \
+                                 verify_gemm, gemm_arguments_t, combination, \
+                                 generate_name);

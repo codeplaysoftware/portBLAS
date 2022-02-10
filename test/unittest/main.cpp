@@ -40,7 +40,7 @@ namespace {
 void parse_args(int argc, char** argv) {
   // Updates the global args
   args.program_name = std::string(argv[0]);
-  bool show_help;
+  bool show_help = false;
 
   auto parser = clara::Help(show_help) |
                 clara::Opt(args.device, "device")["--device"](
@@ -60,11 +60,11 @@ int main(int argc, char* argv[]) {
   int seed = 12345;
   srand(seed);
 
+  // Process google test's arguments
+  ::testing::InitGoogleTest(&argc, argv);
+
   // Do our own argument processing
   parse_args(argc, argv);
-
-  // Hand off to google test's argument processing
-  ::testing::InitGoogleTest(&argc, argv);
 
   auto exit_code = RUN_ALL_TESTS();
   // Explicitly wait just before returning from main to ensure that any SYCL

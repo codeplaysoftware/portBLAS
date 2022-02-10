@@ -104,4 +104,14 @@ const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
 // unused is a value that will be placed in the input matrix and is not meant to
 // be accessed by the trsm implementation
 
-BLAS_REGISTER_TEST(Trsm, combination_t, combi);
+template <class T>
+static std::string generate_name(
+    const ::testing::TestParamInfo<combination_t<T>>& info) {
+  int m, n;
+  char trans, side, diag, uplo;
+  T alpha, ldaMul, ldbMul, unusedValue;
+  BLAS_GENERATE_NAME(info.param, m, n, trans, side, diag, uplo, alpha, ldaMul,
+                     ldbMul, unusedValue);
+}
+
+BLAS_REGISTER_TEST(Trsm, combination_t, combi, generate_name);
