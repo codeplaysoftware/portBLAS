@@ -255,8 +255,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      * boundary_check_c  are used to check the A, B , and C boundaries
      * respectively.
      */
-    const auto boundary_check_m =
-        [&](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE { return idx < m; };
+    const auto boundary_check_original_m =
+        [&](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE {
+          return local_item_id_row + wg_row + idx < original_m;
+        };
     const auto boundary_check_n =
         [&](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE { return idx < n; };
     const auto boundary_check_c =
@@ -276,8 +278,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       compute_gemm_no_shared_pannel<false, packetize_t::packet_size>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
-          boundary_check_m, boundary_check_n, boundary_check_c, out_of_range,
-          batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
+          boundary_check_original_m, boundary_check_n, boundary_check_c,
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
 #ifdef ARM_GPU
           ,
           id
@@ -287,8 +289,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       compute_gemm_no_shared_pannel<true, 1>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
-          boundary_check_m, boundary_check_n, boundary_check_c, out_of_range,
-          batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
+          boundary_check_original_m, boundary_check_n, boundary_check_c,
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
 #ifdef ARM_GPU
           ,
           id
@@ -343,14 +345,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   }
 
   template <bool need_check_boundary, index_t packet_size, typename A_t,
-            typename B_t, typename C_t, typename check_boundary_m_t,
+            typename B_t, typename C_t, typename check_boundary_original_m_t,
             typename check_boundary_n_t, typename check_boundary_c_t>
   SYCL_BLAS_INLINE void compute_gemm_no_shared_pannel(
       A_t orig_A, B_t orig_B, C_t orig_C, const index_t &a_size,
       const index_t &b_size, const index_t &c_size, index_t orig_k, index_t k,
       const index_t &dim_m_a_start, const index_t &dim_n_b_start,
       const index_t &A_ptr_index, const index_t &B_ptr_index,
-      const check_boundary_m_t &boundary_check_m,
+      const check_boundary_original_m_t &boundary_check_original_m,
       const check_boundary_n_t &boundary_check_n,
       const check_boundary_c_t &boundary_check_c, const bool out_of_range,
       const index_t &batch_stride, const index_t &wg_batch_id,
@@ -377,8 +379,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           out_of_range);
       while (k >= packet_size) {
         load_and_compute_block<packet_size, need_check_boundary, false>(
-            A, B, boundary_check_m, boundary_check_n, A_ptr_index, B_ptr_index,
-            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
+            A, B, boundary_check_original_m, boundary_check_n, A_ptr_index,
+            B_ptr_index, lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
 #ifdef ARM_GPU
             ,
             id
@@ -393,8 +395,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       }
       if (k > 0) {
         load_and_compute_block<packet_size, need_check_boundary, true>(
-            A, B, boundary_check_m, boundary_check_n, A_ptr_index, B_ptr_index,
-            lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
+            A, B, boundary_check_original_m, boundary_check_n, A_ptr_index,
+            B_ptr_index, lda, ldb, k, reg_a, reg_b, reg_res, out_of_range
 #ifdef ARM_GPU
             ,
             id
@@ -460,10 +462,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param out_of_range : Controls whether to exit some functions early if
    * block is out of range of A or B.*/
   template <index_t packet_size, bool check_boundary, bool check_k,
-            typename BoundaryCheckM, typename BoundaryCheckN,
+            typename BoundaryCheckOriginalM, typename BoundaryCheckN,
             typename PointerType>
   SYCL_BLAS_INLINE void load_and_compute_block(
-      PointerType A, PointerType B, BoundaryCheckM boundary_check_m,
+      PointerType A, PointerType B,
+      BoundaryCheckOriginalM boundary_check_original_m,
       BoundaryCheckN boundary_check_n, const index_t &A_ptr_index,
       const index_t &B_ptr_index, const index_t &lda, const index_t &ldb,
       const index_t &k, element_t *reg_a, element_t *reg_b, element_t *reg_res,
@@ -478,7 +481,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
      */
     load_block_a<item_rows, packet_size, wg_rows * packet_size, check_boundary,
                  check_k, packet_size, trans_a>(
-        A, reg_a, A_ptr_index, lda, boundary_check_m,
+        A, reg_a, A_ptr_index, lda, boundary_check_original_m,
         [=](const index_t &idx) SYCL_BLAS_ALWAYS_INLINE { return idx < k; },
         out_of_range);
 #ifdef ARM_GPU
@@ -539,9 +542,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param ptr_next: offset for the next value to be loaded.
    * @param ld : the leading dimension of the input matrix.
    * @param is_valid_row : function which checks the boundary in the row
-   * direction.
+   * direction (relative to the original M size).
    * @param is_valid_col : function which checks the boundary in the col
-   * direction.
+   * direction (relative to the current k size).
    * @param out_of_range: exits the function early if block is out of range.
    */
 
@@ -555,36 +558,43 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     if (out_of_range) {
       return;
     }
+    index_t row_iters = rows / work_per_load;
 #pragma unroll
     for (int i = 0; i < cols; i++) {
+      if (!do_check<check_col>(is_valid_col(i))) {
+        break;
+      }
 #pragma unroll
-      for (int j = 0; j < rows / work_per_load; j++) {
+      for (int j = 0; j < row_iters; j++) {
+        if (!do_check<check_row>(is_valid_row(j * ptr_next))) {
+          break;
+        }
         // Check that the last element of the packet loaded is in range
-        bool in_range = do_check<check_row>(is_valid_row(work_per_load - 1)) &&
-                        do_check<check_col>(is_valid_col(i));
+        bool in_range =
+            do_check<check_row>(is_valid_row(j * ptr_next + work_per_load - 1));
 
         cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
-                     ptr + j * ptr_next));
+                     ptr + i * ld + j * ptr_next));
         } else {
           // if not in range perform element-wise load checking boundaries at
           // each load.
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
-            if (do_check<check_row>(is_valid_row(l)) &&
-                do_check<check_col>(is_valid_col(i))) {
+            if (do_check<check_row>(is_valid_row(j * ptr_next + l))) {
               reinterpret_cast<element_t *>(&in_vec)[l] =
-                  *(ptr + j * ptr_next + l);
+                  *(ptr + i * ld + j * ptr_next + l);
+            } else {
+              break;
             }
           }
         }
-        in_vec.template store<address_t::private_space>(0, reg);
-        reg += work_per_load;
+        auto out_reg = &reg[(i * row_iters + j) * work_per_load];
+        in_vec.template store<address_t::private_space>(0, out_reg);
       }
-      ptr += ld;
     }
   }
 
@@ -615,9 +625,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
    * @param ptr_next: offset for the next value to be loaded.
    * @param ld : the leading dimension of the input matrix.
    * @param is_valid_row : function which checks the boundary in the row
-   * direction.
+   * direction (relative to the original M size).
    * @param is_valid_col : function which checks the boundary in the col
-   * direction.
+   * direction (relative to the current k size).
    * @param out_of_range: exits the function early if block is out of range.
    */
   template <index_t rows, index_t cols, index_t next_element, bool check_row,
@@ -632,27 +642,30 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     }
 #pragma unroll
     for (int i = 0; i < rows / work_per_load; i++) {
+      if (!do_check<check_row>(is_valid_row(i * next_element))) {
+        break;
+      }
 #pragma unroll
       for (int j = 0; j < cols; j++) {
         // Check that the last element of the packet loaded is in range
-        bool in_range =
-            do_check<check_row>(is_valid_row(i * next_element + j)) &&
-            do_check<check_col>(is_valid_col(work_per_load - 1));
+        bool in_range = do_check<check_col>(is_valid_col(work_per_load - 1));
         cl::sycl::vec<element_t, work_per_load> in_vec{};
         if (in_range) {
           // if in range perform a vectorised load
           in_vec.template load<address_t::global_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::global_space>(
-                     ptr + j * ld));
+                     ptr + (i * next_element + j) * ld));
 
         } else {
           // if not in range perform element-wise load checking boundaries at
           // each load.
 #pragma unroll
           for (int l = 0; l < work_per_load; l++) {
-            if (do_check<check_row>(is_valid_row(i * next_element + j)) &&
-                do_check<check_col>(is_valid_col(l))) {
-              reinterpret_cast<element_t *>(&in_vec)[l] = *(ptr + j * ld + l);
+            if (do_check<check_col>(is_valid_col(l))) {
+              reinterpret_cast<element_t *>(&in_vec)[l] =
+                  *(ptr + (i * next_element + j) * ld + l);
+            } else {
+              break;
             }
           }
         }
@@ -663,7 +676,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
               reinterpret_cast<element_t *>(&in_vec)[k];
         }
       }
-      ptr += next_element * ld;
     }
   }
 
