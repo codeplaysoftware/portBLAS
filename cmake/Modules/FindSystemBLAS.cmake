@@ -23,6 +23,7 @@
 # *  @filename FindSystemBLAS.cmake
 # *
 # **************************************************************************/
+set(SystemBLAS_FOUND FALSE)
 
 include(FindPackageHandleStandardArgs)
 
@@ -30,27 +31,34 @@ find_library(OPENBLAS_LIBRARIES NAMES openblas libopenblas)
 find_path(OPENBLAS_INCLUDE_DIRS openblas_config.h)
 if(OPENBLAS_LIBRARIES AND OPENBLAS_INCLUDE_DIRS)
   find_package(Threads REQUIRED)
-  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS OPENBLAS_LIBRARIES OPENBLAS_INCLUDE_DIRS)
   add_library(blas::blas UNKNOWN IMPORTED)
   set_target_properties(blas::blas PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${OPENBLAS_INCLUDE_DIRS}"
     INTERFACE_LINK_LIBRARIES Threads::Threads
     IMPORTED_LOCATION "${OPENBLAS_LIBRARIES}"
   )
-  return()
-endif()
-
-find_package(BLAS QUIET)
-if(NOT BLAS_FOUND)
-  set(BLA_STATIC ON)
+  set(OPENBLAS_FOUND TRUE)
+  set(SystemBLAS_LIBRARIES OPENBLAS_LIBRARIES)
+else()
   find_package(BLAS QUIET)
+  if(NOT BLAS_FOUND)
+    set(BLA_STATIC ON)
+    find_package(BLAS QUIET)
+  endif()
+
+  if(BLAS_FOUND AND NOT TARGET blas::blas)
+    add_library(blas::blas INTERFACE IMPORTED)
+    set_target_properties(blas::blas PROPERTIES
+      INTERFACE_LINK_LIBRARIES "${BLAS_LINKER_FLAGS};${BLAS_LIBRARIES}"
+    )
+  endif()
+
+  if(BLAS_FOUND)
+    set(SystemBLAS_FOUND TRUE)
+    set(SystemBLAS_LIBRARIES BLAS_LIBRARIES)
+  endif()
 endif()
 
-if(BLAS_FOUND AND NOT TARGET blas::blas)
-  find_package_handle_standard_args(SystemBLAS REQUIRED_VARS BLAS_LIBRARIES)
-
-  add_library(blas::blas INTERFACE IMPORTED)
-  set_target_properties(blas::blas PROPERTIES
-    INTERFACE_LINK_LIBRARIES "${BLAS_LINKER_FLAGS};${BLAS_LIBRARIES}"
-  )
-endif()
+find_package_handle_standard_args(SystemBLAS
+  FOUND_VAR SystemBLAS_FOUND
+  REQUIRED_VARS SystemBLAS_LIBRARIES)
