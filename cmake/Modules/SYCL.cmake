@@ -90,7 +90,7 @@ elseif(is_dpcpp)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__SYCL_DISABLE_NAMESPACE_INLINE__=ON -O3 -Xclang -cl-mad-enable")
   if(${BACKEND_DEVICE} STREQUAL "DEFAULT_CPU") 
-    set(DPCPP_SYCL_TARGET spir64_x86_64-unknown-unknown-sycldevice)
+    set(DPCPP_SYCL_TARGET spir64_x86_64-unknown-unknown)
   elseif(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
   # the correct target-triple for intel gpu is: spir64_gen-unknown-unknown-sycldevice
   # however, the current version of DPCPP fails to link with the following error
@@ -103,9 +103,11 @@ elseif(is_dpcpp)
   #clang++: note: diagnostic msg: Error generating preprocessed source(s) - no preprocessable inputs.
   #ninja: build stopped: subcommand failed.
   #TODO : (MEHDI) Create BuG report on intel/llvm 
-    set(DPCPP_SYCL_TARGET spir64-unknown-unknown-sycldevice)
+    set(DPCPP_SYCL_TARGET spir64-unknown-unknown)
   elseif(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
-    set(DPCPP_SYCL_TARGET nvptx64-nvidia-cuda-sycldevice)
+    set(DPCPP_SYCL_TARGET nvptx64-nvidia-cuda)
+  elseif(${BACKEND_DEVICE} STREQUAL "AMD_GPU")
+    set(DPCPP_SYCL_TARGET amdgcn-amd-amdhsa)
   endif()
   find_package(DPCPP REQUIRED)
   get_target_property(SYCL_INCLUDE_DIRS DPCPP::DPCPP INTERFACE_INCLUDE_DIRECTORIES)
