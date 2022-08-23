@@ -31,6 +31,7 @@
 
 
 #ifdef BLAS_DATA_TYPE_HALF
+#if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
   os << static_cast<float>(value);
@@ -45,7 +46,7 @@ class numeric_limits<cl::sycl::half> {
   static constexpr float max() { return 65504.0f; }
 };
 }  // namespace std
-
+#endif // SYCL_LANGUAGE_VERSION
 #endif  // BLAS_DATA_TYPE_HALF
 
 namespace utils {
