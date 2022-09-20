@@ -32,13 +32,13 @@ namespace blas {
 template <typename element_t>
 inline element_t *PolicyHandler<codeplay_policy>::allocate(
     size_t num_elements) const {
-  return static_cast<element_t *>(cl::sycl::codeplay::SYCLmalloc(
+  return static_cast<element_t *>(vptr::SYCLmalloc(
       num_elements * sizeof(element_t), *pointerMapperPtr_));
 }
 
 template <typename element_t>
 inline void PolicyHandler<codeplay_policy>::deallocate(element_t *p) const {
-  cl::sycl::codeplay::SYCLfree(static_cast<void *>(p), *pointerMapperPtr_);
+  vptr::SYCLfree(static_cast<void *>(p), *pointerMapperPtr_);
 }
 
 /*
