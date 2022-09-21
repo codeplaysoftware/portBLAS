@@ -38,13 +38,13 @@ typename Executor::policy_t::event_t _gemv(Executor& ex, index_t _M, index_t _N,
                                            increment_t _incx, element_t _beta,
                                            container_t2 _vy,
                                            increment_t _incy) {
-  static constexpr uint32_t cache_line_size = 64;
+  static constexpr uint32_t cache_line_size = 256;
   if (trn == transpose_type::Normal) {
     return blas::internal::_gemv_impl<256, cache_line_size,
                                       gemv_memory_t::local, trn>(
         ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
   } else {
-    return blas::internal::_gemv_impl<128, cache_line_size,
+    return blas::internal::_gemv_impl<64, cache_line_size,
                                       gemv_memory_t::local, trn>(
         ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
   }

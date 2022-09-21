@@ -22,7 +22,11 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-add_definitions(-DBLAS_ENABLE_CONST_INPUT=${BLAS_ENABLE_CONST_INPUT})
+
+if(BLAS_ENABLE_CONST_INPUT)
+    add_definitions(-DBLAS_ENABLE_CONST_INPUT=${BLAS_ENABLE_CONST_INPUT})
+endif()
+
 add_library(sycl_policy OBJECT ${SYCLBLAS_SRC}/policy/sycl_policy_handler.cpp)
 set_target_compile_def(sycl_policy)
 target_include_directories(sycl_policy PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}

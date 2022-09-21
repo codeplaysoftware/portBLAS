@@ -34,12 +34,15 @@ if("${DPCPP_SYCL_TARGET}" STREQUAL "amdgcn-amd-amdhsa" AND
                        " please specify in DPCPP_SYCL_ARCH")
 endif()
 
+set(DPCPP_USER_FLAGS "" CACHE STRING 
+    "Additional user-specified compiler flags for DPC++")
+
 get_filename_component(DPCPP_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
 find_library(DPCPP_LIB_DIR NAMES sycl PATHS "${DPCPP_BIN_DIR}/../lib")
 
 add_library(DPCPP::DPCPP INTERFACE IMPORTED)
 
-set(DPCPP_FLAGS "-fsycl;-fsycl-targets=${DPCPP_SYCL_TARGET}")
+set(DPCPP_FLAGS "-fsycl;-fsycl-targets=${DPCPP_SYCL_TARGET};${DPCPP_USER_FLAGS}")
 if(NOT "${DPCPP_SYCL_ARCH}" STREQUAL "")
   if("${DPCPP_SYCL_TARGET}" STREQUAL "amdgcn-amd-amdhsa")
     list(APPEND DPCPP_FLAGS "-Xsycl-target-backend")
