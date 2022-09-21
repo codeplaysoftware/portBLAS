@@ -8,12 +8,16 @@ ARG cxx_compiler
 ARG impl
 ARG target
 
+# Timezone is required
+ENV TZ=Europe/London
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 RUN apt-get -yq update
 
 # Utilities
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential            \
-    --allow-change-held-packages git wget python-pip apt-utils cmake unzip                \
-    libboost-all-dev software-properties-common python-software-properties libcompute-dev
+    --allow-change-held-packages git wget python3-pip apt-utils cmake unzip    \
+    libboost-all-dev software-properties-common libtinfo5
 
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
