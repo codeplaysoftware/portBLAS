@@ -36,12 +36,12 @@ optimal (highest gflops) tile sizes for a specific transposition of A and B:
 | `tune_tt` | Transposed | Transposed |
 
 The `tune_all` binary runs through each combination in turn, printing out
-seperate results for each of them.
+separate results for each of them.
 
 All these binaries are invoked as follows:
 
 ```
-$ tune M N K bs rep [batch_type]
+$ tune M K N bs rep [batch_type]
 ```
 
 Where the provided options mean the following:
@@ -75,7 +75,7 @@ The root of the json file is an object containing three arrays. Each array (
 a number of Configuration Generators.
 
 A configuration Generator is an object, with all of its values being arrays. A
-generater adds all combinations (as a cartesian product) of its array elements
+generator adds all combinations (as a cartesian product) of its array elements
 to the list of Gemm parameters to try.
 
 The parameters are listed as follows:
