@@ -42,9 +42,9 @@ class PolicyHandler<codeplay_policy> {
 
   explicit PolicyHandler(cl::sycl::queue q)
       : q_(q),
-        pointerMapperPtr_(std::shared_ptr<cl::sycl::codeplay::PointerMapper>(
-            new cl::sycl::codeplay::PointerMapper(),
-            [](cl::sycl::codeplay::PointerMapper *p) {
+        pointerMapperPtr_(std::shared_ptr<vptr::PointerMapper>(
+            new vptr::PointerMapper(),
+            [](vptr::PointerMapper *p) {
               p->clear();
               delete p;
             })),
@@ -182,7 +182,7 @@ class PolicyHandler<codeplay_policy> {
 
  private:
   typename policy_t::queue_t q_;
-  std::shared_ptr<cl::sycl::codeplay::PointerMapper> pointerMapperPtr_;
+  std::shared_ptr<vptr::PointerMapper> pointerMapperPtr_;
   const size_t workGroupSize_;
   const policy_t::device_type selectedDeviceType_;
   const bool localMemorySupport_;
