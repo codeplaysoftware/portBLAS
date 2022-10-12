@@ -25,6 +25,7 @@
 # **************************************************************************/
 
 set(BLAS_DATA_TYPES "float" CACHE STRING "Data types to test")
+set(BLAS_INDEX_TYPES "int" CACHE STRING "Supported index/increment types")
 
 # Check to see if we've enabled double support in tests
 option(DOUBLE_SUPPORT "Enable double support when testing." off)

@@ -60,6 +60,13 @@ using namespace blas;
 using test_executor_t =
     blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
 
+    
+#ifdef BLAS_BENCHMARK_INDEX_T
+using index_t = BLAS_BENCHMARK_INDEX_T;
+#else
+using index_t = int;
+#endif // BLAS_BENCHMARK_INDEX_T
+
 /**
  * Construct a SYCL queue using the device specified in the command line, or
  * using the default device if not specified.
@@ -224,6 +231,29 @@ inline void dump_arg<float>(std::ostream &ss, float f) {
   if (frac_part > 0) {
     ss << "p" << (int)(frac_part * 100);
   }
+}
+
+template <>
+inline void dump_arg<double>(std::ostream &ss, double f) {
+  if (std::isnan(f)) {
+    ss << "nan";
+    return;
+  }
+  if (f < 0) {
+    ss << "m";
+    f = std::fabs(f);
+  }
+  double int_part;
+  double frac_part = modf(f, &int_part);
+  ss << int_part;
+  if (frac_part > 0) {
+    ss << "p" << (int)(frac_part * 100);
+  }
+}
+
+template <>
+inline void dump_arg<cl::sycl::half>(std::ostream &ss, cl::sycl::half f) {
+  dump_arg<float>(ss, static_cast<float>(f));
 }
 
 /**

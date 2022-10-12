@@ -24,8 +24,8 @@
 # **************************************************************************/
 # represent the list of supported handler for executor
 set(executor_list "PolicyHandler<codeplay_policy>")
-#represent the list of supported index/increment type
-set(index_list "int" )
+# represent the list of supported index/increment types
+set(index_list "${BLAS_INDEX_TYPES}" )
 
 # BLAS_DATA_TYPES was provided by the user
 #Each data type in a data list determines the container types.

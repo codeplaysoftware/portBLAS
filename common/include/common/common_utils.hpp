@@ -21,7 +21,12 @@
 #include <common/float_comparison.hpp>
 #include <common/system_reference_blas.hpp>
 
+#ifdef BLAS_BENCHMARK_INDEX_T
+using index_t = BLAS_BENCHMARK_INDEX_T;
+#else
 using index_t = int;
+#endif // BLAS_BENCHMARK_INDEX_T
+
 using blas1_param_t = index_t;
 
 template <typename scalar_t>

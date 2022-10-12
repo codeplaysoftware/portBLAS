@@ -383,6 +383,8 @@ Some of the supported options are:
 | `BLAS_MODEL_OPTIMIZATION` | name | Pass a model name here to use optimized GEMM configurations for specific convolution models/sizes. Currently this only affects the `ARM_GPU` target. The supported models are: `RESNET_50`, `VGG_16` |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
 | `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable sycl-blas extensions (`ON` by default) |
+| `BLAS_DATA_TYPES` | `half;float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |
+| `BLAS_INDEX_TYPES` | `int32_t;int64_t` | Determines the type(s) to use for `index_t` and `increment_t`. Default is `int` |
 
 
 ### Cross-Compile (ComputeCpp Only)
