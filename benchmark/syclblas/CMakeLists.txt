@@ -31,7 +31,7 @@ foreach(syclblas_bench ${sources})
   get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
   add_executable(bench_${bench_exec} ${syclblas_bench} main.cpp)
   target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara sycl_blas)
-  target_compile_definitions(bench_${bench_exec} PRIVATE -DBLAS_BENCHMARK_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
+  target_compile_definitions(bench_${bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   add_sycl_to_target(
     TARGET bench_${bench_exec}
     SOURCES ${syclblas_bench}

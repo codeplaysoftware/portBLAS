@@ -61,7 +61,7 @@ using test_executor_t =
     blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
 
     
-using index_t = BLAS_TEST_INDEX_T;
+using index_t = BLAS_INDEX_T;
 
 /**
  * Construct a SYCL queue using the device specified in the command line, or

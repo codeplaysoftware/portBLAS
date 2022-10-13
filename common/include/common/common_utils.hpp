@@ -21,7 +21,7 @@
 #include <common/float_comparison.hpp>
 #include <common/system_reference_blas.hpp>
 
-using index_t = BLAS_BENCHMARK_INDEX_T;
+using index_t = BLAS_INDEX_T;
 
 using blas1_param_t = index_t;
 
