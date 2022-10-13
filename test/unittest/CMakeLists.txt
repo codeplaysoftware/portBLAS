@@ -72,7 +72,7 @@ if(GEMM_TALL_SKINNY_SUPPORT)
 endif()
 
 # Select an index type to run the tests with. Use first given index type.
-list(GET BLAS_INDEX_TYPES 0 BLAS_BENCHMARK_INDEX_TYPE)
+list(GET BLAS_INDEX_TYPES 0 BLAS_TEST_INDEX_TYPE)
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
@@ -80,7 +80,7 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   if(STRESS_TESTING)
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
-  target_compile_definitions(${test_exec} PRIVATE  -DBLAS_BENCHMARK_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
+  target_compile_definitions(${test_exec} PRIVATE  -DBLAS_TEST_INDEX_T=${BLAS_TEST_INDEX_TYPE})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas sycl_blas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
   if(TEST_DEVICE)
