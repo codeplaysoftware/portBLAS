@@ -6,8 +6,8 @@ template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   using tuple_t = IndexValueTuple<int, scalar_t>;
 
-  int size;
-  int incX;
+  index_t size;
+  index_t incX;
   generation_mode_t mode;
   std::tie(size, incX, mode) = combi;
 

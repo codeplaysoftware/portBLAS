@@ -253,7 +253,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
       const index_t specialBlockSize =
           (M % blockSize == 0) ? blockSize : (M % blockSize);
       const index_t iStart = M - specialBlockSize;
-      for (int i = iStart; i >= 0; i -= blockSize) {
+      for (index_t i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
         auto gemmEvent = internal::_gemm(ex, isTranspose ? 't' : 'n', 'n',
@@ -295,7 +295,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
       const index_t specialBlockSize =
           (N % blockSize == 0) ? blockSize : (N % blockSize);
       const index_t iStart = N - specialBlockSize;
-      for (int i = iStart; i >= 0; i -= blockSize) {
+      for (index_t i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
         auto gemmEvent = internal::_gemm(

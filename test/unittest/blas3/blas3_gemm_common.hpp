@@ -67,18 +67,18 @@ inline std::vector<scalar_t> interleaved_to_strided(
 
 template <typename scalar_t>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
-  int offset;
-  int batch;
-  int m;
-  int n;
-  int k;
+  index_t offset;
+  index_t batch;
+  index_t m;
+  index_t n;
+  index_t k;
   char transa;
   char transb;
   scalar_t alpha;
   scalar_t beta;
-  int lda_mul;
-  int ldb_mul;
-  int ldc_mul;
+  index_t lda_mul;
+  index_t ldb_mul;
+  index_t ldc_mul;
   gemm_batch_type_t batch_type;
   std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, batch_type) = arguments;
@@ -93,17 +93,17 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   auto policy_handler = ex.get_policy_handler();
 
-  const int lda = ((transa != 'n') ? k : m) * lda_mul;
-  const int ldb = ((transb != 'n') ? n : k) * ldb_mul;
-  const int ldc = m * ldc_mul;
+  const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
+  const index_t ldb = ((transb != 'n') ? n : k) * ldb_mul;
+  const index_t ldc = m * ldc_mul;
 
-  const int size_a = m * k * lda_mul;
-  const int size_b = k * n * ldb_mul;
-  const int size_c = m * n * ldc_mul;
+  const index_t size_a = m * k * lda_mul;
+  const index_t size_b = k * n * ldb_mul;
+  const index_t size_c = m * n * ldc_mul;
 
-  const int buffer_size_a = batch * size_a + offset;
-  const int buffer_size_b = batch * size_b + offset;
-  const int buffer_size_c = batch * size_c + offset;
+  const index_t buffer_size_a = batch * size_a + offset;
+  const index_t buffer_size_b = batch * size_b + offset;
+  const index_t buffer_size_c = batch * size_c + offset;
 
   std::vector<data_t> a_m(buffer_size_a);
   std::vector<data_t> b_m(buffer_size_b);
