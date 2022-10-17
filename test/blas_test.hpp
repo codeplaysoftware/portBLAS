@@ -212,7 +212,7 @@ inline void dump_arg(std::ostream &ss, T arg) {
  * @param f Floating point number to format
  */
 template <>
-inline void dump_arg<float>(std::ostream &ss, float f) {
+inline void dump_arg<double>(std::ostream &ss, double f) {
   if (std::isnan(f)) {
     ss << "nan";
     return;
@@ -221,12 +221,24 @@ inline void dump_arg<float>(std::ostream &ss, float f) {
     ss << "m";
     f = std::fabs(f);
   }
-  float int_part;
-  float frac_part = modff(f, &int_part);
+  double int_part;
+  double frac_part = std::modf(f, &int_part);
   ss << int_part;
   if (frac_part > 0) {
     ss << "p" << (int)(frac_part * 100);
   }
+}
+
+/// Specialization of dump_arg for float.
+template<>
+inline void dump_arg<float>(std::ostream &ss, float f){
+  dump_arg(ss, static_cast<double>(f));
+}
+
+/// Specialization of dump_arg for cl::sycl::half.
+template<>
+inline void dump_arg<cl::sycl::half>(std::ostream &ss, cl::sycl::half f){
+  dump_arg(ss, static_cast<float>(f));
 }
 
 /**
