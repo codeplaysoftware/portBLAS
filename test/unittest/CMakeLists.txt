@@ -71,12 +71,16 @@ if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
 
+# Select an index type to run the tests with. Use first given index type.
+list(GET BLAS_INDEX_TYPES 0 BLAS_TEST_INDEX_TYPE)
+
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
   if(STRESS_TESTING)
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
+  target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas sycl_blas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
   if(TEST_DEVICE)

@@ -25,6 +25,7 @@
 # **************************************************************************/
 
 set(BLAS_DATA_TYPES "float" CACHE STRING "Data types to test")
+set(BLAS_INDEX_TYPES "int" CACHE STRING "Supported index/increment types")
 
 # Check to see if we've enabled double support in tests
 option(DOUBLE_SUPPORT "Enable double support when testing." off)
@@ -67,3 +68,10 @@ message(STATUS "${TARGET} is chosen as a backend platform")
 # the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
 # be enabled for. Currently only affects ARM_GPU configs.
 SET(BLAS_MODEL_OPTIMIZATION "DEFAULT" CACHE STRING "Default Model 'DEFAULT'")
+
+if (WIN32)
+  # On Win32, shared library symbols need to be explicitly exported.
+  if (BUILD_SHARED_LIBS)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+  endif()
+endif()

@@ -110,6 +110,7 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable sycl-blas extensions" ON)
 # * GEMM_TALL_SKINNY_SUPPORT
 # * GEMM_VECTORIZATION_SUPPORT
 # * BLAS_DATA_TYPES
+# * BLAS_INDEX_TYPES
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 

@@ -62,7 +62,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   data_t vr_temp = 0;
   {
     auto vr_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, vr_temp);
-    _nrm2(ex, size, inx, 1, vr_temp_gpu);
+    _nrm2(ex, size, inx, static_cast<index_t>(1), vr_temp_gpu);
     auto event =
         utils::quantized_copy_to_host<scalar_t>(ex, vr_temp_gpu, vr_temp);
     ex.get_policy_handler().wait(event);
@@ -78,7 +78,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _nrm2(ex, size, inx, 1, inr);
+    auto event = _nrm2(ex, size, inx, static_cast<index_t>(1), inr);
     ex.get_policy_handler().wait(event);
     return event;
   };

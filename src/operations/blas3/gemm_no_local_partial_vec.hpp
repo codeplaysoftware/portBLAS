@@ -471,7 +471,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             0,
             cl::sycl::multi_ptr<const element_t, address_t::global_space>(ptr));
       }
-      in_vec.template store<address_t::private_space>(0, reg);
+      in_vec.template store<address_t::private_space>(
+          0, cl::sycl::multi_ptr<element_t, address_t::private_space>(reg));
 
       // Move pointers and update index for next load
       ptr += ld;
@@ -514,7 +515,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
     out_vec *= alpha_;
 
-    out_vec.template store<address_t::global_space>(0, out_ptr);
+    out_vec.template store<address_t::global_space>(
+        0, cl::sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
   }
 
   /*!
@@ -558,7 +560,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(
-              0, C + j * wg_rows * a_packet_size);
+              0, cl::sycl::multi_ptr<element_t, address_t::global_space>(
+                     C + j * wg_rows * a_packet_size));
         }
       }
       C += ((i + 1) % b_packet_size == 0

@@ -38,7 +38,7 @@ set(DPCPP_USER_FLAGS "" CACHE STRING
     "Additional user-specified compiler flags for DPC++")
 
 get_filename_component(DPCPP_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
-find_library(DPCPP_LIB_DIR NAMES sycl PATHS "${DPCPP_BIN_DIR}/../lib")
+find_library(DPCPP_LIB_DIR NAMES sycl sycl6 PATHS "${DPCPP_BIN_DIR}/../lib")
 
 add_library(DPCPP::DPCPP INTERFACE IMPORTED)
 

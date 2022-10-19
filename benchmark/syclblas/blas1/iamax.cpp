@@ -65,9 +65,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   tuple_scalar_t idx_temp{-1, 0};
   {
     auto idx_temp_gpu =
-        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<int, scalar_t>>(
+        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
             &idx_temp, 1);
-    auto event = _iamax(ex, size, inx, 1, idx_temp_gpu);
+    auto event = _iamax(ex, size, inx, static_cast<index_t>(1), idx_temp_gpu);
     ex.get_policy_handler().wait(event);
   }
 
@@ -82,7 +82,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _iamax(ex, size, inx, 1, outI);
+    auto event = _iamax(ex, size, inx, static_cast<index_t>(1), outI);
     ex.get_policy_handler().wait(event);
     return event;
   };

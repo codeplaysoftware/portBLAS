@@ -30,14 +30,14 @@ using combination_t = std::tuple<int, int, scalar_t, int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  int m;
-  int n;
-  int lda_mul;
-  int incX;
-  int incY;
+  index_t m;
+  index_t n;
+  index_t lda_mul;
+  index_t incX;
+  index_t incY;
   scalar_t alpha;
   std::tie(m, n, alpha, incX, incY, lda_mul) = combi;
-  int lda = m * lda_mul;
+  index_t lda = m * lda_mul;
 
   using data_t = utils::data_storage_t<scalar_t>;
 

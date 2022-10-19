@@ -29,8 +29,8 @@ using combination_t = std::tuple<int, int, char, char, char, char, scalar_t,
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  int m;
-  int n;
+  index_t m;
+  index_t n;
   char trans;
   char side;
   char diag;
@@ -44,8 +44,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   using data_t = utils::data_storage_t<scalar_t>;
 
-  const int lda = (side == 'l' ? m : n) * ldaMul;
-  const int ldb = m * ldbMul;
+  const index_t lda = (side == 'l' ? m : n) * ldaMul;
+  const index_t ldb = m * ldbMul;
   const int k = side == 'l' ? m : n;
 
   const int sizeA = k * lda;
