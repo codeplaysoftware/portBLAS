@@ -478,7 +478,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
     out_vec *= alpha_;
 
-    out_vec.template store<address_t::global_space>(0, out_ptr);
+    out_vec.template store<address_t::global_space>(
+        0, cl::sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
   }
   /*!
    * @brief Store the computed gemm result to the C matrix

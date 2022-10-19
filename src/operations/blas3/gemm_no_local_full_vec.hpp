@@ -325,7 +325,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           out_vec *= beta_;
 
           out_vec.template store<address_t::private_space>(
-              0, reg_res + i * item_rows + j * packet_size);
+              0, cl::sycl::multi_ptr<element_t, address_t::private_space>(
+                     reg_res + i * item_rows + j * packet_size));
         }
       }
       C += ldc * (need_check_boundary || !trans_b ? wg_cols
@@ -593,7 +594,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           }
         }
         auto out_reg = &reg[(i * row_iters + j) * work_per_load];
-        in_vec.template store<address_t::private_space>(0, out_reg);
+        in_vec.template store<address_t::private_space>(
+            0,
+            cl::sycl::multi_ptr<element_t, address_t::private_space>(out_reg));
       }
     }
   }
@@ -740,7 +743,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         }
       }
     }
-    in_vec.template store<address_t::private_space>(0, reg);
+    in_vec.template store<address_t::private_space>(
+        0, cl::sycl::multi_ptr<element_t, address_t::private_space>(reg));
   }
 
   /*!
@@ -802,7 +806,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         }
       }
     }
-    in_vec.template store<address_t::private_space>(0, reg);
+    in_vec.template store<address_t::private_space>(
+        0, cl::sycl::multi_ptr<element_t, address_t::private_space>(reg));
   }
   /*!
    * @brief The following function computes the partial GEMM for the input
@@ -926,7 +931,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           out_vec *= alpha_;
 
           out_vec.template store<address_t::global_space>(
-              0, C + j * wg_rows * packet_size);
+              0, cl::sycl::multi_ptr<element_t, address_t::global_space>(
+                     C + j * wg_rows * packet_size));
         }
       }
       C += ldc * (check_block || !trans_b ? wg_cols : item_cols / packet_size);
