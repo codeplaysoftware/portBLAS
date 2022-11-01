@@ -26,6 +26,7 @@ foreach(clblast_benchmark ${sources})
   get_filename_component(clblast_bench_exec ${clblast_benchmark} NAME_WE)
   add_executable(bench_clblast_${clblast_bench_exec} ${clblast_benchmark} main.cpp)
   target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE benchmark Clara::Clara clblast)
+  target_compile_definitions(bench_clblast_${clblast_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   target_include_directories(bench_clblast_${clblast_bench_exec} PRIVATE ${SYCLBLAS_INCLUDE} ${CBLAS_INCLUDE} ${BLAS_BENCH} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
   if(BLAS_VERIFY_BENCHMARK)
