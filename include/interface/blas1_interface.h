@@ -78,13 +78,24 @@ typename executor_t::policy_t::event_t _dot(
     container_1_t _vy, increment_t _incy, container_2_t _rs);
 
 /**
- * \brief Compute the inner product of two vectors with extended precision //TODO
-    accumulation.
+ * \brief Computes the inner product of two vectors with extended precision
+ * accumulation and adds a scalar to the result (Asynchronous version that
+ * returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Increment in x axis
+ * @param _vy Buffer holding input vector y
+ * @param _incy Increment in y axis
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
         typename container_2_t, typename index_t, typename increment_t>
@@ -206,22 +217,31 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incy);
 
 /**
- * \brief Compute the inner product of two vectors with extended //TODO
-    precision accumulation and result.
- *
+ * \brief Computes the inner product of two vectors with extended precision
+ * accumulation and adds a scalar to the result (synchronous version that
+ * returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Increment in x axis
+ * @param _vy Buffer holding input vector y
+ * @param _incy Increment in y axis
+ * @return result of the operation
  */
-//template <typename executor_t, typename container_0_t, typename container_1_t,
-//        typename index_t, typename increment_t>
-//typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
-//                                             container_0_t _vx,
-//                                             increment_t _incx,
-//                                             container_1_t _vy,
-//                                             increment_t _incy);
+template<typename executor_t, typename container_0_t, typename container_1_t,
+        typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t& ex, index_t _N, float sb,
+                                                container_0_t _vx,
+                                                increment_t _incx,
+                                                container_1_t _vy,
+                                                increment_t _incy);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator
@@ -315,23 +335,34 @@ typename executor_t::policy_t::event_t _dot(
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended precision //TODO
-    accumulation.
+ * \brief Computes the inner product of two vectors with extended precision
+ * accumulation and adds a scalar to the result (Asynchronous version that
+ * returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Increment in x axis
+ * @param _vy Buffer holding input vector y
+ * @param _incy Increment in y axis
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
-    template <typename executor_t, typename container_0_t, typename container_1_t,
-            typename container_2_t, typename index_t, typename increment_t>
-    typename executor_t::policy_t::event_t _sdsdot(
-            executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
-            container_1_t _vy, increment_t _incy, container_2_t _rs) {
-        return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
-                              ex.get_policy_handler().get_buffer(_vy), _incy,
-                              ex.get_policy_handler().get_buffer(_rs));
-    }
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _sdsdot(
+        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+        container_1_t _vy, increment_t _incy, container_2_t _rs) {
+    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+                          ex.get_policy_handler().get_buffer(_vy), _incy,
+                          ex.get_policy_handler().get_buffer(_rs));
+}
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -476,26 +507,35 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                         ex.get_policy_handler().get_buffer(_vy), _incy);
 }
 
-///**
-// * \brief Compute the inner product of two vectors with extended
-//    precision accumulation and result. //TODO
-// *
-// * @param ex Executor
-// * @param _vx BufferIterator
-// * @param _incx Increment for the vector X
-// * @param _vx BufferIterator
-// * @param _incy Increment for the vector Y
-// */
-//template <typename executor_t, typename container_0_t, typename container_1_t,
-//        typename index_t, typename increment_t>
-//typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
-//                                             container_0_t _vx,
-//                                             increment_t _incx,
-//                                             container_1_t _vy,
-//                                             increment_t _incy) {
-//    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
-//                          ex.get_policy_handler().get_buffer(_vy), _incy);
-//}
+/**
+ * \brief Computes the inner product of two vectors with extended precision
+ * accumulation and adds a scalar to the result (synchronous version that
+ * returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Increment in x axis
+ * @param _vy Buffer holding input vector y
+ * @param _incy Increment in y axis
+ * @return result of the operation
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
+                                             container_0_t _vx,
+                                             increment_t _incx,
+                                             container_1_t _vy,
+                                             increment_t _incy) {
+    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+                          ex.get_policy_handler().get_buffer(_vy), _incy);
+}
 
 /**
  * \brief ICAMAX finds the index of the first element having maximum
