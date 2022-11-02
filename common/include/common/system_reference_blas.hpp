@@ -163,6 +163,13 @@ scalar_t dot(const int n, const scalar_t x[], const int incX,
   return static_cast<scalar_t>(func(n, x, incX, y, incY));
 }
 
+/* Note: Not a template hence inlined to avoid having more than one definition */
+inline float sdsdot(const int n, const float sb, const float x[], const int incX,
+             const float y[], const int incY) {
+    auto func = &cblas_sdsdot;
+    return static_cast<float>(func(n, sb, x, incX, y, incY));
+}
+
 template <typename scalar_t>
 int iamax(const int n, const scalar_t x[], const int incX) {
   auto func = blas_system_function<scalar_t>(&cblas_isamax, &cblas_idamax);

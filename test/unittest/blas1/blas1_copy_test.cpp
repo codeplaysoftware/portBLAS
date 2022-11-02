@@ -85,4 +85,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, incX, incY);
 }
 
-BLAS_REGISTER_TEST(Copy, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Copy, combination_t, combi, generate_name);

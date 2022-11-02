@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "blas_meta.h"
+#include "common/quantization.hpp"
 #include "container/sycl_iterator.h"
 #include "executors/executor.h"
 #include "interface/blas1_interface.h"
@@ -118,6 +119,46 @@ typename executor_t::policy_t::event_t _dot(
   auto ret = ex.execute(assignOp);
   return ret;
 }
+
+/**
+ * \brief Compute the inner product of two vectors with extended precision
+    accumulation. //TODO
+ * @param executor_t<ExecutorType> ex
+ * @param _vx  BufferIterator
+ * @param _incx Increment in X axis
+ * @param _vx  BufferIterator
+ * @param _incy Increment in Y axis
+ */
+    template <typename executor_t, typename container_0_t, typename container_1_t,
+            typename container_2_t, typename index_t, typename increment_t>
+    typename executor_t::policy_t::event_t _sdsdot(
+            executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+            container_1_t _vy, increment_t _incy, container_2_t _rs) {
+        auto vx = make_vector_view(ex, _vx, _incx, _N);
+        auto vy = make_vector_view(ex, _vy, _incy, _N);
+        auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+                                   static_cast<index_t>(1));
+        auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
+
+        auto localSize = ex.get_policy_handler().get_work_group_size();
+        auto nWG = 2 * localSize;
+
+        auto assignOp1 = make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
+
+        auto addOp = make_op<ScalarOp, AddOperator>(sb, assignOp1);
+        auto assignOp2 = make_op<Assign>(rs, addOp);
+        auto ret = ex.execute(assignOp2);
+
+        //        constexpr int ClSize = 64;
+        //        constexpr int WgSize = 256;
+        //        constexpr index_t reductions_per_thread = 64;
+        //        using params_t = blas::ReductionParams<index_t, float, ClSize, WgSize,
+        //                                               reductions_per_thread,
+        //                                               static_cast<int>(reduction_dim_t::inner)>;
+        //        auto reduction = make_reduction<AddOperator, params_t>(prdOp, rs);
+
+        return ret;
+    }
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -323,6 +364,32 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
   blas::internal::_dot(ex, _N, _vx, _incx, _vy, _incy, gpu_res);
   ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
   return res[0];
+}
+
+/**
+ * \brief Compute the inner product of two vectors with extended //TODO
+    precision accumulation and result.
+ *
+ * @param executor_t<ExecutorType> ex
+ * @param _vx  BufferIterator
+ * @param _incx Increment in X axis
+ * @param _vx  BufferIterator
+ * @param _incy Increment in Y axis
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, float sb, index_t _N,
+                                             container_0_t _vx,
+                                             increment_t _incx,
+                                             container_1_t _vy,
+                                             increment_t _incy) {
+    using element_t = typename ValueType<container_0_t>::type;
+    auto res = std::vector<element_t>(1);
+//    auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
+//    blas::internal::_sdsdot(ex, _N, _vx, _incx, _vy, _incy, gpu_res);
+//    ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
+//TODO
+    return res[0];
 }
 
 /**

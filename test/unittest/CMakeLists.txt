@@ -52,6 +52,7 @@ if(is_computecpp)
     ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+    ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp

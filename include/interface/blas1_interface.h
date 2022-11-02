@@ -76,6 +76,22 @@ template <typename executor_t, typename container_0_t, typename container_1_t,
 typename executor_t::policy_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs);
+
+/**
+ * \brief Compute the inner product of two vectors with extended precision //TODO
+    accumulation.
+ * @param ex Executor
+ * @param _vx BufferIterator
+ * @param _incx Increment for the vector X
+ * @param _vx BufferIterator
+ * @param _incy Increment for the vector Y
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _sdsdot(
+        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+        container_1_t _vy, increment_t _incy, container_2_t _rs);
+
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param ex Executor
@@ -188,6 +204,24 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy);
+
+/**
+ * \brief Compute the inner product of two vectors with extended //TODO
+    precision accumulation and result.
+ *
+ * @param ex Executor
+ * @param _vx BufferIterator
+ * @param _incx Increment for the vector X
+ * @param _vx BufferIterator
+ * @param _incy Increment for the vector Y
+ */
+//template <typename executor_t, typename container_0_t, typename container_1_t,
+//        typename index_t, typename increment_t>
+//typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
+//                                             container_0_t _vx,
+//                                             increment_t _incx,
+//                                             container_1_t _vy,
+//                                             increment_t _incy);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator
@@ -279,6 +313,25 @@ typename executor_t::policy_t::event_t _dot(
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_rs));
 }
+
+/**
+ * \brief Compute the inner product of two vectors with extended precision //TODO
+    accumulation.
+ * @param ex Executor
+ * @param _vx BufferIterator
+ * @param _incx Increment for the vector X
+ * @param _vx BufferIterator
+ * @param _incy Increment for the vector Y
+ */
+    template <typename executor_t, typename container_0_t, typename container_1_t,
+            typename container_2_t, typename index_t, typename increment_t>
+    typename executor_t::policy_t::event_t _sdsdot(
+            executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+            container_1_t _vy, increment_t _incy, container_2_t _rs) {
+        return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+                              ex.get_policy_handler().get_buffer(_vy), _incy,
+                              ex.get_policy_handler().get_buffer(_rs));
+    }
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -422,6 +475,27 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
   return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy);
 }
+
+///**
+// * \brief Compute the inner product of two vectors with extended
+//    precision accumulation and result. //TODO
+// *
+// * @param ex Executor
+// * @param _vx BufferIterator
+// * @param _incx Increment for the vector X
+// * @param _vx BufferIterator
+// * @param _incy Increment for the vector Y
+// */
+//template <typename executor_t, typename container_0_t, typename container_1_t,
+//        typename index_t, typename increment_t>
+//typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
+//                                             container_0_t _vx,
+//                                             increment_t _incx,
+//                                             container_1_t _vy,
+//                                             increment_t _incy) {
+//    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+//                          ex.get_policy_handler().get_buffer(_vy), _incy);
+//}
 
 /**
  * \brief ICAMAX finds the index of the first element having maximum
