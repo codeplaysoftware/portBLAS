@@ -205,8 +205,11 @@ export(EXPORT sycl_blas
   FILE sycl_blas-config.cmake
 )
 
-option(BLAS_ENABLE_TESTING "Whether to enable testing" $<IF:INSTALL_HEADER_ONLY,OFF,ON>)
+option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
+if (INSTALL_HEADER_ONLY)
+  set(BLAS_ENABLE_TESTING OFF)
+endif()
 
 if(${BLAS_ENABLE_TESTING})
   enable_testing()
@@ -214,12 +217,16 @@ if(${BLAS_ENABLE_TESTING})
 endif()
 
 option(BLAS_ENABLE_CONST_INPUT "Whether to enable kernel instantiation with const input buffer" ON)
-option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" $<IF:INSTALL_HEADER_ONLY,OFF,ON>)
+option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
-option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" $<IF:INSTALL_HEADER_ONLY,OFF,ON>)
+option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)
+if (INSTALL_HEADER_ONLY)
+  set(BLAS_ENABLE_BENCHMARK OFF)
+  set(BLAS_BUILD_SAMPLES OFF)
+endif()
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)
