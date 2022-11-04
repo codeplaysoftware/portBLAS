@@ -23,9 +23,6 @@ if(${BLAS_ENABLE_EXTENSIONS})
   list(APPEND sources "extension/reduction.cpp")
 endif()
 
-# Select an index type to run the tests with. Use first given index type.
-list(GET BLAS_INDEX_TYPES 0 BLAS_BENCHMARK_INDEX_TYPE)
-
 # Add individual benchmarks for each method
 foreach(syclblas_bench ${sources})
   get_filename_component(bench_exec ${syclblas_bench} NAME_WE)
