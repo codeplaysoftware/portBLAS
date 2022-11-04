@@ -207,7 +207,8 @@ export(EXPORT sycl_blas
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
-if (INSTALL_HEADER_ONLY)
+if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_TESTING)
+  message(STATUS "Tests are disabled when installing SYCL-BLAS in header only mode")
   set(BLAS_ENABLE_TESTING OFF)
 endif()
 
@@ -223,8 +224,12 @@ option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)
-if (INSTALL_HEADER_ONLY)
+if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_BENCHMARK)
+  message(STATUS "Benchmarks are disabled when installing SYCL-BLAS in header only mode")
   set(BLAS_ENABLE_BENCHMARK OFF)
+endif()
+if (INSTALL_HEADER_ONLY AND BLAS_BUILD_SAMPLES)
+  message(STATUS "Samples are disabled when installing SYCL-BLAS in header only mode")
   set(BLAS_BUILD_SAMPLES OFF)
 endif()
 
