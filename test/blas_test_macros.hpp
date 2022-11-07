@@ -42,7 +42,6 @@
 #undef EVALUATOR
 #endif /* ifndef SYCL_DEVICE */
 
-/* FIXME make this genering?????*/
 /** Registers test for the float type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
