@@ -36,6 +36,8 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
 endif()
 
+option(INSTALL_HEADER_ONLY "Install SYCL-BLAS as a header only library" OFF)
+
 set(BUILD_SHARED_LIBS ON CACHE BOOL "")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -114,43 +116,51 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable sycl-blas extensions" ON)
 # * NAIVE_GEMM
 include(CmakeFunctionHelper)
 
-add_subdirectory(src)
-build_library(sycl_blas ${BLAS_ENABLE_EXTENSIONS})
-
-if (WIN32)
-  # On Windows, all symbols must be resolved at link time for DLLs.
-  # The sycl_blas target is just a collection of other objects so
-  # the linked libraries are not going to be propagated to this target.
-  # This requires manual linking against SYCL on Windows.
-  if(is_computecpp)
-    target_link_libraries(sycl_blas PUBLIC ComputeCpp::ComputeCpp)
-  elseif(is_dpcpp)
-    target_link_libraries(sycl_blas PUBLIC DPCPP::DPCPP)
-  elseif(is_hipsycl)
-    target_link_libraries(sycl_blas PUBLIC hipSYCL::hipSYCL-rt)
+if (INSTALL_HEADER_ONLY)
+  add_library(sycl_blas INTERFACE)
+  set_target_properties(sycl_blas PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE};$<INSTALL_INTERFACE:src>"
+  )
+else()
+  add_subdirectory(src)
+  build_library(sycl_blas ${BLAS_ENABLE_EXTENSIONS})
+  if (WIN32)
+    # On Windows, all symbols must be resolved at link time for DLLs.
+    # The sycl_blas target is just a collection of other objects so
+    # the linked libraries are not going to be propagated to this target.
+    # This requires manual linking against SYCL on Windows.
+    if(is_computecpp)
+      target_link_libraries(sycl_blas PUBLIC ComputeCpp::ComputeCpp)
+    elseif(is_dpcpp)
+      target_link_libraries(sycl_blas PUBLIC DPCPP::DPCPP)
+    elseif(is_hipsycl)
+      target_link_libraries(sycl_blas PUBLIC hipSYCL::hipSYCL-rt)
+    endif()
   endif()
+  if(is_computecpp)
+    set(sycl_impl ComputeCpp::ComputeCpp)
+  elseif(is_dpcpp)
+    set(sycl_impl DPCPP::DPCPP)
+    add_sycl_to_target(TARGET sycl_blas SOURCES)
+  elseif(is_hipsycl)
+    set(sycl_impl hipSYCL::hipSYCL-rt)
+    add_sycl_to_target(TARGET sycl_blas SOURCES)
+  endif()
+  if(IMGDNN_DIR)
+    target_link_libraries(sycl_blas PUBLIC IMGDNN::IMGDNN)
+  endif()
+  set_target_properties(sycl_blas PROPERTIES
+    INTERFACE_LINK_LIBRARIES ${sycl_impl}
+    INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE}"
+  )
 endif()
-if(is_computecpp)
-  set(sycl_impl ComputeCpp::ComputeCpp)
-elseif(is_dpcpp)
-  set(sycl_impl DPCPP::DPCPP)
-  add_sycl_to_target(TARGET sycl_blas SOURCES)
-elseif(is_hipsycl)
-  set(sycl_impl hipSYCL::hipSYCL-rt)
-  add_sycl_to_target(TARGET sycl_blas SOURCES)
-endif()
+
 set_target_properties(sycl_blas PROPERTIES
   VERSION ${PROJECT_VERSION}
-  INTERFACE_LINK_LIBRARIES ${sycl_impl}
-  INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE}"
 )
 target_include_directories(sycl_blas INTERFACE
   $<BUILD_INTERFACE:${COMPUTECPP_SDK_INCLUDE}>
 )
-
-if(IMGDNN_DIR)
-  target_link_libraries(sycl_blas PUBLIC IMGDNN::IMGDNN)
-endif()
 
 include(CMakePackageConfigHelpers)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/sycl_blas-version.cmake")
@@ -172,14 +182,20 @@ install(DIRECTORY ${SYCLBLAS_INCLUDE}
   COMPONENT sycl_blas
   FILES_MATCHING PATTERN "*.h"
 )
+if (INSTALL_HEADER_ONLY)
+  install(DIRECTORY ${SYCLBLAS_SRC}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    COMPONENT sycl_blas
+    FILES_MATCHING PATTERN "*.hpp"
+  )
+endif()
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/computecpp-sdk/include/vptr
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
   COMPONENT sycl_blas
 )
-set(cmake_config_dest "lib/sycl_blas/cmake")
-install(FILES ${version_file} DESTINATION ${cmake_config_dest})
+install(FILES ${version_file} DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(EXPORT sycl_blas
-  DESTINATION ${cmake_config_dest}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}
   NAMESPACE SYCL_BLAS::
   FILE sycl_blas-config.cmake
 )
@@ -191,6 +207,10 @@ export(EXPORT sycl_blas
 
 option(BLAS_ENABLE_TESTING "Whether to enable testing" ON)
 option(ENABLE_EXPRESSION_TESTS "Whether to build expression tree fusion tests" OFF)
+if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_TESTING)
+  message(STATUS "Tests are disabled when installing SYCL-BLAS in header only mode")
+  set(BLAS_ENABLE_TESTING OFF)
+endif()
 
 if(${BLAS_ENABLE_TESTING})
   enable_testing()
@@ -204,6 +224,14 @@ option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BLAS_BUILD_SAMPLES "Whether to build SYCL-BLAS samples" ON)
+if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_BENCHMARK)
+  message(STATUS "Benchmarks are disabled when installing SYCL-BLAS in header only mode")
+  set(BLAS_ENABLE_BENCHMARK OFF)
+endif()
+if (INSTALL_HEADER_ONLY AND BLAS_BUILD_SAMPLES)
+  message(STATUS "Samples are disabled when installing SYCL-BLAS in header only mode")
+  set(BLAS_BUILD_SAMPLES OFF)
+endif()
 
 if(${BLAS_ENABLE_BENCHMARK})
   add_subdirectory(benchmark)

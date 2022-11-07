@@ -27,6 +27,10 @@
 set(BLAS_DATA_TYPES "float" CACHE STRING "Data types to test")
 set(BLAS_INDEX_TYPES "int" CACHE STRING "Supported index/increment types")
 
+# Select an index type to run the tests and benchmark with. Use first given index type.
+list(GET BLAS_INDEX_TYPES 0 BLAS_TEST_INDEX_TYPE)
+list(GET BLAS_INDEX_TYPES 0 BLAS_BENCHMARK_INDEX_TYPE)
+
 # Check to see if we've enabled double support in tests
 option(DOUBLE_SUPPORT "Enable double support when testing." off)
 if(DOUBLE_SUPPORT)
