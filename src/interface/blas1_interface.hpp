@@ -150,12 +150,6 @@ typename executor_t::policy_t::event_t _sdsdot(
   auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
-  if (_N <= 0) {
-    /* FIXME Should I do this or just rely on _dot behaviour */
-    auto assignOp = make_op<AssignScalar>(rs, sb);
-    return ex.execute(assignOp);
-  }
-
   dot_event = internal::_dot(ex, _N, _vx, _incx, _vy, _incy, _rs);
   auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
   auto assignOp2 = make_op<Assign>(rs, addOp);

@@ -24,10 +24,10 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include <type_traits>
 #include <iostream>
+#include <type_traits>
 
-enum class api_type : int {event = 0, result = 1 };
+enum class api_type : int { event = 0, result = 1 };
 
 /**
  * Operator overload to print the test name properly
@@ -35,8 +35,7 @@ enum class api_type : int {event = 0, result = 1 };
 std::ostream& operator<<(std::ostream& os, const api_type& type) {
   if (type == api_type::event) {
     return os << "event";
-  }
-  else {
+  } else {
     return os << "result";
   }
 }
@@ -89,8 +88,7 @@ void run_test(const combination_t<scalar_t> combi) {
     _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
     auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
     ex.get_policy_handler().wait(event);
-  }
-  else {
+  } else {
     out_s[0] = _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY);
   }
 
@@ -102,22 +100,21 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().get_queue().wait();
 }
 
-
-
 #ifdef STRESS_TESTING
-const auto combi =
-    ::testing::Combine(::testing::Values(api_type::event, api_type::result), //Api
-                       ::testing::Values(11, 65, 1002, 1002400),             // N
-                       ::testing::Values(9.5f, 0.5f),                        // sb
-                       ::testing::Values(1, 4),                              // incX
-                       ::testing::Values(1, 3)                               // incY
-    );
+const auto combi = ::testing::Combine(
+    ::testing::Values(api_type::event, api_type::result),  // Api
+    ::testing::Values(11, 65, 1002, 1002400),              // N
+    ::testing::Values(9.5f, 0.5f),                         // sb
+    ::testing::Values(1, 4),                               // incX
+    ::testing::Values(1, 3)                                // incY
+);
 #else
-const auto combi = ::testing::Combine(::testing::Values(api_type::event, api_type::result),
-                                      ::testing::Values(11, 1002, 0),  // N
-                                      ::testing::Values(9.5f, 0.5f, 0.0f),                        // sb
-                                      ::testing::Values(1, 4),                                    // incX
-                                      ::testing::Values(1, 3)                                     // incY
+const auto combi = ::testing::Combine(
+    ::testing::Values(api_type::event, api_type::result),  // Api
+    ::testing::Values(11, 1002, 0),                        // N
+    ::testing::Values(9.5f, 0.5f, 0.0f),                   // sb
+    ::testing::Values(1, 4),                               // incX
+    ::testing::Values(1, 3)                                // incY
 
 );
 #endif

@@ -199,48 +199,6 @@ SYCL_BLAS_INLINE void Assign<lhs_t, rhs_t>::adjust_access_displacement() {
   rhs_.adjust_access_displacement();
 }
 
-/** Assign Scalar.
- */
-
-template <typename lhs_t, typename scalar_t>
-AssignScalar<lhs_t, scalar_t>::AssignScalar(lhs_t &_l, scalar_t scalar) : lhs_(_l), scalar_(scalar){};
-
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE typename AssignScalar<lhs_t, scalar_t>::index_t
-AssignScalar<lhs_t, scalar_t>::get_size() const {
-  return 1;
-}
-
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE bool AssignScalar<lhs_t, scalar_t>::valid_thread(
-    cl::sycl::nd_item<1> ndItem) const {
-  using index_t = typename AssignScalar<lhs_t, scalar_t>::index_t;
-  return (static_cast<index_t>(ndItem.get_global_id(0)) <
-          AssignScalar<lhs_t, scalar_t>::get_size());
-}
-
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE typename AssignScalar<lhs_t, scalar_t>::value_t
-AssignScalar<lhs_t, scalar_t>::eval(typename AssignScalar<lhs_t, scalar_t>::index_t i) {
-  auto val = lhs_.eval(i) = scalar_;
-  return val;
-}
-
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE typename AssignScalar<lhs_t, scalar_t>::value_t
-AssignScalar<lhs_t, scalar_t>::eval(cl::sycl::nd_item<1> ndItem) {
-  return AssignScalar<lhs_t, scalar_t>::eval(ndItem.get_global_id(0));
-}
-
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE void AssignScalar<lhs_t, scalar_t>::bind(cl::sycl::handler &h) {
-  lhs_.bind(h);
-}
-template <typename lhs_t, typename scalar_t>
-SYCL_BLAS_INLINE void AssignScalar<lhs_t, scalar_t>::adjust_access_displacement() {
-  lhs_.adjust_access_displacement();
-}
-
 /*! DoubleAssign.
  */
 template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,

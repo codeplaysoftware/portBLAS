@@ -68,23 +68,6 @@ struct Assign {
   void adjust_access_displacement();
 };
 
-/** Assign Operation for Scalar.
- */
-template <typename lhs_t, typename scalar_t>
-struct AssignScalar {
-  using index_t = typename lhs_t::index_t;
-  using value_t = scalar_t;
-  lhs_t lhs_;
-  scalar_t scalar_;
-  AssignScalar(lhs_t &_l, scalar_t scalar);
-  index_t get_size() const;
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  scalar_t eval(index_t i);
-  scalar_t eval(cl::sycl::nd_item<1> ndItem);
-  void bind(cl::sycl::handler &h);
-  void adjust_access_displacement();
-};
-
 /*! DoubleAssign.
  */
 template <typename lhs_1_t, typename lhs_2_t, typename rhs_1_t,
