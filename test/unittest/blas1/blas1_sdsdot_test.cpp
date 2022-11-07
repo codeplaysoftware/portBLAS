@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas1_dot_test.cpp
+ *  @filename blas1_sdsdot_test.cpp
  *
  **************************************************************************/
 
