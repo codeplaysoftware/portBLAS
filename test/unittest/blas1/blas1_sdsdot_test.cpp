@@ -27,21 +27,8 @@
 #include <iostream>
 #include <type_traits>
 
-enum class api_type : int { event = 0, result = 1 };
-
-/**
- * Operator overload to print the test name properly
- */
-std::ostream& operator<<(std::ostream& os, const api_type& type) {
-  if (type == api_type::event) {
-    return os << "event";
-  } else {
-    return os << "result";
-  }
-}
-
 template <typename scalar_t>
-using combination_t = std::tuple<api_type, int, float, int, int>;
+using combination_t = std::tuple<api_type, int, scalar_t, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {

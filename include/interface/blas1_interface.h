@@ -63,13 +63,22 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
                                              increment_t _incy);
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -78,7 +87,7 @@ typename executor_t::policy_t::event_t _dot(
     container_1_t _vy, increment_t _incy, container_2_t _rs);
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
  * @tparam executor_t Executor type
@@ -91,9 +100,9 @@ typename executor_t::policy_t::event_t _dot(
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
+ * @param _incy Stride of vector y
  * @param _rs output buffer
  * @return vector of events to wait for.
  */
@@ -199,14 +208,22 @@ typename executor_t::policy_t::event_t _rot(
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
 /**
- * \brief Compute the inner product of two vectors with extended
-    precision accumulation and result.
- *
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (synchronous version that returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -217,7 +234,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incy);
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam executor_t Executor type
@@ -230,10 +247,11 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
- * @return result of the operation
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template<typename executor_t, typename container_0_t, typename container_1_t,
         typename index_t, typename increment_t>
@@ -316,13 +334,22 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -335,7 +362,7 @@ typename executor_t::policy_t::event_t _dot(
 }
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
  * @tparam executor_t Executor type
@@ -348,9 +375,9 @@ typename executor_t::policy_t::event_t _dot(
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
+ * @param _incy Stride of vector y
  * @param _rs output buffer
  * @return vector of events to wait for.
  */
@@ -487,14 +514,22 @@ typename executor_t::policy_t::event_t _rot(
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended
-    precision accumulation and result.
- *
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (synchronous version that returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -508,7 +543,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
 }
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam executor_t Executor type
@@ -521,10 +556,11 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
- * @return result of the operation
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
         typename index_t, typename increment_t>

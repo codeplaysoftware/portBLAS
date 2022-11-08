@@ -32,7 +32,6 @@
 #include <vector>
 
 #include "blas_meta.h"
-#include "common/quantization.hpp"
 #include "container/sycl_iterator.h"
 #include "executors/executor.h"
 #include "interface/blas1_interface.h"
@@ -92,13 +91,22 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
- * @param executor_t<ExecutorType> ex
- * @param _vx  BufferIterator
- * @param _incx Increment in X axis
- * @param _vx  BufferIterator
- * @param _incy Increment in Y axis
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -121,7 +129,7 @@ typename executor_t::policy_t::event_t _dot(
 }
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
  * @tparam executor_t Executor type
@@ -134,9 +142,9 @@ typename executor_t::policy_t::event_t _dot(
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
+ * @param _incy Stride of vector y
  * @param _rs output buffer
  * @return vector of events to wait for.
  */
@@ -339,14 +347,22 @@ typename executor_t::policy_t::event_t _rot(
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended
-    precision accumulation and result.
- *
- * @param executor_t<ExecutorType> ex
- * @param _vx  BufferIterator
- * @param _incx Increment in X axis
- * @param _vx  BufferIterator
- * @param _incy Increment in Y axis
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (synchronous version that returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -360,11 +376,11 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_dot(ex, _N, _vx, _incx, _vy, _incy, gpu_res);
   ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
-  return res[0]; //TODO Fix this function and add test
+  return res[0];
 }
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam executor_t Executor type
@@ -377,26 +393,28 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx Stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
- * @return result of the operation
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
-        typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy) {
-    using element_t = typename ValueType<container_0_t>::type;
-    auto res = std::vector<element_t>(1);
-    auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
-    auto event1 = blas::internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy, gpu_res);
-    ex.get_policy_handler().wait(event1);
-    auto event2 = ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
-    ex.get_policy_handler().wait(event2);
-    return res[0];
+          typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
+                                                float sb, container_0_t _vx,
+                                                increment_t _incx,
+                                                container_1_t _vy,
+                                                increment_t _incy) {
+  using element_t = typename ValueType<container_0_t>::type;
+  element_t res{};
+  auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
+  auto event1 =
+      blas::internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy, gpu_res);
+  ex.get_policy_handler().wait(event1);
+  auto event2 = ex.get_policy_handler().copy_to_host(gpu_res, &res, 1);
+  ex.get_policy_handler().wait(event2);
+  return res;
 }
 
 /**

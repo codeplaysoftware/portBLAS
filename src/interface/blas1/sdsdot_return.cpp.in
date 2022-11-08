@@ -35,7 +35,7 @@ namespace blas {
 namespace internal {
 
 /**
- * \brief Computes the inner product of two vectors with extended precision
+ * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam executor_t Executor type
@@ -48,10 +48,11 @@ namespace internal {
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Increment in x axis
+ * @param _incx stride of vector x
  * @param _vy Buffer holding input vector y
- * @param _incy Increment in y axis
- * @return result of the operation
+ * @param _incy stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template typename ValueType<${container_t0}>::type _sdsdot(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,

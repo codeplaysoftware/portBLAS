@@ -35,13 +35,22 @@ namespace blas {
 namespace internal {
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
- * @param Executor<${EXECUTOR}> ex
- * @param _vx  VectorView
- * @param _incx Increment in X axis
- * @param _vx  VectorView
- * @param _incy Increment in Y axis
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y
+ * @param _rs output buffer
+ * @return vector of events to wait for.
  */
 template typename Executor<${EXECUTOR}>::policy_t::event_t _dot(
     Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
