@@ -27,6 +27,7 @@
 
 #include "blas3/gemm_interleaved.hpp"
 #include "blas3/gemm_local.hpp"
+#include "blas3/gemm_local_tensorcore.hpp"
 #include "blas3/gemm_no_local_full_vec.hpp"
 #include "blas3/gemm_no_local_partial_vec.hpp"
 #include "blas3/gemm_partial_local.hpp"

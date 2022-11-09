@@ -201,16 +201,16 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType>
+          int BatchType, bool UseTensorcores>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-         GemmVectorization, VectorSize, BatchType>
+         GemmVectorization, VectorSize, BatchType, UseTensorcores>
         gemm_tree) {
   using gemm_t =
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize, BatchType>;
+           GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseTensorcores>;
   auto rng = gemm_tree.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,

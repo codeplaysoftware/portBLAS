@@ -41,7 +41,8 @@ template class Gemm_Launcher<
     static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
     static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
     ${IS_BETA_ZERO}, ${VECTOR_SIZE},
-    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>;
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}),
+    ${USE_TENSORCORES}>;
 
 template typename SB_Handle::event_t Gemm_Launcher<
     ${WG_SIZE}, ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
@@ -51,7 +52,8 @@ template typename SB_Handle::event_t Gemm_Launcher<
     static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
     static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
     ${IS_BETA_ZERO}, ${VECTOR_SIZE},
-    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>::
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}),
+    ${USE_TENSORCORES}>::
     _select_gemm<SB_Handle,
                  BufferIterator<${DATA_TYPE}>,
                  BufferIterator<${DATA_TYPE}>,
@@ -72,7 +74,8 @@ template typename SB_Handle::event_t Gemm_Launcher<
     static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
     static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
     ${IS_BETA_ZERO}, ${VECTOR_SIZE},
-    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE})>::
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}),
+    ${USE_TENSORCORES}>::
     _select_gemm<SB_Handle,
                  BufferIterator<${DATA_TYPE} const>,
                  BufferIterator<${DATA_TYPE} const>,

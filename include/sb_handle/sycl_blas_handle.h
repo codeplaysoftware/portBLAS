@@ -81,7 +81,7 @@ class SB_Handle {
   event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize, BatchType>
+           GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseTensorcores>
           gemm_tree);
 
   // Tall and skinny Gemm specialization

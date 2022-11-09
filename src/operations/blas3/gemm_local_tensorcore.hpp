@@ -18,12 +18,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_local.hpp
+ *  @filename gemm_local_tensorcore.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
-#define SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
+#ifndef SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP
+#define SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP
 
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
@@ -73,7 +73,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            static_cast<int>(gemm_memory_t::local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
-           static_cast<int>(gemm_batch_type_t::strided), false> {
+           static_cast<int>(gemm_batch_type_t::strided), true> {
  public:
   using tile_type = TileType;
   using value_t = element_t;
@@ -735,4 +735,4 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
+#endif  // SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP

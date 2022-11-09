@@ -64,6 +64,7 @@ if __name__ == '__main__':
     gemm_vectorize_type = sys.argv[29]
     vector_size = sys.argv[30]
     batch_type = sys.argv[31]
+    use_tensorcores = sys.argv[32]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -197,6 +198,11 @@ if __name__ == '__main__':
         Iterable(
             key='BATCH_TYPE',
             vals=[batch_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='USE_TENSORCORES',
+            vals=[use_tensorcores],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

@@ -38,7 +38,8 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
           bool is_beta_zero, int VectorSize,
-          int BatchType = static_cast<int>(gemm_batch_type_t::strided)>
+          int BatchType = static_cast<int>(gemm_batch_type_t::strided),
+          bool UseTensorcores = false>
 struct Gemm_Launcher {
   template <typename sb_handle_t, typename container_0_t,
             typename container_1_t, typename container_2_t, typename element_t,

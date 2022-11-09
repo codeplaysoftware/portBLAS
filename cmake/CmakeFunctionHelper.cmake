@@ -506,6 +506,7 @@ function(add_gemm_configuration
   gemm_vectorize_type
   vector_size
   batch_type
+  use_tensorcores
 )
   if(NOT ("${data}" IN_LIST data_list))
     # Data type not enabled, skip configuration
@@ -524,7 +525,7 @@ function(add_gemm_configuration
                           "${conflict_b}_${trans_a}_${trans_b}_"
                           "${is_beta_zero}_${gemm_memory_type}_"
                           "${gemm_shape_type}_${gemm_vectorize_type}_"
-                          "${vector_size}_${batch_type}_"
+                          "${vector_size}_${batch_type}_${use_tensorcores}_"
                           "${data}_${index}_${tir}_${tic}_${twr}_"
                           "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
                           "${item_batch}_${wg_batch}_"
@@ -563,6 +564,7 @@ function(add_gemm_configuration
                 ${gemm_vectorize_type}
                 ${vector_size}
                 ${batch_type}
+                ${use_tensorcores}
               MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
               DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
               WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
@@ -584,57 +586,57 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   foreach(data ${supported_types})
     add_gemm_configuration(
       "${data}" 64 "true" "false" "false"
-      64 4 4 8 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
+      64 4 4 8 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
+      64 8 8 8 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+      64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
 
     if (${data} STREQUAL "half")
       add_gemm_configuration(
          "${data}" 16 "true" "false" "false"
-         64 1 1 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+         64 1 1 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 16 "true" "false" "false"
-         64 2 2 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+         64 2 2 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     else()
       add_gemm_configuration(
          "${data}" 16 "true" "false" "false"
-         64 1 1 4 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+         64 1 1 4 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 16 "true" "false" "false"
-         64 2 2 4 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+         64 2 2 4 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     endif()
 
     add_gemm_configuration(
       "${data}" 64 "true" "true" "true"
-      64 2 2 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+      64 2 2 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "true" "true" "true"
-      64 4 4 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+      64 4 4 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
 
     if (${data} STREQUAL "double")
       add_gemm_configuration(
         "${data}" 256 "true" "true" "true"
-        64 4 4 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     else()
       add_gemm_configuration(
         "${data}" 256 "true" "true" "true"
-        64 4 4 16 16 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+        64 4 4 16 16 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     endif()
 
     add_gemm_configuration(
       "${data}" 32 "true" "true" "true"
-      64 2 1 8 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+      64 2 1 8 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 32 "true" "true" "true"
-      64 2 2 8 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided")
+      64 2 2 8 4 1 1 1 1 1 1 "local" "tall_skinny" "none" 4 "strided" "false")
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "RCAR") # need investigation
   set(supported_types
@@ -643,13 +645,13 @@ elseif(${TUNING_TARGET} STREQUAL "RCAR") # need investigation
   foreach(data ${supported_types})
     add_gemm_configuration(
       "${data}" 32 "false" "false" "false"
-      128 4 8 8 4 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
+      128 4 8 8 4 1 1 1 1 1 1 "local" "standard" "full" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 32 "false" "false" "false"
-      128 8 4 4 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
+      128 8 4 4 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
   set(supported_types
@@ -660,61 +662,61 @@ elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
     if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 4 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 32 "false" "false" "false"
-        64 4 8 8 4 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 8 8 4 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
+        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided" "false")
       add_gemm_configuration(
         "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided" "false")
       add_gemm_configuration(
         "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
+        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided" "false")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided" "false")
       add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided" "false")
     elseif(${BLAS_MODEL_OPTIMIZATION} STREQUAL "VGG_16")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided" "false")
       add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided")
+        64 4 4 4 4 1 1 1 1 1 1 "no_local" "standard" "partial" 2 "strided" "false")
     else()
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 4 8 16 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
       add_gemm_configuration(
         "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided")
+        64 8 4 4 8 1 1 1 1 1 1 "no_local" "standard" "partial" 4 "strided" "false")
     endif()
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 2 "interleaved")
+      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 2 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   set(supported_types
@@ -724,22 +726,22 @@ elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   foreach(data ${supported_types})
     add_gemm_configuration(
       "${data}" 96 "true" "false" "false"
-      16 4 6 12 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+      16 4 6 12 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      128 1 1 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+      128 1 1 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 1 "strided")
+      64 4 4 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 128 "false" "false" "false"
-      16 4 8 16 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+      16 4 8 16 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      32 4 4 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+      32 4 4 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
@@ -756,30 +758,30 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
 
     add_gemm_configuration(
       "${data}" 256 "false" "false" "false"
-      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 256 "false" "false" "false"
-      64 4 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "standard" "full" 2 "strided")
+      64 4 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "standard" "full" 2 "strided" "false")
 
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
-      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided")
+      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided" "false")
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
-      64 2 2 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided")
+      64 2 2 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided" "false")
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
-      64 4 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided")
+      64 4 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided" "false")
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
-      64 1 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided")
+      64 1 4 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided" "false")
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
-      64 4 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided")
+      64 4 1 ${twr} ${twc} 1 1 1 1 1 1 "local" "tall_skinny" "none" 2 "strided" "false")
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
  set(supported_types
@@ -789,13 +791,13 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
   foreach(data ${supported_types})
     add_gemm_configuration(
         "${data}" 128 "false" "false" "true"
-        128 2 2 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided")
+        128 2 2 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
         "${data}"  64 "false" "false" "true"
-        64 8 8 8 8 1 1 2 2 1 1 "local" "standard" "full" 1 "strided")
+        64 8 8 8 8 1 1 2 2 1 1 "local" "standard" "full" 1 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 else() # default cpu backend
   set(supported_types
@@ -806,19 +808,19 @@ else() # default cpu backend
     if(NAIVE_GEMM)
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
-        64 8 8 8 8 1 1 1 1 1 1 "no_local" "naive" "none" 1 "strided")
+        64 8 8 8 8 1 1 1 1 1 1 "no_local" "naive" "none" 1 "strided" "false" "false")
     else()
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
-        64 2 2 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 2 "strided")
+        64 2 2 8 8 1 1 1 1 1 1 "no_local" "standard" "full" 2 "strided" "false" "false")
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
-        64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided")
+        64 8 8 8 8 1 1 1 1 1 1 "no_local" "standard" "partial" 1 "strided" "false" "false")
     endif()
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false" "false")
   endforeach()
 endif()
 add_library(${func} OBJECT ${gemm_sources})
