@@ -65,6 +65,19 @@ inline std::vector<scalar_t> interleaved_to_strided(
   return output;
 }
 
+template <typename data_t>
+void fill_vector(std::vector<data_t> vec, int batch, int m, int n, int factor) {
+  
+  int idx = 0;
+  for (int i = 0; i < batch; i++) {
+    for (int j = 0; j < m; j++) {
+      for (int k = 0; k < n; k++) {
+        vec[idx++] = static_cast<data_t>(k + 1) * factor;
+      }
+    }
+  }
+}
+
 template <typename scalar_t>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   index_t offset;

@@ -50,6 +50,7 @@ if(NOT "${DPCPP_SYCL_ARCH}" STREQUAL "")
   elseif("${DPCPP_SYCL_TARGET}" STREQUAL "nvptx64-nvidia-cuda")
     list(APPEND DPCPP_FLAGS "-Xsycl-target-backend")
     list(APPEND DPCPP_FLAGS "--cuda-gpu-arch=${DPCPP_SYCL_ARCH}")
+    list(APPEND DPCPP_FLAGS "-fsycl;-fsycl-targets=${DPCPP_SYCL_TARGET};-Xclang;-cl-mad-enable;-fsycl-unnamed-lambda")
   endif()
 endif()
 
@@ -63,7 +64,7 @@ else()
   set_target_properties(DPCPP::DPCPP PROPERTIES
     INTERFACE_COMPILE_OPTIONS "${DPCPP_FLAGS}"
     INTERFACE_LINK_LIBRARIES ${DPCPP_LIB_DIR}
-    INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl")
+    INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl;${DPCPP_BIN_DIR}/../include")
 endif()
 
 function(add_sycl_to_target)
@@ -77,8 +78,14 @@ function(add_sycl_to_target)
     ${ARGN}
   )
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
+  target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
+                            PUBLIC --cuda-gpu-arch=sm_80 
+			    PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
   if (NOT target_type STREQUAL "OBJECT_LIBRARY")
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
+    target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
+                            PUBLIC --cuda-gpu-arch=sm_80 
+			    PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
   endif()
 endfunction()

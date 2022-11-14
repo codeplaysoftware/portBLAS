@@ -212,11 +212,20 @@ inline typename SB_Handle::event_t SB_Handle::execute(
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
            GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseTensorcores>;
   auto rng = gemm_tree.get_nd_range(SB_Handle::get_num_compute_units());
-  return {execute_tree<
-      Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
-             using_local_memory::enabled, using_local_memory::disabled>::type>(
-      q_, gemm_tree, rng.get_local_range()[0], rng.get_global_range()[0],
-      gemm_t::local_memory_size)};
+  if constexpr (UseTensorcores) {
+    return {execute_tree<
+        Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
+              using_local_memory::enabled, using_local_memory::disabled>::type>(
+        q_, gemm_tree, rng.get_local_range()[0], rng.get_local_range()[1], 
+        rng.get_global_range()[0], rng.get_global_range()[1],
+        gemm_t::local_memory_size)};
+  } else {
+    return {execute_tree<
+        Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
+              using_local_memory::enabled, using_local_memory::disabled>::type>(
+        q_, gemm_tree, rng.get_local_range()[0], rng.get_global_range()[0],
+        gemm_t::local_memory_size)};
+  }
 }
 
 /* Tall and skinny Gemm */

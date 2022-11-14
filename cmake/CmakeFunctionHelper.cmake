@@ -790,11 +790,11 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
-        "${data}" 128 "false" "false" "true"
-        128 2 2 8 8 1 1 1 1 1 1 "local" "standard" "full" 1 "strided" "false")
+        "${data}" 32 "false" "false" "false"
+        128 1 1 1 1 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
-        "${data}"  64 "false" "false" "true"
-        64 8 8 8 8 1 1 2 2 1 1 "local" "standard" "full" 1 "strided" "false")
+        "${data}"  32 "false" "false" "false"
+        64 1 1 1 1 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved" "false")

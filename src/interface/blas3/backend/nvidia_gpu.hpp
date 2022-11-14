@@ -55,33 +55,33 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
                                                                     _c, _ldc,
                                                                     batch_size);
   }
-  if (_M < 512 && _N < 512 && _K < 512) {
+//  if (_M < 512 && _N < 512 && _K < 512) {
     return blas::Gemm_Launcher<
-        128, false, false, true, 128, Tile<2, 2, 8, 8>, _t_a, _t_b,
+        32, false, false, false, 128, Tile<1, 1, 1, 1, 16, 16>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+            gemm_batch_type_t::strided), true>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
                                                                 _a, _lda, _b,
                                                                 _ldb, _beta, _c,
                                                                 _ldc,
                                                                 batch_size);
-  } else {
+ /* } else {
     return blas::Gemm_Launcher<
         64, false, false, true, 64, Tile<8, 8, 8, 8, 1, 1, 2, 2>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+            gemm_batch_type_t::strided), true>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
                                                                 _a, _lda, _b,
                                                                 _ldb, _beta, _c,
                                                                 _ldc,
                                                                 batch_size);
-  }
+  }*/
 }
 }  // namespace backend
 }  // namespace gemm

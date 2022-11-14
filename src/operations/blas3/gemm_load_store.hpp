@@ -120,8 +120,13 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
-    packet.template store<address_t::local_space>(
-        0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
+    // packet.template store<address_t::local_space>(
+    //     0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
+    // using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+    // using dtype = cl::sycl::half;
+    // *dest = static_cast<dtype>(packet[0]);
+    using namespace cl::sycl::ext::oneapi::experimental::matrix;
+    *dest = round_to_tf32(packet[0]);
   }
 };
 
