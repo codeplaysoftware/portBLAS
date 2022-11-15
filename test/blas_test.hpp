@@ -240,7 +240,8 @@ struct dump_arg_helper<
     }
     StdFloat int_part;
     StdFloat frac_part = std::modf(f, &int_part);
-    ss << int_part;
+    ss << std::fixed  << std::setprecision(0) << int_part;
+
     if (frac_part > 0) {
       ss << "p" << (int)(frac_part * 100);
     }
