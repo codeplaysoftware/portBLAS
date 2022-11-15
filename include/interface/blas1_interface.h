@@ -226,7 +226,7 @@ typename executor_t::policy_t::event_t _rot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          std::enable_if_t<!is_sycl_scalar<container_0_t>, bool> = true>
+          typename std::enable_if<!is_sycl_scalar<container_0_t>, bool>::type = true>
 typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s);
@@ -244,7 +244,7 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param s[out] scalar representing the output s.
  */
 template <typename executor_t, typename scalar_t,
-          std::enable_if_t<is_sycl_scalar<scalar_t>, bool> = true>
+          typename std::enable_if<is_sycl_scalar<scalar_t>, bool>::type = true>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
 
 /**
@@ -572,7 +572,7 @@ typename executor_t::policy_t::event_t _rot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          std::enable_if_t<!is_sycl_scalar<container_0_t>, bool> = true>
+          typename std::enable_if<!is_sycl_scalar<container_0_t>, bool>::type = true>
 typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
@@ -592,7 +592,7 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param s[out] scalar representing the output s.
  */
 template <typename executor_t, typename scalar_t,
-          std::enable_if_t<is_sycl_scalar<scalar_t>, bool> = true>
+          typename std::enable_if<is_sycl_scalar<scalar_t>, bool>::type = true>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   internal::_rotg(ex, a, b, c, s);
 }

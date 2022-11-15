@@ -165,7 +165,7 @@ first_vector_t concatenate_vectors(first_vector_t first_vector,
  * @tparam type the type to be tested.
  */
 template <typename type>
-inline constexpr bool is_sycl_scalar = std::is_scalar_v<type> || std::is_same_v<cl::sycl::half, type>;
+constexpr bool is_sycl_scalar = std::is_scalar<type>::value || std::is_same<cl::sycl::half, type>::value;
 
 }  // namespace blas
 
