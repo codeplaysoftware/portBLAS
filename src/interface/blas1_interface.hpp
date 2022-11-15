@@ -365,7 +365,7 @@ typename executor_t::policy_t::event_t _rot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          std::enable_if_t<!is_sycl_scalar<container_0_t>, bool>>
+          typename std::enable_if<!is_sycl_scalar<container_0_t>, bool>::type>
 typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
@@ -374,7 +374,7 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
   auto c_view = make_vector_view(ex, c, 1, 1);
   auto s_view = make_vector_view(ex, s, 1, 1);
 
-  auto operation = Rotg(a_view, b_view, c_view, s_view);
+  auto operation = Rotg<decltype(a_view)>(a_view, b_view, c_view, s_view);
   auto ret = ex.execute(operation);
 
   using element_t = typename ValueType<container_0_t>::type;
@@ -394,7 +394,7 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param s[out] scalar representing the output s.
  */
 template <typename executor_t, typename scalar_t,
-          std::enable_if_t<is_sycl_scalar<scalar_t>, bool>>
+          typename std::enable_if<is_sycl_scalar<scalar_t>, bool>::type>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   auto device_a = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_b = make_sycl_iterator_buffer<scalar_t>(1);
