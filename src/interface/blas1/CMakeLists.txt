@@ -38,7 +38,11 @@ generate_blas_unary_objects(blas1 iamax_return)
 generate_blas_unary_objects(blas1 iamin_return)
 generate_blas_unary_objects(blas1 scal)
 
+
 generate_blas_ternary_objects(blas1 dot)
 generate_blas_ternary_objects(blas1 sdsdot)
 generate_blas_binary_special_objects(blas1 iamax)
 generate_blas_binary_special_objects(blas1 iamin)
+
+generate_blas_rotg_objects(blas1 rotg)
+generate_blas_rotg_return_objects(blas1 rotg_return)

@@ -26,6 +26,7 @@
 #ifndef SYCL_BLAS_META_H
 #define SYCL_BLAS_META_H
 
+#include <CL/sycl.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -158,6 +159,13 @@ first_vector_t concatenate_vectors(first_vector_t first_vector,
                0};
   return std::move(first_vector);
 }
+
+/**
+ * @brief Defines if a type is a scalar within the context of sycl.
+ * @tparam type the type to be tested.
+ */
+template <typename type>
+inline constexpr bool is_sycl_scalar = std::is_scalar_v<type> || std::is_same_v<cl::sycl::half, type>;
 
 }  // namespace blas
 

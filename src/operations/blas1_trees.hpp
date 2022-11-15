@@ -538,6 +538,87 @@ AssignReduction<operator_t, lhs_t, rhs_t>::adjust_access_displacement() {
   rhs_.adjust_access_displacement();
 }
 
+template <typename operand_t>
+Rotg<operand_t>::Rotg(operand_t& _a, operand_t& _b, operand_t& _c, operand_t& _s) : a_{_a}, b_{_b}, c_{_c}, s_{_s} {}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE typename Rotg<operand_t>::index_t
+Rotg<operand_t>::get_size() const {
+  return static_cast<Rotg<operand_t>::index_t>(1);
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
+    typename Rotg<operand_t>::index_t i) {
+
+  using zero = constant<value_t, const_val::zero>;
+  using one = constant<value_t, const_val::one>;
+
+  value_t &a_ref = a_.eval(i);
+  value_t &b_ref = b_.eval(i);
+  value_t &c_ref = c_.eval(i);
+  value_t &s_ref = s_.eval(i);
+
+  const value_t abs_a = AbsoluteValue::eval(a_ref);
+  const value_t abs_b = AbsoluteValue::eval(b_ref);
+  const value_t sigma =
+      abs_a > abs_b ? SignOperator::eval(a_ref): SignOperator::eval(b_ref);
+  const value_t r =
+      ProductOperator::eval(sigma, HypotenuseOperator::eval(a_ref, b_ref));
+
+
+  if (r == zero::value()) {
+    c_ref = one::value();
+    s_ref = zero::value();
+  } else {
+    c_ref = DivisionOperator::eval(a_ref, r);
+    s_ref = DivisionOperator::eval(b_ref, r);
+  }
+  a_ref = r;
+
+  /* Calculate z and assign it to parameter b */
+  if (abs_a >= abs_b) {
+    /* Documentation says that the comparison should be ">" but reference
+     * implementation seems to be using ">=" */
+    b_ref = s_ref;
+  } else if (c_ref != zero::value()) {
+    b_ref = DivisionOperator::eval(one::value(), c_ref);
+  } else {
+    b_ref = one::value();
+  }
+
+  // The return value of rotg is void but eval expects something to be returned.
+  return zero::value();
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return Rotg<operand_t>::eval(ndItem.get_global_id(0));
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE bool Rotg<operand_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  return ((ndItem.get_global_id(0) < Rotg<operand_t>::get_size()));
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE void Rotg<operand_t>::bind(cl::sycl::handler &h) {
+  a_.bind(h);
+  b_.bind(h);
+  c_.bind(h);
+  s_.bind(h);
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE void
+Rotg<operand_t>::adjust_access_displacement() {
+  a_.adjust_access_displacement();
+  b_.adjust_access_displacement();
+  c_.adjust_access_displacement();
+  s_.adjust_access_displacement();
+}
+
 }  // namespace blas
 
 #endif  // BLAS1_TREES_HPP

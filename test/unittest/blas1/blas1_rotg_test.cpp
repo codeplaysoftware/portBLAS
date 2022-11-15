@@ -26,84 +26,81 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<int, int, int>;
+using combination_t = std::tuple<api_type, scalar_t, scalar_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  index_t size;
-  index_t incX;
-  index_t incY;
-  std::tie(size, incX, incY) = combi;
+  api_type api;
+  scalar_t a_input;
+  scalar_t b_input;
+
+  std::tie(api, a_input, b_input) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
-  // Input vectors
-  std::vector<data_t> a_v(size * incX);
-  fill_random(a_v);
-  std::vector<data_t> b_v(size * incY);
-  fill_random(b_v);
+  data_t c_ref;
+  data_t s_ref;
+  data_t a_ref = a_input;
+  data_t b_ref = b_input;
+  reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
 
-  // Output vectors
-  std::vector<data_t> out_s(1, 10.0);
-  std::vector<data_t> a_cpu_v(a_v);
-  std::vector<data_t> b_cpu_v(b_v);
-
-  // Looks like we don't have a SYCL rotg implementation
-  data_t c_d;
-  data_t s_d;
-  data_t sa = a_v[0];
-  data_t sb = a_v[1];
-  reference_blas::rotg(&sa, &sb, &c_d, &s_d);
-
-  // Reference implementation
-  std::vector<data_t> c_cpu_v(size * incX);
-  std::vector<data_t> s_cpu_v(size * incY);
-  reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
-                      s_d);
-  auto out_cpu_s =
-      reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
-
-  // SYCL implementation
   auto q = make_queue();
   test_executor_t ex(q);
 
-  // Iterators
-  auto gpu_a_v = utils::make_quantized_buffer<scalar_t>(ex, a_v);
-  auto gpu_b_v = utils::make_quantized_buffer<scalar_t>(ex, b_v);
-  auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+  data_t c;
+  data_t s;
+  data_t a = a_input;
+  data_t b = b_input;
+  if (api == api_type::event) {
+    auto device_a = utils::make_quantized_buffer<scalar_t>(ex, a);
+    auto device_b = utils::make_quantized_buffer<scalar_t>(ex, b);
+    auto device_c = utils::make_quantized_buffer<scalar_t>(ex, c);
+    auto device_s = utils::make_quantized_buffer<scalar_t>(ex, s);
+    auto event0 = _rotg(ex, device_a, device_b, device_c, device_s);
+    ex.get_policy_handler().wait(event0);
 
-  auto c = static_cast<scalar_t>(c_d);
-  auto s = static_cast<scalar_t>(s_d);
+    auto event1 = ex.get_policy_handler().copy_to_host(device_c, &c, 1);
+    auto event2 = ex.get_policy_handler().copy_to_host(device_s, &s, 1);
+    auto event3 = ex.get_policy_handler().copy_to_host(device_a, &a, 1);
+    auto event4 = ex.get_policy_handler().copy_to_host(device_b, &b, 1);
+    ex.get_policy_handler().wait(event1);
+    ex.get_policy_handler().wait(event2);
+    ex.get_policy_handler().wait(event3);
+    ex.get_policy_handler().wait(event4);
+  }
+  else {
+    _rotg(ex, a, b, c, s);
+  }
 
-  _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-  _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
-  ex.get_policy_handler().wait(event);
+  /* When there is an overflow in the calculation of the hypotenuse, results are
+   * implementation defined but r should return inf like reference_blas does */
+  if (std::isinf(a_ref)) {
+    ASSERT_TRUE(std::isinf(a));
+    return;
+  }
 
-  // Validate the result
-  const bool isAlmostEqual =
-      utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
+  const bool isAlmostEqual = utils::almost_equal<data_t, scalar_t>(a, a_ref) &&
+                             utils::almost_equal<data_t, scalar_t>(b, b_ref) &&
+                             utils::almost_equal<data_t, scalar_t>(c, c_ref) &&
+                             utils::almost_equal<data_t, scalar_t>(s, s_ref);
   ASSERT_TRUE(isAlmostEqual);
 }
 
-#ifdef STRESS_TESTING
-const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
-                       ::testing::Values(1, 4),                   // incX
-                       ::testing::Values(1, 3)                    // incY
-    );
-#else
-const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(4),         // incX
-                                      ::testing::Values(3)          // incY
+/* Using std::numeric_limits<float> to test overflows on float types. If the
+ * test type is something else, then this will be implicitly cast. double should
+ * not overflow */
+const auto combi = ::testing::Combine(
+    ::testing::Values(api_type::event, api_type::result),                  // Api
+    ::testing::Values(0, 2.5, -7.3, std::numeric_limits<float>::max()),    // a
+    ::testing::Values(0, 0.5, -4.3, std::numeric_limits<float>::lowest())  // b
 );
-#endif
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int size, incX, incY;
-  BLAS_GENERATE_NAME(info.param, size, incX, incY);
+  api_type api;
+  T a, b;
+  BLAS_GENERATE_NAME(info.param, api, a, b);
 }
 
-BLAS_REGISTER_TEST_ALL(Rotg, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);
