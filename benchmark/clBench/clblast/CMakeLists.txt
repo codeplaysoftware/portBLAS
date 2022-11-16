@@ -29,6 +29,12 @@ foreach(clblast_benchmark ${sources})
   target_compile_definitions(bench_clblast_${clblast_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   target_include_directories(bench_clblast_${clblast_bench_exec} PRIVATE ${SYCLBLAS_INCLUDE} ${CBLAS_INCLUDE} ${BLAS_BENCH} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
+  # Even though CLBlast does not use sycl, the common tools indirectly include sycl headers.
+  add_sycl_to_target(
+      TARGET bench_clblast_${clblast_bench_exec}
+      SOURCES ${clblast_benchmark}
+  )
+
   if(BLAS_VERIFY_BENCHMARK)
     target_link_libraries(bench_clblast_${clblast_bench_exec} PRIVATE blas::blas)
     target_compile_definitions(bench_clblast_${clblast_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
