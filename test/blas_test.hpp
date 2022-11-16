@@ -259,7 +259,7 @@ struct dump_arg_helper<cl::sycl::half> {
 
 /**
  * Return type of the tested api (either asynchronous (event) or
- * synchronous(result)
+ * synchronous(result))
  */
 enum class api_type : int { event = 0, result = 1 };
 
