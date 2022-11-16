@@ -49,7 +49,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   using data_t = utils::data_storage_t<scalar_t>;
 
   // Create data
-  const float sb = blas_benchmark::utils::random_data<data_t>(1)[1];
+  const float sb = blas_benchmark::utils::random_data<data_t>(1)[0];
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
 
