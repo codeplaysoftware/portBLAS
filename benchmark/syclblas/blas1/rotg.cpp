@@ -46,8 +46,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   auto buf_b = utils::make_quantized_buffer<scalar_t>(ex, b);
   auto buf_c = utils::make_quantized_buffer<scalar_t>(ex, c);
   auto buf_s = utils::make_quantized_buffer<scalar_t>(ex, s);
-
-#define BLAS_VERIFY_BENCHMARK
+  
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   scalar_t a_ref = a;
