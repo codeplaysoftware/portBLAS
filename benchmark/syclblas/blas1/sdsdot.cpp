@@ -110,7 +110,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
   auto sdsdot_params = blas_benchmark::utils::get_blas1_params(args);
 
-  for (auto size : gemm_params) {
+  for (auto size : sdsdot_params) {
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
                          index_t size, bool* success) {
       run<scalar_t>(st, exPtr, size, success);
