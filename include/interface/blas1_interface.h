@@ -74,11 +74,11 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  * @param ex Executor
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -98,13 +98,13 @@ typename executor_t::policy_t::event_t _dot(
  * @tparam increment_t Increment type
  * @param ex Executor
  * @param _N Input buffer sizes. If size 0, the result will be sb.
- * @param sb scalar to add to the results of the inner product.
+ * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
         typename container_2_t, typename index_t, typename increment_t>
@@ -219,11 +219,11 @@ typename executor_t::policy_t::event_t _rot(
  * @param ex Executor
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -245,13 +245,13 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @tparam increment_t Increment type
  * @param ex Executor
  * @param _N Input buffer sizes. If size 0, the result will be sb.
- * @param sb scalar to add to the results of the inner product.
+ * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template<typename executor_t, typename container_0_t, typename container_1_t,
         typename index_t, typename increment_t>
@@ -345,11 +345,11 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  * @param ex Executor
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -373,13 +373,13 @@ typename executor_t::policy_t::event_t _dot(
  * @tparam increment_t Increment type
  * @param ex Executor
  * @param _N Input buffer sizes. If size 0, the result will be sb.
- * @param sb scalar to add to the results of the inner product.
+ * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
         typename container_2_t, typename index_t, typename increment_t>
@@ -525,11 +525,11 @@ typename executor_t::policy_t::event_t _rot(
  * @param ex Executor
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -554,13 +554,13 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @tparam increment_t Increment type
  * @param ex Executor
  * @param _N Input buffer sizes. If size 0, the result will be sb.
- * @param sb scalar to add to the results of the inner product.
+ * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
- * @param _incx Stride of vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param _vy Buffer holding input vector y
- * @param _incy Stride of vector y
- * @param _rs output buffer
- * @return vector of events to wait for.
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
         typename index_t, typename increment_t>
