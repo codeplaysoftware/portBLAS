@@ -127,6 +127,7 @@ struct Packetize {
     // *dest = static_cast<dtype>(packet[0]);
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
     *dest = round_to_tf32(packet[0]);
+    // cl::sycl::ext::oneapi::experimental::printf("packet:%f\n", packet[0]);
   }
 };
 

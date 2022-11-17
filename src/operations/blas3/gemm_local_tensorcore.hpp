@@ -103,11 +103,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   //! @brief Number of elements which fit within a cache line.
   static constexpr index_t cl_elems = ClSize / sizeof(element_t);//128/4=32
   //! @brief Number of work items within a work group
-  static constexpr index_t wg_size = sg_size;//32
+  static constexpr index_t wg_size = wg_rows * wg_cols * sg_size;//32
   //! @brief Number of rows within a work-group level tile
-  static constexpr index_t block_rows = sg_rows;//16
+  static constexpr index_t block_rows = wg_rows * sg_rows;//16
   //! @brief Number of columns within a work-group level tile
-  static constexpr index_t block_cols = sg_cols;//16
+  static constexpr index_t block_cols = wg_cols * sg_cols;//16
   //! @brief Number of rows within a top-level tile
   static constexpr index_t big_tile_rows = tl_rows * block_rows;//16
   //! @brief Number of columns within a top-level tile
@@ -140,13 +140,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Cache line size must be a multiple of packet_size");
 
   //! @brief leading dimension of block of A in local
-  static constexpr index_t ldsa = block_rows + nbc_a;//16
+  static constexpr index_t ldsa = block_rows + nbc_a;//32
   //! @brief leading dimension of block of B in local
-  static constexpr index_t ldsb = cl_elems + nbc_b;//33
+  static constexpr index_t ldsb = cl_elems + nbc_b;//32
   //! @brief size (in elements) of local (local) memory required by each
   //         work group
   static constexpr index_t local_memory_size =
-      (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);//(2)*(32*32 + 33*32)
+      (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);//(2)*(32*32 + 32*32)
 
   input_t a_;
   input_t b_;
@@ -221,16 +221,19 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   SYCL_BLAS_INLINE cl::sycl::nd_range<2> get_nd_range(
       index_t compute_units) const noexcept {
+    size_t x_groups = static_cast<size_t>((get_sg_x_cluster() - 1) / wg_rows + 1);
+    size_t y_groups = static_cast<size_t>((get_sg_y_cluster() - 1) / wg_cols + 1);
+    size_t x_local = static_cast<size_t>(sg_size * wg_rows);
+    size_t y_local = static_cast<size_t>(wg_cols);
 #ifdef VERBOSE
     std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
               << " , big_tile_rows: " << big_tile_rows
               << " , big_tile_cols: " << big_tile_cols
               << " , wg_size: " << wg_size
-              << " , nwg : " << get_sg_x_cluster() * get_sg_y_cluster() << std::endl;
+              << " , nwg : " << x_groups * y_groups << std::endl;
 #endif
-    return cl::sycl::nd_range<2>{{(size_t)get_sg_x_cluster() * 32,
-                                 (size_t)get_sg_y_cluster()},
-                                 {32, 1}};
+    return cl::sycl::nd_range<2>{{x_groups * x_local, y_groups * y_local},
+                                 {x_local, y_local}};
   }
 
   SYCL_BLAS_INLINE index_t get_size() const {
@@ -256,21 +259,23 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t ldb = b_.getSizeL();
     const index_t ldc = c_.getSizeL();
     // The batch index that each workgroup should start working with
-    const index_t wg_batch_id_x = id.get_group(0) / get_sg_x_cluster();
-    const index_t wg_batch_id_y = id.get_group(1) / get_sg_y_cluster();
+    const index_t x_groups = (get_sg_x_cluster() - 1) / wg_rows + 1;
+    const index_t y_groups = (get_sg_y_cluster() - 1) / wg_cols + 1;
+    const index_t wg_batch_id_x = id.get_group(0) / x_groups;
+    const index_t wg_batch_id_y = id.get_group(1) / y_groups;
     const index_t wg_batch_id = wg_batch_id_x + wg_batch_id_y;
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
     const index_t batch_stride =
-        (id.get_group_range(0) / get_sg_x_cluster()) * (id.get_group_range(1) / get_sg_y_cluster());
+        (id.get_group_range(0) / x_groups) * (id.get_group_range(1) / y_groups);
 
     auto scratch = scratch_acc.localAcc.get_pointer();
 
     // The number of work-group required to executed each batch efficiently
-    const index_t wg_id_x = id.get_group(0) % get_sg_x_cluster();
-    const index_t wg_id_y = id.get_group(1) % get_sg_y_cluster();
+    const index_t wg_id_x = id.get_group(0) % x_groups;
+    const index_t wg_id_y = id.get_group(1) % y_groups;
 
     const index_t a_size = trans_a ? m * lda : k * lda;
     const index_t b_size = trans_b ? ldb * k : n * ldb;
@@ -283,16 +288,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     auto ptr_C = c_.get_data().get_pointer() + c_.get_access_displacement() +
                  (wg_batch_id * c_size);
 
-    const index_t wg_row = wg_id_x * sg_rows;
-    const index_t wg_col = wg_id_y * sg_cols;
+    auto sg = id.get_sub_group();
+    const index_t sg_id = sg.get_group_linear_id();
+    const index_t item_id = id.get_local_linear_id();
+
+    const index_t wg_row = wg_id_x * block_rows;
+    const index_t wg_col = wg_id_y * block_cols;
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    auto sg = id.get_sub_group();
-    const index_t sg_id = sg.get_group_id();
-    const index_t item_id = id.get_local_id(0);
-
-    ptr_C += wg_row + wg_col * ldc;
+    ptr_C += (wg_row + (sg_id % wg_rows) * sg_rows) + (wg_col + (sg_id / wg_rows) * sg_cols) * ldc;
     element_t reg_a[(sg_rows * sg_cols) / sg_size];
     element_t reg_b;
 
@@ -323,7 +328,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
                  : item_id % cl_elems + (item_id / cl_elems) * ldsb);
     // auto s2 = scratch + (item_id / wg_rows) * item_cols * ldsb;
-    auto s2 = new_scratch + sg_id * sg_cols * ldsb;
+    auto s2 = new_scratch + (sg_id / wg_rows) * sg_cols * ldsb;
     index_t ofs = (double_buffer + 1) * block_cols * ldsb;
     auto s3 =
         new_scratch + ofs +
@@ -331,7 +336,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
              ? item_id / cl_elems + (item_id % cl_elems) * ldsa
              : item_id % block_rows + (item_id / block_rows) * ldsa);
     // auto s4 = scratch + ofs + (item_id % wg_rows * vector_offset);
-    auto s4 = new_scratch + ofs + sg_id * sg_rows;
+    auto s4 = new_scratch + ofs + (sg_id % wg_rows) * sg_rows;
 
     if (internal) {
       compute_panel_gemm<double_buffer, false, false>(

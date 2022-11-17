@@ -66,7 +66,7 @@ inline std::vector<scalar_t> interleaved_to_strided(
 }
 
 template <typename data_t>
-void fill_vector(std::vector<data_t> vec, int batch, int m, int n, int factor) {
+void fill_vector(std::vector<data_t>& vec, int batch, int m, int n, int factor) {
   
   int idx = 0;
   for (int i = 0; i < batch; i++) {
