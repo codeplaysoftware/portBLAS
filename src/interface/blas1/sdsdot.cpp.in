@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename dot.cpp.in
+ *  @filename sdsdot.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
