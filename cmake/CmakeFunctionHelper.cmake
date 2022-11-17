@@ -793,6 +793,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:copy>
                 $<TARGET_OBJECTS:dot>
                 $<TARGET_OBJECTS:dot_return>
+                $<TARGET_OBJECTS:sdsdot>
+                $<TARGET_OBJECTS:sdsdot_return>
                 $<TARGET_OBJECTS:iamax>
                 $<TARGET_OBJECTS:iamax_return>
                 $<TARGET_OBJECTS:iamin>

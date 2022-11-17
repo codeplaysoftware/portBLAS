@@ -258,6 +258,23 @@ struct dump_arg_helper<cl::sycl::half> {
 };
 
 /**
+ * Return type of the tested api (either asynchronous (event) or
+ * synchronous(result))
+ */
+enum class api_type : int { event = 0, result = 1 };
+
+template <>
+struct dump_arg_helper<api_type> {
+  inline void operator()(std::ostream &ss, const api_type &type) {
+    if (type == api_type::event) {
+      ss << "event";
+    } else {
+      ss << "result";
+    }
+  }
+};
+
+/**
  * @brief Dump an argument to a stream.
  *
  * @tparam T is the type of the argument to format.

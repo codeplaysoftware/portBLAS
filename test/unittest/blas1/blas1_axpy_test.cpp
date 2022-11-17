@@ -91,4 +91,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, alpha, incX, incY);
 }
 
-BLAS_REGISTER_TEST(Axpy, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Axpy, combination_t, combi, generate_name);

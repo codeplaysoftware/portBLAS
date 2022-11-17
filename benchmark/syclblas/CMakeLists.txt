@@ -7,6 +7,7 @@ set(sources
   blas1/axpy.cpp
   blas1/asum.cpp
   blas1/dot.cpp
+  blas1/sdsdot.cpp
   blas1/iamax.cpp
   blas1/iamin.cpp
   blas1/nrm2.cpp
