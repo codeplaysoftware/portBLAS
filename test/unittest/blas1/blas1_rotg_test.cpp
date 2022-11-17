@@ -103,4 +103,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, api, a, b);
 }
 
-BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rotg, combination_t, combi, generate_name);

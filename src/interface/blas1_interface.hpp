@@ -355,13 +355,13 @@ typename executor_t::policy_t::event_t _rot(
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @param ex Executor
- * @param a[in, out] On entry, Buffer holding the x-coordinate of the point. On
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
- * @param b[in, out] On entry, Buffer holding the y-coordinate of the point. On
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
  * exit, the scalar r.
  * @param c[out] Buffer holding the parameter c.
  * @param s[out] Buffer holding the parameter s.
- * @return vector of events to wait for.
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
@@ -377,7 +377,6 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
   auto operation = Rotg<decltype(a_view)>(a_view, b_view, c_view, s_view);
   auto ret = ex.execute(operation);
 
-  using element_t = typename ValueType<container_0_t>::type;
   return ret;
 }
 
@@ -407,7 +406,6 @@ void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
 
   auto event =
       blas::internal::_rotg(ex, device_a, device_b, device_c, device_s);
-  ex.get_policy_handler().wait(event);
 
   auto event1 = ex.get_policy_handler().copy_to_host(device_c, &c, 1);
   auto event2 = ex.get_policy_handler().copy_to_host(device_s, &s, 1);

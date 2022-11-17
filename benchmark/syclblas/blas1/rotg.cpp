@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) 2022 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -46,7 +46,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   auto buf_b = utils::make_quantized_buffer<scalar_t>(ex, b);
   auto buf_c = utils::make_quantized_buffer<scalar_t>(ex, c);
   auto buf_s = utils::make_quantized_buffer<scalar_t>(ex, s);
-  
+
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   scalar_t a_ref = a;
@@ -67,14 +67,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
   _rotg(ex, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
 
-  auto event3 =
-      ex.get_policy_handler().copy_to_host(buf_verify_a, &a_verify, 1);
-  auto event4 =
-      ex.get_policy_handler().copy_to_host(buf_verify_b, &b_verify, 1);
   auto event1 =
       ex.get_policy_handler().copy_to_host(buf_verify_c, &c_verify, 1);
   auto event2 =
       ex.get_policy_handler().copy_to_host(buf_verify_s, &s_verify, 1);
+  auto event3 =
+      ex.get_policy_handler().copy_to_host(buf_verify_a, &a_verify, 1);
+  auto event4 =
+      ex.get_policy_handler().copy_to_host(buf_verify_b, &b_verify, 1);
+
   ex.get_policy_handler().wait(event1);
   ex.get_policy_handler().wait(event2);
   ex.get_policy_handler().wait(event3);
@@ -128,8 +129,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
-  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
-
   auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
                        bool* success) { run<scalar_t>(st, exPtr, success); };
   benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, exPtr,

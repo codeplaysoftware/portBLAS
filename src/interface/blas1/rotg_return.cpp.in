@@ -46,7 +46,7 @@ namespace internal {
  * @param c[out] scalar representing the output c.
  * @param s[out] scalar representing the output s.
  */
-template void _rotg(Executor<${EXECUTOR}> &ex, ${DATA_TYPE} & a,
-                    ${DATA_TYPE} & b, ${DATA_TYPE} & c, ${DATA_TYPE} & s);
+template void _rotg(Executor<${EXECUTOR}> &ex, ${DATA_TYPE}& a,
+                    ${DATA_TYPE}& b, ${DATA_TYPE}& c, ${DATA_TYPE}& s);
 }  // namespace internal
 }  // namespace blas

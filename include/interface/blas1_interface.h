@@ -216,13 +216,13 @@ typename executor_t::policy_t::event_t _rot(
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @param ex Executor
- * @param a[in, out] On entry, Buffer holding the x-coordinate of the point. On
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
- * @param b[in, out] On entry, Buffer holding the y-coordinate of the point. On
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
  * exit, the scalar r.
  * @param c[out] Buffer holding the parameter c.
  * @param s[out] Buffer holding the parameter s.
- * @return vector of events to wait for.
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
@@ -562,13 +562,13 @@ typename executor_t::policy_t::event_t _rot(
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @param ex Executor
- * @param a[in, out] On entry, Buffer holding the x-coordinate of the point. On
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
- * @param b[in, out] On entry, Buffer holding the y-coordinate of the point. On
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
  * exit, the scalar r.
  * @param c[out] Buffer holding the parameter c.
  * @param s[out] Buffer holding the parameter s.
- * @return vector of events to wait for.
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,

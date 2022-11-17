@@ -162,7 +162,7 @@ first_vector_t concatenate_vectors(first_vector_t first_vector,
 
 /**
  * @brief Defines if a type is a scalar within the context of sycl.
- * @tparam type the type to be tested.
+ * @tparam type The type to be tested.
  */
 template <typename type>
 constexpr bool is_sycl_scalar = std::is_scalar<type>::value || std::is_same<cl::sycl::half, type>::value;
