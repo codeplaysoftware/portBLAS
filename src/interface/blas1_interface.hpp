@@ -389,8 +389,8 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param ex Executor
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
- * @param c[out] scalar representing the output c.
- * @param s[out] scalar representing the output s.
+ * @param c[out] Scalar representing the output c.
+ * @param s[out] Scalar representing the output s.
  */
 template <typename executor_t, typename scalar_t,
           typename std::enable_if<is_sycl_scalar<scalar_t>, bool>::type>
