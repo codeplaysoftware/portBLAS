@@ -887,6 +887,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:nrm2>
                 $<TARGET_OBJECTS:nrm2_return>
                 $<TARGET_OBJECTS:rot>
+                $<TARGET_OBJECTS:rotm>
                 $<TARGET_OBJECTS:rotg>
                 $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>
