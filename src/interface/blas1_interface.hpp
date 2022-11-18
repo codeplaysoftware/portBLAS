@@ -347,6 +347,92 @@ typename executor_t::policy_t::event_t _rot(
 }
 
 /**
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
+ *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _rotm(
+    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _param) {
+  using element_t = typename ValueType<container_0_t>::type;
+
+  auto vx = make_vector_view(ex, _vx, _incx, _N);
+  auto vy = make_vector_view(ex, _vy, _incy, _N);
+
+  constexpr size_t param_size = 5;
+  std::array<element_t, param_size> param_host;
+
+  /* This implementation can be further optimized for small input vectors by
+   * creating a custom kernel that modifies param instead of copying it back to
+   * the host */
+  auto copy_event = ex.get_policy_handler().copy_to_host(
+      _param, param_host.data(), param_size);
+  ex.get_policy_handler().wait(copy_event);
+
+  const element_t flag = param_host[0];
+  element_t h11 = param_host[1];
+  element_t h21 = param_host[2];
+  element_t h12 = param_host[3];
+  element_t h22 = param_host[4];
+
+  using m_two = constant<element_t, const_val::m_two>;
+  using m_one = constant<element_t, const_val::m_one>;
+  using zero = constant<element_t, const_val::zero>;
+  using one = constant<element_t, const_val::one>;
+
+  if (flag == zero::value()) {
+    h11 = one::value();
+    h22 = one::value();
+  } else if (flag == one::value()) {
+    h12 = one::value();
+    h21 = m_one::value();
+  } else if (flag == m_two::value()) {
+    h11 = one::value();
+    h12 = zero::value();
+    h21 = zero::value();
+    h22 = one::value();
+  }
+
+  auto h11TimesVx = make_op<ScalarOp, ProductOperator>(h11, vx);
+  auto h12TimesVy = make_op<ScalarOp, ProductOperator>(h12, vy);
+  auto h21TimesVx = make_op<ScalarOp, ProductOperator>(h21, vx);
+  auto h22TimesVy = make_op<ScalarOp, ProductOperator>(h22, vy);
+  auto vxResult = make_op<BinaryOp, AddOperator>(h11TimesVx, h12TimesVy);
+  auto vyResult = make_op<BinaryOp, AddOperator>(h21TimesVx, h22TimesVy);
+  auto DoubleAssignView = make_op<DoubleAssign>(vx, vy, vxResult, vyResult);
+  auto ret = ex.execute(DoubleAssignView);
+
+  return ret;
+}
+
+/**
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam executor_t Executor type

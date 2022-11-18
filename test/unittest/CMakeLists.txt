@@ -33,6 +33,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
   # Blas 2 tests

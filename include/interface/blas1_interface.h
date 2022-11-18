@@ -208,6 +208,42 @@ typename executor_t::policy_t::event_t _rot(
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
 /**
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
+ *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _rotm(
+    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _param);
+
+/**
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam executor_t Executor type
@@ -551,6 +587,45 @@ typename executor_t::policy_t::event_t _rot(
   return internal::_rot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy, _cos,
                         _sin);
+}
+
+/**
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
+ *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _rotm(
+    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _param) {
+  return internal::_rotm(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
+                        ex.get_policy_handler().get_buffer(_vy), _incy, _param);
 }
 
 /**
