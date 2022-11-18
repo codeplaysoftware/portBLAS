@@ -365,7 +365,7 @@ typename executor_t::policy_t::event_t _rot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          typename std::enable_if<!is_sycl_scalar<container_0_t>, bool>::type>
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type>
 typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
@@ -393,7 +393,7 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param s[out] Scalar representing the output s.
  */
 template <typename executor_t, typename scalar_t,
-          typename std::enable_if<is_sycl_scalar<scalar_t>, bool>::type>
+          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   auto device_a = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_b = make_sycl_iterator_buffer<scalar_t>(1);
