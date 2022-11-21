@@ -49,7 +49,6 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<data_t> a_cpu_v(a_v);
   std::vector<data_t> b_cpu_v(b_v);
 
-  // Looks like we don't have a SYCL rotg implementation
   data_t c_d;
   data_t s_d;
   data_t sa = a_v[0];
