@@ -78,8 +78,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Validate the result
   const bool isAlmostEqual =
-      std::equal(x_cpu_v.begin(), x_cpu_v.end(), x_v.begin()) &&
-      std::equal(y_cpu_v.begin(), y_cpu_v.end(), y_v.begin());
+      utils::compare_vectors<data_t, scalar_t>(x_cpu_v, x_v) &&
+      utils::compare_vectors<data_t, scalar_t>(y_cpu_v, y_v);
   ASSERT_TRUE(isAlmostEqual);
 }
 
