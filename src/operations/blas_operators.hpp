@@ -176,6 +176,13 @@ struct IdentityOperator : public Operators {
   }
 };
 
+struct SignOperator : public Operators {
+  template <typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
+    return cl::sycl::sign(r);
+  }
+};
+
 struct NegationOperator : public Operators {
   template <typename rhs_t>
   static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
@@ -187,6 +194,13 @@ struct SqrtOperator : public Operators {
   template <typename rhs_t>
   static SYCL_BLAS_INLINE rhs_t eval(const rhs_t r) {
     return (cl::sycl::sqrt(r));
+  }
+};
+
+struct HypotenuseOperator : public Operators {
+  template <typename lhs_t, typename rhs_t>
+  static SYCL_BLAS_INLINE rhs_t eval(const lhs_t l, const rhs_t r) {
+    return (cl::sycl::hypot(l, r));
   }
 };
 

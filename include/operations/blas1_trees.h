@@ -182,6 +182,26 @@ struct AssignReduction {
   void adjust_access_displacement();
 };
 
+/*! Rotg.
+ * @brief Implements the rotg (blas level 1 api)
+ */
+template <typename operand_t>
+struct Rotg {
+  using value_t = typename operand_t::value_t;
+  using index_t = typename operand_t::index_t;
+  operand_t a_;
+  operand_t b_;
+  operand_t c_;
+  operand_t s_;
+  Rotg(operand_t& a, operand_t& b, operand_t& c, operand_t& s);
+  index_t get_size() const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
 template <typename operator_t, typename lhs_t, typename rhs_t, typename index_t>
 inline AssignReduction<operator_t, lhs_t, rhs_t> make_AssignReduction(
     lhs_t &lhs_, rhs_t &rhs_, index_t local_num_thread_,

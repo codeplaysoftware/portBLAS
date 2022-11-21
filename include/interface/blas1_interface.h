@@ -208,6 +208,46 @@ typename executor_t::policy_t::event_t _rot(
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
 /**
+ * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam container_3_t Buffer Iterator
+ * @param ex Executor
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
+ * exit, the scalar z.
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
+ * exit, the scalar r.
+ * @param c[out] Buffer holding the parameter c.
+ * @param s[out] Buffer holding the parameter s.
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename container_3_t,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
+typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+                                             container_1_t b, container_2_t c,
+                                             container_3_t s);
+
+/**
+ * \brief Synchronous version of rotg.
+ * Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam scalar_t Scalar type
+ * @param ex Executor
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param c[out] scalar representing the output c.
+ * @param s[out] scalar representing the output s.
+ */
+template <typename executor_t, typename scalar_t,
+          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
+
+/**
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (synchronous version that returns the result directly)
  * @tparam executor_t Executor type
@@ -511,6 +551,50 @@ typename executor_t::policy_t::event_t _rot(
   return internal::_rot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy, _cos,
                         _sin);
+}
+
+/**
+ * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam container_3_t Buffer Iterator
+ * @param ex Executor
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
+ * exit, the scalar z.
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
+ * exit, the scalar r.
+ * @param c[out] Buffer holding the parameter c.
+ * @param s[out] Buffer holding the parameter s.
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename container_3_t,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
+typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+                                             container_1_t b, container_2_t c,
+                                             container_3_t s) {
+  return internal::_rotg(ex, a, b, c, s);
+}
+
+/**
+ * \brief Synchronous version of rotg.
+ * Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam scalar_t Scalar type
+ * @param ex Executor
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param c[out] scalar representing the output c.
+ * @param s[out] scalar representing the output s.
+ */
+template <typename executor_t, typename scalar_t,
+          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
+  internal::_rotg(ex, a, b, c, s);
 }
 
 /**
