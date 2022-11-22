@@ -80,12 +80,12 @@ function(add_sycl_to_target)
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
                             PUBLIC --cuda-gpu-arch=sm_80 
-			    PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
+			                      PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
   if (NOT target_type STREQUAL "OBJECT_LIBRARY")
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
                             PUBLIC --cuda-gpu-arch=sm_80 
-			    PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
+			                      PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
   endif()
 endfunction()

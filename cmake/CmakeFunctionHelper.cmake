@@ -796,6 +796,12 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
         "${data}" 128 "false" "false" "false"
         128 1 1 2 2 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
+        "${data}" 128 "false" "false" "false"
+          128 1 1 1 4 32 8 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
+    add_gemm_configuration(
+        "${data}" 128 "false" "false" "false"
+          128 1 1 4 1 8 32 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
+    add_gemm_configuration(
         "${data}"  32 "false" "false" "false"
         64 1 1 1 1 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(

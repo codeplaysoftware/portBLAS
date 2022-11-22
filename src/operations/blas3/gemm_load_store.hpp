@@ -122,11 +122,11 @@ struct Packetize {
     using address_t = cl::sycl::access::address_space;
     // packet.template store<address_t::local_space>(
     //     0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
-    // using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+    using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
     // using dtype = cl::sycl::half;
-    // *dest = static_cast<dtype>(packet[0]);
-    using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    *dest = round_to_tf32(packet[0]);
+    *dest = static_cast<dtype>(packet[0]);
+    // using namespace cl::sycl::ext::oneapi::experimental::matrix;
+    // *dest = round_to_tf32(packet[0]);
     // cl::sycl::ext::oneapi::experimental::printf("packet:%f\n", packet[0]);
   }
 };
