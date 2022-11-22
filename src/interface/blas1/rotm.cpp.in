@@ -1,0 +1,72 @@
+/***************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename rotm.cpp.in
+ *
+ **************************************************************************/
+#include "container/sycl_iterator.hpp"
+#include "executors/executor_sycl.hpp"
+#include "executors/kernel_constructor.hpp"
+#include "interface/blas1_interface.hpp"
+#include "operations/blas1_trees.hpp"
+#include "operations/blas_constants.hpp"
+#include "policy/sycl_policy_handler.hpp"
+#include "views/view_sycl.hpp"
+
+namespace blas {
+namespace internal {
+
+/**
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
+ *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template typename Executor<${EXECUTOR}>::policy_t::event_t _rotm(
+    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
+    ${container_t2} _param);
+}  // namespace internal
+}  // namespace blas
