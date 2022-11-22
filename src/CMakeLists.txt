@@ -24,4 +24,3 @@
 # **************************************************************************/
 add_subdirectory(policy)
 add_subdirectory(interface)
-add_subdirectory(quantize)

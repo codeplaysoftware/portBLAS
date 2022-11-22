@@ -870,7 +870,6 @@ endfunction(generate_quantize)
 
 function (build_library LIB_NAME ENABLE_EXTENSIONS)
   set(LIB_SRCS  $<TARGET_OBJECTS:sycl_policy>
-                $<TARGET_OBJECTS:quantize>
                 $<TARGET_OBJECTS:axpy>
                 $<TARGET_OBJECTS:asum>
                 $<TARGET_OBJECTS:asum_return>
