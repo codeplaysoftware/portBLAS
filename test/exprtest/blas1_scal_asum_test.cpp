@@ -24,6 +24,7 @@
  *
  **************************************************************************/
 #include "blas_test.hpp"
+#include "blas_test_macros.hpp"
 #include "sycl_blas.hpp"
 
 // inputs combination
@@ -104,4 +105,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, alpha, incX);
 }
 
-BLAS_REGISTER_TEST(ScalAsumTree, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_FLOAT(ScalAsumTree, combination_t, combi, generate_name);
