@@ -114,4 +114,4 @@ static std::string generate_name(
                      ldbMul, unusedValue);
 }
 
-BLAS_REGISTER_TEST(Trsm, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Trsm, combination_t, combi, generate_name);

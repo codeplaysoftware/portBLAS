@@ -214,4 +214,4 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
 
-BLAS_REGISTER_TEST(ReductionPartial, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(ReductionPartial, combination_t, combi, generate_name);

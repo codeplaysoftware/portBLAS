@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *  @license
- *  Dotright (C) Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
- *  You may obtain a dot of the License at
+ *  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  For your convenience, a dot of the License has been included in this
+ *  For your convenience, a copy of the License has been included in this
  *  repository.
  *
  *  Unless required by applicable law or agreed to in writing, software
@@ -19,47 +19,64 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas1_dot_test.cpp
+ *  @filename blas1_rot_test.cpp
  *
  **************************************************************************/
 
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<int, int, int>;
+using combination_t = std::tuple<int, int, int, scalar_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(size, incX, incY) = combi;
+  scalar_t unused;  /* Necessary to work around dpcpp compiler bug */
+  std::tie(size, incX, incY, unused) = combi;
 
   using data_t = utils::data_storage_t<scalar_t>;
 
   // Input vectors
-  std::vector<data_t> x_v(size * incX);
-  fill_random(x_v);
-  std::vector<data_t> y_v(size * incY);
-  fill_random(y_v);
+  std::vector<data_t> a_v(size * incX);
+  fill_random(a_v);
+  std::vector<data_t> b_v(size * incY);
+  fill_random(b_v);
 
-  // Output vector
+  // Output vectors
   std::vector<data_t> out_s(1, 10.0);
+  std::vector<data_t> a_cpu_v(a_v);
+  std::vector<data_t> b_cpu_v(b_v);
+
+  data_t c_d;
+  data_t s_d;
+  data_t sa = a_v[0];
+  data_t sb = a_v[1];
+  reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
   // Reference implementation
+  std::vector<data_t> c_cpu_v(size * incX);
+  std::vector<data_t> s_cpu_v(size * incY);
+  reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
+                      s_d);
   auto out_cpu_s =
-      reference_blas::dot(size, x_v.data(), incX, y_v.data(), incY);
+      reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
 
   // SYCL implementation
   auto q = make_queue();
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
+  auto gpu_a_v = utils::make_quantized_buffer<scalar_t>(ex, a_v);
+  auto gpu_b_v = utils::make_quantized_buffer<scalar_t>(ex, b_v);
   auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
 
-  _dot(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+  auto c = static_cast<scalar_t>(c_d);
+  auto s = static_cast<scalar_t>(s_d);
+
+  _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+  _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
   auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
   ex.get_policy_handler().wait(event);
 
@@ -67,20 +84,20 @@ void run_test(const combination_t<scalar_t> combi) {
   const bool isAlmostEqual =
       utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING
 const auto combi =
     ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
                        ::testing::Values(1, 4),                   // incX
-                       ::testing::Values(1, 3)                    // incY
+                       ::testing::Values(1, 3),                   // incY
+                       ::testing::Values(0)                       // unused
     );
 #else
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(1, 4),      // incX
-                                      ::testing::Values(1, 3)       // incY
+                                      ::testing::Values(4),         // incX
+                                      ::testing::Values(3),         // incY
+                                      ::testing::Values(0)          // unused
 );
 #endif
 
@@ -88,7 +105,8 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   int size, incX, incY;
-  BLAS_GENERATE_NAME(info.param, size, incX, incY);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, size, incX, incY, unused);
 }
 
-BLAS_REGISTER_TEST_ALL(Dot, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);

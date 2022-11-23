@@ -45,7 +45,7 @@
 /** Registers test for the float type
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,      \
+#define BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(test_suite, class_name, test_function,      \
                                  combination_t, combination, name_generator) \
   class class_name##Float                                                    \
       : public ::testing::TestWithParam<combination_t<float>> {};            \
@@ -65,7 +65,7 @@
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Double, combination,       \
                            name_generator<double>);
 #else
-#define BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function, \
+#define BLAS_REGISTER_TEST_DOUBLE_CUSTOM_NAME(test_suite, class_name, test_function, \
                                   combination_t, combination, name_generator)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
@@ -83,7 +83,7 @@
   INSTANTIATE_TEST_SUITE_P(test_suite, class_name##Half, combination,       \
                            name_generator<cl::sycl::half>);
 #else
-#define BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function, \
+#define BLAS_REGISTER_TEST_HALF_CUSTOM_NAME(test_suite, class_name, test_function, \
                                 combination_t, combination, name_generator)
 #endif  // BLAS_DATA_TYPE_HALF
 
@@ -99,19 +99,27 @@
 #define BLAS_REGISTER_TEST_CUSTOM_NAME(test_suite, class_name, test_function, \
                                        combination_t, combination,            \
                                        name_generator)                        \
-  BLAS_REGISTER_TEST_FLOAT(test_suite, class_name, test_function,             \
+  BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(test_suite, class_name, test_function,             \
                            combination_t, combination, name_generator);       \
-  BLAS_REGISTER_TEST_DOUBLE(test_suite, class_name, test_function,            \
+  BLAS_REGISTER_TEST_DOUBLE_CUSTOM_NAME(test_suite, class_name, test_function,            \
                             combination_t, combination, name_generator);      \
-  BLAS_REGISTER_TEST_HALF(test_suite, class_name, test_function,              \
+  BLAS_REGISTER_TEST_HALF_CUSTOM_NAME(test_suite, class_name, test_function,              \
                           combination_t, combination, name_generator);
 
 /** Registers test for all supported data types
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
  */
-#define BLAS_REGISTER_TEST(class_name, combination_t, combination, \
+#define BLAS_REGISTER_TEST_ALL(class_name, combination_t, combination, \
                            name_generator)                         \
   BLAS_REGISTER_TEST_CUSTOM_NAME(class_name, class_name, run_test, \
+                                 combination_t, combination, name_generator)
+
+/** Registers test for the float data type
+ * @see BLAS_REGISTER_TEST_CUSTOM_NAME
+ */
+#define BLAS_REGISTER_TEST_FLOAT(class_name, combination_t, combination, \
+                           name_generator)                         \
+  BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(class_name, class_name, run_test, \
                                  combination_t, combination, name_generator)
 
 #endif  // TEST_BLAS_TEST_MACROS_HPP

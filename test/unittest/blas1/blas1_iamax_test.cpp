@@ -49,4 +49,4 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_EQ(x_v[out_cpu_s * incX], out_data_s.val);
 }
 
-BLAS_REGISTER_TEST(Iamax, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Iamax, combination_t, combi, generate_name);

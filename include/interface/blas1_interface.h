@@ -63,19 +63,55 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
                                              increment_t _incy);
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename executor_t::policy_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs);
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation and adds a scalar to the result (Asynchronous version that
+ * returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb Scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _sdsdot(
+        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+        container_1_t _vy, increment_t _incy, container_2_t _rs);
+
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param ex Executor
@@ -172,14 +208,98 @@ typename executor_t::policy_t::event_t _rot(
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
 /**
- * \brief Compute the inner product of two vectors with extended
-    precision accumulation and result.
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
  *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _rotm(
+    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _param);
+
+/**
+ * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam container_3_t Buffer Iterator
+ * @param ex Executor
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
+ * exit, the scalar z.
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
+ * exit, the scalar r.
+ * @param c[out] Buffer holding the parameter c.
+ * @param s[out] Buffer holding the parameter s.
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename container_3_t,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
+typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+                                             container_1_t b, container_2_t c,
+                                             container_3_t s);
+
+/**
+ * \brief Synchronous version of rotg.
+ * Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam scalar_t Scalar type
+ * @param ex Executor
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param c[out] scalar representing the output c.
+ * @param s[out] scalar representing the output s.
+ */
+template <typename executor_t, typename scalar_t,
+          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (synchronous version that returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -188,6 +308,34 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy);
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation and adds a scalar to the result (synchronous version that
+ * returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb Scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
+ */
+template<typename executor_t, typename container_0_t, typename container_1_t,
+        typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t& ex, index_t _N, float sb,
+                                                container_0_t _vx,
+                                                increment_t _incx,
+                                                container_1_t _vy,
+                                                increment_t _incy);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator
@@ -262,13 +410,22 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended precision
-    accumulation.
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (Asynchronous version that returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
@@ -278,6 +435,36 @@ typename executor_t::policy_t::event_t _dot(
   return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy,
                         ex.get_policy_handler().get_buffer(_rs));
+}
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation and adds a scalar to the result (Asynchronous version that
+ * returns an event)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb Scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _sdsdot(
+        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+        container_1_t _vy, increment_t _incy, container_2_t _rs) {
+    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+                          ex.get_policy_handler().get_buffer(_vy), _incy,
+                          ex.get_policy_handler().get_buffer(_rs));
 }
 
 /**
@@ -403,14 +590,105 @@ typename executor_t::policy_t::event_t _rot(
 }
 
 /**
- * \brief Compute the inner product of two vectors with extended
-    precision accumulation and result.
+ * @brief Performs a modified Givens rotation of points.
+ * Given two vectors x and y and a modified Givens transformation matrix, each
+ * element of x and y is replaced as follows:
  *
+ * [xi] = [h11 h12] * [xi]
+ * [yi]   [h21 h22]   [yi]
+ *
+ * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ *
+ * The value of the flag parameter can be used to modify the matrix as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
  * @param ex Executor
- * @param _vx BufferIterator
- * @param _incx Increment for the vector X
- * @param _vx BufferIterator
- * @param _incy Increment for the vector Y
+ * @param _N Input buffer sizes (for vx and vy).
+ * @param[in, out] _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param[in, out] _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::policy_t::event_t _rotm(
+    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _param) {
+  return internal::_rotm(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
+                        ex.get_policy_handler().get_buffer(_vy), _incy, _param);
+}
+
+/**
+ * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam container_3_t Buffer Iterator
+ * @param ex Executor
+ * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
+ * exit, the scalar z.
+ * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
+ * exit, the scalar r.
+ * @param c[out] Buffer holding the parameter c.
+ * @param s[out] Buffer holding the parameter s.
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename container_3_t,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
+typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+                                             container_1_t b, container_2_t c,
+                                             container_3_t s) {
+  return internal::_rotg(ex, a, b, c, s);
+}
+
+/**
+ * \brief Synchronous version of rotg.
+ * Given the Cartesian coordinates (a, b) of a point, the rotg routines
+ * return the parameters c, s, r, and z associated with the Givens rotation.
+ * @tparam executor_t Executor type
+ * @tparam scalar_t Scalar type
+ * @param ex Executor
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param c[out] scalar representing the output c.
+ * @param s[out] scalar representing the output s.
+ */
+template <typename executor_t, typename scalar_t,
+          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
+  internal::_rotg(ex, a, b, c, s);
+}
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation (synchronous version that returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -421,6 +699,37 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incy) {
   return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
                         ex.get_policy_handler().get_buffer(_vy), _incy);
+}
+
+/**
+ * \brief Computes the inner product of two vectors with double precision
+ * accumulation and adds a scalar to the result (synchronous version that
+ * returns the result directly)
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam index_t Index type
+ * @tparam increment_t Increment type
+ * @param ex Executor
+ * @param _N Input buffer sizes. If size 0, the result will be sb.
+ * @param sb Scalar to add to the results of the inner product.
+ * @param _vx Buffer holding input vector x
+ * @param _incx Stride of vector x (i.e. measured in elements of _vx)
+ * @param _vy Buffer holding input vector y
+ * @param _incy Stride of vector y (i.e. measured in elements of _vy)
+ * @param _rs Output buffer
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+        typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
+                                             container_0_t _vx,
+                                             increment_t _incx,
+                                             container_1_t _vy,
+                                             increment_t _incy) {
+    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
+                          ex.get_policy_handler().get_buffer(_vy), _incy);
 }
 
 /**

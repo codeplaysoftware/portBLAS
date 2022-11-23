@@ -119,7 +119,7 @@ const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
 );
 
 // Finaly register the new test
-BLAS_REGISTER_TEST(Trsm, combination_t, combi);
+BLAS_REGISTER_TEST_ALL(Trsm, combination_t, combi);
 ```
 
 By this point, you are expected to get a linker error saying the symbol for the internal

@@ -107,4 +107,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, upl0, n, alpha, ldaMul, incX, beta, incY);
 }
 
-BLAS_REGISTER_TEST(Symv, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Symv, combination_t, combi, generate_name);

@@ -367,6 +367,90 @@ add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_ternary_objects)
 
 
+# blas function for generating source code for the rotg operator (asynchronous version with containers)
+function(generate_blas_rotg_objects blas_level func)
+  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+  foreach (executor ${executor_list})
+    foreach (data ${data_list})
+      cpp_type(cpp_data ${data})
+      list(APPEND container_list_in_out "BufferIterator<${cpp_data},codeplay_policy>")
+      foreach (container0 ${container_list_in_out})
+        foreach (container1 ${container_list_in_out})
+          foreach (container2 ${container_list_in_out})
+            foreach (container3 ${container_list_in_out})
+              set(container_names "${container0}_${container1}_${container2}_${container3}")
+              sanitize_file_name(file_name
+                      "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
+              add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg.py
+                      ${PROJECT_SOURCE_DIR}/external/
+                      ${SYCLBLAS_SRC_GENERATOR}/gen
+                      ${blas_level}
+                      ${func}
+                      ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                      ${executor}
+                      ${cpp_data}
+                      ${container0}
+                      ${container1}
+                      ${container2}
+                      ${container3}
+                      ${file_name}
+                      MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg.py
+                      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                      VERBATIM
+                      )
+              list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+            endforeach (container3)
+          endforeach (container2)
+        endforeach (container1)
+      endforeach (container0)
+    endforeach (data)
+  endforeach (executor)
+  add_library(${func} OBJECT ${FUNC_SRC})
+  set_target_compile_def(${func})
+  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
+  message(STATUS "Adding SYCL to target ${func}")
+  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
+endfunction(generate_blas_rotg_objects)
+
+
+# blas function for generating source code for the rotg operator (synchronous version)
+function(generate_blas_rotg_return_objects blas_level func)
+  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+  foreach (executor ${executor_list})
+    foreach (data ${data_list})
+      cpp_type(cpp_data ${data})
+      set(container_list "BufferIterator<${cpp_data},codeplay_policy>")
+      sanitize_file_name(file_name
+              "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+      add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg_return.py
+              ${PROJECT_SOURCE_DIR}/external/
+              ${SYCLBLAS_SRC_GENERATOR}/gen
+              ${blas_level}
+              ${func}
+              ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+              ${executor}
+              ${cpp_data}
+              ${file_name}
+              MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+              DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg_return.py
+              WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+              VERBATIM
+              )
+      list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+    endforeach (data)
+  endforeach (executor)
+  add_library(${func} OBJECT ${FUNC_SRC})
+  set_target_compile_def(${func})
+  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
+  message(STATUS "Adding SYCL to target ${func}")
+  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
+endfunction(generate_blas_rotg_return_objects)
+
 # blas gemm function for generating source code
 function(generate_blas_gemm_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
@@ -793,6 +877,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:copy>
                 $<TARGET_OBJECTS:dot>
                 $<TARGET_OBJECTS:dot_return>
+                $<TARGET_OBJECTS:sdsdot>
+                $<TARGET_OBJECTS:sdsdot_return>
                 $<TARGET_OBJECTS:iamax>
                 $<TARGET_OBJECTS:iamax_return>
                 $<TARGET_OBJECTS:iamin>
@@ -800,6 +886,9 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:nrm2>
                 $<TARGET_OBJECTS:nrm2_return>
                 $<TARGET_OBJECTS:rot>
+                $<TARGET_OBJECTS:rotm>
+                $<TARGET_OBJECTS:rotg>
+                $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>
                 $<TARGET_OBJECTS:swap>
                 $<TARGET_OBJECTS:gemv>

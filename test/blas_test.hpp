@@ -240,7 +240,8 @@ struct dump_arg_helper<
     }
     StdFloat int_part;
     StdFloat frac_part = std::modf(f, &int_part);
-    ss << int_part;
+    ss << std::fixed  << std::setprecision(0) << int_part;
+
     if (frac_part > 0) {
       ss << "p" << (int)(frac_part * 100);
     }
@@ -254,6 +255,23 @@ template <>
 struct dump_arg_helper<cl::sycl::half> {
   inline void operator()(std::ostream &ss, cl::sycl::half f) {
     dump_arg_helper<float>{}(ss, f);
+  }
+};
+
+/**
+ * Return type of the tested api (either asynchronous (event) or
+ * synchronous(result))
+ */
+enum class api_type : int { event = 0, result = 1 };
+
+template <>
+struct dump_arg_helper<api_type> {
+  inline void operator()(std::ostream &ss, const api_type &type) {
+    if (type == api_type::event) {
+      ss << "event";
+    } else {
+      ss << "result";
+    }
   }
 };
 
