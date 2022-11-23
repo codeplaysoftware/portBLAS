@@ -118,4 +118,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, alpha, incX, incY);
 }
 
-BLAS_REGISTER_TEST(AxpyCopyTree, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_FLOAT(AxpyCopyTree, combination_t, combi, generate_name);

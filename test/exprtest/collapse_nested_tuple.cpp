@@ -107,4 +107,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, factor);
 }
 
-BLAS_REGISTER_TEST(CollapseNestedTuple, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_FLOAT(CollapseNestedTuple, combination_t, combi, generate_name);
