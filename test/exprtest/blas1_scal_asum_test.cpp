@@ -24,7 +24,6 @@
  *
  **************************************************************************/
 #include "blas_test.hpp"
-#include "blas_test_macros.hpp"
 #include "sycl_blas.hpp"
 
 // inputs combination
