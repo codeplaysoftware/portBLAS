@@ -35,29 +35,27 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incX;
   std::tie(size, alpha, incX) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input/output vector
-  std::vector<data_t> x_v(size * incX);
-  std::vector<data_t> x_cpu_v(x_v);
+  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_cpu_v(x_v);
 
   // Reference implementation
-  reference_blas::scal(size, static_cast<data_t>(alpha), x_cpu_v.data(), incX);
+  reference_blas::scal(size, alpha, x_cpu_v.data(), incX);
 
   // SYCL implementation
   auto q = make_queue();
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
 
   _scal(ex, size, alpha, gpu_x_v, incX);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_x_v, x_v);
+  auto event =
+      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(x_v, x_cpu_v);
+  const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
 
   ex.get_policy_handler().get_queue().wait();

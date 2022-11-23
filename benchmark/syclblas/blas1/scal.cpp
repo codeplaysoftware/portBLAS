@@ -44,24 +44,20 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
-  auto in = utils::make_quantized_buffer<scalar_t>(ex, v1);
+  auto in = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> v1_ref = v1;
-  reference_blas::scal(size, static_cast<data_t>(alpha), v1_ref.data(), 1);
-  std::vector<data_t> v1_temp = v1;
+  std::vector<scalar_t> v1_ref = v1;
+  reference_blas::scal(size, alpha, v1_ref.data(), 1);
+  std::vector<scalar_t> v1_temp = v1;
   {
-    auto v1_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, v1_temp);
-    _scal(ex, size, alpha, v1_temp_gpu, static_cast<index_t>(1));
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, v1_temp_gpu, v1_temp);
+    auto v1_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v1_temp, size);
+    auto event = _scal(ex, size, alpha, v1_temp_gpu, static_cast<index_t>(1));
     ex.get_policy_handler().wait(event);
   }
 

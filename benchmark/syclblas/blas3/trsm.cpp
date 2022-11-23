@@ -46,44 +46,42 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
 
   // Matrices
-  std::vector<data_t> a(sizeA);
-  std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(sizeB);
+  std::vector<scalar_t> a(sizeA);
+  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(sizeB);
 
-  const data_t diagValue =
-      diag == 'u'
-          ? data_t{1}
-          : blas_benchmark::utils::random_scalar<data_t>(data_t{1}, data_t{10});
+  const scalar_t diagValue =
+      diag == 'u' ? scalar_t{1}
+                  : blas_benchmark::utils::random_scalar<scalar_t>(
+                        scalar_t{1}, scalar_t{10});
 
   blas_benchmark::utils::fill_trsm_matrix(a, k, lda, uplo, diagValue,
-                                          data_t{0});
+                                          scalar_t{0});
 
-  auto a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a);
-  auto b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b);
+  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, sizeA);
+  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, sizeB);
 
   a_gpu.get_buffer().set_final_data(nullptr);
   b_gpu.get_buffer().set_final_data(nullptr);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run once verifying the results against the reference blas implementation.
-  std::vector<data_t> x_ref = b;
-  std::vector<data_t> b_temp = b;
+  std::vector<scalar_t> x_ref = b;
+  std::vector<scalar_t> b_temp = b;
 
   reference_blas::trsm(&side, &uplo, &trans, &diag, m, n,
-                       static_cast<data_t>(alpha), a.data(), lda, x_ref.data(),
-                       ldb);
+                       static_cast<scalar_t>(alpha), a.data(), lda,
+                       x_ref.data(), ldb);
 
   {
-    auto b_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, b_temp);
+    auto b_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_temp, sizeB);
     _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_temp_gpu,
           ldb);
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, b_temp_gpu, b_temp);
+    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+        b_temp_gpu, b_temp.data(), sizeB);
     ex.get_policy_handler().wait(event);
   }
 

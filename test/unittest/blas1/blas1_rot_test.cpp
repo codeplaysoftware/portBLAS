@@ -36,28 +36,26 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t unused;  /* Necessary to work around dpcpp compiler bug */
   std::tie(size, incX, incY, unused) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input vectors
-  std::vector<data_t> a_v(size * incX);
+  std::vector<scalar_t> a_v(size * incX);
   fill_random(a_v);
-  std::vector<data_t> b_v(size * incY);
+  std::vector<scalar_t> b_v(size * incY);
   fill_random(b_v);
 
   // Output vectors
-  std::vector<data_t> out_s(1, 10.0);
-  std::vector<data_t> a_cpu_v(a_v);
-  std::vector<data_t> b_cpu_v(b_v);
+  std::vector<scalar_t> out_s(1, 10.0);
+  std::vector<scalar_t> a_cpu_v(a_v);
+  std::vector<scalar_t> b_cpu_v(b_v);
 
-  data_t c_d;
-  data_t s_d;
-  data_t sa = a_v[0];
-  data_t sb = a_v[1];
+  scalar_t c_d;
+  scalar_t s_d;
+  scalar_t sa = a_v[0];
+  scalar_t sb = a_v[1];
   reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
   // Reference implementation
-  std::vector<data_t> c_cpu_v(size * incX);
-  std::vector<data_t> s_cpu_v(size * incY);
+  std::vector<scalar_t> c_cpu_v(size * incX);
+  std::vector<scalar_t> s_cpu_v(size * incY);
   reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
                       s_d);
   auto out_cpu_s =
@@ -68,21 +66,22 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_a_v = utils::make_quantized_buffer<scalar_t>(ex, a_v);
-  auto gpu_b_v = utils::make_quantized_buffer<scalar_t>(ex, b_v);
-  auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+  auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(a_v, size * incX);
+  auto gpu_b_v = blas::make_sycl_iterator_buffer<scalar_t>(b_v, size * incY);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
 
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
   _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
   _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
+  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(gpu_out_s,
+                                                              out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
   // Validate the result
   const bool isAlmostEqual =
-      utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
+      utils::almost_equal<scalar_t, scalar_t>(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
 }
 

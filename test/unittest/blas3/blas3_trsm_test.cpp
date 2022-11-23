@@ -42,7 +42,6 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul,
            unusedValue) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
 
   const index_t lda = (side == 'l' ? m : n) * ldaMul;
   const index_t ldb = m * ldbMul;
@@ -51,37 +50,35 @@ void run_test(const combination_t<scalar_t> combi) {
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
 
-  std::vector<data_t> A(sizeA);
-  std::vector<data_t> B(sizeB);
-  std::vector<data_t> cpu_B(sizeB);
+  std::vector<scalar_t> A(sizeA);
+  std::vector<scalar_t> B(sizeB);
+  std::vector<scalar_t> cpu_B(sizeB);
 
-  const data_t diagValue =
-      diag == 'u' ? data_t{1} : random_scalar(data_t{1}, data_t{10});
+  const scalar_t diagValue =
+      diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
 
   fill_trsm_matrix(A, k, lda, uplo, diagValue,
-                   static_cast<data_t>(unusedValue));
+                   static_cast<scalar_t>(unusedValue));
   fill_random(B);
 
   // Create a copy of B to calculate the reference outputs
   cpu_B = B;
   reference_blas::trsm(&side, &uplo, &trans, &diag, m, n,
-                       static_cast<data_t>(alpha), A.data(), lda, cpu_B.data(),
-                       ldb);
+                       static_cast<scalar_t>(alpha), A.data(), lda,
+                       cpu_B.data(), ldb);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto a_gpu = utils::make_quantized_buffer<scalar_t>(
-      ex, A);  //::make_sycl_iterator_buffer<scalar_t>(A, A.size());
-  auto b_gpu = utils::make_quantized_buffer<scalar_t>(
-      ex, B);  // blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
+  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(A, A.size());
+  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
 
   _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, b_gpu, B);
-
+  auto event =
+      ex.get_policy_handler().copy_to_host<scalar_t>(b_gpu, B.data(), B.size());
   ex.get_policy_handler().wait(event);
 
-  bool isAlmostEqual = utils::compare_vectors<data_t, scalar_t>(cpu_B, B);
+  bool isAlmostEqual = utils::compare_vectors(cpu_B, B);
 
   ASSERT_TRUE(isAlmostEqual);
   ex.get_policy_handler().wait();

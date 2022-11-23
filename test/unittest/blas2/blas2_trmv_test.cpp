@@ -44,15 +44,13 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(uplo, trans, diag, n, incX, lda_mul) = combi;
   index_t lda = n * lda_mul;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input matrix
-  std::vector<data_t> a_m(lda * n);
+  std::vector<scalar_t> a_m(lda * n);
   fill_random(a_m);
 
   // Output Vector
-  std::vector<data_t> x_v(n * incX, 7.0);
-  std::vector<data_t> x_cpu_v(n * incX, 7.0);
+  std::vector<scalar_t> x_v(n * incX, 7.0);
+  std::vector<scalar_t> x_cpu_v(n * incX, 7.0);
 
   // If this is a unit triangle, we should set the diagonal
   if (diag == 'u' || diag == 'U') {
@@ -68,17 +66,17 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto a_m_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
-  auto x_v_gpu = utils::make_quantized_buffer<scalar_t>(ex, x_v);
+  auto a_m_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
+  auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
 
   // SYCLtrmv
   _trmv(ex, uplo, trans, diag, n, a_m_gpu, lda, x_v_gpu, incX);
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, x_v_gpu, x_v);
+  auto event =
+      ex.get_policy_handler().copy_to_host(x_v_gpu, x_v.data(), n * incX);
   ex.get_policy_handler().wait(event);
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(x_v, x_cpu_v);
+  const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
 }
 

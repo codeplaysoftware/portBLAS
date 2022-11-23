@@ -52,21 +52,19 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Matrix
-  std::vector<data_t> mat =
-      blas_benchmark::utils::random_data<data_t>(rows * cols);
-  auto mat_buffer = utils::make_quantized_buffer<scalar_t>(ex, mat);
+  std::vector<scalar_t> mat =
+      blas_benchmark::utils::random_data<scalar_t>(rows * cols);
+  auto mat_buffer = blas::make_sycl_iterator_buffer<scalar_t>(mat, rows * cols);
 
   // Output vector
-  std::vector<data_t> vec = blas_benchmark::utils::random_data<data_t>(
+  std::vector<scalar_t> vec = blas_benchmark::utils::random_data<scalar_t>(
       (dim == reduction_dim_t::outer) ? rows : cols);
-  auto vec_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec);
+  auto vec_buffer = blas::make_sycl_iterator_buffer<scalar_t>(vec, vec.size());
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
-  std::vector<data_t> vec_ref = vec;
+  std::vector<scalar_t> vec_ref = vec;
   /* Reduce the reference by hand on CPU */
   if (dim == reduction_dim_t::outer) {
     for (index_t i = 0; i < rows; i++) {
@@ -83,13 +81,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
       }
     }
   }
-  std::vector<data_t> vec_temp = vec;
+  std::vector<scalar_t> vec_temp = vec;
   {
-    auto vec_temp_buffer = utils::make_quantized_buffer<scalar_t>(ex, vec_temp);
+    auto vec_temp_buffer = blas::make_sycl_iterator_buffer<scalar_t>(
+        vec_temp.data(), vec_temp.size());
+
     extension::_reduction<AddOperator, scalar_t>(
         ex, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, vec_temp_buffer, vec_temp);
+    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+        vec_temp_buffer, vec_temp.data(), vec_temp.size());
     ex.get_policy_handler().wait(event);
   }
 
