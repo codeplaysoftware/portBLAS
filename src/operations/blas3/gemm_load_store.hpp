@@ -68,7 +68,22 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
-    *(dest) = in_range ? *(src) : value_t{0};
+    auto val = in_range ? *(src) : value_t{0};
+    using address_t = cl::sycl::access::address_space;
+    if constexpr (
+      std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
+                    DestPointerType>::value) {
+      using dtype = cl::sycl::half;
+      *dest = static_cast<dtype>(val);
+    } else if constexpr (
+      std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
+                    DestPointerType>::value) {
+      using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+      *dest = static_cast<dtype>(val);
+    } else {
+      using namespace cl::sycl::ext::oneapi::experimental::matrix;
+      *dest = round_to_tf32(val);
+    }
   }
   /*! @brief Performs a vectorised load using sycl::vec::load when the current
    * block is internal. In the case where k < the
@@ -106,9 +121,24 @@ struct Packetize {
   template <bool trans, index_t ld, typename DestPointerType>
   static SYCL_BLAS_INLINE typename std::enable_if<trans>::type store(
       PacketType &packet, DestPointerType dest) {
+    using address_t = cl::sycl::access::address_space;
 #pragma unroll
     for (index_t i = 0; i < packet_size; i++) {
-      *(dest + ld * i) = reinterpret_cast<value_t *>(&packet)[i];
+      auto val = reinterpret_cast<value_t *>(&packet)[i];
+      if constexpr (
+        std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
+                      DestPointerType>::value) {
+        using dtype = cl::sycl::half;
+        *(dest + ld * i) = static_cast<dtype>(val);
+      } else if constexpr (
+        std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
+                      DestPointerType>::value) {
+        using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+        *(dest + ld * i) = static_cast<dtype>(val);
+      } else {
+        using namespace cl::sycl::ext::oneapi::experimental::matrix;
+        *(dest + ld * i) = round_to_tf32(val);
+      }
     }
   }
 
@@ -122,11 +152,21 @@ struct Packetize {
     using address_t = cl::sycl::access::address_space;
     // packet.template store<address_t::local_space>(
     //     0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
-    using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
-    // using dtype = cl::sycl::half;
-    *dest = static_cast<dtype>(packet[0]);
-    // using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    // *dest = round_to_tf32(packet[0]);
+    // using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+    if constexpr (
+      std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
+                    DestPointerType>::value) {
+      using dtype = cl::sycl::half;
+      *dest = static_cast<dtype>(packet[0]);
+    } else if constexpr (
+      std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
+                    DestPointerType>::value) {
+      using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+      *dest = static_cast<dtype>(packet[0]);
+    } else {
+      using namespace cl::sycl::ext::oneapi::experimental::matrix;
+      *dest = round_to_tf32(packet[0]);
+    }
     // cl::sycl::ext::oneapi::experimental::printf("packet:%f\n", packet[0]);
   }
 };

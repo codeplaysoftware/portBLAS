@@ -313,35 +313,54 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     m = m - wg_row -
         (trans_a ? item_id / cl_elems : item_id % block_rows);
 
-    using address_t = cl::sycl::access::address_space;
-    using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
-    // using dtype = cl::sycl::half;
-    auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<dtype, address_t::local_space>*>(&scratch);
-    auto s1 =
-        input_scratch +
+    const index_t s1_offset =
         (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
                  : item_id % cl_elems + (item_id / cl_elems) * ldsb);
-    // auto s2 = scratch + (item_id / wg_rows) * item_cols * ldsb;
-    auto s2 = input_scratch + (sg_id / wg_rows) * sg_cols * ldsb;
-    index_t ofs = (double_buffer + 1) * block_cols * ldsb;
-    auto s3 =
-        input_scratch + ofs +
+    const index_t s2_offset = (sg_id / wg_rows) * sg_cols * ldsb;
+    const index_t ofs = (double_buffer + 1) * block_cols * ldsb;
+    const index_t s3_offset =
+        ofs +
         (trans_a
              ? item_id / cl_elems + (item_id % cl_elems) * ldsa
              : item_id % block_rows + (item_id / block_rows) * ldsa);
-    // auto s4 = scratch + ofs + (item_id % wg_rows * vector_offset);
-    auto s4 = input_scratch + ofs + (sg_id % wg_rows) * sg_rows;
+    const index_t s4_offset = ofs + (sg_id % wg_rows) * sg_rows;
 
-    if (internal) {
-      compute_panel_gemm<double_buffer, false, false>(
-          id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-          ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, reg_a, reg_b, out_of_range,
-          batch_stride, wg_batch_id, batch_size_);
+    if constexpr (std::is_same<typename tile_type::jmInpType, cl::sycl::ext::oneapi::experimental::matrix::precision::tf32>::value) {
+      auto s1 = scratch + s1_offset;
+      auto s2 = scratch + s2_offset;
+      auto s3 = scratch + s3_offset;
+      auto s4 = scratch + s4_offset;
+
+      if (internal) {
+        compute_panel_gemm<double_buffer, false, false>(
+            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
+            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
+            batch_stride, wg_batch_id, batch_size_);
+      } else {
+        compute_panel_gemm<double_buffer, true, true>(
+            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
+            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
+            batch_stride, wg_batch_id, batch_size_);
+      }
     } else {
-      compute_panel_gemm<double_buffer, true, true>(
-          id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-          ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, reg_a, reg_b, out_of_range,
-          batch_stride, wg_batch_id, batch_size_);
+      using address_t = cl::sycl::access::address_space;
+      auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<typename tile_type::jmInpType, address_t::local_space>*>(&scratch);
+
+      auto s1 = input_scratch + s1_offset;
+      auto s2 = input_scratch + s2_offset;
+      auto s3 = input_scratch + s3_offset;
+      auto s4 = input_scratch + s4_offset;
+      if (internal) {
+        compute_panel_gemm<double_buffer, false, false>(
+            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
+            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
+            batch_stride, wg_batch_id, batch_size_);
+      } else {
+        compute_panel_gemm<double_buffer, true, true>(
+            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
+            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
+            batch_stride, wg_batch_id, batch_size_);
+      }
     }
   }
 
@@ -384,25 +403,22 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       InputPointerType orig_B, const index_t &ldb, OutputPointerType orig_C,
       const index_t &ldc, OutputScratchPointerType s0, InputScratchPointerType s1, 
       InputScratchPointerType s2, InputScratchPointerType s3, InputScratchPointerType s4, 
-      element_t *reg_a, element_t &reg_b, const bool out_of_range, 
-      index_t batch_stride, index_t wg_batch_id, index_t batch_size) noexcept {
+      const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
+      index_t batch_size) noexcept {
     index_t ofs = 1;
+    using namespace cl::sycl::ext::oneapi::experimental::matrix;
+    using CType = joint_matrix<typename tile_type::jmOutType, matrix_use::accumulator, sg_rows, sg_cols, matrix_layout::col_major>;
     do {
       auto A = orig_A;
       auto B = orig_B;
       auto C = orig_C;
       auto k = orig_k;
-      using namespace cl::sycl::ext::oneapi::experimental::matrix;
-      // using dtype = cl::sycl::half;
-      using dtype = float;
-      using CType = joint_matrix<dtype, matrix_use::accumulator, sg_rows, sg_cols, matrix_layout::col_major>;
       CType reg_res = {};
       while (k >= cl_elems) {
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
-        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_a,
-                                                         reg_b, reg_res);
+        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_res);
         A += cl_elems * (trans_a ? 1 : lda);
         B += cl_elems * (trans_b ? ldb : 1);
 
@@ -415,8 +431,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         extract_input_blocks<check_m_limit, check_n_limit, true>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
-        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_a,
-                                                         reg_b, reg_res);
+        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_res);
 
         sync_smem<double_buffer, block_cols * ldsb, block_cols * ldsb,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
@@ -710,15 +725,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename CType>
   SYCL_BLAS_INLINE void compute_block_gemm(const cl::sycl::nd_item<3> &id, 
                                            InputPointerType s2, InputPointerType s4, 
-                                           element_t*, element_t&,
                                            CType& reg_res) noexcept {
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    const index_t K = 16;
-    using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
-    // using dtype = cl::sycl::half;
-    // using dtype = precision::tf32;
-    using AType = joint_matrix<dtype, matrix_use::a, sg_rows, K, matrix_layout::col_major>;
-    using BType = joint_matrix<dtype, matrix_use::b, K, sg_cols, matrix_layout::col_major>;
+    using AType = joint_matrix<typename tile_type::jmInpType, matrix_use::a, sg_rows, tile_type::sg_K, matrix_layout::col_major>;
+    using BType = joint_matrix<typename tile_type::jmInpType, matrix_use::b, tile_type::sg_K, sg_cols, matrix_layout::col_major>;
 
     AType inA;
     BType inB;
@@ -731,14 +741,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     auto new_B = s2;
     auto new_A = s4;
 
-    for (index_t i = 0; i < cl_elems / K; i++) {
+    for (index_t i = 0; i < cl_elems / tile_type::sg_K; i++) {
       joint_matrix_load(sg, inA, new_A, strideA); // M
       joint_matrix_load(sg, inB, new_B, strideB); // N
 
       reg_res = joint_matrix_mad(sg, inA, inB, reg_res);
 
-      new_A += ldsa * K;
-      new_B += K;
+      new_A += ldsa * tile_type::sg_K;
+      new_B += tile_type::sg_K;
     }
   }
 
