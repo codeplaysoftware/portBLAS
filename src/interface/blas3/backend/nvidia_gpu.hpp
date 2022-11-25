@@ -57,7 +57,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
   }
 //  if (_M < 512 && _N < 512 && _K < 512) {
     return blas::Gemm_Launcher<
-        128, false, false, false, 128, Tile<1, 1, 4, 1, 8, 32>, _t_a, _t_b,
+        128, false, false, false, 128, Tile<1, 1, 2, 2, 16, 16>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,

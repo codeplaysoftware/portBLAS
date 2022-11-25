@@ -191,20 +191,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     return ((b_.get_size_col() - 1) / sg_cols + 1);
   }
   /*!
-   *@brief get_num_workgroup_cluster. This function is used to extend the number
+   *@brief get_batch_wg_cluster. This function is used to extend the number
    *of work_group cluster, in order to make sure that atleast 4 gemm operations
    *is available per work group. The number 4 is used based on empirical
    *research.
    *
    */
   SYCL_BLAS_INLINE size_t
-  get_num_sg_x_cluster(index_t compute_units) const noexcept {
-    return static_cast<size_t>((4 * compute_units - 1) / get_sg_x_cluster() + 1);
-  }
-
-  SYCL_BLAS_INLINE size_t
-  get_num_sg_y_cluster(index_t compute_units) const noexcept {
-    return static_cast<size_t>((4 * compute_units - 1) / get_sg_y_cluster() + 1);
+  get_batch_wg_cluster(index_t compute_units) const noexcept {
+    return static_cast<size_t>((4 * compute_units - 1) / batch_size_ + 1);
   }
 
   /*!
@@ -219,8 +214,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  SYCL_BLAS_INLINE cl::sycl::nd_range<2> get_nd_range(
+  SYCL_BLAS_INLINE cl::sycl::nd_range<3> get_nd_range(
       index_t compute_units) const noexcept {
+    size_t batch_groups = static_cast<size_t>(batch_size_ * get_batch_wg_cluster(compute_units));
     size_t x_groups = static_cast<size_t>((get_sg_x_cluster() - 1) / wg_rows + 1);
     size_t y_groups = static_cast<size_t>((get_sg_y_cluster() - 1) / wg_cols + 1);
     size_t x_local = static_cast<size_t>(sg_size * wg_rows);
@@ -232,8 +228,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << " , wg_size: " << wg_size
               << " , nwg : " << x_groups * y_groups << std::endl;
 #endif
-    return cl::sycl::nd_range<2>{{x_groups * x_local, y_groups * y_local},
-                                 {x_local, y_local}};
+    return cl::sycl::nd_range<3>{{batch_groups, x_groups * x_local, y_groups * y_local},
+                                 {1, x_local, y_local},
+                                 {}};
   }
 
   SYCL_BLAS_INLINE index_t get_size() const {
@@ -248,7 +245,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
-                             const cl::sycl::nd_item<2> &id) noexcept {
+                             const cl::sycl::nd_item<3> &id) noexcept {
     // cl::sycl::ext::oneapi::experimental::printf("%lu | %lu | %d | %d\n", id.get_group_range(0), id.get_group_range(1), get_sg_x_cluster(), get_sg_y_cluster());
     // cl::sycl::ext::oneapi::experimental::printf("%d | %d | %d | %d\n", a_.get_size_row(), sg_rows, b_.get_size_col(), sg_cols);
     index_t m = a_.get_size_row();
@@ -261,21 +258,18 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     // The batch index that each workgroup should start working with
     const index_t x_groups = (get_sg_x_cluster() - 1) / wg_rows + 1;
     const index_t y_groups = (get_sg_y_cluster() - 1) / wg_cols + 1;
-    const index_t wg_batch_id_x = id.get_group(0) / x_groups;
-    const index_t wg_batch_id_y = id.get_group(1) / y_groups;
-    const index_t wg_batch_id = wg_batch_id_x + wg_batch_id_y;
+    const index_t wg_batch_id = static_cast<index_t>(id.get_group(0));
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
-    const index_t batch_stride =
-        (id.get_group_range(0) / x_groups) * (id.get_group_range(1) / y_groups);
+    const index_t batch_stride = id.get_group_range(0) / batch_size_;
 
     auto scratch = scratch_acc.localAcc.get_pointer();
 
     // The number of work-group required to executed each batch efficiently
-    const index_t wg_id_x = id.get_group(0) % x_groups;
-    const index_t wg_id_y = id.get_group(1) % y_groups;
+    const index_t wg_id_x = id.get_group(1) % x_groups;
+    const index_t wg_id_y = id.get_group(2) % y_groups;
 
     const index_t a_size = trans_a ? m * lda : k * lda;
     const index_t b_size = trans_b ? ldb * k : n * ldb;
@@ -361,7 +355,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<2> &ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<3> &ndItem) const {
     return true;
   }
 
@@ -383,7 +377,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename InputPointerType, typename OutputPointerType,
             typename OutputScratchPointerType, typename InputScratchPointerType>
   SYCL_BLAS_INLINE void compute_panel_gemm(
-      const cl::sycl::nd_item<2> &id, const index_t &item_id, const index_t &m,
+      const cl::sycl::nd_item<3> &id, const index_t &item_id, const index_t &m,
       const index_t &n, const index_t &orig_k, const index_t &mc,
       const index_t &nc, const index_t &a_size, const index_t &b_size,
       const index_t &c_size, InputPointerType orig_A, const index_t &lda,
@@ -461,7 +455,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType,
             typename ScratchPointerType, typename CType>
-  SYCL_BLAS_INLINE void store_output_block(cl::sycl::nd_item<2> id, index_t mc, index_t nc,
+  SYCL_BLAS_INLINE void store_output_block(cl::sycl::nd_item<3> id, index_t mc, index_t nc,
                                            OutputPointerType C, ScratchPointerType scratch,
                                            index_t ldc, CType& reg_res,
                                            const bool out_of_range) noexcept {
@@ -714,7 +708,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             typename CType>
-  SYCL_BLAS_INLINE void compute_block_gemm(const cl::sycl::nd_item<2> &id, 
+  SYCL_BLAS_INLINE void compute_block_gemm(const cl::sycl::nd_item<3> &id, 
                                            InputPointerType s2, InputPointerType s4, 
                                            element_t*, element_t&,
                                            CType& reg_res) noexcept {
@@ -766,7 +760,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<2> &id, index_t &ofs_sign, P &s,
+      const cl::sycl::nd_item<3> &id, index_t &ofs_sign, P &s,
       Ps &... ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
@@ -774,13 +768,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool db>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<2> &, index_t &ofs_sign) noexcept {
+      const cl::sycl::nd_item<3> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<!db>::type sync_smem(
-      const cl::sycl::nd_item<2> &id, index_t &, Ps &...) noexcept {
+      const cl::sycl::nd_item<3> &id, index_t &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
 
