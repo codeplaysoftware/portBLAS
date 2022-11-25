@@ -1,4 +1,4 @@
-#/***************************************************************************
+# /***************************************************************************
 # *
 # *  @license
 # *  Copyright (C) Codeplay Software Limited
@@ -48,7 +48,8 @@ if __name__ == '__main__':
     container1 = sys.argv[9]
     container2 = sys.argv[10]
     container3 = sys.argv[11]
-    file_name = sys.argv[12]
+    container4 = sys.argv[12]
+    file_name = sys.argv[13]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -88,6 +89,11 @@ if __name__ == '__main__':
         Iterable(
             key='container_t3',
             vals=[container3],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='container_t4',
+            vals=[container4],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

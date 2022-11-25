@@ -61,7 +61,7 @@ namespace internal {
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
  * @return Vector of events to wait for.
  */
 template typename Executor<${EXECUTOR}>::policy_t::event_t _rotm(
