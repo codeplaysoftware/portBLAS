@@ -59,18 +59,18 @@ endfunction()
 
 function(set_target_compile_def in_target)
   #setting compiler flag for backend
-  message(STATUS "Adding ${BACKEND_DEVICE} backend to target ${in_target}")
-  if(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
+  message(STATUS "Adding ${TUNING_TARGET} backend to target ${in_target}")
+  if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "AMD_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")
     target_compile_definitions(${in_target} PUBLIC AMD_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "ARM_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
     target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "RCAR")
+  elseif(${TUNING_TARGET} STREQUAL "RCAR")
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "POWER_VR")
+  elseif(${TUNING_TARGET} STREQUAL "POWER_VR")
     target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
@@ -553,7 +553,7 @@ function(add_gemm_configuration
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction()
-if(${TARGET} STREQUAL "INTEL_GPU")
+if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
@@ -614,7 +614,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "RCAR") # need investigation
+elseif(${TUNING_TARGET} STREQUAL "RCAR") # need investigation
   set(supported_types
     "float"
   )
@@ -629,7 +629,7 @@ elseif(${TARGET} STREQUAL "RCAR") # need investigation
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "ARM_GPU")
+elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
   set(supported_types
     "float"
     "half"
@@ -694,7 +694,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 2 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
+elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   set(supported_types
     "float"
     "half"
@@ -719,7 +719,7 @@ elseif(${TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
+elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
@@ -759,7 +759,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "NVIDIA_GPU")
+elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
  set(supported_types
     "float"
   )

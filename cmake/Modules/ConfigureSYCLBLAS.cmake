@@ -65,9 +65,8 @@ if(NAIVE_GEMM)
 endif()
 
 # the TARGET variable defines the platform for which the sycl library is built
-SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
-SET(BACKEND_DEVICE ${TARGET})
-message(STATUS "${TARGET} is chosen as a backend platform")
+SET(TUNING_TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
+message(STATUS "${TUNING_TARGET} is chosen as a tuning target")
 
 # the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
 # be enabled for. Currently only affects ARM_GPU configs.

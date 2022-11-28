@@ -329,9 +329,15 @@ cd build
 cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
 ```
+The target triplet can be set by adding `-DDPCPP_SYCL_TARGET=<triplet>`. If it
+is not set, the default values is `spir64_x86_64-unknown-unknown`, which targets
+the CPU. Other possible triplets targeting GPUs are: `spir64-unknown-unknown`
+(Intel), `nvptx64-nvidia-cuda` (Nvidia), and `amdgcn-amd-amdhsa` (AMD).
 
-If building for `AMD_GPU` devices, it is also required to provide the
-specific architecture through the `DPCPP_SYCL_ARCH` CMake variable.
+If building for NVIDIA or AMD devices, it is advisable to specify the actual
+device architecture by means of `-DDPCPP_SYCL_ARCH=<arch>`,
+e.g., `<arch>` can be `sm_80` for NVIDIA or `gfx908` for AMD.
+*Note:* specifying the architecture is required in case of AMD devices.
 
 ### Compile with hipSYCL
 ```bash
@@ -339,7 +345,7 @@ cd build
 cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
 ninja
 ```
-To build for other than the default devices, set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
 
 ### Instaling SYCL-BLAS
 To install the SYCL-BLAS library (see `CMAKE_INSTALL_PREFIX` below)
@@ -374,7 +380,7 @@ Some of the supported options are:
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
 | `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
-| `TARGET` | name | By default SYCL-BLAS library is built for CPU. Use that flag to compile it for a specific backend (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
+| `TUNING_TARGET` | name | By default SYCL-BLAS library is tuned for CPU. Use that flag to tune it for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |

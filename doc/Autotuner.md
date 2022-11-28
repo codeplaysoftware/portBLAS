@@ -304,10 +304,9 @@ In order to add a new set of parameter configurations to the autotuner you must 
     ```cmake
     # The generator's configuration file - add any new jsons to this
     set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/default.json)
-    if(${BACKEND_DEVICE} STREQUAL "RCAR")
+    if(${TUNING_TARGET} STREQUAL "RCAR")
     set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/rcar.json)
     endif()
     ```
-    with `if`s for all the current platforms. If you are adding a new platform you should already have your new platform `TARGET` in `BACKEND_DEVICE` and can simply do the same. 
-    Otherwise you will need some mechanism to decide when to set `GEN_CONFIG` with your new configuration.
+    with `if`s for all the tuning targets. If you are adding a new tuning target you will need some mechanism to decide when to set `GEN_CONFIG` with your new configuration.
 3. That's it, your new configuration should be used when building the autotuner when passing the new target or through whatever mechanism you have added!

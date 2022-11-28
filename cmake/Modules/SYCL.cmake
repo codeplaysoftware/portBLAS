@@ -26,16 +26,9 @@ include(CheckCXXCompilerFlag)
 include(ConfigureSYCLBLAS)
 
 # find_package(hipSYCL) requires HIPSYCL_TARGETS to be set, so set it to a default value before find_package(hipSYCL)
-if(NOT HISPYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})
-  if(${TARGET} STREQUAL "NVIDIA_GPU")
-    set(HIPSYCL_TARGETS "cuda:sm_35")
-  elseif(${TARGET} STREQUAL "AMD_GPU")
-    set(HISPYCL_TARGETS "hip:gfx900")
-  elseif(${TARGET} STREQUAL "INTEL_GPU")
-    set(HISPYCL_TARGETS "spirv")
-  else()
-    set(HIPSYCL_TARGETS "omp")
-  endif()
+if(SYCL_COMPILER MATCHES "hipsycl" AND NOT HISPYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})
+  message(STATUS "Using `omp` as HIPSYCL_TARGETS")
+  set(HIPSYCL_TARGETS "omp")
 endif()
 
 check_cxx_compiler_flag("-fsycl" has_fsycl)
@@ -89,25 +82,9 @@ if(is_computecpp)
 elseif(is_dpcpp)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__SYCL_DISABLE_NAMESPACE_INLINE__=ON -O3 -Xclang -cl-mad-enable")
-  if(${BACKEND_DEVICE} STREQUAL "DEFAULT_CPU") 
+  if(NOT DEFINED DPCPP_SYCL_TARGET)
+    message(STATUS "Using `spir64_x86_64-unknown-unknown` (CPU) as target triplet")
     set(DPCPP_SYCL_TARGET spir64_x86_64-unknown-unknown)
-  elseif(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
-  # the correct target-triple for intel gpu is: spir64_gen-unknown-unknown-sycldevice
-  # however, the current version of DPCPP fails to link with the following error
-  #  Error: Device name missing.
-  #clang++: error: gen compiler command failed with exit code 226 (use -v to see invocation)
-  #clang version 12.0.0 (https://github.com/intel/llvm.git 3582cb07f9f1acf3bee986008ec10265c4614346)
-  #Target: x86_64-unknown-linux-gnu
-  #Thread model: posix
-  #InstalledDir: /home/mehdi/soft/intel/dpcpp_compiler/bin
-  #clang++: note: diagnostic msg: Error generating preprocessed source(s) - no preprocessable inputs.
-  #ninja: build stopped: subcommand failed.
-  #TODO : (MEHDI) Create BuG report on intel/llvm 
-    set(DPCPP_SYCL_TARGET spir64-unknown-unknown)
-  elseif(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
-    set(DPCPP_SYCL_TARGET nvptx64-nvidia-cuda)
-  elseif(${BACKEND_DEVICE} STREQUAL "AMD_GPU")
-    set(DPCPP_SYCL_TARGET amdgcn-amd-amdhsa)
   endif()
   find_package(DPCPP REQUIRED)
   get_target_property(SYCL_INCLUDE_DIRS DPCPP::DPCPP INTERFACE_INCLUDE_DIRECTORIES)
