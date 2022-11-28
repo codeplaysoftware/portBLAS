@@ -253,4 +253,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, d1, d2, x1, y1);
 }
 
-BLAS_REGISTER_TEST_ALL(Rotg, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rotmg, combination_t, combi, generate_name);

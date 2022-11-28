@@ -19,7 +19,7 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename py_gen_blas_rotg.py
+# *  @filename py_gen_blas_rotmg.py
 # *
 # **************************************************************************/
 # py_gen import
