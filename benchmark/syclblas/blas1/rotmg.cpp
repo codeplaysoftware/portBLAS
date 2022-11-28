@@ -51,9 +51,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   auto buf_param = utils::make_quantized_buffer<scalar_t>(ex, param);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-
-
-
   // Run a first time with a verification of the results
   scalar_t d1_ref = d1;
   scalar_t d2_ref = d2;
@@ -87,11 +84,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   auto event5 = ex.get_policy_handler().copy_to_host(
       device_param, param_verify.data(), param_size);
 
-
   ex.get_policy_handler().wait(event1);
   ex.get_policy_handler().wait(event2);
   ex.get_policy_handler().wait(event3);
   ex.get_policy_handler().wait(event4);
+  ex.get_policy_handler().wait(event5);
 
   const bool isAlmostEqual =
       utils::almost_equal<scalar_t, scalar_t>(d1_verify, d1_ref) &&

@@ -457,7 +457,6 @@ function(generate_blas_rotmg_objects blas_level func)
   foreach (executor ${executor_list})
     foreach (data ${data_list})
       cpp_type(cpp_data ${data})
-      set(container_list_in)
       list(APPEND container_list_in_out "BufferIterator<${cpp_data},codeplay_policy>")
       foreach (container0 ${container_list_in_out})
         foreach (container1 ${container_list_in_out})
@@ -482,7 +481,7 @@ function(generate_blas_rotmg_objects blas_level func)
                         ${container4}
                         ${file_name}
                         MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg.py
+                        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
                         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                         VERBATIM
                         )

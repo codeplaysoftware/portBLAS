@@ -38,8 +38,9 @@ template <typename scalar_t>
 struct RotmgTest {
   /* Magic numbers used by the rotmg algorithm */
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
-  static constexpr scalar_t gamma_sq = static_cast<scalar_t>(1.67772e7);
-  static constexpr scalar_t inv_gamma_sq = static_cast<scalar_t>(5.96046e-8);
+  static constexpr scalar_t gamma_sq = static_cast<scalar_t>(gamma * gamma);
+  static constexpr scalar_t inv_gamma_sq =
+      static_cast<scalar_t>(static_cast<scalar_t>(1) / gamma);
   static constexpr size_t param_size = 5;
 
   struct RotmgParameters {
@@ -86,6 +87,7 @@ bool RotmgTest<scalar_t>::isOverflowTest() {
 
 template <typename scalar_t>
 void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
+
   auto q = make_queue();
   test_executor_t ex(q);
 
@@ -167,34 +169,34 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   scalar_t h21_sycl = sycl_out.param[2];
   scalar_t h22_sycl = sycl_out.param[4];
 
-  scalar_t flag_ref = sycl_out.param[0];
-  scalar_t h11_ref = sycl_out.param[1];
-  scalar_t h12_ref = sycl_out.param[3];
-  scalar_t h21_ref = sycl_out.param[2];
-  scalar_t h22_ref = sycl_out.param[4];
+  scalar_t flag_ref = param_ref[0];
+  scalar_t h11_ref = param_ref[1];
+  scalar_t h12_ref = param_ref[3];
+  scalar_t h21_ref = param_ref[2];
+  scalar_t h22_ref = param_ref[4];
 
   if (flag_sycl != error_matrix && flag_ref != unit_matrix) {
     if (flag_ref == sltc_matrix) {
-      ASSERT_TRUE(h12_ref == h12_sycl);
-      ASSERT_TRUE(h21_ref == h21_sycl);
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h12_sycl, h12_ref)));
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h21_sycl, h21_ref)));
     } else if (flag_ref == clts_matrix) {
-      ASSERT_TRUE(h11_ref == h11_sycl);
-      ASSERT_TRUE(h22_ref == h22_sycl);
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h11_sycl, h11_ref)));
+      ASSERT_TRUE((utils::almost_equal<data_t, scalar_t>(h22_sycl, h22_ref)));
     } else {
-      ASSERT_TRUE(h11_ref == h11_sycl);
-      ASSERT_TRUE(h12_ref == h12_sycl);
-      ASSERT_TRUE(h21_ref == h21_sycl);
-      ASSERT_TRUE(h22_ref == h22_sycl);
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h11_sycl, h11_ref)));
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h12_sycl, h12_ref)));
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h21_sycl, h21_ref)));
+      ASSERT_TRUE((utils::almost_equal<scalar_t>(h22_sycl, h22_ref)));
     }
   }
-};
+}
 
 /*
  * Rotm can be used to validate that Rotmg outputs will set y to 0. The right
  * side of the following formula is calculated by rotm.
  *
  * x1_output * sqrt(d1_output) = [ h11 h12 ] * [ x1_input]
- * 0.0       * sqrt(d2_output)   [h21 h22 ]    [ y1_input]
+ * 0.0       * sqrt(d2_output)   [h21  h22 ]   [ y1_input]
  */
 template <typename scalar_t>
 void RotmgTest<scalar_t>::validate_with_rotm() {

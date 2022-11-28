@@ -662,11 +662,12 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
    * overflows. Consult the papers above for more info */
   constexpr value_t gamma = static_cast<value_t>(4096.0);
 
-  /* Square root of gamma. It is hardcoded to avoid computing it on every call */
-  constexpr value_t gamma_sq = static_cast<value_t>(1.67772e7);
+  /* Square of gamma. It is hardcoded to avoid computing it on every call */
+  constexpr value_t gamma_sq = static_cast<value_t>(gamma * gamma);
 
-  /* Inverse of the square root of gamma (i.e. 1 / sqrt(gamma)) */
-  constexpr value_t inv_gamma_sq = static_cast<value_t>(5.96046e-8);
+  /* Inverse of the square of gamma (i.e. 1 / sqrt(gamma)) */
+  constexpr value_t inv_gamma_sq =
+      static_cast<value_t>(static_cast<value_t>(1) / gamma);
 
   value_t &d1_ref = d1_.eval(i);
   value_t &d2_ref = d2_.eval(i);
@@ -727,7 +728,6 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
     if (abs_c > abs_s) {
       flag = sltc_matrix::value();
-
       /* sltc_matrix assumes h11 and h22 values. But they still need to be set
        * because of possible re-scaling */
       h11 = one::value();
@@ -755,10 +755,8 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
          * because of possible re-scaling */
         h12 = one::value();
         h21 = m_one::value();
-
         h11 = p1 / p2;
         h22 = x1 / y1;
-
 
         u = one::value() + h11 * h22;
 
@@ -785,7 +783,6 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
     /* Avoid d1 underflow */
     while (AbsoluteValue::eval(d1) <= inv_gamma_sq && d1 != zero::value()) {
       flag = rescaled_matrix::value();
-
       d1 = (d1 * gamma) * gamma;
       x1 = x1 / gamma;
       h11 = h11 / gamma;
