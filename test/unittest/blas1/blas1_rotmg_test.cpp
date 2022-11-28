@@ -28,14 +28,14 @@
 template <typename scalar_t>
 using combination_t = std::tuple<scalar_t, scalar_t, scalar_t, scalar_t>;
 
-/* Avoid overflows and underflows from multiplications and divisions in rotm and
- * rotmg */
-const float max_viable_float = sqrt(sqrt(std::numeric_limits<float>::max()));
-const float min_viable_float = sqrt(sqrt(std::numeric_limits<float>::min()));
+/* Check if rotmg can handle overflows and underflows without entering into
+ * infinite loops. The aim is to test for with floats. If the test type is
+ * something else, then this will be implicitly cast and might not overflow */
+const float max_float = std::numeric_limits<float>::max();
+const float min_float = std::numeric_limits<float>::min();
 
 template <typename scalar_t>
 struct RotmgTest {
-
   /* Magic numbers used by the rotmg algorithm */
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
   static constexpr scalar_t gamma_sq = static_cast<scalar_t>(1.67772e7);
@@ -43,11 +43,15 @@ struct RotmgTest {
   static constexpr size_t param_size = 5;
 
   struct RotmgParameters {
-    scalar_t d1;
-    scalar_t d2;
-    scalar_t x1;
-    scalar_t y1;
+    scalar_t d1{};
+    scalar_t d2{};
+    scalar_t x1{};
+    scalar_t y1{};
     std::vector<scalar_t> param = std::vector<scalar_t>(param_size);
+
+    RotmgParameters() = default;
+    RotmgParameters(scalar_t d1, scalar_t d2, scalar_t x1, scalar_t y1)
+        : d1{d1}, d2{d2}, x1{x1}, y1{y1} {}
   };
 
   using data_t = utils::data_storage_t<scalar_t>;
@@ -61,7 +65,24 @@ struct RotmgTest {
   void run_sycl_blas_rotmg();
   void validate_with_reference();
   void validate_with_rotm();
+  bool isOverflowTest();
 };
+
+template <typename scalar_t>
+bool RotmgTest<scalar_t>::isOverflowTest() {
+  if (input.d1 == static_cast<scalar_t>(max_float) ||
+      input.d1 == static_cast<scalar_t>(min_float) ||
+      input.d2 == static_cast<scalar_t>(max_float) ||
+      input.d2 == static_cast<scalar_t>(min_float) ||
+      input.x1 == static_cast<scalar_t>(max_float) ||
+      input.x1 == static_cast<scalar_t>(min_float) ||
+      input.y1 == static_cast<scalar_t>(max_float) ||
+      input.y1 == static_cast<scalar_t>(min_float)) {
+    return true;
+  }
+
+  return false;
+}
 
 template <typename scalar_t>
 void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
@@ -106,7 +127,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   std::vector<data_t> param_ref(param_size);
 
   /* Cannot test this scenario since cblas enters into an infinite loop */
-  if (d2_ref < 0 && y1_ref == min_viable_float) {
+  if (d2_ref < 0 && y1_ref == min_float) {
     return;
   }
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
@@ -159,8 +180,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
     } else if (flag_ref == clts_matrix) {
       ASSERT_TRUE(h11_ref == h11_sycl);
       ASSERT_TRUE(h22_ref == h22_sycl);
-    }
-    else {
+    } else {
       ASSERT_TRUE(h11_ref == h11_sycl);
       ASSERT_TRUE(h12_ref == h12_sycl);
       ASSERT_TRUE(h21_ref == h21_sycl);
@@ -210,15 +230,20 @@ void run_test(const combination_t<scalar_t> combi) {
 
   RotmgTest<scalar_t> test{d1_input, d2_input, x1_input, y1_input};
   test.run_sycl_blas_rotmg();
-  test.validate_with_reference();
-  test.validate_with_rotm();
+
+  /* Do not test with things that might overflow or underflow. Results will not
+   * make sense if that happens */
+  if (!test.isOverflowTest()) {
+    test.validate_with_reference();
+    test.validate_with_rotm();
+  }
 }
 
 const auto combi = ::testing::Combine(
-    ::testing::Values(0, 3.0, -2.2, max_viable_float, min_viable_float),  // d1
-    ::testing::Values(0, 3.0, -2.2, max_viable_float, min_viable_float),  // d2
-    ::testing::Values(0, 2.5, -7.3, max_viable_float, min_viable_float),  // x1
-    ::testing::Values(0, 0.5, -4.3, max_viable_float, min_viable_float)   // y1
+    ::testing::Values(0, 15.5, -2.2, max_float, min_float),  // d1
+    ::testing::Values(0, 3.0, -2.2, max_float, min_float),   // d2
+    ::testing::Values(0, 12.1, -7.3, max_float, min_float),  // x1
+    ::testing::Values(0, 0.5, -4.3, max_float, min_float)    // y1
 );
 
 template <class T>
