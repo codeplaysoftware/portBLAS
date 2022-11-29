@@ -35,16 +35,14 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incY;
   std::tie(size, incX, incY) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input vectors
-  std::vector<data_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(size * incX);
   fill_random(x_v);
-  std::vector<data_t> y_v(size * incY);
+  std::vector<scalar_t> y_v(size * incY);
   fill_random(y_v);
 
   // Output vector
-  std::vector<data_t> out_s(1, 10.0);
+  std::vector<scalar_t> out_s(1, 10.0);
 
   // Reference implementation
   auto out_cpu_s =
@@ -55,17 +53,16 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
-  auto gpu_out_s = utils::make_quantized_buffer<scalar_t>(ex, out_s);
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
+  auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(out_s, 1);
 
   _dot(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, gpu_out_s, out_s);
+  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
   ex.get_policy_handler().wait(event);
 
   // Validate the result
-  const bool isAlmostEqual =
-      utils::almost_equal<data_t, scalar_t>(out_s[0], out_cpu_s);
+  const bool isAlmostEqual = utils::almost_equal(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
 
   ex.get_policy_handler().get_queue().wait();

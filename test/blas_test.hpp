@@ -44,7 +44,6 @@
 #include <common/float_comparison.hpp>
 #include <common/print_queue_information.hpp>
 #include <common/system_reference_blas.hpp>
-#include <common/quantization.hpp>
 
 #include "blas_test_macros.hpp"
 

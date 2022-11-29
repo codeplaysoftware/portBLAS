@@ -37,40 +37,45 @@ void run_test(const combination_t<scalar_t> combi) {
   int incY;
   std::tie(size, alpha, incX, incY) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Dimensions of input vectors x and y
   int x_dim = size * incX;
   int y_dim = size * incY;
 
   // Input vectors x and y (y is also output of AXPY)
-  std::vector<data_t> v_x(x_dim);
-  std::vector<data_t> v_y(y_dim);
+  std::vector<scalar_t> v_x(x_dim);
+  std::vector<scalar_t> v_y(y_dim);
   fill_random(v_x);
   fill_random(v_y);
 
   // Copy of vector x
-  std::vector<data_t> v_xcopy(x_dim);
+  std::vector<scalar_t> v_xcopy(x_dim);
 
   // Copy of vector y
   // Used to store output on host for later comparison with SYCL result
-  std::vector<data_t> v_cpu_y(y_dim);
+  std::vector<scalar_t> v_cpu_y(y_dim);
 
   // Reference BLAS implementation
   reference_blas::copy(size, v_x.data(), incX, v_xcopy.data(), incX);
   reference_blas::copy(y_dim, v_y.data(), 1, v_cpu_y.data(), 1);
-  reference_blas::axpy(size, static_cast<data_t>(alpha), v_xcopy.data(), incX,
-                       v_cpu_y.data(), incY);
+  reference_blas::axpy(size, alpha, v_xcopy.data(), incX, v_cpu_y.data(), incY);
 
   // SYCL-BLAS implementation
   auto q = make_queue();
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, v_x);
-  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, v_y);
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_dim);
   auto gpu_xcopy_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
   auto gpu_ycopy_v = blas::make_sycl_iterator_buffer<scalar_t>(y_dim);
+
+  // Copy input data from host to device
+  auto xcp_ev =
+      ex.get_policy_handler().copy_to_device(v_x.data(), gpu_x_v, x_dim);
+  ex.get_policy_handler().wait(xcp_ev);
+  auto ycp_ev =
+      ex.get_policy_handler().copy_to_device(v_y.data(), gpu_y_v, y_dim);
+  ex.get_policy_handler().wait(ycp_ev);
 
   // Dimensions of vector view for AXPY operations
   int view_x_dim = (x_dim + incX - 1) / incX;
@@ -99,7 +104,8 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().wait(axpy_event);
 
   // Copy the result back to host memory
-  auto getResultEv = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, v_y);
+  auto getResultEv =
+      ex.get_policy_handler().copy_to_host(gpu_y_v, v_y.data(), y_dim);
   ex.get_policy_handler().wait(getResultEv);
 
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));

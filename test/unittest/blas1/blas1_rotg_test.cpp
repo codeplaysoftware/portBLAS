@@ -36,26 +36,24 @@ void run_test(const combination_t<scalar_t> combi) {
 
   std::tie(api, a_input, b_input) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
-  data_t c_ref;
-  data_t s_ref;
-  data_t a_ref = a_input;
-  data_t b_ref = b_input;
+  scalar_t c_ref;
+  scalar_t s_ref;
+  scalar_t a_ref = a_input;
+  scalar_t b_ref = b_input;
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
 
   auto q = make_queue();
   test_executor_t ex(q);
 
-  data_t c;
-  data_t s;
-  data_t a = a_input;
-  data_t b = b_input;
+  scalar_t c;
+  scalar_t s;
+  scalar_t a = a_input;
+  scalar_t b = b_input;
   if (api == api_type::event) {
-    auto device_a = utils::make_quantized_buffer<scalar_t>(ex, a);
-    auto device_b = utils::make_quantized_buffer<scalar_t>(ex, b);
-    auto device_c = utils::make_quantized_buffer<scalar_t>(ex, c);
-    auto device_s = utils::make_quantized_buffer<scalar_t>(ex, s);
+    auto device_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_input, 1);
+    auto device_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_input, 1);
+    auto device_c = blas::make_sycl_iterator_buffer<scalar_t>(1);
+    auto device_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
     auto event0 = _rotg(ex, device_a, device_b, device_c, device_s);
     ex.get_policy_handler().wait(event0);
 
@@ -79,10 +77,9 @@ void run_test(const combination_t<scalar_t> combi) {
     return;
   }
 
-  const bool isAlmostEqual = utils::almost_equal<data_t, scalar_t>(a, a_ref) &&
-                             utils::almost_equal<data_t, scalar_t>(b, b_ref) &&
-                             utils::almost_equal<data_t, scalar_t>(c, c_ref) &&
-                             utils::almost_equal<data_t, scalar_t>(s, s_ref);
+  const bool isAlmostEqual =
+      utils::almost_equal(a, a_ref) && utils::almost_equal(b, b_ref) &&
+      utils::almost_equal(c, c_ref) && utils::almost_equal(s, s_ref);
   ASSERT_TRUE(isAlmostEqual);
 }
 

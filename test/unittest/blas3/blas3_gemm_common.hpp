@@ -83,8 +83,6 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, batch_type) = arguments;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   const char ta_str[2] = {transa, '\0'};
   const char tb_str[2] = {transb, '\0'};
 
@@ -105,21 +103,20 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const index_t buffer_size_b = batch * size_b + offset;
   const index_t buffer_size_c = batch * size_c + offset;
 
-  std::vector<data_t> a_m(buffer_size_a);
-  std::vector<data_t> b_m(buffer_size_b);
-  std::vector<data_t> c_m_gpu(buffer_size_c);
+  std::vector<scalar_t> a_m(buffer_size_a);
+  std::vector<scalar_t> b_m(buffer_size_b);
+  std::vector<scalar_t> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<data_t> c_m_cpu = c_m_gpu;
+  std::vector<scalar_t> c_m_cpu = c_m_gpu;
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
-    reference_blas::gemm(ta_str, tb_str, m, n, k, static_cast<data_t>(alpha),
+    reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
                          a_m.data() + i * size_a + offset, lda,
-                         b_m.data() + i * size_b + offset, ldb,
-                         static_cast<data_t>(beta),
+                         b_m.data() + i * size_b + offset, ldb, beta,
                          c_m_cpu.data() + i * size_c + offset, ldc);
   }
 
@@ -131,9 +128,13 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
     c_m_gpu = strided_to_interleaved(c_m_gpu, offset, ldc, n, batch);
   }
 
-  auto m_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
-  auto m_b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b_m);
-  auto m_c_gpu = utils::make_quantized_buffer<scalar_t>(ex, c_m_gpu);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_a);
+  auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
+  auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
+
+  policy_handler.copy_to_device(a_m.data(), m_a_gpu, buffer_size_a);
+  policy_handler.copy_to_device(b_m.data(), m_b_gpu, buffer_size_b);
+  policy_handler.copy_to_device(c_m_gpu.data(), m_c_gpu, buffer_size_c);
 
   // SYCL BLAS GEMM implementation
   if (batch == 1) {
@@ -145,7 +146,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
                   batch_type);
   }
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, m_c_gpu, c_m_gpu);
+  auto event =
+      policy_handler.copy_to_host(m_c_gpu, c_m_gpu.data(), buffer_size_c);
   policy_handler.wait(event);
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -154,8 +156,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   ex.get_policy_handler().wait();
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(c_m_gpu, c_m_cpu);
+  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 
 }

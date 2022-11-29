@@ -42,10 +42,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 
   ExecutorType& ex = *executorPtr;
 
-  auto buf_a = utils::make_quantized_buffer<scalar_t>(ex, a);
-  auto buf_b = utils::make_quantized_buffer<scalar_t>(ex, b);
-  auto buf_c = utils::make_quantized_buffer<scalar_t>(ex, c);
-  auto buf_s = utils::make_quantized_buffer<scalar_t>(ex, s);
+  auto buf_a = blas::make_sycl_iterator_buffer<scalar_t>(&a, 1);
+  auto buf_b = blas::make_sycl_iterator_buffer<scalar_t>(&b, 1);
+  auto buf_c = blas::make_sycl_iterator_buffer<scalar_t>(&c, 1);
+  auto buf_s = blas::make_sycl_iterator_buffer<scalar_t>(&s, 1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -59,10 +59,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   scalar_t c_verify = c;
   scalar_t s_verify = s;
 
-  auto buf_verify_a = utils::make_quantized_buffer<scalar_t>(ex, a_verify);
-  auto buf_verify_b = utils::make_quantized_buffer<scalar_t>(ex, b_verify);
-  auto buf_verify_c = utils::make_quantized_buffer<scalar_t>(ex, c_verify);
-  auto buf_verify_s = utils::make_quantized_buffer<scalar_t>(ex, s_verify);
+  auto buf_verify_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_verify, 1);
+  auto buf_verify_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_verify, 1);
+  auto buf_verify_c = blas::make_sycl_iterator_buffer<scalar_t>(&c_verify, 1);
+  auto buf_verify_s = blas::make_sycl_iterator_buffer<scalar_t>(&s_verify, 1);
 
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
   _rotg(ex, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);

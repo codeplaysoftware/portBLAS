@@ -78,7 +78,6 @@ void run_test(const combination_t<scalar_t> combi) {
   reduction_dim_t reduction_dim;
   std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
 
   auto q = make_queue();
   test_executor_t ex(q);
@@ -87,10 +86,10 @@ void run_test(const combination_t<scalar_t> combi) {
 
   index_t ld = rows * ld_mul;
 
-  std::vector<data_t> in_m(ld * cols);
+  std::vector<scalar_t> in_m(ld * cols);
   const auto out_size = reduction_dim == reduction_dim_t::outer ? rows : cols;
-  std::vector<data_t> out_v_gpu(out_size);
-  std::vector<data_t> out_v_cpu(out_size);
+  std::vector<scalar_t> out_v_gpu(out_size);
+  std::vector<scalar_t> out_v_cpu(out_size);
 
   if (op == operator_t::Product) {
     // Use smaller input range for Product tests since the product
@@ -119,27 +118,31 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   /* Reduction function. */
-  std::function<data_t(data_t, data_t)> reduction_func;
+  std::function<scalar_t(scalar_t, scalar_t)> reduction_func;
   switch (op) {
     case operator_t::Add:
     case operator_t::Mean:
-      reduction_func = [=](data_t l, data_t r) -> data_t { return l + r; };
+      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+        return l + r;
+      };
       break;
     case operator_t::AbsoluteAdd:
-      reduction_func = [=](data_t l, data_t r) -> data_t {
+      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
         return std::abs(l) + std::abs(r);
       };
       break;
     case operator_t::Product:
-      reduction_func = [=](data_t l, data_t r) -> data_t { return l * r; };
+      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
+        return l * r;
+      };
       break;
     case operator_t::Min:
-      reduction_func = [=](data_t l, data_t r) -> data_t {
+      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
         return l < r ? l : r;
       };
       break;
     case operator_t::Max:
-      reduction_func = [=](data_t l, data_t r) -> data_t {
+      reduction_func = [=](scalar_t l, scalar_t r) -> scalar_t {
         return l > r ? l : r;
       };
       break;
@@ -172,8 +175,9 @@ void run_test(const combination_t<scalar_t> combi) {
                    });
   }
 
-  auto m_in_gpu = utils::make_quantized_buffer<scalar_t>(ex, in_m);
-  auto v_out_gpu = utils::make_quantized_buffer<scalar_t>(ex, out_v_gpu);
+  auto m_in_gpu = blas::make_sycl_iterator_buffer<scalar_t>(in_m, ld * cols);
+  auto v_out_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, out_size);
 
   test_executor_t::policy_t::event_t ev;
   try {
@@ -207,8 +211,8 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
-  auto event =
-      utils::quantized_copy_to_host<scalar_t>(ex, v_out_gpu, out_v_gpu);
+  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+      v_out_gpu, out_v_gpu.data(), out_size);
   ex.get_policy_handler().wait({event});
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));

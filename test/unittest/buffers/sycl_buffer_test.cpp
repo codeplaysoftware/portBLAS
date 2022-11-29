@@ -34,13 +34,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int offset;
   std::tie(size, offset) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
-  std::vector<data_t> vX(size, scalar_t(1));
+  std::vector<scalar_t> vX(size, scalar_t(1));
   fill_random(vX);
 
-  std::vector<data_t> vR_gpu(size, scalar_t(10));
-  std::vector<data_t> vR_cpu(size, scalar_t(10));
+  std::vector<scalar_t> vR_gpu(size, scalar_t(10));
+  std::vector<scalar_t> vR_cpu(size, scalar_t(10));
 
   for (int i = offset; i < size; i++) {
     vR_cpu[i - offset] = vX[i];
@@ -48,12 +46,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto a = utils::make_quantized_buffer<scalar_t>(ex, vX);
-  auto dequantized_buf =
-      blas::make_sycl_iterator_buffer<data_t>(static_cast<int>(size));
-  blas::_quantize(ex, a, dequantized_buf);
-  auto event = ex.get_policy_handler().copy_to_host(
-      (dequantized_buf + offset), vR_gpu.data(), size - offset);
+  auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
+  auto event = ex.get_policy_handler().copy_to_host((a + offset), vR_gpu.data(),
+                                                    size - offset);
   ex.get_policy_handler().wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(vR_gpu, vR_cpu));
@@ -72,9 +67,10 @@ static std::string generate_name(
 
 BLAS_REGISTER_TEST_ALL(Buffer, combination_t, combi, generate_name);
 
-template <typename data_t, typename index_t>
-inline BufferIterator<const data_t, blas::codeplay_policy> func(
-    BufferIterator<const data_t, blas::codeplay_policy> buff, index_t offset) {
+template <typename scalar_t, typename index_t>
+inline BufferIterator<const scalar_t, blas::codeplay_policy> func(
+    BufferIterator<const scalar_t, blas::codeplay_policy> buff,
+    index_t offset) {
   return buff += offset;
 }
 

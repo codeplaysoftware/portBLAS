@@ -36,25 +36,24 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t flag;
   std::tie(size, incX, incY, flag) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
 
   // Setup param
   constexpr size_t param_size = 5;
-  std::vector<data_t> param(param_size);
+  std::vector<scalar_t> param(param_size);
   fill_random(param);
   param[0] = flag;
 
   // Input vectors
-  std::vector<data_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(size * incX);
   fill_random(x_v);
 
-  std::vector<data_t> y_v(size * incY);
+  std::vector<scalar_t> y_v(size * incY);
   fill_random(y_v);
 
   // Output vectors
-  std::vector<data_t> out_s(1, 10.0);
-  std::vector<data_t> x_cpu_v(x_v);
-  std::vector<data_t> y_cpu_v(y_v);
+  std::vector<scalar_t> out_s(1, 10.0);
+  std::vector<scalar_t> x_cpu_v(x_v);
+  std::vector<scalar_t> y_cpu_v(y_v);
 
   // Reference implementation
   reference_blas::rotm(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY,
@@ -65,21 +64,22 @@ void run_test(const combination_t<scalar_t> combi) {
   test_executor_t ex(q);
 
   // Iterators
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
-  auto gpu_param = utils::make_quantized_buffer<scalar_t>(ex, param);
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
+  auto gpu_param = blas::make_sycl_iterator_buffer<scalar_t>(param, param_size);
 
   _rotm(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
 
-  auto event1 = utils::quantized_copy_to_host<scalar_t>(ex, gpu_x_v, x_v);
-  auto event2 = utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v);
+  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
+      gpu_x_v, x_v.data(), size * incX);
+  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
+      gpu_y_v, y_v.data(), size * incY);
   ex.get_policy_handler().wait(event1);
   ex.get_policy_handler().wait(event2);
 
   // Validate the result
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(x_cpu_v, x_v) &&
-      utils::compare_vectors<data_t, scalar_t>(y_cpu_v, y_v);
+  const bool isAlmostEqual = utils::compare_vectors(x_cpu_v, x_v) &&
+                             utils::compare_vectors(y_cpu_v, y_v);
   ASSERT_TRUE(isAlmostEqual);
 }
 

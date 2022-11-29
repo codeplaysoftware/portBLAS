@@ -44,33 +44,30 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
-  std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
 
   // Make sure cl::sycl::half can hold the result of the dot product
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
-                 [=](data_t x) { return x / v1.size(); });
+                 [=](scalar_t x) { return x / v1.size(); });
 
-  auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
-  auto iny = utils::make_quantized_buffer<scalar_t>(ex, v2);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
   auto inr = blas::make_sycl_iterator_buffer<scalar_t>(1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  data_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
-  data_t vr_temp = 0;
+  scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
+  scalar_t vr_temp = 0;
   {
-    auto vr_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, vr_temp);
-    _dot(ex, size, inx, static_cast<index_t>(1), iny, static_cast<index_t>(1), vr_temp_gpu);
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, vr_temp_gpu, vr_temp);
+    auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
+    auto event = _dot(ex, size, inx, static_cast<index_t>(1), iny,
+                      static_cast<index_t>(1), vr_temp_gpu);
     ex.get_policy_handler().wait(event);
   }
 
-  if (!utils::almost_equal<data_t, scalar_t>(vr_temp, vr_ref)) {
+  if (!utils::almost_equal(vr_temp, vr_ref)) {
     std::ostringstream err_stream;
     err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
     const std::string& err_str = err_stream.str();

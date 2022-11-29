@@ -36,13 +36,11 @@ void run_test(const combination_t<scalar_t> combi) {
   int factor;
   std::tie(size, factor) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   auto q = make_queue();
   test_executor_t ex(q);
 
   // Input buffer
-  auto v_in = std::vector<data_t>(size);
+  auto v_in = std::vector<scalar_t>(size);
   fill_random(v_in);
   // Intermediate buffer
   auto v_int = std::vector<IndexValueTuple<int, scalar_t>>(
@@ -53,7 +51,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Load v_int with v_in as tuples
   {
-    const auto gpu_v_in = utils::make_quantized_buffer<scalar_t>(ex, v_in);
+    const auto gpu_v_in =
+        blas::make_sycl_iterator_buffer<scalar_t>(v_in.data(), size);
     auto gpu_v_in_vv = make_vector_view(ex, gpu_v_in, 1, size);
     auto gpu_v_int =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
@@ -93,8 +92,7 @@ void run_test(const combination_t<scalar_t> combi) {
   for (int i = 0; i < size; i++) {
     int expected = i * factor + (i + OFFSET);
     ASSERT_EQ(expected, v_out[i].ind);
-    ASSERT_TRUE(
-        utils::almost_equal(static_cast<data_t>(v_out[i].val), v_in[i]));
+    ASSERT_TRUE(utils::almost_equal(v_out[i].val, v_in[i]));
   }
 }
 const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // size

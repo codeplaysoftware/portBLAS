@@ -44,17 +44,17 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   tuple_scalar_t out{0, 0};
 
-  std::transform(std::begin(v1), std::end(v1), std::begin(v1),
-                 [](data_t v) { return utils::clamp_to_limits<scalar_t>(v); });
+  std::transform(std::begin(v1), std::end(v1), std::begin(v1), [](scalar_t v) {
+    return utils::clamp_to_limits<scalar_t>(v);
+  });
 
-  auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
   auto outI = blas::make_sycl_iterator_buffer<tuple_scalar_t>(&out, 1);
 
 #ifdef BLAS_VERIFY_BENCHMARK
