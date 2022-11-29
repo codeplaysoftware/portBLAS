@@ -852,6 +852,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>
                 $<TARGET_OBJECTS:swap>
+                $<TARGET_OBJECTS:gbmv>
                 $<TARGET_OBJECTS:gemv>
                 $<TARGET_OBJECTS:ger>
                 $<TARGET_OBJECTS:symv>

@@ -44,6 +44,10 @@ template <typename scalar_t>
 using trsm_param_t =
     std::tuple<char, char, char, char, index_t, index_t, scalar_t>;
 
+template <typename scalar_t>
+using gbmv_param_t = std::tuple<std::string, index_t, index_t, index_t, index_t,
+                                scalar_t, scalar_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -415,6 +419,53 @@ static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
             return std::make_tuple(
                 v[0][0], v[1][0], v[2][0], v[3][0], str_to_int<index_t>(v[4]),
                 str_to_int<index_t>(v[5]), str_to_scalar<scalar_t>(v[6]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_gbmv_params
+ * @brief Returns a vector containing the gbmv benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<gbmv_param_t<scalar_t>> get_gbmv_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<gbmv_param_t<scalar_t>> gbmv_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t kmin = 1;
+    scalar_t alpha = 1;
+    scalar_t beta = 0;
+    for (std::string t : {"n", "t"}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t kl = kmin; kl <= m / 4; kl *= 2) {
+            for (index_t ku = kmin; ku <= n / 4; ku *= 2) {
+              gbmv_default.push_back(
+                  std::make_tuple(t, m, n, kl, ku, alpha, beta));
+            }
+          }
+        }
+      }
+    }
+    return gbmv_default;
+  } else {
+    return parse_csv_file<gbmv_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 7) {
+            throw std::runtime_error(
+                "invalid number of parameters (7 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0].c_str(), str_to_int<index_t>(v[1]),
+                str_to_int<index_t>(v[2]), str_to_scalar<scalar_t>(v[3]),
+                str_to_scalar<scalar_t>(v[4]), str_to_scalar<scalar_t>(v[5]),
+                str_to_scalar<scalar_t>(v[6]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

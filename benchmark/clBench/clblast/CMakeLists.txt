@@ -14,6 +14,7 @@ set(sources
   blas1/nrm2.cpp
   blas1/scal.cpp
   # Level 2 blas
+  blas2/gbmv.cpp
   blas2/gemv.cpp
   # Level 3 blas
   blas3/gemm.cpp
