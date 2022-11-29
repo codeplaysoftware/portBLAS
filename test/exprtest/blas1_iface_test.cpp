@@ -45,15 +45,13 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   index_t strd = TestClass::template test_strd<test>();
   scalar_t prec = TestClass::template test_prec<test>();
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   DEBUG_PRINT(std::cout << "size == " << size << std::endl);
   DEBUG_PRINT(std::cout << "strd == " << strd << std::endl);
 
   // creating three random vectors
-  std::vector<data_t> vX(size);
-  std::vector<data_t> vY(size);
-  std::vector<data_t> vZ(size);
+  std::vector<scalar_t> vX(size);
+  std::vector<scalar_t> vY(size);
+  std::vector<scalar_t> vZ(size);
   TestClass::set_rand(vX, size);
   TestClass::set_rand(vY, size);
   TestClass::set_rand(vZ, size);
@@ -107,23 +105,23 @@ TYPED_TEST(BLAS_Test, interface1_test) {
 
   // creating vectors which will contain the result
   // for asum:
-  std::vector<data_t> vR(1);
+  std::vector<scalar_t> vR(1);
   // for dot:
-  std::vector<data_t> vS(1);
+  std::vector<scalar_t> vS(1);
   // for nrm2:
-  std::vector<data_t> vT(1);
+  std::vector<scalar_t> vT(1);
   // for dot after _rot
-  std::vector<data_t> vU(1);
+  std::vector<scalar_t> vU(1);
   // for iamax/iamin
   constexpr auto max_val = IndexValueTuple<index_t, scalar_t>(
       std::numeric_limits<index_t>::max(), static_cast<scalar_t>(0));
 
-  std::vector<IndexValueTuple<index_t, data_t>> vImax(1, max_val);
+  std::vector<IndexValueTuple<index_t, scalar_t>> vImax(1, max_val);
 
   constexpr auto min_val =
       IndexValueTuple<index_t, scalar_t>(std::numeric_limits<index_t>::max(),
                                          std::numeric_limits<scalar_t>::max());
-  std::vector<IndexValueTuple<index_t, data_t>> vImin(1, min_val);
+  std::vector<IndexValueTuple<index_t, scalar_t>> vImin(1, min_val);
 
   auto q = make_queue();
   Executor<ExecutorType> ex(q);

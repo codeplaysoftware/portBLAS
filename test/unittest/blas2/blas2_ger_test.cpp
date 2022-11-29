@@ -39,38 +39,36 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(m, n, alpha, incX, incY, lda_mul) = combi;
   index_t lda = m * lda_mul;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input matrix
-  std::vector<data_t> a_v(m * incX);
+  std::vector<scalar_t> a_v(m * incX);
   // Input Vector
-  std::vector<data_t> b_v(n * incY);
+  std::vector<scalar_t> b_v(n * incY);
   // output Vector
-  std::vector<data_t> c_m_gpu_result(lda * n, scalar_t(10));
+  std::vector<scalar_t> c_m_gpu_result(lda * n, scalar_t(10));
   // output system vector
-  std::vector<data_t> c_m_cpu(lda * n, scalar_t(10));
+  std::vector<scalar_t> c_m_cpu(lda * n, scalar_t(10));
   fill_random(a_v);
   fill_random(b_v);
 
   // SYSTEM GER
-  reference_blas::ger(m, n, static_cast<data_t>(alpha), a_v.data(), incX,
-                      b_v.data(), incY, c_m_cpu.data(), lda);
+  reference_blas::ger(m, n, alpha, a_v.data(), incX, b_v.data(), incY,
+                      c_m_cpu.data(), lda);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto v_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_v);
-  auto v_b_gpu = utils::make_quantized_buffer<scalar_t>(ex, b_v);
-  auto m_c_gpu = utils::make_quantized_buffer<scalar_t>(ex, c_m_gpu_result);
+  auto v_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_v, m * incX);
+  auto v_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_v, n * incY);
+  auto m_c_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(c_m_gpu_result, lda * n);
 
   // SYCLger
   _ger(ex, m, n, alpha, v_a_gpu, incX, v_b_gpu, incY, m_c_gpu, lda);
 
-  auto event =
-      utils::quantized_copy_to_host<scalar_t>(ex, m_c_gpu, c_m_gpu_result);
+  auto event = ex.get_policy_handler().copy_to_host(
+      m_c_gpu, c_m_gpu_result.data(), lda * n);
   ex.get_policy_handler().wait(event);
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(c_m_gpu_result, c_m_cpu);
+  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu_result, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 }
 

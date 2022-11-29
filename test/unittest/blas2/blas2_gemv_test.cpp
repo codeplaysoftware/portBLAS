@@ -40,8 +40,6 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t lda_mul;
   std::tie(m, n, alpha, beta, trans, incX, incY, lda_mul) = combi;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   const char *t_str = trans ? "t" : "n";
 
   int a_size = m * n * lda_mul;
@@ -49,37 +47,36 @@ void run_test(const combination_t<scalar_t> combi) {
   int y_size = trans ? (1 + (n - 1) * incY) : (1 + (m - 1) * incY);
 
   // Input matrix
-  std::vector<data_t> a_m(a_size, 1.0);
+  std::vector<scalar_t> a_m(a_size, 1.0);
   // Input Vector
-  std::vector<data_t> x_v(x_size, 1.0);
+  std::vector<scalar_t> x_v(x_size, 1.0);
   // output Vector
-  std::vector<data_t> y_v_gpu_result(y_size, scalar_t(10.0));
+  std::vector<scalar_t> y_v_gpu_result(y_size, scalar_t(10.0));
   // output system vector
-  std::vector<data_t> y_v_cpu(y_size, scalar_t(10.0));
+  std::vector<scalar_t> y_v_cpu(y_size, scalar_t(10.0));
 
   fill_random(a_m);
   fill_random(x_v);
 
   // SYSTEM GEMMV
-  reference_blas::gemv(t_str, m, n, static_cast<data_t>(alpha), a_m.data(),
-                       lda_mul * m, x_v.data(), incX, static_cast<data_t>(beta),
-                       y_v_cpu.data(), incY);
+  reference_blas::gemv(t_str, m, n, alpha, a_m.data(), lda_mul * m, x_v.data(),
+                       incX, beta, y_v_cpu.data(), incY);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto m_a_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
-  auto v_x_gpu = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto v_y_gpu = utils::make_quantized_buffer<scalar_t>(ex, y_v_gpu_result);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, a_size);
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
+  auto v_y_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(y_v_gpu_result, y_size);
 
   // SYCLGEMV
   _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
         v_y_gpu, incY);
-  auto event =
-      utils::quantized_copy_to_host<scalar_t>(ex, v_y_gpu, y_v_gpu_result);
+  auto event = ex.get_policy_handler().copy_to_host(
+      v_y_gpu, y_v_gpu_result.data(), y_size);
   ex.get_policy_handler().wait(event);
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(y_v_gpu_result, y_v_cpu);
+  const bool isAlmostEqual = utils::compare_vectors(y_v_gpu_result, y_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
 }
 

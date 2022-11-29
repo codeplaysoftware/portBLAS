@@ -40,39 +40,36 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(uplo, n, alpha, lda_mul, incX, beta, incY) = combi;
   index_t lda = n * lda_mul;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Input matrix
-  std::vector<data_t> a_m(lda * n);
+  std::vector<scalar_t> a_m(lda * n);
   fill_random(a_m);
 
   // Input vector
-  std::vector<data_t> x_v(n * incX);
+  std::vector<scalar_t> x_v(n * incX);
   fill_random(x_v);
 
   // Output Vector
-  std::vector<data_t> y_v(n * incY, 1.0);
-  std::vector<data_t> y_cpu_v(n * incY, 1.0);
+  std::vector<scalar_t> y_v(n * incY, 1.0);
+  std::vector<scalar_t> y_cpu_v(n * incY, 1.0);
 
   // SYSTEM symv
-  reference_blas::symv(&uplo, n, static_cast<data_t>(alpha), a_m.data(), lda,
-                       x_v.data(), incX, static_cast<data_t>(beta),
+  reference_blas::symv(&uplo, n, alpha, a_m.data(), lda, x_v.data(), incX, beta,
                        y_cpu_v.data(), incY);
 
   auto q = make_queue();
   test_executor_t ex(q);
-  auto a_m_gpu = utils::make_quantized_buffer<scalar_t>(ex, a_m);
-  auto x_v_gpu = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto y_v_gpu = utils::make_quantized_buffer<scalar_t>(ex, y_v);
+  auto a_m_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);
+  auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
+  auto y_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_v, n * incY);
 
   // SYCLsymv
   _symv(ex, uplo, n, alpha, a_m_gpu, lda, x_v_gpu, incX, beta, y_v_gpu, incY);
 
-  auto event = utils::quantized_copy_to_host<scalar_t>(ex, y_v_gpu, y_v);
+  auto event =
+      ex.get_policy_handler().copy_to_host(y_v_gpu, y_v.data(), n * incY);
   ex.get_policy_handler().wait(event);
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<data_t, scalar_t>(y_v, y_cpu_v);
+  const bool isAlmostEqual = utils::compare_vectors(y_v, y_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
 }
 

@@ -44,33 +44,28 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Create data
-  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
-  std::vector<data_t> v2 = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
-  auto inx = utils::make_quantized_buffer<scalar_t>(ex, v1);
-  auto iny = utils::make_quantized_buffer<scalar_t>(ex, v2);
+  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto iny = blas::make_sycl_iterator_buffer<scalar_t>(v2, size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> y_ref = v2;
-  reference_blas::axpy(size, static_cast<data_t>(alpha), v1.data(), 1,
+  std::vector<scalar_t> y_ref = v2;
+  reference_blas::axpy(size, static_cast<scalar_t>(alpha), v1.data(), 1,
                        y_ref.data(), 1);
-  std::vector<data_t> y_temp = v2;
+  std::vector<scalar_t> y_temp = v2;
   {
-    auto y_temp_gpu = utils::make_quantized_buffer<scalar_t>(ex, y_temp);
-    _axpy(ex, size, alpha, inx, static_cast<index_t>(1), y_temp_gpu, static_cast<index_t>(1));
-    auto event =
-        utils::quantized_copy_to_host<scalar_t>(ex, y_temp_gpu, y_temp);
+    auto y_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_temp, size);
+    auto event = _axpy(ex, size, alpha, inx, 1, y_temp_gpu, 1);
     ex.get_policy_handler().wait(event);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors<data_t, scalar_t>(y_temp, y_ref, err_stream,
-                                                "")) {
+  if (!utils::compare_vectors(y_temp, y_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;

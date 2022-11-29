@@ -46,46 +46,47 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   ExecutorType& ex = *executorPtr;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   // Create data
   constexpr size_t param_size = 5;
-  std::vector<data_t> param =
-      blas_benchmark::utils::random_data<data_t>(param_size);
-  param[0] = static_cast<data_t>(-1.0); // Use -1.0 flag to use the whole matrix
+  std::vector<scalar_t> param =
+      blas_benchmark::utils::random_data<scalar_t>(param_size);
+  param[0] =
+      static_cast<scalar_t>(-1.0);  // Use -1.0 flag to use the whole matrix
 
-  std::vector<data_t> x_v = blas_benchmark::utils::random_data<data_t>(size);
-  std::vector<data_t> y_v = blas_benchmark::utils::random_data<data_t>(size);
+  std::vector<scalar_t> x_v =
+      blas_benchmark::utils::random_data<scalar_t>(size);
+  std::vector<scalar_t> y_v =
+      blas_benchmark::utils::random_data<scalar_t>(size);
 
-  auto gpu_x_v = utils::make_quantized_buffer<scalar_t>(ex, x_v);
-  auto gpu_y_v = utils::make_quantized_buffer<scalar_t>(ex, y_v);
-  auto gpu_param = utils::make_quantized_buffer<scalar_t>(ex, param);
+  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size);
+  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size);
+  auto gpu_param = blas::make_sycl_iterator_buffer<scalar_t>(param, param_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<data_t> x_v_ref = x_v;
-  std::vector<data_t> y_v_ref = y_v;
+  std::vector<scalar_t> x_v_ref = x_v;
+  std::vector<scalar_t> y_v_ref = y_v;
 
-  std::vector<data_t> x_v_verify = x_v;
-  std::vector<data_t> y_v_verify = y_v;
+  std::vector<scalar_t> x_v_verify = x_v;
+  std::vector<scalar_t> y_v_verify = y_v;
 
   reference_blas::rotm(size, x_v_ref.data(), 1, y_v_ref.data(), 1,
                        param.data());
 
   _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
         static_cast<index_t>(1), gpu_param);
-  auto event1 =
-      utils::quantized_copy_to_host<scalar_t>(ex, gpu_x_v, x_v_verify);
-  auto event2 =
-      utils::quantized_copy_to_host<scalar_t>(ex, gpu_y_v, y_v_verify);
+  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
+      gpu_x_v, x_v_verify.data(), size);
+  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
+      gpu_y_v, y_v_verify.data(), size);
   ex.get_policy_handler().wait(event1);
   ex.get_policy_handler().wait(event2);
 
   // Verify results
   std::ostringstream err_stream;
-  const bool isAlmostEqual = utils::compare_vectors<data_t, scalar_t>(
+  const bool isAlmostEqual = utils::compare_vectors<scalar_t, scalar_t>(
                                  x_v_ref, x_v_verify, err_stream, "") &&
-                             utils::compare_vectors<data_t, scalar_t>(
+                             utils::compare_vectors<scalar_t, scalar_t>(
                                  y_v_ref, y_v_verify, err_stream, "");
 
   if (!isAlmostEqual) {
