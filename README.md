@@ -330,14 +330,14 @@ cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
 ```
 The target triplet can be set by adding `-DDPCPP_SYCL_TARGET=<triplet>`. If it
-is not set, the default values is `spir64_x86_64-unknown-unknown`, which targets
-the CPU. Other possible triplets targeting GPUs are: `spir64-unknown-unknown`
-(Intel), `nvptx64-nvidia-cuda` (Nvidia), and `amdgcn-amd-amdhsa` (AMD).
+is not set, the default values is `spir64`, which compiles for generic SPIR-V
+targets.
 
-If building for NVIDIA or AMD devices, it is advisable to specify the actual
-device architecture by means of `-DDPCPP_SYCL_ARCH=<arch>`,
-e.g., `<arch>` can be `sm_80` for NVIDIA or `gfx908` for AMD.
-*Note:* specifying the architecture is required in case of AMD devices.
+Other possible triplets are `nvptx64-nvidia-cuda`, and
+`amdgcn-amd-amdhsa` for compiling for NVIDIA and AMD GPUs. In this case, it is
+advisable for NVIDIA and **mandatory for AMD** to provide the specific device
+architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
+for NVIDIA or `gfx908` for AMD.
 
 ### Compile with hipSYCL
 ```bash
@@ -355,7 +355,7 @@ ninja install
 ```
 ### POWER_VR support (ComputeCpp Only)
 
-To enable the PowerVR backend, pass: `-DTARGET=POWER_VR`
+To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
 
 To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
 
@@ -418,7 +418,7 @@ cmake  -GNinja                                                                  
    -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                                  \
    -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                                              \
    -DCMAKE_CXX_FLAGS='-O3'                                                                               \
-   -DTARGET="${CHOSEN_TARGET}"
+   -DTUNING_TARGET="${CHOSEN_TARGET}"
 ```
 
 
