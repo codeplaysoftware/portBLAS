@@ -653,10 +653,10 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
   using error = two;
 
-  using clts_matrix = one; /* co-sin less than sin */
-  using sltc_matrix = zero; /* sin less than co-sin */
-  using rescaled_matrix = m_one;
-  using unit_matrix = m_two;
+  using clts_flag = one; /* co-sin less than sin */
+  using sltc_flag = zero; /* sin less than co-sin */
+  using rescaled_flag = m_one;
+  using unit_flag = m_two;
 
   /* Gamma is a magic number used to re-scale the output and avoid underflows or
    * overflows. Consult the papers above for more info */
@@ -698,12 +698,12 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
   /* If the input is of the form (c, 0), then we already have the expected output.
    * No calculations needed in this case */
   else if (d2 == zero::value() || y1 == zero::value()) {
-    flag = unit_matrix::value();
+    flag = unit_flag::value();
   }
   /* If the input is of the form (0, c) - just need to swap the elements.
    * Scaling may be needed */
   else if ((d1 == zero::value() || x1 == zero::value()) && d2 > zero::value()) {
-    flag = clts_matrix::value();
+    flag = clts_flag::value();
     /* clts_matrix assumes h12 and h21 values. But they still need to be set
      * because of possible re-scaling */
     h12 = one::value();
@@ -727,7 +727,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
     value_t u;
 
     if (abs_c > abs_s) {
-      flag = sltc_matrix::value();
+      flag = sltc_flag::value();
       /* sltc_matrix assumes h11 and h22 values. But they still need to be set
        * because of possible re-scaling */
       h11 = one::value();
@@ -749,7 +749,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
       if (s < zero::value()) {
         flag = error::value();
       } else {
-        flag = clts_matrix::value();
+        flag = clts_flag::value();
 
         /* clts_matrix assumes h12 and h21 values. But they still need to be set
          * because of possible re-scaling */
@@ -775,14 +775,15 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
     }
   }
 
-  /* If necessary, apply scaling to d1 and d2 to avoid underflows or overflows.
+  /* Rescale to avoid underflows and overflows:
+   * If necessary, apply scaling to d1 and d2 to avoid underflows or overflows.
    * If rescaling happens, then x1 and the calculated matrix values also need
    * to be rescaled to keep the math valid */
-  if (flag != error::value() && flag != unit_matrix::value()) {
+  if (flag != error::value() && flag != unit_flag::value()) {
 
     /* Avoid d1 underflow */
     while (AbsoluteValue::eval(d1) <= inv_gamma_sq && d1 != zero::value()) {
-      flag = rescaled_matrix::value();
+      flag = rescaled_flag::value();
       d1 = (d1 * gamma) * gamma;
       x1 = x1 / gamma;
       h11 = h11 / gamma;
@@ -791,7 +792,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
     /* Avoid d1 overflow */
     while (AbsoluteValue::eval(d1) > gamma_sq) {
-      flag = rescaled_matrix::value();
+      flag = rescaled_flag::value();
       d1 = (d1 / gamma) / gamma;
       x1 = x1 * gamma;
       h11 = h11 * gamma;
@@ -800,7 +801,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
     /* Avoid d2 underflow */
     while (AbsoluteValue::eval(d2) <= inv_gamma_sq && d2 != zero::value()) {
-      flag = rescaled_matrix::value();
+      flag = rescaled_flag::value();
       d2 = (d2 * gamma) * gamma;
       h21 = h21 / gamma;
       h22 = h22 / gamma;
@@ -808,7 +809,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
     /* Avoid d2 overflow */
     while (AbsoluteValue::eval(d2) > gamma_sq) {
-      flag = rescaled_matrix::value();
+      flag = rescaled_flag::value();
       d2 = (d2 / gamma) / gamma;
       h21 = h21 * gamma;
       h22 = h22 * gamma;
@@ -829,17 +830,17 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
     d2_ref = d2;
     x1_ref = x1;
 
-    if (flag == unit_matrix::value()) {
+    if (flag == unit_flag::value()) {
       h11_ref = one::value();
       h12_ref = zero::value();
       h21_ref = zero::value();
       h22_ref = one::value();
-    } else if (flag == sltc_matrix::value()) {
+    } else if (flag == sltc_flag::value()) {
       h11_ref = one::value();
       h12_ref = h12;
       h21_ref = h21;
       h22_ref = one::value();
-    } else if (flag == clts_matrix::value()) {
+    } else if (flag == clts_flag::value()) {
       h11_ref = h11;
       h12_ref = one::value();
       h21_ref = m_one::value();

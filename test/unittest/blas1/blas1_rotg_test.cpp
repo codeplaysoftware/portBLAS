@@ -83,13 +83,13 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(isAlmostEqual);
 }
 
-/* Using std::numeric_limits<float> to test overflows on float types. If the
- * test type is something else, then this will be implicitly cast. double should
- * not overflow */
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values(api_type::event, api_type::result),                  // Api
-    ::testing::Values(0, 2.5, -7.3, std::numeric_limits<float>::max()),    // a
-    ::testing::Values(0, 0.5, -4.3, std::numeric_limits<float>::lowest())  // b
+    ::testing::Values(api_type::event, api_type::result),              // Api
+    ::testing::Values<scalar_t>(0, 2.5, -7.3,
+                                std::numeric_limits<scalar_t>::max()),    // a
+    ::testing::Values<scalar_t>(0, 0.5, -4.3,
+                                std::numeric_limits<scalar_t>::lowest())  // b
 );
 
 template <class T>

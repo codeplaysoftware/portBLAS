@@ -86,17 +86,19 @@ void run_test(const combination_t<scalar_t> combi) {
 
 static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
 
-const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
-                                      ::testing::Values(7, 513, 1027),  // n
-                                      ::testing::Values('n', 't'),  // trans
-                                      ::testing::Values('l', 'r'),  // side
-                                      ::testing::Values('u', 'n'),  // diag
-                                      ::testing::Values('l', 'u'),  // uplo
-                                      ::testing::Values(1.0, 2.0),  // alpha
-                                      ::testing::Values(1.0, 2.0),  // lda_mul
-                                      ::testing::Values(1.0, 2.0),  // ldb_mul
-                                      ::testing::Values(0.0, NaN)   // unused
-);
+template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Values(7, 513, 1027),        // m
+                       ::testing::Values(7, 513, 1027),        // n
+                       ::testing::Values('n', 't'),            // trans
+                       ::testing::Values('l', 'r'),            // side
+                       ::testing::Values('u', 'n'),            // diag
+                       ::testing::Values('l', 'u'),            // uplo
+                       ::testing::Values<scalar_t>(1.0, 2.0),  // alpha
+                       ::testing::Values<scalar_t>(1.0, 2.0),  // lda_mul
+                       ::testing::Values<scalar_t>(1.0, 2.0),  // ldb_mul
+                       ::testing::Values<scalar_t>(0.0, NaN)   // unused
+    );
 
 // unused is a value that will be placed in the input matrix and is not meant to
 // be accessed by the trsm implementation

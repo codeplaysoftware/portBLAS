@@ -246,7 +246,10 @@ typename executor_t::policy_t::event_t _rotm(
 /**
  * Given the Cartesian coordinates (x1, y1) of a point, the rotmg routines
  * compute the components of a modified Givens transformation matrix H that
- * zeros the y-component of the resulting point.
+ * zeros the y-component of the resulting point:
+ *
+ *                      [xi] = H * [xi * sqrt(d1) ]
+ *                      [0 ]       [yi * sqrt(d2) ]
  *
  * Depending on the flag parameter, the components of H are set as follows:
  *
@@ -670,7 +673,10 @@ typename executor_t::policy_t::event_t _rotm(
 /**
  * Given the Cartesian coordinates (x1, y1) of a point, the rotmg routines
  * compute the components of a modified Givens transformation matrix H that
- * zeros the y-component of the resulting point.
+ * zeros the y-component of the resulting point:
+ *
+ *                      [xi] = H * [xi * sqrt(d1) ]
+ *                      [0 ]       [yi * sqrt(d2) ]
  *
  * Depending on the flag parameter, the components of H are set as follows:
  *

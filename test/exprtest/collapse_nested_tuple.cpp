@@ -95,6 +95,7 @@ void run_test(const combination_t<scalar_t> combi) {
     ASSERT_TRUE(utils::almost_equal(v_out[i].val, v_in[i]));
   }
 }
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(16, 1023),  // size
                                       ::testing::Values(0, 1, 5));  // factor
 

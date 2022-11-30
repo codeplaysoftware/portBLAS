@@ -42,6 +42,7 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<index_t, index_t, index_t, operator_t, reduction_dim_t>;
 
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(1, 7, 513),                // rows
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
