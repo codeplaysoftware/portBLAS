@@ -31,7 +31,7 @@ struct RotmgTest {
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
   static constexpr scalar_t gamma_sq = static_cast<scalar_t>(gamma * gamma);
   static constexpr scalar_t inv_gamma_sq =
-      static_cast<scalar_t>(static_cast<scalar_t>(1.0) / gamma);
+      static_cast<scalar_t>(static_cast<scalar_t>(1.0) / gamma_sq);
   static constexpr size_t param_size = 5;
 
   struct RotmgParameters {
@@ -117,12 +117,6 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   if (((input.d1 == 0 || input.x1 == 0) && input.y1 != 0) &&
       (d1_ref > gamma_sq || d1_ref < inv_gamma_sq || d2_ref > gamma_sq ||
        d2_ref < inv_gamma_sq)) {
-    return;
-  }
-
-  /* cblas is not rescaling in this scenario */
-  if ((input.d1 < inv_gamma_sq && input.x1 > gamma_sq) ||
-      (input.d2 < inv_gamma_sq && input.y1 > gamma_sq)) {
     return;
   }
 
@@ -368,4 +362,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, d1, d2, x1, y1, will_overflow);
 }
 
-BLAS_REGISTER_TEST_ALL(RotmgStrict, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rotmg, combination_t, combi, generate_name);

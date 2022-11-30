@@ -666,7 +666,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
   constexpr value_t gamma_sq = gamma * gamma;
 
   /* Inverse of the square of gamma (i.e. 1 / (gamma * gamma)) */
-  constexpr value_t inv_gamma_sq = static_cast<value_t>(1.0) / gamma;
+  constexpr value_t inv_gamma_sq = static_cast<value_t>(1.0) / gamma_sq;
 
   value_t &d1_ref = d1_.eval(i);
   value_t &d2_ref = d2_.eval(i);
