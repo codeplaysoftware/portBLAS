@@ -665,7 +665,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
   /* Square of gamma. It is hardcoded to avoid computing it on every call */
   constexpr value_t gamma_sq = static_cast<value_t>(gamma * gamma);
 
-  /* Inverse of the square of gamma (i.e. 1 / sqrt(gamma)) */
+  /* Inverse of the square of gamma (i.e. 1 / (gamma * gamma)) */
   constexpr value_t inv_gamma_sq =
       static_cast<value_t>(static_cast<value_t>(1) / gamma);
 

@@ -31,7 +31,7 @@ struct RotmgTest {
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
   static constexpr scalar_t gamma_sq = static_cast<scalar_t>(gamma * gamma);
   static constexpr scalar_t inv_gamma_sq =
-      static_cast<scalar_t>(static_cast<scalar_t>(1) / gamma);
+      static_cast<scalar_t>(static_cast<scalar_t>(1.0) / gamma);
   static constexpr size_t param_size = 5;
 
   using data_t = utils::data_storage_t<scalar_t>;
