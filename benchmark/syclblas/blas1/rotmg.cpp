@@ -44,11 +44,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 
   ExecutorType& ex = *executorPtr;
 
-  auto buf_d1 = utils::make_quantized_buffer<scalar_t>(ex, d1);
-  auto buf_d2 = utils::make_quantized_buffer<scalar_t>(ex, d2);
-  auto buf_x1 = utils::make_quantized_buffer<scalar_t>(ex, x1);
-  auto buf_y1 = utils::make_quantized_buffer<scalar_t>(ex, y1);
-  auto buf_param = utils::make_quantized_buffer<scalar_t>(ex, param);
+  auto buf_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&d1, 1);
+  auto buf_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&d2, 1);
+  auto buf_x1 = blas::make_sycl_iterator_buffer<scalar_t>(&x1, 1);
+  auto buf_y1 = blas::make_sycl_iterator_buffer<scalar_t>(&y1, 1);
+  auto buf_param = blas::make_sycl_iterator_buffer<scalar_t>(param, param_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -64,11 +64,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   scalar_t y1_verify = y1;
   std::vector<scalar_t> param_verify = param;
 
-  auto buf_verify_d1 = utils::make_quantized_buffer<scalar_t>(ex, d1_verify);
-  auto buf_verify_d2 = utils::make_quantized_buffer<scalar_t>(ex, d2_verify);
-  auto buf_verify_x1 = utils::make_quantized_buffer<scalar_t>(ex, x1_verify);
-  auto buf_verify_y1 = utils::make_quantized_buffer<scalar_t>(ex, y1_verify);
-  auto device_param = utils::make_quantized_buffer<scalar_t>(ex, param_verify);
+  auto buf_verify_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&d1_verify, 1);
+  auto buf_verify_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&d2_verify, 1);
+  auto buf_verify_x1 = blas::make_sycl_iterator_buffer<scalar_t>(&x1_verify, 1);
+  auto buf_verify_y1 = blas::make_sycl_iterator_buffer<scalar_t>(&y1_verify, 1);
+  auto device_param =
+      blas::make_sycl_iterator_buffer<scalar_t>(param_verify, param_size);
 
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
   _rotmg(ex, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1, device_param);
@@ -90,11 +91,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   ex.get_policy_handler().wait(event4);
   ex.get_policy_handler().wait(event5);
 
-  const bool isAlmostEqual =
-      utils::almost_equal<scalar_t, scalar_t>(d1_verify, d1_ref) &&
-      utils::almost_equal<scalar_t, scalar_t>(d2_verify, d2_ref) &&
-      utils::almost_equal<scalar_t, scalar_t>(x1_verify, x1_ref) &&
-      utils::almost_equal<scalar_t, scalar_t>(y1_verify, y1_ref);
+  const bool isAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
+                             utils::almost_equal(d2_verify, d2_ref) &&
+                             utils::almost_equal(x1_verify, x1_ref) &&
+                             utils::almost_equal(y1_verify, y1_ref);
 
   if (!isAlmostEqual) {
     std::ostringstream err_stream;

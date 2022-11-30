@@ -34,8 +34,6 @@ struct RotmgTest {
       static_cast<scalar_t>(static_cast<scalar_t>(1.0) / gamma);
   static constexpr size_t param_size = 5;
 
-  using data_t = utils::data_storage_t<scalar_t>;
-
   struct RotmgParameters {
     scalar_t d1{};
     scalar_t d2{};
@@ -67,12 +65,12 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
-  auto device_d1 = utils::make_quantized_buffer<scalar_t>(ex, sycl_out.d1);
-  auto device_d2 = utils::make_quantized_buffer<scalar_t>(ex, sycl_out.d2);
-  auto device_x1 = utils::make_quantized_buffer<scalar_t>(ex, sycl_out.x1);
-  auto device_y1 = utils::make_quantized_buffer<scalar_t>(ex, sycl_out.y1);
+  auto device_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.d1, 1);
+  auto device_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.d2, 1);
+  auto device_x1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.x1, 1);
+  auto device_y1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.y1, 1);
   auto device_param =
-      utils::make_quantized_buffer<scalar_t>(ex, sycl_out.param);
+      blas::make_sycl_iterator_buffer<scalar_t>(sycl_out.param, param_size);
   auto event0 =
       _rotmg(ex, device_d1, device_d2, device_x1, device_y1, device_param);
   ex.get_policy_handler().wait(event0);
@@ -96,11 +94,11 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
 template <typename scalar_t>
 void RotmgTest<scalar_t>::validate_with_reference() {
-  data_t d1_ref = input.d1;
-  data_t d2_ref = input.d2;
-  data_t x1_ref = input.x1;
-  data_t y1_ref = input.y1;
-  std::vector<data_t> param_ref(param_size);
+  scalar_t d1_ref = input.d1;
+  scalar_t d2_ref = input.d2;
+  scalar_t x1_ref = input.x1;
+  scalar_t y1_ref = input.y1;
+  std::vector<scalar_t> param_ref(param_size);
 
   /* Cannot test this scenario since cblas enters into an infinite loop */
   if (d2_ref < 0 && y1_ref == std::numeric_limits<scalar_t>::min()) {
@@ -131,10 +129,10 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
 
   const bool isAlmostEqual =
-      utils::almost_equal<data_t, scalar_t>(sycl_out.d1, d1_ref) &&
-      utils::almost_equal<data_t, scalar_t>(sycl_out.d2, d2_ref) &&
-      utils::almost_equal<data_t, scalar_t>(sycl_out.x1, x1_ref) &&
-      utils::almost_equal<data_t, scalar_t>(sycl_out.y1, y1_ref);
+      utils::almost_equal(sycl_out.d1, d1_ref) &&
+      utils::almost_equal(sycl_out.d2, d2_ref) &&
+      utils::almost_equal(sycl_out.x1, x1_ref) &&
+      utils::almost_equal(sycl_out.y1, y1_ref);
   ASSERT_TRUE(isAlmostEqual);
 
   /* Validate param */
@@ -158,16 +156,16 @@ void RotmgTest<scalar_t>::validate_with_reference() {
 
   if (flag_sycl != error_matrix && flag_ref != unit_matrix) {
     if (flag_ref == sltc_matrix) {
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h12_sycl, h12_ref)));
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h21_sycl, h21_ref)));
+      ASSERT_TRUE((utils::almost_equal(h12_sycl, h12_ref)));
+      ASSERT_TRUE((utils::almost_equal(h21_sycl, h21_ref)));
     } else if (flag_ref == clts_matrix) {
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h11_sycl, h11_ref)));
-      ASSERT_TRUE((utils::almost_equal<data_t, scalar_t>(h22_sycl, h22_ref)));
+      ASSERT_TRUE((utils::almost_equal(h11_sycl, h11_ref)));
+      ASSERT_TRUE((utils::almost_equal(h22_sycl, h22_ref)));
     } else {
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h11_sycl, h11_ref)));
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h12_sycl, h12_ref)));
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h21_sycl, h21_ref)));
-      ASSERT_TRUE((utils::almost_equal<scalar_t>(h22_sycl, h22_ref)));
+      ASSERT_TRUE((utils::almost_equal(h11_sycl, h11_ref)));
+      ASSERT_TRUE((utils::almost_equal(h12_sycl, h12_ref)));
+      ASSERT_TRUE((utils::almost_equal(h21_sycl, h21_ref)));
+      ASSERT_TRUE((utils::almost_equal(h22_sycl, h22_ref)));
     }
   }
 }
@@ -189,8 +187,8 @@ void RotmgTest<scalar_t>::validate_with_rotm() {
   index_t incX = 1;
   index_t incY = 1;
 
-  std::vector<data_t> x_cpu_v{input.x1};
-  std::vector<data_t> y_cpu_v{input.y1};
+  std::vector<scalar_t> x_cpu_v{input.x1};
+  std::vector<scalar_t> y_cpu_v{input.y1};
 
   reference_blas::rotm(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY,
                        sycl_out.param.data());
@@ -198,7 +196,7 @@ void RotmgTest<scalar_t>::validate_with_rotm() {
   x_cpu_v[0] = x_cpu_v[0] * static_cast<scalar_t>(sqrt(sycl_out.d1));
   y_cpu_v[0] = y_cpu_v[0] * static_cast<scalar_t>(sqrt(sycl_out.d2));
 
-  bool y1_becomes_zero = utils::almost_equal<data_t, scalar_t>(y_cpu_v[0], 0);
+  bool y1_becomes_zero = utils::almost_equal<scalar_t>(y_cpu_v[0], 0);
   ASSERT_TRUE(y1_becomes_zero);
 }
 
