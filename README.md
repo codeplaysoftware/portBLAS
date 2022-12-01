@@ -310,6 +310,11 @@ added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
 
 ## Setup
 
+**IMPORTANT NOTE:** The `TARGET` CMake variable is no more supported, it has
+been replaced by `TUNING_TARGET`, which accepts the same options.
+`TUNING_TARGET` does not effect compilation, but only the tuning configuration.
+Please refer to the sections below for compiling SYCL-BLAS for specific devices.
+
 1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s), such as the computecpp-sdk.
 2. Create a build directory
 3. Run `CMake` from the build directory (see options in the section below):
