@@ -146,7 +146,7 @@ struct ExpressionTreeEvaluator {
   static SYCL_BLAS_INLINE void eval(
       expression_tree_t &tree,
       LocalMemory<local_memory_t, using_local_memory> scratch,
-      cl::sycl::nd_item<3> index) {
+      cl::sycl::nd_item<2> index) {
     tree.eval(scratch, index);
   }
 };
@@ -228,7 +228,7 @@ struct ExpressionTreeFunctor {
                             value_t>::eval(non_const_t, scratch_, i);
   }
 
-  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<3> i) const {
+  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<2> i) const {
     expression_tree_t &non_const_t = *const_cast<expression_tree_t *>(&t_);
     non_const_t.adjust_access_displacement();
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
@@ -275,20 +275,16 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
                                                      expression_tree_t t,
                                                      size_t _localSize_x,
                                                      size_t _localSize_y,
-                                                     size_t _localSize_z,
                                                      size_t _globalSize_x,
                                                      size_t _globalSize_y,
-                                                     size_t _globalSize_z,
                                                      size_t _shMem) {
   using value_t =
       typename LocalMemoryType<using_local_memory, expression_tree_t>::type;
 
   auto localSize_x = _localSize_x;
   auto localSize_y = _localSize_y;
-  auto localSize_z = _localSize_z;
   auto globalSize_x = _globalSize_x;
   auto globalSize_y = _globalSize_y;
-  auto globalSize_z = _globalSize_z;
   auto shMem = _shMem;
   cl::sycl::event ev;
   try {
@@ -296,10 +292,9 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
       t.bind(h);
       auto scratch = LocalMemory<value_t, using_local_memory>(shMem, h);
 
-      cl::sycl::nd_range<3> gridConfiguration = cl::sycl::nd_range<3>{
-          cl::sycl::range<3>{globalSize_x, globalSize_y, globalSize_z}, 
-          cl::sycl::range<3>{localSize_x, localSize_y, localSize_z},
-          {}};
+      cl::sycl::nd_range<2> gridConfiguration = cl::sycl::nd_range<2>{
+          cl::sycl::range<2>{globalSize_x, globalSize_y}, 
+          cl::sycl::range<2>{localSize_x, localSize_y}};
       h.parallel_for(
           gridConfiguration,
           ExpressionTreeFunctor<using_local_memory, expression_tree_t,
