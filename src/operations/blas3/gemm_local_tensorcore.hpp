@@ -232,7 +232,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << " , wg_size: " << wg_size
               << " , nwg : " << x_groups * y_groups << std::endl;
 #endif
-    return cl::sycl::nd_range<2>{{x_groups * x_local, y_groups * y_local},
+    return cl::sycl::nd_range<2>{{x_groups * x_local * batch_size_, y_groups * y_local},
                                  {x_local, y_local}};
   }
 
@@ -261,15 +261,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     // The batch index that each workgroup should start working with
     const index_t x_groups = (get_sg_x_cluster() - 1) / wg_rows + 1;
     const index_t y_groups = (get_sg_y_cluster() - 1) / wg_cols + 1;
-    const index_t wg_batch_id_x = id.get_group(0) / x_groups;
-    const index_t wg_batch_id_y = id.get_group(1) / y_groups;
-    const index_t wg_batch_id = wg_batch_id_x + wg_batch_id_y;
+    const index_t wg_batch_id = id.get_group(0) / x_groups;
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
-    const index_t batch_stride =
-        (id.get_group_range(0) / x_groups) * (id.get_group_range(1) / y_groups);
+    const index_t batch_stride = id.get_group_range(0) / x_groups;
 
     auto scratch = scratch_acc.localAcc.get_pointer();
 
