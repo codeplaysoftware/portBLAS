@@ -797,37 +797,45 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     # add_gemm_configuration(
     #     "${data}" 32 "false" "false" "false"
     #     128 1 1 1 1 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 2 2 16 16 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        128 1 1 2 2 16 16 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+        128 2 4 16 8 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+
     add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+        128 4 8 16 8 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+
     add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 2 2 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 2 2 16 16 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
+        "${data}" 256 "false" "false" "false"
+        128 8 8 16 16 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 2 2 16 16 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::ext::oneapi::experimental::bfloat16 float "local" "standard" "full" 1 "strided" "true")
         
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 1 1 2 2 16 16 1 1 1 1 8 cl::sycl::ext::oneapi::experimental::matrix::precision::tf32 float "local" "standard" "full" 1 "strided" "true")
+    # add_gemm_configuration(
+    #     "${data}" 128 "false" "false" "false"
+    #     128 1 1 2 2 16 16 1 1 1 1 8 cl::sycl::ext::oneapi::experimental::matrix::precision::tf32 float "local" "standard" "full" 1 "strided" "true")
 
     # add_gemm_configuration(
     #     "${data}" 128 "false" "false" "false"
