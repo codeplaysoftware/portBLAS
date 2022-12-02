@@ -70,7 +70,7 @@ message(STATUS "${TUNING_TARGET} is chosen as a tuning target")
 
 if(DEFINED TARGET)
   message(FATAL_ERROR
-            "\nSetting the TARGET CMake variable is no more supported. "
+            "\nSetting the TARGET CMake variable is no longer supported. "
             "Set TUNING_TARGET instead, it accepts the same options.\n"
             "Further details can be found in README.md.\n"
             "You can remove this error by unsetting TARGET invoking cmake "
