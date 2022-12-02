@@ -310,7 +310,7 @@ added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
 
 ## Setup
 
-**IMPORTANT NOTE:** The `TARGET` CMake variable is no more supported, it has
+**IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
 been replaced by `TUNING_TARGET`, which accepts the same options.
 `TUNING_TARGET` effects only the tuning configuration, no more the target
 triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
