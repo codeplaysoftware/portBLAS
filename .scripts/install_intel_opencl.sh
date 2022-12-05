@@ -1,16 +1,18 @@
 #!/bin/bash
+# Copyright (C) Codeplay Software Limited. All Rights Reserved.
+#
+# Install Intel CPU OpenCL runtime
+# Instructions from https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/apt.html#apt
+#
+# Note: the FPGA emulator device is disabled to keep only the Intel CPU one.
 
-set -ev
+set -e
 
-###########################
-# Get Intel OpenCL Runtime
-###########################
-
-PACKAGE_URL=http://registrationcenter-download.intel.com/akdlm/irc_nas/vcp/13793/l_opencl_p_18.1.0.013.tgz
-PACKAGE_NAME=l_opencl_p_18.1.0.013
-
-wget -q ${PACKAGE_URL} -O /tmp/opencl_runtime.tgz
-tar -xzf /tmp/opencl_runtime.tgz -C /tmp
-sed 's/decline/accept/g' -i /tmp/${PACKAGE_NAME}/silent.cfg
-apt-get install -yq cpio
-/tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list
+apt update
+apt install -y intel-oneapi-runtime-libs intel-oneapi-runtime-opencl
+rm /etc/OpenCL/vendors/intel64-fpgaemu.icd
+apt clean && rm -rf /var/lib/apt/lists/*

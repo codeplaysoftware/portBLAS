@@ -7,19 +7,19 @@ cat <<EOT
 
 To use build.sh to compile sycl-blas with ComputeCpp:
 
-  ./build.sh "path/to/ComputeCpp"
+  ./build.sh --compiler computecpp --computecppdir "path to computecpp"
   (the path to ComputeCpp can be relative)
 
   For example:
-  ./build.sh /home/user/ComputeCpp
+  ./build.sh --compiler computecpp --computecppdir /home/user/ComputeCpp
 
 
 To use build.sh to compile sycl-blas with a specific blas installation (e.g. OpenBLAS):
 
-  ./build.sh "path/to/ComputeCpp" "path/to/blas"
+  ./build.sh --openblas "path/to/blas"
 
   For example:
-  ./build.sh /home/user/ComputeCpp /tmp/OpenBLAS/build
+  ./build.sh --openblas /tmp/OpenBLAS/build
 
 EOT
 }
@@ -30,31 +30,43 @@ set -o errexit
 # Minimal emergency case to display the help message whatever happens
 trap display_help ERR
 
-# Get the absolute path of the ComputeCpp_DIR, from arg $1
-if [ -z "$1" ]
-  then
-  echo "No ComputeCPP Package specified."
-  exit 1
-else
-  CCPPPACKAGE=$(readlink -f $1)
-  echo "ComputeCPP specified at: $CCPPPACKAGE"
-  CMAKE_ARGS="$CMAKE_ARGS -DComputeCpp_DIR=$CCPPPACKAGE"
+# Setting default values
+COMPILER=computecpp
+OPENBLASROOT=openblas
+CCPPPACKAGE=/tmp/computecpp-latest
+
+while [ $# -gt 0 ]; do
+  echo $1
+  if [[ $1 == *"--compiler"* ]]; then
+     COMPILER=$2
+     echo "Compiler specified: $COMPILER"
+     CMAKE_ARGS="$CMAKE_ARGS -DSYCL_COMPILER=$COMPILER"
+     shift
+  elif [[ $1 == *"--openblas"* ]]; then
+     OPENBLASROOT=$(readlink -f $2)
+     echo "User specified OpenBLAS at: $OPENBLASROOT"
+     CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_PREFIX_PATH=$OPENBLASROOT"
+     shift
+  elif [[ $1 == *"--computecppdir"* ]]; then
+     CCPPPACKAGE=$(readlink -f $2)
+     echo "ComputeCPP specified at: $CCPPPACKAGE"
+     CMAKE_ARGS="$CMAKE_ARGS -DComputeCpp_DIR=$CCPPPACKAGE"
+     shift
+  else
+     echo "Invalid argument passed" $1
+     exit 1
+  fi
   shift
-fi
-
-# Test to see if an OpenBLAS installation has been given
-if [ -z "$1" ]
-  then
-  echo "Using CMake to find a BLAS installation"
-else
-  OPENBLASROOT=$(readlink -f $1)
-  echo "User specified OpenBLAS at: $OPENBLASROOT"
-  CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_PREFIX_PATH=$OPENBLASROOT"
-fi
-
+done
 echo "Making args"
 
+if [[ $COMPILER == "dpcpp" ]]; then
+  CMAKE_ARGS="$CMAKE_ARGS -DBLAS_ENABLE_CONST_INPUT=OFF"
+fi
+
 CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release"
+
+echo $CMAKE_ARGS
 
 NPROC=$(nproc)
 
