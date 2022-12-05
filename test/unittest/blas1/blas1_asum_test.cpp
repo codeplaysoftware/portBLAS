@@ -70,6 +70,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ex.get_policy_handler().get_queue().wait();
 }
 
+template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values(11, 65, 10000, 1002400),  // size
                        ::testing::Values(1, 4)                     // incX

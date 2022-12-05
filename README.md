@@ -206,18 +206,21 @@ For all these operations:
   index-value tuple.
 * `c` and `s` for `_rot` are scalars (cosine and sine)
 
-| operation | arguments | description |
-|---|---|---|
-| `_axpy` | `ex`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy` | Vector multiply-add: `y = alpha * x + y` |
-| `_copy`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Copies a vector to another: `y = x` |
-| `_dot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`] | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned |
-| `_asum` | `ex`, `N`, `vx`, `incx` [, `rs`] | Absolute sum of the vector `x`; written in `rs` if passed, else returned |
-| `_iamax` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned |
-| `_iamin` | `ex`, `N`, `vx`, `incx` [, `rs`] | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned |
-| `_swap`  | `ex`, `N`, `vx`, `incx`, `vy`, `incy` | Interchanges two vectors: `y = x` and `x = y` |
-| `_scal` | `ex`, `N`, `alpha`, `vx`, `incx` | Scalar product of a vector: `x = alpha * x` |
-| `_nrm2` | `ex`, `N`, `vx`, `incx` [, `rs`] | Euclidean norm of the vector `x`; written in `rs` if passed, else returned |
-| `_rot` | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`  |
+| operation | arguments                                       | description                                                                                                                                                                  |
+|-----------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `_axpy`   | `ex`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`  | Vector multiply-add: `y = alpha * x + y`                                                                                                                                     |
+| `_copy`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`           | Copies a vector to another: `y = x`                                                                                                                                          |
+| `_dot`    | `ex`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`]  | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned                                                                                             |
+| `_asum`   | `ex`, `N`, `vx`, `incx` [, `rs`]                | Absolute sum of the vector `x`; written in `rs` if passed, else returned                                                                                                     |
+| `_iamax`  | `ex`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
+| `_iamin`  | `ex`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
+| `_swap`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`           | Interchanges two vectors: `y = x` and `x = y`                                                                                                                                |
+| `_scal`   | `ex`, `N`, `alpha`, `vx`, `incx`                | Scalar product of a vector: `x = alpha * x`                                                                                                                                  |
+| `_nrm2`   | `ex`, `N`, `vx`, `incx` [, `rs`]                | Euclidean norm of the vector `x`; written in `rs` if passed, else returned                                                                                                   |
+| `_rot`    | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`                                                                                                     |
+| `_rotg`   | `ex`, `a`, `b`, `c`, `s`                        | Given the Cartesian coordinates (`a`, `b`) of a point, return the parameters `c`, `s`, `r`, and `z` associated with the Givens rotation.                                     |
+| `_rotm`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `param`  | Applies a modified Givens rotation to `x` and `y`.                                                                                                                           |
+| `_rotmg`  | `ex`, `d1`, `d2`, `x1`, `y1` `param`            | Given the Cartesian coordinates (`x1`, `y1`) of a point, return the components of a modified Givens transformation matrix that zeros the y-component of the resulting point. |
 
 ### BLAS 2
 

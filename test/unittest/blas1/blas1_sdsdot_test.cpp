@@ -93,18 +93,20 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 #ifdef STRESS_TESTING
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(api_type::event, api_type::result),  // Api
     ::testing::Values(11, 65, 1002, 1002400),              // N
-    ::testing::Values(9.5f, 0.5f),                         // sb
+    ::testing::Values<scalar_t>(9.5f, 0.5f),               // sb
     ::testing::Values(1, 4),                               // incX
     ::testing::Values(1, 3)                                // incY
 );
 #else
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(api_type::event, api_type::result),  // Api
     ::testing::Values(11, 1002, 0),                        // N
-    ::testing::Values(9.5f, 0.5f, 0.0f),                   // sb
+    ::testing::Values<scalar_t>(9.5f, 0.5f, 0.0f),         // sb
     ::testing::Values(1, 4),                               // incX
     ::testing::Values(1, 3)                                // incY
 

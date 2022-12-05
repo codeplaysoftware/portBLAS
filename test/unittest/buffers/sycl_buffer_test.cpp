@@ -54,6 +54,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(vR_gpu, vR_cpu));
 }
 
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(100, 102400),  // size
                                       ::testing::Values(0, 25)         // offset
 );

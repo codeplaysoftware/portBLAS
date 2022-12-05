@@ -111,10 +111,12 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));
 }
 
-const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
-                                      ::testing::Values(0.0, 1.34),  // alpha
-                                      ::testing::Values(1, 4),       // incX
-                                      ::testing::Values(1, 3));      // incY
+template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Values(16, 1023),             // size
+                       ::testing::Values<scalar_t>(0.0, 1.34),  // alpha
+                       ::testing::Values(1, 4),                 // incX
+                       ::testing::Values(1, 3));                // incY
 
 template <class T>
 static std::string generate_name(

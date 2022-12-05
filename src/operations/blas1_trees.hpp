@@ -619,6 +619,275 @@ Rotg<operand_t>::adjust_access_displacement() {
   s_.adjust_access_displacement();
 }
 
+template <typename operand_t>
+Rotmg<operand_t>::Rotmg(operand_t &_d1, operand_t &_d2, operand_t &_x1,
+                        operand_t &_y1, operand_t &_param)
+    : d1_{_d1}, d2_{_d2}, x1_{_x1}, y1_{_y1}, param_{_param} {}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE typename Rotmg<operand_t>::index_t Rotmg<operand_t>::get_size()
+    const {
+  return static_cast<Rotmg<operand_t>::index_t>(1);
+}
+
+/**
+ * For further details about the rotmg algorithm refer to:
+ *
+ * Hopkins, Tim (1998) Restructuring the BLAS Level 1 Routine for Computing the
+ * Modified Givens Transformation. Technical report. , Canterbury, Kent, UK.
+ *
+ * and
+ *
+ * C. L. Lawson, R. J. Hanson, D. R. Kincaid, and F. T. Krogh. Basic linear algebra
+ * subprograms for Fortran usage. ACM Trans. Math. Softw., 5:308-323, 1979.
+ */
+template<typename operand_t>
+SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
+    typename Rotmg<operand_t>::index_t i) {
+
+  using zero = constant<value_t, const_val::zero>;
+  using one = constant<value_t, const_val::one>;
+  using two = constant<value_t, const_val::two>;
+  using m_one = constant<value_t, const_val::m_one>;
+  using m_two = constant<value_t, const_val::m_two>;
+
+  using error = two;
+
+  using clts_flag = one; /* co-sin less than sin */
+  using sltc_flag = zero; /* sin less than co-sin */
+  using rescaled_flag = m_one;
+  using unit_flag = m_two;
+
+  /* Gamma is a magic number used to re-scale the output and avoid underflows or
+   * overflows. Consult the papers above for more info */
+  constexpr value_t gamma = static_cast<value_t>(4096.0);
+
+  /* Square of gamma. It is hardcoded to avoid computing it on every call */
+  constexpr value_t gamma_sq = gamma * gamma;
+
+  /* Inverse of the square of gamma (i.e. 1 / (gamma * gamma)) */
+  constexpr value_t inv_gamma_sq = static_cast<value_t>(1.0) / gamma_sq;
+
+  value_t &d1_ref = d1_.eval(i);
+  value_t &d2_ref = d2_.eval(i);
+  value_t &x1_ref = x1_.eval(i);
+  value_t &flag_ref = param_.eval(static_cast<index_t>(0));
+  value_t &h11_ref = param_.eval(static_cast<index_t>(1));
+  value_t &h21_ref = param_.eval(static_cast<index_t>(2));
+  value_t &h12_ref = param_.eval(static_cast<index_t>(3));
+  value_t &h22_ref = param_.eval(static_cast<index_t>(4));
+
+  value_t d1 = d1_ref;
+  value_t d2 = d2_ref;
+  value_t x1 = x1_ref;
+  const value_t y1 = y1_.eval(i);
+
+  value_t flag;
+  value_t h11;
+  value_t h21;
+  value_t h12;
+  value_t h22;
+  value_t swap_temp;
+
+  /* d1 cannot be negative.
+   * Note: negative d2 is valid as a way to implement row removal */
+  if (d1 < zero::value()) {
+    flag = error::value();
+  }
+  /* If the input is of the form (c, 0), then we already have the expected output.
+   * No calculations needed in this case */
+  else if (d2 == zero::value() || y1 == zero::value()) {
+    flag = unit_flag::value();
+  }
+  /* If the input is of the form (0, c) - just need to swap the elements.
+   * Scaling may be needed */
+  else if ((d1 == zero::value() || x1 == zero::value()) && d2 > zero::value()) {
+    flag = clts_flag::value();
+    /* clts_matrix assumes h12 and h21 values. But they still need to be set
+     * because of possible re-scaling */
+    h12 = one::value();
+    h21 = m_one::value();
+
+    h11 = zero::value();
+    h22 = zero::value();
+
+    x1 = y1;
+    swap_temp = d1;
+    d1 = d2;
+    d2 = swap_temp;
+
+  } else {
+    const value_t p1 = d1 * x1;
+    const value_t p2 = d2 * y1;
+    const value_t c = p1 * x1;
+    const value_t s = p2 * y1;
+    const value_t abs_c = AbsoluteValue::eval(c);
+    const value_t abs_s = AbsoluteValue::eval(s);
+    value_t u;
+
+    if (abs_c > abs_s) {
+      flag = sltc_flag::value();
+      /* sltc_matrix assumes h11 and h22 values. But they still need to be set
+       * because of possible re-scaling */
+      h11 = one::value();
+      h22 = one::value();
+
+      h21 = -y1 / x1;
+      h12 = p2 / p1;
+      u = one::value() - h12 * h21;
+
+      /* If u underflowed exit with error */
+      if (u <= zero::value()) {
+        flag = error::value();
+      } else {
+        d1 = d1 / u;
+        d2 = d2 / u;
+        x1 = x1 * u;
+      }
+    } else {
+      if (s < zero::value()) {
+        flag = error::value();
+      } else {
+        flag = clts_flag::value();
+
+        /* clts_matrix assumes h12 and h21 values. But they still need to be set
+         * because of possible re-scaling */
+        h12 = one::value();
+        h21 = m_one::value();
+        h11 = p1 / p2;
+        h22 = x1 / y1;
+
+        u = one::value() + h11 * h22;
+
+        /* The original algorithm assumes that d2 will never be negative at this
+         * point. However, that is not true for some inputs which cause p2 to
+         * underflow (i.e. if d2 and y1 are very small) */
+        if (u < one::value()) {
+          flag = error::value();
+        }
+
+        swap_temp = d1 / u;
+        d1 = d2 / u;
+        d2 = swap_temp;
+        x1 = y1 * u;
+      }
+    }
+  }
+
+  /* Rescale to avoid underflows and overflows:
+   * If necessary, apply scaling to d1 and d2 to avoid underflows or overflows.
+   * If rescaling happens, then x1 and the calculated matrix values also need
+   * to be rescaled to keep the math valid */
+  if (flag != error::value() && flag != unit_flag::value()) {
+
+    /* Avoid d1 underflow */
+    while (AbsoluteValue::eval(d1) <= inv_gamma_sq && d1 != zero::value()) {
+      flag = rescaled_flag::value();
+      d1 = (d1 * gamma) * gamma;
+      x1 = x1 / gamma;
+      h11 = h11 / gamma;
+      h12 = h12 / gamma;
+    }
+
+    /* Avoid d1 overflow */
+    while (AbsoluteValue::eval(d1) > gamma_sq) {
+      flag = rescaled_flag::value();
+      d1 = (d1 / gamma) / gamma;
+      x1 = x1 * gamma;
+      h11 = h11 * gamma;
+      h12 = h12 * gamma;
+    }
+
+    /* Avoid d2 underflow */
+    while (AbsoluteValue::eval(d2) <= inv_gamma_sq && d2 != zero::value()) {
+      flag = rescaled_flag::value();
+      d2 = (d2 * gamma) * gamma;
+      h21 = h21 / gamma;
+      h22 = h22 / gamma;
+    }
+
+    /* Avoid d2 overflow */
+    while (AbsoluteValue::eval(d2) > gamma_sq) {
+      flag = rescaled_flag::value();
+      d2 = (d2 / gamma) / gamma;
+      h21 = h21 * gamma;
+      h22 = h22 * gamma;
+    }
+  }
+
+  /* Copy algorithm output to global memory */
+  if (flag == error::value()) {
+    h11_ref = zero::value();
+    h12_ref = zero::value();
+    h21_ref = zero::value();
+    h22_ref = zero::value();
+    d1_ref = zero::value();
+    d2_ref = zero::value();
+    x1_ref = zero::value();
+  } else {
+    d1_ref = d1;
+    d2_ref = d2;
+    x1_ref = x1;
+
+    if (flag == unit_flag::value()) {
+      h11_ref = one::value();
+      h12_ref = zero::value();
+      h21_ref = zero::value();
+      h22_ref = one::value();
+    } else if (flag == sltc_flag::value()) {
+      h11_ref = one::value();
+      h12_ref = h12;
+      h21_ref = h21;
+      h22_ref = one::value();
+    } else if (flag == clts_flag::value()) {
+      h11_ref = h11;
+      h12_ref = one::value();
+      h21_ref = m_one::value();
+      h22_ref = h22;
+    }
+    else {
+      h11_ref = h11;
+      h12_ref = h12;
+      h21_ref = h21;
+      h22_ref = h22;
+    }
+  }
+  flag_ref = flag;
+
+  // The return value of rotmg is void but eval expects something to be returned.
+  return zero::value();
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
+    cl::sycl::nd_item<1> ndItem) {
+  return Rotmg<operand_t>::eval(ndItem.get_global_id(0));
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE bool Rotmg<operand_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  return ((ndItem.get_global_id(0) < Rotmg<operand_t>::get_size()));
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE void Rotmg<operand_t>::bind(cl::sycl::handler &h) {
+  d1_.bind(h);
+  d2_.bind(h);
+  x1_.bind(h);
+  y1_.bind(h);
+  param_.bind(h);
+}
+
+template <typename operand_t>
+SYCL_BLAS_INLINE void Rotmg<operand_t>::adjust_access_displacement() {
+  d1_.adjust_access_displacement();
+  d2_.adjust_access_displacement();
+  x1_.adjust_access_displacement();
+  y1_.adjust_access_displacement();
+  param_.adjust_access_displacement();
+}
+
 }  // namespace blas
 
 #endif  // BLAS1_TREES_HPP

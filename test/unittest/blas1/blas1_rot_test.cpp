@@ -86,6 +86,7 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 #ifdef STRESS_TESTING
+template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
                        ::testing::Values(1, 4),                   // incX
@@ -93,6 +94,7 @@ const auto combi =
                        ::testing::Values(0)                       // unused
     );
 #else
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(4),         // incX
                                       ::testing::Values(3),         // incY
