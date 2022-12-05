@@ -169,7 +169,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
  * side of the following formula is calculated by rotm.
  *
  * x1_output * sqrt(d1_output) = [ h11 h12 ] * [ x1_input]
- * 0.0       * sqrt(d2_output)   [h21  h22 ]   [ y1_input]
+ * 0.0       * sqrt(d2_output)   [ h21 h22 ]   [ y1_input]
  */
 template <typename scalar_t>
 void RotmgTest<scalar_t>::validate_with_rotm() {

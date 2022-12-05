@@ -22,8 +22,6 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-add_definitions(-D${TARGET})
-
 set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 # compiling tests
@@ -36,7 +34,11 @@ set(SYCL_EXPRTEST_SRCS
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
-  target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
+  if(is_computecpp)
+    set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 14)
+  endif()
+  # -DTUNING_TARGET is needed when using SYCL-BLAS in header only mode.
+  target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE} -D${TUNING_TARGET})
   target_link_libraries(${test_exec} PRIVATE gtest_main blas::blas sycl_blas)
   target_include_directories(${test_exec} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.." ${CBLAS_INCLUDE} ${SYCLBLAS_SRC} ${SYCLBLAS_COMMON_INCLUDE_DIR})
   add_sycl_to_target(
