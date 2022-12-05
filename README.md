@@ -310,6 +310,12 @@ added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
 
 ## Setup
 
+**IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
+been replaced by `TUNING_TARGET`, which accepts the same options.
+`TUNING_TARGET` affects only the tuning configuration and has no effect on the target
+triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
+setting them.
+
 1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s), such as the computecpp-sdk.
 2. Create a build directory
 3. Run `CMake` from the build directory (see options in the section below):
@@ -329,9 +335,15 @@ cd build
 cmake -GNinja ../ -DSYCL_COMPILER=dpcpp
 ninja
 ```
+The target triplet can be set by adding `-DDPCPP_SYCL_TARGET=<triplet>`. If it
+is not set, the default values is `spir64`, which compiles for generic SPIR-V
+targets.
 
-If building for `AMD_GPU` devices, it is also required to provide the
-specific architecture through the `DPCPP_SYCL_ARCH` CMake variable.
+Other possible triplets are `nvptx64-nvidia-cuda`, and
+`amdgcn-amd-amdhsa` for compiling for NVIDIA and AMD GPUs. In this case, it is
+advisable for NVIDIA and **mandatory for AMD** to provide the specific device
+architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
+for NVIDIA or `gfx908` for AMD.
 
 ### Compile with hipSYCL
 ```bash
@@ -339,7 +351,7 @@ cd build
 cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
 ninja
 ```
-To build for other than the default devices, set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
 
 ### Instaling SYCL-BLAS
 To install the SYCL-BLAS library (see `CMAKE_INSTALL_PREFIX` below)
@@ -349,7 +361,7 @@ ninja install
 ```
 ### POWER_VR support (ComputeCpp Only)
 
-To enable the PowerVR backend, pass: `-DTARGET=POWER_VR`
+To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
 
 To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
 
@@ -374,7 +386,7 @@ Some of the supported options are:
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
 | `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
-| `TARGET` | name | By default SYCL-BLAS library is built for CPU. Use that flag to compile it for a specific backend (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
+| `TUNING_TARGET` | name | By default SYCL-BLAS library is tuned for CPU. Use that flag to tune it for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |
@@ -412,7 +424,7 @@ cmake  -GNinja                                                                  
    -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                                  \
    -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                                              \
    -DCMAKE_CXX_FLAGS='-O3'                                                                               \
-   -DTARGET="${CHOSEN_TARGET}"
+   -DTUNING_TARGET="${CHOSEN_TARGET}"
 ```
 
 
