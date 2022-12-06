@@ -662,7 +662,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
    * overflows. Consult the papers above for more info */
   constexpr value_t gamma = static_cast<value_t>(4096.0);
 
-  /* Square of gamma. It is hardcoded to avoid computing it on every call */
+  /* Square of gamma. */
   constexpr value_t gamma_sq = gamma * gamma;
 
   /* Inverse of the square of gamma (i.e. 1 / (gamma * gamma)) */
@@ -703,7 +703,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
    * Scaling may be needed */
   else if ((d1 == zero::value() || x1 == zero::value()) && d2 > zero::value()) {
     flag = clts_flag::value();
-    /* clts_matrix assumes h12 and h21 values. But they still need to be set
+    /* clts_flag assumes h12 and h21 values. But they still need to be set
      * because of possible re-scaling */
     h12 = one::value();
     h21 = m_one::value();
@@ -727,7 +727,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
     if (abs_c > abs_s) {
       flag = sltc_flag::value();
-      /* sltc_matrix assumes h11 and h22 values. But they still need to be set
+      /* sltc_flag assumes h11 and h22 values. But they still need to be set
        * because of possible re-scaling */
       h11 = one::value();
       h22 = one::value();
@@ -750,7 +750,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
       } else {
         flag = clts_flag::value();
 
-        /* clts_matrix assumes h12 and h21 values. But they still need to be set
+        /* clts_flag assumes h12 and h21 values. But they still need to be set
          * because of possible re-scaling */
         h12 = one::value();
         h21 = m_one::value();

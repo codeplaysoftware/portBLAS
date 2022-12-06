@@ -163,8 +163,8 @@ The notable calls in the stack are (all located in `src/interface/gemm_interface
 
 ## GEMM Backends
 
-GEMM backends are a mechanism to provide different compile-time configurations for different hardware platforms/backends. 
-Backend selection is controlled by passing the cmake variable `TARGET` during CMake configuration, for example passing `-DTARGET=INTEL_GPU` would select the appropriate configurations for Intel GPUs. 
+GEMM backends are a mechanism to provide different compile-time configurations for different hardware platforms/backends.
+Backend selection is controlled by passing the cmake variable `TUNING_TARGET` during CMake configuration, for example passing `-DTUNING_TARGET=INTEL_GPU` would select the appropriate configurations for Intel GPUs.
 This cmake variable causes a corresponding define for the selected platform to be included in the source which then controls backend selection through `#ifdef`s in `src/interface/blas3/backend/backend.hpp` like so:
 
 ```c++
@@ -392,7 +392,7 @@ Configurations are provided per backend target and will be generated for each da
 As an example let's look at the configurations in `CmakeFunctionHelper.cmake` for the `RCAR` target backend, inside the function `generate_blas_gemm_objects`:
 
 ```cmake
-if(${TARGET} STREQUAL "RCAR")
+if(${TUNING_TARGET} STREQUAL "RCAR")
   set(supported_types
     "float"
   )
