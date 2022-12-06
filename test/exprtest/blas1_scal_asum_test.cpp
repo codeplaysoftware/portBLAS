@@ -96,6 +96,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(utils::almost_equal(cpu_y, v_y[0]));
 }
 
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(16, 1023),   // size
                                       ::testing::Values(0.0, 1.34),  // alpha
                                       ::testing::Values(1, 4));      // incX

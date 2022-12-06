@@ -34,6 +34,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
   # Blas 2 tests
@@ -77,6 +78,9 @@ endif()
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
   get_filename_component(test_exec ${blas_test} NAME_WE)
   add_executable(${test_exec} main.cpp ${blas_test})
+  if(is_computecpp)
+    set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 14)
+  endif()
   if(STRESS_TESTING)
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()

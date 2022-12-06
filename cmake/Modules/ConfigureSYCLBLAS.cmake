@@ -64,10 +64,18 @@ if(NAIVE_GEMM)
   add_definitions(-DNAIVE_GEMM)
 endif()
 
-# the TARGET variable defines the platform for which the sycl library is built
-SET(TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
-SET(BACKEND_DEVICE ${TARGET})
-message(STATUS "${TARGET} is chosen as a backend platform")
+# the TUNING_TARGET variable defines the platform for which the sycl library is tuned
+SET(TUNING_TARGET "DEFAULT_CPU" CACHE STRING "Default Platform 'DEFAULT_CPU'")
+message(STATUS "${TUNING_TARGET} is chosen as a tuning target")
+
+if(DEFINED TARGET)
+  message(FATAL_ERROR
+            "\nSetting the TARGET CMake variable is no longer supported. "
+            "Set TUNING_TARGET instead, it accepts the same options.\n"
+            "Further details can be found in README.md.\n"
+            "You can remove this error by unsetting TARGET invoking cmake "
+            "with -UTARGET argument.\n" )
+endif()
 
 # the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
 # be enabled for. Currently only affects ARM_GPU configs.

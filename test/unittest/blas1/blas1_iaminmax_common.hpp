@@ -62,6 +62,7 @@ void populate_data(generation_mode_t mode, scalar_t limit,
 }
 
 #ifdef STRESS_TESTING
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(11, 65, 10000, 1002400),  // size
     ::testing::Values(1, 5),                    // incX
@@ -69,6 +70,7 @@ const auto combi = ::testing::Combine(
                       generation_mode_t::Incrementing,
                       generation_mode_t::Decrementing));
 #else
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(11, 65, 1000000),  // size
     ::testing::Values(5),                // incX

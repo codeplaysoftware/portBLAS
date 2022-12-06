@@ -209,6 +209,13 @@ void rotg(scalar_t *sa, scalar_t *sb, scalar_t *c, scalar_t *s) {
 }
 
 template <typename scalar_t>
+void rotmg(scalar_t *d1, scalar_t *d2, scalar_t *x1, scalar_t *y1,
+          scalar_t param[]) {
+  auto func = blas_system_function<scalar_t>(&cblas_srotmg, &cblas_drotmg);
+  func(d1, d2, x1, *y1, param);
+}
+
+template <typename scalar_t>
 void scal(const int n, const scalar_t alpha, scalar_t x[], const int incX) {
   auto func = blas_system_function<scalar_t>(&cblas_sscal, &cblas_dscal);
   func(n, alpha, x, incX);

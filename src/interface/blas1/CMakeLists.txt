@@ -46,3 +46,5 @@ generate_blas_binary_special_objects(blas1 iamin)
 
 generate_blas_rotg_objects(blas1 rotg)
 generate_blas_rotg_return_objects(blas1 rotg_return)
+
+generate_blas_rotmg_objects(blas1 rotmg)

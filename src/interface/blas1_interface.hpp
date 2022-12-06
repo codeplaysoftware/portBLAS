@@ -373,7 +373,7 @@ typename executor_t::policy_t::event_t _rot(
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h12, h21, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
@@ -428,6 +428,64 @@ typename executor_t::policy_t::event_t _rotm(
   auto vyResult = make_op<BinaryOp, AddOperator>(h21TimesVx, h22TimesVy);
   auto DoubleAssignView = make_op<DoubleAssign>(vx, vy, vxResult, vyResult);
   auto ret = ex.execute(DoubleAssignView);
+
+  return ret;
+}
+
+/**
+ * Given the Cartesian coordinates (x1, y1) of a point, the rotmg routines
+ * compute the components of a modified Givens transformation matrix H that
+ * zeros the y-component of the resulting point:
+ *
+ *                      [xi] = H * [xi * sqrt(d1) ]
+ *                      [0 ]       [yi * sqrt(d2) ]
+ *
+ * Depending on the flag parameter, the components of H are set as follows:
+ *
+ * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
+ *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
+ *
+ * Rotmg may apply scaling operations to d1, d2 and x1 to avoid overflows.
+ *
+ * @tparam executor_t Executor type
+ * @tparam container_0_t Buffer Iterator
+ * @tparam container_1_t Buffer Iterator
+ * @tparam container_2_t Buffer Iterator
+ * @tparam container_3_t Buffer Iterator
+ * @tparam container_4_t Buffer Iterator
+ * @param ex Executor
+ * @param _d1[in,out] On entry, buffer holding the scaling factor for the
+ * x-coordinate. On exit, the re-scaled _d1.
+ * @param _d2[in,out] On entry, buffer holding the scaling factor for the
+ * y-coordinate. On exit, the re-scaled _d2.
+ * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
+ * re-scaled _x1
+ * @param _y1[in] Buffer holding the y-coordinate of the point.
+ * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
+ * h22].
+ * @return Vector of events to wait for.
+ */
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename container_3_t,
+          typename container_4_t>
+typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
+                                              container_1_t _d2,
+                                              container_2_t _x1,
+                                              container_3_t _y1,
+                                              container_4_t _param) {
+  constexpr int inc = 1;
+  constexpr int vector_size = 1;
+  constexpr int param_size = 5;
+
+  auto d1_view = make_vector_view(ex, _d1, inc, vector_size);
+  auto d2_view = make_vector_view(ex, _d2, inc, vector_size);
+  auto x1_view = make_vector_view(ex, _x1, inc, vector_size);
+  auto y1_view = make_vector_view(ex, _y1, inc, vector_size);
+  auto param_view = make_vector_view(ex, _param, inc, param_size);
+
+  auto operation =
+      Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view, y1_view, param_view);
+  auto ret = ex.execute(operation);
 
   return ret;
 }

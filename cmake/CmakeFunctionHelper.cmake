@@ -59,18 +59,18 @@ endfunction()
 
 function(set_target_compile_def in_target)
   #setting compiler flag for backend
-  message(STATUS "Adding ${BACKEND_DEVICE} backend to target ${in_target}")
-  if(${BACKEND_DEVICE} STREQUAL "INTEL_GPU")
+  message(STATUS "Adding ${TUNING_TARGET} backend to target ${in_target}")
+  if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "AMD_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")
     target_compile_definitions(${in_target} PUBLIC AMD_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "ARM_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
     target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "RCAR")
+  elseif(${TUNING_TARGET} STREQUAL "RCAR")
     target_compile_definitions(${in_target} PUBLIC RCAR=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "POWER_VR")
+  elseif(${TUNING_TARGET} STREQUAL "POWER_VR")
     target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
-  elseif(${BACKEND_DEVICE} STREQUAL "NVIDIA_GPU")
+  elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
@@ -373,7 +373,7 @@ function(generate_blas_rotg_objects blas_level func)
   foreach (executor ${executor_list})
     foreach (data ${data_list})
       cpp_type(cpp_data ${data})
-      list(APPEND container_list_in_out "BufferIterator<${cpp_data},codeplay_policy>")
+      set(container_list_in_out "BufferIterator<${cpp_data},codeplay_policy>")
       foreach (container0 ${container_list_in_out})
         foreach (container1 ${container_list_in_out})
           foreach (container2 ${container_list_in_out})
@@ -450,6 +450,56 @@ function(generate_blas_rotg_return_objects blas_level func)
   message(STATUS "Adding SYCL to target ${func}")
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_rotg_return_objects)
+
+# blas function for generating source code for the rotg operator (asynchronous version with containers)
+function(generate_blas_rotmg_objects blas_level func)
+  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+  foreach (executor ${executor_list})
+    foreach (data ${data_list})
+      cpp_type(cpp_data ${data})
+      set(container_list_in_out "BufferIterator<${cpp_data},codeplay_policy>")
+      foreach (container0 ${container_list_in_out})
+        foreach (container1 ${container_list_in_out})
+          foreach (container2 ${container_list_in_out})
+            foreach (container3 ${container_list_in_out})
+              foreach (container4 ${container_list_in_out})
+                set(container_names "${container0}_${container1}_${container2}_${container3}")
+                sanitize_file_name(file_name "${func}_${executor}_${data}_${container_names}.cpp")
+                add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                        COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
+                        ${PROJECT_SOURCE_DIR}/external/
+                        ${SYCLBLAS_SRC_GENERATOR}/gen
+                        ${blas_level}
+                        ${func}
+                        ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        ${executor}
+                        ${cpp_data}
+                        ${container0}
+                        ${container1}
+                        ${container2}
+                        ${container3}
+                        ${container4}
+                        ${file_name}
+                        MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
+                        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                        VERBATIM
+                        )
+                list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+              endforeach (container4)
+            endforeach (container3)
+          endforeach (container2)
+        endforeach (container1)
+      endforeach (container0)
+    endforeach (data)
+  endforeach (executor)
+  add_library(${func} OBJECT ${FUNC_SRC})
+  set_target_compile_def(${func})
+  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
+  message(STATUS "Adding SYCL to target ${func}")
+  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
+endfunction(generate_blas_rotmg_objects)
 
 # blas gemm function for generating source code
 function(generate_blas_gemm_objects blas_level func)
@@ -553,7 +603,7 @@ function(add_gemm_configuration
     endforeach(trans_b)
   endforeach(trans_a)
 endfunction()
-if(${TARGET} STREQUAL "INTEL_GPU")
+if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
@@ -614,7 +664,7 @@ if(${TARGET} STREQUAL "INTEL_GPU")
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "RCAR") # need investigation
+elseif(${TUNING_TARGET} STREQUAL "RCAR") # need investigation
   set(supported_types
     "float"
   )
@@ -629,7 +679,7 @@ elseif(${TARGET} STREQUAL "RCAR") # need investigation
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "ARM_GPU")
+elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
   set(supported_types
     "float"
     "half"
@@ -694,7 +744,7 @@ elseif(${TARGET} STREQUAL "ARM_GPU")
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 2 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
+elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   set(supported_types
     "float"
     "half"
@@ -719,7 +769,7 @@ elseif(${TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
+elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
@@ -759,7 +809,7 @@ elseif(${TARGET} STREQUAL "AMD_GPU")  # need investigation
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
   endforeach()
-elseif(${TARGET} STREQUAL "NVIDIA_GPU")
+elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
  set(supported_types
     "float"
   )
@@ -886,6 +936,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:nrm2_return>
                 $<TARGET_OBJECTS:rot>
                 $<TARGET_OBJECTS:rotm>
+                $<TARGET_OBJECTS:rotmg>
                 $<TARGET_OBJECTS:rotg>
                 $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>

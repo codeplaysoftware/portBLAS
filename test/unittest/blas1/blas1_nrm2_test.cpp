@@ -61,6 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(isAlmostEqual);
 }
 
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(1, 4)       // incX
 );

@@ -82,6 +82,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
 #ifdef STRESS_TESTING
 // For the purpose of travis and other slower platforms, we need a faster test
+template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values('u', 'l'),                     // UPLO
                        ::testing::Values('n', 't'),                     // TRANS
@@ -92,6 +93,7 @@ const auto combi =
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
+template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
                                       ::testing::Values('n', 't'),  // TRANS
                                       ::testing::Values('u', 'n'),  // DIAG

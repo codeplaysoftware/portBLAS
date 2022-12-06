@@ -66,18 +66,21 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 #ifdef STRESS_TESTING
+template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
-                       ::testing::Values(0.0, 1.0, 1.5),          // alpha
-                       ::testing::Values(1, 4),                   // incX
-                       ::testing::Values(1, 3)                    // incY
+    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),    // size
+                       ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // alpha
+                       ::testing::Values(1, 4),                     // incX
+                       ::testing::Values(1, 3)                      // incY
     );
 #else
-const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(0.0, 1.5),  // alpha
-                                      ::testing::Values(1, 4),      // incX
-                                      ::testing::Values(1, 3)       // incY
-);
+template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 1002),            // size
+                       ::testing::Values<scalar_t>(0.0, 1.5),  // alpha
+                       ::testing::Values(1, 4),                // incX
+                       ::testing::Values(1, 3)                 // incY
+    );
 #endif
 
 template <class T>
