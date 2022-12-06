@@ -59,15 +59,17 @@ if __name__ == '__main__':
     tib = sys.argv[24]
     twb = sys.argv[25]
     sg_k = sys.argv[26]
-    sg_in_type = sys.argv[27]
-    sg_out_type = sys.argv[28]
-    wg_size = sys.argv[29]
-    cl_size = sys.argv[30]
-    file_name = sys.argv[31]
-    gemm_vectorize_type = sys.argv[32]
-    vector_size = sys.argv[33]
-    batch_type = sys.argv[34]
-    use_tensorcores = sys.argv[35]
+    sg_k = sys.argv[27]
+    sg_k = sys.argv[28]
+    sg_in_type = sys.argv[29]
+    sg_out_type = sys.argv[30]
+    wg_size = sys.argv[31]
+    cl_size = sys.argv[32]
+    file_name = sys.argv[33]
+    gemm_vectorize_type = sys.argv[34]
+    vector_size = sys.argv[35]
+    batch_type = sys.argv[36]
+    use_tensorcores = sys.argv[37]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -161,6 +163,16 @@ if __name__ == '__main__':
         Iterable(
             key='TWB',
             vals=[twb],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='SG_M',
+            vals=[sg_m],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='SG_N',
+            vals=[sg_n],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

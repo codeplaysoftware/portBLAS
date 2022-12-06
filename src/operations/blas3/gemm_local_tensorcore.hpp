@@ -83,38 +83,38 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
-  static constexpr index_t item_rows = tile_type::item_rows;//2
-  static constexpr index_t item_cols = tile_type::item_cols;//4
-  static constexpr index_t wg_rows = tile_type::wg_rows;//1
-  static constexpr index_t wg_cols = tile_type::wg_cols;//1
-  static constexpr index_t sg_rows = tile_type::sg_rows;//16
-  static constexpr index_t sg_cols = tile_type::sg_cols;//16
-  static constexpr index_t tl_rows = tile_type::tl_rows;//1
-  static constexpr index_t tl_cols = tile_type::tl_cols;//1
-  static constexpr index_t tile_size = tl_rows * tl_cols;//1
+  static constexpr index_t item_rows = tile_type::item_rows;
+  static constexpr index_t item_cols = tile_type::item_cols;
+  static constexpr index_t wg_rows = tile_type::wg_rows;
+  static constexpr index_t wg_cols = tile_type::wg_cols;
+  static constexpr index_t sg_rows = tile_type::sg_rows;
+  static constexpr index_t sg_cols = tile_type::sg_cols;
+  static constexpr index_t tl_rows = tile_type::tl_rows;
+  static constexpr index_t tl_cols = tile_type::tl_cols;
+  static constexpr index_t tile_size = tl_rows * tl_cols;
   static constexpr index_t sg_size = 32;
 
-  static constexpr bool double_buffer = DoubleBuffer;//1
-  static constexpr bool nbc_a = NbcA;//0
-  static constexpr bool nbc_b = NbcB;//1
-  static constexpr bool trans_a = TransA;//0
-  static constexpr bool trans_b = TransB;//0
+  static constexpr bool double_buffer = DoubleBuffer;
+  static constexpr bool nbc_a = NbcA;
+  static constexpr bool nbc_b = NbcB;
+  static constexpr bool trans_a = TransA;
+  static constexpr bool trans_b = TransB;
 
   //! @brief Number of elements which fit within a cache line.
-  static constexpr index_t cl_elems = ClSize / sizeof(element_t);//128/4=32
+  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
   //! @brief Number of work items within a work group
-  static constexpr index_t wg_size = wg_rows * wg_cols;//32
+  static constexpr index_t wg_size = wg_rows * wg_cols;
   //! @brief Number of rows within a work-group level tile
-  static constexpr index_t block_rows = wg_rows * item_rows;//16
+  static constexpr index_t block_rows = wg_rows * item_rows;
   //! @brief Number of columns within a work-group level tile
-  static constexpr index_t block_cols = wg_cols * item_cols;//16
+  static constexpr index_t block_cols = wg_cols * item_cols;
   //! @brief Number of rows within a top-level tile
-  static constexpr index_t big_tile_rows = tl_rows * block_rows;//16
+  static constexpr index_t big_tile_rows = tl_rows * block_rows;
   //! @brief Number of columns within a top-level tile
-  static constexpr index_t big_tile_cols = tl_cols * block_cols;//16
+  static constexpr index_t big_tile_cols = tl_cols * block_cols;
 
-  static constexpr index_t jm_row_frags = block_rows / sg_rows;
-  static constexpr index_t jm_col_frags = block_cols / sg_cols;
+  static constexpr index_t jm_row_frags = block_rows / tile_type::sg_M;
+  static constexpr index_t jm_col_frags = block_cols / tile_type::sg_N;
   static constexpr index_t num_jm_frags = jm_row_frags * jm_col_frags;
   static constexpr index_t num_sub_groups = wg_size / sg_size;
   static constexpr index_t frags_per_sg = num_jm_frags / num_sub_groups;
@@ -146,13 +146,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Cache line size must be a multiple of packet_size");
 
   //! @brief leading dimension of block of A in local
-  static constexpr index_t ldsa = block_rows + nbc_a;//32
+  static constexpr index_t ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in local
-  static constexpr index_t ldsb = cl_elems + nbc_b;//32
+  static constexpr index_t ldsb = cl_elems + nbc_b;
   //! @brief size (in elements) of local (local) memory required by each
   //         work group
   static constexpr index_t local_memory_size =
-      (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);//(2)*(32*32 + 32*32)
+      (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);
 
   input_t a_;
   input_t b_;
@@ -185,16 +185,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
   /*!
-   *@brief gt_workgroup_cluster. This function is used to find the optimum
+   *@brief get_workgroup_cluster. This function is used to find the optimum
    *number of work_group required to execute each GEMM.
    *
    */
   SYCL_BLAS_INLINE index_t get_sg_x_cluster() const noexcept {
-    return ((a_.get_size_row() - 1) / sg_rows + 1);
+    return ((a_.get_size_row() - 1) / tile_type::sg_M + 1);
   }
 
   SYCL_BLAS_INLINE index_t get_sg_y_cluster() const noexcept {
-    return ((b_.get_size_col() - 1) / sg_cols + 1);
+    return ((b_.get_size_col() - 1) / tile_type::sg_N + 1);
   }
   /*!
    *@brief get_num_workgroup_cluster. This function is used to extend the number
@@ -255,8 +255,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
                              const cl::sycl::nd_item<2> &id) noexcept {
-    // cl::sycl::ext::oneapi::experimental::printf("%lu | %lu | %d | %d\n", id.get_group_range(0), id.get_group_range(1), get_sg_x_cluster(), get_sg_y_cluster());
-    // cl::sycl::ext::oneapi::experimental::printf("%d | %d | %d | %d\n", a_.get_size_row(), sg_rows, b_.get_size_col(), sg_cols);
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     index_t k = a_.get_size_col();
@@ -300,9 +298,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    ptr_C += (wg_row + (sg_id % jm_row_frags) * sg_rows) + (wg_col + (sg_id / jm_row_frags) * sg_cols) * ldc;
-    element_t reg_a[(sg_rows * sg_cols) / sg_size];
-    element_t reg_b;
+    ptr_C += (wg_row + (sg_id % jm_row_frags) * tile_type::sg_M) + (wg_col + (sg_id / jm_row_frags) * tile_type::sg_N) * ldc;
 
     const index_t mc = m - wg_row;
     const index_t nc = n - wg_col;
@@ -325,14 +321,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t s1_offset =
         (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
                  : item_id % cl_elems + (item_id / cl_elems) * ldsb);
-    const index_t s2_offset = (sg_id / jm_row_frags) * sg_cols * ldsb;
+    const index_t s2_offset = (sg_id / jm_row_frags) * tile_type::sg_N * ldsb;
     const index_t ofs = (double_buffer + 1) * block_cols * ldsb;
     const index_t s3_offset =
         ofs +
         (trans_a
              ? item_id / cl_elems + (item_id % cl_elems) * ldsa
              : item_id % block_rows + (item_id / block_rows) * ldsa);
-    const index_t s4_offset = ofs + (sg_id % jm_row_frags) * sg_rows;
+    const index_t s4_offset = ofs + (sg_id % jm_row_frags) * tile_type::sg_M;
 
     if constexpr (std::is_same<typename tile_type::jmInpType, cl::sycl::ext::oneapi::experimental::matrix::precision::tf32>::value) {
       auto s1 = scratch + s1_offset;
@@ -416,7 +412,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t batch_size) noexcept {
     index_t ofs = 1;
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    using CType = joint_matrix<typename tile_type::jmOutType, matrix_use::accumulator, sg_rows, sg_cols, matrix_layout::col_major>;
+    using CType = joint_matrix<typename tile_type::jmOutType, matrix_use::accumulator, tile_type::sg_M, tile_type::sg_N, matrix_layout::col_major>;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -487,7 +483,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       return;
     }
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    using Cfloat_Type = joint_matrix<element_t, matrix_use::accumulator, sg_rows, sg_cols, matrix_layout::col_major>;
+    using Cfloat_Type = joint_matrix<element_t, matrix_use::accumulator, tile_type::sg_M, tile_type::sg_N, matrix_layout::col_major>;
 
     Cfloat_Type float_out;
     auto sg = id.get_sub_group();
@@ -496,17 +492,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t sg_range = static_cast<index_t>(sg.get_group_linear_range());
     const index_t sg_item_id = static_cast<index_t>(sg.get_local_linear_id());
 
-    const index_t sg_mc = mc - (sg_id % jm_row_frags) * sg_rows;
-    const index_t sg_nc = nc - (sg_id / jm_row_frags) * sg_cols;
+    const index_t sg_mc = mc - (sg_id % jm_row_frags) * tile_type::sg_M;
+    const index_t sg_nc = nc - (sg_id / jm_row_frags) * tile_type::sg_N;
     const bool jm_store_feasible = (mc < block_rows || nc < block_cols) ?
-                                    (sg_mc >= sg_rows && sg_nc >= sg_cols) ? 
+                                    (sg_mc >= tile_type::sg_M && sg_nc >= tile_type::sg_N) ? 
                                     true : false :
                                     true;
 
     if (jm_store_feasible) {
-      // cl::sycl::ext::oneapi::experimental::printf("jm_store_feasible for sg_id:%d | item_id:%d | mc:%d | nc:%d\n", sg_id, sg_item_id, sg_mc, sg_nc);
 
-      const index_t loop_limit = (sg_rows * sg_cols) / sg_size;
+      const index_t loop_limit = (tile_type::sg_M * tile_type::sg_N) / sg_size;
 
       if constexpr (is_beta_zero) {
 
@@ -519,7 +514,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
           joint_matrix_store(sg, float_out, C, ldc);
 
-          C += (sg_cols * ldc);
+          C += (tile_type::sg_N * ldc);
         }
 
       } else {
@@ -536,7 +531,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
           joint_matrix_store(sg, float_out, C, ldc);
 
-          C += (sg_cols * ldc);
+          C += (tile_type::sg_N * ldc);
         }
       }
       return;
@@ -546,15 +541,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
     id.barrier(cl::sycl::access::fence_space::local_space);
 
-    scratch += sg_id * sg_rows;
-    const index_t sg_store_ld = sg_range * sg_rows;
-    const index_t loop_limit = sg_nc >= sg_cols ? sg_cols : sg_nc;
+    scratch += sg_id * tile_type::sg_M;
+    const index_t sg_store_ld = sg_range * tile_type::sg_M;
+    const index_t loop_limit = sg_nc >= tile_type::sg_N ? tile_type::sg_N : sg_nc;
 
     for (index_t frag = 0; frag < frags_per_sg; frag++, C += ldc * loop_limit) {
       auto new_C = C;
       auto new_scratch = scratch;
 
-      for (index_t i = 0; i < (sg_rows * sg_cols) / sg_size; i++) {
+      for (index_t i = 0; i < (tile_type::sg_M * tile_type::sg_N) / sg_size; i++) {
         float_out.get_wi_data()[i] = static_cast<element_t>(reg_res[frag].get_wi_data()[i]);
       }
 
@@ -565,9 +560,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       new_C += sg_item_id;
       new_scratch += sg_item_id;
 
-      if (sg_mc < sg_rows && sg_nc < sg_cols) {
+      if (sg_mc < tile_type::sg_M && sg_nc < tile_type::sg_N) {
         if (sg_item_id < sg_mc) {
-          // cl::sycl::ext::oneapi::experimental::printf("sg_id:%d | item_id:%d | mc:%d | nc:%d\n", sg_id, sg_item_id, sg_mc, sg_nc);
 
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
@@ -581,9 +575,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
           }
         }
-      } else if (sg_mc < sg_rows) {
+      } else if (sg_mc < tile_type::sg_M) {
         if (sg_item_id < sg_mc) {
-          // cl::sycl::ext::oneapi::experimental::printf("sg_id:%d | item_id:%d | mc:%d | nc:%d\n", sg_id, sg_item_id, sg_mc, sg_nc);
 
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
@@ -597,8 +590,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           }
         }
       } else {
-        if (sg_item_id < sg_rows) {
-          // cl::sycl::ext::oneapi::experimental::printf("sg_id:%d | item_id:%d | mc:%d | nc:%d\n", sg_id, sg_item_id, sg_mc, sg_nc);
+        if (sg_item_id < tile_type::sg_M) {
 
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
@@ -751,8 +743,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                                            InputPointerType s2, InputPointerType s4, 
                                            CType (&reg_res)[frags_per_sg]) noexcept {
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
-    using AType = joint_matrix<typename tile_type::jmInpType, matrix_use::a, sg_rows, tile_type::sg_K, matrix_layout::col_major>;
-    using BType = joint_matrix<typename tile_type::jmInpType, matrix_use::b, tile_type::sg_K, sg_cols, matrix_layout::col_major>;
+    using AType = joint_matrix<typename tile_type::jmInpType, matrix_use::a, tile_type::sg_M, tile_type::sg_K, matrix_layout::col_major>;
+    using BType = joint_matrix<typename tile_type::jmInpType, matrix_use::b, tile_type::sg_K, tile_type::sg_N, matrix_layout::col_major>;
 
     AType inA;
     BType inB;
@@ -764,7 +756,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
     #pragma unroll
     for (index_t frag = 0; frag < frags_per_sg; frag++) {
-      auto new_B = s2 + frag * sg_cols * ldsb;
+      auto new_B = s2 + frag * tile_type::sg_N * ldsb;
       auto new_A = s4;
 
       for (index_t i = 0; i < cl_elems / tile_type::sg_K; i++) {

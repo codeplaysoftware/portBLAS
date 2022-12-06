@@ -501,7 +501,8 @@ function(add_gemm_configuration
   tlr
   tlc
   item_batch wg_batch
-  sg_k sg_in_type sg_out_type
+  sg_m sg_n sg_k 
+  sg_in_type sg_out_type
   gemm_memory_type
   gemm_shape_type
   gemm_vectorize_type
@@ -530,7 +531,7 @@ function(add_gemm_configuration
                           "${data}_${index}_${tir}_${tic}_${twr}_"
                           "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
                           "${item_batch}_${wg_batch}_"
-                          "${sg_k}_${sg_in_type}_${sg_out_type}_"
+                          "${sg_m}_${sg_n}_${sg_k}_${sg_in_type}_${sg_out_type}_"
                           "${wg_size}_${cache_line_size}.cpp")
             sanitize_file_name(file_name "${file_name}")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -560,6 +561,8 @@ function(add_gemm_configuration
                 ${tlc}
                 ${item_batch}
                 ${wg_batch}
+                ${sg_m}
+                ${sg_n}
                 ${sg_k}
                 ${sg_in_type}
                 ${sg_out_type}
@@ -808,15 +811,15 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     #     128 1 1 4 1 8 32 1 1 1 1 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        128 2 4 16 8 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+        128 2 4 16 8 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
 
     add_gemm_configuration(
         "${data}" 128 "false" "false" "false"
-        128 4 8 16 8 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+        128 4 8 16 8 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
 
     add_gemm_configuration(
         "${data}" 256 "false" "false" "false"
-        128 8 8 16 16 16 16 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
+        128 8 8 16 16 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
     # add_gemm_configuration(
     #     "${data}" 128 "false" "false" "false"
     #     128 1 1 1 4 32 8 1 1 1 1 16 cl::sycl::half cl::sycl::half "local" "standard" "full" 1 "strided" "true")
@@ -848,7 +851,7 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     #     64 1 1 1 1 16 16 1 1 1 1 "local" "standard" "full" 1 "strided" "true")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 else() # default cpu backend
   set(supported_types

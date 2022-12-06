@@ -42,7 +42,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
                                     gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<2, 2, 4, 4, 1, 1, 1, 1, 4, 4, 1, float, float>, _t_a,
+        64, false, false, false, 64, Tile<2, 2, 4, 4, 1, 1, 1, 1, 4, 4, 1, 1, 1, float, float>, _t_a,
         _t_b, static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
@@ -57,7 +57,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
   }
  if (_M > 1024 || _N > 1024) {
     return blas::Gemm_Launcher<
-        256, false, false, false, 128, Tile<8, 8, 16, 16, 16, 16, 1, 1, 1, 1, 16, cl::sycl::half, cl::sycl::half>, _t_a, _t_b,
+        256, false, false, false, 128, Tile<8, 8, 16, 16, 1, 1, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half, float>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -70,7 +70,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
                                                                 batch_size);
  } else if (_M > 64 || _N > 64){
     return blas::Gemm_Launcher<
-        128, false, false, false, 128, Tile<4, 8, 16, 8, 16, 16, 1, 1, 1, 1, 16, cl::sycl::half, cl::sycl::half>, _t_a, _t_b,
+        128, false, false, false, 128, Tile<4, 8, 16, 8, 1, 1, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half, float>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -85,7 +85,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
  } else {
 
     return blas::Gemm_Launcher<
-        128, false, false, false, 128, Tile<2, 4, 16, 8, 16, 16, 1, 1, 1, 1, 16, cl::sycl::half, cl::sycl::half>, _t_a, _t_b,
+        128, false, false, false, 128, Tile<2, 4, 16, 8, 1, 1, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half, float>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,

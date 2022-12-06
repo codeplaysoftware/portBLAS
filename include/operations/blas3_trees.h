@@ -112,8 +112,8 @@ enum class gemm_batch_type_t : int { strided = 0, interleaved = 1 };
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
           int SgRows = 1, int SgCols = 1, int TlRows = 1, int TlCols = 1,
-          int ItemBatchs = 1, int WgBatchs = 1, int K = 16, typename inp_jmT = cl::sycl::half,
-          typename out_jmT = float>
+          int ItemBatchs = 1, int WgBatchs = 1, int jm_M = 16, int jm_N = 16, 
+          int jm_K = 16, typename inp_jmT = cl::sycl::half, typename out_jmT = float>
 struct Tile {
   static constexpr int item_rows = ItemRows;
   static constexpr int item_cols = ItemCols;
@@ -126,7 +126,9 @@ struct Tile {
   static constexpr int tl_rows = TlRows;
   static constexpr int tl_cols = TlCols;
 
-  static constexpr int sg_K = K;
+  static constexpr int sg_M = jm_M;
+  static constexpr int sg_N = jm_N;
+  static constexpr int sg_K = jm_K;
   using jmInpType = inp_jmT;
   using jmOutType = out_jmT;
   /*!

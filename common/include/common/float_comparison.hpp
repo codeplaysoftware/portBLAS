@@ -206,9 +206,8 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
     if (!almost_equal<scalar_t, epsilon_t>(vec[i], ref[i])) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref[i] << end_line;
-      // return false;
+      return false;
     }
-    // printf("ref[%d] = %f\t|\tactual[%d] = %f \n", i, ref[i], i, vec[i]);
   }
   return true;
 }
