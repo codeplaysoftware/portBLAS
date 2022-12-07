@@ -301,6 +301,21 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
                                 decltype(scratch), value_t>(scratch, t));
     };
 
+
+    auto vendor =
+        q_.get_device().template get_info<cl::sycl::info::device::vendor>();
+    auto compute_capability = std::stof(
+        q_.get_device()
+            .template get_info<cl::sycl::info::device::backend_version>());
+
+    if (compute_capability < 8.0 ||
+        vendor.find("NVIDIA Corporation") == std::string::npos) {
+      printf(
+          "Configuration not supported.\nDevice Required: NVIDIA GPU\nCompute "
+          "Capability >= 8.0 required to use TF32 precision\n");
+      return ev;
+    }
+
     ev = q_.submit(cg1);
     return ev;
   } catch (cl::sycl::exception e) {

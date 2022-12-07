@@ -67,6 +67,10 @@ else()
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl;${DPCPP_BIN_DIR}/../include")
 endif()
 
+if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+  add_definitions(-DSB_ENABLE_JOINT_MATRIX=1)
+endif()
+
 function(add_sycl_to_target)
   set(options)
   set(one_value_args TARGET)
@@ -78,14 +82,20 @@ function(add_sycl_to_target)
     ${ARGN}
   )
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-  target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                            PUBLIC --cuda-gpu-arch=sm_80 
-			                      PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
+  if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+    target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
+                              PUBLIC --cuda-gpu-arch=sm_80 
+                              PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
+                              PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
+  endif()
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
   if (NOT target_type STREQUAL "OBJECT_LIBRARY")
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-    target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                            PUBLIC --cuda-gpu-arch=sm_80 
-			                      PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3)
+    if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+      target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
+                              PUBLIC --cuda-gpu-arch=sm_80 
+                              PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
+                              PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
+    endif()
   endif()
 endfunction()
