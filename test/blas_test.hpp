@@ -146,7 +146,7 @@ static inline void fill_random_with_range(std::vector<scalar_t> &vec,
  */
 template <typename scalar_t>
 static inline void fill_random(std::vector<scalar_t> &vec) {
-  fill_random_with_range(vec, scalar_t{2}, scalar_t{5});
+  fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
 }
 
 /**

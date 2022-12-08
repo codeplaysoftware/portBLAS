@@ -112,8 +112,8 @@ enum class gemm_batch_type_t : int { strided = 0, interleaved = 1 };
  */
 template <int ItemRows = 8, int ItemCols = 8, int WgRows = 16, int WgCols = 16,
           int SgRows = 1, int SgCols = 1, int TlRows = 1, int TlCols = 1,
-          int ItemBatchs = 1, int WgBatchs = 1, int jm_M = 16, int jm_N = 16, 
-          int jm_K = 16, typename inp_jmT = cl::sycl::half, typename out_jmT = float>
+          int ItemBatchs = 1, int WgBatchs = 1, int jm_M = 1, int jm_N = 1,
+          int jm_K = 1, typename inp_jmT = float, typename out_jmT = float>
 struct Tile {
   static constexpr int item_rows = ItemRows;
   static constexpr int item_cols = ItemCols;
@@ -253,13 +253,15 @@ template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-            GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseTensorcores>
+            GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
+            UseTensorcores>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-              GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseTensorcores>(
-      buffer_a, buffer_b, buffer_c, alpha, beta, batch_size);
+              GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
+              UseTensorcores>(buffer_a, buffer_b, buffer_c, alpha, beta,
+                              batch_size);
 }
 
 /**

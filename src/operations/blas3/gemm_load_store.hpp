@@ -70,14 +70,16 @@ struct Packetize {
       EdgePredicate) {
     value_t val = in_range ? *(src) : value_t{0};
     using address_t = cl::sycl::access::address_space;
-    if constexpr (
-      std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
-                    DestPointerType>::value) {
+    if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
+                                                   address_t::local_space>,
+                               DestPointerType>::value) {
       using dtype = cl::sycl::half;
       *dest = static_cast<dtype>(val);
-    } else if constexpr (
-      std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
-                    DestPointerType>::value) {
+    } else if constexpr (std::is_same<
+                             cl::sycl::multi_ptr<
+                                 cl::sycl::ext::oneapi::experimental::bfloat16,
+                                 address_t::local_space>,
+                             DestPointerType>::value) {
       using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
       *dest = static_cast<dtype>(val);
     } else {
@@ -135,14 +137,16 @@ struct Packetize {
 #pragma unroll
     for (index_t i = 0; i < packet_size; i++) {
       value_t val = reinterpret_cast<value_t *>(&packet)[i];
-      if constexpr (
-        std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
-                      DestPointerType>::value) {
+      if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
+                                                     address_t::local_space>,
+                                 DestPointerType>::value) {
         using dtype = cl::sycl::half;
         *(dest + ld * i) = static_cast<dtype>(val);
-      } else if constexpr (
-        std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
-                      DestPointerType>::value) {
+      } else if constexpr (std::is_same<
+                               cl::sycl::multi_ptr<cl::sycl::ext::oneapi::
+                                                       experimental::bfloat16,
+                                                   address_t::local_space>,
+                               DestPointerType>::value) {
         using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
         *(dest + ld * i) = static_cast<dtype>(val);
       } else {
@@ -172,14 +176,16 @@ struct Packetize {
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
-    if constexpr (
-      std::is_same<cl::sycl::multi_ptr<cl::sycl::half, address_t::local_space>,
-                    DestPointerType>::value) {
+    if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
+                                                   address_t::local_space>,
+                               DestPointerType>::value) {
       using dtype = cl::sycl::half;
       *dest = static_cast<dtype>(packet[0]);
-    } else if constexpr (
-      std::is_same<cl::sycl::multi_ptr<cl::sycl::ext::oneapi::experimental::bfloat16, address_t::local_space>,
-                    DestPointerType>::value) {
+    } else if constexpr (std::is_same<
+                             cl::sycl::multi_ptr<
+                                 cl::sycl::ext::oneapi::experimental::bfloat16,
+                                 address_t::local_space>,
+                             DestPointerType>::value) {
       using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
       *dest = static_cast<dtype>(packet[0]);
     } else {
@@ -197,7 +203,6 @@ struct Packetize {
         0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
   }
 #endif
-
 };
 
 }  // namespace blas
