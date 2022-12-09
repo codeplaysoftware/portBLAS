@@ -98,7 +98,7 @@ SYCL_BLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
  * @tparam is_beta_zero  whether to optimize away the beta * C addition
- * @tparam UseTensorcores boolean parameter to decide whether to use Tensorcores or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use Tensorcores or not
  */
 template <typename input_t, typename output_t, int ClSize, typename tile_type,
           bool TransA, bool TransB, typename element_t, bool is_beta_zero,

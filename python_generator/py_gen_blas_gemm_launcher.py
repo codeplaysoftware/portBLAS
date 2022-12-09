@@ -58,11 +58,11 @@ if __name__ == '__main__':
     tlc = sys.argv[23]
     tib = sys.argv[24]
     twb = sys.argv[25]
-    sg_k = sys.argv[26]
-    sg_k = sys.argv[27]
-    sg_k = sys.argv[28]
-    sg_in_type = sys.argv[29]
-    sg_out_type = sys.argv[30]
+    jm_m = sys.argv[26]
+    jm_n = sys.argv[27]
+    jm_k = sys.argv[28]
+    jm_in_type = sys.argv[29]
+    jm_out_type = sys.argv[30]
     wg_size = sys.argv[31]
     cl_size = sys.argv[32]
     file_name = sys.argv[33]
@@ -166,28 +166,28 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='SG_M',
-            vals=[sg_m],
+            key='JM_M',
+            vals=[jm_m],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='SG_N',
-            vals=[sg_n],
+            key='JM_N',
+            vals=[jm_n],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='SG_K',
-            vals=[sg_k],
+            key='JM_K',
+            vals=[jm_k],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='SG_IN_T',
-            vals=[sg_in_type],
+            key='JM_IN_T',
+            vals=[jm_in_type],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='SG_OUT_T',
-            vals=[sg_out_type],
+            key='JM_OUT_T',
+            vals=[jm_out_type],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
@@ -231,8 +231,8 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
-            key='USE_TENSORCORES',
-            vals=[use_tensorcores],
+            key='USE_JOINT_MATRIX',
+            vals=[use_joint_matrix],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

@@ -37,13 +37,13 @@ namespace blas {
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          bool is_beta_zero, int VectorSize, int BatchType, bool UseTensorcores>
+          bool is_beta_zero, int VectorSize, int BatchType, bool UseJointMatrix>
 template <typename sb_handle_t, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
 typename sb_handle_t::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType, UseTensorcores>::_select_gemm(sb_handle_t& sb_handle, index_t _M, index_t _N,
+    BatchType, UseJointMatrix>::_select_gemm(sb_handle_t& sb_handle, index_t _M, index_t _N,
                              index_t _K, element_t _alpha, container_t0 a_,
                              index_t _lda, container_t1 b_, index_t _ldb,
                              element_t _beta, container_t2 _C, index_t _ldc,
@@ -55,7 +55,7 @@ typename sb_handle_t::event_t Gemm_Launcher<
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
                         TransA, TransB, GemmMemoryType, GemmAlgorithm,
                         GemmVectorization, is_beta_zero, VectorSize, BatchType, 
-                        UseTensorcores>(
+                        UseJointMatrix>(
       buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
       batch_size);
   return sb_handle.execute(gemm);

@@ -63,7 +63,7 @@ namespace blas {
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
- * @tparam UseTensorcores boolean parameter to decide whether to use Tensorcores or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use Tensorcores or not
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,

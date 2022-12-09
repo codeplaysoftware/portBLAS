@@ -50,7 +50,6 @@ if(NOT "${DPCPP_SYCL_ARCH}" STREQUAL "")
   elseif("${DPCPP_SYCL_TARGET}" STREQUAL "nvptx64-nvidia-cuda")
     list(APPEND DPCPP_FLAGS "-Xsycl-target-backend")
     list(APPEND DPCPP_FLAGS "--cuda-gpu-arch=${DPCPP_SYCL_ARCH}")
-    list(APPEND DPCPP_FLAGS "-fsycl;-fsycl-targets=${DPCPP_SYCL_TARGET};-Xclang;-cl-mad-enable;-fsycl-unnamed-lambda")
   endif()
 endif()
 
@@ -67,8 +66,9 @@ else()
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl")
 endif()
 
-if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
   add_definitions(-DSB_ENABLE_JOINT_MATRIX=1)
+  list(APPEND DPCPP_FLAGS "-Xclang;-cl-mad-enable")
 endif()
 
 function(add_sycl_to_target)
@@ -82,18 +82,18 @@ function(add_sycl_to_target)
     ${ARGN}
   )
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-  if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+  if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
     target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                              PUBLIC --cuda-gpu-arch=sm_80 
+                              PUBLIC --cuda-gpu-arch=${DPCPP_SYCL_ARCH} 
                               PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
                               PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
   endif()
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
   if (NOT target_type STREQUAL "OBJECT_LIBRARY")
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-    if (DPCPP_SYCL_TARGET MATCHES "nvptx64-nvidia-cuda")
+    if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
       target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                              PUBLIC --cuda-gpu-arch=sm_80 
+                              PUBLIC --cuda-gpu-arch=${DPCPP_SYCL_ARCH} 
                               PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
                               PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
     endif()

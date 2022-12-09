@@ -52,7 +52,7 @@ where A, B and C are matrices and alpha and beta are scalars.
 
 - `gemm_local.hpp` - Uses local memory for increased performance on platforms that have it. Supports full vectorization.
 
-- `gemm_local_tensorcore.hpp` - Uses Tensorcore + local memory for increased performance on platforms that have it. Does not support vectorization.
+- `gemm_local_joint_matrix.hpp` - Uses Joint Matrix api + local memory for increased performance on platforms that have it. Does not support vectorization.
 
 - `gemm_no_local_partial_vec.hpp` - Doesn't use local memory. Only supports partial vectorization (can only vectorize in some specific cases).
 

@@ -51,7 +51,7 @@ namespace blas {
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
- * @tparam UseTensorcores boolean parameter to decide whether to use Tensorcores or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use Tensorcores or not
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,

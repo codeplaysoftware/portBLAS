@@ -501,14 +501,14 @@ function(add_gemm_configuration
   tlr
   tlc
   item_batch wg_batch
-  sg_m sg_n sg_k 
-  sg_in_type sg_out_type
+  jm_m jm_n jm_k 
+  jm_in_type jm_out_type
   gemm_memory_type
   gemm_shape_type
   gemm_vectorize_type
   vector_size
   batch_type
-  use_tensorcores
+  use_joint_matrix
 )
   if(NOT ("${data}" IN_LIST data_list))
     # Data type not enabled, skip configuration
@@ -531,7 +531,7 @@ function(add_gemm_configuration
                           "${data}_${index}_${tir}_${tic}_${twr}_"
                           "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
                           "${item_batch}_${wg_batch}_"
-                          "${sg_m}_${sg_n}_${sg_k}_${sg_in_type}_${sg_out_type}_"
+                          "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
                           "${wg_size}_${cache_line_size}.cpp")
             sanitize_file_name(file_name "${file_name}")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -798,16 +798,17 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
   )
   foreach(data ${supported_types})
     # Tensorcore specific GEMM configurations
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 2 4 16 8 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        128 4 8 16 8 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
-    add_gemm_configuration(
-        "${data}" 256 "false" "false" "false"
-        128 8 8 16 16 1 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
-
+    if(${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
+      add_gemm_configuration(
+          "${data}" 128 "false" "false" "false"
+          128 2 4 16 8 32 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+      add_gemm_configuration(
+          "${data}" 128 "false" "false" "false"
+          128 4 8 16 8 32 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+      add_gemm_configuration(
+          "${data}" 256 "false" "false" "false"
+          128 8 8 16 16 32 1 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
+    endif()
     # Non-Tensorcore specific GEMM Configurations
     add_gemm_configuration(
       "${data}" 128 "false" "false" "true"

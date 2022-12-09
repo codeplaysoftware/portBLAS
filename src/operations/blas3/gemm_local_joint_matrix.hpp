@@ -18,7 +18,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gemm_local_tensorcore.hpp
+ *  @filename gemm_local_joint_matrix.hpp
  *
  **************************************************************************/
 
@@ -63,7 +63,7 @@ namespace blas {
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
- * @tparam UseTensorcores boolean parameter to decide whether to use Tensorcores
+ * @tparam UseJointMatrix boolean parameter to decide whether to use Tensorcores
  * or not
  */
 #ifdef SB_ENABLE_JOINT_MATRIX
@@ -94,7 +94,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr index_t tl_rows = tile_type::tl_rows;
   static constexpr index_t tl_cols = tile_type::tl_cols;
   static constexpr index_t tile_size = tl_rows * tl_cols;
-  static constexpr index_t sg_size = 32;
 
   static constexpr bool double_buffer = DoubleBuffer;
   static constexpr bool nbc_a = NbcA;
@@ -115,8 +114,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   //! @brief Number of columns within a top-level tile
   static constexpr index_t big_tile_cols = tl_cols * block_cols;
 
-  static constexpr index_t jm_row_frags = block_rows / tile_type::sg_M;
-  static constexpr index_t jm_col_frags = block_cols / tile_type::sg_N;
+  static constexpr index_t sg_size = sg_rows * sg_cols;
+  static constexpr index_t jm_row_frags = block_rows / tile_type::joint_matrix_M;
+  static constexpr index_t jm_col_frags = block_cols / tile_type::joint_matrix_N;
   static constexpr index_t num_jm_frags = jm_row_frags * jm_col_frags;
   static constexpr index_t num_sub_groups = wg_size / sg_size;
   static constexpr index_t frags_per_sg = num_jm_frags / num_sub_groups;
@@ -146,6 +146,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   static_assert(cl_elems % packetize_t::packet_size == 0,
                 "Cache line size must be a multiple of packet_size");
+
+  static_assert(sg_size == 32,
+                "Sub_group size must be equal to 32");
 
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa = block_rows + nbc_a;
@@ -182,7 +185,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         << ", " << type_string<value_t>::get_value() << "gemm_memory:local, "
         << "gemm_algorithm:standard, "
         << "gemm_vectorization:full, "
-        << "vector size" << VectorSize << ", batch_type:strided>";
+        << "vector size" << VectorSize << ", batch_type:strided> "
+        << "using Tensorcores with joint_matrix extension";
     return str.str();
   }
 
@@ -192,11 +196,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *
    */
   SYCL_BLAS_INLINE index_t get_wg_x_cluster() const noexcept {
-    return ((a_.get_size_row() - 1) / tile_type::sg_M + 1);
+    return ((a_.get_size_row() - 1) / tile_type::joint_matrix_M + 1);
   }
 
   SYCL_BLAS_INLINE index_t get_wg_y_cluster() const noexcept {
-    return ((b_.get_size_col() - 1) / tile_type::sg_N + 1);
+    return ((b_.get_size_col() - 1) / tile_type::joint_matrix_N + 1);
   }
 
   /*!
@@ -287,8 +291,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    ptr_C += (wg_row + (sg_id % jm_row_frags) * tile_type::sg_M) +
-             (wg_col + (sg_id / jm_row_frags) * tile_type::sg_N) * ldc;
+    ptr_C += (wg_row + (sg_id % jm_row_frags) * tile_type::joint_matrix_M) +
+             (wg_col + (sg_id / jm_row_frags) * tile_type::joint_matrix_N) * ldc;
 
     const index_t mc = m - wg_row;
     const index_t nc = n - wg_col;
@@ -309,12 +313,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t s1_offset =
         (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
                  : item_id % cl_elems + (item_id / cl_elems) * ldsb);
-    const index_t s2_offset = (sg_id / jm_row_frags) * tile_type::sg_N * ldsb;
+    const index_t s2_offset = (sg_id / jm_row_frags) * tile_type::joint_matrix_N * ldsb;
     const index_t ofs = (double_buffer + 1) * block_cols * ldsb;
     const index_t s3_offset =
         ofs + (trans_a ? item_id / cl_elems + (item_id % cl_elems) * ldsa
                        : item_id % block_rows + (item_id / block_rows) * ldsa);
-    const index_t s4_offset = ofs + (sg_id % jm_row_frags) * tile_type::sg_M;
+    const index_t s4_offset = ofs + (sg_id % jm_row_frags) * tile_type::joint_matrix_M;
 
     if constexpr (std::is_same<typename tile_type::jmInpType,
                                cl::sycl::ext::oneapi::experimental::matrix::
@@ -381,9 +385,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * This method should actually be a generic lambda (as in C++20), it
    * only forwards parameters from GemmFactory::run().
    *
-   * @tparam check_m_limit  iff true, check if row indexes of C are
+   * @tparam check_m_limit  iff true, check if row indices of C are
    *                        out-of-bound
-   * @tparam check_n_limit  iff true, check if no indexes of C are
+   * @tparam check_n_limit  iff true, check if column indices of C are
    *                        out-of-bound
    */
   template <bool double_buffer, bool check_m_limit, bool check_n_limit,
@@ -403,8 +407,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     index_t ofs = 1;
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
     using CType = joint_matrix<typename tile_type::jmOutType,
-                               matrix_use::accumulator, tile_type::sg_M,
-                               tile_type::sg_N, matrix_layout::col_major>;
+                               matrix_use::accumulator, tile_type::joint_matrix_M,
+                               tile_type::joint_matrix_N, matrix_layout::col_major>;
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -450,12 +454,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * input and output scaling. Output scaling only takes place if beta is
    * non-zero.
    *
-   * @tparam check_m_limit  iff true, check if row indexes of C are
+   * @tparam check_m_limit  iff true, check if row indices of C are
    *                        out-of-bound
-   * @tparam check_n_limit  iff true, check if no indexes of C are
+   * @tparam check_n_limit  iff true, check if no indices of C are
    *                        out-of-bound
    * @tparam ScratchPointerType the type of shared local memory pointer
    * @tparam OutputPointerType the type of C
+   * @tparam CType the type for joint_matrix fragment to store output
    * @param mc the computed boundary limit of m in matrix C
    * @param nc the computed boundary limit of n in matrix C
    * @param alpha  scaling factor of AB
@@ -479,8 +484,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
     using Cfloat_Type =
-        joint_matrix<element_t, matrix_use::accumulator, tile_type::sg_M,
-                     tile_type::sg_N, matrix_layout::col_major>;
+        joint_matrix<element_t, matrix_use::accumulator, tile_type::joint_matrix_M,
+                     tile_type::joint_matrix_N, matrix_layout::col_major>;
 
     Cfloat_Type float_out;
     auto sg = id.get_sub_group();
@@ -489,16 +494,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t sg_range = static_cast<index_t>(sg.get_group_linear_range());
     const index_t sg_item_id = static_cast<index_t>(sg.get_local_linear_id());
 
-    const index_t sg_mc = mc - (sg_id % jm_row_frags) * tile_type::sg_M;
-    const index_t sg_nc = nc - (sg_id / jm_row_frags) * tile_type::sg_N;
+    const index_t sg_mc = mc - (sg_id % jm_row_frags) * tile_type::joint_matrix_M;
+    const index_t sg_nc = nc - (sg_id / jm_row_frags) * tile_type::joint_matrix_N;
     const bool jm_store_feasible =
         (mc < block_rows || nc < block_cols)
-            ? (sg_mc >= tile_type::sg_M && sg_nc >= tile_type::sg_N) ? true
+            ? (sg_mc >= tile_type::joint_matrix_M && sg_nc >= tile_type::joint_matrix_N) ? true
                                                                      : false
             : true;
 
     if (jm_store_feasible) {
-      const index_t loop_limit = (tile_type::sg_M * tile_type::sg_N) / sg_size;
+      const index_t loop_limit = (tile_type::joint_matrix_M * tile_type::joint_matrix_N) / sg_size;
 
       if constexpr (is_beta_zero) {
         for (index_t frag = 0; frag < frags_per_sg; frag++) {
@@ -510,7 +515,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
           joint_matrix_store(sg, float_out, C, ldc);
 
-          C += (tile_type::sg_N * ldc);
+          C += (tile_type::joint_matrix_N * ldc);
         }
 
       } else {
@@ -527,7 +532,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
           joint_matrix_store(sg, float_out, C, ldc);
 
-          C += (tile_type::sg_N * ldc);
+          C += (tile_type::joint_matrix_N * ldc);
         }
       }
       return;
@@ -537,16 +542,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
     id.barrier(cl::sycl::access::fence_space::local_space);
 
-    scratch += sg_id * tile_type::sg_M;
-    const index_t sg_store_ld = sg_range * tile_type::sg_M;
+    scratch += sg_id * tile_type::joint_matrix_M;
+    const index_t sg_store_ld = sg_range * tile_type::joint_matrix_M;
     const index_t loop_limit =
-        sg_nc >= tile_type::sg_N ? tile_type::sg_N : sg_nc;
+        sg_nc >= tile_type::joint_matrix_N ? tile_type::joint_matrix_N : sg_nc;
 
     for (index_t frag = 0; frag < frags_per_sg; frag++, C += ldc * loop_limit) {
       auto new_C = C;
       auto new_scratch = scratch;
 
-      for (index_t i = 0; i < (tile_type::sg_M * tile_type::sg_N) / sg_size;
+      for (index_t i = 0; i < (tile_type::joint_matrix_M * tile_type::joint_matrix_N) / sg_size;
            i++) {
         float_out.get_wi_data()[i] =
             static_cast<element_t>(reg_res[frag].get_wi_data()[i]);
@@ -559,7 +564,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       new_C += sg_item_id;
       new_scratch += sg_item_id;
 
-      if (sg_mc < tile_type::sg_M && sg_nc < tile_type::sg_N) {
+      if (sg_mc < tile_type::joint_matrix_M && sg_nc < tile_type::joint_matrix_N) {
         if (sg_item_id < sg_mc) {
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
@@ -572,7 +577,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             }
           }
         }
-      } else if (sg_mc < tile_type::sg_M) {
+      } else if (sg_mc < tile_type::joint_matrix_M) {
         if (sg_item_id < sg_mc) {
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
@@ -586,7 +591,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           }
         }
       } else {
-        if (sg_item_id < tile_type::sg_M) {
+        if (sg_item_id < tile_type::joint_matrix_M) {
           for (index_t i = 0; i < loop_limit; i++) {
             if constexpr (is_beta_zero) {
               element_t data_right = *(new_scratch + i * sg_store_ld);
@@ -738,10 +743,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       CType (&reg_res)[frags_per_sg]) noexcept {
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
     using AType = joint_matrix<typename tile_type::jmInpType, matrix_use::a,
-                               tile_type::sg_M, tile_type::sg_K,
+                               tile_type::joint_matrix_M, tile_type::joint_matrix_K,
                                matrix_layout::col_major>;
     using BType = joint_matrix<typename tile_type::jmInpType, matrix_use::b,
-                               tile_type::sg_K, tile_type::sg_N,
+                               tile_type::joint_matrix_K, tile_type::joint_matrix_N,
                                matrix_layout::col_major>;
 
     AType inA;
@@ -754,17 +759,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
 #pragma unroll
     for (index_t frag = 0; frag < frags_per_sg; frag++) {
-      auto new_B = s2 + frag * tile_type::sg_N * ldsb;
+      auto new_B = s2 + frag * tile_type::joint_matrix_N * ldsb;
       auto new_A = s4;
 
-      for (index_t i = 0; i < cl_elems / tile_type::sg_K; i++) {
+      for (index_t i = 0; i < cl_elems / tile_type::joint_matrix_K; i++) {
         joint_matrix_load(sg, inA, new_A, strideA);  // M
         joint_matrix_load(sg, inB, new_B, strideB);  // N
 
         reg_res[frag] = joint_matrix_mad(sg, inA, inB, reg_res[frag]);
 
-        new_A += ldsa * tile_type::sg_K;
-        new_B += tile_type::sg_K;
+        new_A += ldsa * tile_type::joint_matrix_K;
+        new_B += tile_type::joint_matrix_K;
       }
     }
   }

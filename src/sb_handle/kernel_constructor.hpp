@@ -27,6 +27,7 @@
 #include "sb_handle/kernel_constructor.h"
 #include <CL/sycl.hpp>
 #include <iostream>
+#include <stdexcept>
 namespace blas {
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
@@ -301,7 +302,6 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
                                 decltype(scratch), value_t>(scratch, t));
     };
 
-
     auto vendor =
         q_.get_device().template get_info<cl::sycl::info::device::vendor>();
     auto compute_capability = std::stof(
@@ -310,15 +310,15 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
 
     if (compute_capability < 8.0 ||
         vendor.find("NVIDIA Corporation") == std::string::npos) {
-      printf(
-          "Configuration not supported.\nDevice Required: NVIDIA GPU\nCompute "
-          "Capability >= 8.0 required to use TF32 precision\n");
+      throw std::runtime_error("\nConfiguration not supported.\nVendor: " + vendor + 
+          "\tRequired Vendor: NVIDIA Corporation\nCompute Capability: " + std::to_string(compute_capability) + 
+          "\tRequired Compute Capability: 8.0\n");
       return ev;
     }
 
     ev = q_.submit(cg1);
     return ev;
-  } catch (cl::sycl::exception e) {
+  } catch (cl::sycl::exception& e) {
     std::cerr << e.what() << std::endl;
     return ev;
   }
