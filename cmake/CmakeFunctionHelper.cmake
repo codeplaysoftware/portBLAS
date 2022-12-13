@@ -784,6 +784,7 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
 elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
  set(supported_types
     "float"
+    "double"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
