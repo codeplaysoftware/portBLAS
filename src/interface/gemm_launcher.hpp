@@ -27,6 +27,7 @@
 #define SYCL_BLAS_BLAS3_LAUNCHER_HPP
 
 #include "interface/gemm_launcher.h"
+#include "views/view.h"
 
 namespace blas {
 

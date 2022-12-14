@@ -70,7 +70,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _iamin(sb_handle, size, gpu_x_v, incX, gpu_out_s);
   auto event =
-      blas::helper::copy_to_device(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
   sb_handle.wait(event);
 
   using data_tuple_t = IndexValueTuple<int, scalar_t>;
