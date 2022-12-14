@@ -924,8 +924,7 @@ SYCL_BLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
 /**** GBMV ****/
 /**
  * @struct Gbmv
- * @brief Tree node representing a
- * vector_ multiplication.
+ * @brief Tree node representing a band matrix_ vector_ multiplication.
  */
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_transposed>
@@ -951,6 +950,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
 SYCL_BLAS_INLINE bool
 Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
+  // Valid threads are established by ::eval.
   return true;
 }
 
