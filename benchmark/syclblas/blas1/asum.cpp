@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
@@ -63,8 +63,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   scalar_t vr_temp = 0;
   {
     auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
-    auto event = _asum(ex, size, inx, 1, vr_temp_gpu);
-    ex.wait(event);
+    auto event = _asum(sb_handle, size, inx, 1, vr_temp_gpu);
+    sb_handle.wait(event);
   }
 
   if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
@@ -77,14 +77,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _asum(ex, size, inx, static_cast<index_t>(1), inr);
-    ex.wait(event);
+    auto event = _asum(sb_handle, size, inx, static_cast<index_t>(1), inr);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

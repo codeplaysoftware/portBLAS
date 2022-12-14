@@ -52,16 +52,16 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
   auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
 
-  _asum(ex, size, gpu_x_v, incX, gpu_out_s);
+  _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s);
   auto event =
-     blas::helper::copy_to_host<scalar_t>(ex.get_queue(), gpu_out_s, &out_s, 1);
-  ex.wait(event);
+     blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
+  sb_handle.wait(event);
 
   // Validate the result
   const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);

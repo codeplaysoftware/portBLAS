@@ -54,7 +54,7 @@ namespace internal {
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
  * @param[in, out] _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -64,7 +64,7 @@ namespace internal {
  * @return Vector of events to wait for.
  */
 template typename SB_Handle::event_t _rotm(
-    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${container_t2} _param);
 }  // namespace internal

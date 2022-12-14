@@ -36,14 +36,14 @@ namespace internal {
 /**
  * \brief _copy copies a vector, x, to a vector, y.
  *
- * @param SB_Handle ex
+ * @param SB_Handle sb_handle
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
 template typename SB_Handle::event_t _copy(
-    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
 }  // namespace internal
 }  // end namespace blas

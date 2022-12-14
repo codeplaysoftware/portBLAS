@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = 3.0 * size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
@@ -60,8 +60,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   std::vector<scalar_t> y_temp = v2;
   {
     auto y_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_temp, size);
-    auto event = _axpy(ex, size, alpha, inx, 1, y_temp_gpu, 1);
-    ex.wait(event);
+    auto event = _axpy(sb_handle, size, alpha, inx, 1, y_temp_gpu, 1);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -73,14 +73,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _axpy(ex, size, alpha, inx, static_cast<index_t>(1), iny, static_cast<index_t>(1));
-    ex.wait(event);
+    auto event = _axpy(sb_handle, size, alpha, inx, static_cast<index_t>(1), iny, static_cast<index_t>(1));
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

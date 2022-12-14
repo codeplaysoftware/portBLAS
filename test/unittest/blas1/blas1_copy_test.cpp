@@ -48,16 +48,16 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
 
-  _copy(ex, size, gpu_x_v, incX, gpu_y_v, incY);
+  _copy(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
   auto event =
-      blas::helper::copy_to_host(ex.get_queue(), gpu_y_v, y_v.data(), size * incY);
-  ex.wait(event);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  sb_handle.wait(event);
 
   // Validate the result
   // For copy, the float tolerances are ok

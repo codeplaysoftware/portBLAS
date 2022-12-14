@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
@@ -66,8 +66,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
     auto idx_temp_gpu =
         blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
             &idx_temp, 1);
-    auto event = _iamin(ex, size, inx, static_cast<index_t>(1), idx_temp_gpu);
-    ex.wait(event);
+    auto event = _iamin(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
+    sb_handle.wait(event);
   }
 
   if (idx_temp.ind != idx_ref) {
@@ -81,14 +81,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _iamin(ex, size, inx, static_cast<index_t>(1), outI);
-    ex.wait(event);
+    auto event = _iamin(sb_handle, size, inx, static_cast<index_t>(1), outI);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

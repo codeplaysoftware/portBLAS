@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2 * size_d;
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Create data
   const float sb = blas_benchmark::utils::random_data<scalar_t>(1)[0];
@@ -62,11 +62,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   scalar_t vr_temp = 0;
   {
     auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
-    _sdsdot(ex, size, sb, inx, static_cast<index_t>(1), iny,
+    _sdsdot(sb_handle, size, sb, inx, static_cast<index_t>(1), iny,
             static_cast<index_t>(1), vr_temp_gpu);
-    auto event = blas::helper::copy_to_host(ex.get_queue(), vr_temp_gpu,
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), vr_temp_gpu,
                                                                 &vr_temp, 1);
-    ex.wait(event);
+    sb_handle.wait(event);
   }
 
   if (!utils::almost_equal(vr_temp, vr_ref)) {
@@ -79,15 +79,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _sdsdot(ex, size, sb, inx, static_cast<index_t>(1), iny,
+    auto event = _sdsdot(sb_handle, size, sb, inx, static_cast<index_t>(1), iny,
                          static_cast<index_t>(1), inr);
-    ex.wait(event);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

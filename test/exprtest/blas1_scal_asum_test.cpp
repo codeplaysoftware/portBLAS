@@ -55,7 +55,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL-BLAS implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
@@ -63,8 +63,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Copy input data from host to device
   auto xcp_ev =
-     blas::helper::copy_to_device(ex.get_queue(), v_x.data(), gpu_x_v, x_dim);
-  ex.wait(xcp_ev);
+     blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(), gpu_x_v, x_dim);
+  sb_handle.wait(xcp_ev);
 
   // Dimensions of vector view for ASUM operations
   int view_x_dim = (x_dim + incX - 1) / incX;
@@ -75,7 +75,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto view_y = make_vector_view(gpu_y_v, 1, 1);
 
   // Assign reduction parameters
-  const auto localSize = ex.get_work_group_size();
+  const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
 
   // SCAL expressions
@@ -85,13 +85,13 @@ void run_test(const combination_t<scalar_t> combi) {
       view_y, scal_assign_op, localSize, localSize * nWG);
 
   // Execute the SCAL+ASUM tree
-  auto event = ex.execute(asum_op);
-  ex.wait(event);
+  auto event = sb_handle.execute(asum_op);
+  sb_handle.wait(event);
 
   // Copy the result back to host memory
   auto getResultEv =
-     blas::helper::copy_to_host(ex.get_queue(), gpu_y_v, v_y.data(), 1);
-  ex.wait(getResultEv);
+     blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, v_y.data(), 1);
+  sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::almost_equal(cpu_y, v_y[0]));
 }

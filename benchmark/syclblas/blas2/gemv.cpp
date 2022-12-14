@@ -72,7 +72,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -95,9 +95,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   {
     auto v_y_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
+    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
                        v_y_temp_gpu, incY);
-    ex.wait();
+    sb_handle.wait();
   }
 
   std::ostringstream err_stream;
@@ -109,15 +109,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemv(ex, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
+    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
                        v_y_gpu, incY);
-    ex.wait(event);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

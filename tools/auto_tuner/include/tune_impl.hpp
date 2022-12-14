@@ -42,10 +42,10 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
                    static_cast<int>(Config::VecType), VecSize,
                    static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
-  auto ex = get_sycl_executor();
+  auto sb_handle = get_sycl_executor();
   {
     {
-      auto event_list = blas::helper::copy_to_host(ex.get_queue(),
+      auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),
           a.init_c.data(), a.c, a.init_c.size());
       event_list.back().wait_and_throw();
     }
@@ -59,13 +59,13 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
-      auto event_list = ex.execute(gemm);
+      auto event_list = sb_handle.execute(gemm);
       for (auto &event : event_list) {
         event.wait_and_throw();
       }
     });
     {
-      auto event_list =  blas::helper::copy_to_host(ex.get_queue(),
+      auto event_list =  blas::helper::copy_to_host(sb_handle.get_queue(),
           a.c, a.output_c.data(), a.output_c.size());
       event_list.back().wait_and_throw();
     }

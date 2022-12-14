@@ -37,7 +37,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(size, factor) = combi;
 
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Input buffer
   auto v_in = std::vector<scalar_t>(size);
@@ -61,7 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
     auto tuples = make_tuple_op(gpu_v_in_vv);
     auto assign_tuple = make_op<Assign>(gpu_v_int_vv, tuples);
-    ex.execute(assign_tuple);
+    sb_handle.execute(assign_tuple);
   }
 
   // Increment the indexes, so they are different to the ones in the next step
@@ -85,7 +85,7 @@ void run_test(const combination_t<scalar_t> combi) {
     auto collapsed =
         make_op<ScalarOp, CollapseIndexTupleOperator>(factor, tuples);
     auto assign_tuple = make_op<Assign>(gpu_v_out_vv, collapsed);
-    ex.execute(assign_tuple);
+    sb_handle.execute(assign_tuple);
   }
 
   // Check the result

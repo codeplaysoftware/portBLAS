@@ -38,7 +38,7 @@ namespace internal {
 
 template 
 typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
-    SB_Handle& ex, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
+    SB_Handle& sb_handle, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
     ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type);
 
 }  // namespace internal

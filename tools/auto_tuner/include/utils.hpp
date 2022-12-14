@@ -48,8 +48,8 @@ inline SYCLExecutor make_sycl_executor() {
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-  SYCLExecutor ex(q);
-  return ex;
+  SYCLExecutor sb_handle(q);
+  return sb_handle;
 }
 
 inline SYCLExecutor &get_sycl_executor() {

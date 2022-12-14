@@ -204,7 +204,7 @@ template <typename SB_Handle, typename container_t0, typename container_t1,
 typename SB_Handle::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType>::_select_gemm(SB_Handle& ex, index_t _M, index_t _N, index_t _K,
+    BatchType>::_select_gemm(SB_Handle& sb_handle, index_t _M, index_t _N, index_t _K,
                              element_t _alpha, container_t0 a_, index_t _lda,
                              container_t1 b_, index_t _ldb, element_t _beta,
                              container_t2 _C, index_t _ldc,
@@ -223,7 +223,7 @@ typename SB_Handle::event_t Gemm_Launcher<
       batch_size);
 
   //Execute the gemm and return the associated event
-  return ex.execute(gemm); 
+  return sb_handle.execute(gemm); 
 }
 }  // namespace blas
 ```
@@ -250,13 +250,13 @@ namespace blas {
 namespace internal {
 // gemm
 template typename SB_Handle::event_t _gemm(
-    SB_Handle& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
 template typename SB_Handle::event_t _gemm_batched(
-    SB_Handle& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
@@ -302,7 +302,7 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_2_t, typename element_t, typename index_t>
 
 typename sb_handle_t::event_t _gemm(
-    sb_handle_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type) {
@@ -313,7 +313,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle, _M, _N,
                                                                     _K, _alpha,
                                                                     _a, _lda,
                                                                     _b, _ldb,
@@ -333,7 +333,7 @@ The first configuration is only used if `interleaved` is specified for the `GEMM
       static_cast<int>(gemm_algorithm_t::naive),
       static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
       static_cast<int>(
-          gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+          gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                               _alpha, _a, _lda,
                                                               _b, _ldb, _beta,
                                                               _c, _ldc,
@@ -353,7 +353,7 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -365,7 +365,7 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,

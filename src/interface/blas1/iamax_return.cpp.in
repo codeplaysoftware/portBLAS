@@ -37,9 +37,9 @@ namespace internal {
  * \brief _iamax finds the index of the first element having maximum
  * @param _vx  VectorView
  * @param _incx Increment in X axis
- * @param SB_Handle ex
+ * @param SB_Handle sb_handle
  */
-template ${INDEX_TYPE} _iamax(SB_Handle &ex, ${INDEX_TYPE} _N,
+template ${INDEX_TYPE} _iamax(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal

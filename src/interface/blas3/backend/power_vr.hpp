@@ -48,7 +48,7 @@ struct Gemm_Launcher {
   template <typename sb_handle_t, typename container_0_t, typename container_1_t,
             typename container_2_t, typename value_t, typename index_t>
   static inline typename sb_handle_t::event_t _select_gemm(
-      sb_handle_t& ex, index_t _M, index_t _N, index_t _K, value_t _alpha,
+      sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, value_t _alpha,
       container_0_t _A, container_1_t _B, value_t _beta, container_2_t _C,
       index_t batch_size) {
     auto m = static_cast<size_t>(_M);
@@ -62,7 +62,7 @@ struct Gemm_Launcher {
     auto a_buffer = _A.get_buffer();
     auto b_buffer = _B.get_buffer();
     auto c_buffer = _C.get_buffer();
-    auto interop_event = ex.get_queue().submit(
+    auto interop_event = sb_handle.get_queue().submit(
         [&](cl::sycl::codeplay::handler& cgh) {
           auto a_acc =
               a_buffer.template get_access<cl::sycl::access::mode::read_write>(
@@ -301,7 +301,7 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm(
-    sb_handle_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type) {
@@ -312,7 +312,7 @@ typename sb_handle_t::event_t _gemm(
     return {};
   }
   return blas::gemm::backend::sycl_imagination_nn_api::Gemm_Launcher<
-      _t_a, _t_b>::template _select_gemm(ex, _M, _N, _K, _alpha, _a, _b, _beta,
+      _t_a, _t_b>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _b, _beta,
                                          _c, batch_size);
 #else
   if (batch_type == gemm_batch_type_t::interleaved) {
@@ -322,7 +322,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle, _M, _N,
                                                                     _K, _alpha,
                                                                     _a, _lda,
                                                                     _b, _ldb,
@@ -342,7 +342,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -362,7 +362,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -378,7 +378,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -401,7 +401,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -413,7 +413,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,

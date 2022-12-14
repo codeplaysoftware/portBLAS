@@ -28,7 +28,7 @@ namespace internal {
 // Internal function that will be implemented in the sycl-blas library
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename sb_handle_t::event_t _trsm(sb_handle_t& ex, char Side,
+typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char Side,
                                              char Triangle, char Transpose,
                                              char Diagonal, index_t M,
                                              index_t N, element_t alpha,
@@ -41,10 +41,10 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& ex, char Side,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t inline _trsm(
-    sb_handle_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
+    sb_handle_t& sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
-  return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda,
+  return internal::_trsm(sb_handle, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda,
                          B, ldb);
 }
 } // namespace internal
@@ -96,10 +96,10 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Create the executor for the test
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Invoke the newly added operation
-  _trsm(ex, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+  _trsm(sb_handle, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
   // Verify the results
 }
@@ -141,7 +141,7 @@ namespace internal {
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _trsm(
-    sb_handle_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
+    sb_handle_t& sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
   // Implementation of the new operation
@@ -151,7 +151,7 @@ typename sb_handle_t::event_t _trsm(
   // or lower levels of blas. For example, one may want to invoke a gemm
   // operation like the following
   auto gemmEvent = internal::_gemm(
-            ex, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == 0) ? alpha : element_t{1}, B + i * ldb, ldb,
             invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx);
   trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);  
@@ -195,7 +195,7 @@ namespace internal {
 
 
 template typename SB_Handle::event_t _trsm(
-  SB_Handle ex, char Side, char Triangle, char Transpose, char Diagonal,
+  SB_Handle sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
   ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
   ${container_t0} A, ${INDEX_TYPE} lda,
   ${container_t1} B, ${INDEX_TYPE} ldb);

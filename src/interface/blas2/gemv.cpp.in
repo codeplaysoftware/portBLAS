@@ -45,7 +45,7 @@ namespace internal {
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
-   SB_Handle& ex,         // SB_Handle (sycl, parallel, serial, etc)
+   SB_Handle& sb_handle,         // SB_Handle (sycl, parallel, serial, etc)
     char _trans,          // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -66,7 +66,7 @@ namespace internal {
     increment_t _incy  // The increment for elements in y (nonzero).
  */
 template typename SB_Handle::event_t _gemv(
-    SB_Handle& ex, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
     ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
     ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
     ${container_t2} _vy, ${INCREMENT_TYPE} _incy);

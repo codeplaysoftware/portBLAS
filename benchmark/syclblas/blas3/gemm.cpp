@@ -49,7 +49,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Matrices
   std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
@@ -69,9 +69,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
-    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_temp_gpu, ldc);
-    ex.wait(event);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -83,15 +83,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_gpu, ldc);
-    ex.wait(event);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

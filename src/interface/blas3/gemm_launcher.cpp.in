@@ -57,7 +57,7 @@ template typename SB_Handle::event_t Gemm_Launcher<
                  BufferIterator<${DATA_TYPE}>,
                  BufferIterator<${DATA_TYPE}>, ${DATA_TYPE},
                  ${INDEX_TYPE}>(
-        SB_Handle& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+        SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha,
         BufferIterator<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
         BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
@@ -78,7 +78,7 @@ template typename SB_Handle::event_t Gemm_Launcher<
                  BufferIterator<${DATA_TYPE} const>,
                  BufferIterator<${DATA_TYPE}>, ${DATA_TYPE},
                  ${INDEX_TYPE}>(
-        SB_Handle& ex, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+        SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha,
         BufferIterator<${DATA_TYPE} const> a_, ${INDEX_TYPE} _lda,
         BufferIterator<${DATA_TYPE} const> b_, ${INDEX_TYPE} _ldb,

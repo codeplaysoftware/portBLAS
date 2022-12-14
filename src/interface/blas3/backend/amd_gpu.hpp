@@ -34,7 +34,7 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm(
-    sb_handle_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type) {
@@ -47,7 +47,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle, _M, _N,
                                                                     _K, _alpha,
                                                                     _a, _lda,
                                                                     _b, _ldb,
@@ -66,7 +66,7 @@ typename sb_handle_t::event_t _gemm(
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
           static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N,
+              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N,
                                                                   _K, _alpha,
                                                                   _a, _lda, _b,
                                                                   _ldb, _beta,
@@ -79,7 +79,7 @@ typename sb_handle_t::event_t _gemm(
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
           static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N,
+              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N,
                                                                   _K, _alpha,
                                                                   _a, _lda, _b,
                                                                   _ldb, _beta,
@@ -92,7 +92,7 @@ typename sb_handle_t::event_t _gemm(
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
           static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N,
+              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N,
                                                                   _K, _alpha,
                                                                   _a, _lda, _b,
                                                                   _ldb, _beta,
@@ -105,7 +105,7 @@ typename sb_handle_t::event_t _gemm(
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
           static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N,
+              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N,
                                                                   _K, _alpha,
                                                                   _a, _lda, _b,
                                                                   _ldb, _beta,
@@ -118,7 +118,7 @@ typename sb_handle_t::event_t _gemm(
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
           static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N,
+              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N,
                                                                   _K, _alpha,
                                                                   _a, _lda, _b,
                                                                   _ldb, _beta,
@@ -134,7 +134,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -146,7 +146,7 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,

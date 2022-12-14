@@ -39,13 +39,13 @@ namespace internal {
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] Scalar representing the output c.
  * @param s[out] Scalar representing the output s.
  */
-template void _rotg(SB_Handle &ex, ${DATA_TYPE}& a,
+template void _rotg(SB_Handle &sb_handle, ${DATA_TYPE}& a,
                     ${DATA_TYPE}& b, ${DATA_TYPE}& c, ${DATA_TYPE}& s);
 }  // namespace internal
 }  // namespace blas

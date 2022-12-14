@@ -63,26 +63,26 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_x_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incX));
-  blas::helper::copy_to_device(ex.get_queue(), x_v.data(), gpu_x_v,
+  blas::helper::copy_to_device(sb_handle.get_queue(), x_v.data(), gpu_x_v,
                                          vectorSize * incX);
   auto gpu_y_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incY));
-  blas::helper::copy_to_device(ex.get_queue(), y_v.data(), gpu_y_v,
+  blas::helper::copy_to_device(sb_handle.get_queue(), y_v.data(), gpu_y_v,
                                          vectorSize * incY);
 
   if (api == api_type::event) {
     auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
-    _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-    auto event = blas::helper::copy_to_host<scalar_t>(ex.get_queue(),
+    _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+    auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
         gpu_out_s, out_s.data(), 1);
-    ex.wait(event);
+    sb_handle.wait(event);
   } else {
-    out_s[0] = _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    out_s[0] = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
   }
 
   // Validate the result

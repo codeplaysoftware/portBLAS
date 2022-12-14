@@ -61,7 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL-BLAS implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
@@ -71,11 +71,11 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Copy input data from host to device
   auto xcp_ev =
-    blas::helper::copy_to_device(ex.get_queue(), v_x.data(), gpu_x_v, x_dim);
-  ex.wait(xcp_ev);
+    blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(), gpu_x_v, x_dim);
+  sb_handle.wait(xcp_ev);
   auto ycp_ev =
-      blas::helper::copy_to_device(ex.get_queue(),  v_y.data(), gpu_y_v, y_dim);
-  ex.wait(ycp_ev);
+      blas::helper::copy_to_device(sb_handle.get_queue(),  v_y.data(), gpu_y_v, y_dim);
+  sb_handle.wait(ycp_ev);
 
   // Dimensions of vector view for AXPY operations
   int view_x_dim = (x_dim + incX - 1) / incX;
@@ -100,13 +100,13 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_axpy_op_tree = make_op<Assign>(view_y_incY, axpy_add_op);
 
   // Execute the COPY+AXPY tree
-  auto axpy_event = ex.execute(copy_axpy_op_tree);
-  ex.wait(axpy_event);
+  auto axpy_event = sb_handle.execute(copy_axpy_op_tree);
+  sb_handle.wait(axpy_event);
 
   // Copy the result back to host memory
   auto getResultEv =
-    blas::helper::copy_to_host(ex.get_queue(),  gpu_y_v, v_y.data(), y_dim);
-  ex.wait(getResultEv);
+    blas::helper::copy_to_host(sb_handle.get_queue(),  gpu_y_v, v_y.data(), y_dim);
+  sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));
 }

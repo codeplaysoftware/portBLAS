@@ -63,7 +63,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   // Iterators
   auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(a_v, size * incX);
@@ -73,11 +73,11 @@ void run_test(const combination_t<scalar_t> combi) {
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-  _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = blas::helper::copy_to_host(ex.get_queue(), gpu_out_s,
+  _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+  _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s,
                                                               out_s.data(), 1);
-  ex.wait(event);
+  sb_handle.wait(event);
 
   // Validate the result
   const bool isAlmostEqual =

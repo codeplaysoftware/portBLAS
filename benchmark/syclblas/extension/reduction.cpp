@@ -50,7 +50,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   state.counters["n_fl_ops"] = rows_d * cols_d;
   state.counters["bytes_processed"] = (rows_d * cols_d) * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Matrix
   std::vector<scalar_t> mat =
@@ -87,10 +87,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
         vec_temp.data(), vec_temp.size());
 
     extension::_reduction<AddOperator, scalar_t>(
-        ex, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
-    auto event =  blas::helper::copy_to_host(ex.get_queue(),
+        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
+    auto event =  blas::helper::copy_to_host(sb_handle.get_queue(),
         vec_temp_buffer, vec_temp.data(), vec_temp.size());
-    ex.wait(event);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -103,14 +103,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
-        ex, mat_buffer, rows, vec_buffer, rows, cols, dim);
-    ex.wait(event);
+        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

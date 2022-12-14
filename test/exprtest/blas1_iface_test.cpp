@@ -124,41 +124,41 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   std::vector<IndexValueTuple<index_t, scalar_t>> vImin(1, min_val);
 
   auto q = make_queue();
-  SB_Handle ex(q);
-  auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vS = ex.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vT = ex.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vU = ex.get_policy_handler().template allocate<scalar_t>(1);
+  SB_Handle sb_handle(q);
+  auto gpu_vX = sb_handle.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vY = sb_handle.get_policy_handler().template allocate<scalar_t>(size);
+  auto gpu_vR = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vS = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vT = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vU = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
   auto gpu_vImax =
-      ex.get_policy_handler()
+      sb_handle.get_policy_handler()
           .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
   auto gpu_vImin =
-      ex.get_policy_handler()
+      sb_handle.get_policy_handler()
           .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
-  ex.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  ex.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
-  _axpy(ex, size, alpha, gpu_vX, strd, gpu_vY, strd);
-  _asum(ex, size, gpu_vY, strd, gpu_vR);
-  _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vS);
-  _nrm2(ex, size, gpu_vY, strd, gpu_vT);
-  _iamax(ex, size, gpu_vY, strd, gpu_vImax);
-  _iamin(ex, size, gpu_vY, strd, gpu_vImin);
-  _rot(ex, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
-  _dot(ex, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
-  _swap(ex, size, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = ex.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
-  auto event1 = ex.get_policy_handler().copy_to_host(gpu_vS, vS.data(), 1);
-  auto event2 = ex.get_policy_handler().copy_to_host(gpu_vT, vT.data(), 1);
-  auto event3 = ex.get_policy_handler().copy_to_host(gpu_vU, vU.data(), 1);
+  sb_handle.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
+  sb_handle.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
+  _axpy(sb_handle, size, alpha, gpu_vX, strd, gpu_vY, strd);
+  _asum(sb_handle, size, gpu_vY, strd, gpu_vR);
+  _dot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, gpu_vS);
+  _nrm2(sb_handle, size, gpu_vY, strd, gpu_vT);
+  _iamax(sb_handle, size, gpu_vY, strd, gpu_vImax);
+  _iamin(sb_handle, size, gpu_vY, strd, gpu_vImin);
+  _rot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
+  _dot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
+  _swap(sb_handle, size, gpu_vX, strd, gpu_vY, strd);
+  auto event0 = sb_handle.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
+  auto event1 = sb_handle.get_policy_handler().copy_to_host(gpu_vS, vS.data(), 1);
+  auto event2 = sb_handle.get_policy_handler().copy_to_host(gpu_vT, vT.data(), 1);
+  auto event3 = sb_handle.get_policy_handler().copy_to_host(gpu_vU, vU.data(), 1);
   auto event4 =
-      ex.get_policy_handler().copy_to_host(gpu_vImax, vImax.data(), 1);
+      sb_handle.get_policy_handler().copy_to_host(gpu_vImax, vImax.data(), 1);
   auto event5 =
-      ex.get_policy_handler().copy_to_host(gpu_vImin, vImin.data(), 1);
-  auto event6 = ex.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
-  auto event7 = ex.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
-  ex.get_policy_handler().wait(event0, event1, event2, event3, event4, event5,
+      sb_handle.get_policy_handler().copy_to_host(gpu_vImin, vImin.data(), 1);
+  auto event6 = sb_handle.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
+  auto event7 = sb_handle.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
+  sb_handle.get_policy_handler().wait(event0, event1, event2, event3, event4, event5,
                                event6, event7);
 
   // because there is a lot of operations, it makes sense to set the precision
@@ -182,14 +182,14 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vS);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
-  ex.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
-  ex.get_policy_handler()
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vS);
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
+  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
+  sb_handle.get_policy_handler()
       .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImax);
-  ex.get_policy_handler()
+  sb_handle.get_policy_handler()
       .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImin);
 }

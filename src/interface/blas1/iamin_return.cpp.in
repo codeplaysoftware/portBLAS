@@ -35,11 +35,11 @@ namespace internal {
 
 /**
  * \brief _iamin finds the index of the first element having minimum
- * @param SB_Handle ex
+ * @param SB_Handle sb_handle
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template ${INDEX_TYPE} _iamin(SB_Handle &ex, ${INDEX_TYPE} _N,
+template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal

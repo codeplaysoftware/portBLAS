@@ -33,7 +33,7 @@ namespace internal {
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vy BufferIterator
@@ -42,13 +42,13 @@ namespace internal {
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _axpy(
-    sb_handle_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
+    sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy);
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vy BufferIterator
@@ -56,7 +56,7 @@ typename sb_handle_t::event_t _axpy(
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -71,7 +71,7 @@ typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -83,7 +83,7 @@ typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs);
 
 /**
@@ -96,7 +96,7 @@ typename sb_handle_t::event_t _dot(
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -109,18 +109,18 @@ typename sb_handle_t::event_t _dot(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _sdsdot(
-    sb_handle_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs);
 
 /**
  * \brief ASUM Takes the sum of the absolute values
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _asum(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs);
@@ -131,7 +131,7 @@ typename sb_handle_t::event_t _asum(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _iamax(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamax(sb_handle_t &sb_handle, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs);
@@ -142,7 +142,7 @@ typename sb_handle_t::event_t _iamax(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamin(sb_handle_t &sb_handle, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs);
@@ -150,7 +150,7 @@ typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
 /**
  * \brief SWAP interchanges two vectors
  *
- * @param sb_handle_t ex
+ * @param sb_handle_t sb_handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vy BufferIterator
@@ -158,7 +158,7 @@ typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _swap(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _swap(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -166,33 +166,33 @@ typename sb_handle_t::event_t _swap(sb_handle_t &ex, index_t _N,
 
 /**
  * \brief SCALAR  operation on a vector
- * @param sb_handle_t ex
+ * @param sb_handle_t sb_handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _scal(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _scal(sb_handle_t &sb_handle, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _nrm2(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs);
 
 /**
  * @brief _rot constructor given plane rotation
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vx BufferIterator
@@ -204,7 +204,7 @@ typename sb_handle_t::event_t _nrm2(sb_handle_t &ex, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _rot(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
 /**
@@ -229,7 +229,7 @@ typename sb_handle_t::event_t _rot(
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
  * @param[in, out] _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -242,7 +242,7 @@ typename sb_handle_t::event_t _rot(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _rotm(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param);
 
 /**
@@ -266,7 +266,7 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @tparam container_4_t Buffer Iterator
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
  * @param _d2[in,out] On entry, buffer holding the scaling factor for the
@@ -281,7 +281,7 @@ typename sb_handle_t::event_t _rotm(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename sb_handle_t::event_t _rotmg(sb_handle_t &ex, container_0_t _d1,
+typename sb_handle_t::event_t _rotmg(sb_handle_t &sb_handle, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
@@ -295,7 +295,7 @@ typename sb_handle_t::event_t _rotmg(sb_handle_t &ex, container_0_t _d1,
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
@@ -308,7 +308,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename std::enable_if<!is_sycl_scalar<container_0_t>::value,
                                   bool>::type = true>
-typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
+typename sb_handle_t::event_t _rotg(sb_handle_t &sb_handle, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s);
 
@@ -318,7 +318,7 @@ typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] scalar representing the output c.
@@ -327,7 +327,7 @@ typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
 template <
     typename sb_handle_t, typename scalar_t,
     typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
-void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
+void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -338,7 +338,7 @@ void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -349,7 +349,7 @@ void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -365,7 +365,7 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -377,7 +377,7 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &sb_handle, index_t _N,
                                                 float sb, container_0_t _vx,
                                                 increment_t _incx,
                                                 container_1_t _vy,
@@ -389,7 +389,7 @@ typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamax(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx);
+index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx);
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
@@ -398,45 +398,45 @@ index_t _iamax(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx);
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamin(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx);
+index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx);
 
 /**
  * \brief ASUM Takes the sum of the absolute values
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _asum(sb_handle_t &ex, index_t _N,
+typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
                                             container_t _vx, increment_t _incx);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _nrm2(sb_handle_t &ex, index_t _N,
+typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
                                             container_t _vx, increment_t _incx);
 }  // namespace internal
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _axpy(
-    sb_handle_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
+    sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy) {
-  return internal::_axpy(ex, _N, _alpha, _vx, _incx, _vy, _incy);
+  return internal::_axpy(sb_handle, _N, _alpha, _vx, _incx, _vy, _incy);
 }
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vy BufferIterator
@@ -444,12 +444,12 @@ typename sb_handle_t::event_t _axpy(
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_copy(ex, _N, _vx, _incx, _vy, _incy);
+  return internal::_copy(sb_handle, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -461,7 +461,7 @@ typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -473,9 +473,9 @@ typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _dot(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  return internal::_dot(ex, _N, _vx, _incx, _vy, _incy, _rs);
+  return internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs);
 }
 
 /**
@@ -488,7 +488,7 @@ typename sb_handle_t::event_t _dot(
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -501,24 +501,24 @@ typename sb_handle_t::event_t _dot(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _sdsdot(
-    sb_handle_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  return internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy, _rs);
+  return internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy, _rs);
 }
 
 /**
  * \brief ASUM Takes the sum of the absolute values
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _asum(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  return internal::_asum(ex, _N, _vx, _incx, _rs);
+  return internal::_asum(sb_handle, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -528,11 +528,11 @@ typename sb_handle_t::event_t _asum(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _iamax(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamax(sb_handle_t &sb_handle, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  return internal::_iamax(ex, _N, _vx, _incx, _rs);
+  return internal::_iamax(sb_handle, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -542,17 +542,17 @@ typename sb_handle_t::event_t _iamax(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamin(sb_handle_t &sb_handle, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  return internal::_iamin(ex, _N, _vx, _incx, _rs);
+  return internal::_iamin(sb_handle, _N, _vx, _incx, _rs);
 }
 
 /**
  * \brief SWAP interchanges two vectors
  *
- * @param sb_handle_t ex
+ * @param sb_handle_t sb_handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vy BufferIterator
@@ -560,49 +560,49 @@ typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _swap(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _swap(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_swap(ex, _N, _vx, _incx, _vy, _incy);
+  return internal::_swap(sb_handle, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
  * \brief SCALAR operation on a vector
- * @param sb_handle_t ex
+ * @param sb_handle_t sb_handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _scal(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _scal(sb_handle_t &sb_handle, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx) {
-  return internal::_scal(ex, _N, _alpha, _vx, _incx);
+  return internal::_scal(sb_handle, _N, _alpha, _vx, _incx);
 }
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _nrm2(sb_handle_t &ex, index_t _N,
+typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  return internal::_nrm2(ex, _N, _vx, _incx, _rs);
+  return internal::_nrm2(sb_handle, _N, _vx, _incx, _rs);
 }
 
 /**
  * .
  * @brief _rot constructor given plane rotation
  *  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  * @param _vx BufferIterator
@@ -615,9 +615,9 @@ typename sb_handle_t::event_t _nrm2(sb_handle_t &ex, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _rot(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
-  return internal::_rot(ex, _N, _vx, _incx, _vy, _incy, _cos, _sin);
+  return internal::_rot(sb_handle, _N, _vx, _incx, _vy, _incy, _cos, _sin);
 }
 
 /**
@@ -642,7 +642,7 @@ typename sb_handle_t::event_t _rot(
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
  * @param[in, out] _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -655,9 +655,9 @@ typename sb_handle_t::event_t _rot(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
 typename sb_handle_t::event_t _rotm(
-    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param) {
-  return internal::_rotm(ex, _N, _vx, _incx, _vy, _incy, _param);
+  return internal::_rotm(sb_handle, _N, _vx, _incx, _vy, _incy, _param);
 }
 
 /**
@@ -681,7 +681,7 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @tparam container_4_t Buffer Iterator
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
  * @param _d2[in,out] On entry, buffer holding the scaling factor for the
@@ -696,12 +696,12 @@ typename sb_handle_t::event_t _rotm(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename sb_handle_t::event_t _rotmg(sb_handle_t &ex, container_0_t _d1,
+typename sb_handle_t::event_t _rotmg(sb_handle_t &sb_handle, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
                                               container_4_t _param) {
-  return internal::_rotmg(ex, _d1, _d2, _x1, _y1, _param);
+  return internal::_rotmg(sb_handle, _d1, _d2, _x1, _y1, _param);
 }
 
 /**
@@ -712,7 +712,7 @@ typename sb_handle_t::event_t _rotmg(sb_handle_t &ex, container_0_t _d1,
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
@@ -725,10 +725,10 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename std::enable_if<!is_sycl_scalar<container_0_t>::value,
                                   bool>::type = true>
-typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
+typename sb_handle_t::event_t _rotg(sb_handle_t &sb_handle, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
-  return internal::_rotg(ex, a, b, c, s);
+  return internal::_rotg(sb_handle, a, b, c, s);
 }
 
 /**
@@ -737,7 +737,7 @@ typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] scalar representing the output c.
@@ -746,8 +746,8 @@ typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
 template <
     typename sb_handle_t, typename scalar_t,
     typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
-void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
-  internal::_rotg(ex, a, b, c, s);
+void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
+  internal::_rotg(sb_handle, a, b, c, s);
 }
 
 /**
@@ -759,7 +759,7 @@ void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) 
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -770,12 +770,12 @@ void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) 
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_dot(ex, _N, _vx, _incx, _vy, _incy);
+  return internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -788,7 +788,7 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -800,12 +800,12 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &sb_handle, index_t _N,
                                                 float sb, container_0_t _vx,
                                                 increment_t _incx,
                                                 container_1_t _vy,
                                                 increment_t _incy) {
-  return internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy);
+  return internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -815,8 +815,8 @@ typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &ex, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamax(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx) {
-  return internal::_iamax(ex, _N, _vx, _incx);
+index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+  return internal::_iamax(sb_handle, _N, _vx, _incx);
 }
 
 /**
@@ -826,38 +826,38 @@ index_t _iamax(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx) 
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamin(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx) {
-  return internal::_iamin(ex, _N, _vx, _incx);
+index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+  return internal::_iamin(sb_handle, _N, _vx, _incx);
 }
 
 /**
  * \brief ASUM Takes the sum of the absolute values
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _asum(sb_handle_t &ex, index_t _N,
+typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
-  return internal::_asum(ex, _N, _vx, _incx);
+  return internal::_asum(sb_handle, _N, _vx, _incx);
 }
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  *
- * @param ex SB_Handle
+ * @param sb_handle SB_Handle
  * @param _vx BufferIterator
  * @param _incx Increment for the vector X
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _nrm2(sb_handle_t &ex, index_t _N,
+typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
-  return internal::_nrm2(ex, _N, _vx, _incx);
+  return internal::_nrm2(sb_handle, _N, _vx, _incx);
 }
 
 }  // end namespace blas

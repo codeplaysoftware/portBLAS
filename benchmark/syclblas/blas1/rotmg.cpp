@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   scalar_t x1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t y1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   auto buf_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&d1, 1);
   auto buf_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&d2, 1);
@@ -72,24 +72,24 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
       blas::make_sycl_iterator_buffer<scalar_t>(param_verify, param_size);
 
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
-  _rotmg(ex, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1, device_param);
+  _rotmg(sb_handle, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1, device_param);
 
   auto event1 =
-      blas::helper::copy_to_host(ex.get_queue(), buf_verify_d1, &d1_verify, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d1, &d1_verify, 1);
   auto event2 =
-      blas::helper::copy_to_host(ex.get_queue(), buf_verify_d2, &d2_verify, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d2, &d2_verify, 1);
   auto event3 =
-      blas::helper::copy_to_host(ex.get_queue(), buf_verify_x1, &x1_verify, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_x1, &x1_verify, 1);
   auto event4 =
-      blas::helper::copy_to_host(ex.get_queue(), buf_verify_y1, &y1_verify, 1);
-  auto event5 =  blas::helper::copy_to_host(ex.get_queue(),
+      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_y1, &y1_verify, 1);
+  auto event5 =  blas::helper::copy_to_host(sb_handle.get_queue(),
       device_param, param_verify.data(), param_size);
 
-  ex.wait(event1);
-  ex.wait(event2);
-  ex.wait(event3);
-  ex.wait(event4);
-  ex.wait(event5);
+  sb_handle.wait(event1);
+  sb_handle.wait(event2);
+  sb_handle.wait(event3);
+  sb_handle.wait(event4);
+  sb_handle.wait(event5);
 
   const bool isAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
                              utils::almost_equal(d2_verify, d2_ref) &&
@@ -107,8 +107,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotmg(ex, buf_d1, buf_d2, buf_x1, buf_y1, buf_param);
-    ex.wait(event);
+    auto event = _rotmg(sb_handle, buf_d1, buf_d2, buf_x1, buf_y1, buf_param);
+    sb_handle.wait(event);
     return event;
   };
 

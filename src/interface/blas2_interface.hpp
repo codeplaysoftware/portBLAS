@@ -68,7 +68,7 @@ template <uint32_t local_range, uint32_t cache_line_size,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
 typename sb_handle_t::event_t _gemv_impl(
-    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
   constexpr int cl_elems = cache_line_size / sizeof(element_t);
@@ -97,9 +97,9 @@ typename sb_handle_t::event_t _gemv_impl(
         dot_products_matrix, mA, vx, one, one);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
-    // auto gemvEvent = ex.execute(gemv, local_range, global_size);
+    // auto gemvEvent = sb_handle.execute(gemv, local_range, global_size);
     auto gemvEvent =
-        ex.execute(gemv, static_cast<index_t>(local_range), global_size);
+        sb_handle.execute(gemv, static_cast<index_t>(local_range), global_size);
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -116,12 +116,12 @@ typename sb_handle_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent, sb_handle.execute(assignOp, local_range));
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent, sb_handle.execute(assignOp, local_range));
     }
 
   } else  // Local memory kernel
@@ -157,7 +157,7 @@ typename sb_handle_t::event_t _gemv_impl(
         dot_products_matrix, mA, vx, WGs_per_NC, WGs_per_C);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
-    auto gemvEvent = ex.execute(gemv, static_cast<index_t>(local_range),
+    auto gemvEvent = sb_handle.execute(gemv, static_cast<index_t>(local_range),
                                 global_size, kernel_scratch_size);
 
     // Sum the partial dot products results from the GEMV kernel
@@ -178,12 +178,12 @@ typename sb_handle_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent, sb_handle.execute(assignOp, local_range));
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent, sb_handle.execute(assignOp, local_range));
     }
   }
 }
@@ -195,7 +195,7 @@ typename sb_handle_t::event_t _gemv_impl(
 template <transpose_type trn, typename sb_handle_t, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
 typename sb_handle_t::event_t _trmv_impl(
-    sb_handle_t& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
+    sb_handle_t& sb_handle, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   typename sb_handle_t::event_t ret{};
@@ -218,7 +218,7 @@ typename sb_handle_t::event_t _trmv_impl(
   auto vx = make_vector_view(_vx, _incx, N);
   const index_t interLoop = 1;
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_work_group_size()
+                                ? sb_handle.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG =
       (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
@@ -248,24 +248,24 @@ typename sb_handle_t::event_t _trmv_impl(
         auto gemvC = make_Gemv_Col<false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     }
   } else {  // row_major
@@ -274,30 +274,30 @@ typename sb_handle_t::event_t _trmv_impl(
         auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret, sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     }
   }
   auto addMOp = make_sumMatrixColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
-  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
 }
 
@@ -320,7 +320,7 @@ template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
 typename sb_handle_t::event_t _symv_impl(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
@@ -339,7 +339,7 @@ typename sb_handle_t::event_t _symv_impl(
   const index_t interLoop = 1;
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_work_group_size()
+                                ? sb_handle.get_work_group_size()
                                 : _localSize;
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
@@ -377,18 +377,18 @@ typename sb_handle_t::event_t _symv_impl(
     auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
-        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+        ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
     ret = concatenate_vectors(
-        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
+        ret, sb_handle.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   } else {
     auto gemvC = make_Gemv_Col<true, true, false>(matC, mA, vx, nWGPerRow_C,
                                                   nWGPerCol_C, scratchPadSize);
     auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
-        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+        ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
     ret = concatenate_vectors(
-        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
+        ret, sb_handle.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
@@ -398,7 +398,7 @@ typename sb_handle_t::event_t _symv_impl(
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
-  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
 }
 
@@ -408,7 +408,7 @@ template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
 typename sb_handle_t::event_t _ger_impl(
-    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
@@ -419,7 +419,7 @@ typename sb_handle_t::event_t _ger_impl(
   auto vy = make_vector_view(_vy, _incy, N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_work_group_size()
+                                ? sb_handle.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
 
@@ -435,7 +435,7 @@ typename sb_handle_t::event_t _ger_impl(
   typename sb_handle_t::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-  return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
 }
 
 /*! _SYR.
@@ -454,7 +454,7 @@ ssyr 	( 	character  	UPLO,
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
 typename sb_handle_t::event_t _syr_impl(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   typename sb_handle_t::event_t ret;
@@ -465,7 +465,7 @@ typename sb_handle_t::event_t _syr_impl(
   auto vx = make_vector_view(_vx, _incx, N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_work_group_size()
+                                ? sb_handle.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
@@ -481,13 +481,13 @@ typename sb_handle_t::event_t _syr_impl(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
                ret,
-               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+               sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize));
   } else {
     auto assignOp = make_Ger_Col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
                ret,
-               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+               sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize));
   }
 }
 
@@ -507,7 +507,7 @@ template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
 typename sb_handle_t::event_t _syr2_impl(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
@@ -520,7 +520,7 @@ typename sb_handle_t::event_t _syr2_impl(
   auto vy = make_vector_view(_vy, _incy, _N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_work_group_size()
+                                ? sb_handle.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
@@ -534,11 +534,11 @@ typename sb_handle_t::event_t _syr2_impl(
   if (triangOpr) {
     auto assignOp = make_Ger_Col<false, false, true, true>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+    return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   } else {
     auto assignOp = make_Ger_Col<false, true, true, false>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+    return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   }
 }
 
@@ -559,7 +559,7 @@ template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
 typename sb_handle_t::event_t inline _gemv(
-    sb_handle_t& ex,       // sb_handle_t (sycl, parallel, serial, etc)
+    sb_handle_t& sb_handle,       // sb_handle_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -579,67 +579,67 @@ typename sb_handle_t::event_t inline _gemv(
 ) {
   return tolower(_trans) == 'n'
              ? blas::gemv::backend::_gemv<transpose_type::Normal>(
-                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy)
+                   sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy)
              : blas::gemv::backend::_gemv<transpose_type::Transposed>(
-                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
+                   sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
                    _incy);
 }
 
 template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
 typename sb_handle_t::event_t inline _trmv(
-    sb_handle_t& ex, char _Uplo, char _trans, char _Diag, index_t _N,
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return tolower(_trans) == 'n'
-             ? _trmv_impl<transpose_type::Normal>(ex, _Uplo, _Diag, _N, _mA,
+             ? _trmv_impl<transpose_type::Normal>(sb_handle, _Uplo, _Diag, _N, _mA,
                                                   _lda, _vx, _incx)
-             : _trmv_impl<transpose_type::Transposed>(ex, _Uplo, _Diag, _N, _mA,
+             : _trmv_impl<transpose_type::Transposed>(sb_handle, _Uplo, _Diag, _N, _mA,
                                                       _lda, _vx, _incx);
 }
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
 typename sb_handle_t::event_t inline _symv(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _symv_impl(ex, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
+  return _symv_impl(sb_handle, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
                     _incy);
 }
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
 typename sb_handle_t::event_t inline _ger(
-    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _ger_impl(ex, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
+  return _ger_impl(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
 }
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
 typename sb_handle_t::event_t inline _syr(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _syr_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
+  return _syr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
 typename sb_handle_t::event_t inline _syr2(
-    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _syr2_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
+  return _syr2_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
 }
 
 }  // namespace internal

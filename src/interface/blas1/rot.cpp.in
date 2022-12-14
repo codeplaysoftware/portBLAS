@@ -35,7 +35,7 @@ namespace internal {
 
 /**
  * @brief _rot constructor given plane rotation
- * @param SB_Handle ex
+ * @param SB_Handle sb_handle
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vx  VectorView
@@ -45,7 +45,7 @@ namespace internal {
  * @param _N data size
  */
 template typename SB_Handle::event_t _rot(
-    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${DATA_TYPE} _cos, ${DATA_TYPE} _sin);
 }  // namespace internal

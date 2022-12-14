@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2 * size_d;
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Create data
   constexpr size_t param_size = 5;
@@ -73,12 +73,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   reference_blas::rotm(size, x_v_ref.data(), 1, y_v_ref.data(), 1,
                        param.data());
 
-  _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
+  _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
         static_cast<index_t>(1), gpu_param);
-  auto event1 =  blas::helper::copy_to_host(ex.get_queue(), gpu_x_v, x_v_verify.data(), size);
-  auto event2 =  blas::helper::copy_to_host(ex.get_queue(), gpu_y_v, y_v_verify.data(), size);
-  ex.wait(event1);
-  ex.wait(event2);
+  auto event1 =  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v_verify.data(), size);
+  auto event2 =  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v_verify.data(), size);
+  sb_handle.wait(event1);
+  sb_handle.wait(event2);
 
   // Verify results
   std::ostringstream err_stream;
@@ -95,15 +95,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
+    auto event = _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
                        static_cast<index_t>(1), gpu_param);
-    ex.wait(event);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

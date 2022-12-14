@@ -71,15 +71,15 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
                                      GemmArgs<T> a,
                                      ::blas::gemm_batch_type_t batch_type) {
   TestResultEntry result("SYCL-BLAS gemm");
-  auto ex = get_sycl_executor();
+  auto sb_handle = get_sycl_executor();
   {
-    auto event_list = blas::helper::copy_to_host(ex.get_queue(),
+    auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),
         a.init_c.data(), a.c, a.init_c.size());
     event_list.back().wait_and_throw();
 
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
-      auto event_list = _gemm_batched(ex, transA, transB, a.m, a.n, a.k,
+      auto event_list = _gemm_batched(sb_handle, transA, transB, a.m, a.n, a.k,
                                       a.alpha, a.a, a.lda, a.b, a.ldb, a.beta,
                                       a.c, a.ldc, a.batch_size, batch_type);
       for (auto &event : event_list) {
@@ -88,7 +88,7 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
     });
   }
   {
-    auto event_list = blas::helper::copy_to_host(ex.get_queue(),
+    auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),
         a.c, a.output_c.data(), a.output_c.size());
     event_list.back().wait_and_throw();
   }

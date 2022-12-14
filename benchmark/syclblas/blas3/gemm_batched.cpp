@@ -116,7 +116,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
         sizeof(scalar_t);
   }
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   // Matrices
   std::vector<scalar_t> a =
@@ -159,9 +159,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
     auto event =
-        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                       beta, c_temp_gpu, ldc, batch_size, batch_type);
-    ex.wait(event);
+    sb_handle.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
     constexpr int offset = 0;
@@ -178,15 +178,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event =
-        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                       beta, c_gpu, ldc, batch_size, batch_type);
-    ex.wait(event);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

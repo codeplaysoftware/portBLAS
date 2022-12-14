@@ -61,7 +61,7 @@ template <typename scalar_t>
 void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
@@ -72,20 +72,20 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
   auto device_param =
       blas::make_sycl_iterator_buffer<scalar_t>(sycl_out.param, param_size);
   auto event0 =
-      _rotmg(ex, device_d1, device_d2, device_x1, device_y1, device_param);
-  ex.wait(event0);
+      _rotmg(sb_handle, device_d1, device_d2, device_x1, device_y1, device_param);
+  sb_handle.wait(event0);
 
   auto event1 =
-      blas::helper::copy_to_host(ex.get_queue(), device_d1, &sycl_out.d1, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_d1, &sycl_out.d1, 1);
   auto event2 =
-      blas::helper::copy_to_host(ex.get_queue(), device_d2, &sycl_out.d2, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_d2, &sycl_out.d2, 1);
   auto event3 =
-      blas::helper::copy_to_host(ex.get_queue(), device_x1, &sycl_out.x1, 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_x1, &sycl_out.x1, 1);
   auto event4 =
-      blas::helper::copy_to_host(ex.get_queue(), device_y1, &sycl_out.y1, 1);
-  auto event5 = blas::helper::copy_to_host(ex.get_queue(), 
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_y1, &sycl_out.y1, 1);
+  auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), 
       device_param, sycl_out.param.data(), param_size);
-  ex.wait({event1,event2 , event3,event4 , event5});
+  sb_handle.wait({event1,event2 , event3,event4 , event5});
  
 }
 

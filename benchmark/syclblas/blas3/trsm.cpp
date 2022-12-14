@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  ExecutorType& ex = *executorPtr;
+  ExecutorType& sb_handle = *executorPtr;
 
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
@@ -78,11 +78,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 
   {
     auto b_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_temp, sizeB);
-    _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_temp_gpu,
+    _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_temp_gpu,
           ldb);
-    auto event =  blas::helper::copy_to_host(ex.get_queue(), 
+    auto event =  blas::helper::copy_to_host(sb_handle.get_queue(), 
         b_temp_gpu, b_temp.data(), sizeB);
-    ex.wait(event);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -95,14 +95,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event =
-        _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
-    ex.wait(event);
+        _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 

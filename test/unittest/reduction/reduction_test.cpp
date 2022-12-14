@@ -81,7 +81,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
 
   auto q = make_queue();
-  test_executor_t ex(q);
+  test_executor_t sb_handle(q);
 
 
   index_t ld = rows * ld_mul;
@@ -184,27 +184,27 @@ void run_test(const combination_t<scalar_t> combi) {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Mean:
         ev = extension::_reduction<MeanOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
     }
   } catch (cl::sycl::exception& e) {
@@ -213,7 +213,7 @@ void run_test(const combination_t<scalar_t> combi) {
   }
   auto event = blas::helper::copy_to_host<scalar_t>(
       v_out_gpu, out_v_gpu.data(), out_size);
-  ex.wait({event});
+  sb_handle.wait({event});
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }
