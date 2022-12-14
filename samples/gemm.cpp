@@ -8,8 +8,7 @@ int main(int argc, char** argv) {
   cl::sycl::queue q = cl::sycl::queue(cl::sycl::default_selector());
 
   /* Create a SYCL-BLAS executor and get the policy handler */
-  blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> executor(q);
-  auto policy_handler = executor.get_policy_handler();
+  blas::Executor executor(q);
 
   /* Arguments of the Gemm operation.
    * Note: these matrix dimensions are too small to get a performance gain by
@@ -51,9 +50,9 @@ int main(int argc, char** argv) {
    * an alternative way
    */
   std::cout << "---\nCopying A, B and C to device\n";
-  policy_handler.copy_to_device(A.data(), a_gpu, lda * k);
-  policy_handler.copy_to_device(B.data(), b_gpu, ldb * n);
-  policy_handler.copy_to_device(C.data(), c_gpu, ldc * n);
+  blas::helper::copy_to_device(executor.get_queue(), A.data(), a_gpu, lda * k);
+  blas::helper::copy_to_device(executor.get_queue(), B.data(), b_gpu, ldb * n);
+  blas::helper::copy_to_device(executor.get_queue(), C.data(), c_gpu, ldc * n);
 
   /* Execute the GEMM operation */
   std::cout << "Executing C = " << alpha << "*A*B + " << beta << "*C\n";
@@ -62,8 +61,8 @@ int main(int argc, char** argv) {
 
   /* Copy the result to the host */
   std::cout << "Copying C to host\n";
-  auto event = policy_handler.copy_to_host(c_gpu, C.data(), ldc * n);
-  policy_handler.wait(event);
+  auto event = blas::helper::copy_to_host(executor.get_queue(), c_gpu, C.data(), ldc * n);
+  executor.wait(event);
 
   /* Print the result after the GEMM operation */
   std::cout << "---\nC (after):" << std::endl;

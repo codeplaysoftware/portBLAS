@@ -51,14 +51,12 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _scal(ex, size, alpha, gpu_x_v, incX);
   auto event =
-      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
-  ex.get_policy_handler().wait(event);
+      blas::helper::copy_to_host(ex.get_queue(), gpu_x_v, x_v.data(), size * incX);
+  ex.wait(event);
 
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING

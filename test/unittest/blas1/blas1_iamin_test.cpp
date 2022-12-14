@@ -66,11 +66,11 @@ void run_test(const combination_t<scalar_t> combi) {
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
   auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(int(1));
-  ex.get_policy_handler().copy_to_device(&out_s, gpu_out_s, 1);
+  blas::helper::copy_to_device(ex.get_queue(), &out_s, gpu_out_s, 1);
 
   _iamin(ex, size, gpu_x_v, incX, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, &out_s, 1);
-  ex.get_policy_handler().wait(event);
+  auto event = blas::helper::copy_to_device(ex.get_queue(), gpu_out_s, &out_s, 1);
+  ex.wait(event);
 
   using data_tuple_t = IndexValueTuple<int, scalar_t>;
   data_tuple_t out_data_s{out_s.ind, static_cast<scalar_t>(out_s.val)};

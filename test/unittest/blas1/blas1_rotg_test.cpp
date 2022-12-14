@@ -55,16 +55,13 @@ void run_test(const combination_t<scalar_t> combi) {
     auto device_c = blas::make_sycl_iterator_buffer<scalar_t>(1);
     auto device_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
     auto event0 = _rotg(ex, device_a, device_b, device_c, device_s);
-    ex.get_policy_handler().wait(event0);
+    ex.wait(event0);
 
-    auto event1 = ex.get_policy_handler().copy_to_host(device_c, &c, 1);
-    auto event2 = ex.get_policy_handler().copy_to_host(device_s, &s, 1);
-    auto event3 = ex.get_policy_handler().copy_to_host(device_a, &a, 1);
-    auto event4 = ex.get_policy_handler().copy_to_host(device_b, &b, 1);
-    ex.get_policy_handler().wait(event1);
-    ex.get_policy_handler().wait(event2);
-    ex.get_policy_handler().wait(event3);
-    ex.get_policy_handler().wait(event4);
+    auto event1 = blas::helper::copy_to_host(ex.get_queue(), device_c, &c, 1);
+    auto event2 = blas::helper::copy_to_host(ex.get_queue(), device_s, &s, 1);
+    auto event3 = blas::helper::copy_to_host(ex.get_queue(), device_a, &a, 1);
+    auto event4 = blas::helper::copy_to_host(ex.get_queue(), device_b, &b, 1);
+    ex.wait({event1, event2, event3, event4});
   }
   else {
     _rotg(ex, a, b, c, s);

@@ -60,14 +60,12 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _asum(ex, size, gpu_x_v, incX, gpu_out_s);
   auto event =
-      ex.get_policy_handler().copy_to_host<scalar_t>(gpu_out_s, &out_s, 1);
-  ex.get_policy_handler().wait(event);
+     blas::helper::copy_to_host<scalar_t>(ex.get_queue(), gpu_out_s, &out_s, 1);
+  ex.wait(event);
 
   // Validate the result
   const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);
   ASSERT_TRUE(is_almost_equal);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 template <typename scalar_t>

@@ -75,13 +75,12 @@ void run_test(const combination_t<scalar_t> combi) {
   _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
 
   auto event =
-      ex.get_policy_handler().copy_to_host<scalar_t>(b_gpu, B.data(), B.size());
-  ex.get_policy_handler().wait(event);
+      blas::helper::copy_to_host<scalar_t>(ex.get_queue(), b_gpu, B.data(), B.size());
+  ex.wait(event);
 
   bool isAlmostEqual = utils::compare_vectors(cpu_B, B);
 
   ASSERT_TRUE(isAlmostEqual);
-  ex.get_policy_handler().wait();
 }
 
 static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();

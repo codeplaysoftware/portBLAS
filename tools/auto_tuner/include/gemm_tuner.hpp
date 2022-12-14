@@ -73,7 +73,7 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
   TestResultEntry result("SYCL-BLAS gemm");
   auto ex = get_sycl_executor();
   {
-    auto event_list = ex.get_policy_handler().copy_to_device(
+    auto event_list = blas::helper::copy_to_host(ex.get_queue(),
         a.init_c.data(), a.c, a.init_c.size());
     event_list.back().wait_and_throw();
 
@@ -88,7 +88,7 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
     });
   }
   {
-    auto event_list = ex.get_policy_handler().copy_to_host(
+    auto event_list = blas::helper::copy_to_host(ex.get_queue(),
         a.c, a.output_c.data(), a.output_c.size());
     event_list.back().wait_and_throw();
   }
@@ -173,7 +173,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
 
 #undef BENCH_PARAMS
   std::cout << "SIZE : " << results.size() << std::endl;
-  get_sycl_executor().get_policy_handler().wait();
+  get_sycl_executor().wait();
   std::sort(results.begin(), results.end());
   results.print_all();
 }

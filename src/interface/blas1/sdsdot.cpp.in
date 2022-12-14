@@ -28,7 +28,6 @@
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -54,8 +53,8 @@ namespace internal {
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _sdsdot(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,
+template typename Executor::event_t _sdsdot(
+    Executor &ex, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${container_t2} _rs);
 }  // namespace internal

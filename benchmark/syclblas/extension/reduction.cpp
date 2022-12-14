@@ -88,9 +88,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 
     extension::_reduction<AddOperator, scalar_t>(
         ex, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+    auto event =  blas::helper::copy_to_host(ex.get_queue(),
         vec_temp_buffer, vec_temp.data(), vec_temp.size());
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -104,13 +104,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
         ex, mat_buffer, rows, vec_buffer, rows, cols, dim);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

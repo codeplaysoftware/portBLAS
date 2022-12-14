@@ -53,11 +53,11 @@ void run_test(const combination_t<scalar_t> combi) {
   {
     const auto gpu_v_in =
         blas::make_sycl_iterator_buffer<scalar_t>(v_in.data(), size);
-    auto gpu_v_in_vv = make_vector_view(ex, gpu_v_in, 1, size);
+    auto gpu_v_in_vv = make_vector_view(gpu_v_in, 1, size);
     auto gpu_v_int =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_int.data(), size);
-    auto gpu_v_int_vv = make_vector_view(ex, gpu_v_int, 1, size);
+    auto gpu_v_int_vv = make_vector_view(gpu_v_int, 1, size);
 
     auto tuples = make_tuple_op(gpu_v_in_vv);
     auto assign_tuple = make_op<Assign>(gpu_v_int_vv, tuples);
@@ -75,11 +75,11 @@ void run_test(const combination_t<scalar_t> combi) {
     auto gpu_v_int =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_int.data(), size);
-    auto gpu_v_int_vv = make_vector_view(ex, gpu_v_int, 1, size);
+    auto gpu_v_int_vv = make_vector_view(gpu_v_int, 1, size);
     auto gpu_v_out =
         blas::make_sycl_iterator_buffer<IndexValueTuple<int, scalar_t>>(
             v_out.data(), size);
-    auto gpu_v_out_vv = make_vector_view(ex, gpu_v_out, 1, size);
+    auto gpu_v_out_vv = make_vector_view(gpu_v_out, 1, size);
 
     auto tuples = make_tuple_op(gpu_v_int_vv);
     auto collapsed =

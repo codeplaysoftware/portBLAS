@@ -64,9 +64,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
     auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
     _sdsdot(ex, size, sb, inx, static_cast<index_t>(1), iny,
             static_cast<index_t>(1), vr_temp_gpu);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(vr_temp_gpu,
+    auto event = blas::helper::copy_to_host(ex.get_queue(), vr_temp_gpu,
                                                                 &vr_temp, 1);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   }
 
   if (!utils::almost_equal(vr_temp, vr_ref)) {
@@ -81,13 +81,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _sdsdot(ex, size, sb, inx, static_cast<index_t>(1), iny,
                          static_cast<index_t>(1), inr);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

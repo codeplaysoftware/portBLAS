@@ -75,12 +75,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
         static_cast<index_t>(1), gpu_param);
-  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_x_v, x_v_verify.data(), size);
-  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_y_v, y_v_verify.data(), size);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
+  auto event1 =  blas::helper::copy_to_host(ex.get_queue(), gpu_x_v, x_v_verify.data(), size);
+  auto event2 =  blas::helper::copy_to_host(ex.get_queue(), gpu_y_v, y_v_verify.data(), size);
+  ex.wait(event1);
+  ex.wait(event2);
 
   // Verify results
   std::ostringstream err_stream;
@@ -99,13 +97,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
                        static_cast<index_t>(1), gpu_param);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

@@ -35,21 +35,19 @@ if __name__ == '__main__':
     from py_gen import *
     from string import Template
 
-    executor_list = ['PolicyHandler<codeplay_policy>']
     index_list = ['int', 'long', 'long long']
 
     input_template = sys.argv[2]
     blas_level_name = sys.argv[3]
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
-    executor = sys.argv[6]
-    data = sys.argv[7]
-    container0 = sys.argv[8]
-    container1 = sys.argv[9]
-    container2 = sys.argv[10]
-    container3 = sys.argv[11]
-    container4 = sys.argv[12]
-    file_name = sys.argv[13]
+    data  = sys.argv[6]
+    container0 = sys.argv[7]
+    container1 = sys.argv[8]
+    container2 = sys.argv[9]
+    container3 = sys.argv[10]
+    container4 = sys.argv[11]
+    file_name = sys.argv[12]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -61,11 +59,6 @@ if __name__ == '__main__':
     template = Template(f.read())
     f.close()
     iterables = [
-        Iterable(
-            key='EXECUTOR',
-            vals=[executor],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
         Iterable(
             key='DATA_TYPE',
             vals=[data],

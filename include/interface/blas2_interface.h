@@ -43,7 +43,7 @@ namespace internal {
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t _gemv(
+typename executor_t::event_t _gemv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
@@ -71,7 +71,7 @@ template <uint32_t local_range, uint32_t cache_line_size,
           gemv_memory_t memory_type, transpose_type trn, typename Executor,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename Executor::policy_t::event_t _gemv_impl(
+typename Executor::event_t _gemv_impl(
     Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy);
@@ -90,7 +90,7 @@ typename Executor::policy_t::event_t _gemv_impl(
  */
 template <typename executor_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::policy_t::event_t _trmv(
+typename executor_t::event_t _trmv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     char _trans,        // Whether the matrix is transposed ('n', 't', 'c')
@@ -118,7 +118,7 @@ typename executor_t::policy_t::event_t _trmv(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t _symv(
+typename executor_t::event_t _symv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -148,7 +148,7 @@ typename executor_t::policy_t::event_t _symv(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t _ger(
+typename executor_t::event_t _ger(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     index_t _M,         // The rows in matrix A
     index_t _N,         // The cols of matrix A
@@ -175,7 +175,7 @@ typename executor_t::policy_t::event_t _ger(
  */
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename executor_t::policy_t::event_t _syr(
+typename executor_t::event_t _syr(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -201,7 +201,7 @@ typename executor_t::policy_t::event_t _syr(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t _syr2(
+typename executor_t::event_t _syr2(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -231,7 +231,7 @@ typename executor_t::policy_t::event_t _syr2(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t inline _gemv(
+typename executor_t::event_t inline _gemv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
@@ -250,10 +250,8 @@ typename executor_t::policy_t::event_t inline _gemv(
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
 ) {
-  return internal::_gemv(ex, _trans, _M, _N, _alpha,
-                         ex.get_policy_handler().get_buffer(_mA), _lda,
-                         ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
-                         ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_gemv(ex, _trans, _M, _N, _alpha, _mA, _lda, _vx, _incx,
+                         _beta, _vy, _incy);
 }
 
 /*!
@@ -270,7 +268,7 @@ typename executor_t::policy_t::event_t inline _gemv(
  */
 template <typename executor_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::policy_t::event_t inline _trmv(
+typename executor_t::event_t inline _trmv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     char _trans,        // Whether the matrix is transposed ('n', 't', 'c')
@@ -281,9 +279,7 @@ typename executor_t::policy_t::event_t inline _trmv(
     container_1_t _vx,  // (1 + (_N-1)*abs(_incx)), output vector X
     increment_t _incx   // !=0 The increment for the elements of X
 ) {
-  return internal::_trmv(ex, _Uplo, _trans, _Diag, _N,
-                         ex.get_policy_handler().get_buffer(_mA), _lda,
-                         ex.get_policy_handler().get_buffer(_vx), _incx);
+  return internal::_trmv(ex, _Uplo, _trans, _Diag, _N, _mA, _lda, _vx, _incx);
 }
 
 /*!
@@ -303,7 +299,7 @@ typename executor_t::policy_t::event_t inline _trmv(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t inline _symv(
+typename executor_t::event_t inline _symv(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -316,10 +312,8 @@ typename executor_t::policy_t::event_t inline _symv(
     container_2_t _vy,  // (1 + (_N-1)*abs(_incy)), output vector Y
     increment_t _incy   // !=0 The increment for the elements of Y
 ) {
-  return internal::_symv(ex, _Uplo, _N, _alpha,
-                         ex.get_policy_handler().get_buffer(_mA), _lda,
-                         ex.get_policy_handler().get_buffer(_vx), _incx, _beta,
-                         ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_symv(ex, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta,
+                         _vy, _incy);
 }
 
 /*!
@@ -339,7 +333,7 @@ typename executor_t::policy_t::event_t inline _symv(
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t inline _ger(
+typename executor_t::event_t inline _ger(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     index_t _M,         // The rows in matrix M
     index_t _N,         // The rows of matrix N
@@ -351,10 +345,7 @@ typename executor_t::policy_t::event_t inline _ger(
     container_2_t _mA,  // (_lda, n) array containing A, the output
     index_t _lda        // >max(1, m), Leading dimension of A
 ) {
-  return internal::_ger(ex, _M, _N, _alpha,
-                        ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_vy), _incy,
-                        ex.get_policy_handler().get_buffer(_mA), _lda);
+  return internal::_ger(ex, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
 }
 
 /*!
@@ -372,7 +363,7 @@ typename executor_t::policy_t::event_t inline _ger(
  */
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename executor_t::policy_t::event_t inline _syr(
+typename executor_t::event_t inline _syr(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -382,9 +373,7 @@ typename executor_t::policy_t::event_t inline _syr(
     container_1_t _mA,  // (_lda, _N) The output matrix
     index_t _lda        // >max(1, _N) The first dimension of _mA
 ) {
-  return internal::_syr(ex, _Uplo, _N, _alpha,
-                        ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_mA), _lda);
+  return internal::_syr(ex, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
 
 /*!
@@ -404,7 +393,7 @@ Generalised vector product followed by a sum with a rectangular symmetric
 template <typename executor_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::policy_t::event_t inline _syr2(
+typename executor_t::event_t inline _syr2(
     executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
@@ -416,10 +405,8 @@ typename executor_t::policy_t::event_t inline _syr2(
     container_2_t _mA,  // (_lda, _N) The output matrix
     index_t _lda        // >max(1, _N) The first dimension of _mA
 ) {
-  return internal::_syr2(ex, _Uplo, _N, _alpha,
-                         ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_vy), _incy,
-                         ex.get_policy_handler().get_buffer(_mA), _lda);
+  return internal::_syr2(ex, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
+                         _lda);
 }
 }  // namespace blas
 

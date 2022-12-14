@@ -75,9 +75,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
   _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(gpu_out_s,
+  auto event = blas::helper::copy_to_host(ex.get_queue(), gpu_out_s,
                                                               out_s.data(), 1);
-  ex.get_policy_handler().wait(event);
+  ex.wait(event);
 
   // Validate the result
   const bool isAlmostEqual =

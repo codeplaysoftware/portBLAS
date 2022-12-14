@@ -52,6 +52,4 @@
 
 #include "operations/blas_operators.hpp"
 
-#include "policy/sycl_policy_handler.hpp"
-
 #include "views/view_sycl.hpp"

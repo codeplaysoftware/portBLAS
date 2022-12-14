@@ -38,33 +38,32 @@ if __name__ == '__main__':
     blas_level_name = sys.argv[3]
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
-    executor = sys.argv[6]
-    data = sys.argv[7]
-    index = sys.argv[8]
-    double_buffer = sys.argv[9]
-    conflict_a = sys.argv[10]
-    conflict_b = sys.argv[11]
-    trans_a = sys.argv[12]
-    trans_b = sys.argv[13]
-    is_beta_zero = sys.argv[14]
-    gemm_memory_type = sys.argv[15]
-    gemm_shape_type = sys.argv[16]
-    tir = sys.argv[17]
-    tic = sys.argv[18]
-    twr = sys.argv[19]
-    twc = sys.argv[20]
-    tsr = sys.argv[21]
-    tsc = sys.argv[22]
-    tlr = sys.argv[23]
-    tlc = sys.argv[24]
-    tib = sys.argv[25]
-    twb = sys.argv[26]
-    wg_size = sys.argv[27]
-    cl_size = sys.argv[28]
-    file_name = sys.argv[29]
-    gemm_vectorize_type = sys.argv[30]
-    vector_size = sys.argv[31]
-    batch_type = sys.argv[32]
+    data = sys.argv[6]
+    index = sys.argv[7]
+    double_buffer = sys.argv[8]
+    conflict_a = sys.argv[9]
+    conflict_b = sys.argv[10]
+    trans_a = sys.argv[11]
+    trans_b = sys.argv[12]
+    is_beta_zero = sys.argv[13]
+    gemm_memory_type = sys.argv[14]
+    gemm_shape_type = sys.argv[15]
+    tir = sys.argv[16]
+    tic = sys.argv[17]
+    twr = sys.argv[18]
+    twc = sys.argv[19]
+    tsr = sys.argv[20]
+    tsc = sys.argv[21]
+    tlr = sys.argv[22]
+    tlc = sys.argv[23]
+    tib = sys.argv[24]
+    twb = sys.argv[25]
+    wg_size = sys.argv[26]
+    cl_size = sys.argv[27]
+    file_name = sys.argv[28]
+    gemm_vectorize_type = sys.argv[29]
+    vector_size = sys.argv[30]
+    batch_type = sys.argv[31]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -173,11 +172,6 @@ if __name__ == '__main__':
         Iterable(
             key='GEMM_SHAPE_TYPE',
             vals=[gemm_shape_type],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='EXECUTOR',
-            vals=[executor],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

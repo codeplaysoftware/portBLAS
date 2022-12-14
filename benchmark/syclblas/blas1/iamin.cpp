@@ -67,7 +67,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
         blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
             &idx_temp, 1);
     auto event = _iamin(ex, size, inx, static_cast<index_t>(1), idx_temp_gpu);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   }
 
   if (idx_temp.ind != idx_ref) {
@@ -82,13 +82,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _iamin(ex, size, inx, static_cast<index_t>(1), outI);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

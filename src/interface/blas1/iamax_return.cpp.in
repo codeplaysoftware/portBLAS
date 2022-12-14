@@ -28,7 +28,6 @@
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -38,9 +37,9 @@ namespace internal {
  * \brief _iamax finds the index of the first element having maximum
  * @param _vx  VectorView
  * @param _incx Increment in X axis
- * @param Executor<${EXECUTOR}> ex
+ * @param Executor ex
  */
-template ${INDEX_TYPE} _iamax(Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N,
+template ${INDEX_TYPE} _iamax(Executor &ex, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal

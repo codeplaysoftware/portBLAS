@@ -41,7 +41,7 @@ namespace internal {
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _axpy(
+typename executor_t::event_t _axpy(
     executor_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy);
 
@@ -56,7 +56,7 @@ typename executor_t::policy_t::event_t _axpy(
  */
 template <typename executor_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
+typename executor_t::event_t _copy(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -82,7 +82,7 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _dot(
+typename executor_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs);
 
@@ -107,10 +107,10 @@ typename executor_t::policy_t::event_t _dot(
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
-        typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _sdsdot(
-        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
-        container_1_t _vy, increment_t _incy, container_2_t _rs);
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::event_t _sdsdot(
+    executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs);
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -120,7 +120,7 @@ typename executor_t::policy_t::event_t _sdsdot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
+typename executor_t::event_t _asum(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs);
@@ -131,7 +131,7 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamax(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs);
@@ -142,7 +142,7 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamin(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs);
@@ -158,7 +158,7 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
+typename executor_t::event_t _swap(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -172,7 +172,7 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
+typename executor_t::event_t _scal(executor_t &ex, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx);
@@ -185,7 +185,7 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
+typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs);
@@ -203,7 +203,7 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rot(
+typename executor_t::event_t _rot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin);
 
@@ -215,7 +215,8 @@ typename executor_t::policy_t::event_t _rot(
  * [xi] = [h11 h12] * [xi]
  * [yi]   [h21 h22]   [yi]
  *
- * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ * where h11, h12, h21 and h22 represent the modified Givens transformation
+ * matrix.
  *
  * The value of the flag parameter can be used to modify the matrix as follows:
  *
@@ -234,12 +235,13 @@ typename executor_t::policy_t::event_t _rot(
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
+ * h22].
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rotm(
+typename executor_t::event_t _rotm(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param);
 
@@ -279,7 +281,7 @@ typename executor_t::policy_t::event_t _rotm(
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
+typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
@@ -304,8 +306,9 @@ typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
-typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value,
+                                  bool>::type = true>
+typename executor_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s);
 
@@ -321,8 +324,9 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param c[out] scalar representing the output c.
  * @param s[out] scalar representing the output s.
  */
-template <typename executor_t, typename scalar_t,
-          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+template <
+    typename executor_t, typename scalar_t,
+    typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s);
 
 /**
@@ -371,10 +375,10 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template<typename executor_t, typename container_0_t, typename container_1_t,
-        typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(executor_t& ex, index_t _N, float sb,
-                                                container_0_t _vx,
+template <typename executor_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
+                                                float sb, container_0_t _vx,
                                                 increment_t _incx,
                                                 container_1_t _vy,
                                                 increment_t _incy);
@@ -423,12 +427,10 @@ typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _axpy(
+typename executor_t::event_t _axpy(
     executor_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy) {
-  return internal::_axpy(ex, _N, _alpha,
-                         ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_axpy(ex, _N, _alpha, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -442,13 +444,12 @@ typename executor_t::policy_t::event_t _axpy(
  */
 template <typename executor_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
+typename executor_t::event_t _copy(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_copy(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_copy(ex, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -471,12 +472,10 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _dot(
+typename executor_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_vy), _incy,
-                        ex.get_policy_handler().get_buffer(_rs));
+  return internal::_dot(ex, _N, _vx, _incx, _vy, _incy, _rs);
 }
 
 /**
@@ -500,13 +499,11 @@ typename executor_t::policy_t::event_t _dot(
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
-        typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _sdsdot(
-        executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
-        container_1_t _vy, increment_t _incy, container_2_t _rs) {
-    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
-                          ex.get_policy_handler().get_buffer(_vy), _incy,
-                          ex.get_policy_handler().get_buffer(_rs));
+          typename container_2_t, typename index_t, typename increment_t>
+typename executor_t::event_t _sdsdot(
+    executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs) {
+  return internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy, _rs);
 }
 
 /**
@@ -517,12 +514,11 @@ typename executor_t::policy_t::event_t _sdsdot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
+typename executor_t::event_t _asum(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  return internal::_asum(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_rs));
+  return internal::_asum(ex, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -532,12 +528,11 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamax(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  return internal::_iamax(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                          _incx, ex.get_policy_handler().get_buffer(_rs));
+  return internal::_iamax(ex, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -547,12 +542,11 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamin(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  return internal::_iamin(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                          _incx, ex.get_policy_handler().get_buffer(_rs));
+  return internal::_iamin(ex, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -566,13 +560,12 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
+typename executor_t::event_t _swap(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_swap(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_swap(ex, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -583,12 +576,11 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
+typename executor_t::event_t _scal(executor_t &ex, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx) {
-  return internal::_scal(ex, _N, _alpha,
-                         ex.get_policy_handler().get_buffer(_vx), _incx);
+  return internal::_scal(ex, _N, _alpha, _vx, _incx);
 }
 
 /**
@@ -599,12 +591,11 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
+typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  return internal::_nrm2(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                         ex.get_policy_handler().get_buffer(_rs));
+  return internal::_nrm2(ex, _N, _vx, _incx, _rs);
 }
 
 /**
@@ -623,12 +614,10 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rot(
+typename executor_t::event_t _rot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
-  return internal::_rot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_vy), _incy, _cos,
-                        _sin);
+  return internal::_rot(ex, _N, _vx, _incx, _vy, _incy, _cos, _sin);
 }
 
 /**
@@ -639,7 +628,8 @@ typename executor_t::policy_t::event_t _rot(
  * [xi] = [h11 h12] * [xi]
  * [yi]   [h21 h22]   [yi]
  *
- * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ * where h11, h12, h21 and h22 represent the modified Givens transformation
+ * matrix.
  *
  * The value of the flag parameter can be used to modify the matrix as follows:
  *
@@ -658,16 +648,16 @@ typename executor_t::policy_t::event_t _rot(
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
+ * h22].
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rotm(
+typename executor_t::event_t _rotm(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param) {
-  return internal::_rotm(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_vy), _incy, _param);
+  return internal::_rotm(ex, _N, _vx, _incx, _vy, _incy, _param);
 }
 
 /**
@@ -706,7 +696,7 @@ typename executor_t::policy_t::event_t _rotm(
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
+typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
@@ -733,8 +723,9 @@ typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
-          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type = true>
-typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+          typename std::enable_if<!is_sycl_scalar<container_0_t>::value,
+                                  bool>::type = true>
+typename executor_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
   return internal::_rotg(ex, a, b, c, s);
@@ -752,8 +743,9 @@ typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
  * @param c[out] scalar representing the output c.
  * @param s[out] scalar representing the output s.
  */
-template <typename executor_t, typename scalar_t,
-          typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
+template <
+    typename executor_t, typename scalar_t,
+    typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
 void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   internal::_rotg(ex, a, b, c, s);
 }
@@ -783,8 +775,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  return internal::_dot(ex, _N, ex.get_policy_handler().get_buffer(_vx), _incx,
-                        ex.get_policy_handler().get_buffer(_vy), _incy);
+  return internal::_dot(ex, _N, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -808,14 +799,13 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @return Vector of events to wait for.
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
-        typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, float sb,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy) {
-    return internal::_sdsdot(ex, _N, sb, ex.get_policy_handler().get_buffer(_vx), _incx,
-                          ex.get_policy_handler().get_buffer(_vy), _incy);
+          typename index_t, typename increment_t>
+typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
+                                                float sb, container_0_t _vx,
+                                                increment_t _incx,
+                                                container_1_t _vy,
+                                                increment_t _incy) {
+  return internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy);
 }
 
 /**
@@ -826,8 +816,7 @@ typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N, floa
 template <typename executor_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
-  return internal::_iamax(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                          _incx);
+  return internal::_iamax(ex, _N, _vx, _incx);
 }
 
 /**
@@ -838,8 +827,7 @@ index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
 template <typename executor_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
-  return internal::_iamin(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                          _incx);
+  return internal::_iamin(ex, _N, _vx, _incx);
 }
 
 /**
@@ -854,8 +842,7 @@ template <typename executor_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
-  return internal::_asum(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                         _incx);
+  return internal::_asum(ex, _N, _vx, _incx);
 }
 
 /**
@@ -870,8 +857,7 @@ template <typename executor_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
-  return internal::_nrm2(ex, _N, ex.get_policy_handler().get_buffer(_vx),
-                         _incx);
+  return internal::_nrm2(ex, _N, _vx, _incx);
 }
 
 }  // end namespace blas

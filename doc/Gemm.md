@@ -11,28 +11,23 @@ Please note that while this document primarily refers to `GEMM` and `Blas3` oper
 
 # Contents
 
-- [**GEMM**](#gemm)
-
+- [SYCL-BLAS GEMM Developer Documentation](#sycl-blas-gemm-developer-documentation)
+- [Contents](#contents)
+- [GEMM](#gemm)
   - [What is GEMM?](#what-is-gemm)
-  - [SYCL-BLAS Gemm Kernels](#sycl-blas-gemm-kernels)
+  - [SYCL-BLAS GEMM Kernels](#sycl-blas-gemm-kernels)
   - [Relevant CMake Variables](#relevant-cmake-variables)
   - [Kernel Structure](#kernel-structure)
-  - [Vectorized Loading/Storing](#vectorized-loading/storing)
+  - [Vectorized Loading/Storing](#vectorized-loadingstoring)
   - [Batched Gemm](#batched-gemm)
-
-- [**GEMM Dispatch**](#gemm-dispatch)
-
+- [GEMM Dispatch](#gemm-dispatch)
   - [GEMM Backends](#gemm-backends)
   - [GEMM Launcher](#gemm-launcher)
   - [Source Code Generation](#source-code-generation)
-
-- [**GEMM Configurations**](#gemm-configurations)
-
+- [GEMM Configurations](#gemm-configurations)
   - [Backend Configurations](#backend-configurations)
   - [CMake Configurations](#cmake-configurations)
-
-- [**Common Tasks**](#common-tasks)
-
+- [Common Tasks](#common-tasks)
   - [Adding a new configuration](#adding-a-new-configuration)
   - [Adding a new kernel](#adding-a-new-kernel)
 
@@ -206,7 +201,7 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
 template <typename Executor, typename container_t0, typename container_t1, 
           typename container_t2, typename element_t, typename index_t>
 
-typename Executor::policy_t::event_t Gemm_Launcher<
+typename Executor::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
     BatchType>::_select_gemm(Executor& ex, index_t _M, index_t _N, index_t _K,
@@ -216,9 +211,9 @@ typename Executor::policy_t::event_t Gemm_Launcher<
                              index_t batch_size) {
 
   //Helper functions used to make matrix views
-  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda); 
-  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb); 
-  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc); 
+  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda); 
+  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb); 
+  auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc); 
 
   //Helper function to construct the Gemm object
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, 
@@ -248,20 +243,20 @@ The template for `Gemm` looks like this:
 #include "executors/executor_sycl.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
+#include "sycl_blas_helper.h"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 // gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename Executor::event_t _gemm(
+    Executor& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename Executor::event_t _gemm_batched(
+    Executor& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
@@ -306,7 +301,7 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 
-typename executor_t::policy_t::event_t _gemm(
+typename executor_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,

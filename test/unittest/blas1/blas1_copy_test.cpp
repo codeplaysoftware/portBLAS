@@ -56,8 +56,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _copy(ex, size, gpu_x_v, incX, gpu_y_v, incY);
   auto event =
-      ex.get_policy_handler().copy_to_host(gpu_y_v, y_v.data(), size * incY);
-  ex.get_policy_handler().wait(event);
+      blas::helper::copy_to_host(ex.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  ex.wait(event);
 
   // Validate the result
   // For copy, the float tolerances are ok

@@ -70,12 +70,11 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _rotm(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
 
-  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
+  auto event1 = blas::helper::copy_to_host<scalar_t>(ex.get_queue(), 
       gpu_x_v, x_v.data(), size * incX);
-  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
+  auto event2 =blas::helper::copy_to_host<scalar_t>(ex.get_queue(),
       gpu_y_v, y_v.data(), size * incY);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
+  ex.wait({event1, event2});
 
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(x_cpu_v, x_v) &&

@@ -28,7 +28,6 @@
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -51,8 +50,8 @@ namespace internal {
  * @param s[out] Buffer holding the parameter s.
  * @return Vector of events to wait for.
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _rotg(
-    Executor<${EXECUTOR}> &ex, ${container_t0} a, ${container_t1} b,
+template typename Executor::event_t _rotg(
+    Executor &ex, ${container_t0} a, ${container_t1} b,
     ${container_t2} c, ${container_t3} s);
 }  // namespace internal
 }  // namespace blas

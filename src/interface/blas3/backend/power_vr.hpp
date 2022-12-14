@@ -47,7 +47,7 @@ template <bool TransA, bool TransB>
 struct Gemm_Launcher {
   template <typename executor_t, typename container_0_t, typename container_1_t,
             typename container_2_t, typename value_t, typename index_t>
-  static inline typename executor_t::policy_t::event_t _select_gemm(
+  static inline typename executor_t::event_t _select_gemm(
       executor_t& ex, index_t _M, index_t _N, index_t _K, value_t _alpha,
       container_0_t _A, container_1_t _B, value_t _beta, container_2_t _C,
       index_t batch_size) {
@@ -62,7 +62,7 @@ struct Gemm_Launcher {
     auto a_buffer = _A.get_buffer();
     auto b_buffer = _B.get_buffer();
     auto c_buffer = _C.get_buffer();
-    auto interop_event = ex.get_policy_handler().get_queue().submit(
+    auto interop_event = ex.get_queue().submit(
         [&](cl::sycl::codeplay::handler& cgh) {
           auto a_acc =
               a_buffer.template get_access<cl::sycl::access::mode::read_write>(
@@ -300,7 +300,7 @@ struct Gemm_Launcher {
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm(
+typename executor_t::event_t _gemm(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,

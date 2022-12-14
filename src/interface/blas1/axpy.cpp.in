@@ -28,7 +28,7 @@
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
+
 #include "views/view_sycl.hpp"
 namespace blas {
 namespace internal {
@@ -38,15 +38,15 @@ namespace internal {
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param Executor<${EXECUTOR}> ex
+ * @param Executor
  * @param _vx  ${container_t0}
  * @param _incx Increment in X axis
  * @param _vy  ${container_t1}
  * @param _incy Increment in Y axis
  */
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _axpy(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+template typename Executor::event_t _axpy(
+    Executor &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
     ${INCREMENT_TYPE} _incy);
 }  // namespace internal

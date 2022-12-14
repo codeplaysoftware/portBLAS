@@ -73,8 +73,8 @@ void run_test(const combination_t<scalar_t> combi) {
   _trmv(ex, uplo, trans, diag, n, a_m_gpu, lda, x_v_gpu, incX);
 
   auto event =
-      ex.get_policy_handler().copy_to_host(x_v_gpu, x_v.data(), n * incX);
-  ex.get_policy_handler().wait(event);
+       blas::helper::copy_to_host(ex.get_queue(), x_v_gpu, x_v.data(), n * incX);
+  ex.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);

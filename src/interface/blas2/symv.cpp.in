@@ -29,14 +29,13 @@
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _symv(
-    Executor<${EXECUTOR}>& ex, char _Uplo, ${INDEX_TYPE} _N,
+template typename Executor::event_t _symv(
+    Executor& ex, char _Uplo, ${INDEX_TYPE} _N,
     ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
     ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
     ${container_t2} _vy, ${INCREMENT_TYPE} _incy);

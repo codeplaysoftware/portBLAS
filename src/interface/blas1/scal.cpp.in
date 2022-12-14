@@ -28,7 +28,6 @@
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -36,12 +35,12 @@ namespace internal {
 
 /**
  * \brief _scalar  operation on a vector
- * @param Executor<${EXECUTOR}> ex
+ * @param Executor ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _scal(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+template typename Executor::event_t _scal(
+    Executor &ex, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 }  // namespace internal
 }  // namespace blas

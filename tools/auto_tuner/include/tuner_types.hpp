@@ -32,18 +32,18 @@
 #include "sycl_blas.hpp"
 
 using SYCLExecutor =
-    ::blas::Executor<::blas::PolicyHandler<::blas::codeplay_policy>>;
+    ::blas::Executor<::blas::PolicyHandler>;
 
 template <typename DataType>
 using HostContainer = std::vector<DataType>;
 
 template <typename DataType>
 using DeviceContainer =
-    typename ::blas::BufferIterator<DataType, ::blas::codeplay_policy>;
+    typename ::blas::BufferIterator<DataType>;
 
 template <typename DataType>
 using MatrixContainer =
-    typename ::blas::MatrixViewTypeFactory<::blas::codeplay_policy, DataType,
+    typename ::blas::MatrixViewTypeFactory<DataType,
                                            int, ::blas::col_major>::output_t;
 
 struct TestResultEntry {

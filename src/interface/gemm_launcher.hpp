@@ -39,7 +39,7 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           bool is_beta_zero, int VectorSize, int BatchType>
 template <typename Executor, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
-typename Executor::policy_t::event_t Gemm_Launcher<
+typename Executor::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
     BatchType>::_select_gemm(Executor& ex, index_t _M, index_t _N, index_t _K,
@@ -47,9 +47,9 @@ typename Executor::policy_t::event_t Gemm_Launcher<
                              container_t1 b_, index_t _ldb, element_t _beta,
                              container_t2 _C, index_t _ldc,
                              index_t batch_size) {
-  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda);
-  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb);
-  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc);
+  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
+  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);
+  auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc);
 
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
                         TransA, TransB, GemmMemoryType, GemmAlgorithm,

@@ -73,23 +73,20 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
       blas::make_sycl_iterator_buffer<scalar_t>(sycl_out.param, param_size);
   auto event0 =
       _rotmg(ex, device_d1, device_d2, device_x1, device_y1, device_param);
-  ex.get_policy_handler().wait(event0);
+  ex.wait(event0);
 
   auto event1 =
-      ex.get_policy_handler().copy_to_host(device_d1, &sycl_out.d1, 1);
+      blas::helper::copy_to_host(ex.get_queue(), device_d1, &sycl_out.d1, 1);
   auto event2 =
-      ex.get_policy_handler().copy_to_host(device_d2, &sycl_out.d2, 1);
+      blas::helper::copy_to_host(ex.get_queue(), device_d2, &sycl_out.d2, 1);
   auto event3 =
-      ex.get_policy_handler().copy_to_host(device_x1, &sycl_out.x1, 1);
+      blas::helper::copy_to_host(ex.get_queue(), device_x1, &sycl_out.x1, 1);
   auto event4 =
-      ex.get_policy_handler().copy_to_host(device_y1, &sycl_out.y1, 1);
-  auto event5 = ex.get_policy_handler().copy_to_host(
+      blas::helper::copy_to_host(ex.get_queue(), device_y1, &sycl_out.y1, 1);
+  auto event5 = blas::helper::copy_to_host(ex.get_queue(), 
       device_param, sycl_out.param.data(), param_size);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
-  ex.get_policy_handler().wait(event5);
+  ex.wait({event1,event2 , event3,event4 , event5});
+ 
 }
 
 template <typename scalar_t>

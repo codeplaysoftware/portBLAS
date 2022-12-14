@@ -56,8 +56,7 @@ extern Args args;
 using namespace blas;
 
 // The executor type used in tests
-using test_executor_t =
-    blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
+using test_executor_t = blas::Executor;
 
 
 using index_t = BLAS_INDEX_T;

@@ -45,17 +45,17 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
   auto ex = get_sycl_executor();
   {
     {
-      auto event_list = ex.get_policy_handler().copy_to_device(
+      auto event_list = blas::helper::copy_to_host(ex.get_queue(),
           a.init_c.data(), a.c, a.init_c.size());
       event_list.back().wait_and_throw();
     }
 
     auto accA =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.a, a.m, a.k, a.lda);
+        ::blas::make_matrix_view<::blas::col_major>(a.a, a.m, a.k, a.lda);
     auto accB =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.b, a.k, a.n, a.ldb);
+        ::blas::make_matrix_view<::blas::col_major>(a.b, a.k, a.n, a.ldb);
     auto accC =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.c, a.m, a.n, a.ldc);
+        ::blas::make_matrix_view<::blas::col_major>(a.c, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
@@ -65,7 +65,7 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
       }
     });
     {
-      auto event_list = ex.get_policy_handler().copy_to_host(
+      auto event_list =  blas::helper::copy_to_host(ex.get_queue(),
           a.c, a.output_c.data(), a.output_c.size());
       event_list.back().wait_and_throw();
     }

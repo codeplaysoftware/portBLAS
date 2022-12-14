@@ -30,7 +30,7 @@
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
-#include "policy/sycl_policy_handler.h"
+#include "sycl_blas_helper.h"
 
 #include <algorithm>
 #include <cctype>
@@ -51,7 +51,7 @@ namespace internal {
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm_platform_specific(
+typename executor_t::event_t _gemm_platform_specific(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size,
@@ -64,7 +64,7 @@ typename executor_t::policy_t::event_t _gemm_platform_specific(
 template <bool _t_a, bool _t_b, typename executor_t, typename container_0_t,
           typename container_1_t, typename container_2_t, typename element_t,
           typename index_t>
-typename executor_t::policy_t::event_t _gemm_is_beta_zero(
+typename executor_t::event_t _gemm_is_beta_zero(
     executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size,
@@ -80,7 +80,7 @@ typename executor_t::policy_t::event_t _gemm_is_beta_zero(
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm_backend(
+typename executor_t::event_t _gemm_backend(
     executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
@@ -93,7 +93,7 @@ typename executor_t::policy_t::event_t _gemm_backend(
       return ::blas::_scal(ex, matrix_size, _beta, _C, index_t{1});
     } else {
       // When LDC is not M, we must scale each column of C separately.
-      typename executor_t::policy_t::event_t events;
+      typename executor_t::event_t events;
       const auto num_columns = batch_size * _N;
       for (index_t i = 0; i < num_columns; ++i) {
         auto ev = ::blas::_scal(ex, _M, _beta, _C + i * _ldc, index_t{1});
@@ -135,7 +135,7 @@ typename executor_t::policy_t::event_t _gemm_backend(
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
+typename executor_t::event_t _gemm(executor_t& ex, char _TransA,
                                              char _TransB, index_t _M,
                                              index_t _N, index_t _K,
                                              element_t _alpha, container_0_t a_,
@@ -149,7 +149,7 @@ typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm_batched(
+typename executor_t::event_t _gemm_batched(
     executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,

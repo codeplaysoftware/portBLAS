@@ -71,7 +71,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
     auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_temp_gpu, ldc);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -85,13 +85,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                        beta, c_gpu, ldc);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

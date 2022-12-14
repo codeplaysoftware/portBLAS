@@ -28,7 +28,7 @@
 #include "executors/executor.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
-#include "policy/sycl_policy_handler.h"
+#include "sycl_blas_helper.h"
 
 namespace blas {
 namespace internal {
@@ -103,7 +103,7 @@ namespace internal {
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
+typename executor_t::event_t _trsm(executor_t& ex, char side,
                                              char uplo, char trans,
                                              char diag, index_t M,
                                              index_t N, element_t alpha,
@@ -140,20 +140,21 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
 
   constexpr index_t blockSize = 16;
 
-  typename executor_t::policy_t::event_t trsmEvents;
-
+  typename executor_t::event_t trsmEvents;
+   
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
+  std::vector<cl::sycl::event> event ={blas::helper::fill(ex.get_queue(), invA, element_t{0}, invASize)};
   trsmEvents = concatenate_vectors(
-      trsmEvents, ex.get_policy_handler().fill(invA, element_t{0}, invASize));
+      trsmEvents, event);
 
   // Create the matrix views from the input buffers
-  auto bufferA = make_matrix_view<col_major>(ex, A, K, K, lda);
+  auto bufferA = make_matrix_view<col_major>(A, K, K, lda);
   auto bufferInvA =
-      make_matrix_view<col_major>(ex, invA, blockSize, blockSize, lda);
-  auto bufferB = make_matrix_view<col_major>(ex, B, M, N, ldb);
+      make_matrix_view<col_major>(invA, blockSize, blockSize, lda);
+  auto bufferB = make_matrix_view<col_major>(B, M, N, ldb);
 
   // Calculate the parameters for the diagonal blocks inversion
   const index_t numBlocks = roundUp<index_t>(K, blockSize) / blockSize;
@@ -164,7 +165,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
 
   // Instantiate the appropriate diagonal blocks inversion based on the matrix
   // type
-  typename executor_t::policy_t::event_t invertBlocksEvent;
+  typename executor_t::event_t invertBlocksEvent;
   if (isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, true, blockSize>(bufferA, bufferInvA);

@@ -47,9 +47,9 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   test_executor_t ex(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
-  auto event = ex.get_policy_handler().copy_to_host((a + offset), vR_gpu.data(),
+  auto event = blas::helper::copy_to_host(ex.get_queue(), (a + offset), vR_gpu.data(),
                                                     size - offset);
-  ex.get_policy_handler().wait(event);
+  ex.wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(vR_gpu, vR_cpu));
 }
@@ -69,8 +69,8 @@ static std::string generate_name(
 BLAS_REGISTER_TEST_ALL(Buffer, combination_t, combi, generate_name);
 
 template <typename scalar_t, typename index_t>
-inline BufferIterator<const scalar_t, blas::codeplay_policy> func(
-    BufferIterator<const scalar_t, blas::codeplay_policy> buff,
+inline BufferIterator<const scalar_t> func(
+    BufferIterator<const scalar_t> buff,
     index_t offset) {
   return buff += offset;
 }
@@ -87,7 +87,7 @@ void run_const_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   test_executor_t ex(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
-  BufferIterator<const scalar_t, blas::codeplay_policy> buff =
+  BufferIterator<const scalar_t> buff =
       func<scalar_t>(a, offset);
 }
 

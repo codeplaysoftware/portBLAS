@@ -27,9 +27,7 @@
 
 #include "blas_meta.h"
 
-#include "policy/sycl_policy.h"
 
-#include "container/blas_iterator.h"
 
 #include "container/sycl_iterator.h"
 
@@ -59,6 +57,6 @@
 
 #include "operations/blas_operators.h"
 
-#include "policy/policy_handler.h"
+#include "sycl_blas_helper.h"
 
 #include "views/view.h"

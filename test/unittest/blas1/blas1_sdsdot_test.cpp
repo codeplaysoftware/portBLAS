@@ -68,19 +68,19 @@ void run_test(const combination_t<scalar_t> combi) {
   // Iterators
   auto gpu_x_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incX));
-  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v,
+  blas::helper::copy_to_device(ex.get_queue(), x_v.data(), gpu_x_v,
                                          vectorSize * incX);
   auto gpu_y_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incY));
-  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v,
+  blas::helper::copy_to_device(ex.get_queue(), y_v.data(), gpu_y_v,
                                          vectorSize * incY);
 
   if (api == api_type::event) {
     auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
     _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+    auto event = blas::helper::copy_to_host<scalar_t>(ex.get_queue(),
         gpu_out_s, out_s.data(), 1);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   } else {
     out_s[0] = _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY);
   }
@@ -88,8 +88,6 @@ void run_test(const combination_t<scalar_t> combi) {
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING

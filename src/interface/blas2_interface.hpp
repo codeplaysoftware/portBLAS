@@ -67,7 +67,7 @@ template <uint32_t local_range, uint32_t cache_line_size,
           gemv_memory_t memory_type, transpose_type trn, typename Executor,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename Executor::policy_t::event_t _gemv_impl(
+typename Executor::event_t _gemv_impl(
     Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
@@ -77,9 +77,9 @@ typename Executor::policy_t::event_t _gemv_impl(
   const auto x_vector_size = is_transposed ? _M : _N;
   const auto y_vector_size = is_transposed ? _N : _M;
 
-  auto mA = make_matrix_view<col_major>(ex, _mA, _M, _N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, x_vector_size);
-  auto vy = make_vector_view(ex, _vy, _incy, y_vector_size);
+  auto mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  auto vy = make_vector_view(_vy, _incy, y_vector_size);
 
   // Non-local memory kernel
   if (memory_type != gemv_memory_t::local) {
@@ -89,7 +89,7 @@ typename Executor::policy_t::event_t _gemv_impl(
 
     auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
     auto dot_products_matrix =
-        make_matrix_view<col_major>(ex, dot_products_buffer, ld, one, ld);
+        make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
 
     const index_t global_size = roundUp<index_t>(ld, local_range);
 
@@ -148,7 +148,7 @@ typename Executor::policy_t::event_t _gemv_impl(
     auto dot_products_buffer =
         blas::make_sycl_iterator_buffer<element_t>(dot_products_buffer_size);
     auto dot_products_matrix =
-        make_matrix_view<col_major>(ex, dot_products_buffer, ld, WGs_per_C, ld);
+        make_matrix_view<col_major>(dot_products_buffer, ld, WGs_per_C, ld);
 
     const index_t global_size = local_range * WGs_per_C * WGs_per_NC;
 
@@ -194,11 +194,11 @@ typename Executor::policy_t::event_t _gemv_impl(
 
 template <transpose_type trn, typename Executor, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
-typename Executor::policy_t::event_t _trmv_impl(
+typename Executor::event_t _trmv_impl(
     Executor& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret{};
+  typename Executor::event_t ret{};
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
@@ -214,11 +214,11 @@ typename Executor::policy_t::event_t _trmv_impl(
       (data_layout_t::is_col_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<data_layout_t>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
+  auto mA = make_matrix_view<data_layout_t>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
   const index_t interLoop = 1;
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
+                                ? ex.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG =
       (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
@@ -240,7 +240,7 @@ typename Executor::policy_t::event_t _trmv_impl(
   using element_t = typename ValueType<container_t0>::type;
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize);
   auto mat1 =
-      make_matrix_view<row_major>(ex, valT1, N, scratchSize, scratchSize);
+      make_matrix_view<row_major>(valT1, N, scratchSize, scratchSize);
 
   if (data_layout_t::is_col_major()) {
     if (triangOpr == 1) {
@@ -319,27 +319,27 @@ ssymv 	( 	character  	UPLO,
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t _symv_impl(
+typename Executor::event_t _symv_impl(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-  typename Executor::policy_t::event_t ret;
+  typename Executor::event_t ret;
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
-  auto vy = make_vector_view(ex, _vy, _incy, N);
-  auto mAT = make_matrix_view<row_major>(ex, _mA, N, N, _lda);
+  auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
+  auto vy = make_vector_view(_vy, _incy, N);
+  auto mAT = make_matrix_view<row_major>(_mA, N, N, _lda);
 
   const index_t interLoop = 1;
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
+                                ? ex.get_work_group_size()
                                 : _localSize;
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
@@ -363,13 +363,13 @@ typename Executor::policy_t::event_t _symv_impl(
 
   auto valTR = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_R);
   auto matR =
-      make_matrix_view<row_major>(ex, valTR, N, scratchSize_R, scratchSize_R);
+      make_matrix_view<row_major>(valTR, N, scratchSize_R, scratchSize_R);
 
   const index_t scratchSize_C = nWGPerCol_C;
 
   auto valTC = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_C);
   auto matC =
-      make_matrix_view<row_major>(ex, valTC, N, scratchSize_C, scratchSize_C);
+      make_matrix_view<row_major>(valTC, N, scratchSize_C, scratchSize_C);
 
   if (triangOpr == 1) {
     auto gemvC = make_Gemv_Col<false, true, true>(matC, mA, vx, nWGPerRow_C,
@@ -407,19 +407,19 @@ typename Executor::policy_t::event_t _symv_impl(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t _ger_impl(
+typename Executor::event_t _ger_impl(
     Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   index_t M = _M;
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, M, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, M);
-  auto vy = make_vector_view(ex, _vy, _incy, N);
+  auto mA = make_matrix_view<col_major>(_mA, M, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, M);
+  auto vy = make_vector_view(_vy, _incy, N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
+                                ? ex.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
 
@@ -432,7 +432,7 @@ typename Executor::policy_t::event_t _ger_impl(
   const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  typename Executor::policy_t::event_t ret;
+  typename Executor::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
   return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
@@ -453,19 +453,19 @@ ssyr 	( 	character  	UPLO,
 */
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::policy_t::event_t _syr_impl(
+typename Executor::event_t _syr_impl(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret;
+  typename Executor::event_t ret;
   _Uplo = tolower(_Uplo);
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
+  auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
+                                ? ex.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
@@ -506,7 +506,7 @@ typename Executor::policy_t::event_t _syr_impl(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t _syr2_impl(
+typename Executor::event_t _syr2_impl(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
@@ -515,12 +515,12 @@ typename Executor::policy_t::event_t _syr2_impl(
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
 
-  auto mA = make_matrix_view<col_major>(ex, _mA, _N, _N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
 
   const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
+                                ? ex.get_work_group_size()
                                 : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
@@ -558,7 +558,7 @@ typename Executor::policy_t::event_t _syr2_impl(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t inline _gemv(
+typename Executor::event_t inline _gemv(
     Executor& ex,       // Executor (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
@@ -587,7 +587,7 @@ typename Executor::policy_t::event_t inline _gemv(
 
 template <typename Executor, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename Executor::policy_t::event_t inline _trmv(
+typename Executor::event_t inline _trmv(
     Executor& ex, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
@@ -601,7 +601,7 @@ typename Executor::policy_t::event_t inline _trmv(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t inline _symv(
+typename Executor::event_t inline _symv(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
@@ -613,7 +613,7 @@ typename Executor::policy_t::event_t inline _symv(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t inline _ger(
+typename Executor::event_t inline _ger(
     Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {
@@ -623,7 +623,7 @@ typename Executor::policy_t::event_t inline _ger(
 }
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::policy_t::event_t inline _syr(
+typename Executor::event_t inline _syr(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
@@ -633,7 +633,7 @@ typename Executor::policy_t::event_t inline _syr(
 template <typename Executor, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t inline _syr2(
+typename Executor::event_t inline _syr2(
     Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {

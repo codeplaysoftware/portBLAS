@@ -53,8 +53,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(out_s, 1);
 
   _nrm2(ex, size, gpu_x_v, incX, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host(gpu_out_s, out_s.data(), 1);
-  ex.get_policy_handler().wait(event);
+  auto event = blas::helper::copy_to_device(ex.get_queue(), gpu_out_s, out_s.data(), 1);
+  ex.wait(event);
 
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s[0], out_cpu_s);

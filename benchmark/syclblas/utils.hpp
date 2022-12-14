@@ -10,7 +10,7 @@
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
-typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> ExecutorType;
+typedef blas::Executor ExecutorType;
 
 namespace blas_benchmark {
 

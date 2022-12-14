@@ -28,7 +28,7 @@ namespace internal {
 // Internal function that will be implemented in the sycl-blas library
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char Side,
+typename executor_t::event_t _trsm(executor_t& ex, char Side,
                                              char Triangle, char Transpose,
                                              char Diagonal, index_t M,
                                              index_t N, element_t alpha,
@@ -40,13 +40,12 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char Side,
 // User-facing function to call the TRSM operation
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t inline _trsm(
+typename executor_t::event_t inline _trsm(
     executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
-  return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha,
-                         ex.get_policy_handler().get_buffer(A), lda,
-                         ex.get_policy_handler().get_buffer(B), ldb);
+  return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda,
+                         B, ldb);
 }
 } // namespace internal
 } // namespace blas
@@ -141,7 +140,7 @@ namespace internal {
 
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(
+typename executor_t::event_t _trsm(
     executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
@@ -186,7 +185,7 @@ compile `blas::internal::_trsm`, for this particular example, this file looks li
 #include "executors/kernel_constructor.hpp"
 #include "operations/blas_constants.hpp"
 #include "views/view_sycl.hpp"
-#include "policy/sycl_policy_handler.hpp"
+#include "blas_helper.h"
 #include "interface/blas1_interface.hpp"
 #include "interface/trsm_interface.hpp"
 #include "operations/blas3/trsm.hpp"
@@ -195,8 +194,8 @@ namespace blas {
 namespace internal {
 
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _trsm(
-  Executor<${EXECUTOR}>& ex, char Side, char Triangle, char Transpose, char Diagonal,
+template typename Executor::event_t _trsm(
+  Executor ex, char Side, char Triangle, char Transpose, char Diagonal,
   ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
   ${container_t0} A, ${INDEX_TYPE} lda,
   ${container_t1} B, ${INDEX_TYPE} ldb);

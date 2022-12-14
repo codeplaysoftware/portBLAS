@@ -161,7 +161,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     auto event =
         _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                       beta, c_temp_gpu, ldc, batch_size, batch_type);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
     constexpr int offset = 0;
@@ -180,13 +180,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     auto event =
         _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
                       beta, c_gpu, ldc, batch_size, batch_type);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   blas_benchmark::utils::init_counters(state);
 

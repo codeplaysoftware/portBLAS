@@ -83,7 +83,6 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   test_executor_t ex(q);
 
-  auto policy_handler = ex.get_policy_handler();
 
   index_t ld = rows * ld_mul;
 
@@ -180,7 +179,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto v_out_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, out_size);
 
-  test_executor_t::policy_t::event_t ev;
+  test_executor_t::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
@@ -212,9 +211,9 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
-  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
+  auto event = blas::helper::copy_to_host<scalar_t>(
       v_out_gpu, out_v_gpu.data(), out_size);
-  ex.get_policy_handler().wait({event});
+  ex.wait({event});
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }

@@ -72,9 +72,9 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYCLGEMV
   _gemv(ex, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
         v_y_gpu, incY);
-  auto event = ex.get_policy_handler().copy_to_host(
+  auto event =  blas::helper::copy_to_host(ex.get_queue(),
       v_y_gpu, y_v_gpu_result.data(), y_size);
-  ex.get_policy_handler().wait(event);
+  ex.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(y_v_gpu_result, y_v_cpu);
   ASSERT_TRUE(isAlmostEqual);

@@ -37,7 +37,7 @@ namespace internal {
 
 template <typename operator_t, typename element_t, typename executor_t,
           typename input_t, typename output_t, typename index_t>
-typename executor_t::policy_t::event_t _reduction(
+typename executor_t::event_t _reduction(
     executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, reduction_dim_t reduction_dim);
 
@@ -45,13 +45,11 @@ typename executor_t::policy_t::event_t _reduction(
 
 template <typename operator_t, typename element_t, typename executor_t,
           typename input_t, typename output_t, typename index_t>
-typename executor_t::policy_t::event_t _reduction(
+typename executor_t::event_t _reduction(
     executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, reduction_dim_t reduction_dim) {
   return internal::_reduction<operator_t, element_t>(
-      ex, ex.get_policy_handler().get_buffer(buffer_in), ld,
-      ex.get_policy_handler().get_buffer(buffer_out), rows, cols,
-      reduction_dim);
+      ex, buffer_in, ld, buffer_out, rows, cols, reduction_dim);
 }
 }  // namespace extension
 

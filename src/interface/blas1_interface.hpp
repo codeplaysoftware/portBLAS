@@ -54,11 +54,11 @@ namespace internal {
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _axpy(
+typename executor_t::event_t _axpy(
     executor_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
 
   auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
   auto addOp = make_op<BinaryOp, AddOperator>(vy, scalOp);
@@ -78,13 +78,13 @@ typename executor_t::policy_t::event_t _axpy(
  */
 template <typename executor_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
+typename executor_t::event_t _copy(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
   auto ret = ex.execute(assignOp2);
   return ret;
@@ -110,16 +110,16 @@ typename executor_t::policy_t::event_t _copy(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _dot(
+typename executor_t::event_t _dot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
 
-  auto localSize = ex.get_policy_handler().get_work_group_size();
+  auto localSize = ex.get_work_group_size();
   auto nWG = 2 * localSize;
 
   auto assignOp =
@@ -150,12 +150,12 @@ typename executor_t::policy_t::event_t _dot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _sdsdot(
+typename executor_t::event_t _sdsdot(
     executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  typename executor_t::policy_t::event_t dot_event{};
+  typename executor_t::event_t dot_event{};
 
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
   dot_event = internal::_dot(ex, _N, _vx, _incx, _vy, _incy, _rs);
@@ -173,15 +173,15 @@ typename executor_t::policy_t::event_t _sdsdot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
+typename executor_t::event_t _asum(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
-  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto localSize = ex.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto assignOp = make_AssignReduction<AbsoluteAddOperator>(rs, vx, localSize,
                                                             localSize * nWG);
@@ -196,14 +196,14 @@ typename executor_t::policy_t::event_t _asum(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamax(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
-  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto localSize = ex.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
   auto assignOp =
@@ -219,15 +219,15 @@ typename executor_t::policy_t::event_t _iamax(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
+typename executor_t::event_t _iamin(executor_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
-  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto localSize = ex.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
   auto assignOp =
@@ -247,13 +247,13 @@ typename executor_t::policy_t::event_t _iamin(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
+typename executor_t::event_t _swap(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
                                              increment_t _incy) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
   auto swapOp = make_op<DoubleAssign>(vy, vx, vx, vy);
   auto ret = ex.execute(swapOp);
 
@@ -268,11 +268,11 @@ typename executor_t::policy_t::event_t _swap(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
+typename executor_t::event_t _scal(executor_t &ex, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
   if (_alpha == element_t{0}) {
     auto zeroOp = make_op<UnaryOp, AdditionIdentity>(vx);
     auto assignOp = make_op<Assign>(vx, zeroOp);
@@ -294,16 +294,16 @@ typename executor_t::policy_t::event_t _scal(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
+typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto rs = make_vector_view(ex, _rs, static_cast<increment_t>(1),
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
-  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto localSize = ex.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto assignOp =
       make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
@@ -330,11 +330,11 @@ typename executor_t::policy_t::event_t _nrm2(executor_t &ex, index_t _N,
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rot(
+typename executor_t::event_t _rot(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_cos, vx);
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_sin, vy);
   auto scalOp3 = make_op<ScalarOp, ProductOperator>(element_t{-_sin}, vx);
@@ -378,13 +378,13 @@ typename executor_t::policy_t::event_t _rot(
  */
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::policy_t::event_t _rotm(
+typename executor_t::event_t _rotm(
     executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param) {
   using element_t = typename ValueType<container_0_t>::type;
 
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
 
   constexpr size_t param_size = 5;
   std::array<element_t, param_size> param_host;
@@ -392,9 +392,9 @@ typename executor_t::policy_t::event_t _rotm(
   /* This implementation can be further optimized for small input vectors by
    * creating a custom kernel that modifies param instead of copying it back to
    * the host */
-  auto copy_event = ex.get_policy_handler().copy_to_host(
+  auto copy_event =  blas::helper::copy_to_host(ex.get_queue(),
       _param, param_host.data(), param_size);
-  ex.get_policy_handler().wait(copy_event);
+  ex.wait(copy_event);
 
   const element_t flag = param_host[0];
   element_t h11 = param_host[1];
@@ -468,7 +468,7 @@ typename executor_t::policy_t::event_t _rotm(
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
+typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
@@ -477,11 +477,11 @@ typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
   constexpr int vector_size = 1;
   constexpr int param_size = 5;
 
-  auto d1_view = make_vector_view(ex, _d1, inc, vector_size);
-  auto d2_view = make_vector_view(ex, _d2, inc, vector_size);
-  auto x1_view = make_vector_view(ex, _x1, inc, vector_size);
-  auto y1_view = make_vector_view(ex, _y1, inc, vector_size);
-  auto param_view = make_vector_view(ex, _param, inc, param_size);
+  auto d1_view = make_vector_view(_d1, inc, vector_size);
+  auto d2_view = make_vector_view(_d2, inc, vector_size);
+  auto x1_view = make_vector_view(_x1, inc, vector_size);
+  auto y1_view = make_vector_view(_y1, inc, vector_size);
+  auto param_view = make_vector_view(_param, inc, param_size);
 
   auto operation =
       Rotmg<decltype(d1_view)>(d1_view, d2_view, x1_view, y1_view, param_view);
@@ -510,13 +510,13 @@ typename executor_t::policy_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
 template <typename executor_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type>
-typename executor_t::policy_t::event_t _rotg(executor_t &ex, container_0_t a,
+typename executor_t::event_t _rotg(executor_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
-  auto a_view = make_vector_view(ex, a, 1, 1);
-  auto b_view = make_vector_view(ex, b, 1, 1);
-  auto c_view = make_vector_view(ex, c, 1, 1);
-  auto s_view = make_vector_view(ex, s, 1, 1);
+  auto a_view = make_vector_view(a, 1, 1);
+  auto b_view = make_vector_view(b, 1, 1);
+  auto c_view = make_vector_view(c, 1, 1);
+  auto s_view = make_vector_view(s, 1, 1);
 
   auto operation = Rotg<decltype(a_view)>(a_view, b_view, c_view, s_view);
   auto ret = ex.execute(operation);
@@ -543,23 +543,23 @@ void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   auto device_b = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_c = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_s = make_sycl_iterator_buffer<scalar_t>(1);
-  ex.get_policy_handler().copy_to_device(&a, device_a, 1);
-  ex.get_policy_handler().copy_to_device(&b, device_b, 1);
-  ex.get_policy_handler().copy_to_device(&c, device_c, 1);
-  ex.get_policy_handler().copy_to_device(&s, device_s, 1);
+   blas::helper::copy_to_device(ex.get_queue(), &a, device_a, 1);
+   blas::helper::copy_to_device(ex.get_queue(), &b, device_b, 1);
+   blas::helper::copy_to_device(ex.get_queue(), &c, device_c, 1);
+   blas::helper::copy_to_device(ex.get_queue(), &s, device_s, 1);
 
   auto event =
       blas::internal::_rotg(ex, device_a, device_b, device_c, device_s);
 
-  auto event1 = ex.get_policy_handler().copy_to_host(device_c, &c, 1);
-  auto event2 = ex.get_policy_handler().copy_to_host(device_s, &s, 1);
-  auto event3 = ex.get_policy_handler().copy_to_host(device_a, &a, 1);
-  auto event4 = ex.get_policy_handler().copy_to_host(device_b, &b, 1);
+  auto event1 = blas::helper::copy_to_host(ex.get_queue(), device_c, &c, 1);
+  auto event2 = blas::helper::copy_to_host(ex.get_queue(), device_s, &s, 1);
+  auto event3 = blas::helper::copy_to_host(ex.get_queue(), device_a, &a, 1);
+  auto event4 = blas::helper::copy_to_host(ex.get_queue(), device_b, &b, 1);
 
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
+  ex.wait(event1);
+  ex.wait(event2);
+  ex.wait(event3);
+  ex.wait(event4);
 }
 
 /**
@@ -591,7 +591,7 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
   auto res = std::vector<element_t>(1);
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_dot(ex, _N, _vx, _incx, _vy, _incy, gpu_res);
-  ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
+  blas::helper::copy_to_host(ex.get_queue(), gpu_res, res.data(), 1);
   return res[0];
 }
 
@@ -627,9 +627,9 @@ typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   auto event1 =
       blas::internal::_sdsdot(ex, _N, sb, _vx, _incx, _vy, _incy, gpu_res);
-  ex.get_policy_handler().wait(event1);
-  auto event2 = ex.get_policy_handler().copy_to_host(gpu_res, &res, 1);
-  ex.get_policy_handler().wait(event2);
+  ex.wait(event1);
+  auto event2 =  blas::helper::copy_to_host(ex.get_queue(), gpu_res, &res, 1);
+  ex.wait(event2);
   return res;
 }
 
@@ -647,7 +647,7 @@ index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
   blas::internal::_iamax(ex, _N, _vx, _incx, gpu_res);
-  ex.get_policy_handler().copy_to_host(gpu_res, rsT.data(), 1);
+  blas::helper::copy_to_host(ex.get_queue(), gpu_res, rsT.data(), 1);
   return rsT[0].get_index();
 }
 
@@ -665,7 +665,7 @@ index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
   blas::internal::_iamin(ex, _N, _vx, _incx, gpu_res);
-  ex.get_policy_handler().copy_to_host(gpu_res, rsT.data(), 1);
+  blas::helper::copy_to_host(ex.get_queue(), gpu_res, rsT.data(), 1);
   return rsT[0].get_index();
 }
 
@@ -685,7 +685,7 @@ typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_asum(ex, _N, _vx, _incx, gpu_res);
-  ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
+   blas::helper::copy_to_host(ex.get_queue(), gpu_res, res.data(), 1);
   return res[0];
 }
 
@@ -705,7 +705,7 @@ typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_nrm2(ex, _N, _vx, _incx, gpu_res);
-  ex.get_policy_handler().copy_to_host(gpu_res, res.data(), 1);
+   blas::helper::copy_to_host(ex.get_queue(), gpu_res, res.data(), 1);
   return res[0];
 }
 

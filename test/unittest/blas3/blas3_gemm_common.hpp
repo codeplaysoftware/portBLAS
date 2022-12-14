@@ -89,8 +89,6 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   auto q = make_queue();
   test_executor_t ex(q);
 
-  auto policy_handler = ex.get_policy_handler();
-
   const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
   const index_t ldb = ((transb != 'n') ? n : k) * ldb_mul;
   const index_t ldc = m * ldc_mul;
@@ -132,9 +130,9 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
   auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
 
-  policy_handler.copy_to_device(a_m.data(), m_a_gpu, buffer_size_a);
-  policy_handler.copy_to_device(b_m.data(), m_b_gpu, buffer_size_b);
-  policy_handler.copy_to_device(c_m_gpu.data(), m_c_gpu, buffer_size_c);
+  blas::helper::copy_to_device(ex.get_queue(), a_m.data(), m_a_gpu, buffer_size_a);
+  blas::helper::copy_to_device(ex.get_queue(), b_m.data(), m_b_gpu, buffer_size_b);
+  blas::helper::copy_to_device(ex.get_queue(), c_m_gpu.data(), m_c_gpu, buffer_size_c);
 
   // SYCL BLAS GEMM implementation
   if (batch == 1) {
@@ -147,14 +145,14 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   }
 
   auto event =
-      policy_handler.copy_to_host(m_c_gpu, c_m_gpu.data(), buffer_size_c);
-  policy_handler.wait(event);
+      blas::helper::copy_to_host(ex.get_queue(), m_c_gpu, c_m_gpu.data(), buffer_size_c);
+  ex.wait(event);
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
     c_m_gpu = interleaved_to_strided(c_m_gpu, offset, ldc, n, batch);
   }
 
-  ex.get_policy_handler().wait();
+  ex.wait();
 
   const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);

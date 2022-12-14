@@ -68,18 +68,18 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   _rotg(ex, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
 
   auto event1 =
-      ex.get_policy_handler().copy_to_host(buf_verify_c, &c_verify, 1);
+      blas::helper::copy_to_host(ex.get_queue(), buf_verify_c, &c_verify, 1);
   auto event2 =
-      ex.get_policy_handler().copy_to_host(buf_verify_s, &s_verify, 1);
+      blas::helper::copy_to_host(ex.get_queue(), buf_verify_s, &s_verify, 1);
   auto event3 =
-      ex.get_policy_handler().copy_to_host(buf_verify_a, &a_verify, 1);
+       blas::helper::copy_to_host(ex.get_queue(), buf_verify_a, &a_verify, 1);
   auto event4 =
-      ex.get_policy_handler().copy_to_host(buf_verify_b, &b_verify, 1);
+      blas::helper::copy_to_host(ex.get_queue(), buf_verify_b, &b_verify, 1);
 
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
+  ex.wait(event1);
+  ex.wait(event2);
+  ex.wait(event3);
+  ex.wait(event4);
 
   const bool isAlmostEqual =
       utils::almost_equal<scalar_t, scalar_t>(a_verify, a_ref) &&
@@ -105,7 +105,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _rotg(ex, buf_a, buf_b, buf_c, buf_s);
-    ex.get_policy_handler().wait(event);
+    ex.wait(event);
     return event;
   };
 
