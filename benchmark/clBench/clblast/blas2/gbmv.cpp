@@ -161,7 +161,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
-  auto gemm_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
+  auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
     std::string ts;
