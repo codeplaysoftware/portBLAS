@@ -29,10 +29,10 @@
 namespace blas {
 namespace gemv {
 namespace backend {
-template <transpose_type trn, typename Executor, typename index_t,
+template <transpose_type trn, typename SB_Handle, typename index_t,
           typename element_t, typename container_t0, typename container_t1,
           typename increment_t, typename container_t2>
-typename Executor::event_t _gemv(Executor& ex, index_t _M, index_t _N,
+typename SB_Handle::event_t _gemv(SB_Handle& ex, index_t _M, index_t _N,
                                            element_t _alpha, container_t0 _mA,
                                            index_t _lda, container_t1 _vx,
                                            increment_t _incx, element_t _beta,

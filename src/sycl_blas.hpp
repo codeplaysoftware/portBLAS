@@ -26,9 +26,9 @@
 
 #include "container/sycl_iterator.hpp"
 
-#include "executors/executor_sycl.hpp"
+#include "executor/sycl_blas_handle.hpp"
 
-#include "executors/kernel_constructor.hpp"
+#include "executor/kernel_constructor.hpp"
 
 #include "interface/blas1_interface.hpp"
 

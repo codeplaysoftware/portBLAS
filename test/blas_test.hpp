@@ -56,7 +56,7 @@ extern Args args;
 using namespace blas;
 
 // The executor type used in tests
-using test_executor_t = blas::Executor;
+using test_executor_t = blas::SB_Handle;
 
 
 using index_t = BLAS_INDEX_T;

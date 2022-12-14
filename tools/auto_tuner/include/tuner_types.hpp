@@ -32,7 +32,7 @@
 #include "sycl_blas.hpp"
 
 using SYCLExecutor =
-    ::blas::Executor<::blas::PolicyHandler>;
+    ::blas::SB_Handle;
 
 template <typename DataType>
 using HostContainer = std::vector<DataType>;

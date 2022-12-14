@@ -198,13 +198,13 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
           bool is_beta_zero, int VectorSize, int BatchType>
 
-template <typename Executor, typename container_t0, typename container_t1, 
+template <typename SB_Handle, typename container_t0, typename container_t1, 
           typename container_t2, typename element_t, typename index_t>
 
-typename Executor::event_t Gemm_Launcher<
+typename SB_Handle::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType>::_select_gemm(Executor& ex, index_t _M, index_t _N, index_t _K,
+    BatchType>::_select_gemm(SB_Handle& ex, index_t _M, index_t _N, index_t _K,
                              element_t _alpha, container_t0 a_, index_t _lda,
                              container_t1 b_, index_t _ldb, element_t _beta,
                              container_t2 _C, index_t _ldc,
@@ -240,7 +240,7 @@ The template for `Gemm` looks like this:
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
+#include "executor/sycl_blas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
 #include "sycl_blas_helper.h"
@@ -249,14 +249,14 @@ The template for `Gemm` looks like this:
 namespace blas {
 namespace internal {
 // gemm
-template typename Executor::event_t _gemm(
-    Executor& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm(
+    SB_Handle& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
-template typename Executor::event_t _gemm_batched(
-    Executor& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm_batched(
+    SB_Handle& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
@@ -297,12 +297,12 @@ The relevant parameters are:
 For an example of a backend target header and some of the ways that configurations are selected let's look at `src/interface/blas3/backend/default_cpu.hpp` :
 
 ```c++
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t, 
+template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t, 
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 
-typename executor_t::event_t _gemm(
-    executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type) {

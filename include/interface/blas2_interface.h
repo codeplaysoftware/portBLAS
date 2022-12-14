@@ -40,11 +40,11 @@ namespace internal {
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::event_t _gemv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _gemv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -68,11 +68,11 @@ typename executor_t::event_t _gemv(
  * documentation in the blas2_interface.hpp file for details.
  */
 template <uint32_t local_range, uint32_t cache_line_size,
-          gemv_memory_t memory_type, transpose_type trn, typename Executor,
+          gemv_memory_t memory_type, transpose_type trn, typename SB_Handle,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename Executor::event_t _gemv_impl(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
+typename SB_Handle::event_t _gemv_impl(
+    SB_Handle& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy);
 
@@ -88,10 +88,10 @@ typename Executor::event_t _gemv_impl(
  interface: http://www.netlib.org/lapack/explore-html/de/d45/strmv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename container_0_t,
+template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::event_t _trmv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _trmv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     char _trans,        // Whether the matrix is transposed ('n', 't', 'c')
     char _Diag,         // Whether the matrix is unit triangular ('u', 'n')
@@ -115,11 +115,11 @@ typename executor_t::event_t _trmv(
  interface: http://www.netlib.org/lapack/explore-html/d2/d94/ssymv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::event_t _symv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _symv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar parameter alpha
@@ -145,11 +145,11 @@ typename executor_t::event_t _symv(
  interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::event_t _ger(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _ger(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     index_t _M,         // The rows in matrix A
     index_t _N,         // The cols of matrix A
     element_t _alpha,   // Scalar alpha
@@ -173,10 +173,10 @@ typename executor_t::event_t _ger(
  interface: http://www.netlib.org/lapack/explore-html/db/d99/ssyr2_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename executor_t::event_t _syr(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _syr(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar alpha
@@ -198,11 +198,11 @@ typename executor_t::event_t _syr(
  interface: http://www.netlib.org/lapack/explore-html/d6/dac/ssyr_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::event_t _syr2(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t _syr2(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar alpha
@@ -228,11 +228,11 @@ typename executor_t::event_t _syr2(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::event_t inline _gemv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _gemv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -266,10 +266,10 @@ typename executor_t::event_t inline _gemv(
  interface: http://www.netlib.org/lapack/explore-html/de/d45/strmv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename container_0_t,
+template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::event_t inline _trmv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _trmv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     char _trans,        // Whether the matrix is transposed ('n', 't', 'c')
     char _Diag,         // Whether the matrix is unit triangular ('u', 'n')
@@ -296,11 +296,11 @@ typename executor_t::event_t inline _trmv(
  interface: http://www.netlib.org/lapack/explore-html/d2/d94/ssymv_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename executor_t::event_t inline _symv(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _symv(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar parameter alpha
@@ -330,11 +330,11 @@ typename executor_t::event_t inline _symv(
  interface: http://www.netlib.org/lapack/explore-html/db/d5c/sger_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::event_t inline _ger(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _ger(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     index_t _M,         // The rows in matrix M
     index_t _N,         // The rows of matrix N
     element_t _alpha,   // Scalar alpha
@@ -361,10 +361,10 @@ typename executor_t::event_t inline _ger(
  interface: http://www.netlib.org/lapack/explore-html/db/d99/ssyr2_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename executor_t::event_t inline _syr(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _syr(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar alpha
@@ -390,11 +390,11 @@ Generalised vector product followed by a sum with a rectangular symmetric
  interface: http://www.netlib.org/lapack/explore-html/d6/dac/ssyr_8f.html
 
  */
-template <typename executor_t, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
           typename container_2_t>
-typename executor_t::event_t inline _syr2(
-    executor_t& ex,     // executor_t (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _syr2(
+    sb_handle_t& ex,     // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,         // Whether the matrix is upper/lower ('u', 'l')
     index_t _N,         // >0 The order of matrix A
     element_t _alpha,   // Scalar alpha

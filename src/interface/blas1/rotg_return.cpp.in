@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -37,15 +37,15 @@ namespace internal {
  * \brief Synchronous version of rotg.
  * Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] Scalar representing the output c.
  * @param s[out] Scalar representing the output s.
  */
-template void _rotg(Executor &ex, ${DATA_TYPE}& a,
+template void _rotg(SB_Handle &ex, ${DATA_TYPE}& a,
                     ${DATA_TYPE}& b, ${DATA_TYPE}& c, ${DATA_TYPE}& s);
 }  // namespace internal
 }  // namespace blas

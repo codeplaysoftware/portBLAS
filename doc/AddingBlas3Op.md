@@ -26,9 +26,9 @@ namespace blas {
 namespace internal {
 
 // Internal function that will be implemented in the sycl-blas library
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t _trsm(executor_t& ex, char Side,
+typename sb_handle_t::event_t _trsm(sb_handle_t& ex, char Side,
                                              char Triangle, char Transpose,
                                              char Diagonal, index_t M,
                                              index_t N, element_t alpha,
@@ -38,10 +38,10 @@ typename executor_t::event_t _trsm(executor_t& ex, char Side,
 }
 
 // User-facing function to call the TRSM operation
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t inline _trsm(
-    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
+typename sb_handle_t::event_t inline _trsm(
+    sb_handle_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
   return internal::_trsm(ex, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda,
@@ -138,10 +138,10 @@ yet being instantiated so the linker error will persist at this point:
 namespace blas {
 namespace internal {
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t _trsm(
-    executor_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
+typename sb_handle_t::event_t _trsm(
+    sb_handle_t& ex, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
     container_1_t B, index_t ldb) {
   // Implementation of the new operation
@@ -181,11 +181,11 @@ compile `blas::internal::_trsm`, for this particular example, this file looks li
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "operations/blas_constants.hpp"
 #include "views/view_sycl.hpp"
-#include "blas_helper.h"
+#include "sycl_blas_helper.h"
 #include "interface/blas1_interface.hpp"
 #include "interface/trsm_interface.hpp"
 #include "operations/blas3/trsm.hpp"
@@ -194,8 +194,8 @@ namespace blas {
 namespace internal {
 
 
-template typename Executor::event_t _trsm(
-  Executor ex, char Side, char Triangle, char Transpose, char Diagonal,
+template typename SB_Handle::event_t _trsm(
+  SB_Handle ex, char Side, char Triangle, char Transpose, char Diagonal,
   ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
   ${container_t0} A, ${INDEX_TYPE} lda,
   ${container_t1} B, ${INDEX_TYPE} ldb);

@@ -25,7 +25,7 @@
 #define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executors/executor.h"
+#include "executor/sycl_blas_handle.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
 #include "sycl_blas_helper.h"
@@ -101,9 +101,9 @@ namespace internal {
  * takes advantage of GEMM calls that are heavily optimized for the target
  * hardware, thus running with maximum performance.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t _trsm(executor_t& ex, char side,
+typename sb_handle_t::event_t _trsm(sb_handle_t& ex, char side,
                                              char uplo, char trans,
                                              char diag, index_t M,
                                              index_t N, element_t alpha,
@@ -140,7 +140,7 @@ typename executor_t::event_t _trsm(executor_t& ex, char side,
 
   constexpr index_t blockSize = 16;
 
-  typename executor_t::event_t trsmEvents;
+  typename sb_handle_t::event_t trsmEvents;
    
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
@@ -165,7 +165,7 @@ typename executor_t::event_t _trsm(executor_t& ex, char side,
 
   // Instantiate the appropriate diagonal blocks inversion based on the matrix
   // type
-  typename executor_t::event_t invertBlocksEvent;
+  typename sb_handle_t::event_t invertBlocksEvent;
   if (isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, true, blockSize>(bufferA, bufferInvA);

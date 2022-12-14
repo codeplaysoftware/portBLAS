@@ -28,7 +28,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "executors/executor.h"
+#include "executor/sycl_blas_handle.h"
 #include "interface/blas2/backend/backend.hpp"
 #include "interface/blas2_interface.h"
 #include "operations/blas2_trees.h"
@@ -64,11 +64,11 @@ namespace internal {
  *
  */
 template <uint32_t local_range, uint32_t cache_line_size,
-          gemv_memory_t memory_type, transpose_type trn, typename Executor,
+          gemv_memory_t memory_type, transpose_type trn, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename Executor::event_t _gemv_impl(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
+typename sb_handle_t::event_t _gemv_impl(
+    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
   constexpr int cl_elems = cache_line_size / sizeof(element_t);
@@ -192,13 +192,13 @@ typename Executor::event_t _gemv_impl(
  * @brief Implementation of the Triangular Matrix Vector product.
  */
 
-template <transpose_type trn, typename Executor, typename index_t,
+template <transpose_type trn, typename sb_handle_t, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
-typename Executor::event_t _trmv_impl(
-    Executor& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
+typename sb_handle_t::event_t _trmv_impl(
+    sb_handle_t& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::event_t ret{};
+  typename sb_handle_t::event_t ret{};
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
@@ -316,16 +316,16 @@ ssymv 	( 	character  	UPLO,
    real, dimension(*)  	Y,
    integer  	INCY
  ) 	*/
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::event_t _symv_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
+typename sb_handle_t::event_t _symv_impl(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-  typename Executor::event_t ret;
+  typename sb_handle_t::event_t ret;
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
@@ -404,11 +404,11 @@ typename Executor::event_t _symv_impl(
 
 /**** RANK 1 MODIFICATION ****/
 
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::event_t _ger_impl(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t _ger_impl(
+    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
@@ -432,7 +432,7 @@ typename Executor::event_t _ger_impl(
   const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  typename Executor::event_t ret;
+  typename sb_handle_t::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
   return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
@@ -451,13 +451,13 @@ ssyr 	( 	character  	UPLO,
    integer  	LDA
  )
 */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::event_t _syr_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t _syr_impl(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
     index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::event_t ret;
+  typename sb_handle_t::event_t ret;
   _Uplo = tolower(_Uplo);
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
@@ -503,11 +503,11 @@ typename Executor::event_t _syr_impl(
                 integer  	LDA
         )
 */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::event_t _syr2_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t _syr2_impl(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
     index_t _nRowsWG = 0, index_t _nColsWG = 0) {
@@ -555,11 +555,11 @@ typename Executor::event_t _syr2_impl(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::event_t inline _gemv(
-    Executor& ex,       // Executor (sycl, parallel, serial, etc)
+typename sb_handle_t::event_t inline _gemv(
+    sb_handle_t& ex,       // sb_handle_t (sycl, parallel, serial, etc)
     char _trans,        // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -585,10 +585,10 @@ typename Executor::event_t inline _gemv(
                    _incy);
 }
 
-template <typename Executor, typename index_t, typename container_t0,
+template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename Executor::event_t inline _trmv(
-    Executor& ex, char _Uplo, char _trans, char _Diag, index_t _N,
+typename sb_handle_t::event_t inline _trmv(
+    sb_handle_t& ex, char _Uplo, char _trans, char _Diag, index_t _N,
     container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
@@ -598,11 +598,11 @@ typename Executor::event_t inline _trmv(
              : _trmv_impl<transpose_type::Transposed>(ex, _Uplo, _Diag, _N, _mA,
                                                       _lda, _vx, _incx);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::event_t inline _symv(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
+typename sb_handle_t::event_t inline _symv(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
     index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
     container_t2 _vy, increment_t _incy) {
   // TODO: Here we can use some heuristics to select localn global, local, and
@@ -610,31 +610,31 @@ typename Executor::event_t inline _symv(
   return _symv_impl(ex, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
                     _incy);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::event_t inline _ger(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t inline _ger(
+    sb_handle_t& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return _ger_impl(ex, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::event_t inline _syr(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t inline _syr(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return _syr_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::event_t inline _syr2(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
+typename sb_handle_t::event_t inline _syr2(
+    sb_handle_t& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
     increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
     index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and

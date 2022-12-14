@@ -31,9 +31,9 @@
 
 #include "container/sycl_iterator.h"
 
-#include "executors/executor.h"
+#include "executor/sycl_blas_handle.h"
 
-#include "executors/kernel_constructor.h"
+#include "executor/kernel_constructor.h"
 
 #include "interface/blas1_interface.h"
 

@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
   cl::sycl::queue q = cl::sycl::queue(cl::sycl::default_selector());
 
   /* Create a SYCL-BLAS executor and get the policy handler */
-  blas::Executor executor(q);
+  blas::SB_Handle executor(q);
 
   /* Arguments of the Gemm operation.
    * Note: these matrix dimensions are too small to get a performance gain by

@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -41,8 +41,8 @@ namespace internal {
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template typename Executor::event_t _swap(
-    Executor &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+template typename SB_Handle::event_t _swap(
+    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
 
 }  // namespace internal

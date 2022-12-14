@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -35,11 +35,11 @@ namespace internal {
 
 /**
  * \brief _iamin finds the index of the first element having minimum
- * @param Executor ex
+ * @param SB_Handle ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template ${INDEX_TYPE} _iamin(Executor &ex, ${INDEX_TYPE} _N,
+template ${INDEX_TYPE} _iamin(SB_Handle &ex, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal

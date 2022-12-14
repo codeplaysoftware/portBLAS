@@ -37,7 +37,7 @@ REGISTER_PREC(double, 1e-6, interface1_test)
 
 TYPED_TEST(BLAS_Test, interface1_test) {
   using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::executor_t;
+  using ExecutorType = typename TypeParam::sb_handle_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
   using index_t = int;
@@ -124,7 +124,7 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   std::vector<IndexValueTuple<index_t, scalar_t>> vImin(1, min_val);
 
   auto q = make_queue();
-  Executor<ExecutorType> ex(q);
+  SB_Handle ex(q);
   auto gpu_vX = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vY = ex.get_policy_handler().template allocate<scalar_t>(size);
   auto gpu_vR = ex.get_policy_handler().template allocate<scalar_t>(1);

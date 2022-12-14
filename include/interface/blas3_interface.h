@@ -38,9 +38,9 @@ namespace internal {
  * level interface:
  * http://www.netlib.org/lapack/explore-html/d4/de2/sgemm_8f.html
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::event_t _gemm(executor_t& ex, char _TransA,
+typename sb_handle_t::event_t _gemm(sb_handle_t& ex, char _TransA,
                                              char _TransB, index_t _M,
                                              index_t _N, index_t _K,
                                              element_t _alpha, container_0_t a_,
@@ -48,18 +48,18 @@ typename executor_t::event_t _gemm(executor_t& ex, char _TransA,
                                              index_t _ldb, element_t _beta,
                                              container_2_t _C, index_t _ldc);
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::event_t _gemm_batched(
-    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+typename sb_handle_t::event_t _gemm_batched(
+    sb_handle_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type = gemm_batch_type_t::strided);
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t _trsm(executor_t& ex, char side,
+typename sb_handle_t::event_t _trsm(sb_handle_t& ex, char side,
                                              char uplo, char trans, char diag,
                                              index_t M, index_t N,
                                              element_t alpha, container_0_t A,
@@ -68,9 +68,9 @@ typename executor_t::event_t _trsm(executor_t& ex, char side,
 
 }  // namespace internal
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::event_t _gemm(executor_t& ex, char _TransA,
+typename sb_handle_t::event_t _gemm(sb_handle_t& ex, char _TransA,
                                              char _TransB, index_t _M,
                                              index_t _N, index_t _K,
                                              element_t _alpha, container_0_t a_,
@@ -81,10 +81,10 @@ typename executor_t::event_t _gemm(executor_t& ex, char _TransA,
                          _ldb, _beta, _C, _ldc);
 }
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::event_t _gemm_batched(
-    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+typename sb_handle_t::event_t _gemm_batched(
+    sb_handle_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
@@ -94,10 +94,10 @@ typename executor_t::event_t _gemm_batched(
                                  batch_type);
 }
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::event_t inline _trsm(
-    executor_t& ex, char side, char uplo, char trans, char diag, index_t M,
+typename sb_handle_t::event_t inline _trsm(
+    sb_handle_t& ex, char side, char uplo, char trans, char diag, index_t M,
     index_t N, element_t alpha, container_0_t A, index_t lda, container_1_t B,
     index_t ldb) {
   return internal::_trsm(ex, side, uplo, trans, diag, M, N, alpha, A, lda, B,

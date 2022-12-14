@@ -33,7 +33,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "executors/executor.h"
+#include "executor/sycl_blas_handle.h"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
@@ -46,16 +46,16 @@ namespace internal {
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::event_t _axpy(
-    executor_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
+typename sb_handle_t::event_t _axpy(
+    sb_handle_t &ex, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
@@ -70,15 +70,15 @@ typename executor_t::event_t _axpy(
 /**
  * \brief COPY copies a vector, x, to a vector, y.
  *
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
-template <typename executor_t, typename index_t, typename container_0_t,
+template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename executor_t::event_t _copy(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _copy(sb_handle_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -93,13 +93,13 @@ typename executor_t::event_t _copy(executor_t &ex, index_t _N,
 /**
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (Asynchronous version that returns an event)
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -108,10 +108,10 @@ typename executor_t::event_t _copy(executor_t &ex, index_t _N,
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::event_t _dot(
-    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+typename sb_handle_t::event_t _dot(
+    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
@@ -132,13 +132,13 @@ typename executor_t::event_t _dot(
  * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -148,12 +148,12 @@ typename executor_t::event_t _dot(
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::event_t _sdsdot(
-    executor_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
+typename sb_handle_t::event_t _sdsdot(
+    sb_handle_t &ex, index_t _N, float sb, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs) {
-  typename executor_t::event_t dot_event{};
+  typename sb_handle_t::event_t dot_event{};
 
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
@@ -167,13 +167,13 @@ typename executor_t::event_t _sdsdot(
 
 /**
  * \brief ASUM Takes the sum of the absolute values
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::event_t _asum(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _asum(sb_handle_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
@@ -194,9 +194,9 @@ typename executor_t::event_t _asum(executor_t &ex, index_t _N,
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename ContainerI,
+template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::event_t _iamax(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamax(sb_handle_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
@@ -217,9 +217,9 @@ typename executor_t::event_t _iamax(executor_t &ex, index_t _N,
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename ContainerI,
+template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
-typename executor_t::event_t _iamin(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _iamin(sb_handle_t &ex, index_t _N,
                                               container_t _vx,
                                               increment_t _incx,
                                               ContainerI _rs) {
@@ -239,15 +239,15 @@ typename executor_t::event_t _iamin(executor_t &ex, index_t _N,
 /**
  * \brief SWAP interchanges two vectors
  *
- * @param executor_t ex
+ * @param sb_handle_t ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator
  * @param _incy Increment in Y axis
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::event_t _swap(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _swap(sb_handle_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -262,13 +262,13 @@ typename executor_t::event_t _swap(executor_t &ex, index_t _N,
 
 /**
  * \brief SCALAR  operation on a vector
- * @param executor_t ex
+ * @param sb_handle_t ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename element_t, typename container_0_t,
+template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
-typename executor_t::event_t _scal(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _scal(sb_handle_t &ex, index_t _N,
                                              element_t _alpha,
                                              container_0_t _vx,
                                              increment_t _incx) {
@@ -288,13 +288,13 @@ typename executor_t::event_t _scal(executor_t &ex, index_t _N,
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
+typename sb_handle_t::event_t _nrm2(sb_handle_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _rs) {
@@ -318,7 +318,7 @@ typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
  * .
  * @brief _rot constructor given plane rotation
  *  *
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vx  BufferIterator
@@ -328,10 +328,10 @@ typename executor_t::event_t _nrm2(executor_t &ex, index_t _N,
  * @param _N data size
  *
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename executor_t::event_t _rot(
-    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+typename sb_handle_t::event_t _rot(
+    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
@@ -361,13 +361,13 @@ typename executor_t::event_t _rot(
  * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
  *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
  *
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
  * @param[in, out] _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -376,10 +376,10 @@ typename executor_t::event_t _rot(
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename executor_t::event_t _rotm(
-    executor_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
+typename sb_handle_t::event_t _rotm(
+    sb_handle_t &ex, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param) {
   using element_t = typename ValueType<container_0_t>::type;
 
@@ -447,13 +447,13 @@ typename executor_t::event_t _rotm(
  *
  * Rotmg may apply scaling operations to d1, d2 and x1 to avoid overflows.
  *
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @tparam container_4_t Buffer Iterator
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
  * @param _d2[in,out] On entry, buffer holding the scaling factor for the
@@ -465,10 +465,10 @@ typename executor_t::event_t _rotm(
  * h22].
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
-typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
+typename sb_handle_t::event_t _rotmg(sb_handle_t &ex, container_0_t _d1,
                                               container_1_t _d2,
                                               container_2_t _x1,
                                               container_3_t _y1,
@@ -493,12 +493,12 @@ typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
 /**
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
- * @param ex Executor
+ * @param ex SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
@@ -507,10 +507,10 @@ typename executor_t::event_t _rotmg(executor_t &ex, container_0_t _d1,
  * @param s[out] Buffer holding the parameter s.
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type>
-typename executor_t::event_t _rotg(executor_t &ex, container_0_t a,
+typename sb_handle_t::event_t _rotg(sb_handle_t &ex, container_0_t a,
                                              container_1_t b, container_2_t c,
                                              container_3_t s) {
   auto a_view = make_vector_view(a, 1, 1);
@@ -528,17 +528,17 @@ typename executor_t::event_t _rotg(executor_t &ex, container_0_t a,
  * \brief Synchronous version of rotg.
  * Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] Scalar representing the output c.
  * @param s[out] Scalar representing the output s.
  */
-template <typename executor_t, typename scalar_t,
+template <typename sb_handle_t, typename scalar_t,
           typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type>
-void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
+void _rotg(sb_handle_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
   auto device_a = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_b = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_c = make_sycl_iterator_buffer<scalar_t>(1);
@@ -565,13 +565,13 @@ void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
 /**
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (synchronous version that returns the result directly)
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes.
  * @param _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -580,9 +580,9 @@ void _rotg(executor_t &ex, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _dot(sb_handle_t &ex, index_t _N,
                                              container_0_t _vx,
                                              increment_t _incx,
                                              container_1_t _vy,
@@ -599,13 +599,13 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -615,9 +615,9 @@ typename ValueType<container_0_t>::type _dot(executor_t &ex, index_t _N,
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
+typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &ex, index_t _N,
                                                 float sb, container_0_t _vx,
                                                 increment_t _incx,
                                                 container_1_t _vy,
@@ -638,9 +638,9 @@ typename ValueType<container_0_t>::type _sdsdot(executor_t &ex, index_t _N,
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename index_t,
+template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
+index_t _iamax(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
@@ -656,9 +656,9 @@ index_t _iamax(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename index_t,
+template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
+index_t _iamin(sb_handle_t &ex, index_t _N, container_t _vx, increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
@@ -672,13 +672,13 @@ index_t _iamin(executor_t &ex, index_t _N, container_t _vx, increment_t _incx) {
 /**
  * \brief ASUM Takes the sum of the absolute values
  *
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename index_t,
+template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
+typename ValueType<container_t>::type _asum(sb_handle_t &ex, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
@@ -692,13 +692,13 @@ typename ValueType<container_t>::type _asum(executor_t &ex, index_t _N,
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  *
- * @param executor_t<ExecutorType> ex
+ * @param sb_handle_t<ExecutorType> ex
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
-template <typename executor_t, typename container_t, typename index_t,
+template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _nrm2(executor_t &ex, index_t _N,
+typename ValueType<container_t>::type _nrm2(sb_handle_t &ex, index_t _N,
                                             container_t _vx,
                                             increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;

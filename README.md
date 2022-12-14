@@ -177,7 +177,7 @@ of multiple BLAS operations.
 This section references all the supported operations and their interface.
 
 All operations take as their first argument a reference to the executor, a
-`blas::Executor` created with a `sycl::queue`. The return value is usually an
+`blas::SB_Handle` created with a `sycl::queue`. The return value is usually an
 array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
 the BLAS operations) are iterator buffers that can be created with

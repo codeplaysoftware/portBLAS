@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -37,9 +37,9 @@ namespace internal {
  * \brief _iamax finds the index of the first element having maximum
  * @param _vx  VectorView
  * @param _incx Increment in X axis
- * @param Executor ex
+ * @param SB_Handle ex
  */
-template ${INDEX_TYPE} _iamax(Executor &ex, ${INDEX_TYPE} _N,
+template ${INDEX_TYPE} _iamax(SB_Handle &ex, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx);
 
 }  // namespace internal

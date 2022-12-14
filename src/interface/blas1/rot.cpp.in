@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -35,7 +35,7 @@ namespace internal {
 
 /**
  * @brief _rot constructor given plane rotation
- * @param Executor ex
+ * @param SB_Handle ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vx  VectorView
@@ -44,8 +44,8 @@ namespace internal {
  * @param _cos cosine
  * @param _N data size
  */
-template typename Executor::event_t _rot(
-    Executor &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+template typename SB_Handle::event_t _rot(
+    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${DATA_TYPE} _cos, ${DATA_TYPE} _sin);
 }  // namespace internal

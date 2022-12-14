@@ -27,7 +27,7 @@
 #define SYCL_BLAS_REDUCTION_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executors/executor.h"
+#include "executor/sycl_blas_handle.h"
 #include "operations/extension/reduction.h"
 #include "sycl_blas_helper.h"
 
@@ -50,10 +50,10 @@ struct get_second_step_op<MeanOperator> {
  * the Reduction kernel
  */
 template <typename operator_t, reduction_dim_t reduction_dim,
-          typename element_t, typename executor_t, typename input_t,
+          typename element_t, typename sb_handle_t, typename input_t,
           typename output_t, typename index_t>
-typename executor_t::event_t launch_type_based_reduction(
-    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+typename sb_handle_t::event_t launch_type_based_reduction(
+    sb_handle_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols) {
 #ifdef POWER_VR
   constexpr int ClSize = 32;
@@ -72,7 +72,7 @@ typename executor_t::event_t launch_type_based_reduction(
       params_t::calculate_reduced_group_count(rows, cols);
 
   /* Create an empty event vector */
-  typename executor_t::event_t reduction_event;
+  typename sb_handle_t::event_t reduction_event;
 
   auto matrix_buffer_in =
       make_matrix_view<col_major>(buffer_in, rows, cols, ld);
@@ -121,10 +121,10 @@ typename executor_t::event_t launch_type_based_reduction(
   return reduction_event;
 }
 
-template <typename operator_t, typename element_t, typename executor_t,
+template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
-typename executor_t::event_t _reduction(
-    executor_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
+typename sb_handle_t::event_t _reduction(
+    sb_handle_t& ex, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, reduction_dim_t reduction_dim) {
   if (reduction_dim == reduction_dim_t::inner) {
     return launch_type_based_reduction<operator_t, reduction_dim_t::inner,

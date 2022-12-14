@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "executor/sycl_blas_handle.hpp"
+#include "executor/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
@@ -48,13 +48,13 @@ namespace internal {
  * -1.0: [h11 h12]     0.0: [1.0 h12]     1.0: [h11 1.0]     -2.0 = [1.0 0.0]
  *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
  *
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param ex SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
  * @param[in, out] _vx Buffer holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
@@ -63,8 +63,8 @@ namespace internal {
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
  * @return Vector of events to wait for.
  */
-template typename Executor::event_t _rotm(
-    Executor &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+template typename SB_Handle::event_t _rotm(
+    SB_Handle &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${container_t2} _param);
 }  // namespace internal
