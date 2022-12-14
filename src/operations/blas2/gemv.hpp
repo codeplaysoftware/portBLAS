@@ -968,8 +968,8 @@ Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
     const index_t k_lower = is_transposed ? ku_ : kl_;
     const index_t k_upper = is_transposed ? kl_ : ku_;
 
-    const index_t k_beg = sycl::max(0, lhs_idx - k_lower);
-    const index_t k_end = sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
+    const index_t k_beg = cl::sycl::max(index_t(0), lhs_idx - k_lower);
+    const index_t k_end = cl::sycl::min(vector_.get_size(), lhs_idx + k_upper + 1);
     const index_t k_off = ku_ + (is_transposed ? -lhs_idx : lhs_idx);
 
     for (index_t s_idx = k_beg; s_idx < k_end; ++s_idx) {
