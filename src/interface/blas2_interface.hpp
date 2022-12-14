@@ -28,7 +28,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "interface/blas2/backend/backend.hpp"
 #include "interface/blas2_interface.h"
 #include "operations/blas2_trees.h"

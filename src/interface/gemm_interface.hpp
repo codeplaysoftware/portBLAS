@@ -25,7 +25,7 @@
 #define SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "interface/blas1_interface.h"
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"

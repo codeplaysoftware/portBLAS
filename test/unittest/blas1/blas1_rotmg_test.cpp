@@ -61,7 +61,7 @@ template <typename scalar_t>
 void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  test_sb_handle_t sb_handle(q);
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 

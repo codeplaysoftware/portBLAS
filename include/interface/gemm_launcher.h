@@ -26,7 +26,7 @@
 #ifndef SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 #define SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "operations/blas3_trees.h"
 
 namespace blas {

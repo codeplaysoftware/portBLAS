@@ -94,9 +94,9 @@ void run_test(const combination_t<scalar_t> combi) {
   // Perform any initialization here
   //
 
-  // Create the executor for the test
+  // Create the SB_Handle for the test
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  SB_Handle sb_handle(q);
 
   // Invoke the newly added operation
   _trsm(sb_handle, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
@@ -181,8 +181,8 @@ compile `blas::internal::_trsm`, for this particular example, this file looks li
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "executor/sycl_blas_handle.hpp"
-#include "executor/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "operations/blas_constants.hpp"
 #include "views/view_sycl.hpp"
 #include "sycl_blas_helper.h"
@@ -205,9 +205,8 @@ template typename SB_Handle::event_t _trsm(
 } // namespace blas
 ```
 
-Where `${EXECUTOR}, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}` and `${container_t1}` are going
-to be replaced by the appropriate types required to explicitly instantiate the new function.
-
+Where `${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}` and `${container_t1}` are going
+to be replaced by the appropriate types required to explicitly instantiate the new function
 Finally, the file `src/interface/blas3/CMakeLists.txt` must be changed
 in order to generate instantiations of `_trsm`.
 The following entry must be added:

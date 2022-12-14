@@ -103,7 +103,7 @@ foreach(data ${data_list})
     foreach(container0 ${container_list})
       foreach(increment ${index_list})
         sanitize_file_name(file_name
-          "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+          "${func}_${data}_${index}_${container0}_${increment}.cpp")
         add_custom_command(OUTPUT "${LOCATION}/${file_name}"
           COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
             ${PROJECT_SOURCE_DIR}/external/
@@ -111,7 +111,6 @@ foreach(data ${data_list})
             ${blas_level}
             ${func}
             ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            ${executor}
             ${cpp_data}
             ${index}
             ${increment}
@@ -148,7 +147,7 @@ foreach(data ${data_list})
         set(container_names "${container0}_${container1}")
         foreach(increment ${index_list})
           sanitize_file_name(file_name
-            "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
+            "${func}_${data}_${index}_${container_names}_${increment}.cpp")
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
             COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
               ${PROJECT_SOURCE_DIR}/external/
@@ -156,7 +155,6 @@ foreach(data ${data_list})
               ${blas_level}
               ${func}
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              ${executor}
               ${cpp_data}
               ${index}
               ${increment}
@@ -208,7 +206,7 @@ foreach(data ${data_list})
           set(container_names "${container0}_${container1}")
           foreach(increment ${index_list})
             sanitize_file_name(file_name
-              "${func}_${operator}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+              "${func}_${operator}_${data}_${index}_${container0}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
               COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_reduction.py
                 ${PROJECT_SOURCE_DIR}/external/
@@ -216,7 +214,6 @@ foreach(data ${data_list})
                 ${blas_level}
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
-                ${executor}
                 ${cpp_data}
                 ${index}
                 ${increment}
@@ -259,7 +256,7 @@ foreach(data ${data_list})
         set(container_names "${container0}_${container1}")
         foreach(increment ${index_list})
           sanitize_file_name(file_name
-            "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
+            "${func}_${data}_${index}_${container_names}_${increment}.cpp")
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
             COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
               ${PROJECT_SOURCE_DIR}/external/
@@ -267,7 +264,6 @@ foreach(data ${data_list})
               ${blas_level}
               ${func}
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              ${executor}
               ${cpp_data}
               ${index}
               ${increment}
@@ -319,7 +315,7 @@ foreach(data ${data_list})
             "${container0}_${container1}_${container2}")
           foreach(increment ${index_list})
             sanitize_file_name(file_name
-              "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
+              "${func}_${data}_${index}_${container_names}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
               COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
                 ${PROJECT_SOURCE_DIR}/external/
@@ -327,7 +323,6 @@ foreach(data ${data_list})
                 ${blas_level}
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
-                ${executor}
                 ${cpp_data}
                 ${index}
                 ${increment}
@@ -368,7 +363,7 @@ function(generate_blas_rotg_objects blas_level func)
           foreach (container3 ${container_list_in_out})
             set(container_names "${container0}_${container1}_${container2}_${container3}")
             sanitize_file_name(file_name
-                    "${func}_${executor}_${data}_${index}_${container_names}_${increment}.cpp")
+                    "${func}_${data}_${index}_${container_names}_${increment}.cpp")
             add_custom_command(OUTPUT "${LOCATION}/${file_name}"
                     COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg.py
                     ${PROJECT_SOURCE_DIR}/external/
@@ -376,7 +371,6 @@ function(generate_blas_rotg_objects blas_level func)
                     ${blas_level}
                     ${func}
                     ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                    ${executor}
                     ${cpp_data}
                     ${container0}
                     ${container1}
@@ -410,7 +404,7 @@ function(generate_blas_rotg_return_objects blas_level func)
     cpp_type(cpp_data ${data})
     set(container_list "BufferIterator<${cpp_data}>")
     sanitize_file_name(file_name
-            "${func}_${executor}_${data}_${index}_${container0}_${increment}.cpp")
+            "${func}_${data}_${index}_${container0}_${increment}.cpp")
     add_custom_command(OUTPUT "${LOCATION}/${file_name}"
             COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg_return.py
             ${PROJECT_SOURCE_DIR}/external/
@@ -418,7 +412,6 @@ function(generate_blas_rotg_return_objects blas_level func)
             ${blas_level}
             ${func}
             ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            ${executor}
             ${cpp_data}
             ${file_name}
             MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -448,7 +441,7 @@ function(generate_blas_rotmg_objects blas_level func)
           foreach (container3 ${container_list_in_out})
             foreach (container4 ${container_list_in_out})
               set(container_names "${container0}_${container1}_${container2}_${container3}")
-              sanitize_file_name(file_name "${func}_${executor}_${data}_${container_names}.cpp")
+              sanitize_file_name(file_name "${func}_${data}_${container_names}.cpp")
               add_custom_command(OUTPUT "${LOCATION}/${file_name}"
                       COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
                       ${PROJECT_SOURCE_DIR}/external/
@@ -456,7 +449,6 @@ function(generate_blas_rotmg_objects blas_level func)
                       ${blas_level}
                       ${func}
                       ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      ${executor}
                       ${cpp_data}
                       ${container0}
                       ${container1}
@@ -532,7 +524,7 @@ function(add_gemm_configuration
                           "${conflict_b}_${trans_a}_${trans_b}_"
                           "${is_beta_zero}_${gemm_memory_type}_"
                           "${gemm_shape_type}_${gemm_vectorize_type}_"
-                          "${vector_size}_${batch_type}_${executor}_"
+                          "${vector_size}_${batch_type}_"
                           "${data}_${index}_${tir}_${tic}_${twr}_"
                           "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
                           "${item_batch}_${wg_batch}_"
@@ -545,7 +537,6 @@ function(add_gemm_configuration
                 ${blas_level}
                 ${func}
                 ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${executor}
                 ${cpp_data}
                 ${index}
                 ${double_buffer}
@@ -837,63 +828,6 @@ target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
 message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${gemm_sources})
 endfunction(generate_blas_gemm_objects)
-
-
-# Generate quantization instantiations
-function(generate_quantize)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/quantize")
-  set(quantize_data_list "${data_list}")
-  # float and double don't need to be quantized
-  list(REMOVE_ITEM quantize_data_list "float" "double")
-    # First generate quantize_base.cpp.in for float and double
-    sanitize_file_name(file_name
-      "quantize_${executor}_base.cpp")
-    add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-      COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
-        ${PROJECT_SOURCE_DIR}/external/ #1
-        ${SYCLBLAS_SRC_GENERATOR}/gen #2
-        ${SYCLBLAS_SRC}/quantize/quantize_base.cpp.in #3
-        ${executor} #4
-        "DATA_TYPE" #5 # data is ignored in the file template
-        ${file_name} #6
-      MAIN_DEPENDENCY ${SYCLBLAS_SRC}/quantize/quantize_base.cpp.in
-      DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-      VERBATIM
-    )
-    list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-
-    # Generate quantize.cpp.in for each special data type
-    foreach(data ${quantize_data_list})
-      cpp_type(cpp_data ${data})
-      sanitize_file_name(file_name
-        "quantize_${executor}_${data}.cpp")
-      add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-        COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
-          ${PROJECT_SOURCE_DIR}/external/ #1
-          ${SYCLBLAS_SRC_GENERATOR}/gen #2
-          ${SYCLBLAS_SRC}/quantize/quantize.cpp.in #3
-          ${executor} #4
-          ${cpp_data} #5
-          ${file_name} #6
-        MAIN_DEPENDENCY ${SYCLBLAS_SRC}/quantize/quantize.cpp.in
-        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_quantize.py
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-        VERBATIM
-      )
-      list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-    endforeach(data)
-  add_library(quantize OBJECT ${FUNC_SRC})
-  set_target_compile_def(quantize)
-  target_include_directories(quantize PRIVATE
-    ${SYCLBLAS_SRC}
-    ${SYCLBLAS_INCLUDE}
-    ${SYCLBLAS_COMMON_INCLUDE_DIR}
-    ${SYCL_INCLUDE_DIRS}
-    ${COMPUTECPP_SDK_INCLUDE})
-  message(STATUS "Adding SYCL to target quantize")
-  add_sycl_to_target(TARGET quantize SOURCES ${FUNC_SRC})
-endfunction(generate_quantize)
 
 
 function (build_library LIB_NAME ENABLE_EXTENSIONS)

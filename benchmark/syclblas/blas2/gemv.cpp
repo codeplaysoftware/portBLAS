@@ -34,7 +34,7 @@ std::string get_name(std::string t, int m, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti, index_t m,
          index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
@@ -72,7 +72,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
-  ExecutorType& sb_handle = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handlePtr;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -135,7 +135,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                         bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
@@ -146,7 +146,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::tie(ts, m, n, alpha, beta) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr, int t,
                          index_t m, index_t n, scalar_t alpha, scalar_t beta,
                          bool* success) {
       run<scalar_t>(st, exPtr, t, m, n, alpha, beta, success);
@@ -158,7 +158,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }

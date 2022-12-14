@@ -71,7 +71,7 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
                                      GemmArgs<T> a,
                                      ::blas::gemm_batch_type_t batch_type) {
   TestResultEntry result("SYCL-BLAS gemm");
-  auto sb_handle = get_sycl_executor();
+  auto sb_handle = get_sycl_blas_handle();
   {
     auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),
         a.init_c.data(), a.c, a.init_c.size());
@@ -173,7 +173,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
 
 #undef BENCH_PARAMS
   std::cout << "SIZE : " << results.size() << std::endl;
-  get_sycl_executor().wait();
+  get_sycl_blas_handle().wait();
   std::sort(results.begin(), results.end());
   results.print_all();
 }

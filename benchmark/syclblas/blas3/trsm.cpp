@@ -36,7 +36,7 @@ std::string get_name(char side, char uplo, char trans, char diag, index_t m,
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, char side,
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, char side,
          char uplo, char trans, char diag, index_t m, index_t n, scalar_t alpha,
          bool* success) {
   // Standard test setup.
@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  ExecutorType& sb_handle = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handlePtr;
 
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
@@ -171,7 +171,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                         bool* success) {
   auto trsm_params = blas_benchmark::utils::get_trsm_params<scalar_t>(args);
 
@@ -181,7 +181,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     scalar_t alpha;
     std::tie(side, uplo, trans, diag, m, n, alpha) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, char side,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr, char side,
                          char uplo, char trans, char diag,
                          index_t m, index_t n, scalar_t alpha, bool* success) {
       run<scalar_t>(st, exPtr, side, uplo, trans, diag, m, n, alpha,
@@ -195,7 +195,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }

@@ -71,7 +71,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n,
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int t1, int t2,
          index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, int batch_type_i, bool* success) {
   // Standard test setup.
@@ -116,7 +116,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
         sizeof(scalar_t);
   }
 
-  ExecutorType& sb_handle = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handlePtr;
 
   // Matrices
   std::vector<scalar_t> a =
@@ -204,7 +204,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                         bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
@@ -218,7 +218,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr, int t1,
                          int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          int batch_type, bool* success) {
@@ -233,7 +233,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }

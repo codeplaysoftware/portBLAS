@@ -45,7 +45,7 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  test_sb_handle_t sb_handle(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), (a + offset), vR_gpu.data(),
                                                     size - offset);
@@ -85,7 +85,7 @@ void run_const_test(const combination_t<scalar_t> combi) {
   fill_random(vX);
 
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  test_sb_handle_t sb_handle(q);
   auto a = blas::make_sycl_iterator_buffer<scalar_t>(vX.data(), size);
   BufferIterator<const scalar_t> buff =
       func<scalar_t>(a, offset);

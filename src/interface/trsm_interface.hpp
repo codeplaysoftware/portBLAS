@@ -25,7 +25,7 @@
 #define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
 #include "sycl_blas_helper.h"

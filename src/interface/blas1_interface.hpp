@@ -33,7 +33,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
@@ -46,7 +46,7 @@ namespace internal {
  *
  * Implements AXPY \f$y = ax + y\f$
  *
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator
@@ -70,7 +70,7 @@ typename sb_handle_t::event_t _axpy(
 /**
  * \brief COPY copies a vector, x, to a vector, y.
  *
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator
@@ -167,7 +167,7 @@ typename sb_handle_t::event_t _sdsdot(
 
 /**
  * \brief ASUM Takes the sum of the absolute values
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
@@ -288,7 +288,7 @@ typename sb_handle_t::event_t _scal(sb_handle_t &sb_handle, index_t _N,
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
@@ -318,7 +318,7 @@ typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
  * .
  * @brief _rot constructor given plane rotation
  *  *
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  * @param _vx  BufferIterator
@@ -672,7 +672,7 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t 
 /**
  * \brief ASUM Takes the sum of the absolute values
  *
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */
@@ -692,7 +692,7 @@ typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  *
- * @param sb_handle_t<ExecutorType> sb_handle
+ * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator
  * @param _incx Increment in X axis
  */

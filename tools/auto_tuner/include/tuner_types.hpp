@@ -31,7 +31,7 @@
 
 #include "sycl_blas.hpp"
 
-using SYCLExecutor =
+using sycl_blas_handle_t =
     ::blas::SB_Handle;
 
 template <typename DataType>

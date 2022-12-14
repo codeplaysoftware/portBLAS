@@ -34,7 +34,7 @@ std::string get_name(int size) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
-  ExecutorType& sb_handle = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handlePtr;
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
@@ -102,12 +102,12 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                         bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr,
                          index_t size, bool* success) {
       run<scalar_t>(st, exPtr, size, success);
     };
@@ -117,7 +117,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
                       bool* success) {
   BLAS_REGISTER_BENCHMARK(args, exPtr, success);
 }

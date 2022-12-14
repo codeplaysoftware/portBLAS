@@ -18,28 +18,31 @@ the project.
 
 ## Table of Contents
 
-  * [Motivation](#motivation)
-  * [Basic Concepts](#basic-concepts)
-    * [Views](#views)
-    * [Operations](#operations)
-    * [Executors](#executors)
-    * [Interface](#interface)
-  * [API description](#api-description)
-    * [BLAS 1](#blas-1)
-    * [BLAS 2](#blas-2)
-    * [BLAS 3](#blas-3)
-  * [Requirements](#requirements)
-  * [Setup](#setup)
-    * [Compile with ComputeCpp](#Compile-with-ComputeCpp)
-    * [Compile with DPC++](#Compile-with-DPC++)
-    * [Instaling SYCL-BLAS](#Instaling-SYCL-BLAS)
-    * [POWER_VR support (ComputeCpp Only)](#POWER_VR-support-(ComputeCpp-Only))
-    * [Doxygen](#Doxygen)
-    * [How to compile](#how-to-compile)
-    * [CMake options](#cmake-options)
-    * [Cross-Compile](#cross-compile)
-  * [Tests and benchmarks](#tests-and-benchmarks)
-  * [Contributing to the project](#contributing-to-the-project)
+- [SYCL-BLAS Implementation](#sycl-blas-implementation)
+  - [Table of Contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Basic Concepts](#basic-concepts)
+    - [Views](#views)
+    - [Operations](#operations)
+    - [SB\_Handle](#sb_handle)
+    - [Interface](#interface)
+  - [API description](#api-description)
+    - [BLAS 1](#blas-1)
+    - [BLAS 2](#blas-2)
+    - [BLAS 3](#blas-3)
+  - [Requirements](#requirements)
+  - [Setup](#setup)
+    - [Compile with ComputeCpp](#compile-with-computecpp)
+    - [Compile with DPC++](#compile-with-dpc)
+    - [Compile with hipSYCL](#compile-with-hipsycl)
+    - [Instaling SYCL-BLAS](#instaling-sycl-blas)
+    - [POWER\_VR support (ComputeCpp Only)](#power_vr-support-computecpp-only)
+    - [Doxygen](#doxygen)
+    - [CMake options](#cmake-options)
+    - [Cross-Compile (ComputeCpp Only)](#cross-compile-computecpp-only)
+  - [Tests and benchmarks](#tests-and-benchmarks)
+  - [Contributing to the project](#contributing-to-the-project)
+    - [Guides and Other Documents](#guides-and-other-documents)
 
 ## Motivation
 
@@ -110,7 +113,7 @@ All the relevant files can be found in
 the `include` directory.
 
 There are four components in SYCL-BLAS, the *View*, the *Operations*,
-the *Executors* and the *Interface* itself.
+the *SB_Handle* and the *Interface* itself.
 
 ### Views
 
@@ -144,14 +147,11 @@ The leaf nodes of an Expression Tree are Views or Scalar types (data).
 The intermediate nodes of the Expression Tree are operations (e.g,
 binary operations, unary operations, etc).
 
-### Executors
+### SB_Handle
 
-An executor traverses the Expression Tree to evaluate the operations that it
+An SB_Handle traverses the Expression Tree to evaluate the operations that it
 defines.
-Executors use different techniques to evaluate the expression tree.
-The basic C++ executor performs a for loop on the size of the data and calls
-the evaluation function on each item.
-
+SB_Handle use different techniques to evaluate the expression tree.
 The SYCL evaluator transform the tree into a device tree (i.e, converting
 buffer to accessors) and then evaluates the Expression Tree on the device.
 
@@ -176,7 +176,7 @@ of multiple BLAS operations.
 
 This section references all the supported operations and their interface.
 
-All operations take as their first argument a reference to the executor, a
+All operations take as their first argument a reference to the SB_Handle, a
 `blas::SB_Handle` created with a `sycl::queue`. The return value is usually an
 array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
@@ -208,19 +208,19 @@ For all these operations:
 
 | operation | arguments                                       | description                                                                                                                                                                  |
 |-----------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `_axpy`   | `sb_handle`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`  | Vector multiply-add: `y = alpha * x + y`                                                                                                                                     |
-| `_copy`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`           | Copies a vector to another: `y = x`                                                                                                                                          |
-| `_dot`    | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`]  | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned                                                                                             |
-| `_asum`   | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Absolute sum of the vector `x`; written in `rs` if passed, else returned                                                                                                     |
-| `_iamax`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
-| `_iamin`  | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
-| `_swap`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`           | Interchanges two vectors: `y = x` and `x = y`                                                                                                                                |
-| `_scal`   | `sb_handle`, `N`, `alpha`, `vx`, `incx`                | Scalar product of a vector: `x = alpha * x`                                                                                                                                  |
-| `_nrm2`   | `sb_handle`, `N`, `vx`, `incx` [, `rs`]                | Euclidean norm of the vector `x`; written in `rs` if passed, else returned                                                                                                   |
-| `_rot`    | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`                                                                                                     |
-| `_rotg`   | `sb_handle`, `a`, `b`, `c`, `s`                        | Given the Cartesian coordinates (`a`, `b`) of a point, return the parameters `c`, `s`, `r`, and `z` associated with the Givens rotation.                                     |
-| `_rotm`   | `sb_handle`, `N`, `vx`, `incx`, `vy`, `incy`, `param`  | Applies a modified Givens rotation to `x` and `y`.                                                                                                                           |
-| `_rotmg`  | `sb_handle`, `d1`, `d2`, `x1`, `y1` `param`            | Given the Cartesian coordinates (`x1`, `y1`) of a point, return the components of a modified Givens transformation matrix that zeros the y-component of the resulting point. |
+| `_axpy`   | `ex`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`  | Vector multiply-add: `y = alpha * x + y`                                                                                                                                     |
+| `_copy`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`           | Copies a vector to another: `y = x`                                                                                                                                          |
+| `_dot`    | `ex`, `N`, `vx`, `incx`, `vy`, `incy` [, `rs`]  | Dot product of two vectors `x` and `y`; written in `rs` if passed, else returned                                                                                             |
+| `_asum`   | `ex`, `N`, `vx`, `incx` [, `rs`]                | Absolute sum of the vector `x`; written in `rs` if passed, else returned                                                                                                     |
+| `_iamax`  | `ex`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the maximum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
+| `_iamin`  | `ex`, `N`, `vx`, `incx` [, `rs`]                | First index and value of the minimum element of `x`; written in `rs` if passed, else the index only is returned                                                              |
+| `_swap`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`           | Interchanges two vectors: `y = x` and `x = y`                                                                                                                                |
+| `_scal`   | `ex`, `N`, `alpha`, `vx`, `incx`                | Scalar product of a vector: `x = alpha * x`                                                                                                                                  |
+| `_nrm2`   | `ex`, `N`, `vx`, `incx` [, `rs`]                | Euclidean norm of the vector `x`; written in `rs` if passed, else returned                                                                                                   |
+| `_rot`    | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `c`, `s` | Applies a plane rotation to `x` and `y` with a cosine `c` and a sine `s`                                                                                                     |
+| `_rotg`   | `ex`, `a`, `b`, `c`, `s`                        | Given the Cartesian coordinates (`a`, `b`) of a point, return the parameters `c`, `s`, `r`, and `z` associated with the Givens rotation.                                     |
+| `_rotm`   | `ex`, `N`, `vx`, `incx`, `vy`, `incy`, `param`  | Applies a modified Givens rotation to `x` and `y`.                                                                                                                           |
+| `_rotmg`  | `ex`, `d1`, `d2`, `x1`, `y1` `param`            | Given the Cartesian coordinates (`x1`, `y1`) of a point, return the components of a modified Givens transformation matrix that zeros the y-component of the resulting point. |
 
 ### BLAS 2
 
@@ -249,12 +249,12 @@ For all these operations:
 
 | operation | arguments | description |
 |---|---|---|
-| `_gemv` | `sb_handle`, `trans`, `M`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
-| `_trmv`  | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx` | Matrix-vector product for a triangular matrix: `x = A * x` |
-| `_symv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Variant of GEMV for a symmetric matrix (`y = alpha * A * x + beta * y`). *Note: `uplo` specifies which side of the matrix will be read* |
-| `_ger` | `sb_handle`, `M`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector-vector product followed by a matrix sum: `A = alpha * x * yT + A` |
-| `_syr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
-| `_syr2` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
+| `_gemv` | `ex`, `trans`, `M`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy`  | Generalised matrix-vector product followed by a vector sum: `y = alpha * A * x + beta * y`. *Note: the dimensions of the vectors depend on the transpose mode (`x`: `N` and `y`: `M` for mode `'n'` ; `x`: `M` and `y`: `N` otherwise)* |
+| `_trmv`  | `ex`, `uplo`, `trans`, `diag`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx` | Matrix-vector product for a triangular matrix: `x = A * x` |
+| `_symv` | `ex`, `uplo`, `N`, `alpha`, `mA`, `lda`, `vx`, `incx`, `beta`, `vy`, `incy` | Variant of GEMV for a symmetric matrix (`y = alpha * A * x + beta * y`). *Note: `uplo` specifies which side of the matrix will be read* |
+| `_ger` | `ex`, `M`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector-vector product followed by a matrix sum: `A = alpha * x * yT + A` |
+| `_syr` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
+| `_syr2` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
 
 ### BLAS 3
 
@@ -282,9 +282,9 @@ For all these operations:
 
 | operation | arguments | description |
 |---|---|---|
-| `_gemm` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
-| `_gemm_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
-| `_trsm` | `sb_handle`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
+| `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
+| `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
+| `_trsm` | `ex`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
 ## Requirements
 

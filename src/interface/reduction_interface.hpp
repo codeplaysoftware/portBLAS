@@ -27,7 +27,7 @@
 #define SYCL_BLAS_REDUCTION_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "operations/extension/reduction.h"
 #include "sycl_blas_helper.h"
 

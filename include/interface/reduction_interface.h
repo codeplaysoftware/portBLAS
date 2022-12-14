@@ -26,7 +26,7 @@
 #ifndef SYCL_BLAS_REDUCTION_INTERFACE_H
 #define SYCL_BLAS_REDUCTION_INTERFACE_H
 
-#include "executor/sycl_blas_handle.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "operations/extension/reduction.h"
 
 namespace blas {

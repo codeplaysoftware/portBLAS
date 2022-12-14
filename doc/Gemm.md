@@ -185,7 +185,7 @@ Backend configurations are covered in further detail in [this section](#backend-
 ## GEMM Launcher
 
 The `Gemm_Launcher` class wraps the creation of the actual `Gemm` class as well as the creation of the matrix views (which are what is actually passed to the `Gemm` class for use in the kernel). 
-This happens in the `::select_gemm()` member function where it also executes the created `GEMM` through the passed in executor and returns the associated event.
+This happens in the `::select_gemm()` member function where it also executes the created `GEMM` through the passed in sb_handle and returns the associated event.
 
 ```c++
 namespace blas {
@@ -240,7 +240,7 @@ The template for `Gemm` looks like this:
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "executor/sycl_blas_handle.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
 #include "sycl_blas_helper.h"

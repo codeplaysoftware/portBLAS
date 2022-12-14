@@ -43,7 +43,7 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
 
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  test_sb_handle_t sb_handle(q);
 
   scalar_t c;
   scalar_t s;

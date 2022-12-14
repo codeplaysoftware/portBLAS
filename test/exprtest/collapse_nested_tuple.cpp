@@ -37,7 +37,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(size, factor) = combi;
 
   auto q = make_queue();
-  test_executor_t sb_handle(q);
+  test_sb_handle_t sb_handle(q);
 
   // Input buffer
   auto v_in = std::vector<scalar_t>(size);

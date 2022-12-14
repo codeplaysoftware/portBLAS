@@ -37,7 +37,7 @@ REGISTER_PREC(double, 1e-6, interface1_test)
 
 TYPED_TEST(BLAS_Test, interface1_test) {
   using scalar_t = typename TypeParam::scalar_t;
-  using ExecutorType = typename TypeParam::sb_handle_t;
+  using blas::SB_Handle = typename TypeParam::sb_handle_t;
   using TestClass = BLAS_Test<TypeParam>;
   using test = class interface1_test;
   using index_t = int;
@@ -125,20 +125,20 @@ TYPED_TEST(BLAS_Test, interface1_test) {
 
   auto q = make_queue();
   SB_Handle sb_handle(q);
-  auto gpu_vX = sb_handle.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vY = sb_handle.get_policy_handler().template allocate<scalar_t>(size);
-  auto gpu_vR = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vS = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vT = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
-  auto gpu_vU = sb_handle.get_policy_handler().template allocate<scalar_t>(1);
+  auto gpu_vX = blas::make_sycl_iterator_buffer<scalar_t>(size);
+  auto gpu_vY = blas::make_sycl_iterator_buffer<scalar_t>(size);
+  auto gpu_vR = blas::make_sycl_iterator_buffer<scalar_t>(1);
+  auto gpu_vS = blas::make_sycl_iterator_buffer<scalar_t>(1);
+  auto gpu_vT = blas::make_sycl_iterator_buffer<scalar_t>(1);
+  auto gpu_vU = blas::make_sycl_iterator_buffer<scalar_t>(1);
   auto gpu_vImax =
       sb_handle.get_policy_handler()
           .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
   auto gpu_vImin =
       sb_handle.get_policy_handler()
           .template allocate<IndexValueTuple<index_t, scalar_t>>(1);
-  sb_handle.get_policy_handler().copy_to_device(vX.data(), gpu_vX, size);
-  sb_handle.get_policy_handler().copy_to_device(vY.data(), gpu_vY, size);
+  blas::helper::copy_to_device(sb_handle.get_queue(), vX.data(), gpu_vX, size);
+  blas::helper::copy_to_device(sb_handle.get_queue(), vY.data(), gpu_vY, size);
   _axpy(sb_handle, size, alpha, gpu_vX, strd, gpu_vY, strd);
   _asum(sb_handle, size, gpu_vY, strd, gpu_vR);
   _dot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, gpu_vS);
@@ -148,18 +148,18 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   _rot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, _cos, _sin);
   _dot(sb_handle, size, gpu_vX, strd, gpu_vY, strd, gpu_vU);
   _swap(sb_handle, size, gpu_vX, strd, gpu_vY, strd);
-  auto event0 = sb_handle.get_policy_handler().copy_to_host(gpu_vR, vR.data(), 1);
-  auto event1 = sb_handle.get_policy_handler().copy_to_host(gpu_vS, vS.data(), 1);
-  auto event2 = sb_handle.get_policy_handler().copy_to_host(gpu_vT, vT.data(), 1);
-  auto event3 = sb_handle.get_policy_handler().copy_to_host(gpu_vU, vU.data(), 1);
+  auto event0 = blas::helper::copy_to_host(sb_handlle.get_queue(),gpu_vR, vR.data(), 1);
+  auto event1 = blas::helper::copy_to_host(sb_handlle.get_queue(),gpu_vS, vS.data(), 1);
+  auto event2 = blas::helper::copy_to_host(sb_handlle.get_queue(),gpu_vT, vT.data(), 1);
+  auto event3 = blas::helper::copy_to_host(sb_handlle.get_queue(),gpu_vU, vU.data(), 1);
   auto event4 =
-      sb_handle.get_policy_handler().copy_to_host(gpu_vImax, vImax.data(), 1);
+      blas::helper::copy_to_host(sb_handlle.get_queue()gpu_vImax, vImax.data(), 1);
   auto event5 =
-      sb_handle.get_policy_handler().copy_to_host(gpu_vImin, vImin.data(), 1);
-  auto event6 = sb_handle.get_policy_handler().copy_to_host(gpu_vX, vX.data(), size);
-  auto event7 = sb_handle.get_policy_handler().copy_to_host(gpu_vY, vY.data(), size);
-  sb_handle.get_policy_handler().wait(event0, event1, event2, event3, event4, event5,
-                               event6, event7);
+      blas::helper::copy_to_host(sb_handlle.get_queue()gpu_vImin, vImin.data(), 1);
+  auto event6 = blas::helper::copy_to_host(sb_handlle.get_queue()gpu_vX, vX.data(), size);
+  auto event7 = blas::helper::copy_to_host(sb_handlle.get_queue()gpu_vY, vY.data(), size);
+  sb_handle.wait({event0, event1, event2, event3, event4, event5,
+                               event6, event7});
 
   // because there is a lot of operations, it makes sense to set the precision
   // threshold
@@ -182,14 +182,4 @@ TYPED_TEST(BLAS_Test, interface1_test) {
   EXPECT_NEAR(max, vImax[0].get_value(), prec_sample);
   EXPECT_NEAR(giv, vU[0], prec_sample);
   EXPECT_NEAR(diff, (vX[0] - vY[0]) + (vX.back() - vY.back()), prec_sample);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vX);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vY);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vR);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vS);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vT);
-  sb_handle.get_policy_handler().template deallocate<scalar_t>(gpu_vU);
-  sb_handle.get_policy_handler()
-      .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImax);
-  sb_handle.get_policy_handler()
-      .template deallocate<IndexValueTuple<index_t, scalar_t>>(gpu_vImin);
 }

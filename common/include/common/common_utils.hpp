@@ -685,7 +685,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
 /** Registers benchmark for all supported data types.
  *  Expects register_benchmark<scalar_t> to exist.
  * @param args Reference to blas_benchmark::Args
- * @param exPtr Pointer to ExecutorType
+ * @param exPtr Pointer to blas::SB_Handle
  * @param[out] success Pointer to boolean indicating success
  */
 #define BLAS_REGISTER_BENCHMARK(args, exPtr, success)     \

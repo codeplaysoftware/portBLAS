@@ -35,7 +35,6 @@ if __name__ == '__main__':
     from py_gen import *
     from string import Template
 
-    executor_list = ['PolicyHandler']
     index_list = ['int', 'long', 'long long']
 
     input_template = sys.argv[2]

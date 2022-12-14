@@ -42,7 +42,7 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
                    static_cast<int>(Config::VecType), VecSize,
                    static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
-  auto sb_handle = get_sycl_executor();
+  auto sb_handle = get_sycl_blas_handle();
   {
     {
       auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),

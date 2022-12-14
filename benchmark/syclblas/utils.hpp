@@ -10,12 +10,11 @@
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
-typedef blas::SB_Handle ExecutorType;
 
 namespace blas_benchmark {
 
 // Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args, ExecutorType* exPtr, bool* success);
+void create_benchmark(Args& args, blas::SB_Handle* exPtr, bool* success);
 
 namespace utils {
 
