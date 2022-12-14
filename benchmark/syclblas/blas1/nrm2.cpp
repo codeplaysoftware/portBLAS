@@ -60,7 +60,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
   scalar_t vr_temp = 0;
   {
     auto vr_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(&vr_temp, 1);
-    auto event = _nrm2(sb_handle, size, inx, static_cast<index_t>(1), vr_temp_gpu);
+    auto event =
+        _nrm2(sb_handle, size, inx, static_cast<index_t>(1), vr_temp_gpu);
     sb_handle.wait(event);
   }
 

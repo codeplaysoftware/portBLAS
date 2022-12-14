@@ -50,8 +50,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
 
   _scal(sb_handle, size, alpha, gpu_x_v, incX);
-  auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v.data(), size * incX);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                          x_v.data(), size * incX);
   sb_handle.wait(event);
 
   // Validate the result

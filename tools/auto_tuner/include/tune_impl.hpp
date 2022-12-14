@@ -45,8 +45,8 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
   auto sb_handle = get_sycl_blas_handle();
   {
     {
-      auto event_list = blas::helper::copy_to_host(sb_handle.get_queue(),
-          a.init_c.data(), a.c, a.init_c.size());
+      auto event_list = blas::helper::copy_to_host(
+          sb_handle.get_queue(), a.init_c.data(), a.c, a.init_c.size());
       event_list.back().wait_and_throw();
     }
 
@@ -65,8 +65,8 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
       }
     });
     {
-      auto event_list =  blas::helper::copy_to_host(sb_handle.get_queue(),
-          a.c, a.output_c.data(), a.output_c.size());
+      auto event_list = blas::helper::copy_to_host(
+          sb_handle.get_queue(), a.c, a.output_c.data(), a.output_c.size());
       event_list.back().wait_and_throw();
     }
   }

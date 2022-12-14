@@ -33,7 +33,8 @@ std::string get_name() {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr,
+         bool* success) {
   // Create data
   scalar_t a = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t b = blas_benchmark::utils::random_data<scalar_t>(1)[0];
@@ -67,14 +68,14 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, bool* success) 
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
   _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
 
-  auto event1 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c, &c_verify, 1);
-  auto event2 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_s, &s_verify, 1);
-  auto event3 =
-       blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_a, &a_verify, 1);
-  auto event4 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_b, &b_verify, 1);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c,
+                                           &c_verify, 1);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_s,
+                                           &s_verify, 1);
+  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_a,
+                                           &a_verify, 1);
+  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_b,
+                                           &b_verify, 1);
 
   sb_handle.wait(event1);
   sb_handle.wait(event2);

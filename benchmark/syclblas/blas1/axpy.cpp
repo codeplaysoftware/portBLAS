@@ -73,7 +73,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _axpy(sb_handle, size, alpha, inx, static_cast<index_t>(1), iny, static_cast<index_t>(1));
+    auto event = _axpy(sb_handle, size, alpha, inx, static_cast<index_t>(1),
+                       iny, static_cast<index_t>(1));
     sb_handle.wait(event);
     return event;
   };

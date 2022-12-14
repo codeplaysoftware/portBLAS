@@ -62,8 +62,8 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYCLsyr2
   _syr2(sb_handle, uplo, n, alpha, x_v_gpu, incX, y_v_gpu, incY, a_m_gpu, lda);
 
-  auto event =
-       blas::helper::copy_to_host(sb_handle.get_queue(), a_m_gpu, a_m.data(), n * lda);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), a_m_gpu,
+                                          a_m.data(), n * lda);
   sb_handle.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(a_m, a_cpu_m);

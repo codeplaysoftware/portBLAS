@@ -165,7 +165,9 @@ first_vector_t concatenate_vectors(first_vector_t first_vector,
  * @tparam type The type to be tested.
  */
 template <typename type>
-struct is_sycl_scalar : std::conditional<std::is_scalar<type>::value, std::true_type, std::false_type>::type {};
+struct is_sycl_scalar
+    : std::conditional<std::is_scalar<type>::value, std::true_type,
+                       std::false_type>::type {};
 
 template <>
 struct is_sycl_scalar<cl::sycl::half> : std::true_type {};

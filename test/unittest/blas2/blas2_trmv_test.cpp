@@ -72,8 +72,8 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYCLtrmv
   _trmv(sb_handle, uplo, trans, diag, n, a_m_gpu, lda, x_v_gpu, incX);
 
-  auto event =
-       blas::helper::copy_to_host(sb_handle.get_queue(), x_v_gpu, x_v.data(), n * incX);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), x_v_gpu,
+                                          x_v.data(), n * incX);
   sb_handle.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
@@ -83,14 +83,14 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 // For the purpose of travis and other slower platforms, we need a faster test
 template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values('u', 'l'),                     // UPLO
-                       ::testing::Values('n', 't'),                     // TRANS
-                       ::testing::Values('u', 'n'),                     // DIAG
-                       ::testing::Values(14, 63, 257, 1010, 1024 * 5),  // n
-                       ::testing::Values(1, 2),                         // incX
-                       ::testing::Values(1, 2)  // lda_mul
-    );
+const auto combi = ::testing::Combine(::testing::Values('u', 'l'),  // UPLO
+                                      ::testing::Values('n', 't'),  // TRANS
+                                      ::testing::Values('u', 'n'),  // DIAG
+                                      ::testing::Values(14, 63, 257, 1010,
+                                                        1024 * 5),  // n
+                                      ::testing::Values(1, 2),      // incX
+                                      ::testing::Values(1, 2)       // lda_mul
+);
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
 template <typename scalar_t>

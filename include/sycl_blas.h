@@ -27,8 +27,6 @@
 
 #include "blas_meta.h"
 
-
-
 #include "container/sycl_iterator.h"
 
 #include "sb_handle/sycl_blas_handle.h"

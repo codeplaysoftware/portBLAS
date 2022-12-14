@@ -53,7 +53,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(out_s, 1);
 
   _nrm2(sb_handle, size, gpu_x_v, incX, gpu_out_s);
-  auto event = blas::helper::copy_to_device(sb_handle.get_queue(), gpu_out_s, out_s.data(), 1);
+  auto event = blas::helper::copy_to_device(sb_handle.get_queue(), gpu_out_s,
+                                            out_s.data(), 1);
   sb_handle.wait(event);
 
   // Validate the result

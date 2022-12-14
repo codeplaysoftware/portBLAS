@@ -61,7 +61,8 @@ int main(int argc, char** argv) {
 
   /* Copy the result to the host */
   std::cout << "Copying C to host\n";
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), c_gpu, C.data(), ldc * n);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), c_gpu,
+                                          C.data(), ldc * n);
   sb_handle.wait(event);
 
   /* Print the result after the GEMM operation */

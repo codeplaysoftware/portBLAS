@@ -29,7 +29,6 @@
 #include <cmath>
 #include <iostream>
 
-
 #ifdef BLAS_DATA_TYPE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
@@ -46,7 +45,7 @@ class numeric_limits<cl::sycl::half> {
   static constexpr float max() { return 65504.0f; }
 };
 }  // namespace std
-#endif // SYCL_LANGUAGE_VERSION
+#endif  // SYCL_LANGUAGE_VERSION
 #endif  // BLAS_DATA_TYPE_HALF
 
 namespace utils {

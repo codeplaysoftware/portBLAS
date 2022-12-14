@@ -70,11 +70,11 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_ycopy_v = blas::make_sycl_iterator_buffer<scalar_t>(y_dim);
 
   // Copy input data from host to device
-  auto xcp_ev =
-    blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(), gpu_x_v, x_dim);
+  auto xcp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(),
+                                             gpu_x_v, x_dim);
   sb_handle.wait(xcp_ev);
-  auto ycp_ev =
-      blas::helper::copy_to_device(sb_handle.get_queue(),  v_y.data(), gpu_y_v, y_dim);
+  auto ycp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_y.data(),
+                                             gpu_y_v, y_dim);
   sb_handle.wait(ycp_ev);
 
   // Dimensions of vector view for AXPY operations
@@ -104,8 +104,8 @@ void run_test(const combination_t<scalar_t> combi) {
   sb_handle.wait(axpy_event);
 
   // Copy the result back to host memory
-  auto getResultEv =
-    blas::helper::copy_to_host(sb_handle.get_queue(),  gpu_y_v, v_y.data(), y_dim);
+  auto getResultEv = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                                v_y.data(), y_dim);
   sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));

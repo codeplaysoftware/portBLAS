@@ -38,14 +38,14 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
   return str.str();
 }
 
-void run(benchmark::State& state, int t1, int t2,
-         index_t m, index_t k, index_t n, float alpha, float beta, bool* success) {
+void run(benchmark::State& state, int t1, int t2, index_t m, index_t k,
+         index_t n, float alpha, float beta, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
   std::string t2s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t2));
-  if(t1s != "n" || t2s != "n") {
+  if (t1s != "n" || t2s != "n") {
     state.SkipWithError("Transposed matrices not supported in ACL benchmarks");
     return;
   }
@@ -85,8 +85,7 @@ void run(benchmark::State& state, int t1, int t2,
   // Matrices
   std::vector<float> a = blas_benchmark::utils::random_data<float>(m * k);
   std::vector<float> b = blas_benchmark::utils::random_data<float>(k * n);
-  std::vector<float> c =
-      blas_benchmark::utils::const_data<float>(m * n, 0);
+  std::vector<float> c = blas_benchmark::utils::const_data<float>(m * n, 0);
 
   // Device matrices
   const arm_compute::TensorShape shape_a(k, m), shape_b(n, k), shape_c(n, m);
@@ -96,9 +95,12 @@ void run(benchmark::State& state, int t1, int t2,
   arm_compute::CLScheduler::get().default_init();
   arm_compute::CLTensor arm_a, arm_b, arm_c;
 #endif
-  arm_a.allocator()->init(arm_compute::TensorInfo(shape_a, 1, arm_compute::DataType::F32));
-  arm_b.allocator()->init(arm_compute::TensorInfo(shape_b, 1, arm_compute::DataType::F32));
-  arm_c.allocator()->init(arm_compute::TensorInfo(shape_c, 1, arm_compute::DataType::F32));
+  arm_a.allocator()->init(
+      arm_compute::TensorInfo(shape_a, 1, arm_compute::DataType::F32));
+  arm_b.allocator()->init(
+      arm_compute::TensorInfo(shape_b, 1, arm_compute::DataType::F32));
+  arm_c.allocator()->init(
+      arm_compute::TensorInfo(shape_c, 1, arm_compute::DataType::F32));
   arm_a.allocator()->allocate();
   arm_b.allocator()->allocate();
   arm_c.allocator()->allocate();
@@ -172,14 +174,13 @@ void register_benchmark(blas_benchmark::Args& args, bool* success) {
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-    auto BM_lambda = [&](benchmark::State& st, int t1,
-                         int t2, index_t m, index_t k, index_t n,
-                         float alpha, float beta, bool* success) {
+    auto BM_lambda = [&](benchmark::State& st, int t1, int t2, index_t m,
+                         index_t k, index_t n, float alpha, float beta,
+                         bool* success) {
       run(st, t1, t2, m, k, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, t1, t2, m, k, n, alpha,
-                                 beta, success);
+    benchmark::RegisterBenchmark(get_name(t1s, t2s, m, k, n).c_str(), BM_lambda,
+                                 t1, t2, m, k, n, alpha, beta, success);
   }
 }
 

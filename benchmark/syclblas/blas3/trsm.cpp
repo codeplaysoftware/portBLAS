@@ -78,10 +78,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, char side,
 
   {
     auto b_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_temp, sizeB);
-    _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_temp_gpu,
-          ldb);
-    auto event =  blas::helper::copy_to_host(sb_handle.get_queue(), 
-        b_temp_gpu, b_temp.data(), sizeB);
+    _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda,
+          b_temp_gpu, ldb);
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), b_temp_gpu,
+                                            b_temp.data(), sizeB);
     sb_handle.wait(event);
   }
 
@@ -94,8 +94,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, char side,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event =
-        _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+    auto event = _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu,
+                       lda, b_gpu, ldb);
     sb_handle.wait(event);
     return event;
   };
@@ -181,11 +181,10 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
     scalar_t alpha;
     std::tie(side, uplo, trans, diag, m, n, alpha) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr, char side,
-                         char uplo, char trans, char diag,
-                         index_t m, index_t n, scalar_t alpha, bool* success) {
-      run<scalar_t>(st, exPtr, side, uplo, trans, diag, m, n, alpha,
-                    success);
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr,
+                         char side, char uplo, char trans, char diag, index_t m,
+                         index_t n, scalar_t alpha, bool* success) {
+      run<scalar_t>(st, exPtr, side, uplo, trans, diag, m, n, alpha, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(side, uplo, trans, diag, m, n).c_str(), BM_lambda,

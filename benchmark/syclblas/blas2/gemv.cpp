@@ -34,8 +34,8 @@ std::string get_name(std::string t, int m, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti, index_t m,
-         index_t n, scalar_t alpha, scalar_t beta, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti,
+         index_t m, index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
@@ -95,8 +95,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti, index_t
   {
     auto v_y_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
-    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
-                       v_y_temp_gpu, incY);
+    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu,
+                       incX, beta, v_y_temp_gpu, incY);
     sb_handle.wait();
   }
 
@@ -109,8 +109,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti, index_t
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu, incX, beta,
-                       v_y_gpu, incY);
+    auto event = _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, m, v_x_gpu,
+                       incX, beta, v_y_gpu, incY);
     sb_handle.wait(event);
     return event;
   };

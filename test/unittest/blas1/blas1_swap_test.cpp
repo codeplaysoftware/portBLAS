@@ -56,11 +56,11 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
 
   _swap(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
-  auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v.data(), size * incX);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                          x_v.data(), size * incX);
   sb_handle.wait(event);
-  event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(),
+                                     size * incY);
   sb_handle.wait(event);
 
   // Validate the result
@@ -71,11 +71,11 @@ void run_test(const combination_t<scalar_t> combi) {
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
-                       ::testing::Values(1, 4),                   // incX
-                       ::testing::Values(1, 3)                    // incY
-    );
+const auto combi = ::testing::Combine(::testing::Values(11, 65, 1002,
+                                                        1002400),  // size
+                                      ::testing::Values(1, 4),     // incX
+                                      ::testing::Values(1, 3)      // incY
+);
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size

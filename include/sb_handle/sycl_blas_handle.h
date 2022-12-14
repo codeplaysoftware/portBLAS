@@ -42,37 +42,36 @@ namespace blas {
  * Only one method is mandatory, the Execute method.
  */
 class SB_Handle {
-
-using queue_t =cl::sycl::queue;
+  using queue_t = cl::sycl::queue;
 
  public:
   using event_t = std::vector<cl::sycl::event>;
-  inline SB_Handle(queue_t q) : q_(q),
+  inline SB_Handle(queue_t q)
+      : q_(q),
         workGroupSize_(helper::get_work_group_size(q)),
         localMemorySupport_(helper::has_local_memory(q)),
         computeUnits_(helper::get_num_compute_units(q)) {}
 
   template <typename expression_tree_t>
-    event_t execute(expression_tree_t tree);
+  event_t execute(expression_tree_t tree);
 
   template <typename expression_tree_t, typename index_t>
-   event_t execute(expression_tree_t tree, index_t localSize);
+  event_t execute(expression_tree_t tree, index_t localSize);
 
   template <typename expression_tree_t, typename index_t>
-   event_t execute(expression_tree_t tree, index_t localSize,
-                                     index_t globalSize);
+  event_t execute(expression_tree_t tree, index_t localSize,
+                  index_t globalSize);
   template <typename expression_tree_t, typename index_t>
-   event_t execute(expression_tree_t tree, index_t localSize,
-                                     index_t globalSize,
-                                     index_t local_memory_size);
+  event_t execute(expression_tree_t tree, index_t localSize, index_t globalSize,
+                  index_t local_memory_size);
 
   template <typename operator_t, typename lhs_t, typename rhs_t>
-   event_t execute(AssignReduction<operator_t, lhs_t, rhs_t>);
+  event_t execute(AssignReduction<operator_t, lhs_t, rhs_t>);
 
   template <typename operator_t, typename lhs_t, typename rhs_t,
             typename local_memory_t>
-  event_t execute(
-      AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr);
+  event_t execute(AssignReduction<operator_t, lhs_t, rhs_t> t,
+                  local_memory_t scr);
 
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
@@ -102,11 +101,10 @@ using queue_t =cl::sycl::queue;
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
             bool IsFinal, bool IsBetaZero, typename element_t,
             int GemmMemoryType>
-  event_t execute(
-      GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, IsFinal, IsBetaZero, element_t,
-                  GemmMemoryType>
-          gemm_partial);
+  event_t execute(GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
+                              ClSize, tile_type, TransA, TransB, IsFinal,
+                              IsBetaZero, element_t, GemmMemoryType>
+                      gemm_partial);
 
   // Reduction specialization (inner or outer dimension)
   template <typename operator_t, typename params_t, typename input_t,
@@ -114,8 +112,8 @@ using queue_t =cl::sycl::queue;
   event_t execute(
       Reduction<operator_t, params_t, input_t, output_t> reduction_wrapper);
 
-   inline bool has_local_memory() const { return localMemorySupport_; }
-   inline queue_t get_queue() const { return q_; }
+  inline bool has_local_memory() const { return localMemorySupport_; }
+  inline queue_t get_queue() const { return q_; }
 
   inline size_t get_work_group_size() const { return workGroupSize_; }
 
@@ -123,7 +121,9 @@ using queue_t =cl::sycl::queue;
 
   inline void wait() { q_.wait(); }
 
-  inline void wait(std::vector<cl::sycl::event> evs) { cl::sycl::event::wait(evs); }
+  inline void wait(std::vector<cl::sycl::event> evs) {
+    cl::sycl::event::wait(evs);
+  }
 
   inline void wait(cl::sycl::event ev) { cl::sycl::event::wait({ev}); }
 
@@ -136,7 +136,7 @@ using queue_t =cl::sycl::queue;
   void inline wait(first_event_t first_event, next_event_t... next_events) {
     cl::sycl::event::wait(concatenate_vectors(first_event, next_events...));
   }
- 
+
  private:
   queue_t q_;
   const size_t workGroupSize_;

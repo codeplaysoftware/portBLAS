@@ -65,7 +65,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
     _sdsdot(sb_handle, size, sb, inx, static_cast<index_t>(1), iny,
             static_cast<index_t>(1), vr_temp_gpu);
     auto event = blas::helper::copy_to_host(sb_handle.get_queue(), vr_temp_gpu,
-                                                                &vr_temp, 1);
+                                            &vr_temp, 1);
     sb_handle.wait(event);
   }
 

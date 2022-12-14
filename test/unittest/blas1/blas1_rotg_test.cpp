@@ -57,13 +57,16 @@ void run_test(const combination_t<scalar_t> combi) {
     auto event0 = _rotg(sb_handle, device_a, device_b, device_c, device_s);
     sb_handle.wait(event0);
 
-    auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
-    auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
-    auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
-    auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
+    auto event1 =
+        blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
+    auto event2 =
+        blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
+    auto event3 =
+        blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
+    auto event4 =
+        blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
     sb_handle.wait({event1, event2, event3, event4});
-  }
-  else {
+  } else {
     _rotg(sb_handle, a, b, c, s);
   }
 
@@ -82,9 +85,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values(api_type::event, api_type::result),              // Api
+    ::testing::Values(api_type::event, api_type::result),  // Api
     ::testing::Values<scalar_t>(0, 2.5, -7.3,
-                                std::numeric_limits<scalar_t>::max()),    // a
+                                std::numeric_limits<scalar_t>::max()),  // a
     ::testing::Values<scalar_t>(0, 0.5, -4.3,
                                 std::numeric_limits<scalar_t>::lowest())  // b
 );

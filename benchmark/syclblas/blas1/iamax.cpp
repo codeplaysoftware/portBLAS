@@ -64,10 +64,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
       static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
   tuple_scalar_t idx_temp{-1, 0};
   {
-    auto idx_temp_gpu =
-        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
-            &idx_temp, 1);
-    auto event = _iamax(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
+    auto idx_temp_gpu = blas::make_sycl_iterator_buffer<
+        blas::IndexValueTuple<index_t, scalar_t>>(&idx_temp, 1);
+    auto event =
+        _iamax(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
     sb_handle.wait(event);
   }
 

@@ -40,7 +40,7 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t lda_mul;
   std::tie(m, n, alpha, beta, trans, incX, incY, lda_mul) = combi;
 
-  const char *t_str = trans ? "t" : "n";
+  const char* t_str = trans ? "t" : "n";
 
   int a_size = m * n * lda_mul;
   int x_size = trans ? (1 + (m - 1) * incX) : (1 + (n - 1) * incX);
@@ -70,10 +70,10 @@ void run_test(const combination_t<scalar_t> combi) {
       blas::make_sycl_iterator_buffer<scalar_t>(y_v_gpu_result, y_size);
 
   // SYCLGEMV
-  _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX, beta,
-        v_y_gpu, incY);
-  auto event =  blas::helper::copy_to_host(sb_handle.get_queue(),
-      v_y_gpu, y_v_gpu_result.data(), y_size);
+  _gemv(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda_mul * m, v_x_gpu, incX,
+        beta, v_y_gpu, incY);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_y_gpu,
+                                          y_v_gpu_result.data(), y_size);
   sb_handle.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(y_v_gpu_result, y_v_cpu);

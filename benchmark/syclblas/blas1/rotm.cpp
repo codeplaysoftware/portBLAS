@@ -28,8 +28,7 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Rotm<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/";
+  str << "BM_Rotm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
   str << size;
   return str.str();
 }
@@ -75,8 +74,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
 
   _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
         static_cast<index_t>(1), gpu_param);
-  auto event1 =  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v_verify.data(), size);
-  auto event2 =  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v_verify.data(), size);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                           x_v_verify.data(), size);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                           y_v_verify.data(), size);
   sb_handle.wait(event1);
   sb_handle.wait(event2);
 
@@ -95,8 +96,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
-                       static_cast<index_t>(1), gpu_param);
+    auto event = _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1),
+                       gpu_y_v, static_cast<index_t>(1), gpu_param);
     sb_handle.wait(event);
     return event;
   };

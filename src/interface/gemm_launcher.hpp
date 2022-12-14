@@ -42,10 +42,10 @@ template <typename sb_handle_t, typename container_t0, typename container_t1,
 typename sb_handle_t::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType>::_select_gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
-                             element_t _alpha, container_t0 a_, index_t _lda,
-                             container_t1 b_, index_t _ldb, element_t _beta,
-                             container_t2 _C, index_t _ldc,
+    BatchType>::_select_gemm(sb_handle_t& sb_handle, index_t _M, index_t _N,
+                             index_t _K, element_t _alpha, container_t0 a_,
+                             index_t _lda, container_t1 b_, index_t _ldb,
+                             element_t _beta, container_t2 _C, index_t _ldc,
                              index_t batch_size) {
   auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
   auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);

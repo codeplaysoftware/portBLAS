@@ -34,7 +34,6 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incX;
   std::tie(size, incX) = combi;
 
-
   // Input vector
   std::vector<scalar_t> x_v(size * incX);
   fill_random<scalar_t>(x_v);
@@ -59,8 +58,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
 
   _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s);
-  auto event =
-     blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
+  auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                    gpu_out_s, &out_s, 1);
   sb_handle.wait(event);
 
   // Validate the result
@@ -69,10 +68,10 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 10000, 1002400),  // size
-                       ::testing::Values(1, 4)                     // incX
-    );
+const auto combi = ::testing::Combine(::testing::Values(11, 65, 10000,
+                                                        1002400),  // size
+                                      ::testing::Values(1, 4)      // incX
+);
 
 template <class T>
 static std::string generate_name(

@@ -30,4 +30,4 @@
 #include "interface/gemm_launcher.hpp"
 #include "interface/trsm_interface.hpp"
 
-#endif // SYCL_BLAS_BLAS3_INTERFACE_HPP
+#endif  // SYCL_BLAS_BLAS3_INTERFACE_HPP

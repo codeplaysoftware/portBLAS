@@ -130,22 +130,25 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
   auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
 
-  blas::helper::copy_to_device(sb_handle.get_queue(), a_m.data(), m_a_gpu, buffer_size_a);
-  blas::helper::copy_to_device(sb_handle.get_queue(), b_m.data(), m_b_gpu, buffer_size_b);
-  blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu, buffer_size_c);
+  blas::helper::copy_to_device(sb_handle.get_queue(), a_m.data(), m_a_gpu,
+                               buffer_size_a);
+  blas::helper::copy_to_device(sb_handle.get_queue(), b_m.data(), m_b_gpu,
+                               buffer_size_b);
+  blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
+                               buffer_size_c);
 
   // SYCL BLAS GEMM implementation
   if (batch == 1) {
     _gemm(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
   } else {
-    _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-                  m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc, batch,
-                  batch_type);
+    _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset,
+                  lda, m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc,
+                  batch, batch_type);
   }
 
-  auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu, c_m_gpu.data(), buffer_size_c);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
+                                          c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -156,7 +159,6 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
-
 }
 
 template <>

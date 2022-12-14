@@ -69,8 +69,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int t1, int t2,
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
-    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                       beta, c_temp_gpu, ldc);
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_temp_gpu, ldc);
     sb_handle.wait(event);
   }
 
@@ -83,8 +83,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int t1, int t2,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                       beta, c_gpu, ldc);
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_gpu, ldc);
     sb_handle.wait(event);
     return event;
   };

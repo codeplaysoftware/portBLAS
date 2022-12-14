@@ -27,8 +27,8 @@
 #define SYCL_BLAS_REDUCTION_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "sb_handle/sycl_blas_handle.h"
 #include "operations/extension/reduction.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
 
 namespace blas {
@@ -95,8 +95,8 @@ typename sb_handle_t::event_t launch_type_based_reduction(
         reduction_dim == reduction_dim_t::outer ? rows : reduced_group_count;
     const index_t temp_cols =
         reduction_dim == reduction_dim_t::outer ? reduced_group_count : cols;
-    auto temp_ = make_matrix_view<col_major>(temp_buffer, temp_rows,
-                                             temp_cols, temp_rows);
+    auto temp_ = make_matrix_view<col_major>(temp_buffer, temp_rows, temp_cols,
+                                             temp_rows);
 
     /* 1st step */
     auto reduction =
@@ -108,8 +108,8 @@ typename sb_handle_t::event_t launch_type_based_reduction(
     auto reduction_step_2 =
         blas::make_reduction<typename get_second_step_op<operator_t>::type,
                              params_t>(temp_, matrix_buffer_out);
-    reduction_event =
-        concatenate_vectors(reduction_event, sb_handle.execute(reduction_step_2));
+    reduction_event = concatenate_vectors(reduction_event,
+                                          sb_handle.execute(reduction_step_2));
   } else {
     /* 1-step reduction */
     auto reduction = blas::make_reduction<operator_t, params_t>(
@@ -123,17 +123,19 @@ typename sb_handle_t::event_t launch_type_based_reduction(
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
-typename sb_handle_t::event_t _reduction(
-    sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
-    index_t rows, index_t cols, reduction_dim_t reduction_dim) {
+typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
+                                         input_t buffer_in, index_t ld,
+                                         output_t buffer_out, index_t rows,
+                                         index_t cols,
+                                         reduction_dim_t reduction_dim) {
   if (reduction_dim == reduction_dim_t::inner) {
     return launch_type_based_reduction<operator_t, reduction_dim_t::inner,
-                                       element_t>(sb_handle, buffer_in, ld, buffer_out,
-                                                  rows, cols);
+                                       element_t>(sb_handle, buffer_in, ld,
+                                                  buffer_out, rows, cols);
   } else {  // reduction_dim_t::outer
     return launch_type_based_reduction<operator_t, reduction_dim_t::outer,
-                                       element_t>(sb_handle, buffer_in, ld, buffer_out,
-                                                  rows, cols);
+                                       element_t>(sb_handle, buffer_in, ld,
+                                                  buffer_out, rows, cols);
   }
 }
 

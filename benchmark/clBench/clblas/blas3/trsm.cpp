@@ -64,10 +64,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   clblasTranspose transA =
       blas_benchmark::utils::translate_transposition(&transpose);
   clblasSide sideA = blas_benchmark::utils::translate_side(&side);
-  clblasUplo triangleA =
-      blas_benchmark::utils::translate_triangle(&triangle);
-  clblasDiag diagA =
-      blas_benchmark::utils::translate_diagonal(&diagonal);
+  clblasUplo triangleA = blas_benchmark::utils::translate_triangle(&triangle);
+  clblasDiag diagA = blas_benchmark::utils::translate_diagonal(&diagonal);
 
   if (clblasSetup() != CL_SUCCESS) {
     state.SkipWithError("error initiazing clblas");
@@ -90,8 +88,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   err = clEnqueueWriteBuffer(executorPtr->queue(), a_gpu, CL_TRUE, 0,
                              sizeA * sizeof(scalar_t), a.data(), 0, nullptr,
                              nullptr);
-  err =
-      clEnqueueWriteBuffer(executorPtr->queue(), b_gpu, CL_TRUE, 0,
+  err = clEnqueueWriteBuffer(executorPtr->queue(), b_gpu, CL_TRUE, 0,
                              sizeB * sizeof(scalar_t), b.data(), 0, nullptr,
                              nullptr);
 

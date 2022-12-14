@@ -5,8 +5,8 @@
 #include <chrono>
 #include <tuple>
 
-#include <common/common_utils.hpp>
 #include "sycl_blas.h"
+#include <common/common_utils.hpp>
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`

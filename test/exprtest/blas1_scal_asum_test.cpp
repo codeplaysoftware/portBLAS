@@ -62,8 +62,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(1);
 
   // Copy input data from host to device
-  auto xcp_ev =
-     blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(), gpu_x_v, x_dim);
+  auto xcp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(),
+                                             gpu_x_v, x_dim);
   sb_handle.wait(xcp_ev);
 
   // Dimensions of vector view for ASUM operations
@@ -90,7 +90,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Copy the result back to host memory
   auto getResultEv =
-     blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, v_y.data(), 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, v_y.data(), 1);
   sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::almost_equal(cpu_y, v_y[0]));

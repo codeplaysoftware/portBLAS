@@ -29,7 +29,6 @@
 
 #include "container/sycl_iterator.h"
 
-
 namespace blas {
 
 /*!

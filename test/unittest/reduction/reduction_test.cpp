@@ -79,10 +79,8 @@ void run_test(const combination_t<scalar_t> combi) {
   reduction_dim_t reduction_dim;
   std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
 
-
   auto q = make_queue();
   test_sb_handle_t sb_handle(q);
-
 
   index_t ld = rows * ld_mul;
 
@@ -211,8 +209,8 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
-  auto event = blas::helper::copy_to_host<scalar_t>(
-      v_out_gpu, out_v_gpu.data(), out_size);
+  auto event = blas::helper::copy_to_host<scalar_t>(v_out_gpu, out_v_gpu.data(),
+                                                    out_size);
   sb_handle.wait({event});
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));

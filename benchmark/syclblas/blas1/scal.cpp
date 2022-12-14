@@ -57,7 +57,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t size,
   std::vector<scalar_t> v1_temp = v1;
   {
     auto v1_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v1_temp, size);
-    auto event = _scal(sb_handle, size, alpha, v1_temp_gpu, static_cast<index_t>(1));
+    auto event =
+        _scal(sb_handle, size, alpha, v1_temp_gpu, static_cast<index_t>(1));
     sb_handle.wait(event);
   }
 

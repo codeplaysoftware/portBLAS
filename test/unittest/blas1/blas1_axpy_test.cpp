@@ -56,8 +56,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
 
   _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
-  auto event =
-    blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                          y_v.data(), size * incY);
   sb_handle.wait(event);
 
   // Validate the result

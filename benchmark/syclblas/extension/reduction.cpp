@@ -88,8 +88,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t rows,
 
     extension::_reduction<AddOperator, scalar_t>(
         sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
-    auto event =  blas::helper::copy_to_host(sb_handle.get_queue(),
-        vec_temp_buffer, vec_temp.data(), vec_temp.size());
+    auto event =
+        blas::helper::copy_to_host(sb_handle.get_queue(), vec_temp_buffer,
+                                   vec_temp.data(), vec_temp.size());
     sb_handle.wait(event);
   }
 

@@ -208,42 +208,45 @@ struct MatrixView {
 template <typename scalar_t, typename container_t, typename index_t,
           typename increment_t>
 struct VectorViewTypeFactory {
-  using output_t =
-      VectorView<scalar_t,
-                 container_t,
-                 index_t, increment_t>;
+  using output_t = VectorView<scalar_t, container_t, index_t, increment_t>;
 };
 
 template <typename scalar_t, typename container_t, typename index_t,
           typename access_mode_t>
 struct MatrixViewTypeFactory {
-  using output_t =
-      MatrixView<scalar_t, container_t,
-                 index_t, access_mode_t>;
+  using output_t = MatrixView<scalar_t, container_t, index_t, access_mode_t>;
 };
 
-template <typename scalar_t, typename increment_t,
-          typename index_t>
-static inline auto 
-    make_vector_view(BufferIterator<scalar_t> buff, increment_t inc,
-                     index_t sz) {
-    static constexpr cl::sycl::access::mode access_mode_t = Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode, cl::sycl::access::mode::read, cl::sycl::access::mode::read_write>::type;
-  using leaf_node_t =
-      typename VectorViewTypeFactory<scalar_t, typename BufferIterator<scalar_t>::template default_accessor_t<access_mode_t>,
-                                     index_t, increment_t>::output_t;
-  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), (index_t)buff.get_offset(), inc, sz};
+template <typename scalar_t, typename increment_t, typename index_t>
+static inline auto make_vector_view(BufferIterator<scalar_t> buff,
+                                    increment_t inc, index_t sz) {
+  static constexpr cl::sycl::access::mode access_mode_t =
+      Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
+             cl::sycl::access::mode::read,
+             cl::sycl::access::mode::read_write>::type;
+  using leaf_node_t = typename VectorViewTypeFactory<
+      scalar_t,
+      typename BufferIterator<scalar_t>::template default_accessor_t<
+          access_mode_t>,
+      index_t, increment_t>::output_t;
+  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(),
+                     (index_t)buff.get_offset(), inc, sz};
 }
 
-template <typename access_layout_t, typename scalar_t,
-          typename index_t>
-static inline auto
-    make_matrix_view(BufferIterator<scalar_t> buff, index_t m, index_t n,
-                     index_t lda) {
-  static constexpr cl::sycl::access::mode access_mode_t = Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode, cl::sycl::access::mode::read, cl::sycl::access::mode::read_write>::type;
-  using leaf_node_t =
-      typename MatrixViewTypeFactory<scalar_t, typename BufferIterator<scalar_t>::template default_accessor_t<access_mode_t>,
-                                     index_t, access_layout_t>::output_t;
-  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n, lda, (index_t)buff.get_offset()};
+template <typename access_layout_t, typename scalar_t, typename index_t>
+static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
+                                    index_t n, index_t lda) {
+  static constexpr cl::sycl::access::mode access_mode_t =
+      Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
+             cl::sycl::access::mode::read,
+             cl::sycl::access::mode::read_write>::type;
+  using leaf_node_t = typename MatrixViewTypeFactory<
+      scalar_t,
+      typename BufferIterator<scalar_t>::template default_accessor_t<
+          access_mode_t>,
+      index_t, access_layout_t>::output_t;
+  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
+                     lda, (index_t)buff.get_offset()};
 }
 
 }  // namespace blas

@@ -33,11 +33,11 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "sb_handle/sycl_blas_handle.h"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
+#include "sb_handle/sycl_blas_handle.h"
 
 namespace blas {
 namespace internal {
@@ -54,9 +54,10 @@ namespace internal {
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _axpy(
-    sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
-    increment_t _incx, container_1_t _vy, increment_t _incy) {
+typename sb_handle_t::event_t _axpy(sb_handle_t &sb_handle, index_t _N,
+                                    element_t _alpha, container_0_t _vx,
+                                    increment_t _incx, container_1_t _vy,
+                                    increment_t _incy) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
 
@@ -79,10 +80,8 @@ typename sb_handle_t::event_t _axpy(
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
 typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy) {
+                                    container_0_t _vx, increment_t _incx,
+                                    container_1_t _vy, increment_t _incy) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
@@ -110,9 +109,10 @@ typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _dot(
-    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _vy, increment_t _incy, container_2_t _rs) {
+typename sb_handle_t::event_t _dot(sb_handle_t &sb_handle, index_t _N,
+                                   container_0_t _vx, increment_t _incx,
+                                   container_1_t _vy, increment_t _incy,
+                                   container_2_t _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -150,9 +150,10 @@ typename sb_handle_t::event_t _dot(
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _sdsdot(
-    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx, increment_t _incx,
-    container_1_t _vy, increment_t _incy, container_2_t _rs) {
+typename sb_handle_t::event_t _sdsdot(sb_handle_t &sb_handle, index_t _N,
+                                      float sb, container_0_t _vx,
+                                      increment_t _incx, container_1_t _vy,
+                                      increment_t _incy, container_2_t _rs) {
   typename sb_handle_t::event_t dot_event{};
 
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -174,9 +175,8 @@ typename sb_handle_t::event_t _sdsdot(
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _rs) {
+                                    container_0_t _vx, increment_t _incx,
+                                    container_1_t _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
@@ -197,9 +197,8 @@ typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamax(sb_handle_t &sb_handle, index_t _N,
-                                              container_t _vx,
-                                              increment_t _incx,
-                                              ContainerI _rs) {
+                                     container_t _vx, increment_t _incx,
+                                     ContainerI _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
@@ -220,9 +219,8 @@ typename sb_handle_t::event_t _iamax(sb_handle_t &sb_handle, index_t _N,
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamin(sb_handle_t &sb_handle, index_t _N,
-                                              container_t _vx,
-                                              increment_t _incx,
-                                              ContainerI _rs) {
+                                     container_t _vx, increment_t _incx,
+                                     ContainerI _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
@@ -248,10 +246,8 @@ typename sb_handle_t::event_t _iamin(sb_handle_t &sb_handle, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _swap(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy) {
+                                    container_0_t _vx, increment_t _incx,
+                                    container_1_t _vy, increment_t _incy) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto swapOp = make_op<DoubleAssign>(vy, vx, vx, vy);
@@ -269,9 +265,8 @@ typename sb_handle_t::event_t _swap(sb_handle_t &sb_handle, index_t _N,
 template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _scal(sb_handle_t &sb_handle, index_t _N,
-                                             element_t _alpha,
-                                             container_0_t _vx,
-                                             increment_t _incx) {
+                                    element_t _alpha, container_0_t _vx,
+                                    increment_t _incx) {
   auto vx = make_vector_view(_vx, _incx, _N);
   if (_alpha == element_t{0}) {
     auto zeroOp = make_op<UnaryOp, AdditionIdentity>(vx);
@@ -295,9 +290,8 @@ typename sb_handle_t::event_t _scal(sb_handle_t &sb_handle, index_t _N,
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _rs) {
+                                    container_0_t _vx, increment_t _incx,
+                                    container_1_t _rs) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
@@ -330,9 +324,10 @@ typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _rot(
-    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin) {
+typename sb_handle_t::event_t _rot(sb_handle_t &sb_handle, index_t _N,
+                                   container_0_t _vx, increment_t _incx,
+                                   container_1_t _vy, increment_t _incy,
+                                   element_t _cos, element_t _sin) {
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_cos, vx);
@@ -354,7 +349,8 @@ typename sb_handle_t::event_t _rot(
  * [xi] = [h11 h12] * [xi]
  * [yi]   [h21 h22]   [yi]
  *
- * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ * where h11, h12, h21 and h22 represent the modified Givens transformation
+ * matrix.
  *
  * The value of the flag parameter can be used to modify the matrix as follows:
  *
@@ -373,14 +369,16 @@ typename sb_handle_t::event_t _rot(
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
+ * h22].
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _rotm(
-    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _vy, increment_t _incy, container_2_t _param) {
+typename sb_handle_t::event_t _rotm(sb_handle_t &sb_handle, index_t _N,
+                                    container_0_t _vx, increment_t _incx,
+                                    container_1_t _vy, increment_t _incy,
+                                    container_2_t _param) {
   using element_t = typename ValueType<container_0_t>::type;
 
   auto vx = make_vector_view(_vx, _incx, _N);
@@ -392,8 +390,8 @@ typename sb_handle_t::event_t _rotm(
   /* This implementation can be further optimized for small input vectors by
    * creating a custom kernel that modifies param instead of copying it back to
    * the host */
-  auto copy_event =  blas::helper::copy_to_host(sb_handle.get_queue(),
-      _param, param_host.data(), param_size);
+  auto copy_event = blas::helper::copy_to_host(sb_handle.get_queue(), _param,
+                                               param_host.data(), param_size);
   sb_handle.wait(copy_event);
 
   const element_t flag = param_host[0];
@@ -469,10 +467,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename container_3_t,
           typename container_4_t>
 typename sb_handle_t::event_t _rotmg(sb_handle_t &sb_handle, container_0_t _d1,
-                                              container_1_t _d2,
-                                              container_2_t _x1,
-                                              container_3_t _y1,
-                                              container_4_t _param) {
+                                     container_1_t _d2, container_2_t _x1,
+                                     container_3_t _y1, container_4_t _param) {
   constexpr int inc = 1;
   constexpr int vector_size = 1;
   constexpr int param_size = 5;
@@ -507,12 +503,13 @@ typename sb_handle_t::event_t _rotmg(sb_handle_t &sb_handle, container_0_t _d1,
  * @param s[out] Buffer holding the parameter s.
  * @return Vector of events to wait for.
  */
-template <typename sb_handle_t, typename container_0_t, typename container_1_t,
-          typename container_2_t, typename container_3_t,
-          typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type>
+template <
+    typename sb_handle_t, typename container_0_t, typename container_1_t,
+    typename container_2_t, typename container_3_t,
+    typename std::enable_if<!is_sycl_scalar<container_0_t>::value, bool>::type>
 typename sb_handle_t::event_t _rotg(sb_handle_t &sb_handle, container_0_t a,
-                                             container_1_t b, container_2_t c,
-                                             container_3_t s) {
+                                    container_1_t b, container_2_t c,
+                                    container_3_t s) {
   auto a_view = make_vector_view(a, 1, 1);
   auto b_view = make_vector_view(b, 1, 1);
   auto c_view = make_vector_view(c, 1, 1);
@@ -538,23 +535,28 @@ typename sb_handle_t::event_t _rotg(sb_handle_t &sb_handle, container_0_t a,
  */
 template <typename sb_handle_t, typename scalar_t,
           typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type>
-void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c, scalar_t &s) {
+void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
+           scalar_t &s) {
   auto device_a = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_b = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_c = make_sycl_iterator_buffer<scalar_t>(1);
   auto device_s = make_sycl_iterator_buffer<scalar_t>(1);
-   blas::helper::copy_to_device(sb_handle.get_queue(), &a, device_a, 1);
-   blas::helper::copy_to_device(sb_handle.get_queue(), &b, device_b, 1);
-   blas::helper::copy_to_device(sb_handle.get_queue(), &c, device_c, 1);
-   blas::helper::copy_to_device(sb_handle.get_queue(), &s, device_s, 1);
+  blas::helper::copy_to_device(sb_handle.get_queue(), &a, device_a, 1);
+  blas::helper::copy_to_device(sb_handle.get_queue(), &b, device_b, 1);
+  blas::helper::copy_to_device(sb_handle.get_queue(), &c, device_c, 1);
+  blas::helper::copy_to_device(sb_handle.get_queue(), &s, device_s, 1);
 
   auto event =
       blas::internal::_rotg(sb_handle, device_a, device_b, device_c, device_s);
 
-  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
-  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
-  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
-  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
+  auto event1 =
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
+  auto event2 =
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
+  auto event3 =
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
+  auto event4 =
+      blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
 
   sb_handle.wait(event1);
   sb_handle.wait(event2);
@@ -617,18 +619,17 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &sb_handle, index_t _N,
-                                                float sb, container_0_t _vx,
-                                                increment_t _incx,
-                                                container_1_t _vy,
-                                                increment_t _incy) {
+typename ValueType<container_0_t>::type _sdsdot(
+    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy) {
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{};
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
-  auto event1 =
-      blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy, gpu_res);
+  auto event1 = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy,
+                                        _incy, gpu_res);
   sb_handle.wait(event1);
-  auto event2 =  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
+  auto event2 =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
   sb_handle.wait(event2);
   return res;
 }
@@ -640,7 +641,8 @@ typename ValueType<container_0_t>::type _sdsdot(sb_handle_t &sb_handle, index_t 
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
+               increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
@@ -658,7 +660,8 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t 
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
+               increment_t _incx) {
   using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
@@ -685,7 +688,7 @@ typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res);
-   blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   return res[0];
 }
 
@@ -705,7 +708,7 @@ typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res);
-   blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   return res[0];
 }
 

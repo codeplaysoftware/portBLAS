@@ -28,12 +28,14 @@
 template <typename scalar_t>
 std::string get_name() {
   std::ostringstream str{};
-  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/";
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr,
+         bool* success) {
   // Create data
   constexpr size_t param_size = 5;
   std::vector<scalar_t> param = std::vector<scalar_t>(param_size);
@@ -72,18 +74,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, bool* success) 
       blas::make_sycl_iterator_buffer<scalar_t>(param_verify, param_size);
 
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
-  _rotmg(sb_handle, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1, device_param);
+  _rotmg(sb_handle, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1,
+         device_param);
 
-  auto event1 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d1, &d1_verify, 1);
-  auto event2 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d2, &d2_verify, 1);
-  auto event3 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_x1, &x1_verify, 1);
-  auto event4 =
-      blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_y1, &y1_verify, 1);
-  auto event5 =  blas::helper::copy_to_host(sb_handle.get_queue(),
-      device_param, param_verify.data(), param_size);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d1,
+                                           &d1_verify, 1);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d2,
+                                           &d2_verify, 1);
+  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_x1,
+                                           &x1_verify, 1);
+  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_y1,
+                                           &y1_verify, 1);
+  auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), device_param,
+                                           param_verify.data(), param_size);
 
   sb_handle.wait(event1);
   sb_handle.wait(event2);

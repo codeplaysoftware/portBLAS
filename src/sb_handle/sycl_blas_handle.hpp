@@ -29,11 +29,11 @@
 #include <algorithm>
 
 #include "blas_meta.h"
-#include "sb_handle/sycl_blas_handle.h"
-#include "sb_handle/kernel_constructor.h"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_operators.hpp"
+#include "sb_handle/kernel_constructor.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
 #include "views/view.h"
 
@@ -43,15 +43,14 @@ namespace blas {
  * @brief Executes the tree without defining required shared memory.
  */
 template <typename expression_tree_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(expression_tree_t t) {
-  const auto localSize =get_work_group_size();
+inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t) {
+  const auto localSize = get_work_group_size();
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
 
-  return {execute_tree<using_local_memory::disabled>(
-      get_queue(), t, localSize, globalSize, 0)};
+  return {execute_tree<using_local_memory::disabled>(get_queue(), t, localSize,
+                                                     globalSize, 0)};
 };
 
 /*!
@@ -59,14 +58,13 @@ SB_Handle::execute(expression_tree_t t) {
  * required shared memory.
  */
 template <typename expression_tree_t, typename index_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(expression_tree_t t,
-                                                  index_t localSize) {
+inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
+                                                      index_t localSize) {
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
-  return {execute_tree<using_local_memory::disabled>(
-      q_, t, localSize, globalSize, 0)};
+  return {execute_tree<using_local_memory::disabled>(q_, t, localSize,
+                                                     globalSize, 0)};
 };
 
 /*!
@@ -74,12 +72,11 @@ SB_Handle::execute(expression_tree_t t,
  * required shared memory.
  */
 template <typename expression_tree_t, typename index_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(expression_tree_t t,
-                                                  index_t localSize,
-                                                  index_t globalSize) {
-  return {execute_tree<using_local_memory::disabled>(
-      q_, t, localSize, globalSize, 0)};
+inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
+                                                      index_t localSize,
+                                                      index_t globalSize) {
+  return {execute_tree<using_local_memory::disabled>(q_, t, localSize,
+                                                     globalSize, 0)};
 }
 
 /*!
@@ -87,21 +84,19 @@ SB_Handle::execute(expression_tree_t t,
  * memory values.
  */
 template <typename expression_tree_t, typename index_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(expression_tree_t t,
-                                                  index_t localSize,
-                                                  index_t globalSize,
-                                                  index_t shMem) {
-  return {execute_tree<using_local_memory::enabled>(
-      q_, t, localSize, globalSize, shMem)};
+inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
+                                                      index_t localSize,
+                                                      index_t globalSize,
+                                                      index_t shMem) {
+  return {execute_tree<using_local_memory::enabled>(q_, t, localSize,
+                                                    globalSize, shMem)};
 }
 
 /*!
  * @brief Applies a reduction to a tree.
  */
 template <typename operator_t, typename lhs_t, typename rhs_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
@@ -118,9 +113,13 @@ SB_Handle::execute(
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
   auto shMem1 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
   auto shMem2 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
- 
-  auto opShMem1 = lhs_t(shMem1.template get_range_accessor<cl::sycl::access::mode::read_write>(),  (typename lhs_t::index_t)shMem1.get_offset(), 1, sharedSize);
-  auto opShMem2 = lhs_t(shMem2.template get_range_accessor<cl::sycl::access::mode::read_write>(),  (typename lhs_t::index_t)shMem2.get_offset(), 1, sharedSize);
+
+  auto opShMem1 = lhs_t(
+      shMem1.template get_range_accessor<cl::sycl::access::mode::read_write>(),
+      (typename lhs_t::index_t)shMem1.get_offset(), 1, sharedSize);
+  auto opShMem2 = lhs_t(
+      shMem2.template get_range_accessor<cl::sycl::access::mode::read_write>(),
+      (typename lhs_t::index_t)shMem2.get_offset(), 1, sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;
@@ -131,16 +130,14 @@ SB_Handle::execute(
       auto localTree = expression_tree_t(((nWG == 1) ? lhs : opShMem1), rhs,
                                          localSize, globalSize);
       event.push_back(execute_tree<using_local_memory::enabled>(
-          q_, localTree, localSize, globalSize,
-          sharedSize));
+          q_, localTree, localSize, globalSize, sharedSize));
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
       auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
           ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
           (even ? opShMem1 : opShMem2), localSize, globalSize);
       event.push_back(execute_tree<using_local_memory::enabled>(
-          q_, localTree, localSize, globalSize,
-          sharedSize));
+          q_, localTree, localSize, globalSize, sharedSize));
     }
     _N = nWG;
     nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -156,8 +153,7 @@ SB_Handle::execute(
  */
 template <typename operator_t, typename lhs_t, typename rhs_t,
           typename local_memory_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
@@ -184,16 +180,14 @@ SB_Handle::execute(
       auto localTree = expression_tree_t(((nWG == 1) ? lhs : opShMem1), rhs,
                                          localSize, globalSize);
       event.push_back(execute_tree<using_local_memory::enabled>(
-          q_, localTree, localSize, globalSize,
-          sharedSize));
+          q_, localTree, localSize, globalSize, sharedSize));
     } else {
       // THE OTHER CASES ALWAYS USE THE BINARY FUNCTION
       auto localTree = AssignReduction<operator_t, lhs_t, lhs_t>(
           ((nWG == 1) ? lhs : (even ? opShMem2 : opShMem1)),
           (even ? opShMem1 : opShMem2), localSize, globalSize);
       event.push_back(execute_tree<using_local_memory::enabled>(
-          q_, localTree, localSize, globalSize,
-          sharedSize));
+          q_, localTree, localSize, globalSize, sharedSize));
     }
     _N = nWG;
     nWG = (_N + (2 * localSize) - 1) / (2 * localSize);
@@ -208,8 +202,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
          GemmVectorization, VectorSize, BatchType>
@@ -222,8 +215,8 @@ SB_Handle::execute(
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
-      q_, gemm_tree, rng.get_local_range()[0],
-      rng.get_global_range()[0], gemm_t::local_memory_size)};
+      q_, gemm_tree, rng.get_local_range()[0], rng.get_global_range()[0],
+      gemm_t::local_memory_size)};
 }
 
 /* Tall and skinny Gemm */
@@ -231,8 +224,7 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmVectorization, int VectorSize, int BatchType>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
          static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
@@ -245,11 +237,11 @@ SB_Handle::execute(
   const index_t ldc = gemm_wrapper.ldc_;
 
   /* Depth of the cube buffer */
-  const index_t depth = GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
-                                    ClSize, tile_type, TransA, TransB, false,
-                                    is_beta_zero, element_t, GemmMemoryType>::
-      get_ideal_cube_depth(SB_Handle::get_num_compute_units(), rows, cols,
-                           gemm_wrapper.k_);
+  const index_t depth = GemmPartial<
+      input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+      TransB, false, is_beta_zero, element_t,
+      GemmMemoryType>::get_ideal_cube_depth(SB_Handle::get_num_compute_units(),
+                                            rows, cols, gemm_wrapper.k_);
 
   /* In some cases, use the tsgemm kernel as a normal gemm operation */
   if (depth == 1 || gemm_wrapper.k_ <= 2048) {
@@ -280,7 +272,8 @@ SB_Handle::execute(
   auto events = execute(gemm_partial);
 
   /* Create a second view used for the reduction */
-  auto cube_reduction = make_matrix_view<col_major>( cube_buffer, rows * cols, depth, rows * cols);
+  auto cube_reduction =
+      make_matrix_view<col_major>(cube_buffer, rows * cols, depth, rows * cols);
   using CubeType = decltype(cube_reduction);
   constexpr auto reductions_per_thread = 64;
   constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
@@ -299,8 +292,7 @@ SB_Handle::execute(
   else {
     /* Create a temporary buffer to hold alpha * A * B */
     auto temp_buffer = make_sycl_iterator_buffer<element_t>(rows * cols);
-    auto temp =
-        make_matrix_view<col_major>(temp_buffer, rows, cols, rows);
+    auto temp = make_matrix_view<col_major>(temp_buffer, rows, cols, rows);
 
     /* Execute the reduction */
     Reduction<blas::AddOperator, params_t, CubeType, output_t> reduction(
@@ -329,8 +321,7 @@ SB_Handle::execute(
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
         gemm_partial) {
@@ -339,8 +330,7 @@ SB_Handle::execute(
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
-      q_, gemm_partial,
-      gemm_partial_range.get_local_range()[0],
+      q_, gemm_partial, gemm_partial_range.get_local_range()[0],
       gemm_partial_range.get_global_range()[0],
       gemm_partial.local_memory_size)};
 }
@@ -348,11 +338,9 @@ SB_Handle::execute(
 /* ReductionPartial */
 template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
-inline typename SB_Handle::event_t
-SB_Handle::execute(
+inline typename SB_Handle::event_t SB_Handle::execute(
     Reduction<operator_t, params_t, input_t, output_t> reduction) {
-  auto step_range =
-      reduction.get_nd_range(SB_Handle::get_num_compute_units());
+  auto step_range = reduction.get_nd_range(SB_Handle::get_num_compute_units());
 
   return {execute_tree<using_local_memory::enabled>(
       q_, reduction, step_range.get_local_range()[0],

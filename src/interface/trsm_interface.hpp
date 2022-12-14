@@ -25,9 +25,9 @@
 #define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "sb_handle/sycl_blas_handle.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
+#include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
 
 namespace blas {
@@ -104,11 +104,9 @@ namespace internal {
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
-                                             char uplo, char trans,
-                                             char diag, index_t M,
-                                             index_t N, element_t alpha,
-                                             container_0_t A, index_t lda,
-                                             container_1_t B, index_t ldb) {
+                                    char uplo, char trans, char diag, index_t M,
+                                    index_t N, element_t alpha, container_0_t A,
+                                    index_t lda, container_1_t B, index_t ldb) {
   // Makes sure all dimensions are larger than zero
   if ((M == 0) || (N == 0) || (lda == 0) || (ldb == 0)) {
     throw std::invalid_argument("invalid matrix size argument");
@@ -141,14 +139,14 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   constexpr index_t blockSize = 16;
 
   typename sb_handle_t::event_t trsmEvents;
-   
+
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
-  std::vector<cl::sycl::event> event ={blas::helper::fill(sb_handle.get_queue(), invA, element_t{0}, invASize)};
-  trsmEvents = concatenate_vectors(
-      trsmEvents, event);
+  std::vector<cl::sycl::event> event = {
+      blas::helper::fill(sb_handle.get_queue(), invA, element_t{0}, invASize)};
+  trsmEvents = concatenate_vectors(trsmEvents, event);
 
   // Create the matrix views from the input buffers
   auto bufferA = make_matrix_view<col_major>(A, K, K, lda);
@@ -194,8 +192,8 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   const index_t BSize = ldb * (N - 1) + M;
   const index_t ldx = ldb;
   auto X = make_sycl_iterator_buffer<element_t>(BSize);
-  trsmEvents =
-      concatenate_vectors(trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1));
+  trsmEvents = concatenate_vectors(
+      trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -216,11 +214,11 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
       // True when (lower triangular) or (upper triangular and transposed)
       for (index_t i = 0; i < M; i += blockSize) {
         const index_t currentBlockSize = std::min(M - i, blockSize);
-        auto gemmEvent = internal::_gemm(sb_handle, isTranspose ? 't' : 'n', 'n',
-                                         currentBlockSize, N, currentBlockSize,
-                                         (i == 0) ? alpha : element_t{1},
-                                         invA + i * blockSize, blockSize, B + i,
-                                         ldb, element_t{0}, X + i, ldx);
+        auto gemmEvent = internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
+            currentBlockSize, (i == 0) ? alpha : element_t{1},
+            invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
+            ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) >= M) {
@@ -230,10 +228,10 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
         const std::ptrdiff_t offsetA = !isTranspose
                                            ? ((i + blockSize) + (i * lda))
                                            : (i + (blockSize + i) * lda);
-        internal::_gemm(sb_handle, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
-                        blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
-                        (i == 0) ? alpha : element_t{1}, B + i + blockSize,
-                        ldb);
+        internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
+            blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
+            (i == 0) ? alpha : element_t{1}, B + i + blockSize, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     } else {
@@ -257,11 +255,11 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
       for (index_t i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
-        auto gemmEvent = internal::_gemm(sb_handle, isTranspose ? 't' : 'n', 'n',
-                                         currentBlockSize, N, currentBlockSize,
-                                         (i == iStart) ? alpha : element_t{1},
-                                         invA + i * blockSize, blockSize, B + i,
-                                         ldb, element_t{0}, X + i, ldx);
+        auto gemmEvent = internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
+            currentBlockSize, (i == iStart) ? alpha : element_t{1},
+            invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
+            ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
@@ -349,8 +347,8 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
                                           ? (i + (blockSize + i) * lda)
                                           : (i + blockSize) + (i * lda);
         gemmEvent = internal::_gemm(
-            sb_handle, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize, blockSize,
-            element_t{-1}, X + i * ldx, ldx, A + offset, lda,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize,
+            blockSize, element_t{-1}, X + i * ldx, ldx, A + offset, lda,
             (i == 0) ? alpha : element_t{1}, B + (i + blockSize) * ldb, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
@@ -358,8 +356,8 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   }
 
   // Copy bufferX to bufferB as the TRSM result
-  trsmEvents =
-      concatenate_vectors(trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1));
+  trsmEvents = concatenate_vectors(
+      trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1));
 
   return trsmEvents;
 }
