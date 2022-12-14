@@ -149,7 +149,7 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
   auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
 
-  for (auto p : gemm_params) {
+  for (auto p : gbmv_params) {
     std::string ts;
     index_t m, n;
     scalar_t alpha, beta;
