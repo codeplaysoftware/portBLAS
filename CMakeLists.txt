@@ -190,10 +190,7 @@ if (INSTALL_HEADER_ONLY)
     FILES_MATCHING PATTERN "*.hpp"
   )
 endif()
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/computecpp-sdk/include/vptr
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-  COMPONENT sycl_blas
-)
+
 install(FILES ${version_file} DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(EXPORT sycl_blas
   DESTINATION ${CMAKE_INSTALL_PREFIX}
