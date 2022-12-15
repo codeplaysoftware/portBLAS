@@ -21,24 +21,16 @@ find_path(SyclBLAS_SRC_DIR
   DOC "The SyclBLAS source directory"
 )
 
-find_path(SyclBLAS_VPTR_INCLUDE_DIR
-  NAMES vptr/virtual_ptr.hpp
-  PATH_SUFFIXES external/computecpp-sdk/include
-  HINTS ${SyclBLAS_DIR}
-  DOC "The SyclBLAS virtual pointer include directory"
-)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SyclBLAS
   FOUND_VAR SyclBLAS_FOUND
   REQUIRED_VARS SyclBLAS_INCLUDE_DIR
                 SyclBLAS_SRC_DIR
-                SyclBLAS_VPTR_INCLUDE_DIR
 )
 
 mark_as_advanced(SyclBLAS_FOUND
                  SyclBLAS_SRC_DIR
-                 SyclBLAS_VPTR_INCLUDE_DIR
                  SyclBLAS_INCLUDE_DIR
 )
 
@@ -46,7 +38,6 @@ if(SyclBLAS_FOUND)
   set(SyclBLAS_INCLUDE_DIRS
     ${SyclBLAS_INCLUDE_DIR}
     ${SyclBLAS_SRC_DIR}
-    ${SyclBLAS_VPTR_INCLUDE_DIR}
   )
 endif()
 
