@@ -60,7 +60,7 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(a_m);
   fill_random(x_v);
 
-  // SYSTEM GEMMV
+  // SYSTEM GBMV
   reference_blas::gbmv(t_str, m, n, kl, ku, alpha, a_m.data(),
                        (kl + ku + 1) * lda_mul, x_v.data(), incX, beta,
                        y_v_cpu.data(), incY);
