@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas_Handle.h
+ *  @filename sycl_blas_handle.h
  *
  **************************************************************************/
 
