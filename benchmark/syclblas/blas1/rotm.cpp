@@ -78,8 +78,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                                            x_v_verify.data(), size);
   auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
                                            y_v_verify.data(), size);
-  sb_handle.wait(event1);
-  sb_handle.wait(event2);
+  sb_handle.wait({event1, event2});
 
   // Verify results
   std::ostringstream err_stream;
@@ -122,8 +121,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto rotm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : rotm_params) {
@@ -137,8 +136,8 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

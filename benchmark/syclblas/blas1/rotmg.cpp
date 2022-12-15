@@ -88,11 +88,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), device_param,
                                            param_verify.data(), param_size);
 
-  sb_handle.wait(event1);
-  sb_handle.wait(event2);
-  sb_handle.wait(event3);
-  sb_handle.wait(event4);
-  sb_handle.wait(event5);
+  sb_handle.wait({event1, event2, event3, event4, event5});
 
   const bool isAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
                              utils::almost_equal(d2_verify, d2_ref) &&
@@ -133,17 +129,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
-                       bool* success) { run<scalar_t>(st, sb_handle_ptr, success); };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, sb_handle_ptr,
-                               success);
+                       bool* success) {
+    run<scalar_t>(st, sb_handle_ptr, success);
+  };
+  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
+                               sb_handle_ptr, success);
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark
