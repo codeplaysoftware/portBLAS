@@ -72,7 +72,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto v_y_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(y_v_gpu_result, y_size);
 
-  // SYCLGEMV
+  // SYCLGBMV
   _gbmv(ex, *t_str, m, n, kl, ku, alpha, m_a_gpu, (kl + ku + 1) * lda_mul,
         v_x_gpu, incX, beta, v_y_gpu, incY);
 
