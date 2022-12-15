@@ -34,9 +34,9 @@ std::string get_name(std::string t, int m, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
-         index_t n, index_t kl, index_t ku, scalar_t alpha, scalar_t beta,
-         bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
+         index_t m, index_t n, index_t kl, index_t ku, scalar_t alpha,
+         scalar_t beta, bool* success) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
@@ -82,7 +82,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -99,11 +99,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   // Specify the layout.
   auto layout = clblast::Layout::kColMajor;
 
-  MemBuffer<scalar_t> m_a_gpu(executorPtr, m_a.data(),
+  MemBuffer<scalar_t> m_a_gpu(sb_handle_ptr, m_a.data(),
                               static_cast<size_t>(lda * n));
-  MemBuffer<scalar_t> v_x_gpu(executorPtr, v_x.data(),
+  MemBuffer<scalar_t> v_x_gpu(sb_handle_ptr, v_x.data(),
                               static_cast<size_t>(xlen));
-  MemBuffer<scalar_t> v_y_gpu(executorPtr, v_y.data(),
+  MemBuffer<scalar_t> v_y_gpu(sb_handle_ptr, v_y.data(),
                               static_cast<size_t>(ylen));
 
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -113,7 +113,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
                        incX, beta, v_y_ref.data(), incY);
   std::vector<scalar_t> v_y_temp = v_y;
   {
-    MemBuffer<scalar_t> v_y_temp_gpu(executorPtr, v_y_temp.data(),
+    MemBuffer<scalar_t> v_y_temp_gpu(sb_handle_ptr, v_y_temp.data(),
                                      static_cast<size_t>(ylen));
     cl_event event;
     clblast::Gbmv<scalar_t>(layout, a_tr, m, n, kl, ku, alpha, m_a_gpu.dev(), 0,
@@ -159,8 +159,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
 
   for (auto p : gbmv_params) {
@@ -171,20 +171,20 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::tie(ts, m, n, kl, ku, alpha, beta) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
-                         index_t m, index_t n, index_t kl, index_t ku,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                         int t, index_t m, index_t n, index_t kl, index_t ku,
                          scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, exPtr, t, m, n, kl, ku, alpha, beta, success);
+      run<scalar_t>(st, sb_handle_ptr, t, m, n, kl, ku, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
-                                 BM_lambda, exPtr, t, m, n, kl, ku, alpha, beta,
-                                 success);
+                                 BM_lambda, sb_handle_ptr, t, m, n, kl, ku,
+                                 alpha, beta, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                      bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

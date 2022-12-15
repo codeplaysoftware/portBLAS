@@ -66,23 +66,21 @@ void run_test(const combination_t<scalar_t> combi) {
                        y_v_cpu.data(), incY);
 
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, a_size);
   auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
   auto v_y_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(y_v_gpu_result, y_size);
 
   // SYCLGBMV
-  _gbmv(ex, *t_str, m, n, kl, ku, alpha, m_a_gpu, (kl + ku + 1) * lda_mul,
-        v_x_gpu, incX, beta, v_y_gpu, incY);
+  _gbmv(sb_handle, *t_str, m, n, kl, ku, alpha, m_a_gpu,
+        (kl + ku + 1) * lda_mul, v_x_gpu, incX, beta, v_y_gpu, incY);
 
-  auto event = ex.get_policy_handler().copy_to_host(
-      v_y_gpu, y_v_gpu_result.data(), y_size);
-  ex.get_policy_handler().wait(event);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_y_gpu,
+                                          y_v_gpu_result.data(), y_size);
+  sb_handle.wait(event);
 
-  const bool isAlmostEqual =
-      utils::compare_vectors<scalar_t, scalar_t>(y_v_gpu_result, y_v_cpu);
-
+  const bool isAlmostEqual = utils::compare_vectors(y_v_gpu_result, y_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
 }
 
