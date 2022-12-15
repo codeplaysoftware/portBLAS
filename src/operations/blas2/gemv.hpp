@@ -920,5 +920,6 @@ SYCL_BLAS_INLINE void GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t,
   matrix_.adjust_access_displacement();
   vector_.adjust_access_displacement();
 }
+
 }  // namespace blas
 #endif
