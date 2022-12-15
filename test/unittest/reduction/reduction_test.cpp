@@ -80,7 +80,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
 
   auto q = make_queue();
-  test_sb_handle_t sb_handle(q);
+  blas::SB_Handle sb_handle(q);
 
   index_t ld = rows * ld_mul;
 
@@ -177,7 +177,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto v_out_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, out_size);
 
-  test_sb_handle_t::event_t ev;
+  blas::SB_Handle::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:

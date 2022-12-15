@@ -54,7 +54,7 @@ void run_test(const combination_t<scalar_t> combi) {
                        a_cpu_m.data(), lda);
 
   auto q = make_queue();
-  test_sb_handle_t sb_handle(q);
+  blas::SB_Handle sb_handle(q);
   auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
   auto y_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_v, n * incY);
   auto a_m_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, lda * n);

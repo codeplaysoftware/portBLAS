@@ -87,7 +87,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const char tb_str[2] = {transb, '\0'};
 
   auto q = make_queue();
-  test_sb_handle_t sb_handle(q);
+  blas::SB_Handle sb_handle(q);
 
   const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
   const index_t ldb = ((transb != 'n') ? n : k) * ldb_mul;

@@ -30,6 +30,7 @@
 #include "operations/extension/reduction.h"
 #include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
+#include "views/view.h"
 
 namespace blas {
 namespace extension {

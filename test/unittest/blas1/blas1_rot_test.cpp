@@ -63,7 +63,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_sb_handle_t sb_handle(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(a_v, size * incX);

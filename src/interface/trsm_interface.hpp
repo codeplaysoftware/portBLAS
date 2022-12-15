@@ -29,6 +29,7 @@
 #include "operations/blas3_trees.h"
 #include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
+#include "views/view.h"
 
 namespace blas {
 namespace internal {

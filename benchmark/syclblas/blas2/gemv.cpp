@@ -34,7 +34,7 @@ std::string get_name(std::string t, int m, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
@@ -72,7 +72,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti,
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   }
 
-  blas::SB_Handle& sb_handle = *sb_handlePtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -135,7 +135,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, int ti,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
@@ -146,20 +146,20 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
     std::tie(ts, m, n, alpha, beta) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr, int t,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, int t,
                          index_t m, index_t n, scalar_t alpha, scalar_t beta,
                          bool* success) {
-      run<scalar_t>(st, exPtr, t, m, n, alpha, beta, success);
+      run<scalar_t>(st, sb_handle_ptr, t, m, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
-                                 BM_lambda, exPtr, t, m, n, alpha, beta,
+                                 BM_lambda, sb_handle_ptr, t, m, n, alpha, beta,
                                  success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

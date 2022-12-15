@@ -34,6 +34,7 @@
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
 #include "sb_handle/sycl_blas_handle.h"
+#include "views/view.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -570,7 +571,7 @@ template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
 typename sb_handle_t::event_t inline _gemv(
-    sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
+    sb_handle_t& sb_handle,  // instance of SB_Handle
     char _trans,             // The transposition of the matrix ('n', 't', 'c')
     index_t _M,              // The size of dimension M of the matrix (rows)
     index_t _N,              // The size of dimension N of the matrix (columns)

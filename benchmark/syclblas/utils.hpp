@@ -14,7 +14,7 @@
 namespace blas_benchmark {
 
 // Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args, blas::SB_Handle* exPtr, bool* success);
+void create_benchmark(Args& args, blas::SB_Handle* sb_handle_ptr, bool* success);
 
 namespace utils {
 

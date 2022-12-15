@@ -37,7 +37,7 @@ std::string get_name(int rows, int cols, reduction_dim_t reduction_dim) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t rows,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
          index_t cols, reduction_dim_t dim, bool* success) {
   // The counters are double. We convert m, n and k to double to avoid integer
   // overflows for n_fl_ops and bytes_processed
@@ -50,7 +50,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t rows,
   state.counters["n_fl_ops"] = rows_d * cols_d;
   state.counters["bytes_processed"] = (rows_d * cols_d) * sizeof(scalar_t);
 
-  blas::SB_Handle& sb_handle = *sb_handlePtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Matrix
   std::vector<scalar_t> mat =
@@ -129,7 +129,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr, index_t rows,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto red_params = blas_benchmark::utils::get_reduction_params<scalar_t>(args);
 
@@ -137,23 +137,23 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
     index_t rows, cols;
     std::tie(rows, cols) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t rows, index_t cols, reduction_dim_t dim,
                          bool* success) {
-      run<scalar_t>(st, exPtr, rows, cols, dim, success);
+      run<scalar_t>(st, sb_handle_ptr, rows, cols, dim, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(rows, cols, reduction_dim_t::inner).c_str(),
-        BM_lambda, exPtr, rows, cols, reduction_dim_t::inner, success);
+        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::inner, success);
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(rows, cols, reduction_dim_t::outer).c_str(),
-        BM_lambda, exPtr, rows, cols, reduction_dim_t::outer, success);
+        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::outer, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

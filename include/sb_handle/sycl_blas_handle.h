@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_HANDEL_H
-#define SYCL_BLAS_HANDEL_H
+#ifndef SYCL_BLAS_HANDLE_H
+#define SYCL_BLAS_HANDLE_H
 #include "blas_meta.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas2_trees.h"
@@ -37,7 +37,7 @@ namespace blas {
  * @brief Primary template for the SB_Handle specializations.
  * The SB_Handle represents the object that executes a tree on
  * a specific backend.
- * SBV have state, and they must be instantiated
+ * SB_Handle have state, and they must be instantiated
  * before using them.
  * Only one method is mandatory, the Execute method.
  */
@@ -146,4 +146,4 @@ class SB_Handle {
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_HANDEL_H
+#endif  // SYCL_BLAS_HANDLE_H

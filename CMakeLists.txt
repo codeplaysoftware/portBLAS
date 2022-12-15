@@ -44,8 +44,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations  -Wno-deprecated-copy-with-user-provided-copy") 
 
 if(DEFINED SYSTEM_BLAS_ROOT)
   message(DEPRECATION
@@ -77,7 +76,6 @@ find_package(PythonInterp 3 REQUIRED)
 
 if (MSVC)
   # The device compiler needs C++14 to parse the Windows headers
-  set(CMAKE_CXX_STANDARD 14)
   set(BUILD_SHARED_LIBS FALSE CACHE BOOL
     "Force SYCL-BLAS to be built as a static library on Windows"
     FORCE

@@ -34,7 +34,7 @@ std::string get_name() {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          bool* success) {
   // Create data
   constexpr size_t param_size = 5;
@@ -44,7 +44,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr,
   scalar_t x1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t y1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
-  blas::SB_Handle& sb_handle = *sb_handlePtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   auto buf_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&d1, 1);
   auto buf_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&d2, 1);
@@ -133,17 +133,17 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handlePtr,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
-  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* exPtr,
-                       bool* success) { run<scalar_t>(st, exPtr, success); };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, exPtr,
+  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                       bool* success) { run<scalar_t>(st, sb_handle_ptr, success); };
+  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, sb_handle_ptr,
                                success);
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark
