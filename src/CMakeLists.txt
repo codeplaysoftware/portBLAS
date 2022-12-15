@@ -22,5 +22,4 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-add_subdirectory(policy)
 add_subdirectory(interface)

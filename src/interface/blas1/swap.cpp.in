@@ -23,12 +23,11 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -37,14 +36,13 @@ namespace internal {
 /**
  * \brief _swap interchanges two vectors
  *
- * @param Executor<${EXECUTOR}> ex
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  * @param _vy  VectorView
  * @param _incy Increment in Y axis
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _swap(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, ${container_t0} _vx,
+template typename SB_Handle::event_t _swap(
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
 
 }  // namespace internal

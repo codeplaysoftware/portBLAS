@@ -22,20 +22,19 @@
  **************************************************************************/
 
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "interface/trsm_interface.hpp"
 #include "operations/blas3/trsm.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 
-template typename Executor<${EXECUTOR}>::policy_t::event_t _trsm(
-    Executor<${EXECUTOR}>& ex, char side, char uplo, char trans, char diag,
+template typename SB_Handle::event_t _trsm(
+    SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
     ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, ${container_t0} A,
     ${INDEX_TYPE} lda, ${container_t1} B, ${INDEX_TYPE} ldb);
 

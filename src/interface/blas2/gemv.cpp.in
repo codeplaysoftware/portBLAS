@@ -23,13 +23,12 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas2_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -46,7 +45,7 @@ namespace internal {
 
  See the netlib blas interface documentation for more details of the high level
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
-   Executor& ex,         // Executor (sycl, parallel, serial, etc)
+   SB_Handle& sb_handle,         // SB_Handle (sycl, parallel, serial, etc)
     char _trans,          // The transposition of the matrix ('n', 't', 'c')
     index_t _M,         // The size of dimension M of the matrix (rows)
     index_t _N,         // The size of dimension N of the matrix (columns)
@@ -66,8 +65,8 @@ namespace internal {
     // finished, y is overwritten with the updated vector.
     increment_t _incy  // The increment for elements in y (nonzero).
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemv(
-    Executor<${EXECUTOR}>& ex, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+template typename SB_Handle::event_t _gemv(
+    SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
     ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
     ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
     ${container_t2} _vy, ${INCREMENT_TYPE} _incy);

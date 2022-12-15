@@ -28,12 +28,14 @@
 template <typename scalar_t>
 std::string get_name() {
   std::ostringstream str{};
-  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/";
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
+         bool* success) {
   // Create data
   constexpr size_t param_size = 5;
   std::vector<scalar_t> param = std::vector<scalar_t>(param_size);
@@ -42,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   scalar_t x1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t y1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   auto buf_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&d1, 1);
   auto buf_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&d2, 1);
@@ -72,24 +74,21 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
       blas::make_sycl_iterator_buffer<scalar_t>(param_verify, param_size);
 
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
-  _rotmg(ex, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1, device_param);
+  _rotmg(sb_handle, buf_verify_d1, buf_verify_d2, buf_verify_x1, buf_verify_y1,
+         device_param);
 
-  auto event1 =
-      ex.get_policy_handler().copy_to_host(buf_verify_d1, &d1_verify, 1);
-  auto event2 =
-      ex.get_policy_handler().copy_to_host(buf_verify_d2, &d2_verify, 1);
-  auto event3 =
-      ex.get_policy_handler().copy_to_host(buf_verify_x1, &x1_verify, 1);
-  auto event4 =
-      ex.get_policy_handler().copy_to_host(buf_verify_y1, &y1_verify, 1);
-  auto event5 = ex.get_policy_handler().copy_to_host(
-      device_param, param_verify.data(), param_size);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d1,
+                                           &d1_verify, 1);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_d2,
+                                           &d2_verify, 1);
+  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_x1,
+                                           &x1_verify, 1);
+  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_y1,
+                                           &y1_verify, 1);
+  auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), device_param,
+                                           param_verify.data(), param_size);
 
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
-  ex.get_policy_handler().wait(event5);
+  sb_handle.wait({event1, event2, event3, event4, event5});
 
   const bool isAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
                              utils::almost_equal(d2_verify, d2_ref) &&
@@ -107,8 +106,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotmg(ex, buf_d1, buf_d2, buf_x1, buf_y1, buf_param);
-    ex.get_policy_handler().wait(event);
+    auto event = _rotmg(sb_handle, buf_d1, buf_d2, buf_x1, buf_y1, buf_param);
+    sb_handle.wait(event);
     return event;
   };
 
@@ -130,17 +129,19 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                        bool* success) {
-  auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
-                       bool* success) { run<scalar_t>(st, exPtr, success); };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, exPtr,
-                               success);
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                       bool* success) {
+    run<scalar_t>(st, sb_handle_ptr, success);
+  };
+  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
+                               sb_handle_ptr, success);
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                      bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

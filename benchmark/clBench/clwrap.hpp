@@ -30,9 +30,9 @@
 #include <stdexcept>
 #include <vector>
 
+#include <CL/cl.h>
 #include <algorithm>
 #include <memory>
-#include <CL/cl.h>
 
 /* We don't want to return exceptions in destructors. #define them out for now.
  */
@@ -150,10 +150,10 @@ class OpenCLDeviceSelector {
   cl_platform_id best_platform = NULL;
   int best_score = 0;
 
-  static cl_device_type match_device_type(std::string requested){
+  static cl_device_type match_device_type(std::string requested) {
     if (requested.empty()) return CL_DEVICE_TYPE_ALL;
     std::transform(requested.begin(), requested.end(), requested.begin(),
-                 ::tolower);
+                   ::tolower);
     if (requested == "gpu") return CL_DEVICE_TYPE_GPU;
     if (requested == "cpu") return CL_DEVICE_TYPE_CPU;
     if (requested == "accel") return CL_DEVICE_TYPE_ACCELERATOR;
@@ -238,7 +238,8 @@ class OpenCLDeviceSelector {
   OpenCLDeviceSelector(std::string vendor, std::string type) {
     // Get the number of platforms, and a list of IDs
     cl_uint num_platforms = get_platform_count();
-    std::unique_ptr<cl_platform_id[]> platforms(new cl_platform_id[num_platforms]);
+    std::unique_ptr<cl_platform_id[]> platforms(
+        new cl_platform_id[num_platforms]);
     cl_int status = clGetPlatformIDs(num_platforms, platforms.get(), NULL);
     if (status != CL_SUCCESS) {
       do_error("failure in clGetPlatformIDs");
@@ -254,7 +255,7 @@ class OpenCLDeviceSelector {
       cl_uint num_devices = get_device_count(platform);
       std::unique_ptr<cl_device_id[]> devices(new cl_device_id[num_devices]);
       cl_int status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices,
-                                    devices.get(), NULL);
+                                     devices.get(), NULL);
       if (status != CL_SUCCESS) {
         do_error("failure in clGetDeviceIDs");
       }
@@ -289,7 +290,6 @@ class Context {
   bool is_active = false;
 
  public:
- 
   // Delete the copy constructor so that we don't accidentally leak references
   // to the underlying opencl context
   Context(const Context &) = delete;
@@ -301,7 +301,7 @@ class Context {
         is_active(c.active()),
         command_queue(c.queue()) {}
 
-  Context(OpenCLDeviceSelector oclds= OpenCLDeviceSelector("*", "*")) {
+  Context(OpenCLDeviceSelector oclds = OpenCLDeviceSelector("*", "*")) {
     platform = oclds.platform();
     device = oclds.device();
     create();
@@ -314,8 +314,8 @@ class Context {
     if (status != CL_SUCCESS) {
       do_error("failure to create context");
     }
-    command_queue =
-        clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &status);
+    command_queue = clCreateCommandQueue(context, device,
+                                         CL_QUEUE_PROFILING_ENABLE, &status);
     if (status != CL_SUCCESS) {
       do_error("failure to create command queue");
     }
@@ -349,7 +349,6 @@ class Context {
   }
 
   operator cl_context() const { return context; }
-
 };
 
 class CLEventHandler {
@@ -379,7 +378,6 @@ class CLEventHandler {
       release(event);
     }
   }
-
 };
 
 template <typename scalar_t, int Options = CL_MEM_READ_WRITE>
@@ -457,6 +455,5 @@ class MemBuffer {
     }
   }
 };
-
 
 #endif /* end of include guard: CLWRAP_HPP */

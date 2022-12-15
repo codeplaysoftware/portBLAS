@@ -39,9 +39,8 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t ldaMul;
   scalar_t ldbMul;
   scalar_t unusedValue;
-  std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul,
-           unusedValue) = combi;
-
+  std::tie(m, n, trans, side, diag, uplo, alpha, ldaMul, ldbMul, unusedValue) =
+      combi;
 
   const index_t lda = (side == 'l' ? m : n) * ldaMul;
   const index_t ldb = m * ldbMul;
@@ -68,20 +67,20 @@ void run_test(const combination_t<scalar_t> combi) {
                        cpu_B.data(), ldb);
 
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
   auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(A, A.size());
   auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(B, B.size());
 
-  _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+  _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu,
+        ldb);
 
-  auto event =
-      ex.get_policy_handler().copy_to_host<scalar_t>(b_gpu, B.data(), B.size());
-  ex.get_policy_handler().wait(event);
+  auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                    b_gpu, B.data(), B.size());
+  sb_handle.wait(event);
 
   bool isAlmostEqual = utils::compare_vectors(cpu_B, B);
 
   ASSERT_TRUE(isAlmostEqual);
-  ex.get_policy_handler().wait();
 }
 
 static constexpr double NaN = std::numeric_limits<double>::quiet_NaN();

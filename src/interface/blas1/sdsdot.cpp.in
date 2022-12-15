@@ -23,12 +23,11 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -38,13 +37,13 @@ namespace internal {
  * \brief Computes the inner product of two vectors with double precision
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam index_t Index type
  * @tparam increment_t Increment type
- * @param ex Executor
+ * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
  * @param _vx Buffer holding input vector x
@@ -54,8 +53,8 @@ namespace internal {
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _sdsdot(
-    Executor<${EXECUTOR}> &ex, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,
+template typename SB_Handle::event_t _sdsdot(
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
     ${container_t2} _rs);
 }  // namespace internal

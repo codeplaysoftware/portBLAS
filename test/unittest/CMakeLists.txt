@@ -19,7 +19,7 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename executor_base.hpp
+# *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
 

@@ -5,17 +5,16 @@
 #include <chrono>
 #include <tuple>
 
-#include <common/common_utils.hpp>
 #include "sycl_blas.h"
+#include <common/common_utils.hpp>
 
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
-typedef blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> ExecutorType;
 
 namespace blas_benchmark {
 
 // Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args, ExecutorType* exPtr, bool* success);
+void create_benchmark(Args& args, blas::SB_Handle* sb_handle_ptr, bool* success);
 
 namespace utils {
 

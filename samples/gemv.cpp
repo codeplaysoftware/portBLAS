@@ -7,9 +7,8 @@ int main(int argc, char** argv) {
   /* Create a SYCL queue with the default device selector */
   cl::sycl::queue q = cl::sycl::queue(cl::sycl::default_selector());
 
-  /* Create a SYCL-BLAS executor and get the policy handler */
-  blas::Executor<blas::PolicyHandler<blas::codeplay_policy>> executor(q);
-  auto policy_handler = executor.get_policy_handler();
+  /* Create a SYCL-BLAS sb_handle and get the policy handler */
+  blas::SB_Handle sb_handle(q);
 
   /* Arguments of the Gemm operation.
    * Note: these matrix dimensions are too small to get a performance gain by
@@ -50,7 +49,7 @@ int main(int argc, char** argv) {
     auto a_gpu = blas::make_sycl_iterator_buffer<float>(A, lda * n);
     auto x_gpu = blas::make_sycl_iterator_buffer<float>(X, lx);
     auto y_gpu = blas::make_sycl_iterator_buffer<float>(Y, ly);
-    auto event = blas::_gemv(executor, 'n', m, n, alpha, a_gpu, lda, x_gpu,
+    auto event = blas::_gemv(sb_handle, 'n', m, n, alpha, a_gpu, lda, x_gpu,
                              incx, beta, y_gpu, incy);
   }
 

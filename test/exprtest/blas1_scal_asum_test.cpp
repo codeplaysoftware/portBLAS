@@ -55,27 +55,27 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL-BLAS implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(1);
 
   // Copy input data from host to device
-  auto xcp_ev =
-      ex.get_policy_handler().copy_to_device(v_x.data(), gpu_x_v, x_dim);
-  ex.get_policy_handler().wait(xcp_ev);
+  auto xcp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(),
+                                             gpu_x_v, x_dim);
+  sb_handle.wait(xcp_ev);
 
   // Dimensions of vector view for ASUM operations
   int view_x_dim = (x_dim + incX - 1) / incX;
 
   // Views
-  auto view_x = make_vector_view(ex, gpu_x_v, incX, view_x_dim);
-  auto view_assign_x = make_vector_view(ex, gpu_x_v, 1, x_dim);
-  auto view_y = make_vector_view(ex, gpu_y_v, 1, 1);
+  auto view_x = make_vector_view(gpu_x_v, incX, view_x_dim);
+  auto view_assign_x = make_vector_view(gpu_x_v, 1, x_dim);
+  auto view_y = make_vector_view(gpu_y_v, 1, 1);
 
   // Assign reduction parameters
-  const auto localSize = ex.get_policy_handler().get_work_group_size();
+  const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
 
   // SCAL expressions
@@ -85,13 +85,13 @@ void run_test(const combination_t<scalar_t> combi) {
       view_y, scal_assign_op, localSize, localSize * nWG);
 
   // Execute the SCAL+ASUM tree
-  auto event = ex.execute(asum_op);
-  ex.get_policy_handler().wait(event);
+  auto event = sb_handle.execute(asum_op);
+  sb_handle.wait(event);
 
   // Copy the result back to host memory
   auto getResultEv =
-      ex.get_policy_handler().copy_to_host(gpu_y_v, v_y.data(), 1);
-  ex.get_policy_handler().wait(getResultEv);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, v_y.data(), 1);
+  sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::almost_equal(cpu_y, v_y[0]));
 }

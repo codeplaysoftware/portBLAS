@@ -26,9 +26,9 @@
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
-#include <common/common_utils.hpp>
 #include <clBench/clwrap.hpp>
 #include <clblast.h>
+#include <common/common_utils.hpp>
 
 typedef Context ExecutorType;
 
@@ -111,7 +111,7 @@ static inline clblast::Side translate_side(const char *side) {
   }
 }
 
-static inline clblast::Triangle translate_triangle(const char* triangle) {
+static inline clblast::Triangle translate_triangle(const char *triangle) {
   if (triangle[0] == 'u') {
     return clblast::Triangle::kUpper;
   } else if (triangle[0] == 'l') {
@@ -124,7 +124,8 @@ static inline clblast::Triangle translate_triangle(const char* triangle) {
 static inline clblast::Diagonal translate_diagonal(const char *diag) {
   if (diag[0] == 'u') {
     return clblast::Diagonal::kUnit;
-  } if (diag[0] == 'n') {
+  }
+  if (diag[0] == 'n') {
     return clblast::Diagonal::kNonUnit;
   } else {
     throw std::runtime_error("Got invalid diagonal parameter!");

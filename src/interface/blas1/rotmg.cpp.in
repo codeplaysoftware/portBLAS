@@ -23,12 +23,11 @@
 *
 **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -49,13 +48,13 @@ namespace internal {
  *
  * Rotmg may apply scaling operations to d1, d2 and x1 to avoid overflows.
  *
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
  * @tparam container_4_t Buffer Iterator
- * @param ex Executor
+ * @param sb_handle SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
  * @param _d2[in,out] On entry, buffer holding the scaling factor for the
@@ -67,8 +66,8 @@ namespace internal {
  * h22].
  * @return Vector of events to wait for.
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _rotmg(
-   Executor<${EXECUTOR}> &ex, ${container_t0} _d1, ${container_t1} _d2,
+template typename SB_Handle::event_t _rotmg(
+   SB_Handle &sb_handle, ${container_t0} _d1, ${container_t1} _d2,
    ${container_t2} _x1, ${container_t3} _y1, ${container_t4} _param);
 }  // namespace internal
 }  // namespace blas

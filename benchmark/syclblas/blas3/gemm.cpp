@@ -34,7 +34,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1, int t2,
          index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
   // Standard test setup.
@@ -49,7 +49,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Matrices
   std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
@@ -69,9 +69,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
-    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                       beta, c_temp_gpu, ldc);
-    ex.get_policy_handler().wait(event);
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_temp_gpu, ldc);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -83,15 +83,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                       beta, c_gpu, ldc);
-    ex.get_policy_handler().wait(event);
+    auto event = _gemm(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                       ldb, beta, c_gpu, ldc);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -137,7 +137,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas3_params<scalar_t>(args);
 
@@ -149,21 +149,21 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, int t1,
                          int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, success);
+      run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta,
+                                 BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta,
                                  success)
         ->UseRealTime();
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

@@ -42,7 +42,6 @@ void run_test(const combination_t<scalar_t> combi) {
   api_type api;
   std::tie(api, N, sb, incX, incY) = combi;
 
-
   /* Sycl Buffers do not work with size = 0. So setting input vectors to size
    * one to test the edge case where if size equals 0 then sb should be
    * returned. */
@@ -63,33 +62,31 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_x_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incX));
-  ex.get_policy_handler().copy_to_device(x_v.data(), gpu_x_v,
-                                         vectorSize * incX);
+  blas::helper::copy_to_device(sb_handle.get_queue(), x_v.data(), gpu_x_v,
+                               vectorSize * incX);
   auto gpu_y_v =
       blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incY));
-  ex.get_policy_handler().copy_to_device(y_v.data(), gpu_y_v,
-                                         vectorSize * incY);
+  blas::helper::copy_to_device(sb_handle.get_queue(), y_v.data(), gpu_y_v,
+                               vectorSize * incY);
 
   if (api == api_type::event) {
     auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
-    _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
-        gpu_out_s, out_s.data(), 1);
-    ex.get_policy_handler().wait(event);
+    _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+    auto event = blas::helper::copy_to_host<scalar_t>(
+        sb_handle.get_queue(), gpu_out_s, out_s.data(), 1);
+    sb_handle.wait(event);
   } else {
-    out_s[0] = _sdsdot(ex, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    out_s[0] = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
   }
 
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s[0], out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING

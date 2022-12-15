@@ -25,36 +25,91 @@
 #ifndef SYCL_BLAS_BUFFER_ITERATOR_H
 #define SYCL_BLAS_BUFFER_ITERATOR_H
 #include "blas_meta.h"
-#include "container/blas_iterator.h"
-#include "policy/sycl_policy.h"
 #include <CL/sycl.hpp>
 namespace blas {
 /*!
  * @brief See BufferIterator.
  */
 template <typename element_t>
-class BufferIterator<element_t, codeplay_policy> {
+class BufferIterator {
  public:
   using scalar_t = element_t;
-  using self_t = BufferIterator<scalar_t, codeplay_policy>;
-  using buff_t = typename codeplay_policy::template buffer_t<scalar_t, 1>;
+  template <int dim = 1>
+  using buffer_t = cl::sycl::buffer<scalar_t, dim>;
+  using access_mode_t = cl::sycl::access::mode;
+  template <cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
+                cl::sycl::access::target::global_buffer,
+            cl::sycl::access::placeholder place_holder_t =
+                cl::sycl::access::placeholder::false_t>
+  using accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  template <cl::sycl::access::mode acc_md_t =
+                cl::sycl::access::mode::read_write,
+            cl::sycl::access::target access_t =
+                cl::sycl::access::target::global_buffer,
+            cl::sycl::access::placeholder place_holder_t =
+                cl::sycl::access::placeholder::true_t>
+  using placeholder_accessor_t =
+      cl::sycl::accessor<scalar_t, 1, acc_md_t, access_t, place_holder_t>;
+  template <access_mode_t acc_md_t = cl::sycl::access::mode::read_write>
+  using default_accessor_t = placeholder_accessor_t<acc_md_t>;
+  using self_t = BufferIterator<scalar_t>;
+  using buff_t = buffer_t<1>;
 
   /*!
-   * friend function to create a range accessor from m_buff
+   * @brief friend function to create a range accessor (offset, size)
+   * @tparam acc_md_t memory access mode
+   * @tparam scalar_t the element type of the buffer
+   * @param buff_iterator BufferIterator
+   * @param cgh cl::sycl::handler
+   * @param size the region needed to be copied
    */
-  template <cl::sycl::access::mode acc_md_t, typename scal_t>
-  friend inline typename codeplay_policy::template accessor_t<scal_t, acc_md_t>
-  get_range_accessor(BufferIterator<scal_t, codeplay_policy> buff_iterator,
-                     cl::sycl::handler& cgh, size_t size);
+  template <
+      cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write>
+  inline accessor_t<acc_md_t> get_range_accessor(cl::sycl::handler& cgh,
+                                                 size_t size);
+
   /*!
-   * friend function to create a range placeholder accessor from m_buff
+   * @brief  create a range placeholder accessor from (offset,
+   * size)
+   * @tparam acc_md_t memory access mode
+   * @tparam scalar_t the element type of the buffer
+   * @param buff_iterator BufferIterator
+   * @param cgh cl::sycl::handler
+   * @param size the region needed to be copied
    */
-  template <cl::sycl::access::mode acc_md_t, typename scal_t>
-  friend inline
-      typename codeplay_policy::template placeholder_accessor_t<scal_t,
-                                                                acc_md_t>
-      get_range_accessor(BufferIterator<scal_t, codeplay_policy> buff_iterator,
-                         size_t size);
+
+  template <
+      cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write>
+  inline placeholder_accessor_t<acc_md_t> get_range_accessor(size_t size);
+
+  /*!
+   * @brief friend function to create a range accessor from (offset,
+   * m_buff.size())
+   * @tparam acc_md_t memory access mode
+   * @tparam scalar_t the element type of the buffer
+   * @param buff_iterator BufferIterator
+   * @param cgh cl::sycl::handler
+   * @param size the region needed to be copied
+   */
+  template <
+      cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write>
+  inline accessor_t<acc_md_t> get_range_accessor(cl::sycl::handler& cgh);
+
+  /*!
+   * @brief  create a range placeholder accessor from (offset,
+   * m_buff.size())
+   * @tparam acc_md_t memory access mode
+   * @tparam scalar_t the element type of the buffer
+   * @param buff_iterator BufferIterator
+   * @param cgh cl::sycl::handler
+   * @param size the region needed to be copied
+   */
+  template <
+      cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write>
+  inline placeholder_accessor_t<acc_md_t> get_range_accessor();
   /*!
    * @brief Default construct a BufferIterator.
    * This can be used to provide a placeholder BufferIterator, but it is a user
@@ -83,7 +138,7 @@ class BufferIterator<element_t, codeplay_policy> {
           !std::is_const<other_scalar_t>::value ||
           (std::is_const<other_scalar_t>::value && std::is_const<U>::value &&
            !std::is_same<U, other_scalar_t>::value)>::type>
-  BufferIterator(const BufferIterator<other_scalar_t, codeplay_policy>& other);
+  BufferIterator(const BufferIterator<other_scalar_t>& other);
 
   /*!
    * @brief See BufferIterator.
@@ -134,78 +189,41 @@ class BufferIterator<element_t, codeplay_policy> {
   buff_t buffer_;
 };
 
-/*!
- * @brief friend function to create a range accessor (offset, size)
- * @tparam acc_md_t memory access mode
- * @tparam scalar_t the element type of the buffer
- * @param buff_iterator BufferIterator
- * @param cgh cl::sycl::handler
- * @param size the region needed to be copied
- */
-template <cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write,
-          typename scalar_t>
-inline typename codeplay_policy::template accessor_t<scalar_t, acc_md_t>
-get_range_accessor(BufferIterator<scalar_t, codeplay_policy> buff_iterator,
-                   cl::sycl::handler& cgh, size_t size) {
-  return typename codeplay_policy::template accessor_t<scalar_t, acc_md_t>(
-      buff_iterator.buffer_, cgh, cl::sycl::range<1>(size),
-      cl::sycl::id<1>(buff_iterator.get_offset()));
-}
-/*!
- * @brief friend function to create a range accessor from (offset,
- * m_buff.size())
- * @tparam acc_md_t memory access mode
- * @tparam scalar_t the element type of the buffer
- * @param buff_iterator BufferIterator
- * @param cgh cl::sycl::handler
- * @param size the region needed to be copied
- */
-template <cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write,
-          typename scalar_t>
-inline typename codeplay_policy::template accessor_t<scalar_t, acc_md_t>
-get_range_accessor(BufferIterator<scalar_t, codeplay_policy> buff_iterator,
-                   cl::sycl::handler& cgh) {
-  return get_range_accessor<acc_md_t>(buff_iterator, cgh,
-                                      buff_iterator.get_size());
+template <typename element_t>
+template <cl::sycl::access::mode acc_md_t>
+inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
+BufferIterator<element_t>::get_range_accessor(cl::sycl::handler& cgh,
+                                              size_t size) {
+  return typename BufferIterator<element_t>::template accessor_t<acc_md_t>(
+      buffer_, cgh, cl::sycl::range<1>(size),
+      cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
 }
 
-/*!
- * @brief friend function to create a range placeholder accessor from (offset,
- * size)
- * @tparam acc_md_t memory access mode
- * @tparam scalar_t the element type of the buffer
- * @param buff_iterator BufferIterator
- * @param cgh cl::sycl::handler
- * @param size the region needed to be copied
- */
-
-template <cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write,
-          typename scalar_t>
-inline typename codeplay_policy::template placeholder_accessor_t<scalar_t,
-                                                                 acc_md_t>
-get_range_accessor(BufferIterator<scalar_t, codeplay_policy> buff_iterator,
-                   size_t size) {
-  return typename codeplay_policy::template placeholder_accessor_t<scalar_t,
-                                                                   acc_md_t>(
-      buff_iterator.buffer_, cl::sycl::range<1>(size),
-      cl::sycl::id<1>(buff_iterator.get_offset()));
+template <typename element_t>
+template <cl::sycl::access::mode acc_md_t>
+inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
+BufferIterator<element_t>::get_range_accessor(cl::sycl::handler& cgh) {
+  return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
+      cgh, BufferIterator<element_t>::get_size());
 }
 
-/*!
- * @brief friend function to create a range placeholder accessor from (offset,
- * m_buff.size())
- * @tparam acc_md_t memory access mode
- * @tparam scalar_t the element type of the buffer
- * @param buff_iterator BufferIterator
- * @param cgh cl::sycl::handler
- * @param size the region needed to be copied
- */
-template <cl::sycl::access::mode acc_md_t = cl::sycl::access::mode::read_write,
-          typename scalar_t>
-inline typename codeplay_policy::template placeholder_accessor_t<scalar_t,
-                                                                 acc_md_t>
-get_range_accessor(BufferIterator<scalar_t, codeplay_policy> buff_iterator) {
-  return get_range_accessor<acc_md_t>(buff_iterator, buff_iterator.get_size());
+template <typename element_t>
+template <cl::sycl::access::mode acc_md_t>
+inline typename BufferIterator<element_t>::template placeholder_accessor_t<
+    acc_md_t>
+BufferIterator<element_t>::get_range_accessor(size_t size) {
+  return typename BufferIterator<element_t>::template placeholder_accessor_t<
+      acc_md_t>(buffer_, cl::sycl::range<1>(size),
+                cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
+}
+
+template <typename element_t>
+template <cl::sycl::access::mode acc_md_t>
+inline typename BufferIterator<element_t>::template placeholder_accessor_t<
+    acc_md_t>
+BufferIterator<element_t>::get_range_accessor() {
+  return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
+      BufferIterator<element_t>::get_size());
 }
 
 /*!
@@ -216,11 +234,10 @@ get_range_accessor(BufferIterator<scalar_t, codeplay_policy> buff_iterator) {
  * @param size the size of data
  */
 template <typename scalar_t, typename index_t>
-inline blas::BufferIterator<scalar_t, codeplay_policy>
-make_sycl_iterator_buffer(scalar_t* data, index_t size) {
-  using buff_t = typename blas::codeplay_policy::buffer_t<scalar_t, 1>;
-  return blas::BufferIterator<scalar_t, codeplay_policy>{
-      buff_t{data, cl::sycl::range<1>(size)}};
+inline blas::BufferIterator<scalar_t> make_sycl_iterator_buffer(scalar_t* data,
+                                                                index_t size) {
+  using buff_t = typename blas::BufferIterator<scalar_t>::buff_t;
+  return blas::BufferIterator<scalar_t>{buff_t{data, cl::sycl::range<1>(size)}};
 }
 
 /*!
@@ -231,10 +248,10 @@ make_sycl_iterator_buffer(scalar_t* data, index_t size) {
  * @param size the size of data
  */
 template <typename scalar_t, typename index_t>
-inline BufferIterator<scalar_t, codeplay_policy> make_sycl_iterator_buffer(
+inline BufferIterator<scalar_t> make_sycl_iterator_buffer(
     std::vector<scalar_t>& data, index_t size) {
-  using buff_t = typename blas::codeplay_policy::buffer_t<scalar_t, 1>;
-  return blas::BufferIterator<scalar_t, codeplay_policy>{
+  using buff_t = typename blas::BufferIterator<scalar_t>::buff_t;
+  return blas::BufferIterator<scalar_t>{
       buff_t{data.data(), cl::sycl::range<1>(size)}};
 }
 
@@ -246,11 +263,9 @@ inline BufferIterator<scalar_t, codeplay_policy> make_sycl_iterator_buffer(
  * @param size the size of data
  */
 template <typename scalar_t, typename index_t>
-inline blas::BufferIterator<scalar_t, codeplay_policy>
-make_sycl_iterator_buffer(index_t size) {
-  using buff_t = typename blas::codeplay_policy::buffer_t<scalar_t, 1>;
-  return blas::BufferIterator<scalar_t, codeplay_policy>{
-      buff_t{cl::sycl::range<1>(size)}};
+inline blas::BufferIterator<scalar_t> make_sycl_iterator_buffer(index_t size) {
+  using buff_t = typename blas::BufferIterator<scalar_t>::buff_t;
+  return blas::BufferIterator<scalar_t>{buff_t{cl::sycl::range<1>(size)}};
 }
 /*!
  * @brief Helper function to build BufferIterator
@@ -260,98 +275,106 @@ make_sycl_iterator_buffer(index_t size) {
  * @param size the size of data
  */
 template <typename scalar_t>
-inline blas::BufferIterator<scalar_t, codeplay_policy>
-make_sycl_iterator_buffer(
-    typename blas::codeplay_policy::buffer_t<scalar_t, 1> buff_) {
-  return blas::BufferIterator<scalar_t, codeplay_policy>{buff_};
+inline blas::BufferIterator<scalar_t> make_sycl_iterator_buffer(
+    typename blas::BufferIterator<scalar_t>::buff_t buff_) {
+  return blas::BufferIterator<scalar_t>{buff_};
 }
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
-    const typename BufferIterator<element_t, codeplay_policy>::buff_t& buff,
+inline BufferIterator<element_t>::BufferIterator(
+    const typename BufferIterator<element_t>::buff_t& buff,
     std::ptrdiff_t offset)
     : offset_(offset), buffer_(buff) {}
 
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
-    const typename BufferIterator<element_t, codeplay_policy>::buff_t& buff)
+inline BufferIterator<element_t>::BufferIterator(
+    const typename BufferIterator<element_t>::buff_t& buff)
     : BufferIterator(buff, 0) {}
 
 // copy constructor buffer
 template <typename element_t>
 template <typename other_scalar_t, typename U, typename>
-inline BufferIterator<element_t, codeplay_policy>::BufferIterator(
-    const BufferIterator<other_scalar_t, codeplay_policy>& other)
+inline BufferIterator<element_t>::BufferIterator(
+    const BufferIterator<other_scalar_t>& other)
     : BufferIterator(other.get_buffer().template reinterpret<element_t>(
                          cl::sycl::range<1>(other.get_buffer().get_count())),
                      other.get_offset()) {}
 
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>&
-BufferIterator<element_t, codeplay_policy>::operator+=(std::ptrdiff_t offset) {
+inline BufferIterator<element_t>& BufferIterator<element_t>::operator+=(
+    std::ptrdiff_t offset) {
   offset_ += offset;
   return *this;
 }
 
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>
-BufferIterator<element_t, codeplay_policy>::operator+(
+inline BufferIterator<element_t> BufferIterator<element_t>::operator+(
     std::ptrdiff_t offset) const {
-  return BufferIterator<element_t, codeplay_policy>(buffer_, offset_ + offset);
+  return BufferIterator<element_t>(buffer_, offset_ + offset);
 }
 
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>
-BufferIterator<element_t, codeplay_policy>::operator-(
+inline BufferIterator<element_t> BufferIterator<element_t>::operator-(
     std::ptrdiff_t offset) const {
-  return BufferIterator<element_t, codeplay_policy>(buffer_, offset_ - offset);
+  return BufferIterator<element_t>(buffer_, offset_ - offset);
 }
 
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>&
-BufferIterator<element_t, codeplay_policy>::operator-=(std::ptrdiff_t offset) {
+inline BufferIterator<element_t>& BufferIterator<element_t>::operator-=(
+    std::ptrdiff_t offset) {
   offset_ -= offset;
   return *this;
 }
 
 // Prefix operator (Increment and return value)
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>&
-BufferIterator<element_t, codeplay_policy>::operator++() {
+inline BufferIterator<element_t>& BufferIterator<element_t>::operator++() {
   offset_++;
   return (*this);
 }
 // Postfix operator (Return value and increment)
 template <typename element_t>
-inline BufferIterator<element_t, codeplay_policy>
-BufferIterator<element_t, codeplay_policy>::operator++(int i) {
-  BufferIterator<element_t, codeplay_policy> temp_iterator(*this);
+inline BufferIterator<element_t> BufferIterator<element_t>::operator++(int i) {
+  BufferIterator<element_t> temp_iterator(*this);
   offset_ += 1;
   return temp_iterator;
 }
 
 template <typename element_t>
-inline std::ptrdiff_t BufferIterator<element_t, codeplay_policy>::get_size()
-    const {
+inline std::ptrdiff_t BufferIterator<element_t>::get_size() const {
   return (buffer_.get_count() - offset_);
 }
 
 template <typename element_t>
-inline std::ptrdiff_t BufferIterator<element_t, codeplay_policy>::get_offset()
-    const {
+inline std::ptrdiff_t BufferIterator<element_t>::get_offset() const {
   return offset_;
 }
 
 template <typename element_t>
-inline typename BufferIterator<element_t, codeplay_policy>::buff_t
-BufferIterator<element_t, codeplay_policy>::get_buffer() const {
+inline typename BufferIterator<element_t>::buff_t
+BufferIterator<element_t>::get_buffer() const {
   return buffer_;
 }
 
 template <typename element_t>
-inline void BufferIterator<element_t, codeplay_policy>::set_offset(
-    std::ptrdiff_t offset) {
+inline void BufferIterator<element_t>::set_offset(std::ptrdiff_t offset) {
   offset_ = offset;
 }
+
+/*
+ * returns the element type of m_buff in buffer iterator
+ */
+template <typename element_t>
+struct ValueType<BufferIterator<element_t>> {
+  using type = element_t;
+};
+/*
+ * rebind the buffer iterator<U> with BufferIterator<element_t>
+ */
+template <typename element_t, typename U>
+struct RebindType<element_t, BufferIterator<U>> {
+  using type = BufferIterator<element_t>;
+};
+
 }  // end namespace blas
 
 #endif  // SYCL_BLAS_BUFFER_ITERATOR_H

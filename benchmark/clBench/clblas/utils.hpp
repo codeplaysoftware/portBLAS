@@ -1,9 +1,9 @@
 #ifndef CLBLAST_UTILS_HPP
 #define CLBLAST_UTILS_HPP
 
-#include <common/common_utils.hpp>
-#include <clBench/clwrap.hpp>
 #include <clBLAS.h>
+#include <clBench/clwrap.hpp>
+#include <common/common_utils.hpp>
 
 typedef Context ExecutorType;
 
@@ -86,7 +86,7 @@ static inline clblasSide translate_side(const char *side) {
   }
 }
 
-static inline clblasUplo translate_triangle(const char* triangle) {
+static inline clblasUplo translate_triangle(const char *triangle) {
   if (triangle[0] == 'u') {
     return clblasUpper;
   } else if (triangle[0] == 'l') {
@@ -99,7 +99,8 @@ static inline clblasUplo translate_triangle(const char* triangle) {
 static inline clblasDiag translate_diagonal(const char *diag) {
   if (diag[0] == 'u') {
     return clblasUnit;
-  } if (diag[0] == 'n') {
+  }
+  if (diag[0] == 'n') {
     return clblasNonUnit;
   } else {
     throw std::runtime_error("Got invalid diagonal parameter!");

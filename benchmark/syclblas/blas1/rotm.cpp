@@ -28,14 +28,13 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Rotm<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/";
+  str << "BM_Rotm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
   str << size;
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -44,7 +43,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2 * size_d;
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Create data
   constexpr size_t param_size = 5;
@@ -73,14 +72,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   reference_blas::rotm(size, x_v_ref.data(), 1, y_v_ref.data(), 1,
                        param.data());
 
-  _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
+  _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
         static_cast<index_t>(1), gpu_param);
-  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_x_v, x_v_verify.data(), size);
-  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_y_v, y_v_verify.data(), size);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                           x_v_verify.data(), size);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                           y_v_verify.data(), size);
+  sb_handle.wait({event1, event2});
 
   // Verify results
   std::ostringstream err_stream;
@@ -97,15 +95,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotm(ex, size, gpu_x_v, static_cast<index_t>(1), gpu_y_v,
-                       static_cast<index_t>(1), gpu_param);
-    ex.get_policy_handler().wait(event);
+    auto event = _rotm(sb_handle, size, gpu_x_v, static_cast<index_t>(1),
+                       gpu_y_v, static_cast<index_t>(1), gpu_param);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -123,23 +121,23 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto rotm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : rotm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, bool* success) {
-      run<scalar_t>(st, exPtr, size, success);
+      run<scalar_t>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size, success);
+                                 sb_handle_ptr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                      bool* success) {
-  BLAS_REGISTER_BENCHMARK_FLOAT(args, exPtr, success);
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
+  BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

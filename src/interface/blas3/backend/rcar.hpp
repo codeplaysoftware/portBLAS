@@ -29,29 +29,28 @@
 namespace blas {
 namespace gemm {
 namespace backend {
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename Executor,
+template <bool _t_a, bool _t_b, bool is_beta_zero, typename SB_Handle,
           typename container_t0, typename container_t1, typename container_t2,
           typename element_t, typename index_t>
-typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
-                                           index_t _K, element_t _alpha,
-                                           container_t0 a_, index_t _lda,
-                                           container_t1 b_, index_t _ldb,
-                                           element_t _beta, container_t2 _C,
-                                           index_t _ldc, index_t batch_size,
-                                           gemm_batch_type_t batch_type) {
+typename SB_Handle::event_t _gemm(SB_Handle& sb_handle, index_t _M, index_t _N,
+                                  index_t _K, element_t _alpha, container_t0 a_,
+                                  index_t _lda, container_t1 b_, index_t _ldb,
+                                  element_t _beta, container_t2 _C,
+                                  index_t _ldc, index_t batch_size,
+                                  gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a, _t_b,
-        static_cast<int>(gemm_memory_t::no_local),
+        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a,
+        _t_b, static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
-                                                                    _K, _alpha,
-                                                                    a_, _lda,
-                                                                    b_, _ldb,
-                                                                    _beta, _C,
-                                                                    _ldc,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
+                                                                    _M, _N, _K,
+                                                                    _alpha, a_,
+                                                                    _lda, b_,
+                                                                    _ldb, _beta,
+                                                                    _C, _ldc,
                                                                     batch_size);
   }
   if (_M < 512 && _N < 512) {
@@ -61,10 +60,11 @@ typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
-                                                                _alpha, a_,
-                                                                _lda, b_, _ldb,
-                                                                _beta, _C, _ldc,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                a_, _lda, b_,
+                                                                _ldb, _beta, _C,
+                                                                _ldc,
                                                                 batch_size);
 
   } else {
@@ -74,10 +74,11 @@ typename Executor::policy_t::event_t _gemm(Executor& ex, index_t _M, index_t _N,
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
-                                                                _alpha, a_,
-                                                                _lda, b_, _ldb,
-                                                                _beta, _C, _ldc,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                a_, _lda, b_,
+                                                                _ldb, _beta, _C,
+                                                                _ldc,
                                                                 batch_size);
   }
 }

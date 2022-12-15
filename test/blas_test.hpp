@@ -55,10 +55,7 @@ extern Args args;
 
 using namespace blas;
 
-// The executor type used in tests
-using test_executor_t =
-    blas::Executor<blas::PolicyHandler<blas::codeplay_policy>>;
-
+// The sycl blas handle type used in tests
 
 using index_t = BLAS_INDEX_T;
 
@@ -82,7 +79,7 @@ inline cl::sycl::queue make_queue_impl() {
   };
 
 #if SYCL_LANGUAGE_VERSION >= 202002
-  std::function<int(const cl::sycl::device&)> selector;
+  std::function<int(const cl::sycl::device &)> selector;
   if (args.device.empty()) {
     selector = cl::sycl::default_selector_v;
   } else {
@@ -174,8 +171,7 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
       scalar_t value = scalar_t{0};
       if (i == j) {
         value = diag;
-      } else if (((uplo == 'l') && (i > j)) ||
-                 ((uplo == 'u') && (i < j))) {
+      } else if (((uplo == 'l') && (i > j)) || ((uplo == 'u') && (i < j))) {
         if (sum >= scalar_t{1}) {
           const double limit =
               sum / std::sqrt(static_cast<double>(k) - static_cast<double>(j));
@@ -239,7 +235,7 @@ struct dump_arg_helper<
     }
     StdFloat int_part;
     StdFloat frac_part = std::modf(f, &int_part);
-    ss << std::fixed  << std::setprecision(0) << int_part;
+    ss << std::fixed << std::setprecision(0) << int_part;
 
     if (frac_part > 0) {
       ss << "p" << (int)(frac_part * 100);

@@ -26,8 +26,8 @@
 #ifndef SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 #define SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
 
-#include "executors/executor.h"
 #include "operations/blas3_trees.h"
+#include "sb_handle/sycl_blas_handle.h"
 
 namespace blas {
 
@@ -40,12 +40,14 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           bool is_beta_zero, int VectorSize,
           int BatchType = static_cast<int>(gemm_batch_type_t::strided)>
 struct Gemm_Launcher {
-  template <typename executor_t, typename container_0_t, typename container_1_t,
-            typename container_2_t, typename element_t, typename index_t>
-  static typename executor_t::policy_t::event_t _select_gemm(
-      executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
-      container_0_t a_, index_t _lda, container_1_t b_, index_t _ldb,
-      element_t _beta, container_2_t _C, index_t _ldc, index_t batch_size);
+  template <typename sb_handle_t, typename container_0_t,
+            typename container_1_t, typename container_2_t, typename element_t,
+            typename index_t>
+  static typename sb_handle_t::event_t _select_gemm(
+      sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
+      element_t _alpha, container_0_t a_, index_t _lda, container_1_t b_,
+      index_t _ldb, element_t _beta, container_2_t _C, index_t _ldc,
+      index_t batch_size);
 };
 
 }  // namespace blas

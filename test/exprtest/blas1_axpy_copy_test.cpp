@@ -61,7 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL-BLAS implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_dim);
@@ -70,12 +70,12 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_ycopy_v = blas::make_sycl_iterator_buffer<scalar_t>(y_dim);
 
   // Copy input data from host to device
-  auto xcp_ev =
-      ex.get_policy_handler().copy_to_device(v_x.data(), gpu_x_v, x_dim);
-  ex.get_policy_handler().wait(xcp_ev);
-  auto ycp_ev =
-      ex.get_policy_handler().copy_to_device(v_y.data(), gpu_y_v, y_dim);
-  ex.get_policy_handler().wait(ycp_ev);
+  auto xcp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_x.data(),
+                                             gpu_x_v, x_dim);
+  sb_handle.wait(xcp_ev);
+  auto ycp_ev = blas::helper::copy_to_device(sb_handle.get_queue(), v_y.data(),
+                                             gpu_y_v, y_dim);
+  sb_handle.wait(ycp_ev);
 
   // Dimensions of vector view for AXPY operations
   int view_x_dim = (x_dim + incX - 1) / incX;
@@ -83,12 +83,12 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Views
   // - for axpy operation where arbitrary stride is used
-  auto view_x_incX = make_vector_view(ex, gpu_x_v, incX, view_x_dim);
-  auto view_y_incY = make_vector_view(ex, gpu_y_v, incY, view_y_dim);
+  auto view_x_incX = make_vector_view(gpu_x_v, incX, view_x_dim);
+  auto view_y_incY = make_vector_view(gpu_y_v, incY, view_y_dim);
 
   // - for copy operations where we want stride = 1
-  auto view_xcopy_inc1 = make_vector_view(ex, gpu_xcopy_v, 1, x_dim);
-  auto view_ycopy_inc1 = make_vector_view(ex, gpu_ycopy_v, 1, y_dim);
+  auto view_xcopy_inc1 = make_vector_view(gpu_xcopy_v, 1, x_dim);
+  auto view_ycopy_inc1 = make_vector_view(gpu_ycopy_v, 1, y_dim);
 
   // Expressions to copy from device to device
   auto xCopyOp = make_op<Assign>(view_xcopy_inc1, view_x_incX);
@@ -100,13 +100,13 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_axpy_op_tree = make_op<Assign>(view_y_incY, axpy_add_op);
 
   // Execute the COPY+AXPY tree
-  auto axpy_event = ex.execute(copy_axpy_op_tree);
-  ex.get_policy_handler().wait(axpy_event);
+  auto axpy_event = sb_handle.execute(copy_axpy_op_tree);
+  sb_handle.wait(axpy_event);
 
   // Copy the result back to host memory
-  auto getResultEv =
-      ex.get_policy_handler().copy_to_host(gpu_y_v, v_y.data(), y_dim);
-  ex.get_policy_handler().wait(getResultEv);
+  auto getResultEv = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                                v_y.data(), y_dim);
+  sb_handle.wait(getResultEv);
 
   ASSERT_TRUE(utils::compare_vectors(v_cpu_y, v_y));
 }

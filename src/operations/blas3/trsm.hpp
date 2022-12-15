@@ -32,8 +32,7 @@ namespace blas {
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
 SYCL_BLAS_INLINE DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::
-    DiagonalBlocksInverter(
-    matrix_t& A, matrix_t& invA)
+    DiagonalBlocksInverter(matrix_t& A, matrix_t& invA)
     : A_(A), invA_(invA), N_(A_.get_size_col()), lda_(A_.getSizeL()) {}
 
 template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>

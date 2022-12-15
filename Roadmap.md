@@ -27,6 +27,4 @@ Medium Term:
 Long Term:
 
 * Complete the Blas 3 interface
-* Test the Parallel and Sequential Executors
 * Add continuous integration testing 
-

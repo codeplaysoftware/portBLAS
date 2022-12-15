@@ -23,23 +23,22 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 // gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm_batched(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,

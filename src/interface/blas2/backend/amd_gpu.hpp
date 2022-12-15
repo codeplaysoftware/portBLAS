@@ -29,24 +29,23 @@
 namespace blas {
 namespace gemv {
 namespace backend {
-template <transpose_type trn, typename Executor, typename index_t,
+template <transpose_type trn, typename SB_Handle, typename index_t,
           typename element_t, typename container_t0, typename container_t1,
           typename increment_t, typename container_t2>
-typename Executor::policy_t::event_t _gemv(Executor& ex, index_t _M, index_t _N,
-                                           element_t _alpha, container_t0 _mA,
-                                           index_t _lda, container_t1 _vx,
-                                           increment_t _incx, element_t _beta,
-                                           container_t2 _vy,
-                                           increment_t _incy) {
+typename SB_Handle::event_t _gemv(SB_Handle& sb_handle, index_t _M, index_t _N,
+                                  element_t _alpha, container_t0 _mA,
+                                  index_t _lda, container_t1 _vx,
+                                  increment_t _incx, element_t _beta,
+                                  container_t2 _vy, increment_t _incy) {
   static constexpr uint32_t cache_line_size = 256;
   if (trn == transpose_type::Normal) {
     return blas::internal::_gemv_impl<256, cache_line_size,
                                       gemv_memory_t::local, trn>(
-        ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+        sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
   } else {
-    return blas::internal::_gemv_impl<64, cache_line_size,
-                                      gemv_memory_t::local, trn>(
-        ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+    return blas::internal::_gemv_impl<64, cache_line_size, gemv_memory_t::local,
+                                      trn>(sb_handle, _M, _N, _alpha, _mA, _lda,
+                                           _vx, _incx, _beta, _vy, _incy);
   }
 }
 }  // namespace backend

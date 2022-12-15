@@ -33,7 +33,7 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  scalar_t unused;  /* Necessary to work around dpcpp compiler bug */
+  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
   std::tie(size, incX, incY, unused) = combi;
 
   // Input vectors
@@ -63,7 +63,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_a_v = blas::make_sycl_iterator_buffer<scalar_t>(a_v, size * incX);
@@ -73,11 +73,11 @@ void run_test(const combination_t<scalar_t> combi) {
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(ex, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-  _dot(ex, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(gpu_out_s,
-                                                              out_s.data(), 1);
-  ex.get_policy_handler().wait(event);
+  _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+  _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s,
+                                          out_s.data(), 1);
+  sb_handle.wait(event);
 
   // Validate the result
   const bool isAlmostEqual =
@@ -87,12 +87,12 @@ void run_test(const combination_t<scalar_t> combi) {
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values(11, 65, 1002, 1002400),  // size
-                       ::testing::Values(1, 4),                   // incX
-                       ::testing::Values(1, 3),                   // incY
-                       ::testing::Values(0)                       // unused
-    );
+const auto combi = ::testing::Combine(::testing::Values(11, 65, 1002,
+                                                        1002400),  // size
+                                      ::testing::Values(1, 4),     // incX
+                                      ::testing::Values(1, 3),     // incY
+                                      ::testing::Values(0)         // unused
+);
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size

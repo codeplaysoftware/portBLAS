@@ -87,9 +87,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const char tb_str[2] = {transb, '\0'};
 
   auto q = make_queue();
-  test_executor_t ex(q);
-
-  auto policy_handler = ex.get_policy_handler();
+  blas::SB_Handle sb_handle(q);
 
   const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
   const index_t ldb = ((transb != 'n') ? n : k) * ldb_mul;
@@ -132,33 +130,35 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
   auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
 
-  policy_handler.copy_to_device(a_m.data(), m_a_gpu, buffer_size_a);
-  policy_handler.copy_to_device(b_m.data(), m_b_gpu, buffer_size_b);
-  policy_handler.copy_to_device(c_m_gpu.data(), m_c_gpu, buffer_size_c);
+  blas::helper::copy_to_device(sb_handle.get_queue(), a_m.data(), m_a_gpu,
+                               buffer_size_a);
+  blas::helper::copy_to_device(sb_handle.get_queue(), b_m.data(), m_b_gpu,
+                               buffer_size_b);
+  blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
+                               buffer_size_c);
 
   // SYCL BLAS GEMM implementation
   if (batch == 1) {
-    _gemm(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+    _gemm(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
   } else {
-    _gemm_batched(ex, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-                  m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc, batch,
-                  batch_type);
+    _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset,
+                  lda, m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc,
+                  batch, batch_type);
   }
 
-  auto event =
-      policy_handler.copy_to_host(m_c_gpu, c_m_gpu.data(), buffer_size_c);
-  policy_handler.wait(event);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
+                                          c_m_gpu.data(), buffer_size_c);
+  sb_handle.wait(event);
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
     c_m_gpu = interleaved_to_strided(c_m_gpu, offset, ldc, n, batch);
   }
 
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
-
 }
 
 template <>

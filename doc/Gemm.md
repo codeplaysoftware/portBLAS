@@ -11,28 +11,23 @@ Please note that while this document primarily refers to `GEMM` and `Blas3` oper
 
 # Contents
 
-- [**GEMM**](#gemm)
-
+- [SYCL-BLAS GEMM Developer Documentation](#sycl-blas-gemm-developer-documentation)
+- [Contents](#contents)
+- [GEMM](#gemm)
   - [What is GEMM?](#what-is-gemm)
-  - [SYCL-BLAS Gemm Kernels](#sycl-blas-gemm-kernels)
+  - [SYCL-BLAS GEMM Kernels](#sycl-blas-gemm-kernels)
   - [Relevant CMake Variables](#relevant-cmake-variables)
   - [Kernel Structure](#kernel-structure)
-  - [Vectorized Loading/Storing](#vectorized-loading/storing)
+  - [Vectorized Loading/Storing](#vectorized-loadingstoring)
   - [Batched Gemm](#batched-gemm)
-
-- [**GEMM Dispatch**](#gemm-dispatch)
-
+- [GEMM Dispatch](#gemm-dispatch)
   - [GEMM Backends](#gemm-backends)
   - [GEMM Launcher](#gemm-launcher)
   - [Source Code Generation](#source-code-generation)
-
-- [**GEMM Configurations**](#gemm-configurations)
-
+- [GEMM Configurations](#gemm-configurations)
   - [Backend Configurations](#backend-configurations)
   - [CMake Configurations](#cmake-configurations)
-
-- [**Common Tasks**](#common-tasks)
-
+- [Common Tasks](#common-tasks)
   - [Adding a new configuration](#adding-a-new-configuration)
   - [Adding a new kernel](#adding-a-new-kernel)
 
@@ -190,7 +185,7 @@ Backend configurations are covered in further detail in [this section](#backend-
 ## GEMM Launcher
 
 The `Gemm_Launcher` class wraps the creation of the actual `Gemm` class as well as the creation of the matrix views (which are what is actually passed to the `Gemm` class for use in the kernel). 
-This happens in the `::select_gemm()` member function where it also executes the created `GEMM` through the passed in executor and returns the associated event.
+This happens in the `::select_gemm()` member function where it also executes the created `GEMM` through the passed in sb_handle and returns the associated event.
 
 ```c++
 namespace blas {
@@ -203,22 +198,22 @@ template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
           bool is_beta_zero, int VectorSize, int BatchType>
 
-template <typename Executor, typename container_t0, typename container_t1, 
+template <typename SB_Handle, typename container_t0, typename container_t1, 
           typename container_t2, typename element_t, typename index_t>
 
-typename Executor::policy_t::event_t Gemm_Launcher<
+typename SB_Handle::event_t Gemm_Launcher<
     WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
     GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType>::_select_gemm(Executor& ex, index_t _M, index_t _N, index_t _K,
+    BatchType>::_select_gemm(SB_Handle& sb_handle, index_t _M, index_t _N, index_t _K,
                              element_t _alpha, container_t0 a_, index_t _lda,
                              container_t1 b_, index_t _ldb, element_t _beta,
                              container_t2 _C, index_t _ldc,
                              index_t batch_size) {
 
   //Helper functions used to make matrix views
-  auto buffer_a = make_matrix_view<col_major>(ex, a_, _M, _K, _lda); 
-  auto buffer_b = make_matrix_view<col_major>(ex, b_, _K, _N, _ldb); 
-  auto buffer_c = make_matrix_view<col_major>(ex, _C, _M, _N, _ldc); 
+  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda); 
+  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb); 
+  auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc); 
 
   //Helper function to construct the Gemm object
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, 
@@ -228,7 +223,7 @@ typename Executor::policy_t::event_t Gemm_Launcher<
       batch_size);
 
   //Execute the gemm and return the associated event
-  return ex.execute(gemm); 
+  return sb_handle.execute(gemm); 
 }
 }  // namespace blas
 ```
@@ -245,23 +240,23 @@ The template for `Gemm` looks like this:
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
+#include "sycl_blas_helper.h"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 // gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
 // batched gemm
-template typename Executor<${EXECUTOR}>::policy_t::event_t _gemm_batched(
-    Executor<${EXECUTOR}>& ex, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+template typename SB_Handle::event_t _gemm_batched(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
@@ -302,12 +297,12 @@ The relevant parameters are:
 For an example of a backend target header and some of the ways that configurations are selected let's look at `src/interface/blas3/backend/default_cpu.hpp` :
 
 ```c++
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t, 
+template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t, 
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 
-typename executor_t::policy_t::event_t _gemm(
-    executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, element_t _alpha,
     container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
     element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type) {
@@ -318,7 +313,7 @@ typename executor_t::policy_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle, _M, _N,
                                                                     _K, _alpha,
                                                                     _a, _lda,
                                                                     _b, _ldb,
@@ -338,7 +333,7 @@ The first configuration is only used if `interleaved` is specified for the `GEMM
       static_cast<int>(gemm_algorithm_t::naive),
       static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
       static_cast<int>(
-          gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+          gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                               _alpha, _a, _lda,
                                                               _b, _ldb, _beta,
                                                               _c, _ldc,
@@ -358,7 +353,7 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
@@ -370,7 +365,7 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
                                                                 _alpha, _a,
                                                                 _lda, _b, _ldb,
                                                                 _beta, _c, _ldc,
