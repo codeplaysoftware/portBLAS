@@ -218,41 +218,45 @@ typename sb_handle_t::event_t _syr2(
     index_t _lda             // >max(1, _N) The first dimension of _mA
 );
 
-/*!
- @brief Generalised matrix vector product with band matrices.
-
- Generalised matrix vector product with a band matrix, i.e. computing the
- mathematical operation:
-
- y = alpha*A*x + beta*y
-
- See the netlib blas interface documentation for more details of the high level
- interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+/**
+ * @brief Generalised matrix vector product with band matrices.
+ *
+ * Generalised matrix vector product with a band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*op(A)*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _M Number of rows of A
+ * @param _N Number of columns of A
+ * @param _KL Number of A sub-diagonals
+ * @param _KU Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_KL + _KU + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ *            when trans = 'n' and (1+(_M-1)*abs(_incx) otherwise
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
+ *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
+ * @param _incy Increment for _vy
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _gbmv(
-    sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
-    char _trans,             // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,              // The size of dimension M of the matrix (rows)
-    index_t _N,              // The size of dimension N of the matrix (columns)
-    index_t _KL,             // The number of sub-diagonals of the matrix
-    index_t _KU,             // The number of super-diagonals of the matrix
-    element_t _alpha,        // Scalar parameter Alpha
-    container_0_t _mA,       // An array (LDA,N), with the first m*n elements
-    index_t _lda,            // Specifies the first dimension of a, max(1, m)
-    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
-                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                        // containing the vector "x"
-    increment_t _incx,  // The increment for elements in x (nonzero).
-    element_t _beta,    // Scalar parameter Beta
-    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
-                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
-);
+typename sb_handle_t::event_t _gbmv(sb_handle_t& sb_handle, char _trans,
+                                    index_t _M, index_t _N, index_t _KL,
+                                    index_t _KU, element_t _alpha,
+                                    container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx,
+                                    element_t _beta, container_2_t _vy,
+                                    increment_t _incy);
 
 }  // namespace internal
 
@@ -452,41 +456,45 @@ typename sb_handle_t::event_t inline _syr2(
                          _mA, _lda);
 }
 
-/*!
- @brief Generalised matrix vector product with band matrices.
-
- Generalised matrix vector product with a band matrix, i.e. computing the
- mathematical operation:
-
- y = alpha*A*x + beta*y
-
- See the netlib blas interface documentation for more details of the high level
- interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+/**
+ * @brief Generalised matrix vector product with band matrices.
+ *
+ * Generalised matrix vector product with a band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*op(A)*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _M Number of rows of A
+ * @param _N Number of columns of A
+ * @param _KL Number of A sub-diagonals
+ * @param _KU Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_KL + _KU + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ *            when trans = 'n' and (1+(_M-1)*abs(_incx) otherwise
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
+ *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
+ * @param _incy Increment for _vy
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t inline _gbmv(
-    sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
-    char _trans,             // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,              // The size of dimension M of the matrix (rows)
-    index_t _N,              // The size of dimension N of the matrix (columns)
-    index_t _KL,             // The number of sub-diagonals of the matrix
-    index_t _KU,             // The number of super-diagonals of the matrix
-    element_t _alpha,        // Scalar parameter Alpha
-    container_0_t _mA,       // An array (LDA,N), with the first m*n elements
-    index_t _lda,            // Specifies the first dimension of a, max(1, m)
-    container_1_t _vx,  // An array of dimension at least: (1+(n-1)*abs(incx))
-                        // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
-                        // containing the vector "x"
-    increment_t _incx,  // The increment for elements in x (nonzero).
-    element_t _beta,    // Scalar parameter Beta
-    container_2_t _vy,  // An array of dimension at least: (1+(m-1)*abs(incy))
-                        // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
-    // containing the vector "y" (if beta is nonzero). When
-    // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
-) {
+typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
+                                           index_t _M, index_t _N, index_t _KL,
+                                           index_t _KU, element_t _alpha,
+                                           container_0_t _mA, index_t _lda,
+                                           container_1_t _vx, increment_t _incx,
+                                           element_t _beta, container_2_t _vy,
+                                           increment_t _incy) {
   return internal::_gbmv(sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda,
                          _vx, _incx, _beta, _vy, _incy);
 }
