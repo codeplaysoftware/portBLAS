@@ -66,9 +66,19 @@ else()
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl")
 endif()
 
-if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
-  add_definitions(-DSB_ENABLE_JOINT_MATRIX=1)
-  list(APPEND DPCPP_FLAGS "-Xclang;-cl-mad-enable")
+if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
+  string(FIND ${DPCPP_SYCL_ARCH} "_" start_idx)
+  if(start_idx)
+    MATH(EXPR start_idx "${start_idx} + 1")
+    string(SUBSTRING ${DPCPP_SYCL_ARCH} ${start_idx} "2" sm_val)
+  endif()
+
+  if (${start_idx} AND ${sm_val} GREATER_EQUAL "80")
+    add_definitions(-DSB_ENABLE_JOINT_MATRIX=1)
+    list(APPEND DPCPP_FLAGS "-Xclang;-cl-mad-enable")
+    list(APPEND DPCPP_FLAGS "-DSYCL_EXT_ONEAPI_MATRIX_VERSION=3")
+    list(APPEND DPCPP_FLAGS "-DSB_ENABLE_JOINT_MATRIX=1")
+  endif()
 endif()
 
 function(add_sycl_to_target)
@@ -82,20 +92,8 @@ function(add_sycl_to_target)
     ${ARGN}
   )
   target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-  if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
-    target_compile_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                              PUBLIC --cuda-gpu-arch=${DPCPP_SYCL_ARCH} 
-                              PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
-                              PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
-  endif()
   get_target_property(target_type ${SB_ADD_SYCL_TARGET} TYPE)
   if (NOT target_type STREQUAL "OBJECT_LIBRARY")
     target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC ${DPCPP_FLAGS})
-    if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda" AND ${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
-      target_link_options(${SB_ADD_SYCL_TARGET} PUBLIC -Xsycl-target-backend 
-                              PUBLIC --cuda-gpu-arch=${DPCPP_SYCL_ARCH} 
-                              PUBLIC -DSYCL_EXT_ONEAPI_MATRIX_VERSION=3 
-                              PUBLIC -DSB_ENABLE_JOINT_MATRIX=1)
-    endif()
   endif()
 endfunction()

@@ -796,17 +796,22 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     "float"
     "double"
   )
+  string(FIND ${DPCPP_SYCL_ARCH} "_" start_idx)
+  if(start_idx)
+    MATH(EXPR start_idx "${start_idx} + 1")
+    string(SUBSTRING ${DPCPP_SYCL_ARCH} ${start_idx} "2" sm_val)
+  endif()
   foreach(data ${supported_types})
-    # Tensorcore specific GEMM configurations
-    if(${DPCPP_SYCL_ARCH} STREQUAL "sm_80")
+    # Tensorcore specific GEMM configurations (only for float)
+    if(${start_idx} AND ${sm_val} GREATER_EQUAL "80")
       add_gemm_configuration(
-          "${data}" 128 "false" "false" "false"
+          "float" 128 "false" "false" "false"
           128 2 4 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
       add_gemm_configuration(
-          "${data}" 128 "false" "false" "false"
+          "float" 128 "false" "false" "false"
           128 4 8 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
       add_gemm_configuration(
-          "${data}" 256 "false" "false" "false"
+          "float" 256 "false" "false" "false"
           128 8 8 16 16 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "full" 1 "strided" "true")
     endif()
     # Non-Tensorcore specific GEMM Configurations

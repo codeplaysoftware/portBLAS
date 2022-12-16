@@ -62,12 +62,12 @@ struct Packetize {
    * checking is required.
    * @tparam ld The leading dimension of the destination memory.
    */
-#ifdef SB_ENABLE_JOINT_MATRIX
   template <bool trans, bool internal, int ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
+#ifdef SB_ENABLE_JOINT_MATRIX
     value_t val = in_range ? *(src) : value_t{0};
     using address_t = cl::sycl::access::address_space;
     if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
@@ -86,16 +86,11 @@ struct Packetize {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
       *dest = round_to_tf32(val);
     }
-  }
 #else
-  template <bool trans, bool internal, int ld, typename SrcPointerType,
-            typename DestPointerType, typename EdgePredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
-      const bool in_range, SrcPointerType src, DestPointerType dest,
-      EdgePredicate) {
     *(dest) = in_range ? *(src) : value_t{0};
-  }
 #endif
+  }
+
   /*! @brief Performs a vectorised load using sycl::vec::load when the current
    * block is internal. In the case where k < the
    * number of elements being loaded then edge loads will be element wise with
@@ -129,10 +124,10 @@ struct Packetize {
    * the data in local memory is always consistent.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
-#ifdef SB_ENABLE_JOINT_MATRIX
   template <bool trans, index_t ld, typename DestPointerType>
   static SYCL_BLAS_INLINE typename std::enable_if<trans>::type store(
       PacketType &packet, DestPointerType dest) {
+#ifdef SB_ENABLE_JOINT_MATRIX
     using address_t = cl::sycl::access::address_space;
 #pragma unroll
     for (index_t i = 0; i < packet_size; i++) {
@@ -154,28 +149,24 @@ struct Packetize {
         *(dest + ld * i) = round_to_tf32(val);
       }
     }
-  }
 #else
-  template <bool trans, index_t ld, typename DestPointerType>
-  static SYCL_BLAS_INLINE typename std::enable_if<trans>::type store(
-      PacketType &packet, DestPointerType dest) {
 #pragma unroll
     for (index_t i = 0; i < packet_size; i++) {
       *(dest + ld * i) = reinterpret_cast<value_t *>(&packet)[i];
     }
-  }
 #endif
+  }
 
   /*! @brief Store a vector packet into local memory when the source is not
    * transposed. This will use sycl::vec::store function.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
 
-#ifdef SB_ENABLE_JOINT_MATRIX
   template <bool trans, int ld, typename DestPointerType>
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
+#ifdef SB_ENABLE_JOINT_MATRIX
     if constexpr (std::is_same<cl::sycl::multi_ptr<cl::sycl::half,
                                                    address_t::local_space>,
                                DestPointerType>::value) {
@@ -192,17 +183,11 @@ struct Packetize {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
       *dest = round_to_tf32(packet[0]);
     }
-  }
-
 #else
-  template <bool trans, int ld, typename DestPointerType>
-  static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
-      PacketType &packet, DestPointerType dest) {
-    using address_t = cl::sycl::access::address_space;
     packet.template store<address_t::local_space>(
         0, cl::sycl::multi_ptr<value_t, address_t::local_space>(dest));
-  }
 #endif
+  }
 };
 
 }  // namespace blas
