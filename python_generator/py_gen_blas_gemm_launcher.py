@@ -69,7 +69,7 @@ if __name__ == '__main__':
     gemm_vectorize_type = sys.argv[34]
     vector_size = sys.argv[35]
     batch_type = sys.argv[36]
-    use_tensorcores = sys.argv[37]
+    use_joint_matrix = sys.argv[37]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)

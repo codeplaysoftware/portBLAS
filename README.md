@@ -19,7 +19,6 @@ the project.
 ## Table of Contents
 
 - [SYCL-BLAS Implementation](#sycl-blas-implementation)
-  - [Table of Contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Basic Concepts](#basic-concepts)
     - [Views](#views)
@@ -30,6 +29,7 @@ the project.
     - [BLAS 1](#blas-1)
     - [BLAS 2](#blas-2)
     - [BLAS 3](#blas-3)
+    - [Experimental Joint Matrix Support](#jm_support)
   - [Requirements](#requirements)
   - [Setup](#setup)
     - [Compile with ComputeCpp](#compile-with-computecpp)
@@ -286,6 +286,18 @@ For all these operations:
 | `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
 | `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
 | `_trsm` | `ex`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
+
+### Experimental Joint Matrix Support
+
+SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
+[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_oneapi_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
+NVIDIA Ampere GPUs and beyond. The requirements for using this experimental support 
+are: 
+```bash
+DPCPP_SYCL_TARGET = "nvptx64-nvidia-cuda"
+DPCPP_SYCL_ARCH = "sm_80" | "sm_90"
+```
+The user should expect erroneous behaviour from the code if both of these requirements are not met.
 
 ## Requirements
 

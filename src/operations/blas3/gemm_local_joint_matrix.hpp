@@ -22,8 +22,8 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP
-#define SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP
+#ifndef SYCL_BLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
+#define SYCL_BLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
 
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
@@ -63,7 +63,7 @@ namespace blas {
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
- * @tparam UseJointMatrix boolean parameter to decide whether to use Tensorcores
+ * @tparam UseJointMatrix boolean parameter to decide whether to use joint_matrix
  * or not
  */
 #ifdef SB_ENABLE_JOINT_MATRIX
@@ -816,4 +816,4 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_LOCAL_GEMM_TENSORCORE_HPP
+#endif  // SYCL_BLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
