@@ -70,9 +70,11 @@ endif()
 
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
-include(ConfigureSYCLBLAS)
-include(SYCL)
-find_package(PythonInterp 3 REQUIRED)
+if (NOT INSTALL_HEADER_ONLY)
+  include(ConfigureSYCLBLAS)
+  include(SYCL)
+  find_package(PythonInterp 3 REQUIRED)
+endif()
 
 if (MSVC)
   # The device compiler needs C++14 to parse the Windows headers
