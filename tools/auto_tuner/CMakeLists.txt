@@ -10,6 +10,8 @@ list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/Modules
   ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/cmake/Modules
 )
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
 
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.

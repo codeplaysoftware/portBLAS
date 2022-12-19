@@ -42,31 +42,31 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
                    static_cast<int>(Config::VecType), VecSize,
                    static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
-  auto ex = get_sycl_executor();
+  auto sb_handle = get_sycl_blas_handle();
   {
     {
-      auto event_list = ex.get_policy_handler().copy_to_device(
-          a.init_c.data(), a.c, a.init_c.size());
+      auto event_list = blas::helper::copy_to_host(
+          sb_handle.get_queue(), a.init_c.data(), a.c, a.init_c.size());
       event_list.back().wait_and_throw();
     }
 
     auto accA =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.a, a.m, a.k, a.lda);
+        ::blas::make_matrix_view<::blas::col_major>(a.a, a.m, a.k, a.lda);
     auto accB =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.b, a.k, a.n, a.ldb);
+        ::blas::make_matrix_view<::blas::col_major>(a.b, a.k, a.n, a.ldb);
     auto accC =
-        ::blas::make_matrix_view<::blas::col_major>(ex, a.c, a.m, a.n, a.ldc);
+        ::blas::make_matrix_view<::blas::col_major>(a.c, a.m, a.n, a.ldc);
     auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
-      auto event_list = ex.execute(gemm);
+      auto event_list = sb_handle.execute(gemm);
       for (auto &event : event_list) {
         event.wait_and_throw();
       }
     });
     {
-      auto event_list = ex.get_policy_handler().copy_to_host(
-          a.c, a.output_c.data(), a.output_c.size());
+      auto event_list = blas::helper::copy_to_host(
+          sb_handle.get_queue(), a.c, a.output_c.data(), a.output_c.size());
       event_list.back().wait_and_throw();
     }
   }

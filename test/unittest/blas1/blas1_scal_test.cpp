@@ -44,21 +44,19 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
 
-  _scal(ex, size, alpha, gpu_x_v, incX);
-  auto event =
-      ex.get_policy_handler().copy_to_host(gpu_x_v, x_v.data(), size * incX);
-  ex.get_policy_handler().wait(event);
+  _scal(sb_handle, size, alpha, gpu_x_v, incX);
+  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                          x_v.data(), size * incX);
+  sb_handle.wait(event);
 
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_cpu_v);
   ASSERT_TRUE(isAlmostEqual);
-
-  ex.get_policy_handler().get_queue().wait();
 }
 
 #ifdef STRESS_TESTING

@@ -23,12 +23,11 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -37,12 +36,12 @@ namespace internal {
 /**
  * \brief _nrm2 Returns the euclidean norm of a vector
  *
- * @param Executor<ExecutorType> ex
+ * @param SB_Handle sb_handle
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
 template
-    typename ValueType<${container_t0}>::type _nrm2(Executor<${EXECUTOR}> &ex,
+    typename ValueType<${container_t0}>::type _nrm2(SB_Handle &sb_handle,
                                                     ${INDEX_TYPE} _N,
                                                     ${container_t0} _vx,
                                                     ${INCREMENT_TYPE} _incx);

@@ -28,12 +28,13 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
-#include "executors/executor.h"
 #include "interface/blas2/backend/backend.hpp"
 #include "interface/blas2_interface.h"
 #include "operations/blas2_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
+#include "sb_handle/sycl_blas_handle.h"
+#include "views/view.h"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -64,22 +65,24 @@ namespace internal {
  *
  */
 template <uint32_t local_range, uint32_t cache_line_size,
-          gemv_memory_t memory_type, transpose_type trn, typename Executor,
+          gemv_memory_t memory_type, transpose_type trn, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename Executor::policy_t::event_t _gemv_impl(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _mA,
-    index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
-    container_t2 _vy, increment_t _incy) {
+typename sb_handle_t::event_t _gemv_impl(sb_handle_t& sb_handle, index_t _M,
+                                         index_t _N, element_t _alpha,
+                                         container_t0 _mA, index_t _lda,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy) {
   constexpr int cl_elems = cache_line_size / sizeof(element_t);
   constexpr bool is_transposed = trn != transpose_type::Normal;
 
   const auto x_vector_size = is_transposed ? _M : _N;
   const auto y_vector_size = is_transposed ? _N : _M;
 
-  auto mA = make_matrix_view<col_major>(ex, _mA, _M, _N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, x_vector_size);
-  auto vy = make_vector_view(ex, _vy, _incy, y_vector_size);
+  auto mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  auto vy = make_vector_view(_vy, _incy, y_vector_size);
 
   // Non-local memory kernel
   if (memory_type != gemv_memory_t::local) {
@@ -89,7 +92,7 @@ typename Executor::policy_t::event_t _gemv_impl(
 
     auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
     auto dot_products_matrix =
-        make_matrix_view<col_major>(ex, dot_products_buffer, ld, one, ld);
+        make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
 
     const index_t global_size = roundUp<index_t>(ld, local_range);
 
@@ -97,9 +100,9 @@ typename Executor::policy_t::event_t _gemv_impl(
         dot_products_matrix, mA, vx, one, one);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
-    // auto gemvEvent = ex.execute(gemv, local_range, global_size);
+    // auto gemvEvent = sb_handle.execute(gemv, local_range, global_size);
     auto gemvEvent =
-        ex.execute(gemv, static_cast<index_t>(local_range), global_size);
+        sb_handle.execute(gemv, static_cast<index_t>(local_range), global_size);
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -116,12 +119,14 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent,
+                                 sb_handle.execute(assignOp, local_range));
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent,
+                                 sb_handle.execute(assignOp, local_range));
     }
 
   } else  // Local memory kernel
@@ -148,7 +153,7 @@ typename Executor::policy_t::event_t _gemv_impl(
     auto dot_products_buffer =
         blas::make_sycl_iterator_buffer<element_t>(dot_products_buffer_size);
     auto dot_products_matrix =
-        make_matrix_view<col_major>(ex, dot_products_buffer, ld, WGs_per_C, ld);
+        make_matrix_view<col_major>(dot_products_buffer, ld, WGs_per_C, ld);
 
     const index_t global_size = local_range * WGs_per_C * WGs_per_NC;
 
@@ -157,8 +162,8 @@ typename Executor::policy_t::event_t _gemv_impl(
         dot_products_matrix, mA, vx, WGs_per_NC, WGs_per_C);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
-    auto gemvEvent = ex.execute(gemv, static_cast<index_t>(local_range),
-                                global_size, kernel_scratch_size);
+    auto gemvEvent = sb_handle.execute(gemv, static_cast<index_t>(local_range),
+                                       global_size, kernel_scratch_size);
 
     // Sum the partial dot products results from the GEMV kernel
     auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
@@ -178,12 +183,14 @@ typename Executor::policy_t::event_t _gemv_impl(
       auto assignOp = make_op<Assign>(vy, addOp);
 
       // exectutes the above expression tree to yield the final GEMV result
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent,
+                                 sb_handle.execute(assignOp, local_range));
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-      return concatenate_vectors(gemvEvent, ex.execute(assignOp, local_range));
+      return concatenate_vectors(gemvEvent,
+                                 sb_handle.execute(assignOp, local_range));
     }
   }
 }
@@ -192,13 +199,14 @@ typename Executor::policy_t::event_t _gemv_impl(
  * @brief Implementation of the Triangular Matrix Vector product.
  */
 
-template <transpose_type trn, typename Executor, typename index_t,
+template <transpose_type trn, typename sb_handle_t, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
-typename Executor::policy_t::event_t _trmv_impl(
-    Executor& ex, char _Uplo, char _Diag, index_t _N, container_t0 _mA,
-    index_t _lda, container_t1 _vx, increment_t _incx, index_t _localSize = 0,
-    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret{};
+typename sb_handle_t::event_t _trmv_impl(
+    sb_handle_t& sb_handle, char _Uplo, char _Diag, index_t _N,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nRowsWG = 0,
+    index_t _nColsWG = 0) {
+  typename sb_handle_t::event_t ret{};
   _Uplo = tolower(_Uplo);
   _Diag = tolower(_Diag);
 
@@ -214,12 +222,11 @@ typename Executor::policy_t::event_t _trmv_impl(
       (data_layout_t::is_col_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<data_layout_t>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
+  auto mA = make_matrix_view<data_layout_t>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
   const index_t interLoop = 1;
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
   const index_t nRowsWG =
       (_nRowsWG == 0) ? ((data_layout_t::is_col_major()) ? localSize : 1)
                       : std::min(N, _nRowsWG);
@@ -239,8 +246,7 @@ typename Executor::policy_t::event_t _trmv_impl(
 
   using element_t = typename ValueType<container_t0>::type;
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize);
-  auto mat1 =
-      make_matrix_view<row_major>(ex, valT1, N, scratchSize, scratchSize);
+  auto mat1 = make_matrix_view<row_major>(valT1, N, scratchSize, scratchSize);
 
   if (data_layout_t::is_col_major()) {
     if (triangOpr == 1) {
@@ -248,24 +254,28 @@ typename Executor::policy_t::event_t _trmv_impl(
         auto gemvC = make_Gemv_Col<false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvC = make_Gemv_Col<true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvC = make_Gemv_Col<true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvC, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       }
     }
   } else {  // row_major
@@ -274,30 +284,34 @@ typename Executor::policy_t::event_t _trmv_impl(
         auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     } else {
       if (unitDiag == 1) {
         auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
         auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
-            ret, ex.execute(gemvR, localSize, globalSize, scratchPadSize));
+            ret,
+            sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       }
     }
   }
   auto addMOp = make_sumMatrixColumns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
-  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
 }
 
@@ -316,31 +330,31 @@ ssymv 	( 	character  	UPLO,
    real, dimension(*)  	Y,
    integer  	INCY
  ) 	*/
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t _symv_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
-    index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
-    container_t2 _vy, increment_t _incy, index_t _localSize = 0,
-    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+typename sb_handle_t::event_t _symv_impl(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    element_t _beta, container_t2 _vy, increment_t _incy,
+    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nRowsWG = 0,
+    index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
-  typename Executor::policy_t::event_t ret;
+  typename sb_handle_t::event_t ret;
   if ((_Uplo != 'u') && (_Uplo != 'l')) {
     throw std::invalid_argument("Erroneous parameter");
   }
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
-  auto vy = make_vector_view(ex, _vy, _incy, N);
-  auto mAT = make_matrix_view<row_major>(ex, _mA, N, N, _lda);
+  auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
+  auto vy = make_vector_view(_vy, _incy, N);
+  auto mAT = make_matrix_view<row_major>(_mA, N, N, _lda);
 
   const index_t interLoop = 1;
 
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
   const index_t scratchPadSize =
       (_localSize == 0) ? localSize : _scratchPadSize;
 
@@ -363,13 +377,13 @@ typename Executor::policy_t::event_t _symv_impl(
 
   auto valTR = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_R);
   auto matR =
-      make_matrix_view<row_major>(ex, valTR, N, scratchSize_R, scratchSize_R);
+      make_matrix_view<row_major>(valTR, N, scratchSize_R, scratchSize_R);
 
   const index_t scratchSize_C = nWGPerCol_C;
 
   auto valTC = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize_C);
   auto matC =
-      make_matrix_view<row_major>(ex, valTC, N, scratchSize_C, scratchSize_C);
+      make_matrix_view<row_major>(valTC, N, scratchSize_C, scratchSize_C);
 
   if (triangOpr == 1) {
     auto gemvC = make_Gemv_Col<false, true, true>(matC, mA, vx, nWGPerRow_C,
@@ -377,18 +391,18 @@ typename Executor::policy_t::event_t _symv_impl(
     auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
-        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+        ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
     ret = concatenate_vectors(
-        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
+        ret, sb_handle.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   } else {
     auto gemvC = make_Gemv_Col<true, true, false>(matC, mA, vx, nWGPerRow_C,
                                                   nWGPerCol_C, scratchPadSize);
     auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
-        ret, ex.execute(gemvC, localSize, globalSize_C, scratchPadSize));
+        ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
     ret = concatenate_vectors(
-        ret, ex.execute(gemvR, localSize, globalSize_R, scratchPadSize));
+        ret, sb_handle.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
@@ -398,29 +412,28 @@ typename Executor::policy_t::event_t _symv_impl(
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
-  ret = concatenate_vectors(ret, ex.execute(assignOp, localSize));
+  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
 }
 
 /**** RANK 1 MODIFICATION ****/
 
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t _ger_impl(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
-    index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
-    index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+typename sb_handle_t::event_t _ger_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mA, index_t _lda, index_t _localSize = 0,
+    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   index_t M = _M;
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, M, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, M);
-  auto vy = make_vector_view(ex, _vy, _incy, N);
+  auto mA = make_matrix_view<col_major>(_mA, M, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, M);
+  auto vy = make_vector_view(_vy, _incy, N);
 
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(M, _nRowsWG);
 
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
@@ -432,10 +445,10 @@ typename Executor::policy_t::event_t _ger_impl(
   const index_t nWGPerRow = (M - 1) / nRowsWG + 1;
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  typename Executor::policy_t::event_t ret;
+  typename sb_handle_t::event_t ret;
   auto assignOp =
       make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-  return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+  return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
 }
 
 /*! _SYR.
@@ -451,22 +464,22 @@ ssyr 	( 	character  	UPLO,
    integer  	LDA
  )
 */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::policy_t::event_t _syr_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _mA, index_t _lda, index_t _localSize = 0,
-    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
-  typename Executor::policy_t::event_t ret;
+typename sb_handle_t::event_t _syr_impl(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _mA, index_t _lda,
+    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nRowsWG = 0,
+    index_t _nColsWG = 0) {
+  typename sb_handle_t::event_t ret;
   _Uplo = tolower(_Uplo);
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(ex, _mA, N, N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, N);
+  auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
 
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
@@ -480,14 +493,14 @@ typename Executor::policy_t::event_t _syr_impl(
     auto assignOp = make_Ger_Col<true, false, true, true>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
-               ret,
-               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchPadSize));
   } else {
     auto assignOp = make_Ger_Col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
-               ret,
-               ex.execute(assignOp, localSize, globalSize, scratchPadSize));
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchPadSize));
   }
 }
 
@@ -503,25 +516,24 @@ typename Executor::policy_t::event_t _syr_impl(
                 integer  	LDA
         )
 */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t _syr2_impl(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
-    index_t _lda, index_t _localSize = 0, index_t _scratchPadSize = 0,
-    index_t _nRowsWG = 0, index_t _nColsWG = 0) {
+typename sb_handle_t::event_t _syr2_impl(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mA, index_t _lda, index_t _localSize = 0,
+    index_t _scratchPadSize = 0, index_t _nRowsWG = 0, index_t _nColsWG = 0) {
   _Uplo = tolower(_Uplo);
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
 
-  auto mA = make_matrix_view<col_major>(ex, _mA, _N, _N, _lda);
-  auto vx = make_vector_view(ex, _vx, _incx, _N);
-  auto vy = make_vector_view(ex, _vy, _incy, _N);
+  auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
 
-  const index_t localSize = (_localSize == 0)
-                                ? ex.get_policy_handler().get_work_group_size()
-                                : _localSize;
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
   const index_t nRowsWG = (_nRowsWG == 0) ? localSize : std::min(N, _nRowsWG);
   const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
   const index_t scratchPadSize =
@@ -534,11 +546,11 @@ typename Executor::policy_t::event_t _syr2_impl(
   if (triangOpr) {
     auto assignOp = make_Ger_Col<false, false, true, true>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+    return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   } else {
     auto assignOp = make_Ger_Col<false, true, true, false>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
-    return ex.execute(assignOp, localSize, globalSize, scratchPadSize);
+    return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   }
 }
 
@@ -555,17 +567,17 @@ typename Executor::policy_t::event_t _syr2_impl(
  interface: http://www.netlib.org/lapack/explore-html/db/d58/sgemv_8f.html
 
  */
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t inline _gemv(
-    Executor& ex,       // Executor (sycl, parallel, serial, etc)
-    char _trans,        // The transposition of the matrix ('n', 't', 'c')
-    index_t _M,         // The size of dimension M of the matrix (rows)
-    index_t _N,         // The size of dimension N of the matrix (columns)
-    element_t _alpha,   // Scalar parameter Alpha
-    container_t0 _mA,   // An array (LDA,N), with the first m*n elements
-    index_t _lda,       // Specifies the first dimension of a, max(1, m)
+typename sb_handle_t::event_t inline _gemv(
+    sb_handle_t& sb_handle,  // instance of SB_Handle
+    char _trans,             // The transposition of the matrix ('n', 't', 'c')
+    index_t _M,              // The size of dimension M of the matrix (rows)
+    index_t _N,              // The size of dimension N of the matrix (columns)
+    element_t _alpha,        // Scalar parameter Alpha
+    container_t0 _mA,        // An array (LDA,N), with the first m*n elements
+    index_t _lda,            // Specifies the first dimension of a, max(1, m)
     container_t1 _vx,   // An array of dimension at least: (1+(n-1)*abs(incx))
                         // when trans = 'n' and (1+(m-1)*abs(incx) otherwise,
                         // containing the vector "x"
@@ -579,67 +591,77 @@ typename Executor::policy_t::event_t inline _gemv(
 ) {
   return tolower(_trans) == 'n'
              ? blas::gemv::backend::_gemv<transpose_type::Normal>(
-                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy)
+                   sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
+                   _incy)
              : blas::gemv::backend::_gemv<transpose_type::Transposed>(
-                   ex, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
+                   sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
                    _incy);
 }
 
-template <typename Executor, typename index_t, typename container_t0,
+template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename Executor::policy_t::event_t inline _trmv(
-    Executor& ex, char _Uplo, char _trans, char _Diag, index_t _N,
-    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx) {
+typename sb_handle_t::event_t inline _trmv(sb_handle_t& sb_handle, char _Uplo,
+                                           char _trans, char _Diag, index_t _N,
+                                           container_t0 _mA, index_t _lda,
+                                           container_t1 _vx,
+                                           increment_t _incx) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
   return tolower(_trans) == 'n'
-             ? _trmv_impl<transpose_type::Normal>(ex, _Uplo, _Diag, _N, _mA,
-                                                  _lda, _vx, _incx)
-             : _trmv_impl<transpose_type::Transposed>(ex, _Uplo, _Diag, _N, _mA,
-                                                      _lda, _vx, _incx);
+             ? _trmv_impl<transpose_type::Normal>(sb_handle, _Uplo, _Diag, _N,
+                                                  _mA, _lda, _vx, _incx)
+             : _trmv_impl<transpose_type::Transposed>(
+                   sb_handle, _Uplo, _Diag, _N, _mA, _lda, _vx, _incx);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename Executor::policy_t::event_t inline _symv(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _mA,
-    index_t _lda, container_t1 _vx, increment_t _incx, element_t _beta,
-    container_t2 _vy, increment_t _incy) {
+typename sb_handle_t::event_t inline _symv(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _mA, index_t _lda,
+                                           container_t1 _vx, increment_t _incx,
+                                           element_t _beta, container_t2 _vy,
+                                           increment_t _incy) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _symv_impl(ex, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy,
-                    _incy);
+  return _symv_impl(sb_handle, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta,
+                    _vy, _incy);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t inline _ger(
-    Executor& ex, index_t _M, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
-    index_t _lda) {
+typename sb_handle_t::event_t inline _ger(sb_handle_t& sb_handle, index_t _M,
+                                          index_t _N, element_t _alpha,
+                                          container_t0 _vx, increment_t _incx,
+                                          container_t1 _vy, increment_t _incy,
+                                          container_t2 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _ger_impl(ex, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
+  return _ger_impl(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
+                   _lda);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
-typename Executor::policy_t::event_t inline _syr(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _mA, index_t _lda) {
+typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
+                                          index_t _N, element_t _alpha,
+                                          container_t0 _vx, increment_t _incx,
+                                          container_t1 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _syr_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
+  return _syr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
-template <typename Executor, typename index_t, typename element_t,
+template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename Executor::policy_t::event_t inline _syr2(
-    Executor& ex, char _Uplo, index_t _N, element_t _alpha, container_t0 _vx,
-    increment_t _incx, container_t1 _vy, increment_t _incy, container_t2 _mA,
-    index_t _lda) {
+typename sb_handle_t::event_t inline _syr2(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _vx, increment_t _incx,
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mA, index_t _lda) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device
-  return _syr2_impl(ex, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA, _lda);
+  return _syr2_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
+                    _lda);
 }
 
 }  // namespace internal

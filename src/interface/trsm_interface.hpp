@@ -25,10 +25,11 @@
 #define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
-#include "executors/executor.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
-#include "policy/sycl_policy_handler.h"
+#include "sb_handle/sycl_blas_handle.h"
+#include "sycl_blas_helper.h"
+#include "views/view.h"
 
 namespace blas {
 namespace internal {
@@ -101,14 +102,12 @@ namespace internal {
  * takes advantage of GEMM calls that are heavily optimized for the target
  * hardware, thus running with maximum performance.
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
-                                             char uplo, char trans,
-                                             char diag, index_t M,
-                                             index_t N, element_t alpha,
-                                             container_0_t A, index_t lda,
-                                             container_1_t B, index_t ldb) {
+typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
+                                    char uplo, char trans, char diag, index_t M,
+                                    index_t N, element_t alpha, container_0_t A,
+                                    index_t lda, container_1_t B, index_t ldb) {
   // Makes sure all dimensions are larger than zero
   if ((M == 0) || (N == 0) || (lda == 0) || (ldb == 0)) {
     throw std::invalid_argument("invalid matrix size argument");
@@ -140,20 +139,21 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
 
   constexpr index_t blockSize = 16;
 
-  typename executor_t::policy_t::event_t trsmEvents;
+  typename sb_handle_t::event_t trsmEvents;
 
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
   auto invA = make_sycl_iterator_buffer<element_t>(invASize);
-  trsmEvents = concatenate_vectors(
-      trsmEvents, ex.get_policy_handler().fill(invA, element_t{0}, invASize));
+  std::vector<cl::sycl::event> event = {
+      blas::helper::fill(sb_handle.get_queue(), invA, element_t{0}, invASize)};
+  trsmEvents = concatenate_vectors(trsmEvents, event);
 
   // Create the matrix views from the input buffers
-  auto bufferA = make_matrix_view<col_major>(ex, A, K, K, lda);
+  auto bufferA = make_matrix_view<col_major>(A, K, K, lda);
   auto bufferInvA =
-      make_matrix_view<col_major>(ex, invA, blockSize, blockSize, lda);
-  auto bufferB = make_matrix_view<col_major>(ex, B, M, N, ldb);
+      make_matrix_view<col_major>(invA, blockSize, blockSize, lda);
+  auto bufferB = make_matrix_view<col_major>(B, M, N, ldb);
 
   // Calculate the parameters for the diagonal blocks inversion
   const index_t numBlocks = roundUp<index_t>(K, blockSize) / blockSize;
@@ -164,27 +164,27 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
 
   // Instantiate the appropriate diagonal blocks inversion based on the matrix
   // type
-  typename executor_t::policy_t::event_t invertBlocksEvent;
+  typename sb_handle_t::event_t invertBlocksEvent;
   if (isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, true, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
-        ex.execute(diagInverter, localSize, globalSize, localMemSize);
+        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (!isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<false, true, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
-        ex.execute(diagInverter, localSize, globalSize, localMemSize);
+        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (isUnitDiag && !isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, false, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
-        ex.execute(diagInverter, localSize, globalSize, localMemSize);
+        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
   } else if (!isUnitDiag && !isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<false, false, blockSize>(bufferA, bufferInvA);
     invertBlocksEvent =
-        ex.execute(diagInverter, localSize, globalSize, localMemSize);
+        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
   }
   trsmEvents = concatenate_vectors(trsmEvents, invertBlocksEvent);
 
@@ -193,8 +193,8 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
   const index_t BSize = ldb * (N - 1) + M;
   const index_t ldx = ldb;
   auto X = make_sycl_iterator_buffer<element_t>(BSize);
-  trsmEvents =
-      concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, B, 1, X, 1));
+  trsmEvents = concatenate_vectors(
+      trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -215,11 +215,11 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
       // True when (lower triangular) or (upper triangular and transposed)
       for (index_t i = 0; i < M; i += blockSize) {
         const index_t currentBlockSize = std::min(M - i, blockSize);
-        auto gemmEvent = internal::_gemm(ex, isTranspose ? 't' : 'n', 'n',
-                                         currentBlockSize, N, currentBlockSize,
-                                         (i == 0) ? alpha : element_t{1},
-                                         invA + i * blockSize, blockSize, B + i,
-                                         ldb, element_t{0}, X + i, ldx);
+        auto gemmEvent = internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
+            currentBlockSize, (i == 0) ? alpha : element_t{1},
+            invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
+            ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) >= M) {
@@ -229,10 +229,10 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
         const std::ptrdiff_t offsetA = !isTranspose
                                            ? ((i + blockSize) + (i * lda))
                                            : (i + (blockSize + i) * lda);
-        internal::_gemm(ex, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
-                        blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
-                        (i == 0) ? alpha : element_t{1}, B + i + blockSize,
-                        ldb);
+        internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
+            blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
+            (i == 0) ? alpha : element_t{1}, B + i + blockSize, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     } else {
@@ -256,11 +256,11 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
       for (index_t i = iStart; i >= 0; i -= blockSize) {
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
-        auto gemmEvent = internal::_gemm(ex, isTranspose ? 't' : 'n', 'n',
-                                         currentBlockSize, N, currentBlockSize,
-                                         (i == iStart) ? alpha : element_t{1},
-                                         invA + i * blockSize, blockSize, B + i,
-                                         ldb, element_t{0}, X + i, ldx);
+        auto gemmEvent = internal::_gemm(
+            sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
+            currentBlockSize, (i == iStart) ? alpha : element_t{1},
+            invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
+            ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
@@ -268,7 +268,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
         }
 
         gemmEvent = internal::_gemm(
-            ex, isTranspose ? 't' : 'n', 'n', i, N, currentBlockSize,
+            sb_handle, isTranspose ? 't' : 'n', 'n', i, N, currentBlockSize,
             element_t{-1}, A + (!isTranspose ? (i * lda) : i), lda, X + i, ldx,
             (i == iStart) ? alpha : element_t{1}, B, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
@@ -299,7 +299,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
         const index_t currentBlockSize =
             (i == iStart) ? specialBlockSize : blockSize;
         auto gemmEvent = internal::_gemm(
-            ex, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == iStart) ? alpha : element_t{1}, B + i * ldb,
             ldb, invA + i * blockSize, blockSize, element_t{0}, X + i * ldx,
             ldx);
@@ -310,7 +310,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
         }
 
         gemmEvent = internal::_gemm(
-            ex, 'n', isTranspose ? 't' : 'n', M, i, currentBlockSize,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, i, currentBlockSize,
             element_t{-1}, X + i * ldx, ldx, A + (!isTranspose ? i : (i * lda)),
             lda, (i == iStart) ? alpha : element_t{1}, B, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
@@ -335,7 +335,7 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
         const index_t currentBlockSize = std::min(N - i, blockSize);
 
         auto gemmEvent = internal::_gemm(
-            ex, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == 0) ? alpha : element_t{1}, B + i * ldb, ldb,
             invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
@@ -348,8 +348,8 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
                                           ? (i + (blockSize + i) * lda)
                                           : (i + blockSize) + (i * lda);
         gemmEvent = internal::_gemm(
-            ex, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize, blockSize,
-            element_t{-1}, X + i * ldx, ldx, A + offset, lda,
+            sb_handle, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize,
+            blockSize, element_t{-1}, X + i * ldx, ldx, A + offset, lda,
             (i == 0) ? alpha : element_t{1}, B + (i + blockSize) * ldb, ldb);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
@@ -357,8 +357,8 @@ typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
   }
 
   // Copy bufferX to bufferB as the TRSM result
-  trsmEvents =
-      concatenate_vectors(trsmEvents, internal::_copy(ex, BSize, X, 1, B, 1));
+  trsmEvents = concatenate_vectors(
+      trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1));
 
   return trsmEvents;
 }

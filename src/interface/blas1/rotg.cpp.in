@@ -23,12 +23,11 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "executors/executor_sycl.hpp"
-#include "executors/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
-#include "policy/sycl_policy_handler.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -37,12 +36,12 @@ namespace internal {
 /**
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
- * @tparam executor_t Executor type
+ * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator
  * @tparam container_1_t Buffer Iterator
  * @tparam container_2_t Buffer Iterator
  * @tparam container_3_t Buffer Iterator
- * @param ex Executor
+ * @param sb_handle SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
@@ -51,8 +50,8 @@ namespace internal {
  * @param s[out] Buffer holding the parameter s.
  * @return Vector of events to wait for.
  */
-template typename Executor<${EXECUTOR}>::policy_t::event_t _rotg(
-    Executor<${EXECUTOR}> &ex, ${container_t0} a, ${container_t1} b,
+template typename SB_Handle::event_t _rotg(
+    SB_Handle &sb_handle, ${container_t0} a, ${container_t1} b,
     ${container_t2} c, ${container_t3} s);
 }  // namespace internal
 }  // namespace blas

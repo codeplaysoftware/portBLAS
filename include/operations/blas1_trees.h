@@ -193,7 +193,7 @@ struct Rotg {
   operand_t b_;
   operand_t c_;
   operand_t s_;
-  Rotg(operand_t& a, operand_t& b, operand_t& c, operand_t& s);
+  Rotg(operand_t &a, operand_t &b, operand_t &c, operand_t &s);
   index_t get_size() const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
@@ -214,7 +214,8 @@ struct Rotmg {
   operand_t x1_;
   operand_t y1_;
   operand_t param_;
-  Rotmg(operand_t& d1, operand_t& d2, operand_t& x1, operand_t& y1, operand_t& param);
+  Rotmg(operand_t &d1, operand_t &d2, operand_t &x1, operand_t &y1,
+        operand_t &param);
   index_t get_size() const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);

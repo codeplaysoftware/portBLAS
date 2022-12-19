@@ -84,7 +84,7 @@ struct DetectScalar<cl::sycl::half> {
   using element_t = cl::sycl::half;
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
-#endif // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_DATA_TYPE_HALF
 
 /*! DetectScalar.
  * @brief See Detect Scalar.
@@ -539,18 +539,19 @@ AssignReduction<operator_t, lhs_t, rhs_t>::adjust_access_displacement() {
 }
 
 template <typename operand_t>
-Rotg<operand_t>::Rotg(operand_t& _a, operand_t& _b, operand_t& _c, operand_t& _s) : a_{_a}, b_{_b}, c_{_c}, s_{_s} {}
+Rotg<operand_t>::Rotg(operand_t &_a, operand_t &_b, operand_t &_c,
+                      operand_t &_s)
+    : a_{_a}, b_{_b}, c_{_c}, s_{_s} {}
 
 template <typename operand_t>
-SYCL_BLAS_INLINE typename Rotg<operand_t>::index_t
-Rotg<operand_t>::get_size() const {
+SYCL_BLAS_INLINE typename Rotg<operand_t>::index_t Rotg<operand_t>::get_size()
+    const {
   return static_cast<Rotg<operand_t>::index_t>(1);
 }
 
 template <typename operand_t>
 SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
     typename Rotg<operand_t>::index_t i) {
-
   using zero = constant<value_t, const_val::zero>;
   using one = constant<value_t, const_val::one>;
 
@@ -562,10 +563,9 @@ SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
   const value_t abs_a = AbsoluteValue::eval(a_ref);
   const value_t abs_b = AbsoluteValue::eval(b_ref);
   const value_t sigma =
-      abs_a > abs_b ? SignOperator::eval(a_ref): SignOperator::eval(b_ref);
+      abs_a > abs_b ? SignOperator::eval(a_ref) : SignOperator::eval(b_ref);
   const value_t r =
       ProductOperator::eval(sigma, HypotenuseOperator::eval(a_ref, b_ref));
-
 
   if (r == zero::value()) {
     c_ref = one::value();
@@ -592,7 +592,8 @@ SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
 }
 
 template <typename operand_t>
-SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(cl::sycl::nd_item<1> ndItem) {
+SYCL_BLAS_INLINE typename Rotg<operand_t>::value_t Rotg<operand_t>::eval(
+    cl::sycl::nd_item<1> ndItem) {
   return Rotg<operand_t>::eval(ndItem.get_global_id(0));
 }
 
@@ -611,8 +612,7 @@ SYCL_BLAS_INLINE void Rotg<operand_t>::bind(cl::sycl::handler &h) {
 }
 
 template <typename operand_t>
-SYCL_BLAS_INLINE void
-Rotg<operand_t>::adjust_access_displacement() {
+SYCL_BLAS_INLINE void Rotg<operand_t>::adjust_access_displacement() {
   a_.adjust_access_displacement();
   b_.adjust_access_displacement();
   c_.adjust_access_displacement();
@@ -638,13 +638,13 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::index_t Rotmg<operand_t>::get_size()
  *
  * and
  *
- * C. L. Lawson, R. J. Hanson, D. R. Kincaid, and F. T. Krogh. Basic linear algebra
- * subprograms for Fortran usage. ACM Trans. Math. Softw., 5:308-323, 1979.
+ * C. L. Lawson, R. J. Hanson, D. R. Kincaid, and F. T. Krogh. Basic linear
+ * algebra subprograms for Fortran usage. ACM Trans. Math. Softw., 5:308-323,
+ * 1979.
  */
-template<typename operand_t>
+template <typename operand_t>
 SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
     typename Rotmg<operand_t>::index_t i) {
-
   using zero = constant<value_t, const_val::zero>;
   using one = constant<value_t, const_val::one>;
   using two = constant<value_t, const_val::two>;
@@ -653,7 +653,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
 
   using error = two;
 
-  using clts_flag = one; /* co-sin less than sin */
+  using clts_flag = one;  /* co-sin less than sin */
   using sltc_flag = zero; /* sin less than co-sin */
   using rescaled_flag = m_one;
   using unit_flag = m_two;
@@ -694,8 +694,8 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
   if (d1 < zero::value()) {
     flag = error::value();
   }
-  /* If the input is of the form (c, 0), then we already have the expected output.
-   * No calculations needed in this case */
+  /* If the input is of the form (c, 0), then we already have the expected
+   * output. No calculations needed in this case */
   else if (d2 == zero::value() || y1 == zero::value()) {
     flag = unit_flag::value();
   }
@@ -779,7 +779,6 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
    * If rescaling happens, then x1 and the calculated matrix values also need
    * to be rescaled to keep the math valid */
   if (flag != error::value() && flag != unit_flag::value()) {
-
     /* Avoid d1 underflow */
     while (AbsoluteValue::eval(d1) <= inv_gamma_sq && d1 != zero::value()) {
       flag = rescaled_flag::value();
@@ -844,8 +843,7 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
       h12_ref = one::value();
       h21_ref = m_one::value();
       h22_ref = h22;
-    }
-    else {
+    } else {
       h11_ref = h11;
       h12_ref = h12;
       h21_ref = h21;
@@ -854,7 +852,8 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
   }
   flag_ref = flag;
 
-  // The return value of rotmg is void but eval expects something to be returned.
+  // The return value of rotmg is void but eval expects something to be
+  // returned.
   return zero::value();
 }
 

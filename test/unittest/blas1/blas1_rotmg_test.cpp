@@ -59,9 +59,8 @@ struct RotmgTest {
 
 template <typename scalar_t>
 void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
-
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
@@ -71,25 +70,21 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
   auto device_y1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.y1, 1);
   auto device_param =
       blas::make_sycl_iterator_buffer<scalar_t>(sycl_out.param, param_size);
-  auto event0 =
-      _rotmg(ex, device_d1, device_d2, device_x1, device_y1, device_param);
-  ex.get_policy_handler().wait(event0);
+  auto event0 = _rotmg(sb_handle, device_d1, device_d2, device_x1, device_y1,
+                       device_param);
+  sb_handle.wait(event0);
 
-  auto event1 =
-      ex.get_policy_handler().copy_to_host(device_d1, &sycl_out.d1, 1);
-  auto event2 =
-      ex.get_policy_handler().copy_to_host(device_d2, &sycl_out.d2, 1);
-  auto event3 =
-      ex.get_policy_handler().copy_to_host(device_x1, &sycl_out.x1, 1);
-  auto event4 =
-      ex.get_policy_handler().copy_to_host(device_y1, &sycl_out.y1, 1);
-  auto event5 = ex.get_policy_handler().copy_to_host(
-      device_param, sycl_out.param.data(), param_size);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
-  ex.get_policy_handler().wait(event5);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), device_d1,
+                                           &sycl_out.d1, 1);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), device_d2,
+                                           &sycl_out.d2, 1);
+  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), device_x1,
+                                           &sycl_out.x1, 1);
+  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), device_y1,
+                                           &sycl_out.y1, 1);
+  auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), device_param,
+                                           sycl_out.param.data(), param_size);
+  sb_handle.wait({event1, event2, event3, event4, event5});
 }
 
 template <typename scalar_t>
@@ -122,11 +117,10 @@ void RotmgTest<scalar_t>::validate_with_reference() {
 
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
 
-  const bool isAlmostEqual =
-      utils::almost_equal(sycl_out.d1, d1_ref) &&
-      utils::almost_equal(sycl_out.d2, d2_ref) &&
-      utils::almost_equal(sycl_out.x1, x1_ref) &&
-      utils::almost_equal(sycl_out.y1, y1_ref);
+  const bool isAlmostEqual = utils::almost_equal(sycl_out.d1, d1_ref) &&
+                             utils::almost_equal(sycl_out.d2, d2_ref) &&
+                             utils::almost_equal(sycl_out.x1, x1_ref) &&
+                             utils::almost_equal(sycl_out.y1, y1_ref);
   ASSERT_TRUE(isAlmostEqual);
 
   /* Validate param */
@@ -218,35 +212,39 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 }
 
-template<typename scalar_t>
+template <typename scalar_t>
 constexpr scalar_t min_rng = 0.5;
-template<typename scalar_t>
+template <typename scalar_t>
 constexpr scalar_t max_rng = 10.0;
 
 /* Positive number generator to generate values for d1 and d2 parameters */
-template<typename scalar_t>
+template <typename scalar_t>
 scalar_t p_gen() {
   return random_scalar<scalar_t>(min_rng<scalar_t>, max_rng<scalar_t>);
 }
 
 /* Real number generator to generate values for x1 and y1 parameters */
-template<typename scalar_t>
+template <typename scalar_t>
 scalar_t r_gen() {
-  auto real_scalar = random_scalar<scalar_t>(-max_rng<scalar_t>, max_rng<scalar_t>);
-  /* Limit to 2 decimal places so that the value does not underflow when multiplied */
+  auto real_scalar =
+      random_scalar<scalar_t>(-max_rng<scalar_t>, max_rng<scalar_t>);
+  /* Limit to 2 decimal places so that the value does not underflow when
+   * multiplied */
   return std::round(real_scalar * 100.0) / 100.0;
 }
 
 /* Generate large enough number so that rotmg will scale it down */
-template<typename scalar_t>
+template <typename scalar_t>
 scalar_t scale_down_gen() {
-  return random_scalar<scalar_t>(RotmgTest<scalar_t>::gamma_sq, RotmgTest<scalar_t>::gamma_sq * 2);
+  return random_scalar<scalar_t>(RotmgTest<scalar_t>::gamma_sq,
+                                 RotmgTest<scalar_t>::gamma_sq * 2);
 }
 
 /* Generate small enough number so that rotmg will scale it up */
-template<typename scalar_t>
+template <typename scalar_t>
 scalar_t scale_up_gen() {
-  return random_scalar<scalar_t>(RotmgTest<scalar_t>::inv_gamma_sq / 2, RotmgTest<scalar_t>::inv_gamma_sq);
+  return random_scalar<scalar_t>(RotmgTest<scalar_t>::inv_gamma_sq / 2,
+                                 RotmgTest<scalar_t>::inv_gamma_sq);
 }
 
 /* This tests try to cover every code path of the rotmg algorithm */

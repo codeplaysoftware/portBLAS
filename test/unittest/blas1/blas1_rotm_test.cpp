@@ -36,7 +36,6 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t flag;
   std::tie(size, incX, incY, flag) = combi;
 
-
   // Setup param
   constexpr size_t param_size = 5;
   std::vector<scalar_t> param(param_size);
@@ -61,21 +60,20 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // SYCL implementation
   auto q = make_queue();
-  test_executor_t ex(q);
+  blas::SB_Handle sb_handle(q);
 
   // Iterators
   auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
   auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
   auto gpu_param = blas::make_sycl_iterator_buffer<scalar_t>(param, param_size);
 
-  _rotm(ex, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
+  _rotm(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
 
-  auto event1 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_x_v, x_v.data(), size * incX);
-  auto event2 = ex.get_policy_handler().copy_to_host<scalar_t>(
-      gpu_y_v, y_v.data(), size * incY);
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
+  auto event1 = blas::helper::copy_to_host<scalar_t>(
+      sb_handle.get_queue(), gpu_x_v, x_v.data(), size * incX);
+  auto event2 = blas::helper::copy_to_host<scalar_t>(
+      sb_handle.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  sb_handle.wait({event1, event2});
 
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(x_cpu_v, x_v) &&
@@ -93,11 +91,12 @@ const auto combi = ::testing::Combine(
 );
 #else
 template <typename scalar_t>
-const auto combi = ::testing::Combine(
-    ::testing::Values(11, 1002),                             // size
-    ::testing::Values(4),                                    // incX
-    ::testing::Values(3),                                    // incY
-    ::testing::Values<scalar_t>(-2.0, -1.0, 0.0, 1.0, -4.0)  // flag
+const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
+                                      ::testing::Values(4),         // incX
+                                      ::testing::Values(3),         // incY
+                                      ::testing::Values<scalar_t>(-2.0, -1.0,
+                                                                  0.0, 1.0,
+                                                                  -4.0)  // flag
 );
 #endif
 

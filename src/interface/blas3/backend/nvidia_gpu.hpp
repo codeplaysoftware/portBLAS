@@ -30,14 +30,16 @@ namespace blas {
 namespace gemm {
 namespace backend {
 
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename executor_t,
+template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm(
-    executor_t& ex, index_t _M, index_t _N, index_t _K, element_t _alpha,
-    container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
-    element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
-    gemm_batch_type_t batch_type) {
+typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
+                                    index_t _N, index_t _K, element_t _alpha,
+                                    container_0_t _a, index_t _lda,
+                                    container_1_t _b, index_t _ldb,
+                                    element_t _beta, container_2_t _c,
+                                    index_t _ldc, index_t batch_size,
+                                    gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<2, 2, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a,
@@ -45,12 +47,12 @@ typename executor_t::policy_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(ex, _M, _N,
-                                                                    _K, _alpha,
-                                                                    _a, _lda,
-                                                                    _b, _ldb,
-                                                                    _beta, _c,
-                                                                    _ldc,
+            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
+                                                                    _M, _N, _K,
+                                                                    _alpha, _a,
+                                                                    _lda, _b,
+                                                                    _ldb, _beta,
+                                                                    _c, _ldc,
                                                                     batch_size);
   }
   if (_M < 512 && _N < 512 && _K < 512) {
@@ -60,22 +62,24 @@ typename executor_t::policy_t::event_t _gemm(
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
-                                                                _alpha, _a,
-                                                                _lda, _b, _ldb,
-                                                                _beta, _c, _ldc,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda, _b,
+                                                                _ldb, _beta, _c,
+                                                                _ldc,
                                                                 batch_size);
   } else {
     return blas::Gemm_Launcher<
-        64, false, false, true, 64, Tile<8, 8, 8, 8,1,1,2,2>, _t_a, _t_b,
+        64, false, false, true, 64, Tile<8, 8, 8, 8, 1, 1, 2, 2>, _t_a, _t_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(ex, _M, _N, _K,
-                                                                _alpha, _a,
-                                                                _lda, _b, _ldb,
-                                                                _beta, _c, _ldc,
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda, _b,
+                                                                _ldb, _beta, _c,
+                                                                _ldc,
                                                                 batch_size);
   }
 }

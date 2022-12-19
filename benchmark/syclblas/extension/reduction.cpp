@@ -37,7 +37,7 @@ std::string get_name(int rows, int cols, reduction_dim_t reduction_dim) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
          index_t cols, reduction_dim_t dim, bool* success) {
   // The counters are double. We convert m, n and k to double to avoid integer
   // overflows for n_fl_ops and bytes_processed
@@ -50,7 +50,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
   state.counters["n_fl_ops"] = rows_d * cols_d;
   state.counters["bytes_processed"] = (rows_d * cols_d) * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Matrix
   std::vector<scalar_t> mat =
@@ -87,10 +87,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
         vec_temp.data(), vec_temp.size());
 
     extension::_reduction<AddOperator, scalar_t>(
-        ex, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
-        vec_temp_buffer, vec_temp.data(), vec_temp.size());
-    ex.get_policy_handler().wait(event);
+        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
+    auto event =
+        blas::helper::copy_to_host(sb_handle.get_queue(), vec_temp_buffer,
+                                   vec_temp.data(), vec_temp.size());
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -103,14 +104,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
-        ex, mat_buffer, rows, vec_buffer, rows, cols, dim);
-    ex.get_policy_handler().wait(event);
+        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -128,7 +129,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t rows,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto red_params = blas_benchmark::utils::get_reduction_params<scalar_t>(args);
 
@@ -136,23 +137,23 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     index_t rows, cols;
     std::tie(rows, cols) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t rows, index_t cols, reduction_dim_t dim,
                          bool* success) {
-      run<scalar_t>(st, exPtr, rows, cols, dim, success);
+      run<scalar_t>(st, sb_handle_ptr, rows, cols, dim, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(rows, cols, reduction_dim_t::inner).c_str(),
-        BM_lambda, exPtr, rows, cols, reduction_dim_t::inner, success);
+        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::inner, success);
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(rows, cols, reduction_dim_t::outer).c_str(),
-        BM_lambda, exPtr, rows, cols, reduction_dim_t::outer, success);
+        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::outer, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

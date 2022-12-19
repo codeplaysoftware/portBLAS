@@ -71,7 +71,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n,
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1, int t2,
          index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, int batch_type_i, bool* success) {
   // Standard test setup.
@@ -116,7 +116,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
         sizeof(scalar_t);
   }
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Matrices
   std::vector<scalar_t> a =
@@ -159,9 +159,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
     auto event =
-        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                      beta, c_temp_gpu, ldc, batch_size, batch_type);
-    ex.get_policy_handler().wait(event);
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                      ldb, beta, c_temp_gpu, ldc, batch_size, batch_type);
+    sb_handle.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
     constexpr int offset = 0;
@@ -178,15 +178,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event =
-        _gemm_batched(ex, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu, ldb,
-                      beta, c_gpu, ldc, batch_size, batch_type);
-    ex.get_policy_handler().wait(event);
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                      ldb, beta, c_gpu, ldc, batch_size, batch_type);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -204,7 +204,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int t1, int t2,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
@@ -218,23 +218,23 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t1,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, int t1,
                          int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          int batch_type, bool* success) {
-      run<scalar_t>(st, exPtr, t1, t2, m, k, n, alpha, beta, batch_size,
+      run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
                     batch_type, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, batch_type).c_str(),
-        BM_lambda, exPtr, t1, t2, m, k, n, alpha, beta, batch_size, batch_type,
+        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, batch_type,
         success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

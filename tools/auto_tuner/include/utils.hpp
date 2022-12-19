@@ -34,7 +34,7 @@
 #include <numeric>
 #include <random>
 
-inline SYCLExecutor make_sycl_executor() {
+inline sycl_blas_handle_t make_sycl_blas_handle() {
   cl::sycl::queue q([=](cl::sycl::exception_list ex_list) {
     try {
       for (auto &e_ptr : ex_list) {
@@ -48,13 +48,13 @@ inline SYCLExecutor make_sycl_executor() {
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-  SYCLExecutor ex(q);
-  return ex;
+  sycl_blas_handle_t sb_handle(q);
+  return sb_handle;
 }
 
-inline SYCLExecutor &get_sycl_executor() {
-  static SYCLExecutor executor = make_sycl_executor();
-  return executor;
+inline sycl_blas_handle_t &get_sycl_blas_handle() {
+  static sycl_blas_handle_t sb_handle = make_sycl_blas_handle();
+  return sb_handle;
 }
 
 template <typename T, typename RndEngine>

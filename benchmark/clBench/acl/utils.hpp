@@ -2,7 +2,6 @@
 #define ACL_UTILS_HPP
 
 #include <CL/cl.h>
-#include <clBench/clwrap.hpp>
 #include <arm_compute/core/Helpers.h>
 #include <arm_compute/core/ITensor.h>
 #include <arm_compute/core/Types.h>
@@ -11,6 +10,7 @@
 #include <arm_compute/runtime/CL/CLFunctions.h>
 #include <arm_compute/runtime/CL/CLScheduler.h>
 #include <arm_compute/runtime/Tensor.h>
+#include <clBench/clwrap.hpp>
 #include <thread>
 
 #ifdef ACL_BACKEND_NEON

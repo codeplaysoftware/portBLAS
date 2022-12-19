@@ -34,7 +34,7 @@ std::string get_name(int size) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -42,7 +42,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
   state.counters["n_fl_ops"] = 2.0 * size_d;
   state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
@@ -63,11 +63,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
       static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
   tuple_scalar_t idx_temp{-1, -1};
   {
-    auto idx_temp_gpu =
-        blas::make_sycl_iterator_buffer<blas::IndexValueTuple<index_t, scalar_t>>(
-            &idx_temp, 1);
-    auto event = _iamin(ex, size, inx, static_cast<index_t>(1), idx_temp_gpu);
-    ex.get_policy_handler().wait(event);
+    auto idx_temp_gpu = blas::make_sycl_iterator_buffer<
+        blas::IndexValueTuple<index_t, scalar_t>>(&idx_temp, 1);
+    auto event =
+        _iamin(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
+    sb_handle.wait(event);
   }
 
   if (idx_temp.ind != idx_ref) {
@@ -81,14 +81,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _iamin(ex, size, inx, static_cast<index_t>(1), outI);
-    ex.get_policy_handler().wait(event);
+    auto event = _iamin(sb_handle, size, inx, static_cast<index_t>(1), outI);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -106,23 +106,23 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
 }
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : gemm_params) {
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, bool* success) {
-      run<scalar_t>(st, exPtr, size, success);
+      run<scalar_t>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size, success);
+                                 sb_handle_ptr, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

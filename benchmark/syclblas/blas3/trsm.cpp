@@ -36,7 +36,7 @@ std::string get_name(char side, char uplo, char trans, char diag, index_t m,
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, char side,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
          char uplo, char trans, char diag, index_t m, index_t n, scalar_t alpha,
          bool* success) {
   // Standard test setup.
@@ -44,7 +44,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
@@ -78,11 +78,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 
   {
     auto b_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b_temp, sizeB);
-    _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_temp_gpu,
-          ldb);
-    auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
-        b_temp_gpu, b_temp.data(), sizeB);
-    ex.get_policy_handler().wait(event);
+    _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu, lda,
+          b_temp_gpu, ldb);
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), b_temp_gpu,
+                                            b_temp.data(), sizeB);
+    sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
@@ -94,15 +94,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event =
-        _trsm(ex, side, uplo, trans, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
-    ex.get_policy_handler().wait(event);
+    auto event = _trsm(sb_handle, side, uplo, trans, diag, m, n, alpha, a_gpu,
+                       lda, b_gpu, ldb);
+    sb_handle.wait(event);
     return event;
   };
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
-  ex.get_policy_handler().wait();
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -171,7 +171,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
   auto trsm_params = blas_benchmark::utils::get_trsm_params<scalar_t>(args);
 
@@ -181,22 +181,21 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     scalar_t alpha;
     std::tie(side, uplo, trans, diag, m, n, alpha) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, char side,
-                         char uplo, char trans, char diag,
-                         index_t m, index_t n, scalar_t alpha, bool* success) {
-      run<scalar_t>(st, exPtr, side, uplo, trans, diag, m, n, alpha,
-                    success);
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                         char side, char uplo, char trans, char diag, index_t m,
+                         index_t n, scalar_t alpha, bool* success) {
+      run<scalar_t>(st, sb_handle_ptr, side, uplo, trans, diag, m, n, alpha, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(side, uplo, trans, diag, m, n).c_str(), BM_lambda,
-        exPtr, side, uplo, trans, diag, m, n, alpha, success)
+        sb_handle_ptr, side, uplo, trans, diag, m, n, alpha, success)
         ->UseRealTime();
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
+void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

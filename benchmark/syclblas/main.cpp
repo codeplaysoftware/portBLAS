@@ -2,7 +2,7 @@
 #include <common/cli_device_selector.hpp>
 #include <common/print_queue_information.hpp>
 
-// Create a shared pointer to a sycl blas executor, so that we don't keep
+// Create a shared pointer to a sycl blas Handle, so that we don't keep
 // reconstructing it each time (which is slow). Although this won't be
 // cleaned up if RunSpecifiedBenchmarks exits badly, that's okay, as those
 // are presumably exceptional circumstances.
@@ -41,14 +41,14 @@ int main(int argc, char** argv) {
 
   utils::print_queue_information(q);
 
-  // Create a sycl blas executor from the queue
-  ExecutorType executor(q);
+  // Create a sycl blas sb_handle from the queue
+  blas::SB_Handle sb_handle(q);
 
   // This will be set to false by a failing benchmark
   bool success = true;
 
   // Create the benchmarks
-  blas_benchmark::create_benchmark(args, &executor, &success);
+  blas_benchmark::create_benchmark(args, &sb_handle, &success);
 
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();

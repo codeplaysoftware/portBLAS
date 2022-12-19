@@ -38,18 +38,22 @@ namespace blas {
  * @brief View of a vector with an accessor.
  * @tparam scalar_t Value type of accessor.
  */
-template <typename ViewScalarT, typename view_index_t,
+
+template <typename ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
+          cl::sycl::access::target access_t,
+          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
           typename view_increment_t>
 struct VectorView<
     ViewScalarT,
-    typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
+    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, view_increment_t> {
   using scalar_t = ViewScalarT;
   using value_t = scalar_t;
   using index_t = view_index_t;
   using increment_t = view_increment_t;
-  using container_t =
-      typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
+  static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
+  using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
+                                         place_holder_t>;
   using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
 
   // Accessor to the data containing the vector values.
@@ -107,13 +111,6 @@ struct VectorView<
    */
   SYCL_BLAS_INLINE VectorView(container_t data, index_t disp)
       : VectorView(data, disp, 1, data_.get_size()) {}
-
-  /*!
-   * @brief See VectorView.
-   */
-  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t, codeplay_policy> data,
-                              increment_t strd, index_t size)
-      : VectorView(get_range_accessor(data), data.get_offset(), strd, size) {}
 
   /*!
    * @brief See VectorView.
@@ -190,24 +187,31 @@ struct VectorView<
   }
 };
 
-template <class ViewScalarT, typename view_index_t, typename layout>
+template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
+          cl::sycl::access::target access_t,
+          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
+          typename layout>
 struct MatrixView<
     ViewScalarT,
-    typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
+    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
-template <class ViewScalarT, typename view_index_t, typename layout>
+template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
+          cl::sycl::access::target access_t,
+          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
+          typename layout>
 struct MatrixView<
     ViewScalarT,
-    typename codeplay_policy::template placeholder_accessor_t<ViewScalarT>,
+    cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout> {
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
-  using container_t =
-      typename codeplay_policy::template placeholder_accessor_t<scalar_t>;
+  static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
+  using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
+                                         place_holder_t>;
   using self_t = MatrixView<scalar_t, container_t, index_t, layout>;
 
   using value_t = scalar_t;
@@ -229,11 +233,6 @@ struct MatrixView<
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
       : MatrixView(data, sizeR, sizeC,
                    (layout::is_col_major() ? sizeR_ : sizeC_), 0) {}
-
-  SYCL_BLAS_INLINE MatrixView(BufferIterator<scalar_t, codeplay_policy> data,
-                              index_t sizeR, index_t sizeC, index_t sizeL)
-      : MatrixView(get_range_accessor(data), sizeR, sizeC, sizeL,
-                   data.get_offset()) {}
 
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)

@@ -33,14 +33,15 @@ std::string get_name() {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
+         bool* success) {
   // Create data
   scalar_t a = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t b = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t c = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t s = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
-  ExecutorType& ex = *executorPtr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   auto buf_a = blas::make_sycl_iterator_buffer<scalar_t>(&a, 1);
   auto buf_b = blas::make_sycl_iterator_buffer<scalar_t>(&b, 1);
@@ -65,21 +66,18 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
   auto buf_verify_s = blas::make_sycl_iterator_buffer<scalar_t>(&s_verify, 1);
 
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
-  _rotg(ex, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
+  _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
 
-  auto event1 =
-      ex.get_policy_handler().copy_to_host(buf_verify_c, &c_verify, 1);
-  auto event2 =
-      ex.get_policy_handler().copy_to_host(buf_verify_s, &s_verify, 1);
-  auto event3 =
-      ex.get_policy_handler().copy_to_host(buf_verify_a, &a_verify, 1);
-  auto event4 =
-      ex.get_policy_handler().copy_to_host(buf_verify_b, &b_verify, 1);
+  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c,
+                                           &c_verify, 1);
+  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_s,
+                                           &s_verify, 1);
+  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_a,
+                                           &a_verify, 1);
+  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_b,
+                                           &b_verify, 1);
 
-  ex.get_policy_handler().wait(event1);
-  ex.get_policy_handler().wait(event2);
-  ex.get_policy_handler().wait(event3);
-  ex.get_policy_handler().wait(event4);
+  sb_handle.wait({event1, event2, event3, event4});
 
   const bool isAlmostEqual =
       utils::almost_equal<scalar_t, scalar_t>(a_verify, a_ref) &&
@@ -104,8 +102,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotg(ex, buf_a, buf_b, buf_c, buf_s);
-    ex.get_policy_handler().wait(event);
+    auto event = _rotg(sb_handle, buf_a, buf_b, buf_c, buf_s);
+    sb_handle.wait(event);
     return event;
   };
 
@@ -127,17 +125,19 @@ void run(benchmark::State& state, ExecutorType* executorPtr, bool* success) {
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                        bool* success) {
-  auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
-                       bool* success) { run<scalar_t>(st, exPtr, success); };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda, exPtr,
-                               success);
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                       bool* success) {
+    run<scalar_t>(st, sb_handle_ptr, success);
+  };
+  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
+                               sb_handle_ptr, success);
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
-                      bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, exPtr, success);
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

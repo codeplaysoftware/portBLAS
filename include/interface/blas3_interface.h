@@ -38,75 +38,70 @@ namespace internal {
  * level interface:
  * http://www.netlib.org/lapack/explore-html/d4/de2/sgemm_8f.html
  */
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
-                                             char _TransB, index_t _M,
-                                             index_t _N, index_t _K,
-                                             element_t _alpha, container_0_t a_,
-                                             index_t _lda, container_1_t b_,
-                                             index_t _ldb, element_t _beta,
-                                             container_2_t _C, index_t _ldc);
+typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
+                                    char _TransB, index_t _M, index_t _N,
+                                    index_t _K, element_t _alpha,
+                                    container_0_t a_, index_t _lda,
+                                    container_1_t b_, index_t _ldb,
+                                    element_t _beta, container_2_t _C,
+                                    index_t _ldc);
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm_batched(
-    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+typename sb_handle_t::event_t _gemm_batched(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type = gemm_batch_type_t::strided);
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _trsm(executor_t& ex, char side,
-                                             char uplo, char trans,
-                                             char diag, index_t M,
-                                             index_t N, element_t alpha,
-                                             container_0_t A, index_t lda,
-                                             container_1_t B, index_t ldb);
+typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
+                                    char uplo, char trans, char diag, index_t M,
+                                    index_t N, element_t alpha, container_0_t A,
+                                    index_t lda, container_1_t B, index_t ldb);
 
 }  // namespace internal
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm(executor_t& ex, char _TransA,
-                                             char _TransB, index_t _M,
-                                             index_t _N, index_t _K,
-                                             element_t _alpha, container_0_t a_,
-                                             index_t _lda, container_1_t b_,
-                                             index_t _ldb, element_t _beta,
-                                             container_2_t _C, index_t _ldc) {
-  return internal::_gemm(ex, _TransA, _TransB, _M, _N, _K, _alpha,
-                         ex.get_policy_handler().get_buffer(a_), _lda,
-                         ex.get_policy_handler().get_buffer(b_), _ldb, _beta,
-                         ex.get_policy_handler().get_buffer(_C), _ldc);
+typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
+                                    char _TransB, index_t _M, index_t _N,
+                                    index_t _K, element_t _alpha,
+                                    container_0_t a_, index_t _lda,
+                                    container_1_t b_, index_t _ldb,
+                                    element_t _beta, container_2_t _C,
+                                    index_t _ldc) {
+  return internal::_gemm(sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_,
+                         _lda, b_, _ldb, _beta, _C, _ldc);
 }
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename executor_t::policy_t::event_t _gemm_batched(
-    executor_t& ex, char _TransA, char _TransB, index_t _M, index_t _N,
+typename sb_handle_t::event_t _gemm_batched(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
     gemm_batch_type_t batch_type = gemm_batch_type_t::strided) {
-  return internal::_gemm_batched(ex, _TransA, _TransB, _M, _N, _K, _alpha,
-                                 ex.get_policy_handler().get_buffer(a_), _lda,
-                                 ex.get_policy_handler().get_buffer(b_), _ldb,
-                                 _beta, ex.get_policy_handler().get_buffer(_C),
-                                 _ldc, batch_size, batch_type);
+  return internal::_gemm_batched(sb_handle, _TransA, _TransB, _M, _N, _K,
+                                 _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
+                                 batch_size, batch_type);
 }
 
-template <typename executor_t, typename container_0_t, typename container_1_t,
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename executor_t::policy_t::event_t inline _trsm(
-    executor_t& ex, char side, char uplo, char trans, char diag, index_t M,
-    index_t N, element_t alpha, container_0_t A, index_t lda, container_1_t B,
-    index_t ldb) {
-  return internal::_trsm(ex, side, uplo, trans, diag, M, N, alpha,
-                         ex.get_policy_handler().get_buffer(A), lda,
-                         ex.get_policy_handler().get_buffer(B), ldb);
+typename sb_handle_t::event_t inline _trsm(sb_handle_t& sb_handle, char side,
+                                           char uplo, char trans, char diag,
+                                           index_t M, index_t N,
+                                           element_t alpha, container_0_t A,
+                                           index_t lda, container_1_t B,
+                                           index_t ldb) {
+  return internal::_trsm(sb_handle, side, uplo, trans, diag, M, N, alpha, A,
+                         lda, B, ldb);
 }
 
 }  // namespace blas

@@ -659,40 +659,40 @@ static inline void calc_avg_counters(benchmark::State& state) {
 /** Registers benchmark for the float data type
  * @see BLAS_REGISTER_BENCHMARK
  */
-#define BLAS_REGISTER_BENCHMARK_FLOAT(args, exPtr, success) \
-  register_benchmark<float>(args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success) \
+  register_benchmark<float>(args, sb_handle_ptr, success)
 
 #ifdef BLAS_DATA_TYPE_DOUBLE
 /** Registers benchmark for the double data type
  * @see BLAS_REGISTER_BENCHMARK
  */
-#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success) \
-  register_benchmark<double>(args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success) \
+  register_benchmark<double>(args, sb_handle_ptr, success)
 #else
-#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
 #ifdef BLAS_DATA_TYPE_HALF
 /** Registers benchmark for the cl::sycl::half data type
  * @see BLAS_REGISTER_BENCHMARK
  */
-#define BLAS_REGISTER_BENCHMARK_HALF(args, exPtr, success) \
-  register_benchmark<cl::sycl::half>(args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success) \
+  register_benchmark<cl::sycl::half>(args, sb_handle_ptr, success)
 #else
-#define BLAS_REGISTER_BENCHMARK_HALF(args, exPtr, success)
+#define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_HALF
 
 /** Registers benchmark for all supported data types.
  *  Expects register_benchmark<scalar_t> to exist.
  * @param args Reference to blas_benchmark::Args
- * @param exPtr Pointer to ExecutorType
+ * @param sb_handle_ptr Pointer to blas::SB_Handle
  * @param[out] success Pointer to boolean indicating success
  */
-#define BLAS_REGISTER_BENCHMARK(args, exPtr, success)     \
+#define BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success)     \
   do {                                                    \
-    BLAS_REGISTER_BENCHMARK_FLOAT(args, exPtr, success);  \
-    BLAS_REGISTER_BENCHMARK_DOUBLE(args, exPtr, success); \
-    BLAS_REGISTER_BENCHMARK_HALF(args, exPtr, success);   \
+    BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);  \
+    BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success); \
+    BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success);   \
   } while (false)
 
 #endif

@@ -29,7 +29,7 @@
 #include "blas_test_macros.hpp"
 #include "clara.hpp"
 
-struct Args args{};
+struct Args args {};
 
 namespace {
 /**

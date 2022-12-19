@@ -24,7 +24,7 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
 #define SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
-#include "executors/kernel_constructor.h"
+#include "sb_handle/kernel_constructor.h"
 #include <CL/sycl.hpp>
 #include <iostream>
 namespace blas {

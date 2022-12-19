@@ -79,11 +79,8 @@ void run_test(const combination_t<scalar_t> combi) {
   reduction_dim_t reduction_dim;
   std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
 
-
   auto q = make_queue();
-  test_executor_t ex(q);
-
-  auto policy_handler = ex.get_policy_handler();
+  blas::SB_Handle sb_handle(q);
 
   index_t ld = rows * ld_mul;
 
@@ -180,41 +177,41 @@ void run_test(const combination_t<scalar_t> combi) {
   auto v_out_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, out_size);
 
-  test_executor_t::policy_t::event_t ev;
+  blas::SB_Handle::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Mean:
         ev = extension::_reduction<MeanOperator, scalar_t>(
-            ex, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
     }
   } catch (cl::sycl::exception& e) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
-  auto event = ex.get_policy_handler().copy_to_host<scalar_t>(
-      v_out_gpu, out_v_gpu.data(), out_size);
-  ex.get_policy_handler().wait({event});
+  auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(), v_out_gpu, out_v_gpu.data(),
+                                                    out_size);
+  sb_handle.wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
 }

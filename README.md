@@ -18,28 +18,31 @@ the project.
 
 ## Table of Contents
 
-  * [Motivation](#motivation)
-  * [Basic Concepts](#basic-concepts)
-    * [Views](#views)
-    * [Operations](#operations)
-    * [Executors](#executors)
-    * [Interface](#interface)
-  * [API description](#api-description)
-    * [BLAS 1](#blas-1)
-    * [BLAS 2](#blas-2)
-    * [BLAS 3](#blas-3)
-  * [Requirements](#requirements)
-  * [Setup](#setup)
-    * [Compile with ComputeCpp](#Compile-with-ComputeCpp)
-    * [Compile with DPC++](#Compile-with-DPC++)
-    * [Instaling SYCL-BLAS](#Instaling-SYCL-BLAS)
-    * [POWER_VR support (ComputeCpp Only)](#POWER_VR-support-(ComputeCpp-Only))
-    * [Doxygen](#Doxygen)
-    * [How to compile](#how-to-compile)
-    * [CMake options](#cmake-options)
-    * [Cross-Compile](#cross-compile)
-  * [Tests and benchmarks](#tests-and-benchmarks)
-  * [Contributing to the project](#contributing-to-the-project)
+- [SYCL-BLAS Implementation](#sycl-blas-implementation)
+  - [Table of Contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Basic Concepts](#basic-concepts)
+    - [Views](#views)
+    - [Operations](#operations)
+    - [SB\_Handle](#sb_handle)
+    - [Interface](#interface)
+  - [API description](#api-description)
+    - [BLAS 1](#blas-1)
+    - [BLAS 2](#blas-2)
+    - [BLAS 3](#blas-3)
+  - [Requirements](#requirements)
+  - [Setup](#setup)
+    - [Compile with ComputeCpp](#compile-with-computecpp)
+    - [Compile with DPC++](#compile-with-dpc)
+    - [Compile with hipSYCL](#compile-with-hipsycl)
+    - [Instaling SYCL-BLAS](#instaling-sycl-blas)
+    - [POWER\_VR support (ComputeCpp Only)](#power_vr-support-computecpp-only)
+    - [Doxygen](#doxygen)
+    - [CMake options](#cmake-options)
+    - [Cross-Compile (ComputeCpp Only)](#cross-compile-computecpp-only)
+  - [Tests and benchmarks](#tests-and-benchmarks)
+  - [Contributing to the project](#contributing-to-the-project)
+    - [Guides and Other Documents](#guides-and-other-documents)
 
 ## Motivation
 
@@ -110,7 +113,7 @@ All the relevant files can be found in
 the `include` directory.
 
 There are four components in SYCL-BLAS, the *View*, the *Operations*,
-the *Executors* and the *Interface* itself.
+the *SB_Handle* and the *Interface* itself.
 
 ### Views
 
@@ -144,14 +147,11 @@ The leaf nodes of an Expression Tree are Views or Scalar types (data).
 The intermediate nodes of the Expression Tree are operations (e.g,
 binary operations, unary operations, etc).
 
-### Executors
+### SB_Handle
 
-An executor traverses the Expression Tree to evaluate the operations that it
+An SB_Handle traverses the Expression Tree to evaluate the operations that it
 defines.
-Executors use different techniques to evaluate the expression tree.
-The basic C++ executor performs a for loop on the size of the data and calls
-the evaluation function on each item.
-
+SB_Handle use different techniques to evaluate the expression tree.
 The SYCL evaluator transform the tree into a device tree (i.e, converting
 buffer to accessors) and then evaluates the Expression Tree on the device.
 
@@ -176,8 +176,8 @@ of multiple BLAS operations.
 
 This section references all the supported operations and their interface.
 
-All operations take as their first argument a reference to the executor, a
-`blas::Executor` created with a `sycl::queue`. The return value is usually an
+All operations take as their first argument a reference to the SB_Handle, a
+`blas::SB_Handle` created with a `sycl::queue`. The return value is usually an
 array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
 the BLAS operations) are iterator buffers that can be created with
