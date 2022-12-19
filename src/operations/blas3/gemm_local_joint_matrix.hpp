@@ -215,14 +215,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  SYCL_BLAS_INLINE cl::sycl::nd_range<2> get_nd_range(
-      index_t compute_units) const noexcept {
+  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+      index_t) const noexcept {
     size_t x_groups =
         static_cast<size_t>((get_wg_x_cluster() - 1) / jm_row_frags + 1);
     size_t y_groups =
         static_cast<size_t>((get_wg_y_cluster() - 1) / jm_col_frags + 1);
-    size_t x_local = static_cast<size_t>(wg_size);
-    size_t y_local = static_cast<size_t>(1);
 #ifdef VERBOSE
     std::cout << " M: " << a_.get_size_row() << " , N " << b_.get_size_col()
               << " , big_tile_rows: " << big_tile_rows
@@ -230,9 +228,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               << " , wg_size: " << wg_size << " , nwg : " << x_groups * y_groups
               << std::endl;
 #endif
-    return cl::sycl::nd_range<2>{
-        {x_groups * x_local * batch_size_, y_groups * y_local},
-        {x_local, y_local}};
+    return cl::sycl::nd_range<1>{x_groups * batch_size_ * y_groups * wg_size, wg_size};
   }
 
   SYCL_BLAS_INLINE index_t get_size() const {
@@ -247,7 +243,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename local_memory_t>
   SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
-                             const cl::sycl::nd_item<2> &id) noexcept {
+                             const cl::sycl::nd_item<1> &id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     index_t k = a_.get_size_col();
@@ -258,18 +254,18 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     // The batch index that each workgroup should start working with
     const index_t x_groups = (get_wg_x_cluster() - 1) / jm_row_frags + 1;
     const index_t y_groups = (get_wg_y_cluster() - 1) / jm_col_frags + 1;
-    const index_t wg_batch_id = id.get_group(0) / x_groups;
+    const index_t wg_batch_id = id.get_group(0) / (x_groups * y_groups);
     // This will disable all workgroups that dont have any batch to work on
     if (wg_batch_id >= batch_size_) {
       return;
     }
-    const index_t batch_stride = id.get_group_range(0) / x_groups;
+    const index_t batch_stride = id.get_group_range(0) / (x_groups * y_groups);
 
     auto scratch = scratch_acc.localAcc.get_pointer();
 
     // The number of work-group required to executed each batch efficiently
     const index_t wg_id_x = id.get_group(0) % x_groups;
-    const index_t wg_id_y = id.get_group(1) % y_groups;
+    const index_t wg_id_y = (id.get_group(0) / x_groups) % y_groups;
 
     const index_t a_size = trans_a ? m * lda : k * lda;
     const index_t b_size = trans_b ? ldb * k : n * ldb;
@@ -372,7 +368,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<2> &ndItem) const {
+  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
@@ -394,7 +390,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             typename InputPointerType, typename OutputPointerType,
             typename OutputScratchPointerType, typename InputScratchPointerType>
   SYCL_BLAS_INLINE void compute_panel_gemm(
-      const cl::sycl::nd_item<2> &id, const index_t &item_id, const index_t &m,
+      const cl::sycl::nd_item<1> &id, const index_t &item_id, const index_t &m,
       const index_t &n, const index_t &orig_k, const index_t &mc,
       const index_t &nc, const index_t &a_size, const index_t &b_size,
       const index_t &c_size, InputPointerType orig_A, const index_t &lda,
@@ -473,7 +469,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType,
             typename ScratchPointerType, typename CType>
-  SYCL_BLAS_INLINE void store_output_block(cl::sycl::nd_item<2> id, index_t mc,
+  SYCL_BLAS_INLINE void store_output_block(cl::sycl::nd_item<1> id, index_t mc,
                                            index_t nc, OutputPointerType C,
                                            ScratchPointerType scratch,
                                            index_t ldc,
@@ -739,7 +735,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             typename CType>
   SYCL_BLAS_INLINE void compute_block_gemm(
-      const cl::sycl::nd_item<2> &id, InputPointerType s2, InputPointerType s4,
+      const cl::sycl::nd_item<1> &id, InputPointerType s2, InputPointerType s4,
       CType (&reg_res)[frags_per_sg]) noexcept {
     using namespace cl::sycl::ext::oneapi::experimental::matrix;
     using AType = joint_matrix<typename tile_type::jmInpType, matrix_use::a,
@@ -792,7 +788,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<2> &id, index_t &ofs_sign, P &s,
+      const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
       Ps &... ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
@@ -800,13 +796,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool db>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
-      const cl::sycl::nd_item<2> &, index_t &ofs_sign) noexcept {
+      const cl::sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<!db>::type sync_smem(
-      const cl::sycl::nd_item<2> &id, index_t &, Ps &...) noexcept {
+      const cl::sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
 

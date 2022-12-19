@@ -122,12 +122,6 @@ static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
                                     size_t _localSize, size_t _globalSize,
                                     size_t _shMem);
 
-template <int using_local_memory, typename queue_t, typename expression_tree_t>
-static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
-                                    size_t _localSize_x, size_t _localSize_y,
-                                    size_t _globalSize_x, size_t _globalSize_y,
-                                    size_t _shMem);
-
 }  // namespace blas
 
 #endif  // SYCL_BLAS_KERNEL_CONSTRUCTOR_H

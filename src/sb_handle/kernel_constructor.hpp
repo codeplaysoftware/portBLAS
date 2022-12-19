@@ -27,7 +27,6 @@
 #include "sb_handle/kernel_constructor.h"
 #include <CL/sycl.hpp>
 #include <iostream>
-#include <stdexcept>
 namespace blas {
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
@@ -143,13 +142,6 @@ struct ExpressionTreeEvaluator {
       cl::sycl::nd_item<1> index) {
     tree.eval(scratch, index);
   }
-
-  static SYCL_BLAS_INLINE void eval(
-      expression_tree_t &tree,
-      LocalMemory<local_memory_t, using_local_memory> scratch,
-      cl::sycl::nd_item<2> index) {
-    tree.eval(scratch, index);
-  }
 };
 
 /*! tree.
@@ -228,13 +220,6 @@ struct ExpressionTreeFunctor {
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
                             value_t>::eval(non_const_t, scratch_, i);
   }
-
-  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<2> i) const {
-    expression_tree_t &non_const_t = *const_cast<expression_tree_t *>(&t_);
-    non_const_t.adjust_access_displacement();
-    ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
-                            value_t>::eval(non_const_t, scratch_, i);
-  }
 };
 
 template <int using_local_memory, typename queue_t, typename expression_tree_t>
@@ -266,59 +251,6 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
     ev = q_.submit(cg1);
     return ev;
   } catch (cl::sycl::exception e) {
-    std::cerr << e.what() << std::endl;
-    return ev;
-  }
-}
-
-template <int using_local_memory, typename queue_t, typename expression_tree_t>
-static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
-                                                     expression_tree_t t,
-                                                     size_t _localSize_x,
-                                                     size_t _localSize_y,
-                                                     size_t _globalSize_x,
-                                                     size_t _globalSize_y,
-                                                     size_t _shMem) {
-  using value_t =
-      typename LocalMemoryType<using_local_memory, expression_tree_t>::type;
-
-  auto localSize_x = _localSize_x;
-  auto localSize_y = _localSize_y;
-  auto globalSize_x = _globalSize_x;
-  auto globalSize_y = _globalSize_y;
-  auto shMem = _shMem;
-  cl::sycl::event ev;
-  try {
-    auto cg1 = [=](cl::sycl::handler &h) mutable {
-      t.bind(h);
-      auto scratch = LocalMemory<value_t, using_local_memory>(shMem, h);
-
-      cl::sycl::nd_range<2> gridConfiguration = cl::sycl::nd_range<2>{
-          cl::sycl::range<2>{globalSize_x, globalSize_y}, 
-          cl::sycl::range<2>{localSize_x, localSize_y}};
-      h.parallel_for(
-          gridConfiguration,
-          ExpressionTreeFunctor<using_local_memory, expression_tree_t,
-                                decltype(scratch), value_t>(scratch, t));
-    };
-
-    auto vendor =
-        q_.get_device().template get_info<cl::sycl::info::device::vendor>();
-    auto compute_capability = std::stof(
-        q_.get_device()
-            .template get_info<cl::sycl::info::device::backend_version>());
-
-    if (compute_capability < 8.0 ||
-        vendor.find("NVIDIA Corporation") == std::string::npos) {
-      throw std::runtime_error("\nConfiguration not supported.\nVendor: " + vendor + 
-          "\tRequired Vendor: NVIDIA Corporation\nCompute Capability: " + std::to_string(compute_capability) + 
-          "\tRequired Compute Capability: 8.0\n");
-      return ev;
-    }
-
-    ev = q_.submit(cg1);
-    return ev;
-  } catch (cl::sycl::exception& e) {
     std::cerr << e.what() << std::endl;
     return ev;
   }
