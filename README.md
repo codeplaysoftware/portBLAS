@@ -19,6 +19,7 @@ the project.
 ## Table of Contents
 
 - [SYCL-BLAS Implementation](#sycl-blas-implementation)
+  - [Table of Contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Basic Concepts](#basic-concepts)
     - [Views](#views)

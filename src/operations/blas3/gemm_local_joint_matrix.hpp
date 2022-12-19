@@ -74,7 +74,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),
            static_cast<int>(gemm_algorithm_t::standard),
-           static_cast<int>(gemm_vectorization_t::full), VectorSize,
+           static_cast<int>(gemm_vectorization_t::none), VectorSize,
            static_cast<int>(gemm_batch_type_t::strided), true> {
  public:
   using tile_type = TileType;
@@ -184,9 +184,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
         << ", " << type_string<value_t>::get_value() << "gemm_memory:local, "
         << "gemm_algorithm:standard, "
-        << "gemm_vectorization:full, "
+        << "gemm_vectorization:none, "
         << "vector size" << VectorSize << ", batch_type:strided> "
-        << "using Tensorcores with joint_matrix extension";
+        << "with joint_matrix extension";
     return str.str();
   }
 
@@ -463,8 +463,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param beta  scaling factor of C
    * @param C  pointer to the first element of C
    * @param ldc  leading dimension of C
-   * @param reg_res  2D register array containing the partial resull of C
-   * per thread
+   * @param reg_res  joint_matrix fragment array containing the partial result
+   * of C per sub-group
    */
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType,

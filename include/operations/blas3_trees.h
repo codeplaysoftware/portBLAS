@@ -168,7 +168,8 @@ struct Tile {
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
- * @tparam UseJointMatrix boolean directive to invoke Tensorcores or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use 
+ *                        joint_matrix or not
  * @param a_ the lhs_t matrix
  * @param b_ the rhs_t matrix
  * @param c_ the output matrix

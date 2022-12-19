@@ -62,6 +62,7 @@ struct Packetize {
    * checking is required.
    * @tparam ld The leading dimension of the destination memory.
    */
+
   template <bool trans, bool internal, int ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
@@ -90,7 +91,6 @@ struct Packetize {
     *(dest) = in_range ? *(src) : value_t{0};
 #endif
   }
-
   /*! @brief Performs a vectorised load using sycl::vec::load when the current
    * block is internal. In the case where k < the
    * number of elements being loaded then edge loads will be element wise with
@@ -161,7 +161,6 @@ struct Packetize {
    * transposed. This will use sycl::vec::store function.
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
-
   template <bool trans, int ld, typename DestPointerType>
   static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
