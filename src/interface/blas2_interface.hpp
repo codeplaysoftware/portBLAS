@@ -416,6 +416,77 @@ typename sb_handle_t::event_t _symv_impl(
   return ret;
 }
 
+/*! _gbmv_impl.
+ * @brief Implementation of the Band Matrix Vector product.
+ *
+ */
+template <uint32_t local_range, transpose_type trn, typename sb_handle_t,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
+typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, char _trans,
+                                         index_t _M, index_t _N, index_t _KL,
+                                         index_t _KU, element_t _alpha,
+                                         container_t0 _mA, index_t _lda,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy) {
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
+
+  if ((_KL >= _M) || (_KU >= _N)) {
+    throw std::invalid_argument("Erroneous parameter");
+  }
+
+  auto x_vector_size = is_transposed ? _M : _N;
+  auto y_vector_size = is_transposed ? _N : _M;
+
+  auto mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  auto vy = make_vector_view(_vy, _incy, y_vector_size);
+
+  // Leading dimension for dot products matrix
+  const auto ld = is_transposed ? _N : _M;
+  constexpr index_t one = 1;
+
+  auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
+
+  auto dot_products_matrix =
+      make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
+
+  const index_t global_size = roundUp<index_t>(y_vector_size, local_range);
+  auto gbmv = make_Gbmv<local_range, is_transposed>(dot_products_matrix, mA,
+                                                    _KL, _KU, vx);
+
+  // Execute the GBMV kernel that calculate the partial dot products of rows
+  auto gbmvEvent =
+      sb_handle.execute(gbmv, static_cast<index_t>(local_range), global_size);
+
+  // apply ALPHA and BETA
+  if (_beta != static_cast<element_t>(0)) {
+    // vec_y * b
+    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
+
+    // alpha * vec_dot_products
+    auto alphaMulDotsOp =
+        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
+
+    // add up
+    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
+
+    // assign the result back to vec_y
+    auto assignOp = make_op<Assign>(vy, addOp);
+
+    // exectutes the above expression tree to yield the final GBMV result
+    return concatenate_vectors(gbmvEvent,
+                               sb_handle.execute(assignOp, local_range));
+  } else {
+    auto alphaMulDotsOp =
+        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
+    auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
+    return concatenate_vectors(gbmvEvent,
+                               sb_handle.execute(assignOp, local_range));
+  }
+}
+
 /**** RANK 1 MODIFICATION ****/
 
 template <typename sb_handle_t, typename index_t, typename element_t,
@@ -627,6 +698,26 @@ typename sb_handle_t::event_t inline _symv(sb_handle_t& sb_handle, char _Uplo,
   return _symv_impl(sb_handle, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx, _beta,
                     _vy, _incy);
 }
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename container_t1, typename increment_t,
+          typename container_t2>
+typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
+                                           index_t _M, index_t _N, index_t _KL,
+                                           index_t _KU, element_t _alpha,
+                                           container_t0 _mA, index_t _lda,
+                                           container_t1 _vx, increment_t _incx,
+                                           element_t _beta, container_t2 _vy,
+                                           increment_t _incy) {
+  return tolower(_trans) == 'n'
+             ? _gbmv_impl<32, transpose_type::Normal>(
+                   sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx,
+                   _incx, _beta, _vy, _incy)
+             : _gbmv_impl<32, transpose_type::Transposed>(
+                   sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx,
+                   _incx, _beta, _vy, _incy);
+}
+
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>

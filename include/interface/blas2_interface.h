@@ -217,6 +217,47 @@ typename sb_handle_t::event_t _syr2(
     container_2_t _mA,       // (_lda, _N) The output matrix
     index_t _lda             // >max(1, _N) The first dimension of _mA
 );
+
+/**
+ * @brief Generalised matrix vector product with band matrices.
+ *
+ * Generalised matrix vector product with a band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*op(A)*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _M Number of rows of A
+ * @param _N Number of columns of A
+ * @param _KL Number of A sub-diagonals
+ * @param _KU Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_KL + _KU + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ *            when trans = 'n' and (1+(_M-1)*abs(_incx) otherwise
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
+ *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
+ * @param _incy Increment for _vy
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _gbmv(sb_handle_t& sb_handle, char _trans,
+                                    index_t _M, index_t _N, index_t _KL,
+                                    index_t _KU, element_t _alpha,
+                                    container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx,
+                                    element_t _beta, container_2_t _vy,
+                                    increment_t _incy);
+
 }  // namespace internal
 
 /*!
@@ -414,6 +455,50 @@ typename sb_handle_t::event_t inline _syr2(
   return internal::_syr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
                          _mA, _lda);
 }
+
+/**
+ * @brief Generalised matrix vector product with band matrices.
+ *
+ * Generalised matrix vector product with a band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*op(A)*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d46/sgbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _M Number of rows of A
+ * @param _N Number of columns of A
+ * @param _KL Number of A sub-diagonals
+ * @param _KU Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_KL + _KU + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ *            when trans = 'n' and (1+(_M-1)*abs(_incx) otherwise
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
+ *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
+ * @param _incy Increment for _vy
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
+                                           index_t _M, index_t _N, index_t _KL,
+                                           index_t _KU, element_t _alpha,
+                                           container_0_t _mA, index_t _lda,
+                                           container_1_t _vx, increment_t _incx,
+                                           element_t _beta, container_2_t _vy,
+                                           increment_t _incy) {
+  return internal::_gbmv(sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda,
+                         _vx, _incx, _beta, _vy, _incy);
+}
+
 }  // namespace blas
 
 #endif  // SYCL_BLAS_BLAS2_INTERFACE

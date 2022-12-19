@@ -233,6 +233,15 @@ void swap(const int n, scalar_t x[], const int incX, scalar_t y[],
 // Level 2
 // =======
 template <typename scalar_t>
+void gbmv(const char *trans, int m, int n, int kl, int ku, scalar_t alpha,
+          const scalar_t a[], int lda, const scalar_t x[], int incX,
+          scalar_t beta, scalar_t y[], int incY) {
+  auto func = blas_system_function<scalar_t>(&cblas_sgbmv, &cblas_dgbmv);
+  func(CblasColMajor, c_trans(*trans), m, n, kl, ku, alpha, a, lda, x, incX,
+       beta, y, incY);
+}
+
+template <typename scalar_t>
 void gemv(const char *trans, int m, int n, scalar_t alpha, const scalar_t a[],
           int lda, const scalar_t x[], int incX, scalar_t beta, scalar_t y[],
           int incY) {
