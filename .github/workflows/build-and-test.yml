@@ -47,6 +47,10 @@ jobs:
             cxx_compiler: "clang++-6.0"
             cc_compiler: "clang-6.0"
             target: "opencl"
+          - impl: "DPCPP"
+            cxx_compiler: "/tmp/dpcpp/bin/clang++"
+            cc_compiler: "/tmp/dpcpp/bin/clang"
+            target: "opencl"
     
     steps:
     - uses: actions/checkout@v3.0.2
