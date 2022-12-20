@@ -805,13 +805,13 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     # Joint Matrix specific GEMM configurations (only for float)
     if(${start_idx} AND ${sm_val} GREATER_EQUAL "80")
       add_gemm_configuration(
-          "float" 128 "false" "false" "false"
+          "float" 128 "false" "true" "true"
           128 2 4 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
       add_gemm_configuration(
-          "float" 128 "false" "false" "false"
+          "float" 128 "false" "true" "true"
           128 4 8 16 8 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
       add_gemm_configuration(
-          "float" 256 "false" "false" "false"
+          "float" 256 "false" "true" "true"
           128 8 8 16 16 16 2 1 1 1 1 16 16 16 cl::sycl::half float "local" "standard" "none" 1 "strided" "true")
     endif()
     # Non-Joint Matrix specific GEMM Configurations

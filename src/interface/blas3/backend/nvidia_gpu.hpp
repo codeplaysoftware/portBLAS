@@ -62,7 +62,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
   if (en_joint_matrix != NULL && *en_joint_matrix == '1') {
     if (_M > 1024 && _N > 1024) {
       return blas::Gemm_Launcher<
-          256, false, false, false, 128,
+          256, false, true, true, 128,
           Tile<8, 8, 16, 16, 16, 2, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half,
                float>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
@@ -73,7 +73,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
                                        _b, _ldb, _beta, _c, _ldc, batch_size);
     } else if (_M > 64 && _N > 64) {
       return blas::Gemm_Launcher<
-          128, false, false, false, 128,
+          128, false, true, true, 128,
           Tile<4, 8, 16, 8, 16, 2, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half,
                float>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
@@ -85,7 +85,7 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
 
     } else {
       return blas::Gemm_Launcher<
-          128, false, false, false, 128,
+          128, false, true, true, 128,
           Tile<2, 4, 16, 8, 16, 2, 1, 1, 1, 1, 16, 16, 16, cl::sycl::half,
                float>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
