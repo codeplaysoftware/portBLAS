@@ -76,12 +76,11 @@ struct Packetize {
                                DestPointerType>::value) {
       using dtype = cl::sycl::half;
       *dest = static_cast<dtype>(val);
-    } else if constexpr (std::is_same<
-                             cl::sycl::multi_ptr<
-                                 cl::sycl::ext::oneapi::experimental::bfloat16,
-                                 address_t::local_space>,
-                             DestPointerType>::value) {
-      using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+    } else if constexpr (std::is_same<cl::sycl::multi_ptr<
+                                          cl::sycl::ext::oneapi::bfloat16,
+                                          address_t::local_space>,
+                                      DestPointerType>::value) {
+      using dtype = cl::sycl::ext::oneapi::bfloat16;
       *dest = static_cast<dtype>(val);
     } else {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
@@ -137,12 +136,11 @@ struct Packetize {
                                  DestPointerType>::value) {
         using dtype = cl::sycl::half;
         *(dest + ld * i) = static_cast<dtype>(val);
-      } else if constexpr (std::is_same<
-                               cl::sycl::multi_ptr<cl::sycl::ext::oneapi::
-                                                       experimental::bfloat16,
-                                                   address_t::local_space>,
-                               DestPointerType>::value) {
-        using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+      } else if constexpr (std::is_same<cl::sycl::multi_ptr<
+                                            cl::sycl::ext::oneapi::bfloat16,
+                                            address_t::local_space>,
+                                        DestPointerType>::value) {
+        using dtype = cl::sycl::ext::oneapi::bfloat16;
         *(dest + ld * i) = static_cast<dtype>(val);
       } else {
         using namespace cl::sycl::ext::oneapi::experimental::matrix;
@@ -171,12 +169,11 @@ struct Packetize {
                                DestPointerType>::value) {
       using dtype = cl::sycl::half;
       *dest = static_cast<dtype>(packet[0]);
-    } else if constexpr (std::is_same<
-                             cl::sycl::multi_ptr<
-                                 cl::sycl::ext::oneapi::experimental::bfloat16,
-                                 address_t::local_space>,
-                             DestPointerType>::value) {
-      using dtype = cl::sycl::ext::oneapi::experimental::bfloat16;
+    } else if constexpr (std::is_same<cl::sycl::multi_ptr<
+                                          cl::sycl::ext::oneapi::bfloat16,
+                                          address_t::local_space>,
+                                      DestPointerType>::value) {
+      using dtype = cl::sycl::ext::oneapi::bfloat16;
       *dest = static_cast<dtype>(packet[0]);
     } else {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;

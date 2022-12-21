@@ -69,8 +69,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_algorithm_t::standard),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
-          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _b,
-                                       _ldb, _beta, _c, _ldc, batch_size);
+          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                       _b, _ldb, _beta, _c, _ldc, batch_size);
     } else if (_M > 64 && _N > 64) {
       return blas::Gemm_Launcher<
           128, false, false, false, 128,
@@ -80,8 +80,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_algorithm_t::standard),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
-          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _b,
-                                       _ldb, _beta, _c, _ldc, batch_size);
+          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                       _b, _ldb, _beta, _c, _ldc, batch_size);
 
     } else {
       return blas::Gemm_Launcher<
@@ -92,8 +92,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_algorithm_t::standard),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
-          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _b,
-                                       _ldb, _beta, _c, _ldc, batch_size);
+          true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                       _b, _ldb, _beta, _c, _ldc, batch_size);
     }
   } else {
     return blas::Gemm_Launcher<
@@ -103,11 +103,11 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(gemm_batch_type_t::strided),
-        false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _b,
-                                      _ldb, _beta, _c, _ldc, batch_size);
+        false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                      _b, _ldb, _beta, _c, _ldc, batch_size);
   }
 
-#else // SB_ENABLE_JOINT_MATRIX
+#else  // SB_ENABLE_JOINT_MATRIX
   else {
     return blas::Gemm_Launcher<
         64, false, false, true, 64,
@@ -116,8 +116,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(gemm_batch_type_t::strided),
-        false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _b,
-                                      _ldb, _beta, _c, _ldc, batch_size);
+        false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                      _b, _ldb, _beta, _c, _ldc, batch_size);
   }
 #endif
 }
