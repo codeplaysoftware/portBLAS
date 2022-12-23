@@ -91,14 +91,15 @@ template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType>
-SYCL_BLAS_INLINE typename Gemm<
-    input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-    TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-    GemmVectorization, VectorSize, BatchType>::index_t
-Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-     GemmVectorization, VectorSize, BatchType>::get_workgroup_cluster() const
-    noexcept {
+SYCL_BLAS_INLINE
+    typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
+                  BatchType>::index_t
+    Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
+         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+         GemmVectorization, VectorSize, BatchType>::get_workgroup_cluster()
+        const noexcept {
   return ((m_ * n_ - 1) / wg_size + 1);
 }
 /*!
@@ -121,8 +122,8 @@ SYCL_BLAS_INLINE
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
          GemmVectorization, VectorSize,
-         BatchType>::get_num_workgroup_cluster(index_t compute_units) const
-    noexcept {
+         BatchType>::get_num_workgroup_cluster(index_t compute_units)
+        const noexcept {
   constexpr index_t num_gemm_per_compute_units = 4;
   return ((num_gemm_per_compute_units * compute_units - 1) /
               Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,

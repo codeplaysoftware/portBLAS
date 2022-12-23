@@ -81,7 +81,7 @@ void run_test(const combination_t<scalar_t> combi) {
   // SCAL expressions
   auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, view_x);
   auto scal_assign_op = make_op<Assign>(view_x, scal_op);
-  auto asum_op = make_AssignReduction<AbsoluteAddOperator>(
+  auto asum_op = make_assign_reduction<AbsoluteAddOperator>(
       view_y, scal_assign_op, localSize, localSize * nWG);
 
   // Execute the SCAL+ASUM tree
