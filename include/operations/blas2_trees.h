@@ -124,11 +124,11 @@ struct SumMatrixColumns {
 };
 
 /**
- * @fn make_sumMatrixColumns
+ * @fn make_sum_matrix_columns
  * @brief Constructs a SumMatrixColumns structure.
  */
 template <typename rhs_t>
-SumMatrixColumns<rhs_t> make_sumMatrixColumns(rhs_t &rhs_) {
+SumMatrixColumns<rhs_t> make_sum_matrix_columns(rhs_t &rhs_) {
   return SumMatrixColumns<rhs_t>(rhs_);
 }
 

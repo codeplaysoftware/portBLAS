@@ -166,7 +166,7 @@ typename sb_handle_t::event_t _gemv_impl(sb_handle_t& sb_handle, index_t _M,
                                        global_size, kernel_scratch_size);
 
     // Sum the partial dot products results from the GEMV kernel
-    auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
+    auto sumColsOp = make_sum_matrix_columns(dot_products_matrix);
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -309,7 +309,7 @@ typename sb_handle_t::event_t _trmv_impl(
       }
     }
   }
-  auto addMOp = make_sumMatrixColumns(mat1);
+  auto addMOp = make_sum_matrix_columns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
@@ -406,8 +406,8 @@ typename sb_handle_t::event_t _symv_impl(
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
-  auto addMOpR = make_sumMatrixColumns(matR);
-  auto addMOpC = make_sumMatrixColumns(matC);
+  auto addMOpR = make_sum_matrix_columns(matR);
+  auto addMOpC = make_sum_matrix_columns(matC);
   auto addMOp = make_op<BinaryOp, AddOperator>(addMOpR, addMOpC);
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
