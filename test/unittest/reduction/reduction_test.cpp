@@ -209,8 +209,8 @@ void run_test(const combination_t<scalar_t> combi) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
-  auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(), v_out_gpu, out_v_gpu.data(),
-                                                    out_size);
+  auto event = blas::helper::copy_to_host<scalar_t>(
+      sb_handle.get_queue(), v_out_gpu, out_v_gpu.data(), out_size);
   sb_handle.wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));

@@ -225,7 +225,7 @@ struct Rotmg {
 };
 
 template <typename operator_t, typename lhs_t, typename rhs_t, typename index_t>
-inline AssignReduction<operator_t, lhs_t, rhs_t> make_AssignReduction(
+inline AssignReduction<operator_t, lhs_t, rhs_t> make_assign_reduction(
     lhs_t &lhs_, rhs_t &rhs_, index_t local_num_thread_,
     index_t global_num_thread_) {
   return AssignReduction<operator_t, lhs_t, rhs_t>(

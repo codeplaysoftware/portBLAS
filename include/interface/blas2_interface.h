@@ -26,7 +26,7 @@
 #ifndef SYCL_BLAS_BLAS2_INTERFACE_H
 #define SYCL_BLAS_BLAS2_INTERFACE_H
 
-# include "operations/blas2_trees.h"
+#include "operations/blas2_trees.h"
 namespace blas {
 namespace internal {
 /*!

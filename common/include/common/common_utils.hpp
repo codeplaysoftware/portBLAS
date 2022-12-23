@@ -740,7 +740,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
  * @param[out] success Pointer to boolean indicating success
  */
 #define BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success)     \
-  do {                                                    \
+  do {                                                            \
     BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);  \
     BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success); \
     BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success);   \
