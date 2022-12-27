@@ -298,6 +298,10 @@ are:
 DPCPP_SYCL_TARGET = "nvptx64-nvidia-cuda"
 DPCPP_SYCL_ARCH = "sm_80" | "sm_90"
 ```
+To invoke the `joint_matrix` based GEMM, you need to set the following environment variable:
+```bash
+export SB_ENABLE_JOINT_MATRIX=1
+```
 The user should expect erroneous behaviour from the code if both of these requirements are not met.
 
 ## Requirements
