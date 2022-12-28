@@ -307,25 +307,28 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t it_mod_brows = item_id % block_rows;
     const index_t it_div_brows = item_id / block_rows;
 
+    const index_t it_mod_bcols = item_id % block_cols;
+    const index_t it_div_bcols = item_id / block_cols;
+
     const index_t it_mod_cl = item_id % cl_elems;
     const index_t it_div_cl = item_id / cl_elems;
 
-    ptr_B += (trans_b ? (item_id / block_cols) * ldb +
-                            (wg_col + item_id % block_cols)
+    ptr_B += (trans_b ? it_div_bcols * ldb +
+                            (wg_col + it_mod_bcols)
                       : it_mod_cl + (wg_col + it_div_cl) * ldb);
 
-    n = n - wg_col - (trans_b ? item_id % block_cols : it_div_cl);
-    ptr_A += (trans_a ? (wg_row + it_div_cl) * lda + (it_mod_cl)
-                      : (wg_row + it_mod_brows) + (item_id / block_rows) * lda);
+    n = n - wg_col - (trans_b ? it_mod_bcols : it_div_cl);
+    ptr_A += (trans_a ? (wg_row + it_div_cl) * lda + it_mod_cl
+                      : (wg_row + it_mod_brows) + it_div_brows * lda);
 
     m = m - wg_row - (trans_a ? it_div_cl : it_mod_brows);
 
     const index_t s1_offset =
-        (trans_b ? item_id / block_cols + (item_id % block_cols) * ldsb
+        (trans_b ? it_div_bcols + it_mod_bcols * ldsb
                  : it_mod_cl % tile_type::joint_matrix_K +
                        (it_mod_cl / tile_type::joint_matrix_K) *
                            (ldsb * block_cols) +
-                       (it_div_cl)*ldsb);
+                       it_div_cl *ldsb);
 
     const index_t s2_offset =
         (sg_id / jm_row_frags) * tile_type::joint_matrix_N * ldsb;
