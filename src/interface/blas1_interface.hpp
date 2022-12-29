@@ -593,7 +593,9 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
   auto res = std::vector<element_t>(1);
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res);
-  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  sb_handle.wait(event);
   return res[0];
 }
 
@@ -649,7 +651,9 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
   blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res);
-  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+  sb_handle.wait(event);
   return rsT[0].get_index();
 }
 
@@ -668,7 +672,9 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   auto gpu_res =
       make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
   blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res);
-  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+  sb_handle.wait(event);
   return rsT[0].get_index();
 }
 
@@ -688,7 +694,9 @@ typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res);
-  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  sb_handle.wait(event);
   return res[0];
 }
 
@@ -708,7 +716,9 @@ typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = make_sycl_iterator_buffer<element_t>(static_cast<index_t>(1));
   blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res);
-  blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+  sb_handle.wait(event);
   return res[0];
 }
 

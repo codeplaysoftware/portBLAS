@@ -49,7 +49,7 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t s;
   scalar_t a = a_input;
   scalar_t b = b_input;
-  if (api == api_type::event) {
+  if (api == api_type::async) {
     auto device_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_input, 1);
     auto device_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_input, 1);
     auto device_c = blas::make_sycl_iterator_buffer<scalar_t>(1);
@@ -77,15 +77,15 @@ void run_test(const combination_t<scalar_t> combi) {
     return;
   }
 
-  const bool isAlmostEqual =
-      utils::almost_equal(a, a_ref) && utils::almost_equal(b, b_ref) &&
-      utils::almost_equal(c, c_ref) && utils::almost_equal(s, s_ref);
-  ASSERT_TRUE(isAlmostEqual);
+  ASSERT_TRUE(utils::almost_equal(a, a_ref));
+  ASSERT_TRUE(utils::almost_equal(b, b_ref));
+  ASSERT_TRUE(utils::almost_equal(c, c_ref));
+  ASSERT_TRUE(utils::almost_equal(s, s_ref));
 }
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values(api_type::event, api_type::result),  // Api
+    ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values<scalar_t>(0, 2.5, -7.3,
                                 std::numeric_limits<scalar_t>::max()),  // a
     ::testing::Values<scalar_t>(0, 0.5, -4.3,
