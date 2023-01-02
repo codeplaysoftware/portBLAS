@@ -605,6 +605,56 @@ typename sb_handle_t::event_t _syr_impl(
   }
 }
 
+/*! _SPR.
+ * @brief Implementation of the rank 1 operation
+ */
+/*
+ssyr 	( 	character  	UPLO,
+   integer  	N,
+   real  	ALPHA,
+   real, dimension(*)  	X,
+   integer  	INCX,
+   real, dimension(lda,*)  	AP,
+   integer  	LDA
+ )
+*/
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1>
+typename sb_handle_t::event_t _spr_impl(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _mPA, index_t _lda,
+    index_t _localSize = 0, index_t _scratchPadSize = 0, index_t _nColsWG = 0) {
+  typename sb_handle_t::event_t ret;
+  _Uplo = tolower(_Uplo);
+  int triangOpr = (_Uplo == 'u');
+  index_t N = _N;
+  auto mA = make_matrix_view<col_major>(_mPA, N, (N + 1) / 2, _lda);
+  auto vx = make_vector_view(_vx, _incx, N);
+
+  const index_t localSize =
+      (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
+  const index_t nColsWG = (_nColsWG == 0) ? localSize : std::min(N, _nColsWG);
+  const index_t scratchPadSize =
+      (_localSize == 0) ? localSize : _scratchPadSize;
+
+  const index_t nWGPerCol = (N * (N + 1) / 2 - 1) / nColsWG + 1;
+  const index_t globalSize = localSize * nWGPerCol;
+
+  if (triangOpr) {
+    auto assignOp = make_gerp_col<true, false, true, true>(
+        mA, _alpha, vx, vx, nWGPerCol, scratchPadSize);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchPadSize));
+  } else {
+    auto assignOp = make_gerp_col<true, true, true, false>(
+        mA, _alpha, vx, vx, nWGPerCol, scratchPadSize);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchPadSize));
+  }
+}
+
 /*
     ssyr2 	( 	character  	UPLO,
                 integer  	N,
@@ -787,6 +837,16 @@ typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
   // scratch size per device
   return _syr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1>
+typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
+                                          index_t _N, element_t _alpha,
+                                          container_t0 _vx, increment_t _incx,
+                                          container_t1 _mPA, index_t _lda) {
+  return _spr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA, _lda);
+}
+
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
