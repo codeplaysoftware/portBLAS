@@ -69,6 +69,12 @@ enum class transpose_type : char {
   Conjugate = 'c'
 };
 
+/**
+ * @enum Uplo
+ * @brief Specifies whether the lower or upper triangle needs to be accessed.
+ */
+enum class uplo_type : char { Upper = 'u', Lower = 'l' };
+
 // choosing value at compile-time
 template <bool Conds, typename val_t, val_t value_one_t, val_t value_two_t>
 struct Choose {
