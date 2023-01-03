@@ -7,9 +7,6 @@ At the moment any project using SYCL-BLAS requires:
 
 * OpenCL
 * [ComputeCpp](http://www.computecpp.com)
-* The [ComputeCpp-SDK](https://github.com/codeplaysoftware/computecpp-sdk)
-  headers (imported in this repo as a submodule, make sure to clone with the
-  `--recursive` option).
 * SYCL-BLAS, either:
   * as a library (install the library and include `sycl_blas.h` in an application)
   * as a header-only framework (include `sycl_blas.hpp` in an application)

@@ -58,12 +58,18 @@ if __name__ == '__main__':
     tlc = sys.argv[23]
     tib = sys.argv[24]
     twb = sys.argv[25]
-    wg_size = sys.argv[26]
-    cl_size = sys.argv[27]
-    file_name = sys.argv[28]
-    gemm_vectorize_type = sys.argv[29]
-    vector_size = sys.argv[30]
-    batch_type = sys.argv[31]
+    jm_m = sys.argv[26]
+    jm_n = sys.argv[27]
+    jm_k = sys.argv[28]
+    jm_in_type = sys.argv[29]
+    jm_out_type = sys.argv[30]
+    wg_size = sys.argv[31]
+    cl_size = sys.argv[32]
+    file_name = sys.argv[33]
+    gemm_vectorize_type = sys.argv[34]
+    vector_size = sys.argv[35]
+    batch_type = sys.argv[36]
+    use_joint_matrix = sys.argv[37]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -160,6 +166,31 @@ if __name__ == '__main__':
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(
+            key='JM_M',
+            vals=[jm_m],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='JM_N',
+            vals=[jm_n],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='JM_K',
+            vals=[jm_k],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='JM_IN_T',
+            vals=[jm_in_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='JM_OUT_T',
+            vals=[jm_out_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
             key='IS_BETA_ZERO',
             vals=[is_beta_zero],
             itermode=Itermode.combinations,
@@ -197,6 +228,11 @@ if __name__ == '__main__':
         Iterable(
             key='BATCH_TYPE',
             vals=[batch_type],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='USE_JOINT_MATRIX',
+            vals=[use_joint_matrix],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

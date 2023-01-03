@@ -10,13 +10,12 @@ potential configurations and then prints a list of them and their performance.
 Building
 --------
 
-1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option,
-in order to clone submodule(s), such as the computecpp-sdk.
+1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
 2. Create a build directory as `tools/gemm_tuner/build`.
 3. Run `CMake` and `Ninja` from the build directory:
 
 ```
-$ cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp [-DTARGET=supported backend]
+$ cmake -GNinja ../ -DComputeCpp_DIR=/path/to/computecpp [-DTUNING_TARGET=supported backend]
 $ ninja
 ```
 

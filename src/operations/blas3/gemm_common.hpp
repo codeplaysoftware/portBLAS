@@ -58,10 +58,11 @@ ENABLE_TYPE_STRING(double)
  *       info about the tiling configuration of gemm
  */
 template <int ItemRows, int ItemCols, int WgRows, int WgCols, int SgRows,
-          int SgCols, int TlRows, int TlCols, int ItemBatchs, int WgBatchs>
+          int SgCols, int TlRows, int TlCols, int ItemBatchs, int WgBatchs,
+          int jm_M, int jm_N, int jm_K, typename inp_jmT, typename out_jmT>
 SYCL_BLAS_INLINE std::string
 Tile<ItemRows, ItemCols, WgRows, WgCols, SgRows, SgCols, TlRows, TlCols,
-     ItemBatchs, WgBatchs>::get_type_string() noexcept {
+     ItemBatchs, WgBatchs, jm_M, jm_N, jm_K, inp_jmT, out_jmT>::get_type_string() noexcept {
   std::ostringstream str{};
   str << "Tile<" << item_rows << ", " << item_cols << ", " << wg_rows << ", "
       << wg_cols << ", " << sg_rows << ", " << sg_cols << ", " << tl_rows

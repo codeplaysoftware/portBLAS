@@ -98,6 +98,7 @@ SYCL_BLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
  * @tparam is_beta_zero  whether to optimize away the beta * C addition
+ * @tparam UseJointMatrix boolean parameter to decide whether to use joint_matrix or not
  */
 template <typename input_t, typename output_t, int ClSize, typename tile_type,
           bool TransA, bool TransB, typename element_t, bool is_beta_zero,
@@ -107,7 +108,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
            is_beta_zero, static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
-           static_cast<int>(gemm_batch_type_t::interleaved)> {
+           static_cast<int>(gemm_batch_type_t::interleaved), false> {
  public:
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;

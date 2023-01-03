@@ -1,14 +1,10 @@
 cmake_minimum_required(VERSION 3.7)
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/include)
-
-
 
 list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/Modules
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../external/computecpp-sdk/cmake/Modules
 )
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
@@ -90,7 +86,6 @@ target_include_directories(tuner_kernel_lib PRIVATE
   ${SYCLBLAS_INCLUDE}
   ${SYCLBLAS_SRC}
   include/
-  ${COMPUTECPP_SDK_INCLUDE}
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_dependencies(tuner_kernel_lib tuner_generate_kernels)
@@ -119,7 +114,6 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
   target_include_directories(${tuner_exec} PRIVATE
     ${SYCLBLAS_INCLUDE}
     ${SYCLBLAS_SRC}
-    ${COMPUTECPP_SDK_INCLUDE}
     include/
     ${CMAKE_CURRENT_BINARY_DIR}
   )
