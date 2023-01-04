@@ -89,10 +89,13 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
   // triangle or outside of the matrix are set to zero
   for (index_t j = 0; j < internalBlockSize; ++j) {
     bool isInRange = false;
+    bool onUnitDiag = UnitDiag && i == j;
     isInRange = (Upper) ? (i <= j) && ((blockIndexPerBlock + j) < N_)
                         : (i >= j) && ((blockIndexPerBlock + i) < N_);
     local[j + i * internalBlockSize] =
-        (isInRange) ? A[j * lda_ + i + srcBlockOffset] : value_t{0};
+        (isInRange)
+            ? (onUnitDiag ? value_t{1} : A[j * lda_ + i + srcBlockOffset])
+            : value_t{0};
   }
   item.barrier(cl::sycl::access::fence_space::local_space);
 
@@ -115,7 +118,7 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
       item.barrier(cl::sycl::access::fence_space::local_space);
       if (i < j) {
         local[j + i * internalBlockSize] =
-            sum * -local[j + j * internalBlockSize];
+            sum * (UnitDiag ? -1 : -local[j + j * internalBlockSize]);
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
     }
@@ -132,7 +135,7 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
       item.barrier(cl::sycl::access::fence_space::local_space);
       if (i > j) {
         local[j + i * internalBlockSize] =
-            sum * -local[j + j * internalBlockSize];
+            sum * (UnitDiag ? -1 : -local[j + j * internalBlockSize]);
       }
       item.barrier(cl::sycl::access::fence_space::local_space);
     }
