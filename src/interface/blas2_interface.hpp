@@ -96,7 +96,7 @@ typename sb_handle_t::event_t _gemv_impl(sb_handle_t& sb_handle, index_t _M,
 
     const index_t global_size = roundUp<index_t>(ld, local_range);
 
-    auto gemv = make_Gemv<local_range, is_transposed, cache_line_size, 1>(
+    auto gemv = make_gemv<local_range, is_transposed, cache_line_size, 1>(
         dot_products_matrix, mA, vx, one, one);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
@@ -158,7 +158,7 @@ typename sb_handle_t::event_t _gemv_impl(sb_handle_t& sb_handle, index_t _M,
     const index_t global_size = local_range * WGs_per_C * WGs_per_NC;
 
     // Create the gemv kernel
-    auto gemv = make_Gemv<local_range, is_transposed, cache_line_size, 1>(
+    auto gemv = make_gemv<local_range, is_transposed, cache_line_size, 1>(
         dot_products_matrix, mA, vx, WGs_per_NC, WGs_per_C);
 
     // Execute the GEMV kernel that calculate the partial dot products of rows
@@ -166,7 +166,7 @@ typename sb_handle_t::event_t _gemv_impl(sb_handle_t& sb_handle, index_t _M,
                                        global_size, kernel_scratch_size);
 
     // Sum the partial dot products results from the GEMV kernel
-    auto sumColsOp = make_sumMatrixColumns(dot_products_matrix);
+    auto sumColsOp = make_sum_matrix_columns(dot_products_matrix);
 
     if (_beta != static_cast<element_t>(0)) {
       // vec_y * b
@@ -251,13 +251,13 @@ typename sb_handle_t::event_t _trmv_impl(
   if (data_layout_t::is_col_major()) {
     if (triangOpr == 1) {
       if (unitDiag == 1) {
-        auto gemvC = make_Gemv_Col<false, true, true, true>(
+        auto gemvC = make_gemv_col<false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
             sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
-        auto gemvC = make_Gemv_Col<false, true, true>(
+        auto gemvC = make_gemv_col<false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
@@ -265,13 +265,13 @@ typename sb_handle_t::event_t _trmv_impl(
       }
     } else {
       if (unitDiag == 1) {
-        auto gemvC = make_Gemv_Col<true, true, false, true>(
+        auto gemvC = make_gemv_col<true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
             sb_handle.execute(gemvC, localSize, globalSize, scratchPadSize));
       } else {
-        auto gemvC = make_Gemv_Col<true, true, false>(
+        auto gemvC = make_gemv_col<true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
@@ -281,13 +281,13 @@ typename sb_handle_t::event_t _trmv_impl(
   } else {  // row_major
     if (triangOpr == 1) {
       if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true, true>(
+        auto gemvR = make_gemv_row<interLoop, false, true, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
             sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
-        auto gemvR = make_Gemv_Row<interLoop, false, true, true>(
+        auto gemvR = make_gemv_row<interLoop, false, true, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
@@ -295,13 +295,13 @@ typename sb_handle_t::event_t _trmv_impl(
       }
     } else {
       if (unitDiag == 1) {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false, true>(
+        auto gemvR = make_gemv_row<interLoop, true, true, false, true>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
             sb_handle.execute(gemvR, localSize, globalSize, scratchPadSize));
       } else {
-        auto gemvR = make_Gemv_Row<interLoop, true, true, false>(
+        auto gemvR = make_gemv_row<interLoop, true, true, false>(
             mat1, mA, vx, nWGPerRow, nWGPerCol, scratchPadSize);
         ret = concatenate_vectors(
             ret,
@@ -309,7 +309,7 @@ typename sb_handle_t::event_t _trmv_impl(
       }
     }
   }
-  auto addMOp = make_sumMatrixColumns(mat1);
+  auto addMOp = make_sum_matrix_columns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize));
   return ret;
@@ -386,18 +386,18 @@ typename sb_handle_t::event_t _symv_impl(
       make_matrix_view<row_major>(valTC, N, scratchSize_C, scratchSize_C);
 
   if (triangOpr == 1) {
-    auto gemvC = make_Gemv_Col<false, true, true>(matC, mA, vx, nWGPerRow_C,
+    auto gemvC = make_gemv_col<false, true, true>(matC, mA, vx, nWGPerRow_C,
                                                   nWGPerCol_C, scratchPadSize);
-    auto gemvR = make_Gemv_Row<interLoop, true, false, false>(
+    auto gemvR = make_gemv_row<interLoop, true, false, false>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
         ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
     ret = concatenate_vectors(
         ret, sb_handle.execute(gemvR, localSize, globalSize_R, scratchPadSize));
   } else {
-    auto gemvC = make_Gemv_Col<true, true, false>(matC, mA, vx, nWGPerRow_C,
+    auto gemvC = make_gemv_col<true, true, false>(matC, mA, vx, nWGPerRow_C,
                                                   nWGPerCol_C, scratchPadSize);
-    auto gemvR = make_Gemv_Row<interLoop, false, false, true>(
+    auto gemvR = make_gemv_row<interLoop, false, false, true>(
         matR, mAT, vx, nWGPerRow_R, nWGPerCol_R, scratchPadSize);
     ret = concatenate_vectors(
         ret, sb_handle.execute(gemvC, localSize, globalSize_C, scratchPadSize));
@@ -406,8 +406,8 @@ typename sb_handle_t::event_t _symv_impl(
   }
 
   auto scalOp1 = make_op<ScalarOp, ProductOperator>(_beta, vy);
-  auto addMOpR = make_sumMatrixColumns(matR);
-  auto addMOpC = make_sumMatrixColumns(matC);
+  auto addMOpR = make_sum_matrix_columns(matR);
+  auto addMOpC = make_sum_matrix_columns(matC);
   auto addMOp = make_op<BinaryOp, AddOperator>(addMOpR, addMOpC);
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
@@ -453,7 +453,7 @@ typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, char _trans,
       make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
 
   const index_t global_size = roundUp<index_t>(y_vector_size, local_range);
-  auto gbmv = make_Gbmv<local_range, is_transposed>(dot_products_matrix, mA,
+  auto gbmv = make_gbmv<local_range, is_transposed>(dot_products_matrix, mA,
                                                     _KL, _KU, vx);
 
   // Execute the GBMV kernel that calculate the partial dot products of rows
@@ -518,7 +518,7 @@ typename sb_handle_t::event_t _ger_impl(
 
   typename sb_handle_t::event_t ret;
   auto assignOp =
-      make_Ger_Col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
+      make_ger_col(mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
   return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
 }
 
@@ -561,13 +561,13 @@ typename sb_handle_t::event_t _syr_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   if (triangOpr) {
-    auto assignOp = make_Ger_Col<true, false, true, true>(
+    auto assignOp = make_ger_col<true, false, true, true>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize,
                                       scratchPadSize));
   } else {
-    auto assignOp = make_Ger_Col<true, true, true, false>(
+    auto assignOp = make_ger_col<true, true, true, false>(
         mA, _alpha, vx, vx, nWGPerRow, nWGPerCol, scratchPadSize);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize,
@@ -615,11 +615,11 @@ typename sb_handle_t::event_t _syr2_impl(
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
   if (triangOpr) {
-    auto assignOp = make_Ger_Col<false, false, true, true>(
+    auto assignOp = make_ger_col<false, false, true, true>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
     return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   } else {
-    auto assignOp = make_Ger_Col<false, true, true, false>(
+    auto assignOp = make_ger_col<false, true, true, false>(
         mA, _alpha, vx, vy, nWGPerRow, nWGPerCol, scratchPadSize);
     return sb_handle.execute(assignOp, localSize, globalSize, scratchPadSize);
   }

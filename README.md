@@ -30,6 +30,7 @@ the project.
     - [BLAS 1](#blas-1)
     - [BLAS 2](#blas-2)
     - [BLAS 3](#blas-3)
+    - [Experimental Joint Matrix Support](#jm_support)
   - [Requirements](#requirements)
   - [Setup](#setup)
     - [Compile with ComputeCpp](#compile-with-computecpp)
@@ -287,6 +288,22 @@ For all these operations:
 | `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
 | `_trsm` | `ex`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
+### Experimental Joint Matrix Support
+
+SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
+[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_oneapi_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
+NVIDIA Ampere GPUs and beyond. The requirements for using this experimental support 
+are: 
+```bash
+DPCPP_SYCL_TARGET = "nvptx64-nvidia-cuda"
+DPCPP_SYCL_ARCH = "sm_80" | "sm_90"
+```
+To invoke the `joint_matrix` based GEMM, you need to set the following environment variable:
+```bash
+export SB_ENABLE_JOINT_MATRIX=1
+```
+The user should expect erroneous behaviour from the code if both of these requirements are not met.
+
 ## Requirements
 
 SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
@@ -295,9 +312,6 @@ The project is developed using [ComputeCpp CE Edition](http://www.computecpp.com
 using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
 In order to build the sources, GCC 5.4 or higher is required.
 The build system is CMake version 3.4.2 or higher.
-We rely on the `FindComputeCpp.cmake` imported from the 
-[ComputeCpp SDK](https://github.com/codeplaysoftware/computecpp-sdk)
-to build the project.
 
 A BLAS library, such as [OpenBLAS](https://github.com/xianyi/OpenBLAS), is also
 required to build and verify the test results. 
@@ -320,7 +334,7 @@ been replaced by `TUNING_TARGET`, which accepts the same options.
 triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
 setting them.
 
-1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s), such as the computecpp-sdk.
+1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
 2. Create a build directory
 3. Run `CMake` from the build directory (see options in the section below):
 
@@ -413,21 +427,23 @@ export COMPUTECPP_TOOLCHAIN_DIR="PATH TO TOOLCHAIN_DIR"
 export COMPUTECPP_TARGET_TRIPLE="PATH TO TARGET_TRIPLE"
 export COMPUTECPP_SYSROOT_DIR="$PATH TO SYSROOT_DIR"
 ```
+
+Clone the [ComputeCpp-SDK](https://github.com/codeplaysoftware/computecpp-sdk) to retrieve the toolchain file.
 The following CMake command can be used to cross-compile SYCL-BLAS:
 
 ```bash
-cmake  -GNinja                                                                                           \
-    ${SOURCE_ROOT}                                                                                       \
-   -DCMAKE_PREFIX_PATH="${OPENBLAS_PATH}"                                                                 \
-   -DComputeCpp_DIR="${COMPUTECPP_DEVICE_PATH}"                                                          \
-   -DComputeCpp_HOST_DIR="${COMPUTECPP_X86_PATH}"                                                        \
-   -DCMAKE_TOOLCHAIN_FILE="${SYCL_BLAS_PATH}/external/computecpp-sdk/cmake/toolchains/gcc-generic.cmake" \
-   -DCMAKE_BUILD_TYPE='Release'                                                                          \
-   -DCMAKE_INSTALL_PREFIX=${CROSS_COMPILED_SYCLBLAS_INSTALL}                                             \
-   -DOpenCL_INCLUDE_DIR="${OpenCL_Headers_PATH}"                                                         \
-   -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                                  \
-   -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                                              \
-   -DCMAKE_CXX_FLAGS='-O3'                                                                               \
+cmake  -GNinja                                                                         \
+    ${SOURCE_ROOT}                                                                     \
+   -DCMAKE_PREFIX_PATH="${OPENBLAS_PATH}"                                              \
+   -DComputeCpp_DIR="${COMPUTECPP_DEVICE_PATH}"                                        \
+   -DComputeCpp_HOST_DIR="${COMPUTECPP_X86_PATH}"                                      \
+   -DCMAKE_TOOLCHAIN_FILE="/path/to/computecpp-sdk/cmake/toolchains/gcc-generic.cmake" \
+   -DCMAKE_BUILD_TYPE='Release'                                                        \
+   -DCMAKE_INSTALL_PREFIX=${CROSS_COMPILED_SYCLBLAS_INSTALL}                           \
+   -DOpenCL_INCLUDE_DIR="${OpenCL_Headers_PATH}"                                       \
+   -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                \
+   -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                            \
+   -DCMAKE_CXX_FLAGS='-O3'                                                             \
    -DTUNING_TARGET="${CHOSEN_TARGET}"
 ```
 

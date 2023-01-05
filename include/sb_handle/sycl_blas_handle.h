@@ -77,11 +77,11 @@ class SB_Handle {
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
             typename element_t, bool is_beta_zero, int GemmMemoryType,
             int GemmAlgorithm, int GemmVectorization, int VectorSize,
-            int BatchType>
+            int BatchType, bool UseJointMatrix>
   event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize, BatchType>
+           GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseJointMatrix>
           gemm_tree);
 
   // Tall and skinny Gemm specialization

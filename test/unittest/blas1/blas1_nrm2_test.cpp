@@ -54,7 +54,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   _nrm2(sb_handle, size, gpu_x_v, incX, gpu_out_s);
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s,
-                                            out_s.data(), 1);
+                                          out_s.data(), 1);
   sb_handle.wait(event);
 
   // Validate the result

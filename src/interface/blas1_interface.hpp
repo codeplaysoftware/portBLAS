@@ -123,7 +123,7 @@ typename sb_handle_t::event_t _dot(sb_handle_t &sb_handle, index_t _N,
   auto nWG = 2 * localSize;
 
   auto assignOp =
-      make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
+      make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
   auto ret = sb_handle.execute(assignOp);
   return ret;
 }
@@ -183,8 +183,8 @@ typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
 
   const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
-  auto assignOp = make_AssignReduction<AbsoluteAddOperator>(rs, vx, localSize,
-                                                            localSize * nWG);
+  auto assignOp = make_assign_reduction<AbsoluteAddOperator>(rs, vx, localSize,
+                                                             localSize * nWG);
   auto ret = sb_handle.execute(assignOp);
   return ret;
 }
@@ -205,8 +205,8 @@ typename sb_handle_t::event_t _iamax(sb_handle_t &sb_handle, index_t _N,
   const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
-  auto assignOp =
-      make_AssignReduction<IMaxOperator>(rs, tupOp, localSize, localSize * nWG);
+  auto assignOp = make_assign_reduction<IMaxOperator>(rs, tupOp, localSize,
+                                                      localSize * nWG);
   auto ret = sb_handle.execute(assignOp);
   return ret;
 }
@@ -228,8 +228,8 @@ typename sb_handle_t::event_t _iamin(sb_handle_t &sb_handle, index_t _N,
   const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto tupOp = make_tuple_op(vx);
-  auto assignOp =
-      make_AssignReduction<IMinOperator>(rs, tupOp, localSize, localSize * nWG);
+  auto assignOp = make_assign_reduction<IMinOperator>(rs, tupOp, localSize,
+                                                      localSize * nWG);
   auto ret = sb_handle.execute(assignOp);
   return ret;
 }
@@ -300,7 +300,7 @@ typename sb_handle_t::event_t _nrm2(sb_handle_t &sb_handle, index_t _N,
   const auto localSize = sb_handle.get_work_group_size();
   const auto nWG = 2 * localSize;
   auto assignOp =
-      make_AssignReduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
+      make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
   auto ret0 = sb_handle.execute(assignOp);
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);

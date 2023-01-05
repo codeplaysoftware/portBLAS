@@ -37,7 +37,7 @@ enum class gemv_memory_t : int { local = 0, no_local = 1 };
  * @brief Gemv is a templated class whose instantiations provide different
  * implementations of the the GEMV kernel function.
  *
- * The class is constructed using the make_Gemv function below.
+ * The class is constructed using the make_gemv function below.
  *
  * @tparam local_range  specifies the number of threads per work group used by
  *                      the kernel
@@ -95,7 +95,7 @@ template <uint32_t local_range, bool is_transposed, int cache_line_size,
           typename vector_t>
 Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed, cache_line_size,
      work_per_thread>
-make_Gemv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
+make_gemv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
           typename vector_t::index_t wgs_per_nc_,
           typename vector_t::index_t wgs_per_c_) {
   return Gemv<lhs_t, matrix_t, vector_t, local_range, is_transposed,
@@ -124,11 +124,11 @@ struct SumMatrixColumns {
 };
 
 /**
- * @fn make_sumMatrixColumns
+ * @fn make_sum_matrix_columns
  * @brief Constructs a SumMatrixColumns structure.
  */
 template <typename rhs_t>
-SumMatrixColumns<rhs_t> make_sumMatrixColumns(rhs_t &rhs_) {
+SumMatrixColumns<rhs_t> make_sum_matrix_columns(rhs_t &rhs_) {
   return SumMatrixColumns<rhs_t>(rhs_);
 }
 
@@ -165,7 +165,7 @@ struct GemvCol {
 template <bool Lower = true, bool Diag = true, bool Upper = true,
           bool Unit = false, typename lhs_t, typename matrix_t,
           typename vector_t>
-GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t> make_Gemv_Col(
+GemvCol<Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t> make_gemv_col(
     lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
     typename vector_t::index_t nWG_row_, typename vector_t::index_t nWG_col_,
     typename vector_t::index_t local_memory_size_) {
@@ -205,7 +205,7 @@ struct GemvRow {
 /*!
  @brief Generator/factory for row-based GEMV trees.
 
- make_Gemv_Row(
+ make_gemv_row(
     lhs_t &lhs_,
      matrix_t &matrix_,
     vector_t &vector_,
@@ -218,7 +218,7 @@ template <int interLoop = 1, bool Lower = true, bool Diag = true,
           bool Upper = true, bool Unit = false, typename lhs_t,
           typename matrix_t, typename vector_t>
 GemvRow<interLoop, Lower, Diag, Upper, Unit, lhs_t, matrix_t, vector_t>
-make_Gemv_Row(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
+make_gemv_row(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_,
               typename vector_t::index_t nWG_row_,
               typename vector_t::index_t nWG_col_,
               typename vector_t::index_t local_memory_size_) {
@@ -259,7 +259,7 @@ struct Gbmv {
  */
 template <uint32_t local_range, bool is_transposed, typename lhs_t,
           typename matrix_t, typename vector_t>
-Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed> make_Gbmv(
+Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed> make_gbmv(
     lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t kl_,
     typename vector_t::index_t ku_, vector_t &vector_) {
   return Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>(
@@ -294,7 +294,7 @@ struct GerRow {
 
 template <bool Single = true, bool Lower = true, bool Diag = true,
           bool Upper = true, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_Ger_Row(
+GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_row(
     lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_1_t &rhs_1_,
     rhs_2_t &rhs_2_, typename rhs_2_t::index_t nWG_row_,
     typename rhs_2_t::index_t nWG_col_,
@@ -334,7 +334,7 @@ struct GerCol {
 // template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
 template <bool Single = true, bool Lower = true, bool Diag = true,
           bool Upper = true, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_Ger_Col(
+GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
     lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_1_t &rhs_1_,
     rhs_2_t &rhs_2_, typename rhs_2_t::index_t nWG_row_,
     typename rhs_2_t::index_t nWG_col_,

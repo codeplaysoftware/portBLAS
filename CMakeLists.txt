@@ -55,7 +55,6 @@ endif()
 list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/cmake/Modules
 )
 
 # This turns the long file names that are generated into short versions using a hash
@@ -92,14 +91,13 @@ option(GEMM_VECTORIZATION_SUPPORT "Whether to enable vectorization in Gemm kerne
 add_definitions(-DCL_TARGET_OPENCL_VERSION=220)
 
 set(CBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/cblas/include)
-set(COMPUTECPP_SDK_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/external/computecpp-sdk/include)
 set(SYCLBLAS_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated_src)
 set(SYCLBLAS_INCLUDE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 set(SYCLBLAS_COMMON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SYCLBLAS_SRC_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/python_generator)
-list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE} ${COMPUTECPP_SDK_INCLUDE})
+list(APPEND THIRD_PARTIES_INCLUDE ${CBLAS_INCLUDE})
 
 if(IMGDNN_DIR)
   add_definitions(-DIMGDNN_LIBRARY)
@@ -156,14 +154,10 @@ else()
     INTERFACE_LINK_LIBRARIES ${sycl_impl}
     INTERFACE_INCLUDE_DIRECTORIES "${SYCLBLAS_INCLUDE}"
   )
+  set_target_properties(sycl_blas PROPERTIES
+    VERSION ${PROJECT_VERSION}
+  )
 endif()
-
-set_target_properties(sycl_blas PROPERTIES
-  VERSION ${PROJECT_VERSION}
-)
-target_include_directories(sycl_blas INTERFACE
-  $<BUILD_INTERFACE:${COMPUTECPP_SDK_INCLUDE}>
-)
 
 include(CMakePackageConfigHelpers)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/sycl_blas-version.cmake")
