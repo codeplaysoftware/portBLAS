@@ -41,7 +41,8 @@ namespace internal {
  * @param uplo Indicates if A is lower or upper triangular
  * @param trans Indicates the form that the matrix A will take in the
  * multiplication
- * @param diag Indicates if A has a unit or non-unit diagonal
+ * @param diag Indicates if A has a non-unit diagonal or is assumed to be
+ *             unit diagonal.
  * @param M The number of rows of matrix B, must be at least 1
  * @param N The number of columns of B, must be at least 1
  * @param alpha The scalar alpha that is applied to B

@@ -53,10 +53,11 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B(sizeB);
   std::vector<scalar_t> cpu_B(sizeB);
 
-  const scalar_t diagValue =
-      diag == 'u' ? scalar_t{1} : random_scalar(scalar_t{1}, scalar_t{10});
+  // If the matrix is unit-diagonal, the diagonal value should be assumed = 1
+  // by trsm.
+  const scalar_t diagValue = random_scalar(scalar_t{1}, scalar_t{10});
 
-  fill_trsm_matrix(A, k, lda, uplo, diagValue,
+  fill_trsm_matrix(A, k, lda, uplo, diag, diagValue,
                    static_cast<scalar_t>(unusedValue));
   fill_random(B);
 
