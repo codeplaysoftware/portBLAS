@@ -36,31 +36,46 @@ namespace blas {
 
 /**** SPR COL MAJOR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 
-template <bool Single, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-struct SprCol<Single, false, true, true, lhs_t, rhs_1_t, rhs_2_t> {
-  using value_t = typename rhs_2_t::value_t;
-  using index_t = typename rhs_2_t::index_t;
+template <bool Single, typename lhs_t, typename rhs_t>
+struct SprCol<Single, false, true, true, lhs_t, rhs_t> {
+  using value_t = typename rhs_t::value_t;
+  using index_t = typename rhs_t::index_t;
 
   lhs_t lhs_;
-  rhs_1_t rhs_1_;
-  rhs_2_t rhs_2_;
+  rhs_t rhs_;
   value_t scalar_;
 
-  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2)
-      : lhs_(_l), scalar_(_scl), rhs_1_(_r1), rhs_2_(_r2) {}
+  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_t &_r)
+      : lhs_(_l), scalar_(_scl), rhs_(_r) {}
 
-  value_t eval(cl::sycl::nd_item<1> ndItem) {
+  template <typename sharedT>
+  value_t eval(sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
     const index_t id = ndItem.get_global_linear_id();
+    const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
     const index_t lhs_size = lhs_.get_size();
-    const index_t rhs_size = rhs_1_.get_size();
+    const index_t rhs_size = rhs_.get_size();
 
     index_t row = 0;
     index_t col = 0;
     index_t start = 0;
 
     auto lhs_ptr = lhs_.get_pointer();
-    auto rhs_1_ptr = rhs_1_.get_pointer();
-    auto rhs_2_ptr = rhs_2_.get_pointer();
+    auto scratch = scratch_acc.localAcc.get_pointer();
+    auto rhs_ptr = rhs_.get_pointer();
+
+    if (rhs_size < local_range) {
+      if (id < rhs_size) {
+        *(scratch + id) = *(rhs_ptr + id);
+      }
+    } else {
+      index_t idx = id;
+      for (index_t i = 0; i < rhs_size / local_range; i++) {
+        *(scratch + idx) = *(rhs_ptr + idx);
+        idx += local_range;
+        if (idx >= rhs_size) break;
+      }
+    }
+    ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     if (id < lhs_size) {
       auto lhs_val = *(lhs_ptr + id);
@@ -75,8 +90,8 @@ struct SprCol<Single, false, true, true, lhs_t, rhs_1_t, rhs_2_t> {
         row = id - start;
       }
 
-      auto rhs_1_val = *(rhs_1_ptr + row);
-      auto rhs_2_val = *(rhs_2_ptr + col);
+      auto rhs_1_val = *(scratch + row);
+      auto rhs_2_val = *(scratch + col);
 
       auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
 
@@ -87,47 +102,60 @@ struct SprCol<Single, false, true, true, lhs_t, rhs_1_t, rhs_2_t> {
   }
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {
     lhs_.bind(h);
-    rhs_1_.bind(h);
-    rhs_2_.bind(h);
+    rhs_.bind(h);
   }
 
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     lhs_.adjust_access_displacement();
-    rhs_1_.adjust_access_displacement();
-    rhs_2_.adjust_access_displacement();
+    rhs_.adjust_access_displacement();
   }
 
-  SYCL_BLAS_INLINE index_t get_size() const { return rhs_1_.get_size(); }
+  SYCL_BLAS_INLINE index_t get_size() const { return rhs_.get_size(); }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;
   }
 };
 
-template <bool Single, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-struct SprCol<Single, true, true, false, lhs_t, rhs_1_t, rhs_2_t> {
-  using value_t = typename rhs_2_t::value_t;
-  using index_t = typename rhs_2_t::index_t;
+template <bool Single, typename lhs_t, typename rhs_t>
+struct SprCol<Single, true, true, false, lhs_t, rhs_t> {
+  using value_t = typename rhs_t::value_t;
+  using index_t = typename rhs_t::index_t;
 
   lhs_t lhs_;
-  rhs_1_t rhs_1_;
-  rhs_2_t rhs_2_;
+  rhs_t rhs_;
   value_t scalar_;
 
-  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2)
-      : lhs_(_l), scalar_(_scl), rhs_1_(_r1), rhs_2_(_r2) {}
+  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_t &_r)
+      : lhs_(_l), scalar_(_scl), rhs_(_r) {}
 
-  value_t eval(cl::sycl::nd_item<1> ndItem) {
+  template <typename sharedT>
+  value_t eval(sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
     const index_t id = ndItem.get_global_linear_id();
+    const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
     const index_t lhs_size = lhs_.get_size();
-    const index_t rhs_size = rhs_1_.get_size();
+    const index_t rhs_size = rhs_.get_size();
 
     index_t row = 0;
     index_t col = 0;
     index_t start = 0;
 
     auto lhs_ptr = lhs_.get_pointer();
-    auto rhs_1_ptr = rhs_1_.get_pointer();
-    auto rhs_2_ptr = rhs_2_.get_pointer();
+    auto scratch = scratch_acc.localAcc.get_pointer();
+    auto rhs_ptr = rhs_.get_pointer();
+
+    if (rhs_size < local_range) {
+      if (id < rhs_size) {
+        *(scratch + id) = *(rhs_ptr + id);
+      }
+    } else {
+      index_t idx = id;
+      for (index_t i = 0; i < rhs_size / local_range; i++) {
+        *(scratch + idx) = *(rhs_ptr + idx);
+        idx += local_range;
+        if (idx >= rhs_size) break;
+      }
+    }
+    ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
     if (id < lhs_size) {
       auto lhs_val = *(lhs_ptr + id);
@@ -144,8 +172,8 @@ struct SprCol<Single, true, true, false, lhs_t, rhs_1_t, rhs_2_t> {
         row = id;
       }
 
-      auto rhs_1_val = *(rhs_1_ptr + row);
-      auto rhs_2_val = *(rhs_2_ptr + col);
+      auto rhs_1_val = *(scratch + row);
+      auto rhs_2_val = *(scratch + col);
 
       auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
 
@@ -157,39 +185,19 @@ struct SprCol<Single, true, true, false, lhs_t, rhs_1_t, rhs_2_t> {
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {
     lhs_.bind(h);
-    rhs_1_.bind(h);
-    rhs_2_.bind(h);
+    rhs_.bind(h);
   }
 
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     lhs_.adjust_access_displacement();
-    rhs_1_.adjust_access_displacement();
-    rhs_2_.adjust_access_displacement();
+    rhs_.adjust_access_displacement();
   }
 
-  SYCL_BLAS_INLINE index_t get_size() const { return rhs_1_.get_size(); }
+  SYCL_BLAS_INLINE index_t get_size() const { return rhs_.get_size(); }
   SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
     return true;
   }
 };
-
-template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void SprCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::bind(cl::sycl::handler &h) {
-  lhs_.bind(h);
-  rhs_1_.bind(h);
-  rhs_2_.bind(h);
-}
-
-template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void SprCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
-                             rhs_2_t>::adjust_access_displacement() {
-  lhs_.adjust_access_displacement();
-  rhs_1_.adjust_access_displacement();
-  rhs_2_.adjust_access_displacement();
-}
 
 }  // namespace blas
 

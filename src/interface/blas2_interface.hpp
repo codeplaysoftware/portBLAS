@@ -633,18 +633,19 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
+  const index_t scratchpad_size = N;
 
   const index_t nWGPerCol = (N * (N + 1) / 2 - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerCol;
 
   if (triangOpr) {
-    auto assignOp = make_spr_col<true, false, true, true>(mA, _alpha, vx, vx);
+    auto assignOp = make_spr_col<true, false, true, true>(mA, _alpha, vx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize));
+               ret, sb_handle.execute(assignOp, localSize, globalSize, scratchpad_size));
   } else {
-    auto assignOp = make_spr_col<true, true, true, false>(mA, _alpha, vx, vx);
+    auto assignOp = make_spr_col<true, true, true, false>(mA, _alpha, vx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize));
+               ret, sb_handle.execute(assignOp, localSize, globalSize, scratchpad_size));
   }
 }
 
