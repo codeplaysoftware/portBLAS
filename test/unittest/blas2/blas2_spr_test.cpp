@@ -55,7 +55,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto a_mp_gpu =
       blas::make_sycl_iterator_buffer<scalar_t>(a_mp, lda * (n + 1) / 2);
 
-  // SYCLsyr
+  // SYCLspr
   _spr(sb_handle, uplo, n, alpha, x_v_gpu, incX, a_mp_gpu, lda);
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu,
@@ -80,10 +80,10 @@ const auto combi =
 template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values('u', 'l'),            // UPLO
-                       ::testing::Values(14, 1010),            // n
-                       ::testing::Values<scalar_t>(0.0, 1.5),  // alpha
-                       ::testing::Values(2),                   // incX
-                       ::testing::Values(2)                    // lda_mul
+                       ::testing::Values(3, 14, 1010),         // n
+                       ::testing::Values<scalar_t>(1.0, 1.5),  // alpha
+                       ::testing::Values(1),                   // incX
+                       ::testing::Values(1)                    // lda_mul
     );
 #endif
 

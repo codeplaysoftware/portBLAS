@@ -424,39 +424,33 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
       lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
 
-/**** GER BY COLUMNS M ROWS x N BLOCK FOR PACKED MATRIX ****/
+/**** SPR COL MAJOR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-struct GerPCol {
+struct SprCol {
   using value_t = typename rhs_2_t::value_t;
   using index_t = typename rhs_2_t::index_t;
 
   lhs_t lhs_;
   rhs_1_t rhs_1_;
   rhs_2_t rhs_2_;
-  index_t nWG_col_;
-  index_t local_memory_size_;
   value_t scalar_;
 
-  GerPCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2,
-          index_t &_nWG_col, index_t &_shrMemSize);
+  SprCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1, rhs_2_t &_r2);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(cl::sycl::nd_item<1> ndItem);
-  template <typename sharedT>
-  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
 
 template <bool Single = true, bool Lower = true, bool Diag = true,
           bool Upper = true, typename lhs_t, typename rhs_1_t, typename rhs_2_t>
-GerPCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_gerp_col(
+SprCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_spr_col(
     lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_1_t &rhs_1_,
-    rhs_2_t &rhs_2_, typename rhs_2_t::index_t nWG_col_,
-    typename rhs_2_t::index_t local_memory_size_) {
-  return GerPCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>(
-      lhs_, scalar_, rhs_1_, rhs_2_, nWG_col_, local_memory_size_);
+    rhs_2_t &rhs_2_) {
+  return SprCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>(
+      lhs_, scalar_, rhs_1_, rhs_2_);
 }
 
 }  // namespace blas
