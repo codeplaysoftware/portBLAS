@@ -31,10 +31,9 @@ set(SYCL_EXPRTEST_SRCS
 )
 
 # Temporary disabling the following tests for Intel DPC++ as currently Intel compiler crashes while running the following tests
+# https://github.com/intel/llvm/issues/7075
 if(is_computecpp)
-  set(SYCL_EXPRTEST_SRCS
-    ${SYCLBLAS_EXPRTEST}/collapse_nested_tuple.cpp
-  )
+  list(APPEND SYCL_EXPRTEST_SRCS "${SYCLBLAS_EXPRTEST}/collapse_nested_tuple.cpp")
 endif()
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
