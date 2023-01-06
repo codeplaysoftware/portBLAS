@@ -263,18 +263,17 @@ struct dump_arg_helper<cl::sycl::half> {
 };
 
 /**
- * Return type of the tested api (either asynchronous (event) or
- * synchronous(result))
+ * Type of the tested api
  */
-enum class api_type : int { event = 0, result = 1 };
+enum class api_type : int { async = 0, sync = 1 };
 
 template <>
 struct dump_arg_helper<api_type> {
   inline void operator()(std::ostream &ss, const api_type &type) {
-    if (type == api_type::event) {
-      ss << "event";
+    if (type == api_type::async) {
+      ss << "async";
     } else {
-      ss << "result";
+      ss << "sync";
     }
   }
 };
