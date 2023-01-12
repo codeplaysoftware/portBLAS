@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename spr.hpp
+ *  @filename gerp.hpp
  *
  **************************************************************************/
 
-#ifndef SPR_HPP
-#define SPR_HPP
+#ifndef GERP_HPP
+#define GERP_HPP
 
 #include <operations/blas2_trees.h>
 #include <operations/blas_operators.hpp>
@@ -34,170 +34,229 @@
 
 namespace blas {
 
-/**** SPR COL MAJOR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
+// Initial index calculation for Row Major Lower Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::get_init_idx<N, false,
+                                                                     false> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(index_t& init_idx, const index_t) { init_idx = 1; }
+};
 
-template <bool Single, typename lhs_t, typename rhs_t>
-struct SprCol<Single, false, true, true, lhs_t, rhs_t> {
-  using value_t = typename rhs_t::value_t;
-  using index_t = typename rhs_t::index_t;
+// Initial index calculation for Row Major Upper Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::get_init_idx<N, false,
+                                                                     true> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(index_t& init_idx, const index_t num) { init_idx = num; }
+};
 
-  lhs_t lhs_;
-  rhs_t rhs_;
-  value_t scalar_;
+// Initial index calculation for Col Major Upper Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::get_init_idx<N, true,
+                                                                     true> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(index_t& init_idx, const index_t num) { init_idx = 1; }
+};
 
-  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_t &_r)
-      : lhs_(_l), scalar_(_scl), rhs_(_r) {}
+// Initial index calculation for Col Major Lower Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::get_init_idx<N, true,
+                                                                     false> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(index_t& init_idx, const index_t num) { init_idx = num; }
+};
 
-  template <typename sharedT>
-  value_t eval(sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
-    const index_t id = ndItem.get_global_linear_id();
-    const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
-    const index_t lhs_size = lhs_.get_size();
-    const index_t rhs_size = rhs_.get_size();
+// Row-Col index calculation for Row Major Lower Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t,
+            rhs_t>::compute_row_col<N, false, false> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(const index_t id, const index_t init_idx, index_t& row,
+                  index_t& col) {
+    index_t curr = init_idx;
+    index_t prev = 0;
 
-    index_t row = 0;
-    index_t col = 0;
-    index_t start = 0;
-
-    auto lhs_ptr = lhs_.get_pointer();
-    auto scratch = scratch_acc.localAcc.get_pointer();
-    auto rhs_ptr = rhs_.get_pointer();
-
-    if (rhs_size < local_range) {
-      if (id < rhs_size) {
-        *(scratch + id) = *(rhs_ptr + id);
-      }
-    } else {
-      index_t idx = id;
-      for (index_t i = 0; i < rhs_size / local_range; i++) {
-        *(scratch + idx) = *(rhs_ptr + idx);
-        idx += local_range;
-        if (idx >= rhs_size) break;
-      }
+    for (index_t i = curr + 1; id - curr >= 0; i++, row++) {
+      prev = curr;
+      curr += i;
     }
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
-    if (id < lhs_size) {
-      auto lhs_val = *(lhs_ptr + id);
-
-      index_t val = 1;
-      for (index_t i = val + 1; id - val >= 0; i++, col++) {
-        start = val;
-        val += i;
-      }
-
-      if (col > 0) {
-        row = id - start;
-      }
-
-      auto rhs_1_val = *(scratch + row);
-      auto rhs_2_val = *(scratch + col);
-
-      auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
-
-      return *(lhs_ptr + id) = out;
-    } else {
-      return static_cast<value_t>(0);
+    if (row > 0) {
+      col = id - prev;
     }
-  }
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {
-    lhs_.bind(h);
-    rhs_.bind(h);
-  }
-
-  SYCL_BLAS_INLINE void adjust_access_displacement() {
-    lhs_.adjust_access_displacement();
-    rhs_.adjust_access_displacement();
-  }
-
-  SYCL_BLAS_INLINE index_t get_size() const { return rhs_.get_size(); }
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return true;
   }
 };
 
-template <bool Single, typename lhs_t, typename rhs_t>
-struct SprCol<Single, true, true, false, lhs_t, rhs_t> {
-  using value_t = typename rhs_t::value_t;
-  using index_t = typename rhs_t::index_t;
+// Row-Col index calculation for Row Major Upper Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t,
+            rhs_t>::compute_row_col<N, false, true> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(const index_t id, const index_t init_idx, index_t& row,
+                  index_t& col) {
+    index_t curr = init_idx;
+    index_t prev = 0;
 
-  lhs_t lhs_;
-  rhs_t rhs_;
-  value_t scalar_;
-
-  SYCL_BLAS_INLINE SprCol(lhs_t &_l, value_t _scl, rhs_t &_r)
-      : lhs_(_l), scalar_(_scl), rhs_(_r) {}
-
-  template <typename sharedT>
-  value_t eval(sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
-    const index_t id = ndItem.get_global_linear_id();
-    const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
-    const index_t lhs_size = lhs_.get_size();
-    const index_t rhs_size = rhs_.get_size();
-
-    index_t row = 0;
-    index_t col = 0;
-    index_t start = 0;
-
-    auto lhs_ptr = lhs_.get_pointer();
-    auto scratch = scratch_acc.localAcc.get_pointer();
-    auto rhs_ptr = rhs_.get_pointer();
-
-    if (rhs_size < local_range) {
-      if (id < rhs_size) {
-        *(scratch + id) = *(rhs_ptr + id);
-      }
-    } else {
-      index_t idx = id;
-      for (index_t i = 0; i < rhs_size / local_range; i++) {
-        *(scratch + idx) = *(rhs_ptr + idx);
-        idx += local_range;
-        if (idx >= rhs_size) break;
-      }
+    for (index_t i = curr - 1, j = 1; id - curr >= 0; i--, row++, j++) {
+      prev = curr - j;
+      curr += i;
     }
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
-    if (id < lhs_size) {
-      auto lhs_val = *(lhs_ptr + id);
-
-      index_t val = rhs_size;
-      for (index_t i = val - 1, j = 1; id - val >= 0; i--, col++, j++) {
-        start = val - j;
-        val += i;
-      }
-
-      if (col > 0) {
-        row = id - start;
-      } else {
-        row = id;
-      }
-
-      auto rhs_1_val = *(scratch + row);
-      auto rhs_2_val = *(scratch + col);
-
-      auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
-
-      return *(lhs_ptr + id) = out;
+    if (row > 0) {
+      col = id - prev;
     } else {
-      return static_cast<value_t>(0);
+      col = id;
     }
-  }
-
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {
-    lhs_.bind(h);
-    rhs_.bind(h);
-  }
-
-  SYCL_BLAS_INLINE void adjust_access_displacement() {
-    lhs_.adjust_access_displacement();
-    rhs_.adjust_access_displacement();
-  }
-
-  SYCL_BLAS_INLINE index_t get_size() const { return rhs_.get_size(); }
-  SYCL_BLAS_INLINE bool valid_thread(cl::sycl::nd_item<1> ndItem) const {
-    return true;
   }
 };
+
+// Row-Col index calculation for Col Major Lower Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::compute_row_col<N, true,
+                                                                        false> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(const index_t id, const index_t init_idx, index_t& row,
+                  index_t& col) {
+    index_t curr = init_idx;
+    index_t prev = 0;
+
+    for (index_t i = curr - 1, j = 1; id - curr >= 0; i--, col++, j++) {
+      prev = curr - j;
+      curr += i;
+    }
+
+    if (col > 0) {
+      row = id - prev;
+    } else {
+      row = id;
+    }
+  }
+};
+
+// Row-Col index calculation for Col Major Upper Packed Matrix
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <int N>
+struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::compute_row_col<N, true,
+                                                                        true> {
+  using index_t = Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t;
+  void operator()(const index_t id, const index_t init_idx, index_t& row,
+                  index_t& col) {
+    index_t curr = init_idx;
+    index_t prev = 0;
+
+    for (index_t i = curr + 1; id - curr >= 0; i++, col++) {
+      prev = curr;
+      curr += i;
+    }
+
+    if (col > 0) {
+      row = id - prev;
+    }
+  }
+};
+
+/**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
+
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+SYCL_BLAS_INLINE Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::Gerp(
+    lhs_t& _l, value_t _scl, rhs_t& _r)
+    : lhs_(_l), scalar_(_scl), rhs_(_r) {}
+
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+template <typename sharedT>
+void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::eval(
+    sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
+  const index_t id = ndItem.get_global_linear_id();
+  const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
+  const index_t lhs_size = lhs_.get_size();
+  const index_t rhs_size = rhs_.get_size();
+
+  index_t row = 0;
+  index_t col = 0;
+  index_t start = 0;
+
+  auto lhs_ptr = lhs_.get_pointer();
+  auto rhs_ptr = rhs_.get_pointer();
+  auto scratch = scratch_acc.localAcc.get_pointer();
+
+  if (rhs_size < local_range) {
+    if (id < rhs_size) {
+      *(scratch + id) = *(rhs_ptr + id);
+    }
+  } else {
+    index_t idx = id;
+    for (index_t i = 0; i < rhs_size / local_range; i++) {
+      *(scratch + id) = *(rhs_ptr + idx);
+      idx += local_range;
+      if (idx >= rhs_size) break;
+    }
+  }
+  ndItem.barrier(cl::sycl::access::fence_space::local_space);
+
+  if (id < lhs_size) {
+    auto lhs_val = *(lhs_ptr + id);
+
+    index_t init_idx = 0;
+    get_init_idx<0, isColMajor, isUpper> init_obj;
+    init_obj(init_idx, rhs_size);
+    compute_row_col<0, isColMajor, isUpper> idx_compute_obj;
+    idx_compute_obj(id, init_idx, row, col);
+
+    auto rhs_1_val = *(scratch + row);
+    auto rhs_2_val = *(scratch + col);
+
+    auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
+
+    *(lhs_ptr + id) = out;
+  }
+}
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+SYCL_BLAS_INLINE void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::bind(
+    cl::sycl::handler& h) {
+  lhs_.bind(h);
+  rhs_.bind(h);
+}
+
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+SYCL_BLAS_INLINE void
+Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  rhs_.adjust_access_displacement();
+}
+
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+SYCL_BLAS_INLINE
+    typename Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::index_t
+    Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
+}
+template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
+          typename rhs_t>
+SYCL_BLAS_INLINE bool
+Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  return true;
+}
 
 }  // namespace blas
 

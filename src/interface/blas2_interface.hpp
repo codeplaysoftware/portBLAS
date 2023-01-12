@@ -619,16 +619,17 @@ ssyr 	( 	character  	UPLO,
  )
 */
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_t0, typename increment_t, typename container_t1>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename layout_t0>
 typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
                                         index_t _N, element_t _alpha,
                                         container_t0 _vx, increment_t _incx,
                                         container_t1 _mPA, index_t _lda) {
   typename sb_handle_t::event_t ret;
   _Uplo = tolower(_Uplo);
-  int triangOpr = (_Uplo == 'u');
+  const int Upper = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(_mPA, N, (N + 1) / 2, _lda);
+  auto mA = make_matrix_view<layout_t0>(_mPA, N, (N + 1) / 2, _lda);
   auto vx = make_vector_view(_vx, _incx, N);
 
   const index_t localSize = sb_handle.get_work_group_size();
@@ -637,15 +638,18 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
 
   const index_t nWGPerCol = (N * (N + 1) / 2 - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerCol;
+  constexpr bool isColMajor = std::is_same<layout_t0, col_major>::value;
 
-  if (triangOpr) {
-    auto assignOp = make_spr_col<true, false, true, true>(mA, _alpha, vx);
+  if (Upper) {
+    auto assignOp = make_spr<true, isColMajor, true>(mA, _alpha, vx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize, scratchpad_size));
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchpad_size));
   } else {
-    auto assignOp = make_spr_col<true, true, true, false>(mA, _alpha, vx);
+    auto assignOp = make_spr<true, isColMajor, false>(mA, _alpha, vx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize, scratchpad_size));
+               ret, sb_handle.execute(assignOp, localSize, globalSize,
+                                      scratchpad_size));
   }
 }
 
@@ -833,12 +837,15 @@ typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_t0, typename increment_t, typename container_t1>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename layout_t0>
 typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
                                           index_t _N, element_t _alpha,
                                           container_t0 _vx, increment_t _incx,
                                           container_t1 _mPA, index_t _lda) {
-  return _spr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA, _lda);
+  return _spr_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
+                   container_t1, layout_t0>(sb_handle, _Uplo, _N, _alpha, _vx,
+                                            _incx, _mPA, _lda);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,

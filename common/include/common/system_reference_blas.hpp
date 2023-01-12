@@ -289,11 +289,15 @@ void syr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
   func(CblasColMajor, c_uplo(*uplo), n, alpha, x, incX, a, lda);
 }
 
-template <typename scalar_t>
+template <typename scalar_t, bool isColMajor>
 void spr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
          const int incX, scalar_t *ap, const int lda) {
   auto func = blas_system_function<scalar_t>(&cblas_sspr, &cblas_dspr);
-  func(CblasColMajor, c_uplo(*uplo), n, alpha, x, incX, ap);
+  if (!isColMajor) {
+    func(CblasRowMajor, c_uplo(*uplo), n, alpha, x, incX, ap);
+  } else {
+    func(CblasColMajor, c_uplo(*uplo), n, alpha, x, incX, ap);
+  }
 }
 
 template <typename scalar_t>
