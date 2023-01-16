@@ -183,8 +183,10 @@ template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
 template <typename sharedT>
 void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::eval(
     sharedT scratch_acc, cl::sycl::nd_item<1> ndItem) {
-  const index_t id = ndItem.get_global_linear_id();
+  const index_t id = ndItem.get_local_linear_id();
+  const index_t group_id = ndItem.get_group(0);
   const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
+  const index_t global_idx = group_id * local_range + id;
   const index_t lhs_size = lhs_.get_size();
   const index_t rhs_size = rhs_.get_size();
 
@@ -210,21 +212,21 @@ void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>::eval(
   }
   ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
-  if (id < lhs_size) {
-    auto lhs_val = *(lhs_ptr + id);
+  if (global_idx < lhs_size) {
+    auto lhs_val = *(lhs_ptr + global_idx);
 
     index_t init_idx = 0;
     get_init_idx<0, isColMajor, isUpper> init_obj;
     init_obj(init_idx, rhs_size);
     compute_row_col<0, isColMajor, isUpper> idx_compute_obj;
-    idx_compute_obj(id, init_idx, row, col);
+    idx_compute_obj(global_idx, init_idx, row, col);
 
     auto rhs_1_val = *(scratch + row);
     auto rhs_2_val = *(scratch + col);
 
     auto out = rhs_1_val * rhs_2_val * scalar_ + lhs_val;
 
-    *(lhs_ptr + id) = out;
+    *(lhs_ptr + global_idx) = out;
   }
 }
 template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,

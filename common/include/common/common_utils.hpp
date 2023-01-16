@@ -51,6 +51,7 @@ using gbmv_param_t = std::tuple<std::string, index_t, index_t, index_t, index_t,
 template <typename scalar_t>
 using sbmv_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
+using spr_param_t = std::tuple<std::string, int, scalar_t>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
@@ -248,6 +249,42 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
                                    str_to_int<index_t>(v[2]),
                                    str_to_scalar<scalar_t>(v[3]),
                                    str_to_scalar<scalar_t>(v[4]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_spr_params
+ * @brief Returns a vector containing the spr benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<spr_param_t<scalar_t>> get_spr_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<spr_param_t<scalar_t>> spr_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    for (std::string uplo : {"u", "l"}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        spr_default.push_back(std::make_tuple(uplo, m, alpha));
+      }
+    }
+    return spr_default;
+  } else {
+    return parse_csv_file<spr_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -690,6 +727,7 @@ static inline Transposition to_transpose_enum(std::string& t) {
     exit(1);
   }
 }
+
 /**
  * @fn from_transpose_enum
  * @brief Translates from a transposition enum to a transposition string
