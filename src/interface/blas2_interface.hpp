@@ -492,7 +492,7 @@ typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
   constexpr bool is_unit = (diag == diag_type::Unit);
 
   if (_K >= _N) {
-    throw std::invalid_argument("Erroneous parameter");
+    throw std::invalid_argument("Erroneous parameter: _K >= _N");
   }
 
   constexpr index_t one = 1;
