@@ -75,8 +75,8 @@ SYCL_BLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
                                is_transposed, is_unitdiag>::value_t
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::eval(cl::sycl::nd_item<1> ndItem) {
-  const index_t lhs_idx =
-      ndItem.get_group(0) * local_range + ndItem.get_local_id(0);
+  const index_t lhs_idx = ndItem.get_global(0);
+
   value_t val = 0;
 
   if (lhs_idx < lhs_.get_size()) {
