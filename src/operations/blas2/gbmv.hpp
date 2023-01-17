@@ -80,8 +80,7 @@ SYCL_BLAS_INLINE typename Gbmv<lhs_t, matrix_t, vector_t, local_range,
                                is_transposed>::value_t
 Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
     cl::sycl::nd_item<1> ndItem) {
-  const index_t lhs_idx =
-      ndItem.get_group(0) * local_range + ndItem.get_local_id(0);
+  const index_t lhs_idx = ndItem.get_global_id(0);
   value_t val = 0;
 
   if (lhs_idx < lhs_.get_size()) {

@@ -430,7 +430,7 @@ typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, index_t _M,
                                          increment_t _incx, element_t _beta,
                                          container_t2 _vy, increment_t _incy) {
   if ((_KL >= _M) || (_KU >= _N)) {
-    throw std::invalid_argument("Erroneous parameter");
+    throw std::invalid_argument("Erroneous parameter: _KL >= _M || _KU >= _N");
   }
 
   constexpr bool is_transposed = (trn != transpose_type::Normal);
@@ -464,7 +464,7 @@ typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
                                          element_t _beta, container_t2 _vy,
                                          increment_t _incy) {
   if (_K >= _N) {
-    throw std::invalid_argument("Erroneous parameter");
+    throw std::invalid_argument("Erroneous parameter: _K >= _N");
   }
 
   auto vector_size = _N;

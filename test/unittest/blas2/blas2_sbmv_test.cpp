@@ -81,7 +81,7 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(isAlmostEqual);
 }
 
-#ifndef STRESS_TESTING
+#ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values(14, 63, 257, 1010),        // n
