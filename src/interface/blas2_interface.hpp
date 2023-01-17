@@ -495,7 +495,7 @@ typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
     throw std::invalid_argument("Erroneous parameter: _K >= _N");
   }
 
-  constexpr index_t one = 1;
+  using one = constant<index_t, const_val::one>;
   auto x_vector_size = _N;
   auto res_buffer =
       blas::make_sycl_iterator_buffer<typename container_t0::scalar_t>(
@@ -503,7 +503,7 @@ typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
 
   auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, x_vector_size);
-  auto vres = make_vector_view(res_buffer, one, x_vector_size);
+  auto vres = make_vector_view(res_buffer, one::value(), x_vector_size);
 
   const index_t global_size = roundUp<index_t>(x_vector_size, local_range);
   auto tbmv = make_tbmv<local_range, is_upper, is_transposed, is_unit>(vres, mA,
