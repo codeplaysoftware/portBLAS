@@ -26,67 +26,67 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string layout, char uplo, int size) {
+std::string get_name(std::string layout, char uplo, int size, scalar_t alpha,
+                     int incX) {
   std::ostringstream str{};
   str << "BM_Spr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << layout << "/" << uplo << "/" << size;
+      << layout << "/" << uplo << "/" << size << "/" << alpha << "/" << incX;
   return str.str();
 }
 
 template <typename scalar_t, typename layout>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
-         int size, scalar_t alpha, int lda, bool* success) {
-  using index_t = int32_t;
-  index_t incX = 1;
+         int size, scalar_t alpha, int incX, bool* success) {
   // The counters are double. We convert size to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double size_d = static_cast<double>(size);
+  double size_d = static_cast<double>(size * (size + 1) / 2);
 
   state.counters["size_d"] = size_d;
-  state.counters["alpha"] = alpha;
+  state.counters["alpha"] = static_cast<double>(alpha);
+  state.counters["incX"] = incX;
 
   constexpr bool isColMajor = std::is_same<layout, blas::col_major>::value;
 
   {
-    double nflops_AtimesX = 2.0 * size_d;
-    double nflops_timesAlpha = size_d;
-    state.counters["n_fl_ops"] = nflops_AtimesX + nflops_timesAlpha;
+    double nflops_XtimesX = 2.0 * size_d;
+    state.counters["n_fl_ops"] = size_d + nflops_XtimesX;
   }
   {
-    double mem_readA = size_d * size_d;
-    double mem_readX = size_d;
-    double mem_writeY = size_d;
+    double mem_readA = size_d;
+    double mem_readX = static_cast<double>(size * std::abs(incX));
     state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeY) * sizeof(scalar_t);
+        (mem_readA + mem_readX) * sizeof(scalar_t);
   }
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
+  const int m_size = size * size;
+  const int v_size = 1 + (size - 1) * std::abs(incX);
+
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(size * (size + 1) / 2);
+      blas_benchmark::utils::random_data<scalar_t>(m_size);
   std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(size);
+      blas_benchmark::utils::random_data<scalar_t>(v_size);
 
-  auto m_a_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(m_a, size * (size + 1) / 2);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, size);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_size);
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, v_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_ref = v_x;
   std::vector<scalar_t> m_a_ref = m_a;
   reference_blas::spr<scalar_t, isColMajor>(&uplo, size, alpha, x_ref.data(),
-                                            incX, m_a_ref.data(), lda);
+                                            incX, m_a_ref.data());
 
   std::vector<scalar_t> m_a_temp = m_a;
   {
-    auto m_a_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(
-        m_a_temp, size * (size + 1) / 2);
+    auto m_a_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(m_a_temp, m_size);
 
     blas::_spr<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu), index_t,
                decltype(m_a_gpu), layout>(sb_handle, uplo, size, alpha, v_x_gpu,
-                                          incX, m_a_temp_gpu, lda);
+                                          incX, m_a_temp_gpu);
     sb_handle.wait();
   }
 
@@ -102,7 +102,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
     auto event =
         blas::_spr<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu),
                    index_t, decltype(m_a_gpu), layout>(
-            sb_handle, uplo, size, alpha, v_x_gpu, incX, m_a_gpu, lda);
+            sb_handle, uplo, size, alpha, v_x_gpu, incX, m_a_gpu);
     sb_handle.wait(event);
     return event;
   };
@@ -132,33 +132,32 @@ void register_benchmark(blas_benchmark::Args& args,
   auto gemm_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
 
   for (auto p : gemm_params) {
-    int n, lda;
+    int n, incX;
     std::string uplo;
     scalar_t alpha;
-    std::tie(uplo, n, alpha) = p;
-    lda = n;
+    std::tie(uplo, n, alpha, incX) = p;
 
     char uplo_c = uplo[0];
 
-    auto BM_lambda_row = [&](benchmark::State& st,
-                             blas::SB_Handle* sb_handle_ptr, char uplo,
-                             int size, scalar_t alpha, int lda, bool* success) {
-      run<scalar_t, blas::row_major>(st, sb_handle_ptr, uplo, size, alpha, lda,
-                                     success);
-    };
-    benchmark::RegisterBenchmark(get_name<scalar_t>("row", uplo_c, n).c_str(),
-                                 BM_lambda_row, sb_handle_ptr, uplo_c, n, alpha,
-                                 lda, success);
+    auto BM_lambda_row =
+        [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
+            int size, scalar_t alpha, int incX, bool* success) {
+          run<scalar_t, blas::row_major>(st, sb_handle_ptr, uplo, size, alpha,
+                                         incX, success);
+        };
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>("row", uplo_c, n, alpha, incX).c_str(),
+        BM_lambda_row, sb_handle_ptr, uplo_c, n, alpha, incX, success);
 
-    auto BM_lambda_col = [&](benchmark::State& st,
-                             blas::SB_Handle* sb_handle_ptr, char uplo,
-                             int size, scalar_t alpha, int lda, bool* success) {
-      run<scalar_t, blas::col_major>(st, sb_handle_ptr, uplo, size, alpha, lda,
-                                     success);
-    };
-    benchmark::RegisterBenchmark(get_name<scalar_t>("col", uplo_c, n).c_str(),
-                                 BM_lambda_col, sb_handle_ptr, uplo_c, n, alpha,
-                                 lda, success);
+    auto BM_lambda_col =
+        [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
+            int size, scalar_t alpha, int incX, bool* success) {
+          run<scalar_t, blas::col_major>(st, sb_handle_ptr, uplo, size, alpha,
+                                         incX, success);
+        };
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>("col", uplo_c, n, alpha, incX).c_str(),
+        BM_lambda_col, sb_handle_ptr, uplo_c, n, alpha, incX, success);
   }
 }
 

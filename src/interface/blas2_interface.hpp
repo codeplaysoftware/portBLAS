@@ -609,44 +609,44 @@ typename sb_handle_t::event_t _syr_impl(
  * @brief Implementation of the rank 1 operation
  */
 /*
-ssyr 	( 	character  	UPLO,
+sspr 	( 	character  	UPLO,
    integer  	N,
    real  	ALPHA,
-   real, dimension(*)  	X,
+   real, dimension(N)  	X,
    integer  	INCX,
-   real, dimension(lda,*)  	AP,
-   integer  	LDA
+   real, dimension(N, N + 1 / 2)  	AP
  )
 */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
-          typename layout_t0>
+          typename layout_t1>
 typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
                                         index_t _N, element_t _alpha,
                                         container_t0 _vx, increment_t _incx,
-                                        container_t1 _mPA, index_t _lda) {
+                                        container_t1 _mPA) {
   typename sb_handle_t::event_t ret;
   _Uplo = tolower(_Uplo);
   const int Upper = (_Uplo == 'u');
-  index_t N = _N;
-  auto mA = make_matrix_view<layout_t0>(_mPA, N, (N + 1) / 2, _lda);
-  auto vx = make_vector_view(_vx, _incx, N);
+  auto mA = make_matrix_view<layout_t1>(_mPA, _N, (_N + 1) / 2, _N);
+  auto vx = make_vector_view(_vx, std::abs(_incx), _N);
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
-  const index_t scratchpad_size = N;
+  const index_t scratchpad_size = 1 + (_N - 1) * std::abs(_incx);
 
-  const index_t nWGPerCol = (N * (N + 1) / 2 - 1) / nColsWG + 1;
+  const index_t nWGPerCol = (_N * (_N + 1) / 2 - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerCol;
-  constexpr bool isColMajor = std::is_same<layout_t0, col_major>::value;
+  constexpr bool isColMajor = std::is_same<layout_t1, col_major>::value;
 
   if (Upper) {
-    auto assignOp = make_spr<true, isColMajor, true>(mA, _alpha, vx);
+    auto assignOp =
+        make_gerp<true, isColMajor, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize,
                                       scratchpad_size));
   } else {
-    auto assignOp = make_spr<true, isColMajor, false>(mA, _alpha, vx);
+    auto assignOp = make_gerp<true, isColMajor, false>(mA, _N, _alpha, vx,
+                                                       _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize,
                                       scratchpad_size));
@@ -838,14 +838,14 @@ typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
 
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
-          typename layout_t0>
+          typename layout_t1>
 typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
                                           index_t _N, element_t _alpha,
                                           container_t0 _vx, increment_t _incx,
-                                          container_t1 _mPA, index_t _lda) {
+                                          container_t1 _mPA) {
   return _spr_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
-                   container_t1, layout_t0>(sb_handle, _Uplo, _N, _alpha, _vx,
-                                            _incx, _mPA, _lda);
+                   container_t1, layout_t1>(sb_handle, _Uplo, _N, _alpha, _vx,
+                                            _incx, _mPA);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,

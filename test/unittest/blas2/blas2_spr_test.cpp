@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, char, int, scalar_t, int, int>;
+using combination_t = std::tuple<char, char, int, scalar_t, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -35,12 +35,12 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incX;
   char layout, uplo;
   scalar_t alpha;
-  std::tie(layout, uplo, n, alpha, incX, lda_mul) = combi;
-  index_t lda = n * lda_mul;
-  index_t mA_size = ((n + 1) / 2) * lda;
+  std::tie(layout, uplo, n, alpha, incX) = combi;
+  index_t mA_size = n * n;
+  index_t x_size = 1 + (n - 1) * std::abs(incX);
 
   // Input vector
-  std::vector<scalar_t> x_v(n * incX);
+  std::vector<scalar_t> x_v(x_size);
   fill_random(x_v);
 
   // Output matrix
@@ -50,26 +50,26 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYSTEM SPR
   if (layout == 'c') {
     reference_blas::spr<scalar_t, true>(&uplo, n, alpha, x_v.data(), incX,
-                                        a_cpu_mp.data(), lda);
+                                        a_cpu_mp.data());
   } else {
     reference_blas::spr<scalar_t, false>(&uplo, n, alpha, x_v.data(), incX,
-                                         a_cpu_mp.data(), lda);
+                                         a_cpu_mp.data());
   }
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
-  auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, n * incX);
+  auto x_v_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
   auto a_mp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_mp, mA_size);
 
   // SYCLspr
   if (layout == 'c') {
     _spr<blas::SB_Handle, index_t, scalar_t, decltype(x_v_gpu), index_t,
          decltype(a_mp_gpu), col_major>(sb_handle, uplo, n, alpha, x_v_gpu,
-                                        incX, a_mp_gpu, lda);
+                                        incX, a_mp_gpu);
   } else {
     _spr<blas::SB_Handle, index_t, scalar_t, decltype(x_v_gpu), index_t,
          decltype(a_mp_gpu), row_major>(sb_handle, uplo, n, alpha, x_v_gpu,
-                                        incX, a_mp_gpu, lda);
+                                        incX, a_mp_gpu);
   }
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu,
@@ -86,8 +86,7 @@ const auto combi =
     ::testing::Combine(::testing::Values('u', 'l'),                 // UPLO
                        ::testing::Values(14, 63, 257, 1010, 2025),  // n
                        ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // alpha
-                       ::testing::Values(1, 2),                     // incX
-                       ::testing::Values(1, 2)                      // lda_mul
+                       ::testing::Values(1, 2)                      // incX
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
@@ -97,8 +96,7 @@ const auto combi =
                        ::testing::Values('u', 'l'),           // UPLO
                        ::testing::Values(14, 63, 257, 1010),  // n
                        ::testing::Values<scalar_t>(1.0),      // alpha
-                       ::testing::Values(1),                  // incX
-                       ::testing::Values(1)                   // lda_mul
+                       ::testing::Values(1, 2)                // incX
     );
 #endif
 
@@ -106,9 +104,9 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   char layout, upl0;
-  int n, incX, ldaMul;
+  int n, incX;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, layout, upl0, n, alpha, incX, ldaMul);
+  BLAS_GENERATE_NAME(info.param, layout, upl0, n, alpha, incX);
 }
 
 BLAS_REGISTER_TEST_ALL(Spr, combination_t, combi, generate_name);

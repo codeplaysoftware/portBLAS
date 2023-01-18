@@ -291,7 +291,7 @@ void syr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
 
 template <typename scalar_t, bool isColMajor>
 void spr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
-         const int incX, scalar_t *ap, const int lda) {
+         const int incX, scalar_t *ap) {
   auto func = blas_system_function<scalar_t>(&cblas_sspr, &cblas_dspr);
   if (!isColMajor) {
     func(CblasRowMajor, c_uplo(*uplo), n, alpha, x, incX, ap);

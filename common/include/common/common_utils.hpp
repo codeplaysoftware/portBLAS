@@ -262,29 +262,32 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
  * read from a file according to the command-line args, or the default ones.
  */
 template <typename scalar_t>
-static inline std::vector<spr_param_t<scalar_t>> get_spr_params(
-    Args& args) {
+static inline std::vector<spr_param_t<scalar_t>> get_spr_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<spr_param_t<scalar_t>> spr_default;
     constexpr index_t dmin = 64, dmax = 1024;
-    scalar_t alpha = 1;
-    for (std::string uplo : {"u", "l"}) {
-      for (index_t m = dmin; m <= dmax; m *= 2) {
-        spr_default.push_back(std::make_tuple(uplo, m, alpha));
+    for (index_t incX : {1, -1, 2, -2}) {
+      for (scalar_t alpha : {1.0, 1.5, 2.0}) {
+        for (std::string uplo : {"u", "l"}) {
+          for (index_t m = dmin; m <= dmax; m *= 2) {
+            spr_default.push_back(std::make_tuple(uplo, m, alpha, incX));
+          }
+        }
       }
     }
     return spr_default;
   } else {
     return parse_csv_file<spr_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 3) {
+          if (v.size() != 4) {
             throw std::runtime_error(
-                "invalid number of parameters (3 expected)");
+                "invalid number of parameters (4 expected)");
           }
           try {
             return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
-                                   str_to_scalar<scalar_t>(v[2]));
+                                   str_to_scalar<scalar_t>(v[2]),
+                                   str_to_int<index_t>(v[3]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

@@ -39,14 +39,14 @@ _spr<SB_Handle, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}, ${INCREMENT_TYPE},
      ${container_t1}, row_major>(SB_Handle& sb_handle, char _Uplo,
                                  ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
                                  ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
-                                 ${container_t1} _mPA, ${INDEX_TYPE} _lda);
+                                 ${container_t1} _mPA);
 
 template typename SB_Handle::event_t
 _spr<SB_Handle, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}, ${INCREMENT_TYPE},
      ${container_t1}, col_major>(SB_Handle& sb_handle, char _Uplo,
                                  ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
                                  ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
-                                 ${container_t1} _mPA, ${INDEX_TYPE} _lda);
+                                 ${container_t1} _mPA);
 
 }  // namespace internal
 }  // namespace blas

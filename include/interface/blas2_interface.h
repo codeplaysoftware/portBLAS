@@ -206,7 +206,7 @@ typename sb_handle_t::event_t _syr(
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
-          typename layout_t0>
+          typename layout_1_t>
 typename sb_handle_t::event_t _spr(
     sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,              // Whether the matrix is upper/lower ('u', 'l')
@@ -214,8 +214,7 @@ typename sb_handle_t::event_t _spr(
     element_t _alpha,        // Scalar alpha
     container_0_t _vx,       // (1 + (_N-1)*abs(_incx)), input vector X
     increment_t _incx,       // !=0 The increment for the elements of X
-    container_1_t _mPA,      // (_lda, _N) The output matrix in packed format
-    index_t _lda             // >max(1, _N) The first dimension of _mPA
+    container_1_t _mPA       // (_N, (_N + 1) / 2) The output matrix in packed format
 );
 
 /*!
@@ -559,7 +558,7 @@ typename sb_handle_t::event_t inline _syr(
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t,
-          typename layout_t0>
+          typename layout_1_t>
 typename sb_handle_t::event_t inline _spr(
     sb_handle_t& sb_handle,  // sb_handle_t (sycl, parallel, serial, etc)
     char _Uplo,              // Whether the matrix is upper/lower ('u', 'l')
@@ -567,12 +566,11 @@ typename sb_handle_t::event_t inline _spr(
     element_t _alpha,        // Scalar alpha
     container_0_t _vx,       // (1 + (_N-1)*abs(_incx)), input vector X
     increment_t _incx,       // !=0 The increment for the elements of X
-    container_1_t _mPA,      // (_lda, _N) The output matrix in packed format
-    index_t _lda             // >max(1, _N) The first dimension of _mPA
+    container_1_t _mPA       // (_lda, _N) The output matrix in packed format
 ) {
   return internal::_spr<sb_handle_t, index_t, element_t, container_0_t,
-                        increment_t, container_1_t, layout_t0>(
-      sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA, _lda);
+                        increment_t, container_1_t, layout_1_t>(
+      sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA);
 }
 
 /*!

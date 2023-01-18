@@ -426,16 +426,19 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
 
 /**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_t>
+          typename rhs_1_t, typename rhs_2_t>
 struct Gerp {
-  using value_t = typename rhs_t::value_t;
-  using index_t = typename rhs_t::index_t;
+  using value_t = typename rhs_1_t::value_t;
+  using index_t = typename rhs_1_t::index_t;
 
   lhs_t lhs_;
-  rhs_t rhs_;
-  value_t scalar_;
+  rhs_1_t rhs_1_;
+  rhs_2_t rhs_2_;
+  value_t alpha_;
+  index_t N_, incX_1_, incX_2_;
 
-  Gerp(lhs_t &_l, value_t _scl, rhs_t &_r);
+  Gerp(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, index_t _incX_1,
+       rhs_2_t &_r2, index_t _incX_2);
   index_t get_size() const;
   template <int N, bool ColMajor, bool Upper>
   struct get_init_idx;
@@ -449,10 +452,13 @@ struct Gerp {
 };
 
 template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_t>
-Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t> make_spr(
-    lhs_t &lhs_, typename lhs_t::value_t scalar_, rhs_t &rhs_) {
-  return Gerp<Single, isColMajor, isUpper, lhs_t, rhs_t>(lhs_, scalar_, rhs_);
+          typename rhs_1_t, typename rhs_2_t>
+Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t> make_gerp(
+    lhs_t &lhs_, typename rhs_1_t::index_t _N, typename lhs_t::value_t alpha_,
+    rhs_1_t &rhs_1_, typename rhs_1_t::index_t incX_1, rhs_2_t &rhs_2_,
+    typename rhs_1_t::index_t incX_2) {
+  return Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>(
+      lhs_, _N, alpha_, rhs_1_, incX_1, rhs_2_, incX_2);
 }
 
 }  // namespace blas
