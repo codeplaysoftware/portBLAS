@@ -266,6 +266,15 @@ void trmv(const char *uplo, const char *trans, const char *diag, const int n,
 }
 
 template <typename scalar_t>
+void sbmv(const char *uplo, int n, int k, scalar_t alpha, const scalar_t a[],
+          int lda, const scalar_t x[], int incX, scalar_t beta, scalar_t y[],
+          int incY) {
+  auto func = blas_system_function<scalar_t>(&cblas_ssbmv, &cblas_dsbmv);
+  func(CblasColMajor, c_uplo(*uplo), n, k, alpha, a, lda, x, incX, beta, y,
+       incY);
+}
+
+template <typename scalar_t>
 void syr(const char *uplo, const int n, const scalar_t alpha, const scalar_t *x,
          const int incX, scalar_t *a, const int lda) {
   auto func = blas_system_function<scalar_t>(&cblas_ssyr, &cblas_dsyr);

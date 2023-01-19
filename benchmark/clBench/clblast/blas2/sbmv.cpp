@@ -19,52 +19,43 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gbmv.cpp
+ *  @filename sbmv.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, int kl, int ku) {
+std::string get_name(std::string uplo, int n, int k) {
   std::ostringstream str{};
-  str << "BM_Gbmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t << "/" << m << "/" << n << "/" << kl << "/" << ku;
+  str << "BM_Sbmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << uplo << "/" << n << "/" << k;
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
-         index_t n, index_t kl, index_t ku, scalar_t alpha, scalar_t beta,
-         bool* success) {
+void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
+         index_t n, index_t k, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
-  std::string ts = blas_benchmark::utils::from_transpose_enum(
-      static_cast<blas_benchmark::utils::Transposition>(ti));
-  const char* t_str = ts.c_str();
+  const char* uplo_str = uplo.c_str();
 
-  index_t xlen = t_str[0] == 'n' ? n : m;
-  index_t ylen = t_str[0] == 'n' ? m : n;
+  index_t xlen = n;
+  index_t ylen = n;
 
-  index_t lda = (kl + ku + 1);
+  index_t lda = (k + 1);
   index_t incX = 1;
   index_t incY = 1;
 
-  // The counters are double. We convert m and n to double to avoid
+  // The counters are double. We convert n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
-  double kl_d = static_cast<double>(kl);
-  double ku_d = static_cast<double>(ku);
+  double k_d = static_cast<double>(k);
 
-  state.counters["m"] = m_d;
   state.counters["n"] = n_d;
-  state.counters["kl"] = kl_d;
-  state.counters["ku"] = ku_d;
+  state.counters["k"] = k_d;
 
   // Compute the number of A non-zero elements.
-  const double A_validVal =
-      (t_str[0] == 'n' ? n_d : m_d) * (kl_d + ku_d + 1.0) -
-      0.5 * (kl_d * (kl_d + 1.0)) - 0.5 * (ku_d * (ku_d + 1.0));
+  const double A_validVal = (n_d * (2.0 * k_d + 1.0)) - (k_d * (k_d + 1.0));
 
   {
     double nflops_AtimesX = 2.0 * A_validVal;
@@ -92,9 +83,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   std::vector<scalar_t> v_y =
       blas_benchmark::utils::random_data<scalar_t>(ylen);
 
-  // Specify the transposition.
-  clblast::Transpose a_tr =
-      blas_benchmark::utils::translate_transposition(t_str);
+  // Specify the triangle.
+  clblast::Triangle a_tr = blas_benchmark::utils::translate_triangle(uplo_str);
 
   // Specify the layout.
   auto layout = clblast::Layout::kColMajor;
@@ -109,17 +99,16 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> v_y_ref = v_y;
-  reference_blas::gbmv(t_str, m, n, kl, ku, alpha, m_a.data(), lda, v_x.data(),
-                       incX, beta, v_y_ref.data(), incY);
+  reference_blas::sbmv(uplo_str, n, k, alpha, m_a.data(), lda, v_x.data(), incX,
+                       beta, v_y_ref.data(), incY);
   std::vector<scalar_t> v_y_temp = v_y;
   {
     MemBuffer<scalar_t> v_y_temp_gpu(executorPtr, v_y_temp.data(),
                                      static_cast<size_t>(ylen));
     cl_event event;
-    clblast::Gbmv<scalar_t>(layout, a_tr, m, n, kl, ku, alpha, m_a_gpu.dev(), 0,
-                            lda, v_x_gpu.dev(), 0, incX, beta,
-                            v_y_temp_gpu.dev(), 0, incY, executorPtr->_queue(),
-                            &event);
+    clblast::Sbmv<scalar_t>(layout, a_tr, n, k, alpha, m_a_gpu.dev(), 0, lda,
+                            v_x_gpu.dev(), 0, incX, beta, v_y_temp_gpu.dev(), 0,
+                            incY, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
   }
 
@@ -128,13 +117,13 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
-  }
+  };
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
-    clblast::Gbmv<scalar_t>(layout, a_tr, m, n, kl, ku, alpha, m_a_gpu.dev(), 0,
-                            lda, v_x_gpu.dev(), 0, incX, beta, v_y_gpu.dev(), 0,
+    clblast::Sbmv<scalar_t>(layout, a_tr, n, k, alpha, m_a_gpu.dev(), 0, lda,
+                            v_x_gpu.dev(), 0, incX, beta, v_y_gpu.dev(), 0,
                             incY, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
@@ -161,22 +150,21 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
-  auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
+  auto sbmv_params = blas_benchmark::utils::get_sbmv_params<scalar_t>(args);
 
-  for (auto p : gbmv_params) {
-    std::string ts;
-    index_t m, n, kl, ku;
+  for (auto p : sbmv_params) {
+    std::string uplos;
+    index_t n, k;
     scalar_t alpha, beta;
-    std::tie(ts, m, n, kl, ku, alpha, beta) = p;
-    int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
+    std::tie(uplos, n, k, alpha, beta) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr, int t,
-                         index_t m, index_t n, index_t kl, index_t ku,
+    auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
+                         std::string uplos, index_t n, index_t k,
                          scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, exPtr, t, m, n, kl, ku, alpha, beta, success);
+      run<scalar_t>(st, exPtr, uplos, n, k, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n, kl, ku).c_str(),
-                                 BM_lambda, exPtr, t, m, n, kl, ku, alpha, beta,
+    benchmark::RegisterBenchmark(get_name<scalar_t>(uplos, n, k).c_str(),
+                                 BM_lambda, exPtr, uplos, n, k, alpha, beta,
                                  success);
   }
 }
