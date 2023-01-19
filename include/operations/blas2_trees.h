@@ -441,12 +441,9 @@ struct Gerp {
        rhs_2_t &_r2, index_t _incX_2);
   index_t get_size() const;
   template <int N, bool ColMajor, bool Upper>
-  struct get_init_idx;
-  template <int N, bool ColMajor, bool Upper>
   struct compute_row_col;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  template <typename sharedT>
-  void eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  void eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };

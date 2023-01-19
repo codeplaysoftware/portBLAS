@@ -83,7 +83,8 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values('u', 'l'),                 // UPLO
+    ::testing::Combine(::testing::Values('r', 'c'),                 // matrix layout
+                       ::testing::Values('u', 'l'),                 // UPLO
                        ::testing::Values(14, 63, 257, 1010, 2025),  // n
                        ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // alpha
                        ::testing::Values(1, 2)                      // incX

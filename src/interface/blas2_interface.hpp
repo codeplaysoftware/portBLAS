@@ -632,7 +632,6 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
-  const index_t scratchpad_size = 1 + (_N - 1) * std::abs(_incx);
 
   const index_t nWGPerCol = (_N * (_N + 1) / 2 - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerCol;
@@ -642,14 +641,12 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
     auto assignOp =
         make_gerp<true, isColMajor, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize,
-                                      scratchpad_size));
+               ret, sb_handle.execute(assignOp, localSize, globalSize));
   } else {
     auto assignOp = make_gerp<true, isColMajor, false>(mA, _N, _alpha, vx,
                                                        _incx, vx, _incx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize,
-                                      scratchpad_size));
+               ret, sb_handle.execute(assignOp, localSize, globalSize));
   }
 }
 

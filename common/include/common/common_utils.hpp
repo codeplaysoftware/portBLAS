@@ -51,7 +51,9 @@ using gbmv_param_t = std::tuple<std::string, index_t, index_t, index_t, index_t,
 template <typename scalar_t>
 using sbmv_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
-using spr_param_t = std::tuple<std::string, int, scalar_t>;
+
+template <typename scalar_t>
+using spr_param_t = std::tuple<std::string, int, scalar_t, int>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
