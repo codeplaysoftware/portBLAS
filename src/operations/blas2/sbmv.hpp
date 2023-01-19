@@ -88,7 +88,7 @@ SYCL_BLAS_INLINE
       index_t K, J;
 
       if (is_upper) {
-        K = k_ + ((s_idx < lhs_idx) ? (s_idx - lhs_idx) : (lhs_idx - s_idx));
+        K = k_ + ((s_idx < lhs_idx) ? s_idx - lhs_idx : lhs_idx - s_idx);
         J = (s_idx < lhs_idx) ? lhs_idx : s_idx;
       } else {
         K = (s_idx < lhs_idx) ? lhs_idx - s_idx : s_idx - lhs_idx;
