@@ -267,7 +267,7 @@ static inline std::vector<spr_param_t<scalar_t>> get_spr_params(Args& args) {
     warning_no_csv();
     std::vector<spr_param_t<scalar_t>> spr_default;
     constexpr index_t dmin = 64, dmax = 1024;
-    for (index_t incX : {1, -1, 2, -2}) {
+    for (index_t incX : {1, 2}) {
       for (scalar_t alpha : {1.0, 1.5, 2.0}) {
         for (std::string uplo : {"u", "l"}) {
           for (index_t m = dmin; m <= dmax; m *= 2) {
