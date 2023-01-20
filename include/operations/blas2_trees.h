@@ -425,6 +425,11 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
 }
 
 /**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
+/* This is a specialization of the GER class for the packed
+ * symmetric matrices (P stands for Packed in the name). For more details
+ * on matrix layouts, refer to the explanation here:
+ * https://spec.oneapi.io/versions/1.1-rev-1/elements/oneMKL/source/domains/matrix-storage.html#matrix-storage
+ */
 template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 struct Gerp {
