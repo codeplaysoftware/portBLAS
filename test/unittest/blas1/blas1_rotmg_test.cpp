@@ -103,7 +103,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   /* If d1 is less than 0 then the results are implementation defined.
    * Unfortunately, cblas is not consistent with the outputs */
   if (input.d1 < 0) {
-    ASSERT_TRUE(sycl_out.param[0] == 2);
+    ASSERT_TRUE(sycl_out.param[0] == -1);
     ASSERT_TRUE(y1_ref == sycl_out.y1); /* y1 should still be unchanged */
     return;
   }
@@ -128,7 +128,6 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   constexpr scalar_t rescaled_matrix = -1;
   constexpr scalar_t sltc_matrix = 0;
   constexpr scalar_t clts_matrix = 1;
-  constexpr scalar_t error_matrix = 2;
 
   scalar_t flag_sycl = sycl_out.param[0];
   scalar_t h11_sycl = sycl_out.param[1];
@@ -142,7 +141,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
   scalar_t h21_ref = param_ref[2];
   scalar_t h22_ref = param_ref[4];
 
-  if (flag_sycl != error_matrix && flag_ref != unit_matrix) {
+  if (flag_ref != unit_matrix) {
     if (flag_ref == sltc_matrix) {
       ASSERT_TRUE((utils::almost_equal(h12_sycl, h12_ref)));
       ASSERT_TRUE((utils::almost_equal(h21_sycl, h21_ref)));
@@ -156,6 +155,7 @@ void RotmgTest<scalar_t>::validate_with_reference() {
       ASSERT_TRUE((utils::almost_equal(h22_sycl, h22_ref)));
     }
   }
+  ASSERT_TRUE(flag_ref == flag_sycl);
 }
 
 /*
@@ -350,7 +350,11 @@ const auto combi = ::testing::Values(
                     std::numeric_limits<scalar_t>::min(), true),
     /* Case that triggers underflow detection on abs_c <= abs_s && s >= 0 */
     std::make_tuple(15.5, -2.2, std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), false));
+                    std::numeric_limits<scalar_t>::min(), false),
+    /* Test for previous errors */
+    std::make_tuple(0.0516274, -0.197215, -0.270436,
+                    -0.157621, false)
+  );
 
 template <class T>
 static std::string generate_name(

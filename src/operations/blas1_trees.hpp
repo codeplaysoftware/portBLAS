@@ -850,7 +850,11 @@ SYCL_BLAS_INLINE typename Rotmg<operand_t>::value_t Rotmg<operand_t>::eval(
       h22_ref = h22;
     }
   }
-  flag_ref = flag;
+  // cblas sets the flag to -1 in case of errors
+  if (flag == error::value())
+    flag_ref = -1;
+  else
+    flag_ref = flag;
 
   // The return value of rotmg is void but eval expects something to be
   // returned.
