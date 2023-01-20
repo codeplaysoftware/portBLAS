@@ -52,6 +52,9 @@ template <typename scalar_t>
 using sbmv_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
 
+using tbmv_param_t =
+    std::tuple<std::string, std::string, std::string, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -511,6 +514,47 @@ static inline std::vector<sbmv_param_t<scalar_t>> get_sbmv_params(Args& args) {
                                    str_to_int<index_t>(v[2]),
                                    str_to_scalar<scalar_t>(v[3]),
                                    str_to_scalar<scalar_t>(v[4]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_tbmv_params
+ * @brief Returns a vector containing the tbmv benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+static inline std::vector<tbmv_param_t> get_tbmv_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<tbmv_param_t> tbmv_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t kmin = 1;
+    for (std::string t : {"n", "t"}) {
+      for (std::string ul : {"u", "l"}) {
+        for (std::string diag : {"n", "u"}) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (index_t k = kmin; k <= n / 4; k *= 2) {
+              tbmv_default.push_back(std::make_tuple(ul, t, diag, n, k));
+            }
+          }
+        }
+      }
+    }
+    return tbmv_default;
+  } else {
+    return parse_csv_file<tbmv_param_t>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 5) {
+            throw std::runtime_error(
+                "invalid number of parameters (5 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), v[1].c_str(), v[2].c_str(),
+                                   str_to_int<index_t>(v[3]),
+                                   str_to_int<index_t>(v[4]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

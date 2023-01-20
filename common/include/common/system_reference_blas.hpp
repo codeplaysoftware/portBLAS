@@ -258,6 +258,14 @@ void ger(int m, int n, scalar_t alpha, const scalar_t a[], int incX,
 }
 
 template <typename scalar_t>
+void tbmv(const char *uplo, const char *trans, const char *diag, int n, int k,
+          const scalar_t *a, int lda, scalar_t *x, int incX) {
+  auto func = blas_system_function<scalar_t>(&cblas_stbmv, &cblas_dtbmv);
+  func(CblasColMajor, c_uplo(*uplo), c_trans(*trans), c_diag(*diag), n, k, a,
+       lda, x, incX);
+}
+
+template <typename scalar_t>
 void trmv(const char *uplo, const char *trans, const char *diag, const int n,
           const scalar_t *a, const int lda, scalar_t *x, const int incX) {
   auto func = blas_system_function<scalar_t>(&cblas_strmv, &cblas_dtrmv);
