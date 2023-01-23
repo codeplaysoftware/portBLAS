@@ -19,67 +19,56 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gbmv.cpp
+ *  @filename tbmv.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, int kl, int ku) {
+std::string get_name(std::string uplo, std::string t, std::string diag, int n,
+                     int k) {
   std::ostringstream str{};
-  str << "BM_Gbmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t << "/" << m << "/" << n << "/" << kl << "/" << ku;
+  str << "BM_Tbmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << uplo << "/" << t << "/" << diag << "/" << n << "/" << k;
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
-         index_t m, index_t n, index_t kl, index_t ku, scalar_t alpha,
-         scalar_t beta, bool* success) {
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
+         std::string uplo, std::string t, std::string diag, index_t n,
+         index_t k, bool* success) {
   // Standard test setup.
-  std::string ts = blas_benchmark::utils::from_transpose_enum(
-      static_cast<blas_benchmark::utils::Transposition>(ti));
-  const char* t_str = ts.c_str();
+  const char* uplo_str = uplo.c_str();
+  const char* t_str = t.c_str();
+  const char* diag_str = diag.c_str();
 
-  index_t xlen = t_str[0] == 'n' ? n : m;
-  index_t ylen = t_str[0] == 'n' ? m : n;
-
-  index_t lda = (kl + ku + 1);
+  index_t xlen = n;
+  index_t lda = (k + 1);
   index_t incX = 1;
-  index_t incY = 1;
 
-  // The counters are double. We convert m and n to double to avoid
+  // The counters are double. We convert n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
-  double kl_d = static_cast<double>(kl);
-  double ku_d = static_cast<double>(ku);
+  double k_d = static_cast<double>(k);
 
-  state.counters["m"] = m_d;
   state.counters["n"] = n_d;
-  state.counters["kl"] = kl_d;
-  state.counters["ku"] = ku_d;
+  state.counters["k"] = k_d;
 
   // Compute the number of A non-zero elements.
-  const double A_validVal =
-      (t_str[0] == 'n' ? n_d : m_d) * (kl_d + ku_d + 1.0) -
-      0.5 * (kl_d * (kl_d + 1.0)) - 0.5 * (ku_d * (ku_d + 1.0));
+  const double A_validVal = (n_d * (k_d + 1.0)) - (0.5 * (k_d * (k_d + 1.0)));
 
   {
     double nflops_AtimesX = 2.0 * A_validVal;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+    state.counters["n_fl_ops"] = nflops_AtimesX;
   }
+
   {
     double mem_readA = A_validVal;
     double mem_readX = xlen;
-    double mem_writeY = ylen;
-    double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
+    double mem_writeX = xlen;
     state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
+        (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
   }
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
@@ -89,29 +78,26 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
       blas_benchmark::utils::random_data<scalar_t>(lda * n);
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
-  std::vector<scalar_t> v_y =
-      blas_benchmark::utils::random_data<scalar_t>(ylen);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, lda * n);
   auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
-  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, ylen);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v_y_ref = v_y;
-  reference_blas::gbmv(t_str, m, n, kl, ku, alpha, m_a.data(), lda, v_x.data(),
-                       incX, beta, v_y_ref.data(), incY);
-  std::vector<scalar_t> v_y_temp = v_y;
+  std::vector<scalar_t> v_x_ref = v_x;
+  reference_blas::tbmv(uplo_str, t_str, diag_str, n, k, m_a.data(), lda,
+                       v_x_ref.data(), incX);
+  std::vector<scalar_t> v_x_temp = v_x;
   {
-    auto v_y_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
-    auto event = _gbmv(sb_handle, *t_str, m, n, kl, ku, alpha, m_a_gpu, lda,
-                       v_x_gpu, incX, beta, v_y_temp_gpu, incY);
+    auto v_x_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(v_x_temp, xlen);
+    auto event = _tbmv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
+                       lda, v_x_temp_gpu, incX);
     sb_handle.wait();
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(v_y_temp, v_y_ref, err_stream, "")) {
+  if (!utils::compare_vectors(v_x_temp, v_x_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -119,8 +105,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gbmv(sb_handle, *t_str, m, n, kl, ku, alpha, m_a_gpu, lda,
-                       v_x_gpu, incX, beta, v_y_gpu, incY);
+    auto event = _tbmv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
+                       lda, v_x_gpu, incX);
     sb_handle.wait(event);
     return event;
   };
@@ -147,23 +133,24 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
+  auto tbmv_params = blas_benchmark::utils::get_tbmv_params(args);
 
-  for (auto p : gbmv_params) {
+  for (auto p : tbmv_params) {
+    std::string uplos;
     std::string ts;
-    index_t m, n, kl, ku;
-    scalar_t alpha, beta;
-    std::tie(ts, m, n, kl, ku, alpha, beta) = p;
-    int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
+    std::string diags;
+    index_t n;
+    index_t k;
+    std::tie(uplos, ts, diags, n, k) = p;
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
-                         int t, index_t m, index_t n, index_t kl, index_t ku,
-                         scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, t, m, n, kl, ku, alpha, beta, success);
+                         std::string uplos, std::string ts, std::string diags,
+                         index_t n, index_t k, bool* success) {
+      run<scalar_t>(st, sb_handle_ptr, uplos, ts, diags, n, k, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n, kl, ku).c_str(),
-                                 BM_lambda, sb_handle_ptr, t, m, n, kl, ku,
-                                 alpha, beta, success);
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(uplos, ts, diags, n, k).c_str(), BM_lambda,
+        sb_handle_ptr, uplos, ts, diags, n, k, success);
   }
 }
 

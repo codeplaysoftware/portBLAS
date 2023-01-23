@@ -258,6 +258,98 @@ typename sb_handle_t::event_t _gbmv(sb_handle_t& sb_handle, char _trans,
                                     element_t _beta, container_2_t _vy,
                                     increment_t _incy);
 
+template <uint32_t local_range, transpose_type trn, typename sb_handle_t,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
+typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, index_t _M,
+                                         index_t _N, index_t _KL, index_t _KU,
+                                         element_t _alpha, container_t0 _mA,
+                                         index_t _lda, container_t1 _vx,
+                                         increment_t _incx, element_t _beta,
+                                         container_t2 _vy, increment_t _incy);
+
+/**
+ * @brief Matrix vector product with symmetric band matrices.
+ *
+ * Matrix vector product with a symmetric band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*A*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d3/da1/ssbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _N Number of rows and columns of A
+ * @param _K Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
+ * @param _incy Increment for _vy
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
+                                    index_t _N, index_t _K, element_t _alpha,
+                                    container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx,
+                                    element_t _beta, container_2_t _vy,
+                                    increment_t _incy);
+
+template <uint32_t local_range, uplo_type uplo, typename sb_handle_t,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
+typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         index_t _K, element_t _alpha,
+                                         container_t0 _mA, index_t _lda,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy);
+
+/**
+ * @brief Matrix vector product with triangular band matrices.
+ *
+ * Matrix vector product with a triangular band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * x = op(A)*x
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d7d/stbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _K Number of A super-diagonals
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    index_t _K, container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx);
+
+template <uint32_t local_range, uplo_type uplo, transpose_type trn,
+          diag_type diag, typename sb_handle_t, typename index_t,
+          typename container_t0, typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         index_t _K, container_t0 _mA,
+                                         index_t _lda, container_t1 _vx,
+                                         increment_t _incx);
 }  // namespace internal
 
 /*!
@@ -497,6 +589,77 @@ typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
                                            increment_t _incy) {
   return internal::_gbmv(sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda,
                          _vx, _incx, _beta, _vy, _incy);
+}
+
+/**
+ * @brief Matrix vector product with symmetric band matrices.
+ *
+ * Matrix vector product with a symmetric band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*A*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d3/da1/ssbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _N Number of rows and columns of A
+ * @param _K Number of A super-diagonals
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
+ * @param _incy Increment for _vy
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
+                                    index_t _N, index_t _K, element_t _alpha,
+                                    container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx,
+                                    element_t _beta, container_2_t _vy,
+                                    increment_t _incy) {
+  return internal::_sbmv(sb_handle, _Uplo, _N, _K, _alpha, _mA, _lda, _vx,
+                         _incx, _beta, _vy, _incy);
+}
+
+/**
+ * @brief Matrix vector product with triangular band matrices.
+ *
+ * Matrix vector product with a triangular band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * x = op(A)*x
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d6/d7d/stbmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _K Number of A super-diagonals
+ * @param _mA Buffer (_LDA,_N) containing the coefficient of A in the Band
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    index_t _K, container_0_t _mA, index_t _lda,
+                                    container_1_t _vx, increment_t _incx) {
+  return internal::_tbmv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
+                         _vx, _incx);
 }
 
 }  // namespace blas

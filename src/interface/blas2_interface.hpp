@@ -417,74 +417,104 @@ typename sb_handle_t::event_t _symv_impl(
 }
 
 /*! _gbmv_impl.
- * @brief Implementation of the Band Matrix Vector product.
+ * @brief Implementation of the Generic Band Matrix Vector product.
  *
  */
 template <uint32_t local_range, transpose_type trn, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, char _trans,
-                                         index_t _M, index_t _N, index_t _KL,
-                                         index_t _KU, element_t _alpha,
-                                         container_t0 _mA, index_t _lda,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy) {
-  constexpr bool is_transposed = (trn != transpose_type::Normal);
-
+typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, index_t _M,
+                                         index_t _N, index_t _KL, index_t _KU,
+                                         element_t _alpha, container_t0 _mA,
+                                         index_t _lda, container_t1 _vx,
+                                         increment_t _incx, element_t _beta,
+                                         container_t2 _vy, increment_t _incy) {
   if ((_KL >= _M) || (_KU >= _N)) {
-    throw std::invalid_argument("Erroneous parameter");
+    throw std::invalid_argument("Erroneous parameter: _KL >= _M || _KU >= _N");
   }
+
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
 
   auto x_vector_size = is_transposed ? _M : _N;
   auto y_vector_size = is_transposed ? _N : _M;
 
-  auto mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
+  auto mA =
+      make_matrix_view<col_major>(_mA, _KL + _KU + 1, x_vector_size, _lda);
   auto vx = make_vector_view(_vx, _incx, x_vector_size);
   auto vy = make_vector_view(_vy, _incy, y_vector_size);
 
-  // Leading dimension for dot products matrix
-  const auto ld = is_transposed ? _N : _M;
-  constexpr index_t one = 1;
+  auto gbmv = make_gbmv<local_range, is_transposed>(_KL, _KU, _alpha, mA, vx,
+                                                    _beta, vy);
 
-  auto dot_products_buffer = blas::make_sycl_iterator_buffer<element_t>(ld);
+  return sb_handle.execute(gbmv, static_cast<index_t>(local_range),
+                           roundUp<index_t>(y_vector_size, local_range));
+}
 
-  auto dot_products_matrix =
-      make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
-
-  const index_t global_size = roundUp<index_t>(y_vector_size, local_range);
-  auto gbmv = make_gbmv<local_range, is_transposed>(dot_products_matrix, mA,
-                                                    _KL, _KU, vx);
-
-  // Execute the GBMV kernel that calculate the partial dot products of rows
-  auto gbmvEvent =
-      sb_handle.execute(gbmv, static_cast<index_t>(local_range), global_size);
-
-  // apply ALPHA and BETA
-  if (_beta != static_cast<element_t>(0)) {
-    // vec_y * b
-    auto betaMulYOp = make_op<ScalarOp, ProductOperator>(_beta, vy);
-
-    // alpha * vec_dot_products
-    auto alphaMulDotsOp =
-        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
-
-    // add up
-    auto addOp = make_op<BinaryOp, AddOperator>(betaMulYOp, alphaMulDotsOp);
-
-    // assign the result back to vec_y
-    auto assignOp = make_op<Assign>(vy, addOp);
-
-    // exectutes the above expression tree to yield the final GBMV result
-    return concatenate_vectors(gbmvEvent,
-                               sb_handle.execute(assignOp, local_range));
-  } else {
-    auto alphaMulDotsOp =
-        make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
-    auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
-    return concatenate_vectors(gbmvEvent,
-                               sb_handle.execute(assignOp, local_range));
+/*! _sbmv_impl.
+ * @brief Implementation of the Symmetric Band Matrix Vector product.
+ *
+ */
+template <uint32_t local_range, uplo_type uplo, typename sb_handle_t,
+          typename index_t, typename element_t, typename container_t0,
+          typename container_t1, typename increment_t, typename container_t2>
+typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         index_t _K, element_t _alpha,
+                                         container_t0 _mA, index_t _lda,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy) {
+  if (_K >= _N) {
+    throw std::invalid_argument("Erroneous parameter: _K >= _N");
   }
+
+  auto vector_size = _N;
+
+  auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, vector_size);
+  auto vy = make_vector_view(_vy, _incy, vector_size);
+
+  auto sbmv = make_sbmv<local_range, uplo == uplo_type::Upper>(_K, _alpha, mA,
+                                                               vx, _beta, vy);
+
+  return sb_handle.execute(sbmv, static_cast<index_t>(local_range),
+                           roundUp<index_t>(vector_size, local_range));
+}
+
+template <uint32_t local_range, uplo_type uplo, transpose_type trn,
+          diag_type diag, typename sb_handle_t, typename index_t,
+          typename container_t0, typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         index_t _K, container_t0 _mA,
+                                         index_t _lda, container_t1 _vx,
+                                         increment_t _incx) {
+  constexpr bool is_upper = (uplo == uplo_type::Upper);
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
+  constexpr bool is_unit = (diag == diag_type::Unit);
+
+  if (_K >= _N) {
+    throw std::invalid_argument("Erroneous parameter: _K >= _N");
+  }
+
+  using one = constant<index_t, const_val::one>;
+  auto x_vector_size = _N;
+  auto res_buffer =
+      blas::make_sycl_iterator_buffer<typename container_t0::scalar_t>(
+          x_vector_size);
+
+  auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  auto vres = make_vector_view(res_buffer, one::value(), x_vector_size);
+
+  const index_t global_size = roundUp<index_t>(x_vector_size, local_range);
+  auto tbmv = make_tbmv<local_range, is_upper, is_transposed, is_unit>(vres, mA,
+                                                                       _K, vx);
+
+  auto tbmvEvent =
+      sb_handle.execute(tbmv, static_cast<index_t>(local_range), global_size);
+
+  auto assignOp = make_op<Assign>(vx, vres);
+  return concatenate_vectors(tbmvEvent,
+                             sb_handle.execute(assignOp, local_range));
 }
 
 /**** RANK 1 MODIFICATION ****/
@@ -710,12 +740,12 @@ typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
                                            element_t _beta, container_t2 _vy,
                                            increment_t _incy) {
   return tolower(_trans) == 'n'
-             ? _gbmv_impl<32, transpose_type::Normal>(
-                   sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx,
-                   _incx, _beta, _vy, _incy)
-             : _gbmv_impl<32, transpose_type::Transposed>(
-                   sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx,
-                   _incx, _beta, _vy, _incy);
+             ? blas::gbmv::backend::_gbmv<transpose_type::Normal>(
+                   sb_handle, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx, _incx,
+                   _beta, _vy, _incy)
+             : blas::gbmv::backend::_gbmv<transpose_type::Transposed>(
+                   sb_handle, _M, _N, _KL, _KU, _alpha, _mA, _lda, _vx, _incx,
+                   _beta, _vy, _incy);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,
@@ -731,6 +761,22 @@ typename sb_handle_t::event_t inline _ger(sb_handle_t& sb_handle, index_t _M,
   return _ger_impl(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
                    _lda);
 }
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename container_t1, typename increment_t,
+          typename container_t2>
+typename sb_handle_t::event_t inline _sbmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, index_t _K,
+    element_t _alpha, container_t0 _mA, index_t _lda, container_t1 _vx,
+    increment_t _incx, element_t _beta, container_t2 _vy, increment_t _incy) {
+  return tolower(_Uplo) == 'u' ? blas::sbmv::backend::_sbmv<uplo_type::Upper>(
+                                     sb_handle, _N, _K, _alpha, _mA, _lda, _vx,
+                                     _incx, _beta, _vy, _incy)
+                               : blas::sbmv::backend::_sbmv<uplo_type::Lower>(
+                                     sb_handle, _N, _K, _alpha, _mA, _lda, _vx,
+                                     _incx, _beta, _vy, _incy);
+}
+
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1>
 typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
@@ -753,6 +799,58 @@ typename sb_handle_t::event_t inline _syr2(sb_handle_t& sb_handle, char _Uplo,
   // scratch size per device
   return _syr2_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
                     _lda);
+}
+template <typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    index_t _K, container_t0 _mA, index_t _lda,
+                                    container_t1 _vx, increment_t _incx) {
+  if (tolower(_Uplo) == 'u') {
+    if (tolower(_trans) == 'n') {
+      if (tolower(_Diag) == 'n') {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Upper, transpose_type::Normal, diag_type::Nonunit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      } else {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Upper, transpose_type::Normal, diag_type::Unit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      }
+    } else {
+      if (tolower(_Diag) == 'n') {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Upper, transpose_type::Transposed, diag_type::Nonunit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      } else {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Upper, transpose_type::Transposed, diag_type::Unit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      }
+    }
+  } else {
+    if (tolower(_trans) == 'n') {
+      if (tolower(_Diag) == 'n') {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Lower, transpose_type::Normal, diag_type::Nonunit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      } else {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Lower, transpose_type::Normal, diag_type::Unit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      }
+    } else {
+      if (tolower(_Diag) == 'n') {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Lower, transpose_type::Transposed, diag_type::Nonunit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      } else {
+        return blas::tbmv::backend::_tbmv<
+            uplo_type::Lower, transpose_type::Transposed, diag_type::Unit>(
+            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      }
+    }
+  }
 }
 
 }  // namespace internal

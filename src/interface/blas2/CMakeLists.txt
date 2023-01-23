@@ -27,9 +27,11 @@
 generate_blas_ternary_objects(blas2 gbmv)
 generate_blas_ternary_objects(blas2 gemv)
 generate_blas_ternary_objects(blas2 ger)
+generate_blas_ternary_objects(blas2 sbmv)
 generate_blas_ternary_objects(blas2 symv)
 generate_blas_ternary_objects(blas2 syr2)
 generate_blas_binary_objects(blas2 syr)
+generate_blas_binary_objects(blas2 tbmv)
 generate_blas_binary_objects(blas2 trmv)
 
 if(BLAS_ENABLE_CONST_INPUT)
