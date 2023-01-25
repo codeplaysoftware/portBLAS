@@ -234,21 +234,27 @@ struct dump_arg_helper<
   inline void operator()(std::ostream &ss, StdFloat f) {
     static_assert(!std::is_same<StdFloat, cl::sycl::half>::value,
                   "std library functions will not work with half.");
+    
+    std::stringstream dbg;
     if (std::isnan(f)) {
       ss << "nan";
       return;
     }
     if (f < 0) {
       ss << "m";
+      dbg << "m";
       f = std::fabs(f);
     }
     StdFloat int_part;
     StdFloat frac_part = std::modf(f, &int_part);
     ss << std::fixed << std::setprecision(0) << int_part;
+    dbg << std::fixed << std::setprecision(0) << int_part;
 
     if (frac_part > 0) {
       ss << "p" << (int)(frac_part * 100);
+      dbg << "p" << (int)(frac_part * 100);
     }
+    printf("dump f=%f str=%s\n", f, dbg.str().c_str());
   }
 };
 
@@ -327,7 +333,9 @@ inline std::string generate_name_helper(char *str_args, T arg, Args... args) {
   ss << token << "_";
   dump_arg(ss, arg);
   generate_name_helper(ss, args...);
-  return ss.str();
+  auto tmp = ss.str();
+  printf("name=%s\n", tmp.c_str());
+  return tmp;
 }
 
 // Helper macro to generate tests name from a list of test parameters.
@@ -337,6 +345,7 @@ inline std::string generate_name_helper(char *str_args, T arg, Args... args) {
   do {                                                  \
     char str_args[] = #__VA_ARGS__;                     \
     std::tie(__VA_ARGS__) = tuple;                      \
+    printf("BLAS_GENERATE_NAME str_args=%s\n", str_args); \
     return generate_name_helper(str_args, __VA_ARGS__); \
   } while (0)
 
