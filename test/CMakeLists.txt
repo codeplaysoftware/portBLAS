@@ -7,6 +7,7 @@ find_package(SystemBLAS REQUIRED)
 set(SYCLBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-fast-math")
 
 # Download and build googletest
 # The following operations are derived from the official advice on building googletest as a subproject,
