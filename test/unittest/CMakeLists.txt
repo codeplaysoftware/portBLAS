@@ -74,6 +74,12 @@ if(is_computecpp)
   endif()
 endif()
 
+# Contains tests that fail if compiled with -ffast-math
+set(SYCL_UNITTEST_NOFASTMATH
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
+)
+
 if(GEMM_TALL_SKINNY_SUPPORT)
   list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
@@ -90,6 +96,12 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas sycl_blas)
   target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+
+  list (FIND SYCL_UNITTEST_NOFASTMATH ${blas_test} _index)
+  if (${_index} GREATER -1)
+    target_compile_options(${test_exec} PRIVATE "-fno-fast-math")
+  endif()
+
   if(TEST_DEVICE)
     add_test(NAME ${test_exec} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_exec} --device ${TEST_DEVICE} --gtest_output=xml:output/)
   else()
