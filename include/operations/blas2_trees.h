@@ -347,6 +347,44 @@ make_tbmv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
               is_unit>(lhs_, matrix_, k_, vector_);
 }
 
+/**
+ * @struct Trsv
+ * @brief Tree node representing a triangular matrix_ vector_
+ * multiplication.
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range, bool is_upper, bool is_transposed, bool is_unit>
+struct Trsv {
+  using value_t = typename vector_t::value_t;
+  using index_t = typename vector_t::index_t;
+
+  lhs_t lhs_;
+  matrix_t matrix_;
+  index_t blk_id_;
+  vector_t vector_;
+
+  Trsv(lhs_t &_l, matrix_t &_matrix, index_t &_k, vector_t &_vector);
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename local_memory_t>
+  value_t eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+/*!
+ @brief Generator/factory for TBMV trees.
+ */
+template <uint32_t local_range, bool is_upper, bool is_transposed, bool is_unit,
+          typename lhs_t, typename matrix_t, typename vector_t>
+Trsv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed, is_unit>
+make_trsv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t blk_id_,
+          vector_t &vector_) {
+  return Trsv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
+              is_unit>(lhs_, matrix_, blk_id_, vector_);
+}
+
 /**** GER BY ROWS M ROWS x N BLOCK USING PROPERLY THE SHARED MEMORY ****/
 // template <typename lhs_t,typename rhs_1_t,typename rhs_2_t>
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
