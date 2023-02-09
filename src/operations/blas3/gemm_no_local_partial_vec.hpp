@@ -51,7 +51,8 @@ namespace blas {
  * @tparam TransA  if true, matrix A will be transposed on the fly
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
- * @tparam UseJointMatrix boolean parameter to decide whether to use joint_matrix or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use
+ * joint_matrix or not
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
@@ -103,14 +104,22 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   const element_t alpha_;
   const element_t beta_;
   index_t batch_size_;
+  index_t stridea_;
+  index_t strideb_;
+  index_t stridec_;
+
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size)
+                        element_t beta, index_t batch_size, index_t stride_a,
+                        index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
         c_(C),
         alpha_(alpha),
-        beta_(beta / alpha_),
-        batch_size_(batch_size) {}
+        beta_(beta / alpha),
+        batch_size_(batch_size),
+        stridea_{stride_a},
+        strideb_{stride_b},
+        stridec_{stride_c} {}
 
   /*!
    * @brief Get the type of this NoLocalGemmFactory as a human readable string.
@@ -188,9 +197,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
     const index_t b_size = trans_b ? ldb * k : n * ldb;
     const index_t c_size = ldc * n;
 
-    auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
-    auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
-    auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
+    auto orig_A = a_.get_pointer() + (wg_batch_id * stridea_);
+    auto orig_B = b_.get_pointer() + (wg_batch_id * strideb_);
+    auto orig_C = c_.get_pointer() + (wg_batch_id * stridec_);
 
     const index_t number_of_block_per_row = ((m - 1) / block_rows) + 1;
     /* linear work group id The number of work-group required to executed each
@@ -404,9 +413,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           C, reg_res, dim_m_a_start, dim_n_b_start, boundary_check_c,
           out_of_range, ldc);
 
-      orig_A += (a_size * batch_stride);
-      orig_B += (b_size * batch_stride);
-      orig_C += (c_size * batch_stride);
+      orig_A += (stridea_ * batch_stride);
+      orig_B += (strideb_ * batch_stride);
+      orig_C += (stridec_ * batch_stride);
       k = orig_k;
       // batch_size_ must be signed as the negative value has meaning here.
       batch_size -= batch_stride;

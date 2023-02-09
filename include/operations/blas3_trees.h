@@ -168,7 +168,7 @@ struct Tile {
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
- * @tparam UseJointMatrix boolean parameter to decide whether to use 
+ * @tparam UseJointMatrix boolean parameter to decide whether to use
  *                        joint_matrix or not
  * @param a_ the lhs_t matrix
  * @param b_ the rhs_t matrix
@@ -207,6 +207,9 @@ class Gemm {
   index_t lda_;
   index_t ldb_;
   index_t ldc_;
+  index_t stridea_;
+  index_t strideb_;
+  index_t stridec_;
   index_t batch_size_;
 
   // Reject GEMM configurations which do not have a partial specialization and
@@ -250,19 +253,20 @@ class GemmPartial {};
 template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, int GemmMemoryType,
           int GemmAlgorithm, int GemmVectorization, bool is_beta_zero,
-          int VectorSize, int BatchType, bool UseJointMatrix, typename input_t, typename output_t,
-          typename element_t, typename index_t>
+          int VectorSize, int BatchType, bool UseJointMatrix, typename input_t,
+          typename output_t, typename element_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
             GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
             UseJointMatrix>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
-          element_t alpha, element_t beta, index_t batch_size) {
+          element_t alpha, element_t beta, index_t batch_size,
+          element_t _stridea, element_t _strideb, element_t _stridec) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
               GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
               UseJointMatrix>(buffer_a, buffer_b, buffer_c, alpha, beta,
-                              batch_size);
+                              batch_size, _stridea, _strideb, _stridec);
 }
 
 /**

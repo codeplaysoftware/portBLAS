@@ -157,8 +157,13 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldb_;
   const index_t ldc_;
   const index_t batch_size_;
+  index_t stridea_;
+  index_t strideb_;
+  index_t stridec_;
+
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size)
+                        element_t beta, index_t batch_size, index_t stride_a,
+                        index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
         c_(C),
@@ -170,7 +175,10 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
         lda_(A.getSizeL()),
         ldb_(B.getSizeL()),
         ldc_(C.getSizeL()),
-        batch_size_(batch_size) {}
+        batch_size_(batch_size),
+        stridea_{stride_a},
+        strideb_{stride_b},
+        stridec_{stride_c} {}
 
   /*!
    * @brief Get the type of this Gemm as a human readable string.

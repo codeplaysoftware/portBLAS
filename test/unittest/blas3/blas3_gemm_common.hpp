@@ -143,8 +143,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
   } else {
     _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset,
-                  lda, m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc,
-                  batch, batch_type);
+                  lda, size_a, m_b_gpu + offset, ldb, size_b, beta,
+                  m_c_gpu + offset, ldc, size_c, batch, batch_type);
   }
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
