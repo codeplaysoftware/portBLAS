@@ -181,6 +181,9 @@ struct Tile {
  * @param lda the leading dimension of the matrix a_
  * @param ldb the leading dimension of the matrix b_
  * @param ldc the leading dimension of the matrix _C
+ * @param stridea the stride of the matrix a_ batches
+ * @param strideb the stride of the matrix b_ batches
+ * @param stridec the stride of the matrix C_ batches
  * @param batch_size_ the number batches of matrices of a_ b_ _C
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -225,7 +228,7 @@ class Gemm {
                 "Invalid GEMM configuration options, this would cause the "
                 "naive implementation to be selected");
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
-       index_t batch_size);
+       index_t batch_size, index_t stride_a, index_t stride_b, index_t stride_c);
   static std::string get_type_string() noexcept;
   index_t get_workgroup_cluster() const noexcept;
   index_t get_num_workgroup_cluster(index_t compute_units) const noexcept;
