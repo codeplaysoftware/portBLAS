@@ -157,6 +157,8 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldb_;
   const index_t ldc_;
   const index_t batch_size_;
+  // Matrices Strides are of no use interleaved
+  // TODO : Find a way to remove those. 
   index_t stridea_;
   index_t strideb_;
   index_t stridec_;

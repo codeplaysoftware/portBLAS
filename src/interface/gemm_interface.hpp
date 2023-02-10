@@ -117,10 +117,26 @@ typename sb_handle_t::event_t _gemm_backend(
     throw std::invalid_argument("invalid _TransB");
   }
 
-  // You might add _stridex check when using interleaved batch gemm
-
   bool _TrA = _TransA != 'n';
   bool _TrB = _TransB != 'n';
+
+  // Checking Strides conformity when batch_size>1
+  index_t a_size = _TrA ? _M * _lda : _K * _lda;
+  index_t b_size = _TrB ? _ldb * _K : _N * _ldb;
+  index_t c_size = _ldc * _N;
+
+  if (batch_size > index_t(1)) {
+    if (batch_type == gemm_batch_type_t::strided) {
+      if (_stridec < c_size || _stridec < 0) {
+        throw std::invalid_argument("invalid _stridec");
+      } else if (_stridea < 0) {
+        throw std::invalid_argument("invalid _stridea");
+      } else if (_strideb < 0) {
+        throw std::invalid_argument("invalid _strideb");
+      }
+    }
+  }
+
   if (_TrA && _TrB) {
     return _gemm_is_beta_zero<true, true>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
@@ -149,12 +165,9 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
                                     container_1_t b_, index_t _ldb,
                                     element_t _beta, container_2_t _C,
                                     index_t _ldc) {
-  index_t a_size = (tolower(_TransA) != 'n') ? _M * _lda : _K * _lda;
-  index_t b_size = (tolower(_TransB) != 'n') ? _ldb * _K : _N * _ldb;
-  index_t c_size = _ldc * _N;
   return _gemm_backend(sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_,
-                       _lda, a_size, b_, _ldb, b_size, _beta, _C, _ldc, c_size,
-                       index_t(1), gemm_batch_type_t::strided);
+                       _lda, index_t(0), b_, _ldb, index_t(0), _beta, _C, _ldc,
+                       index_t(0), index_t(1), gemm_batch_type_t::strided);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,

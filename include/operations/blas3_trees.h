@@ -183,7 +183,7 @@ struct Tile {
  * @param ldc the leading dimension of the matrix _C
  * @param stridea the stride of the matrix a_ batches
  * @param strideb the stride of the matrix b_ batches
- * @param stridec the stride of the matrix C_ batches
+ * @param stridec the stride of the matrix C_ batches (>=size_c)
  * @param batch_size_ the number batches of matrices of a_ b_ _C
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
