@@ -33,13 +33,12 @@ namespace backend {
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
-                                    index_t _N, index_t _K, element_t _alpha,
-                                    container_0_t _a, index_t _lda,
-                                    container_1_t _b, index_t _ldb,
-                                    element_t _beta, container_2_t _c,
-                                    index_t _ldc, index_t batch_size,
-                                    gemm_batch_type_t batch_type) {
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
+    element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+    container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+    container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
+    gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64,
@@ -49,12 +48,14 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(
             gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
-                                                                    _M, _N, _K,
-                                                                    _alpha, _a,
-                                                                    _lda, _b,
-                                                                    _ldb, _beta,
-                                                                    _c, _ldc,
-                                                                    batch_size);
+                                                              _M, _N,
+                                                              _K, _alpha, _a,
+                                                              _lda, _stridea,
+                                                              _b, _ldb,
+                                                              _strideb, _beta,
+                                                              _c, _ldc,
+                                                              _stridec,
+                                                              batch_size);
   }
 
 #ifdef SB_ENABLE_JOINT_MATRIX
@@ -70,7 +71,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
           true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                       _b, _ldb, _beta, _c, _ldc, batch_size);
+                                       _stridea, _b, _ldb, _strideb, _beta, _c,
+                                       _ldc, _stridec, batch_size);
     } else if (_M > 64 && _N > 64) {
       return blas::Gemm_Launcher<
           128, false, true, true, 128,
@@ -81,7 +83,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
           true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                       _b, _ldb, _beta, _c, _ldc, batch_size);
+                                       _stridea, _b, _ldb, _strideb, _beta, _c,
+                                       _ldc, _stridec, batch_size);
 
     } else {
       return blas::Gemm_Launcher<
@@ -93,7 +96,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
           true>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                       _b, _ldb, _beta, _c, _ldc, batch_size);
+                                       _stridea, _b, _ldb, _strideb, _beta, _c,
+                                       _ldc, _stridec, batch_size);
     }
   } else {
     return blas::Gemm_Launcher<
@@ -104,7 +108,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(gemm_batch_type_t::strided),
         false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                      _b, _ldb, _beta, _c, _ldc, batch_size);
+                                      _stridea, _b, _ldb, _strideb, _beta, _c,
+                                      _ldc, _stridec, batch_size);
   }
 
 #else  // SB_ENABLE_JOINT_MATRIX
@@ -117,7 +122,8 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
         static_cast<int>(gemm_batch_type_t::strided),
         false>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                      _b, _ldb, _beta, _c, _ldc, batch_size);
+                                      _stridea, _b, _ldb, _strideb, _beta, _c,
+                                      _ldc, _stridec, batch_size);
   }
 #endif
 }
