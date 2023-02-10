@@ -212,6 +212,47 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   return true;
 }
 
+/**
+ * Compare two vectors at a given stride and window (unit_vec_size) and returns
+ * false if the difference is not acceptable. The second vector is considered
+ * the reference.
+ * @tparam scalar_t the type of data present in the input vectors
+ * @tparam epsilon_t the type used as tolerance. Lower precision types
+ * (cl::sycl::half) will have a higher tolerance for errors
+ * @param stride is the stride between two consecutive 'windows'
+ * @param window is the size of a comparison window
+ */
+template <typename scalar_t, typename epsilon_t = scalar_t>
+inline bool compare_vectors_strided(std::vector<scalar_t> const& vec,
+                                    std::vector<scalar_t> const& ref,
+                                    int stride, int window,
+                                    std::ostream& err_stream = std::cerr,
+                                    std::string end_line = "\n") {
+  if (vec.size() != ref.size()) {
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
+    return false;
+  }
+
+  int k = 0;
+
+  // Loop over windows
+  while (window + (k + 1) * stride < vec.size()) {
+    // Loop within a window
+    for (int i = 0; i < window; ++i) {
+      auto index = i + k * stride;
+      if (!almost_equal<scalar_t, epsilon_t>(vec[index], ref[index])) {
+        err_stream << "Value mismatch at index " << index << ": " << vec[index]
+                   << "; expected " << ref[index] << end_line;
+        return false;
+      }
+    }
+    k += 1;
+  }
+
+  return true;
+}
+
 }  // namespace utils
 
 #endif  // UTILS_FLOAT_COMPARISON_H_

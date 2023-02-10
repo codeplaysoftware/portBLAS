@@ -40,6 +40,9 @@ const auto BetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
+    ::testing::Values(1),                          // stride_a_mul
+    ::testing::Values(1),                          // stride_b_mul
+    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMatch);
@@ -58,6 +61,9 @@ const auto BetaNonZeroLDMultiplied = ::testing::Combine(
     ::testing::Values(2),                          // lda_mul
     ::testing::Values(3),                          // ldb_mul
     ::testing::Values(4),                          // ldc_mul
+    ::testing::Values(1),                          // stride_a_mul
+    ::testing::Values(1),                          // stride_b_mul
+    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMultiplied);
@@ -76,6 +82,9 @@ const auto BetaZero = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
+    ::testing::Values(1),                          // stride_a_mul
+    ::testing::Values(1),                          // stride_b_mul
+    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(TallSkinnyGemm, BetaZero);
@@ -94,6 +103,9 @@ const auto OffsetNonZero = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
+    ::testing::Values(1),                          // stride_a_mul
+    ::testing::Values(1),                          // stride_b_mul
+    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(TallSkinnyGemm, OffsetNonZero);
