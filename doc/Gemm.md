@@ -115,6 +115,8 @@ All `GEMM` kernels support batched operations but the interleaved `GEMM` can onl
 
 Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place.
 
+By default, the `_gemm_batched` operation assumes all the matrices have the same parameters (sizes and leading dimensions) and, in the `strided` batch type case, all matrices are stored within a fixed stride-distance equal to the matrix size. The `_gemm_batched_strided` takes 3 more arguments `stride_a`, `stride_b` and `stride_c` which allows setting custom strides per matrix batch.
+
 # GEMM Dispatch
 
 As previously mentioned, the `Gemm` class has a lot of template parameters, and many of these are based on values passed at runtime by the user when they call `_gemm` . 
@@ -269,7 +271,7 @@ template typename SB_Handle::event_t _gemm_batched_strided(
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
     ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
+    ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size);
 }  // namespace internal
 }  // namespace blas
 ```
