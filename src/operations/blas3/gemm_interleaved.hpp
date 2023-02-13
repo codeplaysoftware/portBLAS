@@ -98,7 +98,8 @@ SYCL_BLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  * @tparam TransB  if true, matrix B will be transposed on the fly
  * @tparam element_t  type of matrix elements
  * @tparam is_beta_zero  whether to optimize away the beta * C addition
- * @tparam UseJointMatrix boolean parameter to decide whether to use joint_matrix or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use
+ * joint_matrix or not
  */
 template <typename input_t, typename output_t, int ClSize, typename tile_type,
           bool TransA, bool TransB, typename element_t, bool is_beta_zero,
@@ -158,14 +159,11 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldc_;
   const index_t batch_size_;
   // Matrices Strides are of no use interleaved
-  // TODO : Find a way to remove those. 
-  index_t stridea_;
-  index_t strideb_;
-  index_t stridec_;
 
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size, index_t stride_a,
-                        index_t stride_b, index_t stride_c)
+                        element_t beta, index_t batch_size,
+                        index_t /*stride_a*/, index_t /*stride_b*/,
+                        index_t /*stride_c*/)
       : a_(A),
         b_(B),
         c_(C),
@@ -177,10 +175,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
         lda_(A.getSizeL()),
         ldb_(B.getSizeL()),
         ldc_(C.getSizeL()),
-        batch_size_(batch_size),
-        stridea_{stride_a},
-        strideb_{stride_b},
-        stridec_{stride_c} {}
+        batch_size_(batch_size) {}
 
   /*!
    * @brief Get the type of this Gemm as a human readable string.
