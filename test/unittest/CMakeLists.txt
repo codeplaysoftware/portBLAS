@@ -48,6 +48,7 @@ set(SYCL_UNITTEST_SRCS
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_strided_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
 )
 

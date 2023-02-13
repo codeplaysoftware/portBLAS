@@ -154,18 +154,21 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   }
 #endif
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, a_size * batch_size);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, b_size * batch_size);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, c_size * batch_size);
+  auto a_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(a, a_size * batch_size);
+  auto b_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(b, b_size * batch_size);
+  auto c_gpu =
+      blas::make_sycl_iterator_buffer<scalar_t>(c, c_size * batch_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, c_size * batch_size);
-    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
-                               lda, a_size, b_gpu, ldb, b_size, beta, c_temp_gpu,
-                               ldc, c_size, batch_size, batch_type);
+    auto event =
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                      ldb, beta, c_temp_gpu, ldc, batch_size, batch_type);
     sb_handle.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
@@ -182,9 +185,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
-                               lda, a_size, b_gpu, ldb, b_size, beta, c_gpu, ldc,
-                               c_size, batch_size, batch_type);
+    auto event =
+        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
+                      ldb, beta, c_gpu, ldc, batch_size, batch_type);
     sb_handle.wait(event);
     return event;
   };
@@ -209,8 +212,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto gemm_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
@@ -223,8 +226,8 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, int t1,
-                         int t2, index_t m, index_t k, index_t n,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                         int t1, int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          int batch_type, bool* success) {
       run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
@@ -232,14 +235,14 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, batch_type).c_str(),
-        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, batch_type,
-        success);
+        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
+        batch_type, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

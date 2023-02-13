@@ -263,6 +263,13 @@ template typename SB_Handle::event_t _gemm_batched(
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
     ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
+// batched gemm strided
+template typename SB_Handle::event_t _gemm_batched_strided(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
+    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
+    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
+    ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
 }  // namespace internal
 }  // namespace blas
 ```
