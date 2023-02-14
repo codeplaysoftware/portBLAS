@@ -117,7 +117,7 @@ Batched `GEMM` is called with a separate `_gemm_batched` function, however beyon
 
 The `_gemm_batched` operation assumes all the matrices have the same parameters (sizes and leading dimensions). In the `strided` batch type case, all matrices are stored within a fixed stride-distance provided by the user (`stride_a`, `stride_b` and `stride_c`), the latter must be at least equal to the matrix c size to avoid overlapping writes to the output. In the `interleaved` batch type case, the strides can only take these values depending on the case : 
 - `stride_a` = `lda` if A is transposed, 1 otherwise.
-- `stride_b` = `ldb` if B is transposed, 1 otherwise. 
+- `stride_b` = 1 if B is transposed, `ldb` otherwise. 
 - `stride_c` = `ldc` always. 
 
 

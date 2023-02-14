@@ -137,7 +137,7 @@ typename sb_handle_t::event_t _gemm_backend(
     } else {
       if ((_TrA && _stridea != _lda) || (!_TrA && _stridea != 1)) {
         throw std::invalid_argument("invalid _stridea with interleaved");
-      } else if ((_TrB && _strideb != _ldb) || (!_TrB && _strideb != 1)) {
+      } else if ((_TrB && _strideb != 1) || (!_TrB && _strideb != _ldb)) {
         throw std::invalid_argument("invalid _strideb with interleaved");
       } else if (_stridec != _ldc) {
         throw std::invalid_argument("invalid _stridec with interleaved");
@@ -195,17 +195,3 @@ typename sb_handle_t::event_t _gemm_batched(
 }  // namespace blas
 
 #endif  // SYCL_BLAS_BLAS3_GEMM_INTERFACE_HPP
-
-/***
- *
- *   bool is_strided = batch_type == gemm_batch_type_t::strided;
-
-  // If not provided, strided are equal to matrices sizes
-  index_t _stridea = is_strided
-                         ? ((tolower(_TransA) != 'n') ? _M * _lda : _K * _lda)
-                         : index_t(1);
-  index_t _strideb = is_strided
-                         ? ((tolower(_TransB) != 'n') ? _ldb * _K : _N * _ldb)
-                         : index_t(1);
-  index_t _stridec = _ldc * _N;
-*/

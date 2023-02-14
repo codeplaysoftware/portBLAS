@@ -102,13 +102,20 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const index_t size_b = k * n * ldb_mul;
   const index_t size_c = m * n * ldc_mul;
 
-  const index_t stride_a = stride_a_mul * size_a;
-  const index_t stride_b = stride_b_mul * size_b;
-  const index_t stride_c = stride_c_mul * size_c;
+  const bool isInterleaved = (batch_type == gemm_batch_type_t::interleaved);
 
-  const index_t buffer_size_a = size_a + (batch - 1) * stride_a + offset;
-  const index_t buffer_size_b = size_b + (batch - 1) * stride_b + offset;
-  const index_t buffer_size_c = size_c + (batch - 1) * stride_c + offset;
+  // When using interleaved, stride parameters in the gemm configuration test
+  // simply refer to the strides themselves.
+  const index_t stride_a = isInterleaved ? stride_a_mul : stride_a_mul * size_a;
+  const index_t stride_b = isInterleaved ? stride_b_mul : stride_b_mul * size_b;
+  const index_t stride_c = isInterleaved ? stride_c_mul : stride_c_mul * size_c;
+
+  const index_t buffer_size_a =
+      isInterleaved ? size_a * batch : size_a + (batch - 1) * stride_a + offset;
+  const index_t buffer_size_b =
+      isInterleaved ? size_b * batch : size_b + (batch - 1) * stride_b + offset;
+  const index_t buffer_size_c =
+      isInterleaved ? size_c * batch : size_c + (batch - 1) * stride_c + offset;
 
   std::vector<scalar_t> a_m(buffer_size_a);
   std::vector<scalar_t> b_m(buffer_size_b);
@@ -119,12 +126,16 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   fill_random(c_m_gpu);
   std::vector<scalar_t> c_m_cpu = c_m_gpu;
 
+  const index_t ref_stride_a = isInterleaved ? size_a : stride_a;
+  const index_t ref_stride_b = isInterleaved ? size_b : stride_b;
+  const index_t ref_stride_c = isInterleaved ? size_c : stride_c;
+
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
     reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * stride_a + offset, lda,
-                         b_m.data() + i * stride_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * stride_c + offset, ldc);
+                         a_m.data() + i * ref_stride_a + offset, lda,
+                         b_m.data() + i * ref_stride_b + offset, ldb, beta,
+                         c_m_cpu.data() + i * ref_stride_c + offset, ldc);
   }
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -167,7 +178,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   sb_handle.wait();
 
   const bool isAlmostEqual =
-      (batch == 1 || stride_c_mul == 1)
+      (batch == 1 || stride_c_mul == 1 || isInterleaved)
           ? utils::compare_vectors(c_m_gpu, c_m_cpu)
           : utils::compare_vectors_strided(c_m_gpu, c_m_cpu, stride_c, size_c);
   ASSERT_TRUE(isAlmostEqual);

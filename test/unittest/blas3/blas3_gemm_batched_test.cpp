@@ -109,3 +109,66 @@ const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);
+
+template <typename scalar_t>
+const auto NoTrANoTrBInterleaved = ::testing::Combine(
+    ::testing::Values(0),                              // offset
+    ::testing::Values(1, 5),                           // batch
+    ::testing::Values(128),                            // m
+    ::testing::Values(128),                            // n
+    ::testing::Values(128),                            // k
+    ::testing::Values('n'),                            // transa
+    ::testing::Values('n'),                            // transb
+    ::testing::Values<scalar_t>(3.0),                  // alpha
+    ::testing::Values<scalar_t>(7.0),                  // beta
+    ::testing::Values(2),                              // lda_mul
+    ::testing::Values(3),                              // ldb_mul
+    ::testing::Values(4),                              // ldc_mul
+    ::testing::Values(1),                              // stride_a
+    ::testing::Values(3 * 128),                        // stride_b
+    ::testing::Values(4 * 128),                        // stride_c
+    ::testing::Values(gemm_batch_type_t::interleaved)  // batch_type
+);
+GENERATE_GEMM_TEST(BatchGemm, NoTrANoTrBInterleaved);
+
+template <typename scalar_t>
+const auto NoTrATrBInterleaved = ::testing::Combine(
+    ::testing::Values(0),                              // offset
+    ::testing::Values(1, 5),                           // batch
+    ::testing::Values(128),                            // m
+    ::testing::Values(128),                            // n
+    ::testing::Values(128),                            // k
+    ::testing::Values('n'),                            // transa
+    ::testing::Values('t'),                            // transb
+    ::testing::Values<scalar_t>(3.0),                  // alpha
+    ::testing::Values<scalar_t>(7.0),                  // beta
+    ::testing::Values(2),                              // lda_mul
+    ::testing::Values(3),                              // ldb_mul
+    ::testing::Values(4),                              // ldc_mul
+    ::testing::Values(1),                              // stride_a
+    ::testing::Values(1),                              // stride_b
+    ::testing::Values(4 * 128),                        // stride_c
+    ::testing::Values(gemm_batch_type_t::interleaved)  // batch_type
+);
+GENERATE_GEMM_TEST(BatchGemm, NoTrATrBInterleaved);
+
+template <typename scalar_t>
+const auto TrATrBInterleaved = ::testing::Combine(
+    ::testing::Values(0),                              // offset
+    ::testing::Values(1, 5),                           // batch
+    ::testing::Values(128),                            // m
+    ::testing::Values(128),                            // n
+    ::testing::Values(128),                            // k
+    ::testing::Values('t'),                            // transa
+    ::testing::Values('t'),                            // transb
+    ::testing::Values<scalar_t>(3.0),                  // alpha
+    ::testing::Values<scalar_t>(7.0),                  // beta
+    ::testing::Values(2),                              // lda_mul
+    ::testing::Values(3),                              // ldb_mul
+    ::testing::Values(4),                              // ldc_mul
+    ::testing::Values(2 * 128),                        // stride_a
+    ::testing::Values(1),                              // stride_b
+    ::testing::Values(4 * 128),                        // stride_c
+    ::testing::Values(gemm_batch_type_t::interleaved)  // batch_type
+);
+GENERATE_GEMM_TEST(BatchGemm, TrATrBInterleaved);
