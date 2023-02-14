@@ -166,9 +166,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   {
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, c_size * batch_size);
-    auto event =
-        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                      ldb, beta, c_temp_gpu, ldc, batch_size, batch_type);
+    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
+                               lda, a_size, b_gpu, ldb, b_size, beta,
+                               c_temp_gpu, ldc, c_size, batch_size, batch_type);
     sb_handle.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
@@ -185,9 +185,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event =
-        _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
-                      ldb, beta, c_gpu, ldc, batch_size, batch_type);
+    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
+                               lda, a_size, b_gpu, ldb, b_size, beta, c_gpu,
+                               ldc, c_size, batch_size, batch_type);
     sb_handle.wait(event);
     return event;
   };
