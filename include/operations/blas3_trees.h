@@ -228,7 +228,8 @@ class Gemm {
                 "Invalid GEMM configuration options, this would cause the "
                 "naive implementation to be selected");
   Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
-       index_t batch_size, index_t stride_a, index_t stride_b, index_t stride_c);
+       index_t batch_size, index_t stride_a, index_t stride_b,
+       index_t stride_c);
   static std::string get_type_string() noexcept;
   index_t get_workgroup_cluster() const noexcept;
   index_t get_num_workgroup_cluster(index_t compute_units) const noexcept;

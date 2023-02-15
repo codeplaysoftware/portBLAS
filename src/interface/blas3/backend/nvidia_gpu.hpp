@@ -46,16 +46,10 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
-        static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+        static_cast<int>(gemm_batch_type_t::interleaved)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size);
   }
 
 #ifdef SB_ENABLE_JOINT_MATRIX

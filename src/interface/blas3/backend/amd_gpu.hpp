@@ -47,16 +47,10 @@ typename sb_handle_t::event_t _gemm(
         _t_b, static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
-        static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+        static_cast<int>(gemm_batch_type_t::interleaved)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size);
   }
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
@@ -68,116 +62,84 @@ typename sb_handle_t::event_t _gemm(
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size);
     } else if (_M > 64 && _N <= 32) {
       return blas::Gemm_Launcher<
           256, true, true, true, ClSize, Tile<4, 1, tileWgSize, tileWgSize>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size);
     } else if (_M <= 16 || _N <= 16) {
       return blas::Gemm_Launcher<
           256, true, true, true, ClSize, Tile<1, 1, tileWgSize, tileWgSize>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size);
     } else if (_M <= 32 || _N <= 32) {
       return blas::Gemm_Launcher<
           256, true, true, true, ClSize, Tile<2, 2, tileWgSize, tileWgSize>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size);
     } else {
       return blas::Gemm_Launcher<
           256, true, true, true, ClSize, Tile<4, 4, tileWgSize, tileWgSize>,
           _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::tall_skinny),
           static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size);
     }
   } else
 #endif  // GEMM_TALL_SKINNY_SUPPORT
-    if (_M * _N <= 65536) {
-      return blas::Gemm_Launcher<
-          256, false, false, false, ClSize, Tile<1, 1, tileWgSize, tileWgSize>,
-          _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
-          static_cast<int>(gemm_algorithm_t::standard),
-          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
-    } else {
-      return blas::Gemm_Launcher<
-          256, false, false, false, ClSize, Tile<4, 4, tileWgSize, tileWgSize>,
-          _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
-          static_cast<int>(gemm_algorithm_t::standard),
-          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
-          static_cast<int>(
-              gemm_batch_type_t::strided)>::template _select_gemm(sb_handle,
-                                                              _M, _N,
-                                                              _K, _alpha, _a,
-                                                              _lda, _stridea,
-                                                              _b, _ldb,
-                                                              _strideb, _beta,
-                                                              _c, _ldc,
-                                                              _stridec,
-                                                              batch_size);
-    }
+      if (_M * _N <= 65536) {
+    return blas::Gemm_Launcher<
+        256, false, false, false, ClSize, Tile<1, 1, tileWgSize, tileWgSize>,
+        _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::standard),
+        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+        static_cast<int>(
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
+                                                                batch_size);
+  } else {
+    return blas::Gemm_Launcher<
+        256, false, false, false, ClSize, Tile<4, 4, tileWgSize, tileWgSize>,
+        _t_a, _t_b, static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::standard),
+        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
+        static_cast<int>(
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
+                                                                batch_size);
+  }
 }
 }  // namespace backend
 }  // namespace gemm

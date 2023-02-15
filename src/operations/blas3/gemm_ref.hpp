@@ -55,9 +55,7 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::
     Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
          typename std::make_signed<typename input_t::index_t>::type batch_size,
-         index_t stride_a, 
-         index_t stride_b, 
-         index_t stride_c)
+         index_t stride_a, index_t stride_b, index_t stride_c)
     : a_(A),
       b_(B),
       c_(C),
