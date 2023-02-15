@@ -83,8 +83,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   const char* t_b = t2s.c_str();
   auto batch_type = static_cast<blas::gemm_batch_type_t>(batch_type_i);
 
-  index_t lda = t_a[0] == 'n' ? m : k;
-  index_t ldb = t_b[0] == 'n' ? k : n;
+  const bool trA = t_a[0] != 'n';
+  const bool trB = t_b[0] != 'n';
+
+  index_t lda = trA ? k : m;
+  index_t ldb = trB ? n : k;
   index_t ldc = m;
 
   // The counters are double. We convert m, n, k and batch_size to double to
@@ -123,7 +126,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   const index_t b_size = k * n;
   const index_t c_size = m * n;
 
-  // Matrices
+  const bool isInterleaved =
+      (batch_type == blas::gemm_batch_type_t::interleaved);
+
+  // Strides will be set by default to matrices sizes when using strided.
+  // In the interleaved case, strides will be set to the valid values depending
+  // on trA and trB.
+  const index_t stride_a = isInterleaved ? (trA ? lda : 1) : a_size;
+  const index_t stride_b = isInterleaved ? (trB ? 1 : ldb) : b_size;
+  const index_t stride_c = isInterleaved ? ldc : c_size;
+
+  // Matrices (Total size is equal to matrix size x batch_size since we're using
+  // default striding values)
   std::vector<scalar_t> a =
       blas_benchmark::utils::random_data<scalar_t>(a_size * batch_size);
   std::vector<scalar_t> b =
@@ -166,9 +180,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   {
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, c_size * batch_size);
-    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
-                               lda, a_size, b_gpu, ldb, b_size, beta,
-                               c_temp_gpu, ldc, c_size, batch_size, batch_type);
+    auto event = _gemm_batched(
+        sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, stride_a, b_gpu, ldb,
+        stride_b, beta, c_temp_gpu, ldc, stride_c, batch_size, batch_type);
     sb_handle.wait(event);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
@@ -186,8 +200,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
-                               lda, a_size, b_gpu, ldb, b_size, beta, c_gpu,
-                               ldc, c_size, batch_size, batch_type);
+                               lda, stride_a, b_gpu, ldb, stride_b, beta, c_gpu,
+                               ldc, stride_c, batch_size, batch_type);
     sb_handle.wait(event);
     return event;
   };
