@@ -27,91 +27,75 @@
 #define GERP_HPP
 
 #include <operations/blas2_trees.h>
-#include <operations/blas_operators.hpp>
-#include <stdexcept>
-#include <vector>
-#include <views/view_sycl.hpp>
 
 namespace blas {
 
-// Row-Col index calculation for Row Major Lower Packed Matrix
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
+// Row-Col index calculation for Lower Packed Matrix
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
 template <int N>
-struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-            rhs_2_t>::compute_row_col<N, false, false> {
-  using index_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  void operator()(const index_t id, const index_t, index_t& row, index_t& col) {
-    row = (-1 + cl::sycl::sqrt((value_t)(1 + 8 * id))) / 2;
-    col = id - (row * (row + 1)) / 2;
+struct Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<N,
+                                                                       false> {
+  using index_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
+  using value_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
+  SYCL_BLAS_ALWAYS_INLINE void operator()(const int64_t id, const index_t size,
+                                          index_t& row, index_t& col) {
+    index_t temp = 2 * size + 1;
+    int64_t internal = temp * temp - 8 * id;
+    float val = internal * 1.f;
+    float sqrt = 0.f;
+    float divisor = internal >= 1048576 ? 2 * size * 1.f : 1.f;
+    val = internal / (divisor * divisor);
+    sqrt = cl::sycl::sqrt(val) * divisor;
+    col = static_cast<index_t>((temp - sqrt) / 2);
+    row = id - (col * (temp - col)) / 2 + col;
+    // adjust row-col if out of bounds
+    if (row < 0 || col < 0 || row >= size || col >= size || row < col) {
+      int diff = id < size || row < col ? -1 : row >= size ? 1 : 0;
+      col += diff;
+      row = id - (col * (temp - col)) / 2 + col;
+    }
   }
 };
 
-// Row-Col index calculation for Row Major Upper Packed Matrix
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
+// Row-Col index calculation for Upper Packed Matrix
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
 template <int N>
-struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-            rhs_2_t>::compute_row_col<N, false, true> {
-  using index_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  void operator()(const index_t id, const index_t size, index_t& row,
-                  index_t& col) {
-    index_t b = 2 * size + 1;
-    row = (b - cl::sycl::sqrt((value_t)(b * b - 8 * id))) / 2;
-    col = id - (row * (b - row)) / 2 + row;
-  }
-};
-
-// Row-Col index calculation for Col Major Lower Packed Matrix
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-template <int N>
-struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-            rhs_2_t>::compute_row_col<N, true, false> {
-  using index_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  void operator()(const index_t id, const index_t size, index_t& row,
-                  index_t& col) {
-    index_t b = 2 * size + 1;
-    col = (b - cl::sycl::sqrt((value_t)(b * b - 8 * id))) / 2;
-    row = id - (col * (b - col)) / 2 + col;
-  }
-};
-
-// Row-Col index calculation for Col Major Upper Packed Matrix
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-template <int N>
-struct Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-            rhs_2_t>::compute_row_col<N, true, true> {
-  using index_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t =
-      Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  void operator()(const index_t id, const index_t, index_t& row, index_t& col) {
-    col = (-1 + cl::sycl::sqrt((value_t)(1 + 8 * id))) / 2;
-    row = id - (col * (col + 1)) / 2;
+struct Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<N,
+                                                                       true> {
+  using index_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
+  using value_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
+  SYCL_BLAS_ALWAYS_INLINE void operator()(const int64_t id, const index_t size,
+                                          index_t& row, index_t& col) {
+    int64_t internal = 1 + 8 * id;
+    float val = internal * 1.f;
+    float sqrt = 0.f;
+    float divisor = id >= 1048576 ? size * 1.f : 1.f;
+    val = internal / (divisor * divisor);
+    sqrt = cl::sycl::sqrt(val) * divisor;
+    col = static_cast<index_t>((-1 + sqrt) / 2);
+    row = id - col * (col + 1) / 2;
+    // adjust the row/col if out of bounds
+    if (row > col) {
+      int diff = row - col;
+      col += diff;
+      row -= col;
+    } else if (row < 0) {
+      col--;
+      row = id - col * (col + 1) / 2;
+    }
   }
 };
 
 /**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-                      rhs_2_t>::Gerp(lhs_t& _l, typename rhs_1_t::index_t _N,
-                                     value_t _alpha, rhs_1_t& _r1,
-                                     typename rhs_1_t::index_t _incX_1,
-                                     rhs_2_t& _r2,
-                                     typename rhs_1_t::index_t _incX_2)
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Gerp(
+    lhs_t& _l, typename rhs_1_t::index_t _N, value_t _alpha, rhs_1_t& _r1,
+    typename rhs_1_t::index_t _incX_1, rhs_2_t& _r2,
+    typename rhs_1_t::index_t _incX_2)
     : lhs_(_l),
       N_(_N),
       alpha_(_alpha),
@@ -120,19 +104,17 @@ SYCL_BLAS_INLINE Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
       rhs_2_(_r2),
       incX_2_(_incX_2) {}
 
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
+void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
   const index_t id = ndItem.get_local_linear_id();
   const index_t group_id = ndItem.get_group(0);
   const index_t local_range = static_cast<index_t>(ndItem.get_local_range(0));
-  const index_t global_idx = group_id * local_range + id;
-  const index_t lhs_size = N_ * (N_ + 1) / 2;
+  const int64_t global_idx = group_id * local_range + id;
+  const int64_t lhs_size = N_ * (N_ + 1) / 2;
 
-  index_t row = 0;
-  index_t col = 0;
-  index_t start = 0;
+  index_t row = 0, col = 0;
 
   auto lhs_ptr = lhs_.get_pointer();
   auto rhs_1_ptr = rhs_1_.get_pointer();
@@ -141,7 +123,7 @@ void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
   if (global_idx < lhs_size) {
     value_t lhs_val = *(lhs_ptr + global_idx);
 
-    compute_row_col<0, isColMajor, isUpper> idx_compute_obj;
+    compute_row_col<0, isUpper> idx_compute_obj;
     idx_compute_obj(global_idx, N_, row, col);
 
     const index_t rhs_1_idx =
@@ -157,36 +139,35 @@ void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     *(lhs_ptr + global_idx) = out;
   }
 }
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-                           rhs_2_t>::bind(cl::sycl::handler& h) {
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
+    cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
 }
 
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t,
-                           rhs_2_t>::adjust_access_displacement() {
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
+SYCL_BLAS_INLINE void
+Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
   rhs_2_.adjust_access_displacement();
 }
 
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
 SYCL_BLAS_INLINE
-    typename Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
-    Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size()
-        const {
+    typename Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
+    Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
-template <bool Single, bool isColMajor, bool isUpper, typename lhs_t,
-          typename rhs_1_t, typename rhs_2_t>
+template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
+          typename rhs_2_t>
 SYCL_BLAS_INLINE bool
-Gerp<Single, isColMajor, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
+Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }

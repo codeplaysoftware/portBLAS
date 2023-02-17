@@ -85,7 +85,7 @@ template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values('r', 'c'),  // matrix layout
                        ::testing::Values('u', 'l'),  // UPLO
-                       ::testing::Values(14, 63, 257, 1010, 2025),  // n
+                       ::testing::Values(1024, 2048, 4096, 8192, 16384),  // n
                        ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // alpha
                        ::testing::Values(1, 2)                      // incX
     );
@@ -104,10 +104,10 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char layout, upl0;
+  char layout, uplo;
   int n, incX;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, layout, upl0, n, alpha, incX);
+  BLAS_GENERATE_NAME(info.param, layout, uplo, n, alpha, incX);
 }
 
 BLAS_REGISTER_TEST_ALL(Spr, combination_t, combi, generate_name);

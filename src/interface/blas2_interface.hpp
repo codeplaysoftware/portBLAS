@@ -624,9 +624,22 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
                                         index_t _N, element_t _alpha,
                                         container_t0 _vx, increment_t _incx,
                                         container_t1 _mPA) {
+  // throw exception if invalid arguments
+  if (_N <= 0) {
+    throw std::invalid_argument("Invalid vector size");
+  }
+
+  // bail out early if alpha == 0
+  if (_alpha == (element_t)0) {
+    std::vector<cl::sycl::event> event;
+    return event;
+  }
+
   typename sb_handle_t::event_t ret;
+  constexpr bool isColMajor = std::is_same<layout_t1, col_major>::value;
   _Uplo = tolower(_Uplo);
-  const int Upper = (_Uplo == 'u');
+  const int Upper =
+      (_Uplo == 'u' && isColMajor) || (_Uplo == 'l' && !isColMajor);
   auto mA = make_matrix_view<layout_t1>(_mPA, _N, (_N + 1) / 2, _N);
   auto vx = make_vector_view(_vx, std::abs(_incx), _N);
 
@@ -635,16 +648,14 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
 
   const index_t nWGPerCol = (_N * (_N + 1) / 2 - 1) / nColsWG + 1;
   const index_t globalSize = localSize * nWGPerCol;
-  constexpr bool isColMajor = std::is_same<layout_t1, col_major>::value;
 
   if (Upper) {
-    auto assignOp =
-        make_gerp<true, isColMajor, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto assignOp = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize));
   } else {
-    auto assignOp = make_gerp<true, isColMajor, false>(mA, _N, _alpha, vx,
-                                                       _incx, vx, _incx);
+    auto assignOp =
+        make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(assignOp, localSize, globalSize));
   }
