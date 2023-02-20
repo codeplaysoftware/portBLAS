@@ -366,8 +366,6 @@ struct Trsv {
   Trsv(lhs_t &_l, matrix_t &_matrix, index_t &_k, vector_t &_vector);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename local_memory_t>
   value_t eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
