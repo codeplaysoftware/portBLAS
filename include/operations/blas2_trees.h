@@ -374,7 +374,7 @@ struct Trsv {
   void adjust_access_displacement();
 };
 /*!
- @brief Generator/factory for TBMV trees.
+ @brief Generator/factory for TRSV trees.
  */
 template <uint32_t local_range, bool is_upper, bool is_transposed, bool is_unit,
           typename lhs_t, typename matrix_t, typename vector_t>

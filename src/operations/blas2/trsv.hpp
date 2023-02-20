@@ -23,8 +23,8 @@
  *
  **************************************************************************/
 
-#ifndef TBSV_HPP
-#define TBSV_HPP
+#ifndef TRSV_HPP
+#define TRSV_HPP
 #include "operations/blas2_trees.h"
 #include "operations/blas_operators.hpp"
 #include "views/view_sycl.hpp"
