@@ -26,15 +26,14 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string layout, char uplo, int size, scalar_t alpha,
-                     int incX) {
+std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
   std::ostringstream str{};
   str << "BM_Spr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << layout << "/" << uplo << "/" << size << "/" << alpha << "/" << incX;
+      << uplo << "/" << size << "/" << alpha << "/" << incX;
   return str.str();
 }
 
-template <typename scalar_t, typename layout>
+template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int size, scalar_t alpha, int incX, bool* success) {
   // The counters are double. We convert size to double to avoid
@@ -44,8 +43,6 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
   state.counters["size_d"] = size_d;
   state.counters["alpha"] = static_cast<double>(alpha);
   state.counters["incX"] = incX;
-
-  constexpr bool isColMajor = std::is_same<layout, blas::col_major>::value;
 
   {
     double nflops_XtimesX = 2.0 * size_d;
@@ -76,8 +73,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_ref = v_x;
   std::vector<scalar_t> m_a_ref = m_a;
-  reference_blas::spr<scalar_t, isColMajor>(&uplo, size, alpha, x_ref.data(),
-                                            incX, m_a_ref.data());
+  reference_blas::spr<scalar_t>(&uplo, size, alpha, x_ref.data(), incX,
+                                m_a_ref.data());
 
   std::vector<scalar_t> m_a_temp = m_a;
   {
@@ -85,8 +82,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
         blas::make_sycl_iterator_buffer<scalar_t>(m_a_temp, m_size);
 
     blas::_spr<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu), index_t,
-               decltype(m_a_gpu), layout>(sb_handle, uplo, size, alpha, v_x_gpu,
-                                          incX, m_a_temp_gpu);
+               decltype(m_a_gpu)>(sb_handle, uplo, size, alpha, v_x_gpu, incX,
+                                  m_a_temp_gpu);
     sb_handle.wait();
   }
 
@@ -99,10 +96,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event =
-        blas::_spr<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu),
-                   index_t, decltype(m_a_gpu), layout>(
-            sb_handle, uplo, size, alpha, v_x_gpu, incX, m_a_gpu);
+    auto event = blas::_spr<blas::SB_Handle, index_t, scalar_t,
+                            decltype(v_x_gpu), index_t, decltype(m_a_gpu)>(
+        sb_handle, uplo, size, alpha, v_x_gpu, incX, m_a_gpu);
     sb_handle.wait(event);
     return event;
   };
@@ -139,25 +135,14 @@ void register_benchmark(blas_benchmark::Args& args,
 
     char uplo_c = uplo[0];
 
-    auto BM_lambda_row =
-        [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
-            int size, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t, blas::row_major>(st, sb_handle_ptr, uplo, size, alpha,
-                                         incX, success);
-        };
-    benchmark::RegisterBenchmark(
-        get_name<scalar_t>("row", uplo_c, n, alpha, incX).c_str(),
-        BM_lambda_row, sb_handle_ptr, uplo_c, n, alpha, incX, success);
-
     auto BM_lambda_col =
         [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
             int size, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t, blas::col_major>(st, sb_handle_ptr, uplo, size, alpha,
-                                         incX, success);
+          run<scalar_t>(st, sb_handle_ptr, uplo, size, alpha, incX, success);
         };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>("col", uplo_c, n, alpha, incX).c_str(),
-        BM_lambda_col, sb_handle_ptr, uplo_c, n, alpha, incX, success);
+        get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
+        sb_handle_ptr, uplo_c, n, alpha, incX, success);
   }
 }
 

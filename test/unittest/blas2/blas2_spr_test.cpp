@@ -47,14 +47,12 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> a_mp(mA_size, 7.0);
   std::vector<scalar_t> a_cpu_mp(mA_size, 7.0);
 
+  uplo = (uplo == 'u' && layout == 'c') || (uplo == 'l' && layout == 'r') ? 'u'
+                                                                          : 'l';
+
   // SYSTEM SPR
-  if (layout == 'c') {
-    reference_blas::spr<scalar_t, true>(&uplo, n, alpha, x_v.data(), incX,
-                                        a_cpu_mp.data());
-  } else {
-    reference_blas::spr<scalar_t, false>(&uplo, n, alpha, x_v.data(), incX,
-                                         a_cpu_mp.data());
-  }
+  reference_blas::spr<scalar_t>(&uplo, n, alpha, x_v.data(), incX,
+                                a_cpu_mp.data());
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
@@ -62,15 +60,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto a_mp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_mp, mA_size);
 
   // SYCLspr
-  if (layout == 'c') {
-    _spr<blas::SB_Handle, index_t, scalar_t, decltype(x_v_gpu), index_t,
-         decltype(a_mp_gpu), col_major>(sb_handle, uplo, n, alpha, x_v_gpu,
-                                        incX, a_mp_gpu);
-  } else {
-    _spr<blas::SB_Handle, index_t, scalar_t, decltype(x_v_gpu), index_t,
-         decltype(a_mp_gpu), row_major>(sb_handle, uplo, n, alpha, x_v_gpu,
-                                        incX, a_mp_gpu);
-  }
+  _spr<blas::SB_Handle, index_t, scalar_t, decltype(x_v_gpu), index_t,
+       decltype(a_mp_gpu)>(sb_handle, uplo, n, alpha, x_v_gpu, incX, a_mp_gpu);
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu,
                                           a_mp.data(), mA_size);

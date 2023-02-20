@@ -26,18 +26,16 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string layout, char uplo, int size, scalar_t alpha,
-                     int incX) {
+std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
   std::ostringstream str{};
   str << "BM_Spr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << layout << "/" << uplo << "/" << size << "/" << alpha << "/" << incX;
+      << uplo << "/" << size << "/" << alpha << "/" << incX;
   return str.str();
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, ExecutorType* executorPtr,
-         clblast::Layout layout, char uplo, int size, scalar_t alpha, int incX,
-         bool* success) {
+void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
+         int size, scalar_t alpha, int incX, bool* success) {
   // The counters are double. We convert size to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   double size_d = static_cast<double>(size * (size + 1) / 2);
@@ -62,8 +60,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr,
   const clblast::Triangle triangle =
       uplo == 'u' ? clblast::Triangle::kUpper : clblast::Triangle::kLower;
 
-  bool isColMajor = layout == clblast::Layout::kColMajor;
-
   const int m_size = size * size;
   const int v_size = 1 + (size - 1) * std::abs(incX);
 
@@ -82,20 +78,15 @@ void run(benchmark::State& state, ExecutorType* executorPtr,
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_ref = v_x;
   std::vector<scalar_t> m_a_ref = m_a;
-  if (isColMajor) {
-    reference_blas::spr<scalar_t, true>(&uplo, size, alpha, x_ref.data(), incX,
-                                        m_a_ref.data());
-  } else {
-    reference_blas::spr<scalar_t, false>(&uplo, size, alpha, x_ref.data(), incX,
-                                         m_a_ref.data());
-  }
-
+  reference_blas::spr<scalar_t>(&uplo, size, alpha, x_ref.data(), incX,
+                                m_a_ref.data());
   std::vector<scalar_t> m_a_temp = m_a;
   {
     MemBuffer<scalar_t> m_a_temp_gpu(executorPtr, m_a_temp.data(),
                                      static_cast<size_t>(m_size));
 
     cl_event event;
+    clblast Layout layout = clblast::Layout::kColMajor;
     clblast::Spr<scalar_t>(layout, triangle, size, alpha, v_x_gpu.dev(), 0,
                            incX, m_a_temp_gpu.dev(), 0, executorPtr->_queue(),
                            &event);
@@ -149,26 +140,14 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     std::tie(uplo, n, alpha, incX) = p;
 
     char uplo_c = uplo[0];
-
-    auto BM_lambda_row = [&](benchmark::State& st, ExecutorType* exPtr,
-                             char uplo, int size, scalar_t alpha, int incX,
-                             bool* success) {
-      clblast::Layout layout = clblast::Layout::kRowMajor;
-      run<scalar_t>(st, exPtr, layout, uplo, size, alpha, incX, success);
-    };
-    benchmark::RegisterBenchmark(
-        get_name<scalar_t>("row", uplo_c, n, alpha, incX).c_str(),
-        BM_lambda_row, exPtr, uplo_c, n, alpha, incX, success);
-
     auto BM_lambda_col = [&](benchmark::State& st, ExecutorType* exPtr,
                              char uplo, int size, scalar_t alpha, int incX,
                              bool* success) {
-      clblast::Layout layout = clblast::Layout::kColMajor;
-      run<scalar_t>(st, exPtr, layout, uplo, size, alpha, incX, success);
+      run<scalar_t>(st, exPtr, uplo, size, alpha, incX, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>("col", uplo_c, n, alpha, incX).c_str(),
-        BM_lambda_col, exPtr, uplo_c, n, alpha, incX, success);
+        get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
+        exPtr, uplo_c, n, alpha, incX, success);
   }
 }
 
