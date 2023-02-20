@@ -647,14 +647,13 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto assignOp = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize));
+               ret, sb_handle.execute(spr, localSize, globalSize));
   } else {
-    auto assignOp =
-        make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(assignOp, localSize, globalSize));
+               ret, sb_handle.execute(spr, localSize, globalSize));
   }
 }
 

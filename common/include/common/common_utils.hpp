@@ -732,7 +732,6 @@ static inline Transposition to_transpose_enum(std::string& t) {
     exit(1);
   }
 }
-
 /**
  * @fn from_transpose_enum
  * @brief Translates from a transposition enum to a transposition string
