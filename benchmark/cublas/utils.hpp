@@ -1,24 +1,23 @@
 #ifndef SYCL_UTILS_HPP
 #define SYCL_UTILS_HPP
 
-#include <CL/sycl.hpp>
 #include <chrono>
 #include <tuple>
 
 #include "sycl_blas.h"
 #include <common/common_utils.hpp>
 
+#include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <cublas_v2.h>
-#include "cublasWrap.h"
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
 
 namespace blas_benchmark {
 
 // Forward-declaring the function that will create the benchmark
-void create_benchmark(Args& args, cublasHandle_t* cuda_handle_ptr, bool* success);
+void create_benchmark(Args& args, cublasHandle_t* cuda_handle_ptr,
+                      bool* success);
 
 namespace utils {
 
@@ -30,7 +29,7 @@ namespace utils {
 template <>
 inline double time_event<cudaEvent_t>(cudaEvent_t& e) {
   // get start and end times
-  cl_ulong start_time = 0; 
+  cl_ulong start_time = 0;
   cl_ulong end_time = 0;
 
   std::cout << "should not be here\n";
@@ -38,12 +37,13 @@ inline double time_event<cudaEvent_t>(cudaEvent_t& e) {
   return static_cast<double>(end_time - start_time);
 }
 
-template<>
-inline double time_event<std::vector<cudaEvent_t>>(std::vector<cudaEvent_t>& cuda_events) {
-  float elapsed_time{};
+template <>
+inline double time_event<std::vector<cudaEvent_t>>(
+    std::vector<cudaEvent_t>& cuda_events) {
+  float elapsed_time;
   cudaEventElapsedTime(&elapsed_time, cuda_events[0], cuda_events[1]);
   // convert result from ms to ns
-  return static_cast<double>(elapsed_time)*1'000'000.;
+  return static_cast<double>(elapsed_time) * 1'000'000.;
 }
 
 }  // namespace utils

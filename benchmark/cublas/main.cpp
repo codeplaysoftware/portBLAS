@@ -22,7 +22,6 @@ int main(int argc, char** argv) {
   cublasHandle_t cublas_handle = NULL;
   cublasCreate(&cublas_handle);
 
-
   // This will be set to false by a failing benchmark
   bool success = true;
 
