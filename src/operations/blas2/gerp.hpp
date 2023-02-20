@@ -116,27 +116,18 @@ void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
   index_t row = 0, col = 0;
 
-  auto lhs_ptr = lhs_.get_pointer();
-  auto rhs_1_ptr = rhs_1_.get_pointer();
-  auto rhs_2_ptr = rhs_2_.get_pointer();
-
   if (global_idx < lhs_size) {
-    value_t lhs_val = *(lhs_ptr + global_idx);
+    value_t lhs_val = lhs_.eval(global_idx);
 
     compute_row_col<0, isUpper> idx_compute_obj;
     idx_compute_obj(global_idx, N_, row, col);
 
-    const index_t rhs_1_idx =
-        (incX_1_ > 0 ? row : N_ - row - 1) * cl::sycl::abs(incX_1_);
-    const index_t rhs_2_idx =
-        (incX_2_ > 0 ? col : N_ - col - 1) * cl::sycl::abs(incX_2_);
-
-    value_t rhs_1_val = *(rhs_1_ptr + rhs_1_idx);
-    value_t rhs_2_val = *(rhs_2_ptr + rhs_2_idx);
+    value_t rhs_1_val = rhs_1_.eval(row);
+    value_t rhs_2_val = rhs_2_.eval(col);
 
     value_t out = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
 
-    *(lhs_ptr + global_idx) = out;
+    lhs_.eval(global_idx) = out;
   }
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,

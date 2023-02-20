@@ -638,7 +638,7 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
   _Uplo = tolower(_Uplo);
   const int Upper = _Uplo == 'u';
   auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
-  auto vx = make_vector_view(_vx, std::abs(_incx), _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
