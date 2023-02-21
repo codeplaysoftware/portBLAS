@@ -30,64 +30,6 @@
 
 namespace blas {
 
-// Row-Col index calculation for Lower Packed Matrix
-template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
-          typename rhs_2_t>
-template <int N>
-struct Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<N,
-                                                                       false> {
-  using index_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  SYCL_BLAS_ALWAYS_INLINE void operator()(const int64_t id, const index_t size,
-                                          index_t& row, index_t& col) {
-    index_t temp = 2 * size + 1;
-    int64_t internal = temp * temp - 8 * id;
-    float val = internal * 1.f;
-    float sqrt = 0.f;
-    float divisor = internal >= 1048576 ? 2 * size * 1.f : 1.f;
-    val = internal / (divisor * divisor);
-    sqrt = cl::sycl::sqrt(val) * divisor;
-    col = static_cast<index_t>((temp - sqrt) / 2);
-    row = id - (col * (temp - col)) / 2 + col;
-    // adjust row-col if out of bounds
-    if (row < 0 || col < 0 || row >= size || col >= size || row < col) {
-      int diff = id < size || row < col ? -1 : row >= size ? 1 : 0;
-      col += diff;
-      row = id - (col * (temp - col)) / 2 + col;
-    }
-  }
-};
-
-// Row-Col index calculation for Upper Packed Matrix
-template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
-          typename rhs_2_t>
-template <int N>
-struct Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<N,
-                                                                       true> {
-  using index_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t;
-  using value_t = Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::value_t;
-  SYCL_BLAS_ALWAYS_INLINE void operator()(const int64_t id, const index_t size,
-                                          index_t& row, index_t& col) {
-    int64_t internal = 1 + 8 * id;
-    float val = internal * 1.f;
-    float sqrt = 0.f;
-    float divisor = id >= 1048576 ? size * 1.f : 1.f;
-    val = internal / (divisor * divisor);
-    sqrt = cl::sycl::sqrt(val) * divisor;
-    col = static_cast<index_t>((-1 + sqrt) / 2);
-    row = id - col * (col + 1) / 2;
-    // adjust the row/col if out of bounds
-    if (row > col) {
-      int diff = row - col;
-      col += diff;
-      row -= col;
-    } else if (row < 0) {
-      col--;
-      row = id - col * (col + 1) / 2;
-    }
-  }
-};
-
 /**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
@@ -106,7 +48,7 @@ SYCL_BLAS_INLINE Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Gerp(
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+typename rhs_1_t::value_t Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
   const index_t id = ndItem.get_local_linear_id();
   const index_t group_id = ndItem.get_group(0);
@@ -119,8 +61,8 @@ void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
   if (global_idx < lhs_size) {
     value_t lhs_val = lhs_.eval(global_idx);
 
-    compute_row_col<0, isUpper> idx_compute_obj;
-    idx_compute_obj(global_idx, N_, row, col);
+    Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<isUpper>(
+        global_idx, N_, row, col);
 
     value_t rhs_1_val = rhs_1_.eval(row);
     value_t rhs_2_val = rhs_2_.eval(col);
@@ -129,6 +71,7 @@ void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
     lhs_.eval(global_idx) = out;
   }
+  return lhs_.eval(global_idx);
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
