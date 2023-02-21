@@ -161,7 +161,6 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   index_t stridea_;
   index_t strideb_;
   index_t stridec_;
-  // Matrices Strides are of no use interleaved
 
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
                         element_t beta, index_t batch_size, index_t stride_a,

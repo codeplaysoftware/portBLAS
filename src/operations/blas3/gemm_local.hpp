@@ -139,8 +139,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static_assert(cl_elems % packetize_t::packet_size == 0,
                 "Cache line size must be a multiple of packet_size");
 
-  // TODO : assert strides are multiples of matrices sizes or = 0
-
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in local
