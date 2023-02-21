@@ -137,9 +137,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto tbmv_params = blas_benchmark::utils::get_tbmv_params(args);
+  auto trsv_params = blas_benchmark::utils::get_tbmv_params(args);
 
-  for (auto p : tbmv_params) {
+  for (auto p : trsv_params) {
     std::string uplos;
     std::string ts;
     std::string diags;
@@ -147,7 +147,7 @@ void register_benchmark(blas_benchmark::Args& args,
     index_t k;
     std::tie(uplos, ts, diags, n, k) = p;
 
-    // Repurpose tbmv_params.
+    // Repurpose tbmv parameters.
     if (k != 1) continue;
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
