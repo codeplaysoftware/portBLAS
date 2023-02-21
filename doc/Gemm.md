@@ -58,8 +58,8 @@ where A, B and C are matrices and alpha and beta are scalars.
 
 - `gemm_no_local_full_vec.hpp` - Doesn't use local memory. Supports full vectorization.
 
-- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. 
-Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses).
+- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. This means that the batch axis is the fastest moving dimension.
+Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses). Also, the interleaved batched gemm is not (yet) subject to custom striding, as matrices strides are exclusively dictated by whether they are transposed or not.
 
 ## Relevant CMake Variables
 
