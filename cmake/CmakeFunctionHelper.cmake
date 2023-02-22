@@ -98,7 +98,7 @@ function(generate_blas_unary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
-  set(container_list "BufferIterator<${cpp_data}>")
+  set(container_list "${cpp_data}*")
   foreach(index ${index_list})
     foreach(container0 ${container_list})
       foreach(increment ${index_list})
@@ -140,7 +140,7 @@ function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
-  set(container_list "BufferIterator<${cpp_data}>")
+  set(container_list "${cpp_data}*")
   foreach(index ${index_list})
     foreach(container0 ${container_list})
       foreach(container1 ${container_list})
@@ -193,13 +193,13 @@ foreach(data ${data_list})
   cpp_type(cpp_data ${data})
   set(container_list_in)
   if(pos EQUAL -1)
-    list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_in "${cpp_data}*")
   else()
-    list(APPEND container_list_in "BufferIterator<${cpp_data} const>")
+    list(APPEND container_list_in "${cpp_data}* const")
   endif()
-  set(container_list_out "BufferIterator<${cpp_data}>")
+  set(container_list_out "${cpp_data}*")
   foreach(index ${index_list})
-    set(container_list "BufferIterator<${cpp_data}>")
+    set(container_list "${cpp_data}*")
     foreach(operator ${operator_list})
       foreach(container0 ${container_list_in})
         foreach(container1 ${container_list_out})
@@ -302,11 +302,11 @@ foreach(data ${data_list})
   cpp_type(cpp_data ${data})
   set(container_list_in)
   if(const_pos EQUAL -1)
-    list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_in "${cpp_data}*")
   else()
-    list(APPEND container_list_in "BufferIterator<${cpp_data} const>")
+    list(APPEND container_list_in "${cpp_data}* const")
   endif()
-  set(container_list_out "BufferIterator<${cpp_data}>")
+  set(container_list_out "${cpp_data}*")
   foreach(index ${index_list})
     foreach(container0 ${container_list_in})
       foreach(container1 ${container_list_in})
@@ -356,7 +356,7 @@ function(generate_blas_rotg_objects blas_level func)
   set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
   foreach (data ${data_list})
     cpp_type(cpp_data ${data})
-    set(container_list_in_out "BufferIterator<${cpp_data}>")
+    set(container_list_in_out "${cpp_data}*")
     foreach (container0 ${container_list_in_out})
       foreach (container1 ${container_list_in_out})
         foreach (container2 ${container_list_in_out})
@@ -402,7 +402,7 @@ function(generate_blas_rotg_return_objects blas_level func)
   set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
   foreach (data ${data_list})
     cpp_type(cpp_data ${data})
-    set(container_list "BufferIterator<${cpp_data}>")
+    set(container_list "${cpp_data}")
     sanitize_file_name(file_name
             "${func}_${data}_${index}_${container0}_${increment}.cpp")
     add_custom_command(OUTPUT "${LOCATION}/${file_name}"
@@ -434,7 +434,7 @@ function(generate_blas_rotmg_objects blas_level func)
   set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
   foreach (data ${data_list})
     cpp_type(cpp_data ${data})
-    set(container_list_in_out "BufferIterator<${cpp_data}>")
+    set(container_list_in_out "${cpp_data}*")
     foreach (container0 ${container_list_in_out})
       foreach (container1 ${container_list_in_out})
         foreach (container2 ${container_list_in_out})
@@ -890,26 +890,27 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>
                 $<TARGET_OBJECTS:swap>
-                $<TARGET_OBJECTS:gbmv>
-                $<TARGET_OBJECTS:gemv>
-                $<TARGET_OBJECTS:ger>
-                $<TARGET_OBJECTS:sbmv>
-                $<TARGET_OBJECTS:symv>
-                $<TARGET_OBJECTS:syr>
-                $<TARGET_OBJECTS:spr>
-                $<TARGET_OBJECTS:syr2>
-                $<TARGET_OBJECTS:tbmv>
-                $<TARGET_OBJECTS:tbsv>
-                $<TARGET_OBJECTS:trmv>
-                $<TARGET_OBJECTS:trsv>
-                $<TARGET_OBJECTS:gemm_launcher>
-                $<TARGET_OBJECTS:gemm>
-                $<TARGET_OBJECTS:symm>
-                $<TARGET_OBJECTS:trsm>)
+                # $<TARGET_OBJECTS:gbmv>
+                # $<TARGET_OBJECTS:gemv>
+                # $<TARGET_OBJECTS:ger>
+                # $<TARGET_OBJECTS:sbmv>
+                # $<TARGET_OBJECTS:symv>
+                # $<TARGET_OBJECTS:syr>
+                # $<TARGET_OBJECTS:spr>
+                # $<TARGET_OBJECTS:syr2>
+                # $<TARGET_OBJECTS:tbmv>
+                # $<TARGET_OBJECTS:tbsv>
+                # $<TARGET_OBJECTS:trmv>
+                # $<TARGET_OBJECTS:trsv>
+                # $<TARGET_OBJECTS:gemm_launcher>
+                # $<TARGET_OBJECTS:gemm>
+                # $<TARGET_OBJECTS:symm>
+                # $<TARGET_OBJECTS:trsm>
+                )
 
-  if (${ENABLE_EXTENSIONS})
-    list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
-  endif()
+  # if (${ENABLE_EXTENSIONS})
+  #   list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
+  # endif()
 
   add_library(${LIB_NAME} ${LIB_SRCS})
 

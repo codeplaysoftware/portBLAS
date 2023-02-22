@@ -65,17 +65,22 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v =
-      blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incX));
-  blas::helper::copy_to_device(sb_handle.get_queue(), x_v.data(), gpu_x_v,
-                               vectorSize * incX);
-  auto gpu_y_v =
-      blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incY));
-  blas::helper::copy_to_device(sb_handle.get_queue(), y_v.data(), gpu_y_v,
-                               vectorSize * incY);
+  auto gpu_x_v = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
+      int(vectorSize * incX), q);
+  auto copy_x =
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
+  auto gpu_y_v = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
+      int(vectorSize * incY), q);
+  auto copy_y =
+      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
+
+  sb_handle.wait({copy_x, copy_y});
 
   if (api == api_type::async) {
-    auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
+    auto gpu_out_s =
+        blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto copy_out = blas::helper::copy_to_device(q, &out_s, gpu_out_s, 1);
+    sb_handle.wait(copy_out);
     _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
     auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
                                                       gpu_out_s, &out_s, 1);

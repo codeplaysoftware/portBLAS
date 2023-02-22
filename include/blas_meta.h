@@ -95,20 +95,28 @@ struct Choose<false, val_t, value_one_t, value_two_t> {
 /// \brief These methods are used to remove all the & const and * from  a type.
 /// template parameters
 /// \tparam element_t : the type we are interested in
+template <typename element_t, bool isPointerType>
+struct RemoveAll;
 template <typename element_t>
-struct RemoveAll {
+struct RemoveAll<element_t, false> {
   using Type = typename std::remove_reference<
       typename std::remove_cv<element_t>::type>::type;
 };
 
-template <typename container_t>
+template <typename element_t>
+struct RemoveAll<element_t, true> {
+  using Type = typename std::remove_pointer<
+      typename std::remove_cv<element_t>::type>::type;
+};
+
+template <typename container_t, bool isPointerType>
 struct ValueType {
-  using type = typename RemoveAll<container_t>::Type;
+  using type = typename RemoveAll<container_t, isPointerType>::Type;
 };
 
 template <typename element_t, typename container_t>
 struct RebindType {
-  using type = RemoveAll<element_t> *;
+  using type = RemoveAll<element_t, false> *;
 };
 
 template <typename index_t>
@@ -183,6 +191,9 @@ struct is_sycl_scalar
 
 template <>
 struct is_sycl_scalar<cl::sycl::half> : std::true_type {};
+
+template <>
+struct is_sycl_scalar<float *> : std::false_type {};
 
 }  // namespace blas
 

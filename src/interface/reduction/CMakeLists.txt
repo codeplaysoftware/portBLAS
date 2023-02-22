@@ -23,7 +23,7 @@
 # *
 # **************************************************************************/
 #reduction
-generate_blas_reduction_objects(reduction reduction)
-if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_reduction_objects(reduction reduction_const)
-endif()
+# generate_blas_reduction_objects(reduction reduction)
+# if(BLAS_ENABLE_CONST_INPUT)
+#     generate_blas_reduction_objects(reduction reduction_const)
+# endif()

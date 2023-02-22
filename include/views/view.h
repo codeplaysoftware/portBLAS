@@ -249,6 +249,23 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
                      lda, (index_t)buff.get_offset()};
 }
 
+template <typename scalar_t, typename increment_t, typename index_t>
+static inline auto make_vector_view(scalar_t* usm_ptr,
+                                    increment_t inc, index_t sz,
+                                    index_t offset = 0) {
+  using leaf_node_t = VectorView<scalar_t, scalar_t *, index_t, increment_t>;
+  return leaf_node_t{usm_ptr, offset, inc, sz};
+}
+
+template <typename access_layout_t, typename scalar_t, typename index_t>
+static inline auto make_matrix_view(scalar_t* usm_ptr, index_t m,
+                                    index_t n, index_t lda,
+                                    index_t offset = 0) {
+  using leaf_node_t =
+      MatrixView<scalar_t, scalar_t *, index_t, access_layout_t>;
+  return leaf_node_t{usm_ptr, m, n, lda, offset};
+}
+
 }  // namespace blas
 
 #endif  // VIEW_H

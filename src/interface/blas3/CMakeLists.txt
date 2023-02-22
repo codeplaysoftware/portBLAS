@@ -23,11 +23,11 @@
 # *
 # **************************************************************************/
 #blas3
-generate_blas_gemm_objects(blas3 gemm_launcher)
-generate_blas_ternary_objects(blas3 gemm)
-generate_blas_ternary_objects(blas3 symm)
-generate_blas_binary_objects(blas3 trsm)
+# generate_blas_gemm_objects(blas3 gemm_launcher)
+# generate_blas_ternary_objects(blas3 gemm)
+# generate_blas_ternary_objects(blas3 symm)
+# generate_blas_binary_objects(blas3 trsm)
 
-if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_ternary_objects(blas3 gemm_const)
-endif()
+# if(BLAS_ENABLE_CONST_INPUT)
+#     generate_blas_ternary_objects(blas3 gemm_const)
+# endif()

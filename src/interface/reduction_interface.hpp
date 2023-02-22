@@ -88,9 +88,10 @@ typename sb_handle_t::event_t launch_type_based_reduction(
   /* 2-step reduction */
   if (two_step_reduction) {
     /* Create a temporary buffer */
-    auto temp_buffer = make_sycl_iterator_buffer<element_t>(
+    auto temp_buffer = blas::helper::BlasUsmHelper<true, element_t>::allocate(
         (reduction_dim == reduction_dim_t::outer ? rows : cols) *
-        reduced_group_count);
+            reduced_group_count,
+        sb_handle.get_queue());
 
     const index_t temp_rows =
         reduction_dim == reduction_dim_t::outer ? rows : reduced_group_count;

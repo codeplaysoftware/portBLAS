@@ -344,11 +344,9 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy);
+typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
+_dot(sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+     container_1_t _vy, increment_t _incy);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -372,9 +370,9 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(
-    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
-    increment_t _incx, container_1_t _vy, increment_t _incy);
+typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
+_sdsdot(sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
+        increment_t _incx, container_1_t _vy, increment_t _incy);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator
@@ -404,8 +402,8 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
-                                            container_t _vx, increment_t _incx);
+typename ValueType<container_t, std::is_pointer<container_t>::value>::type
+_asum(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
@@ -416,8 +414,8 @@ typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
-                                            container_t _vx, increment_t _incx);
+typename ValueType<container_t, std::is_pointer<container_t>::value>::type
+_nrm2(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx);
 }  // namespace internal
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -760,11 +758,9 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
-                                             container_0_t _vx,
-                                             increment_t _incx,
-                                             container_1_t _vy,
-                                             increment_t _incy) {
+typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
+_dot(sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+     container_1_t _vy, increment_t _incy) {
   return internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy);
 }
 
@@ -790,9 +786,9 @@ typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t>::type _sdsdot(
-    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
-    increment_t _incx, container_1_t _vy, increment_t _incy) {
+typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
+_sdsdot(sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
+        increment_t _incx, container_1_t _vy, increment_t _incy) {
   return internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy);
 }
 
@@ -829,9 +825,8 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
-                                            container_t _vx,
-                                            increment_t _incx) {
+typename ValueType<container_t, std::is_pointer<container_t>::value>::type
+_asum(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
   return internal::_asum(sb_handle, _N, _vx, _incx);
 }
 
@@ -844,9 +839,8 @@ typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
-                                            container_t _vx,
-                                            increment_t _incx) {
+typename ValueType<container_t, std::is_pointer<container_t>::value>::type
+_nrm2(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
   return internal::_nrm2(sb_handle, _N, _vx, _incx);
 }
 

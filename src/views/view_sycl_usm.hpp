@@ -1,0 +1,298 @@
+/***************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename view_sycl_usm.hpp
+ *
+ **************************************************************************/
+
+#ifndef SYCL_BLAS_VIEW_SYCL_USM_HPP
+#define SYCL_BLAS_VIEW_SYCL_USM_HPP
+
+#include <CL/sycl.hpp>
+
+#include "blas_meta.h"
+#include "container/sycl_iterator.h"
+#include "views/view.h"
+
+namespace blas {
+
+/*!
+ * @brief View of a vector with an accessor.
+ * @tparam scalar_t Value type of accessor.
+ */
+
+template <typename view_value_t, typename view_index_t,
+          typename view_increment_t>
+struct VectorView<view_value_t, view_value_t *, view_index_t,
+                  view_increment_t> {
+  using scalar_t = view_value_t;
+  using value_t = scalar_t;
+  using index_t = view_index_t;
+  using increment_t = view_increment_t;
+  using container_t = scalar_t *;
+  using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
+
+  // USM pointer containing the vector values.
+  container_t data_;
+
+  // Number of elements in the vector that will be read.
+  const index_t size_;
+
+  // Number of elements offset into the data buffer to start reading from.
+  const index_t disp_;
+
+  // Stride between data elements in memory.
+  // If negative the data is read backwards, from
+  //     data_ + (-size_ + 1) * stride_ + 1
+  // up to
+  //     data_
+  const increment_t stride_;
+
+  // pointer access inside the kernel
+  scalar_t *ptr_;
+
+  // Round up the ration num / den, i.e. compute ceil(num / den)
+  static SYCL_BLAS_INLINE index_t round_up_ratio(index_t num, index_t den) {
+    return (num + den - 1) / den;
+  }
+
+  // Compute the number of elements to read from data. This is useful when a
+  // VectorView is created without an explicit size, so that only the necessary
+  // number of threads are launched.
+  static SYCL_BLAS_INLINE index_t calculate_input_data_size(
+      container_t data, index_t, increment_t stride, index_t size) noexcept {
+    // increment_t const positive_stride = stride < 0 ? -stride : stride;
+    // index_t const calc_size = round_up_ratio(data.get_count(),
+    // positive_stride); return std::min(size, calc_size);
+    return size;
+  }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, increment_t strd,
+                              index_t size)
+      : data_{data},
+        size_(calculate_input_data_size(data, disp, strd, size)),
+        disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
+        stride_(strd) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data, index_t size)
+      : VectorView(data, 0, 1, size) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(container_t data, index_t disp, index_t size)
+      : VectorView(data, disp, 1, size) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE VectorView(self_t &opV, index_t disp, increment_t strd,
+                              index_t size)
+      : VectorView(opV.get_data(), disp, strd, size) {}
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE scalar_t *get_data() const { return data_; }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE scalar_t *get_pointer() const { return data_; }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE index_t get_data_size() const { return this->get_size(); }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE index_t get_size() const { return size_; }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE index_t get_access_displacement() const { return disp_; }
+
+  /*!
+   * @brief See VectorView.
+   */
+  SYCL_BLAS_INLINE increment_t get_stride() const { return stride_; }
+
+  /**** EVALUATING ****/
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+      index_t i) {
+    return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
+  }
+
+  // template <bool use_as_ptr = false>
+  // SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
+  //     index_t i) {
+  //   return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
+  // }
+
+  SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  SYCL_BLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
+    return *(ptr_ + indx);
+  }
+
+  // template <bool use_as_ptr = false>
+  // SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
+  //     index_t indx) const noexcept {
+  //   return *(ptr_ + indx);
+  // }
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/ }
+  SYCL_BLAS_INLINE void adjust_access_displacement() { ptr_ = data_ + disp_; }
+};
+
+template <class view_value_t, int dim, cl::sycl::access::mode acc_mode_t,
+          cl::sycl::access::target access_t,
+          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
+          typename layout>
+struct MatrixView<
+    view_value_t,
+    cl::sycl::accessor<view_value_t, dim, acc_mode_t, access_t, place_holder_t>,
+    view_index_t, layout>;
+/*!
+ * @brief Specialization of an MatrixView with a USM pointer.
+ */
+template <class view_value_t, typename view_index_t, typename layout>
+struct MatrixView<view_value_t, view_value_t *, view_index_t, layout> {
+  using access_layout_t = layout;
+  using scalar_t = view_value_t;
+  using index_t = view_index_t;
+  using container_t = scalar_t *;
+  using self_t = MatrixView<scalar_t, container_t, index_t, layout>;
+
+  using value_t = scalar_t;
+  // Information related to the data
+  container_t data_;
+  // Information related to the operation
+  const index_t sizeR_;  // number of rows
+  const index_t sizeC_;  // number of columns
+  const index_t sizeL_;  // size of the leading dimension
+  const index_t disp_;   // displacementt od the first element
+  scalar_t *ptr_;        // pointer access inside the kernel
+
+  /**** CONSTRUCTORS ****/
+  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
+                              index_t sizeL, index_t disp)
+      : data_{data}, sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), disp_(disp) {}
+
+  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
+      : MatrixView(data, sizeR, sizeC,
+                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {}
+
+  SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
+                              index_t sizeL, index_t disp)
+      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
+
+  /**** RETRIEVING DATA ****/
+  SYCL_BLAS_INLINE container_t get_data() { return data_; }
+
+  SYCL_BLAS_INLINE const index_t get_size() const { return sizeR_ * sizeC_; }
+
+  SYCL_BLAS_INLINE index_t get_data_size() const { return this->get_size(); }
+
+  SYCL_BLAS_INLINE const index_t getSizeL() const { return sizeL_; }
+
+  SYCL_BLAS_INLINE const index_t get_size_row() const { return sizeR_; }
+
+  SYCL_BLAS_INLINE const index_t get_size_col() const { return sizeC_; }
+
+  SYCL_BLAS_INLINE index_t get_access_displacement() const { return disp_; }
+
+  SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
+
+  /**** EVALUATING ***/
+
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
+  }
+
+  SYCL_BLAS_INLINE scalar_t eval(index_t i, index_t j) const noexcept {
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
+  }
+
+  // template <bool use_as_ptr = false>
+  // SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+  //     index_t indx) {
+  //   const index_t j = indx / sizeR_;
+  //   const index_t i = indx - sizeR_ * j;
+  //   return eval(i, j);
+  // }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
+      index_t indx) const noexcept {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
+  }
+
+  SYCL_BLAS_INLINE scalar_t &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  SYCL_BLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const noexcept {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  // template <bool use_as_ptr = false>
+  // SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+  //     index_t indx) {
+  //   return *(ptr_ + indx);
+  // }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
+      index_t indx) const noexcept {
+    return *(ptr_ + indx);
+  }
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/ }
+
+  SYCL_BLAS_INLINE void adjust_access_displacement() { ptr_ = data_ + disp_; }
+};
+
+}  // namespace blas
+
+#endif  // VIEW_SYCL_USM_HPP

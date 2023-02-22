@@ -63,16 +63,28 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
-  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
-  auto gpu_param = blas::make_sycl_iterator_buffer<scalar_t>(param, param_size);
+  auto gpu_x_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incX, q);
+  auto gpu_y_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incY, q);
+  auto gpu_param =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(param_size, q);
+
+  auto copy_x =
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+  auto copy_y =
+      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
+  auto copy_param =
+      blas::helper::copy_to_device(q, param.data(), gpu_param, param_size);
+
+  sb_handle.wait({copy_x, copy_y, copy_param});
 
   _rotm(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
 
-  auto event1 = blas::helper::copy_to_host<scalar_t>(
-      sb_handle.get_queue(), gpu_x_v, x_v.data(), size * incX);
-  auto event2 = blas::helper::copy_to_host<scalar_t>(
-      sb_handle.get_queue(), gpu_y_v, y_v.data(), size * incY);
+  auto event1 =
+      blas::helper::copy_to_host<scalar_t>(q, gpu_x_v, x_v.data(), size * incX);
+  auto event2 =
+      blas::helper::copy_to_host<scalar_t>(q, gpu_y_v, y_v.data(), size * incY);
   sb_handle.wait({event1, event2});
 
   // Validate the result

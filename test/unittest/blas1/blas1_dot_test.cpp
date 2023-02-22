@@ -53,19 +53,31 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
-    // Iterators
-    auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
-    auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
+  // Iterators
+  auto gpu_x_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incX, q);
+  auto gpu_y_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incY, q);
 
-    if (api == api_type::async) {
-      auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
-      _dot(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-      auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s,
-                                              &out_s, 1);
-      sb_handle.wait(event);
-    } else {
-      out_s = _dot(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
-    }
+  auto copy_x =
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+  auto copy_y =
+      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
+  sb_handle.wait({copy_x, copy_y});
+
+  if (api == api_type::async) {
+    auto gpu_out_s =
+        blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto copy_out =
+        blas::helper::copy_to_device<scalar_t>(q, &out_s, gpu_out_s, 1);
+    sb_handle.wait(copy_out);
+    _dot(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+    auto event =
+        blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
+    sb_handle.wait(event);
+  } else {
+    out_s = _dot(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
+  }
 
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s, out_cpu_s);

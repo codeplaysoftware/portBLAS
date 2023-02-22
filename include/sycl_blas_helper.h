@@ -32,6 +32,42 @@
 namespace blas {
 namespace helper {
 
+template <bool isUsm, typename value_t>
+struct BlasUsmHelper;
+
+template <typename value_t>
+struct BlasUsmHelper<false, value_t> {
+  using accessor_t =
+      cl::sycl::accessor<value_t, 1, cl::sycl::access::mode::read_write,
+                         cl::sycl::access::target::global_buffer,
+                         cl::sycl::access::placeholder::true_t>;
+  using index_t = int;
+
+  static BufferIterator<value_t> allocate(int size, cl::sycl::queue) {
+    return make_sycl_iterator_buffer<value_t>(size);
+  }
+
+  static accessor_t get_container(BufferIterator<value_t> buff) {
+    return buff
+        .template get_range_accessor<cl::sycl::access::mode::read_write>();
+  }
+
+  static std::ptrdiff_t get_offset(BufferIterator<value_t> buff) {
+    return buff.get_offset();
+  }
+};
+
+template <typename value_t>
+struct BlasUsmHelper<true, value_t> {
+  static value_t *allocate(int size, cl::sycl::queue q) {
+    return cl::sycl::malloc_device<value_t>(size, q);
+  }
+
+  static value_t *get_container(value_t *ptr) { return ptr; }
+
+  static std::ptrdiff_t get_offset(value_t *ptr) { return 0; }
+};
+
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()
               .template get_info<cl::sycl::info::device::local_mem_type>() ==
@@ -69,6 +105,13 @@ inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
   return event;
 }
 
+template <typename element_t>
+inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
+                                      element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+  return event;
+}
+
 /*  @brief Copying the data back to device
   @tparam element_t is the type of the data
   @param src is the BufferIterator we want to copy from.
@@ -84,6 +127,13 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q,
         cgh, size);
     cgh.copy(acc, dst);
   });
+  return event;
+}
+
+template <typename element_t>
+inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
+                                    element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
 

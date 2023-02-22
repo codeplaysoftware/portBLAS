@@ -50,10 +50,18 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t a = a_input;
   scalar_t b = b_input;
   if (api == api_type::async) {
-    auto device_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_input, 1);
-    auto device_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_input, 1);
-    auto device_c = blas::make_sycl_iterator_buffer<scalar_t>(1);
-    auto device_s = blas::make_sycl_iterator_buffer<scalar_t>(1);
+    auto device_a = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto device_b = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto device_c = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto device_s = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+
+    auto copy_a = blas::helper::copy_to_device(q, &a_input, device_a, 1);
+    auto copy_b = blas::helper::copy_to_device(q, &b_input, device_b, 1);
+    auto set_c = q.memset(device_c, 1, sizeof(scalar_t));
+    auto set_s = q.memset(device_s, 1, sizeof(scalar_t));
+
+    sb_handle.wait({copy_a, copy_b, set_c, set_s});
+
     auto event0 = _rotg(sb_handle, device_a, device_b, device_c, device_s);
     sb_handle.wait(event0);
 

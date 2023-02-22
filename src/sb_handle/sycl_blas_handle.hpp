@@ -111,15 +111,30 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-  auto shMem1 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
-  auto shMem2 = make_sycl_iterator_buffer<typename lhs_t::value_t>(sharedSize);
+  constexpr bool is_usm = std::is_same<typename lhs_t::container_t,
+                                       typename lhs_t::value_t*>::value;
+  auto shMem1 =
+      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::allocate(
+          sharedSize, q_);
+  auto shMem2 =
+      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::allocate(
+          sharedSize, q_);
 
-  auto opShMem1 = lhs_t(
-      shMem1.template get_range_accessor<cl::sycl::access::mode::read_write>(),
-      (typename lhs_t::index_t)shMem1.get_offset(), 1, sharedSize);
-  auto opShMem2 = lhs_t(
-      shMem2.template get_range_accessor<cl::sycl::access::mode::read_write>(),
-      (typename lhs_t::index_t)shMem2.get_offset(), 1, sharedSize);
+  typename lhs_t::index_t shMem1_offset =
+      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::get_offset(
+          shMem1);
+  typename lhs_t::index_t shMem2_offset =
+      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::get_offset(
+          shMem2);
+
+  auto opShMem1 =
+      lhs_t(blas::helper::BlasUsmHelper<
+                is_usm, typename lhs_t::value_t>::get_container(shMem1),
+            shMem1_offset, 1, sharedSize);
+  auto opShMem2 =
+      lhs_t(blas::helper::BlasUsmHelper<
+                is_usm, typename lhs_t::value_t>::get_container(shMem2),
+            shMem2_offset, 1, sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;
@@ -215,7 +230,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   auto rng = gemm_tree.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
-            using_local_memory::enabled, using_local_memory::disabled>::type>(
+             using_local_memory::enabled, using_local_memory::disabled>::type>(
       q_, gemm_tree, rng.get_local_range()[0], rng.get_global_range()[0],
       gemm_t::local_memory_size)};
 }

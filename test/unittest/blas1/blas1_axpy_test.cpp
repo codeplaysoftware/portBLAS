@@ -52,12 +52,21 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
-  auto gpu_y_v = blas::make_sycl_iterator_buffer<scalar_t>(y_v, size * incY);
+  auto gpu_x_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incX, q);
+  auto gpu_y_v =
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incY, q);
 
-  _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
-                                          y_v.data(), size * incY);
+  auto copy_x =
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+  auto copy_y =
+      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
+  sb_handle.wait({copy_x, copy_y});
+
+  auto axpy_event = _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
+  sb_handle.wait(axpy_event);
+
+  auto event = blas::helper::copy_to_host(q, gpu_y_v, y_v.data(), size * incY);
   sb_handle.wait(event);
 
   // Validate the result

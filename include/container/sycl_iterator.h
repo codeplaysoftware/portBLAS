@@ -364,7 +364,7 @@ inline void BufferIterator<element_t>::set_offset(std::ptrdiff_t offset) {
  * returns the element type of m_buff in buffer iterator
  */
 template <typename element_t>
-struct ValueType<BufferIterator<element_t>> {
+struct ValueType<BufferIterator<element_t>, false> {
   using type = element_t;
 };
 /*

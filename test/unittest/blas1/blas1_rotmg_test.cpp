@@ -64,12 +64,21 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
-  auto device_d1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.d1, 1);
-  auto device_d2 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.d2, 1);
-  auto device_x1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.x1, 1);
-  auto device_y1 = blas::make_sycl_iterator_buffer<scalar_t>(&sycl_out.y1, 1);
+  auto device_d1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+  auto device_d2 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+  auto device_x1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+  auto device_y1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
   auto device_param =
-      blas::make_sycl_iterator_buffer<scalar_t>(sycl_out.param, param_size);
+      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(param_size, q);
+
+  auto copy_d1 = blas::helper::copy_to_device(q, &sycl_out.d1, device_d1, 1);
+  auto copy_d2 = blas::helper::copy_to_device(q, &sycl_out.d2, device_d2, 1);
+  auto copy_x1 = blas::helper::copy_to_device(q, &sycl_out.x1, device_x1, 1);
+  auto copy_y1 = blas::helper::copy_to_device(q, &sycl_out.y1, device_y1, 1);
+  auto copy_params = blas::helper::copy_to_device(q, sycl_out.param.data(),
+                                                  device_param, param_size);
+
+  sb_handle.wait({copy_d1, copy_d2, copy_x1, copy_y1, copy_params});
   auto event0 = _rotmg(sb_handle, device_d1, device_d2, device_x1, device_y1,
                        device_param);
   sb_handle.wait(event0);
@@ -352,9 +361,7 @@ const auto combi = ::testing::Values(
     std::make_tuple(15.5, -2.2, std::numeric_limits<scalar_t>::min(),
                     std::numeric_limits<scalar_t>::min(), false),
     /* Test for previous errors */
-    std::make_tuple(0.0516274, -0.197215, -0.270436,
-                    -0.157621, false)
-  );
+    std::make_tuple(0.0516274, -0.197215, -0.270436, -0.157621, false));
 
 template <class T>
 static std::string generate_name(
