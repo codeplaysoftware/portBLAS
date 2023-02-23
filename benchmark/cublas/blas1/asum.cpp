@@ -33,6 +33,15 @@ std::string get_name(int size) {
   return str.str();
 }
 
+template <typename scalar_t, typename... args_t>
+static inline void cublas_routine(args_t&&... args) {
+  if constexpr (std::is_same_v<scalar_t, float>)
+    cublasSasum(std::forward<args_t>(args)...);
+  else if constexpr (std::is_same_v<scalar_t, double>)
+    cublasDasum(std::forward(args)...);
+  return;
+}
+
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
          bool* success) {
@@ -53,12 +62,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   scalar_t vr;
 
   scalar_t* d_x = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_x, size * sizeof(scalar_t)));
+  cudaMalloc(&d_x, size * sizeof(scalar_t));
   scalar_t* d_r = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_r, sizeof(scalar_t)));
+  cudaMalloc(&d_r, sizeof(scalar_t));
 
-  CUDA_CHECK(cudaMemcpyAsync(d_x, v1.data(), size * sizeof(scalar_t),
-                             cudaMemcpyHostToDevice));
+  cudaMemcpyAsync(d_x, v1.data(), size * sizeof(scalar_t),
+                  cudaMemcpyHostToDevice);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -68,16 +77,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
     scalar_t* vr_temp_gpu = nullptr;
     cudaMalloc(&vr_temp_gpu, sizeof(scalar_t));
     cudaDeviceSynchronize();
-    CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
-    if constexpr (std::is_same_v<scalar_t, float>)
-      CUBLAS_CHECK(
-          cublasSasum(cuda_handle, size, d_x, std::abs(1), vr_temp_gpu));
-    else if constexpr (std::is_same_v<scalar_t, double>)
-      CUBLAS_CHECK(
-          cublasDasum(cuda_handle, size, d_x, std::abs(1), vr_temp_gpu));
+    cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE);
+    cublas_routine<scalar_t>(cuda_handle, size, d_x, 1, vr_temp_gpu);
     cudaDeviceSynchronize();
-    CUDA_CHECK(cudaMemcpy(&vr_temp, vr_temp_gpu, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
+    cudaMemcpy(&vr_temp, vr_temp_gpu, sizeof(scalar_t), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     cudaFree(vr_temp_gpu);
   }
@@ -91,25 +94,26 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   };
 #endif
 
+  auto blas_warmup = [&]() -> void {
+    cublas_routine<scalar_t>(cuda_handle, size, d_x, 1, d_r);
+    cudaDeviceSynchronize();
+    return;
+  };
+
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
     cudaEvent_t start;
     cudaEvent_t stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start);
-    if constexpr (std::is_same_v<scalar_t, float>)
-      CUBLAS_CHECK(cublasSasum(cuda_handle, size, d_x, std::abs(1), d_r));
-    else if constexpr (std::is_same_v<scalar_t, double>)
-      CUBLAS_CHECK(cublasDasum(cuda_handle, size, d_x, std::abs(1), d_r));
-    cudaDeviceSynchronize();
+    cublas_routine<scalar_t>(cuda_handle, size, d_x, 1, d_r);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     return std::vector{start, stop};
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_def);
-  cudaDeviceSynchronize();
+  blas_benchmark::utils::warmup(blas_warmup);
 
   blas_benchmark::utils::init_counters(state);
 
@@ -132,9 +136,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
+  auto asum_params = blas_benchmark::utils::get_blas1_params(args);
 
-  for (auto size : gemm_params) {
+  for (auto size : asum_params) {
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          index_t size, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, size, success);

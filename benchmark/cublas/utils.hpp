@@ -49,7 +49,6 @@ inline double time_event<std::vector<cudaEvent_t>>(
 }  // namespace utils
 }  // namespace blas_benchmark
 
-
 #define CUDA_CHECK(err)                                                  \
   do {                                                                   \
     cudaError_t err_ = (err);                                            \
