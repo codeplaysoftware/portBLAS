@@ -8,7 +8,17 @@ find_package(CUDAToolkit)
 set(sources
   # Level 1 blas
   blas1/asum.cpp
-)
+  blas1/axpy.cpp
+  blas1/dot.cpp
+  blas1/iamax.cpp
+  blas1/iamin.cpp
+  blas1/nrm2.cpp
+  blas1/rotg.cpp
+  blas1/rotm.cpp
+  blas1/rotmg.cpp
+  blas1/scal.cpp
+  #blas1/sdsdot.cpp -> not implemented in cuBLAS
+) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
 #  list(APPEND sources "extension/reduction.cpp")
@@ -25,7 +35,6 @@ foreach(cublas_bench ${sources})
     SOURCES ${cublas_bench}
   )
 target_include_directories(bench_cublas_${bench_cublas_exec} PRIVATE $ENV{CUBLAS_INCLUDE} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR} ${CBLAS_INCLUDE})
-  target_compile_options(bench_cublas_${bench_cublas_exec} PRIVATE --cuda-gpu-arch=sm_70)
   add_compile_definitions(BUILD_CUBLAS_BENCHMARKS)
 
   if(BLAS_VERIFY_BENCHMARK)
