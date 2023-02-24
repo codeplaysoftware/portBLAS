@@ -27,17 +27,6 @@ namespace utils {
  * on a queue with profiling.
  */
 template <>
-inline double time_event<cudaEvent_t>(cudaEvent_t& e) {
-  // get start and end times
-  cl_ulong start_time = 0;
-  cl_ulong end_time = 0;
-
-  std::cout << "should not be here\n";
-  // return the delta
-  return static_cast<double>(end_time - start_time);
-}
-
-template <>
 inline double time_event<std::vector<cudaEvent_t>>(
     std::vector<cudaEvent_t>& cuda_events) {
   float elapsed_time;
