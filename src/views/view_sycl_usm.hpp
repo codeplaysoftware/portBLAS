@@ -177,7 +177,8 @@ struct VectorView<view_value_t, view_value_t *, view_index_t,
   //   return *(ptr_ + indx);
   // }
 
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/ }
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/
+  }
   SYCL_BLAS_INLINE void adjust_access_displacement() { ptr_ = data_ + disp_; }
 };
 
@@ -252,13 +253,13 @@ struct MatrixView<view_value_t, view_value_t *, view_index_t, layout> {
                                      : *(ptr_ + j + sizeL_ * i));
   }
 
-  // template <bool use_as_ptr = false>
-  // SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
-  //     index_t indx) {
-  //   const index_t j = indx / sizeR_;
-  //   const index_t i = indx - sizeR_ * j;
-  //   return eval(i, j);
-  // }
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
+  }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
@@ -276,11 +277,11 @@ struct MatrixView<view_value_t, view_value_t *, view_index_t, layout> {
     return eval(ndItem.get_global_id(0));
   }
 
-  // template <bool use_as_ptr = false>
-  // SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t &>::type eval(
-  //     index_t indx) {
-  //   return *(ptr_ + indx);
-  // }
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t &>::type eval(
+      index_t indx) {
+    return *(ptr_ + indx);
+  }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, scalar_t>::type eval(
@@ -288,7 +289,8 @@ struct MatrixView<view_value_t, view_value_t *, view_index_t, layout> {
     return *(ptr_ + indx);
   }
 
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/ }
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { /*h.require(data_);*/
+  }
 
   SYCL_BLAS_INLINE void adjust_access_displacement() { ptr_ = data_ + disp_; }
 };

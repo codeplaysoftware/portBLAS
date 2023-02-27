@@ -908,9 +908,9 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 # $<TARGET_OBJECTS:trsm>
                 )
 
-  # if (${ENABLE_EXTENSIONS})
-  #   list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
-  # endif()
+  if (${ENABLE_EXTENSIONS})
+    list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
+  endif()
 
   add_library(${LIB_NAME} ${LIB_SRCS})
 

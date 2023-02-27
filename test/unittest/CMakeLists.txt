@@ -80,7 +80,7 @@ if(is_computecpp)
   )
 
   if(${BLAS_ENABLE_EXTENSIONS})
-    # list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/reduction/reduction_test.cpp")
+    list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/reduction/reduction_test.cpp")
   endif()
 endif()
 
