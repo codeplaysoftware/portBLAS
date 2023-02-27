@@ -457,17 +457,11 @@ struct Gerp {
   value_t eval(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
-  // Function for calculating Row-Col indices
-  template <bool Upper>
-  SYCL_BLAS_ALWAYS_INLINE static void compute_row_col(const int64_t,
-                                                      const index_t, index_t &,
-                                                      index_t &);
   // Row-Col index calculation for Upper Packed Matrix
-  template <>
-  SYCL_BLAS_ALWAYS_INLINE static void compute_row_col<true>(const int64_t id,
-                                                            const index_t size,
-                                                            index_t &row,
-                                                            index_t &col) {
+  template <bool Upper>
+  SYCL_BLAS_ALWAYS_INLINE static typename std::enable_if<Upper>::type
+  compute_row_col(const int64_t id, const index_t size, index_t &row,
+                  index_t &col) {
     int64_t internal = 1 + 8 * id;
     float val = internal * 1.f;
     float sqrt = 0.f;
@@ -488,11 +482,10 @@ struct Gerp {
   }
 
   // Row-Col index calculation for Lower Packed Matrix
-  template <>
-  SYCL_BLAS_ALWAYS_INLINE static void compute_row_col<false>(const int64_t id,
-                                                             const index_t size,
-                                                             index_t &row,
-                                                             index_t &col) {
+  template <bool Upper>
+  SYCL_BLAS_ALWAYS_INLINE static typename std::enable_if<!Upper>::type
+  compute_row_col(const int64_t id, const index_t size, index_t &row,
+                  index_t &col) {
     index_t temp = 2 * size + 1;
     int64_t internal = temp * temp - 8 * id;
     float val = internal * 1.f;
