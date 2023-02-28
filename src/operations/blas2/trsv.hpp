@@ -83,8 +83,6 @@ Trsv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
   // copy lhs_ local memory + sync thread
   if (g_idx < _N) l_x[l_idx] = lhs_.eval(g_idx);
 
-  ndItem.barrier(cl::sycl::access::fence_space::global_and_local);
-
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
 
@@ -94,7 +92,8 @@ Trsv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
     const index_t l_diag = (is_forward) ? _it : n_it - 1 - _it;
     const index_t g_diag = _offset + l_diag;
 
-    if (!is_unitdiag && !l_idx) l_x[l_diag] /= matrix_.eval(g_diag, g_diag);
+    if (!is_unitdiag && (l_idx == l_diag))
+      l_x[l_diag] /= matrix_.eval(g_diag, g_diag);
 
     ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
@@ -104,8 +103,6 @@ Trsv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
                                           : matrix_.eval(g_idx, g_diag);
       l_x[l_idx] -= val * l_x[l_diag];
     }
-
-    ndItem.barrier(cl::sycl::access::fence_space::local_space);
   }
 
   if (g_idx < _N) lhs_.eval(g_idx) = l_x[l_idx];
