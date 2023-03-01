@@ -119,7 +119,7 @@ static inline std::tuple<double, double> timef_hip(function_t func,
   double overall_time = (end - start).count();
 
   float elapsed_time;
-  hipEventElapsedTime(&elapsed_time, events.at(0), events.at(1));
+  CHECK_HIP_ERROR(hipEventElapsedTime(&elapsed_time, events.at(0), events.at(1)));
 
   return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
 }
