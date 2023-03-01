@@ -4,13 +4,10 @@
 #include <common/cli_device_selector.hpp>
 #include <common/print_queue_information.hpp>
 
-// Create a shared pointer to a sycl blas Handle, so that we don't keep
+// Create a shared pointer to a cublasHandle, so that we don't keep
 // reconstructing it each time (which is slow). Although this won't be
 // cleaned up if RunSpecifiedBenchmarks exits badly, that's okay, as those
 // are presumably exceptional circumstances.
-std::unique_ptr<utils::cli_device_selector> cdsp;
-void free_device_selector() { cdsp.reset(); }
-
 int main(int argc, char** argv) {
   // Read the command-line arguments
   auto args = blas_benchmark::utils::parse_args(argc, argv);
@@ -20,7 +17,7 @@ int main(int argc, char** argv) {
 
   // Create a sycl blas sb_handle from the queue
   cublasHandle_t cublas_handle = NULL;
-  cublasCreate(&cublas_handle);
+  CUBLAS_CHECK(cublasCreate(&cublas_handle));
 
   // This will be set to false by a failing benchmark
   bool success = true;
@@ -31,8 +28,8 @@ int main(int argc, char** argv) {
   // Run the benchmarks
   benchmark::RunSpecifiedBenchmarks();
 
-  cublasDestroy(cublas_handle);
-  cudaDeviceReset();
+  CUBLAS_CHECK(cublasDestroy(cublas_handle));
+  CUDA_CHECK(cudaDeviceReset());
 
   return !success;
 }

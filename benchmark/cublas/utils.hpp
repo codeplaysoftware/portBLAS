@@ -23,8 +23,8 @@ namespace utils {
 
 /**
  * @fn time_event
- * @brief Get the overall run time (start -> end) of a cl::sycl::event enqueued
- * on a queue with profiling.
+ * @brief Get the overall run time (start -> end) of a CUDA operator using
+ *  CudaEvent_t
  */
 template <>
 inline double time_event<std::vector<cudaEvent_t>>(
