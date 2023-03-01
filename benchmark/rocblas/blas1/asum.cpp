@@ -1,7 +1,7 @@
-/**************************************************************************
+/***************************************************************************
  *
  *  @license
- *  Copyright (C) Codeplay Software Limited
+ *  Copyright (C) 2016 Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -17,7 +17,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  @filename axpy.cpp
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename asum.cpp
  *
  **************************************************************************/
 
@@ -26,17 +28,17 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Axpy" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Asum<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
   str << size;
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
-static inline void rocblas_saxpy_f(args_t&&... args) {
+static inline void rocblas_asum_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_saxpy(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_sasum(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_daxpy(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_dasum(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -48,12 +50,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2 * size_d;
-  state.counters["bytes_processed"] = 3 * size_d * sizeof(scalar_t);
+  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
+
+  using data_t = scalar_t;
 
   // Create data
-  std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
-  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
+  scalar_t vr;
 
   // Initialize HIP & rocBLAS errors for checking the HIP/Rocblas APIs status
   hipError_t herror = hipSuccess;
@@ -62,44 +65,31 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_vr(1);
 
     // Copy data (D2H)
     herror = hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                        hipMemcpyHostToDevice);
     CHECK_HIP_ERROR(herror);
-    herror = hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                       hipMemcpyHostToDevice);
+    herror = hipMemcpy(d_vr, &vr, sizeof(scalar_t), hipMemcpyHostToDevice);
     CHECK_HIP_ERROR(herror);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
-    std::vector<scalar_t> y_ref = v2;
-    reference_blas::axpy(size, alpha, v1.data(), 1, y_ref.data(), 1);
-    std::vector<scalar_t> y_temp = v2;
-
+    data_t vr_ref = reference_blas::asum(size, v1.data(), 1);
+    data_t vr_temp = 0;
     {
-      blas_benchmark::utils::DeviceVector<scalar_t> y_temp_gpu(size);
-      herror = hipMemcpy(y_temp_gpu, y_temp.data(), sizeof(scalar_t) * size,
-                         hipMemcpyHostToDevice);
-      CHECK_HIP_ERROR(herror);
+      blas_benchmark::utils::DeviceVector<scalar_t> vr_temp_gpu(1);
 
-      // Enable passing alpha parameter from pointer to host memory
-      rstatus =
-          rocblas_set_pointer_mode(rb_handle_ptr, rocblas_pointer_mode_host);
-      CHECK_ROCBLAS_STATUS(rstatus);
+      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, vr_temp_gpu);
 
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1,
-                                y_temp_gpu, 1);
-
-      herror = hipMemcpy(y_temp.data(), y_temp_gpu, sizeof(scalar_t) * size,
-                         hipMemcpyDeviceToHost);
-
-      CHECK_HIP_ERROR(herror);
+      CHECK_HIP_ERROR(hipMemcpy(&vr_temp, vr_temp_gpu, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
     }
 
-    std::ostringstream err_stream;
-    if (!utils::compare_vectors(y_temp, y_ref, err_stream, "")) {
+    if (!utils::almost_equal(vr_temp, vr_ref)) {
+      std::ostringstream err_stream;
+      err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
       const std::string& err_str = err_stream.str();
       state.SkipWithError(err_str.c_str());
       *success = false;
@@ -107,38 +97,36 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, d_vr);
       // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
+    // Create a utility lambda describing the blas method that we want to run.
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      hipEvent_t start;
-      hipEvent_t stop;
+      hipEvent_t start, stop;
       CHECK_HIP_ERROR(hipEventCreate(&start));
       CHECK_HIP_ERROR(hipEventCreate(&stop));
 
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, d_vr);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
-
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
 
       return std::vector{start, stop};
     };
 
-    // Warmup
+    // Warm up to avoid benchmarking data transfer
     blas_benchmark::utils::warmup(blas_warmup);
 
     blas_benchmark::utils::init_counters(state);
 
     // Measure
     for (auto _ : state) {
-      // Run
       std::tuple<double, double> times =
           blas_benchmark::utils::timef_hip(blas_method_def);
 

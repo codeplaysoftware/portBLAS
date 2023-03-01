@@ -7,6 +7,7 @@ find_package(rocblas REQUIRED)
 set(sources
   # Level 1 blas
   blas1/axpy.cpp
+  blas1/asum.cpp
 )
 
 # Add individual benchmarks for each method
