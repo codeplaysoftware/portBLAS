@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename dot.cpp
+ *  @filename scal.cpp
  *
  **************************************************************************/
 
@@ -28,17 +28,17 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Dot<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Scal<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
   str << size;
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
-static inline void rocblas_dot_f(args_t&&... args) {
+static inline void rocblas_scal_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_sdot(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_sscal(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_ddot(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_dscal(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -49,39 +49,47 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 2 * size_d;
+  state.counters["n_fl_ops"] = size_d;
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t res;
+  const scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
-    // Enable passing output parameter (vr_temp) from pointer to host memory
+
+    // Enable passing parameter alpha from pointer to host memory
     CHECK_ROCBLAS_STATUS(
         rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
 
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(hipMemcpy(d_v2, v2.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
-    scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
-    scalar_t vr_temp = 0;
+    std::vector<scalar_t> v1_ref = v1;
+    reference_blas::scal(size, alpha, v1_ref.data(), 1);
+    std::vector<scalar_t> v1_temp = v1;
 
-    rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &vr_temp);
-    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+    {
+      blas_benchmark::utils::DeviceVector<scalar_t> v1_temp_gpu(size);
+      CHECK_HIP_ERROR(hipMemcpy(v1_temp_gpu, v1_temp.data(),
+                                sizeof(scalar_t) * size,
+                                hipMemcpyHostToDevice));
 
-    if (!utils::almost_equal(vr_temp, vr_ref)) {
-      std::ostringstream err_stream;
-      err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
+      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, v1_temp_gpu, 1);
+
+      CHECK_HIP_ERROR(hipMemcpy(v1_temp.data(), v1_temp_gpu,
+                                sizeof(scalar_t) * size,
+                                hipMemcpyDeviceToHost));
+      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+    }
+
+    std::ostringstream err_stream;
+    if (!utils::compare_vectors(v1_temp, v1_ref, err_stream, "")) {
       const std::string& err_str = err_stream.str();
       state.SkipWithError(err_str.c_str());
       *success = false;
@@ -89,7 +97,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -103,7 +111,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));

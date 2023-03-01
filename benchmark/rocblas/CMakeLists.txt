@@ -9,7 +9,11 @@ set(sources
   blas1/axpy.cpp
   blas1/asum.cpp
   blas1/dot.cpp
-
+  blas1/scal.cpp
+  blas1/iamin.cpp
+  blas1/iamax.cpp
+  blas1/nrm2.cpp
+  
 )
 
 # Add individual benchmarks for each method
@@ -18,7 +22,7 @@ foreach(rocblas_benchmark ${sources})
   add_executable(bench_rocblas_${rocblas_bench_exec} ${rocblas_benchmark} main.cpp)
   target_link_libraries(bench_rocblas_${rocblas_bench_exec} PRIVATE benchmark Clara::Clara roc::rocblas) 
   target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
-  target_include_directories(bench_rocblas_${rocblas_bench_exec} PRIVATE  ${SYCLBLAS_INCLUDE} ${rocblas_INCLUDE_DIRS}  ${CBLAS_INCLUDE} ${BLAS_BENCH} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+  target_include_directories(bench_rocblas_${rocblas_bench_exec} PRIVATE  ${SYCLBLAS_INCLUDE} ${rocblas_INCLUDE_DIRS} ${CBLAS_INCLUDE} ${BLAS_BENCH} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
   # Even though rocblas does not use sycl, the common tools indirectly include sycl headers.
   add_sycl_to_target(

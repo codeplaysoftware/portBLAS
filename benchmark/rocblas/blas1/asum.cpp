@@ -88,7 +88,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     auto blas_warmup = [&]() -> void {
       rocblas_asum_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
-      // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };

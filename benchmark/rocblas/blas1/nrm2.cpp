@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename dot.cpp
+ *  @filename nrm2.cpp
  *
  **************************************************************************/
 
@@ -28,17 +28,17 @@
 template <typename scalar_t>
 std::string get_name(int size) {
   std::ostringstream str{};
-  str << "BM_Dot<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << "BM_Nrm2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
   str << size;
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
-static inline void rocblas_dot_f(args_t&&... args) {
+static inline void rocblas_nrm2_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_sdot(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_snrm2(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_ddot(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_dnrm2(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -50,34 +50,30 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2 * size_d;
-  state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
+  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t res;
+  scalar_t vr;
 
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
-    // Enable passing output parameter (vr_temp) from pointer to host memory
+
+    // Enable passing output parameter (vr) from pointer to host memory
     CHECK_ROCBLAS_STATUS(
         rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
-
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(hipMemcpy(d_v2, v2.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
-
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
-    scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
+    scalar_t vr_ref = reference_blas::nrm2(size, v1.data(), 1);
     scalar_t vr_temp = 0;
 
-    rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &vr_temp);
-    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+    rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr_temp);
+
+    CHECK_HIP_ERROR(hipDeviceSynchronize());
 
     if (!utils::almost_equal(vr_temp, vr_ref)) {
       std::ostringstream err_stream;
@@ -89,7 +85,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -103,7 +99,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
@@ -126,7 +122,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     }
 
     blas_benchmark::utils::calc_avg_counters(state);
-  }
+  }  // release device memory via utils::DeviceVector destructors
 };
 
 template <typename scalar_t>
