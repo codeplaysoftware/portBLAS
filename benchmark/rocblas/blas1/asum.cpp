@@ -44,7 +44,7 @@ static inline void rocblas_asum_f(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
+void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -58,34 +58,24 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
   std::vector<data_t> v1 = blas_benchmark::utils::random_data<data_t>(size);
   scalar_t vr;
 
-  // Initialize HIP & rocBLAS errors for checking the HIP/Rocblas APIs status
-  hipError_t herror = hipSuccess;
-  rocblas_status rstatus = rocblas_status_success;
-
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_vr(1);
 
-    // Copy data (D2H)
-    herror = hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                       hipMemcpyHostToDevice);
-    CHECK_HIP_ERROR(herror);
-    herror = hipMemcpy(d_vr, &vr, sizeof(scalar_t), hipMemcpyHostToDevice);
-    CHECK_HIP_ERROR(herror);
-
+    // Enable passing output parameter (vr) from pointer to host memory
+    CHECK_ROCBLAS_STATUS(
+        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
+    // Copy data (H2D)
+    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
+                              hipMemcpyHostToDevice));
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
     data_t vr_ref = reference_blas::asum(size, v1.data(), 1);
     data_t vr_temp = 0;
-    {
-      blas_benchmark::utils::DeviceVector<scalar_t> vr_temp_gpu(1);
 
-      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, vr_temp_gpu);
+    rocblas_asum_f<scalar_t>(rb_handle, size, d_v1, 1, &vr_temp);
 
-      CHECK_HIP_ERROR(hipMemcpy(&vr_temp, vr_temp_gpu, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-    }
+    CHECK_HIP_ERROR(hipDeviceSynchronize());
 
     if (!utils::almost_equal(vr_temp, vr_ref)) {
       std::ostringstream err_stream;
@@ -97,7 +87,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, d_vr);
+      rocblas_asum_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
       // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
@@ -112,7 +102,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_asum_f<scalar_t>(rb_handle_ptr, size, d_v1, 1, d_vr);
+      rocblas_asum_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
@@ -139,23 +129,23 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        rocblas_handle& rb_handle_ptr, bool* success) {
+void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
+                        bool* success) {
   auto blas1_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : blas1_params) {
-    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle_ptr,
+    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          index_t size, bool* success) {
-      run<scalar_t>(st, rb_handle_ptr, size, success);
+      run<scalar_t>(st, rb_handle, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 rb_handle_ptr, size, success);
+                                 rb_handle, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle_ptr,
+void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, rb_handle_ptr, success);
+  BLAS_REGISTER_BENCHMARK(args, rb_handle, success);
 }
 }  // namespace blas_benchmark

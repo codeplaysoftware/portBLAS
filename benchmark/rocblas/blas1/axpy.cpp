@@ -42,7 +42,7 @@ static inline void rocblas_saxpy_f(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
+void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(size);
@@ -55,22 +55,20 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
-  // Initialize HIP & rocBLAS errors for checking the HIP/Rocblas APIs status
-  hipError_t herror = hipSuccess;
-  rocblas_status rstatus = rocblas_status_success;
-
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
     blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
 
-    // Copy data (D2H)
-    herror = hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                       hipMemcpyHostToDevice);
-    CHECK_HIP_ERROR(herror);
-    herror = hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                       hipMemcpyHostToDevice);
-    CHECK_HIP_ERROR(herror);
+    // Enable passing alpha parameter from pointer to host memory
+    CHECK_ROCBLAS_STATUS(
+        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
+
+    // Copy data (H2D)
+    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
+                              hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(hipMemcpy(d_v2, v2.data(), sizeof(scalar_t) * size,
+                              hipMemcpyHostToDevice));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -80,22 +78,17 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 
     {
       blas_benchmark::utils::DeviceVector<scalar_t> y_temp_gpu(size);
-      herror = hipMemcpy(y_temp_gpu, y_temp.data(), sizeof(scalar_t) * size,
-                         hipMemcpyHostToDevice);
-      CHECK_HIP_ERROR(herror);
+      CHECK_HIP_ERROR(hipMemcpy(y_temp_gpu, y_temp.data(),
+                                sizeof(scalar_t) * size,
+                                hipMemcpyHostToDevice));
 
-      // Enable passing alpha parameter from pointer to host memory
-      rstatus =
-          rocblas_set_pointer_mode(rb_handle_ptr, rocblas_pointer_mode_host);
-      CHECK_ROCBLAS_STATUS(rstatus);
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, y_temp_gpu,
+                                1);
 
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1,
-                                y_temp_gpu, 1);
-
-      herror = hipMemcpy(y_temp.data(), y_temp_gpu, sizeof(scalar_t) * size,
-                         hipMemcpyDeviceToHost);
-
-      CHECK_HIP_ERROR(herror);
+      CHECK_HIP_ERROR(hipMemcpy(y_temp.data(), y_temp_gpu,
+                                sizeof(scalar_t) * size,
+                                hipMemcpyDeviceToHost));
+      CHECK_HIP_ERROR(hipDeviceSynchronize());
     }
 
     std::ostringstream err_stream;
@@ -107,7 +100,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, d_v2, 1);
       // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
@@ -122,7 +115,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_saxpy_f<scalar_t>(rb_handle_ptr, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, d_v2, 1);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
 
@@ -151,23 +144,23 @@ void run(benchmark::State& state, rocblas_handle& rb_handle_ptr, index_t size,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        rocblas_handle& rb_handle_ptr, bool* success) {
+void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
+                        bool* success) {
   auto blas1_params = blas_benchmark::utils::get_blas1_params(args);
 
   for (auto size : blas1_params) {
-    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle_ptr,
+    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          index_t size, bool* success) {
-      run<scalar_t>(st, rb_handle_ptr, size, success);
+      run<scalar_t>(st, rb_handle, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 rb_handle_ptr, size, success);
+                                 rb_handle, size, success);
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle_ptr,
+void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                       bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, rb_handle_ptr, success);
+  BLAS_REGISTER_BENCHMARK(args, rb_handle, success);
 }
 }  // namespace blas_benchmark
