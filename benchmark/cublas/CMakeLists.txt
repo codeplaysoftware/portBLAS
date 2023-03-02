@@ -42,6 +42,9 @@ set(sources
   blas1/rotmg.cpp
   blas1/scal.cpp
   #blas1/sdsdot.cpp -> not implemented in cuBLAS
+  # Level 2 blas 
+  blas2/gbmv.cpp 
+  blas2/sbmv.cpp 
 ) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
@@ -60,6 +63,7 @@ foreach(cublas_bench ${sources})
   )
 target_include_directories(bench_cublas_${bench_cublas_exec} PRIVATE $ENV{CUBLAS_INCLUDE} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR} ${CBLAS_INCLUDE})
   add_compile_definitions(BUILD_CUBLAS_BENCHMARKS)
+  add_compile_options(-gdwarf-4)
 
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE BLAS_VERIFY_BENCHMARK)

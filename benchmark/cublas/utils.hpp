@@ -218,6 +218,8 @@ static inline std::tuple<double, double> timef_cuda(function_t func,
   return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
 }
 
+enum class Trasposition_cublas{ CUBLAS_OP_N, CUBLAS_OP_T, CUBLAS_OP_C };
+
 }  // namespace utils
 }  // namespace blas_benchmark
 
