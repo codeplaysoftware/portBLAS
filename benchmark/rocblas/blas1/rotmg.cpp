@@ -108,7 +108,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
                                 sizeof(scalar_t), hipMemcpyHostToDevice));
 
       rocblas_rotmg_f<scalar_t>(rb_handle, d_d1_verify, d_d2_verify,
-                                d_x1_verify, d_y1_verify, d_param);
+                                d_x1_verify, d_y1_verify, d_param_verify);
 
       CHECK_HIP_ERROR(hipMemcpy(&d1_verify, d_d1_verify, sizeof(scalar_t),
                                 hipMemcpyDeviceToHost));
@@ -123,22 +123,16 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
     }  // DeviceVector's data is copied back to host upon destruction
 
     // Verify results
-    const bool areAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
-                                utils::almost_equal(d2_verify, d2_ref) &&
-                                utils::almost_equal(x1_verify, x1_ref);
+    const bool areAlmostEqual =
+        utils::almost_equal(d1_verify, d1_ref) &&
+        utils::almost_equal(d2_verify, d2_ref) &&
+        utils::almost_equal(x1_verify, x1_ref) &&
+        utils::almost_equal(param_verify[0], param_ref[0]);
 
     if (!areAlmostEqual) {
       std::ostringstream err_stream;
       err_stream << "Value mismatch." << std::endl;
       const std::string& err_str = err_stream.str();
-      state.SkipWithError(err_str.c_str());
-      *success = false;
-    };
-
-    std::ostringstream err_stream_params;
-    if (!utils::compare_vectors(param_verify, param_ref, err_stream_params,
-                                "")) {
-      const std::string& err_str = err_stream_params.str();
       state.SkipWithError(err_str.c_str());
       *success = false;
     };

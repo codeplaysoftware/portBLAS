@@ -72,12 +72,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     {
       blas_benchmark::utils::DeviceVector<scalar_t> d_vr_temp(1);
+      CHECK_HIP_ERROR(hipMemcpy(d_vr_temp, &vr_temp, sizeof(scalar_t),
+                                hipMemcpyHostToDevice));
 
-      CHECK_HIP_ERROR(
-          hipMemcpy(d_vr_temp, &vr_temp, sizeof(int), hipMemcpyHostToDevice));
       rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, d_vr_temp);
-      CHECK_HIP_ERROR(
-          hipMemcpy(&vr_temp, d_vr_temp, sizeof(int), hipMemcpyDeviceToHost));
+
+      CHECK_HIP_ERROR(hipMemcpy(&vr_temp, d_vr_temp, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
     }
 
     if (!utils::almost_equal(vr_temp, vr_ref)) {
