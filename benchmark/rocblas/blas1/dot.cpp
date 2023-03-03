@@ -61,9 +61,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
     blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
-    // Enable passing output parameter (vr_temp) from pointer to host memory
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
+    blas_benchmark::utils::DeviceVector<scalar_t> d_res(1);
 
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
@@ -73,15 +71,21 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
-    scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
-    scalar_t vr_temp = 0;
+    scalar_t res_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
+    // Temp result on host
+    scalar_t res_temp = 0;
 
-    rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &vr_temp);
-    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+    {
+      // Temp result on device
+      blas_benchmark::utils::DeviceVector<scalar_t> d_res_temp(1);
+      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, d_res_temp);
+      CHECK_HIP_ERROR(hipMemcpy(&res_temp, d_res_temp, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
+    }
 
-    if (!utils::almost_equal(vr_temp, vr_ref)) {
+    if (!utils::almost_equal(res_temp, res_ref)) {
       std::ostringstream err_stream;
-      err_stream << "Value mismatch: " << vr_temp << "; expected " << vr_ref;
+      err_stream << "Value mismatch: " << res_temp << "; expected " << res_ref;
       const std::string& err_str = err_stream.str();
       state.SkipWithError(err_str.c_str());
       *success = false;

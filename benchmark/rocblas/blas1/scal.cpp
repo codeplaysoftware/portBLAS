@@ -59,14 +59,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-
-    // Enable passing parameter alpha from pointer to host memory
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
+    blas_benchmark::utils::DeviceVector<scalar_t> d_alpha(1);
 
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_alpha, &alpha, sizeof(scalar_t), hipMemcpyHostToDevice));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -79,13 +78,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       CHECK_HIP_ERROR(hipMemcpy(v1_temp_gpu, v1_temp.data(),
                                 sizeof(scalar_t) * size,
                                 hipMemcpyHostToDevice));
-
-      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, v1_temp_gpu, 1);
-
+      rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, v1_temp_gpu, 1);
       CHECK_HIP_ERROR(hipMemcpy(v1_temp.data(), v1_temp_gpu,
                                 sizeof(scalar_t) * size,
                                 hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
     }
 
     std::ostringstream err_stream;
@@ -97,7 +93,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1);
+      rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -111,7 +107,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_scal_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1);
+      rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));

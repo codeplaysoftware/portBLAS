@@ -55,27 +55,31 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  int res;
+  int idx;
 
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
+    blas_benchmark::utils::DeviceVector<int> d_idx(1);
 
-    // Enable passing output parameter (res) from pointer to host memory
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
+
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
     index_t idx_ref =
         static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
     int idx_temp = -1;
 
-    rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, &idx_temp);
-
-    CHECK_HIP_ERROR(hipDeviceSynchronize());
+    {
+      blas_benchmark::utils::DeviceVector<int> d_idx_temp(1);
+      CHECK_HIP_ERROR(
+          hipMemcpy(d_idx_temp, &idx_temp, sizeof(int), hipMemcpyHostToDevice));
+      rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx_temp);
+      CHECK_HIP_ERROR(
+          hipMemcpy(&idx_temp, d_idx_temp, sizeof(int), hipMemcpyDeviceToHost));
+    }
 
     if (idx_temp != idx_ref) {
       std::ostringstream err_stream;
@@ -87,7 +91,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, &res);
+      rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -101,7 +105,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, &res);
+      rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));

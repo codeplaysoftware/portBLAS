@@ -59,21 +59,26 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_vr(1);
 
-    // Enable passing output parameter (vr) from pointer to host memory
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
+
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
     scalar_t vr_ref = reference_blas::nrm2(size, v1.data(), 1);
     scalar_t vr_temp = 0;
 
-    rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr_temp);
+    {
+      blas_benchmark::utils::DeviceVector<scalar_t> d_vr_temp(1);
 
-    CHECK_HIP_ERROR(hipDeviceSynchronize());
+      CHECK_HIP_ERROR(
+          hipMemcpy(d_vr_temp, &vr_temp, sizeof(int), hipMemcpyHostToDevice));
+      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, d_vr_temp);
+      CHECK_HIP_ERROR(
+          hipMemcpy(&vr_temp, d_vr_temp, sizeof(int), hipMemcpyDeviceToHost));
+    }
 
     if (!utils::almost_equal(vr_temp, vr_ref)) {
       std::ostringstream err_stream;
@@ -85,7 +90,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
+      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, d_vr);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -99,7 +104,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, &vr);
+      rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, d_vr);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));

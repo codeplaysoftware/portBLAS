@@ -53,22 +53,21 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
-  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  const scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   {
     // Device memory allocation
     blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
     blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
-
-    // Enable passing alpha parameter from pointer to host memory
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
+    blas_benchmark::utils::DeviceVector<scalar_t> d_alpha(1);
 
     // Copy data (H2D)
     CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
     CHECK_HIP_ERROR(hipMemcpy(d_v2, v2.data(), sizeof(scalar_t) * size,
                               hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_alpha, &alpha, sizeof(scalar_t), hipMemcpyHostToDevice));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -82,13 +81,12 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
                                 sizeof(scalar_t) * size,
                                 hipMemcpyHostToDevice));
 
-      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, y_temp_gpu,
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1, y_temp_gpu,
                                 1);
 
       CHECK_HIP_ERROR(hipMemcpy(y_temp.data(), y_temp_gpu,
                                 sizeof(scalar_t) * size,
                                 hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipDeviceSynchronize());
     }
 
     std::ostringstream err_stream;
@@ -100,7 +98,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1, d_v2, 1);
       // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
@@ -115,7 +113,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_saxpy_f<scalar_t>(rb_handle, size, &alpha, d_v1, 1, d_v2, 1);
+      rocblas_saxpy_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1, d_v2, 1);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
 
