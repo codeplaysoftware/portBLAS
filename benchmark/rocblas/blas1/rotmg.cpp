@@ -1,0 +1,205 @@
+/**************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  @filename rotmg.cpp
+ *
+ **************************************************************************/
+
+#include "../utils.hpp"
+
+template <typename scalar_t>
+std::string get_name() {
+  std::ostringstream str{};
+  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/";
+  return str.str();
+}
+
+template <typename scalar_t, typename... args_t>
+static inline void rocblas_rotmg_f(args_t&&... args) {
+  if constexpr (std::is_same_v<scalar_t, float>) {
+    CHECK_ROCBLAS_STATUS(rocblas_srotmg(std::forward<args_t>(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, double>) {
+    CHECK_ROCBLAS_STATUS(rocblas_drotmg(std::forward<args_t>(args)...));
+  }
+  return;
+}
+
+template <typename scalar_t>
+void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
+  // Create data
+  constexpr size_t param_size = 5;
+  std::vector<scalar_t> param =
+      blas_benchmark::utils::random_data<scalar_t>(param_size);
+  param[0] =
+      static_cast<scalar_t>(-1.0);  // Use -1.0 flag to use the whole matrix
+  scalar_t d1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
+  scalar_t d2 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
+  scalar_t x1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
+  scalar_t y1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
+
+  {
+    // Device memory allocation
+    blas_benchmark::utils::DeviceVector<scalar_t> d_d1(1);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_d2(1);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_x1(1);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_y1(1);
+    blas_benchmark::utils::DeviceVector<scalar_t> d_param(param_size);
+
+    // Copy data (H2D)
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_d1, &d1, sizeof(scalar_t), hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_d2, &d2, sizeof(scalar_t), hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_x1, &x1, sizeof(scalar_t), hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(
+        hipMemcpy(d_y1, &y1, sizeof(scalar_t), hipMemcpyHostToDevice));
+    CHECK_HIP_ERROR(hipMemcpy(d_param, param.data(),
+                              sizeof(scalar_t) * param_size,
+                              hipMemcpyHostToDevice));
+
+#ifdef BLAS_VERIFY_BENCHMARK
+    // Reference rotmg
+    scalar_t d1_ref = d1;
+    scalar_t d2_ref = d2;
+    scalar_t x1_ref = x1;
+    scalar_t y1_ref = y1;
+    std::vector<scalar_t> param_ref = param;
+
+    reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
+
+    // Rocblas verification rotmg
+    scalar_t d1_verify = d1;
+    scalar_t d2_verify = d2;
+    scalar_t x1_verify = x1;
+    scalar_t y1_verify = y1;
+    std::vector<scalar_t> param_verify = param;
+
+    {
+      blas_benchmark::utils::DeviceVector<scalar_t> d_d1_verify(1);
+      blas_benchmark::utils::DeviceVector<scalar_t> d_d2_verify(1);
+      blas_benchmark::utils::DeviceVector<scalar_t> d_x1_verify(1);
+      blas_benchmark::utils::DeviceVector<scalar_t> d_y1_verify(1);
+      blas_benchmark::utils::DeviceVector<scalar_t> d_param_verify(param_size);
+
+      CHECK_HIP_ERROR(hipMemcpy(d_d1_verify, &d1_verify, sizeof(scalar_t),
+                                hipMemcpyHostToDevice));
+      CHECK_HIP_ERROR(hipMemcpy(d_d2_verify, &d2_verify, sizeof(scalar_t),
+                                hipMemcpyHostToDevice));
+      CHECK_HIP_ERROR(hipMemcpy(d_x1_verify, &x1_verify, sizeof(scalar_t),
+                                hipMemcpyHostToDevice));
+      CHECK_HIP_ERROR(hipMemcpy(d_y1_verify, &y1_verify, sizeof(scalar_t),
+                                hipMemcpyHostToDevice));
+
+      rocblas_rotmg_f<scalar_t>(rb_handle, d_d1_verify, d_d2_verify,
+                                d_x1_verify, d_y1_verify, d_param);
+
+      CHECK_HIP_ERROR(hipMemcpy(&d1_verify, d_d1_verify, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
+      CHECK_HIP_ERROR(hipMemcpy(&d2_verify, d_d2_verify, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
+      CHECK_HIP_ERROR(hipMemcpy(&x1_verify, d_x1_verify, sizeof(scalar_t),
+                                hipMemcpyDeviceToHost));
+      CHECK_HIP_ERROR(hipMemcpy(&param_verify, d_param_verify,
+                                sizeof(scalar_t) * param_size,
+                                hipMemcpyDeviceToHost));
+
+    }  // DeviceVector's data is copied back to host upon destruction
+
+    // Verify results
+    const bool areAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
+                                utils::almost_equal(d2_verify, d2_ref) &&
+                                utils::almost_equal(x1_verify, x1_ref);
+
+    if (!areAlmostEqual) {
+      std::ostringstream err_stream;
+      err_stream << "Value mismatch." << std::endl;
+      const std::string& err_str = err_stream.str();
+      state.SkipWithError(err_str.c_str());
+      *success = false;
+    };
+
+    std::ostringstream err_stream_params;
+    if (!utils::compare_vectors(param_verify, param_ref, err_stream_params,
+                                "")) {
+      const std::string& err_str = err_stream_params.str();
+      state.SkipWithError(err_str.c_str());
+      *success = false;
+    };
+
+#endif
+
+    auto blas_warmup = [&]() -> void {
+      rocblas_rotmg_f<scalar_t>(rb_handle, d_d1, d_d2, d_x1, d_y1, d_param);
+      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
+      return;
+    };
+
+    auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
+      hipEvent_t start, stop;
+
+      CHECK_HIP_ERROR(hipEventCreate(&start));
+      CHECK_HIP_ERROR(hipEventCreate(&stop));
+      CHECK_HIP_ERROR(hipEventRecord(start, NULL));
+
+      rocblas_rotmg_f<scalar_t>(rb_handle, d_d1, d_d2, d_x1, d_y1, d_param);
+
+      CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
+      CHECK_HIP_ERROR(hipEventSynchronize(stop));
+
+      return std::vector{start, stop};
+    };
+
+    // Warmup
+    blas_benchmark::utils::warmup(blas_warmup);
+
+    blas_benchmark::utils::init_counters(state);
+
+    // Measure
+    for (auto _ : state) {
+      // Run
+      std::tuple<double, double> times =
+          blas_benchmark::utils::timef_hip(blas_method_def);
+
+      // Report
+      blas_benchmark::utils::update_counters(state, times);
+    }
+
+    blas_benchmark::utils::calc_avg_counters(state);
+  }  // release device memory via utils::DeviceVector destructors
+};
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
+                        bool* success) {
+  auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
+                       bool* success) {
+    run<scalar_t>(st, rb_handle, success);
+  };
+  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
+                               rb_handle, success);
+}
+
+namespace blas_benchmark {
+void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
+                      bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, rb_handle, success);
+}
+}  // namespace blas_benchmark

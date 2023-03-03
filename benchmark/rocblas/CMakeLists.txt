@@ -13,7 +13,10 @@ set(sources
   blas1/iamin.cpp
   blas1/iamax.cpp
   blas1/nrm2.cpp
-  
+  blas1/rotg.cpp
+  blas1/rotm.cpp
+  blas1/rotmg.cpp
+
 )
 
 # Add individual benchmarks for each method
