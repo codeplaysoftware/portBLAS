@@ -74,14 +74,19 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     {
       blas_benchmark::utils::DeviceVector<int> d_idx_temp(1);
-
       CHECK_HIP_ERROR(
           hipMemcpy(d_idx_temp, &idx_temp, sizeof(int), hipMemcpyHostToDevice));
+
       rocblas_iamin_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx_temp);
+
       CHECK_HIP_ERROR(
           hipMemcpy(&idx_temp, d_idx_temp, sizeof(int), hipMemcpyDeviceToHost));
     }
 
+    // xMIN follows 1-based indexing in rocBLAS.
+    idx_temp -= 1;
+
+    // Verify result
     if (idx_temp != idx_ref) {
       std::ostringstream err_stream;
       err_stream << "Index mismatch: " << idx_temp << "; expected " << idx_ref;
