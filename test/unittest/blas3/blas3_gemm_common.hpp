@@ -28,9 +28,8 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using gemm_arguments_t =
-    std::tuple<int, int, int, int, int, char, char, T, T, int, int, int, int,
-               int, int, gemm_batch_type_t>;
+using gemm_arguments_t = std::tuple<int, int, int, int, int, char, char, T, T,
+                                    int, int, int, gemm_batch_type_t>;
 
 // Convert batch_type=strided to interleaved on the host
 template <typename scalar_t>
@@ -80,13 +79,9 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
-  index_t stride_a_mul;
-  index_t stride_b_mul;
-  index_t stride_c_mul;
   gemm_batch_type_t batch_type;
   std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
-           ldb_mul, ldc_mul, stride_a_mul, stride_b_mul, stride_c_mul,
-           batch_type) = arguments;
+           ldb_mul, ldc_mul, batch_type) = arguments;
 
   const char ta_str[2] = {transa, '\0'};
   const char tb_str[2] = {transb, '\0'};
@@ -102,20 +97,9 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const index_t size_b = k * n * ldb_mul;
   const index_t size_c = m * n * ldc_mul;
 
-  const bool isInterleaved = (batch_type == gemm_batch_type_t::interleaved);
-
-  // When using interleaved, stride parameters in the gemm configuration test
-  // simply refer to the strides themselves.
-  const index_t stride_a = isInterleaved ? stride_a_mul : stride_a_mul * size_a;
-  const index_t stride_b = isInterleaved ? stride_b_mul : stride_b_mul * size_b;
-  const index_t stride_c = isInterleaved ? stride_c_mul : stride_c_mul * size_c;
-
-  const index_t buffer_size_a =
-      isInterleaved ? size_a * batch : size_a + (batch - 1) * stride_a + offset;
-  const index_t buffer_size_b =
-      isInterleaved ? size_b * batch : size_b + (batch - 1) * stride_b + offset;
-  const index_t buffer_size_c =
-      isInterleaved ? size_c * batch : size_c + (batch - 1) * stride_c + offset;
+  const index_t buffer_size_a = batch * size_a + offset;
+  const index_t buffer_size_b = batch * size_b + offset;
+  const index_t buffer_size_c = batch * size_c + offset;
 
   std::vector<scalar_t> a_m(buffer_size_a);
   std::vector<scalar_t> b_m(buffer_size_b);
@@ -126,16 +110,12 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   fill_random(c_m_gpu);
   std::vector<scalar_t> c_m_cpu = c_m_gpu;
 
-  const index_t ref_stride_a = isInterleaved ? size_a : stride_a;
-  const index_t ref_stride_b = isInterleaved ? size_b : stride_b;
-  const index_t ref_stride_c = isInterleaved ? size_c : stride_c;
-
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
     reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * ref_stride_a + offset, lda,
-                         b_m.data() + i * ref_stride_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * ref_stride_c + offset, ldc);
+                         a_m.data() + i * size_a + offset, lda,
+                         b_m.data() + i * size_b + offset, ldb, beta,
+                         c_m_cpu.data() + i * size_c + offset, ldc);
   }
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -163,8 +143,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
   } else {
     _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset,
-                  lda, stride_a, m_b_gpu + offset, ldb, stride_b, beta,
-                  m_c_gpu + offset, ldc, stride_c, batch, batch_type);
+                  lda, m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc,
+                  batch, batch_type);
   }
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
@@ -177,10 +157,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   sb_handle.wait();
 
-  const bool isAlmostEqual =
-      (batch == 1 || stride_c_mul == 1 || isInterleaved)
-          ? utils::compare_vectors(c_m_gpu, c_m_cpu)
-          : utils::compare_vectors_strided(c_m_gpu, c_m_cpu, stride_c, size_c);
+  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
 }
 
@@ -193,14 +170,12 @@ inline void dump_arg<gemm_batch_type_t>(std::ostream& ss,
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<gemm_arguments_t<T>>& info) {
-  int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul, stride_a_mul,
-      stride_b_mul, stride_c_mul;
+  int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul;
   char transa, transb;
   T alpha, beta;
   gemm_batch_type_t batchType;
   BLAS_GENERATE_NAME(info.param, offset, batch, m, n, k, transa, transb, alpha,
-                     beta, ldaMul, ldbMul, ldcMul, stride_a_mul, stride_b_mul,
-                     stride_c_mul, batchType);
+                     beta, ldaMul, ldbMul, ldcMul, batchType);
 }
 
 /** Registers GEMM test for all supported data types

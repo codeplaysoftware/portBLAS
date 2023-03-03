@@ -285,7 +285,8 @@ For all these operations:
 | operation | arguments | description |
 |---|---|---|
 | `_gemm` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc` | Generalised matrix-matrix multiplication followed by matrix addition: `C = alpha * A * B + beta * C` |
-| `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `stridea`, `B`, `ldb`, `strideb`, `beta`, `C`, `ldc`, `stridec`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
+| `_gemm_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `B`, `ldb`, `beta`, `C`, `ldc`, `batch_size`, `batch_type` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices. |
+| `_gemm_strided_batched` | `ex`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `stridea`, `B`, `ldb`, `strideb`, `beta`, `C`, `ldc`, `stridec`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices.
 | `_trsm` | `ex`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
 ### Experimental Joint Matrix Support

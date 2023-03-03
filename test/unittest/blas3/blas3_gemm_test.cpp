@@ -40,9 +40,6 @@ const auto SmallBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, SmallBetaNonZeroLDMatch);
@@ -61,9 +58,6 @@ const auto SmallBetaZeroLDMatch = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, SmallBetaZeroLDMatch);
@@ -82,9 +76,6 @@ const auto SmallBetaZeroLDMultiplied = ::testing::Combine(
     ::testing::Values(2),                          // lda_mul
     ::testing::Values(3),                          // ldb_mul
     ::testing::Values(4),                          // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, SmallBetaZeroLDMultiplied);
@@ -103,9 +94,6 @@ const auto AlphaZero = ::testing::Combine(
     ::testing::Values(1, 2),                       // lda_mul
     ::testing::Values(1, 2),                       // ldb_mul
     ::testing::Values(1, 2),                       // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, AlphaZero);
@@ -124,9 +112,6 @@ const auto OffsetNonZero = ::testing::Combine(
     ::testing::Values(1, 2),                       // lda_mul
     ::testing::Values(1, 2),                       // ldb_mul
     ::testing::Values(1, 2),                       // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, OffsetNonZero);
@@ -145,9 +130,6 @@ const auto LargeBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values(1),                          // lda_mul
     ::testing::Values(1),                          // ldb_mul
     ::testing::Values(1),                          // ldc_mul
-    ::testing::Values(1),                          // stride_a_mul
-    ::testing::Values(1),                          // stride_b_mul
-    ::testing::Values(1),                          // stride_c_mul
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, LargeBetaNonZeroLDMatch);

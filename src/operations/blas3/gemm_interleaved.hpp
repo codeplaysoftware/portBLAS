@@ -158,13 +158,11 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldb_;
   const index_t ldc_;
   const index_t batch_size_;
-  index_t stridea_;
-  index_t strideb_;
-  index_t stridec_;
-
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size, index_t stride_a,
-                        index_t stride_b, index_t stride_c)
+                        element_t beta, index_t batch_size,
+                        index_t /*unused stride_a*/,
+                        index_t /*unused stride_b*/,
+                        index_t /*unused stride_c*/)
       : a_(A),
         b_(B),
         c_(C),
@@ -176,10 +174,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
         lda_(A.getSizeL()),
         ldb_(B.getSizeL()),
         ldc_(C.getSizeL()),
-        batch_size_(batch_size),
-        stridea_{stride_a},
-        strideb_{stride_b},
-        stridec_{stride_c} {}
+        batch_size_(batch_size) {}
 
   /*!
    * @brief Get the type of this Gemm as a human readable string.
@@ -260,14 +255,13 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
       return;
     }
 
-    const index_t m_stride = stridea_ * batch_size_;
-    const index_t n_stride = strideb_ * batch_size_;
+    const index_t m_stride = (trans_a ? lda_ : 1) * batch_size_;
+    const index_t n_stride = (trans_b ? 1 : ldb_) * batch_size_;
 
     // K start is always zero
     A += (m_start * m_stride) + mb_start;
     B += (n_start * n_stride) + mb_start;
-    C +=
-        mb_start + (m_start * batch_size_) + (n_start * stridec_ * batch_size_);
+    C += mb_start + (m_start * batch_size_) + (n_start * ldc_ * batch_size_);
 
     // boundary check
     const auto boundary_check =

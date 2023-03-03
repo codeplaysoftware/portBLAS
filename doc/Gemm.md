@@ -59,7 +59,7 @@ where A, B and C are matrices and alpha and beta are scalars.
 - `gemm_no_local_full_vec.hpp` - Doesn't use local memory. Supports full vectorization.
 
 - `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. This means that the batch axis is the fastest moving dimension.
-Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses). Also, the interleaved batched gemm is not (yet) subject to custom striding, as matrices strides are exclusively dictated by whether they are transposed or not.
+Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses). Also, the interleaved batched gemm is not subject to custom striding as it beats its initial purpose.
 
 ## Relevant CMake Variables
 
@@ -113,14 +113,9 @@ You can see examples of how to handle these issues by looking at the `gemm_local
 Batched `GEMM` is not officially part of the BLAS specification but is a common use case, particularly when you have a series of smaller matrices to multiply it makes more sense to perform them as a batched operation. 
 All `GEMM` kernels support batched operations but the interleaved `GEMM` can only be used for batched operations as it is designed specifically for it.
 
-Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place.
+Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place. For the strided `batch_type` case, all matrices have the same parameters (sizes and leading dimensions) and are stored within a fixed stride-distance equal to each matrix size by default.
 
-The `_gemm_batched` operation assumes all the matrices have the same parameters (sizes and leading dimensions). In the `strided` batch type case, all matrices are stored within a fixed stride-distance provided by the user (`stride_a`, `stride_b` and `stride_c`), the latter must be at least equal to the matrix c size to avoid overlapping writes to the output. A's or B's stride can also be set to zero, which translates to a batched gemm operation of `batch_size` matrices with 1 matrix. 
-In the `interleaved` batch type case, the strides can only take these values depending on the case : 
-- `stride_a` = `lda` if A is transposed, 1 otherwise.
-- `stride_b` = 1 if B is transposed, `ldb` otherwise. 
-- `stride_c` = `ldc` always. 
-
+The `_gemm_strided_batched` operation, just like the `_gemm_batched`, assumes all the matrices have the same parameters. This operator processes batches of strided matrices, with a custom stride for each matrix batch that can be set by the user (`stride_a`, `stride_b` and `stride_c`). The stride of the output matrix batch `stride_c` must be at least equal to the matrix c size to avoid overlapping writes to the output. A's or B's stride can also be set to zero, which translates to a batched gemm operation of `batch_size` matrices with 1 matrix.
 
 # GEMM Dispatch
 

@@ -78,16 +78,10 @@ static TestResultEntry tune_syclblas(int r, char transA, char transB,
     event_list.back().wait_and_throw();
 
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
-
-    const auto a_size = (tolower(transA) != 'n') ? a.m * a.lda : a.k * a.lda;
-    const auto b_size = (tolower(transB) != 'n') ? a.ldb * a.k : a.n * a.ldb;
-    const auto c_size = a.ldc * a.n;
-
     run_tune(r, flop_count, result, [&] {
-      auto event_list =
-          _gemm_batched(sb_handle, transA, transB, a.m, a.n, a.k, a.alpha, a.a,
-                        a.lda, a_size, a.b, a.ldb, b_size, a.beta, a.c, a.ldc,
-                        c_size, a.batch_size, batch_type);
+      auto event_list = _gemm_batched(sb_handle, transA, transB, a.m, a.n, a.k,
+                                      a.alpha, a.a, a.lda, a.b, a.ldb, a.beta,
+                                      a.c, a.ldc, a.batch_size, batch_type);
       for (auto &event : event_list) {
         event.wait_and_throw();
       }
