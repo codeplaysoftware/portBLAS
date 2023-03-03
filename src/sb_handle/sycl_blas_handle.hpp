@@ -114,27 +114,12 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   constexpr bool is_usm = std::is_same<typename lhs_t::container_t,
                                        typename lhs_t::value_t*>::value;
   auto shMem1 =
-      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::allocate(
-          sharedSize, q_);
+      blas::helper::allocate<is_usm, typename lhs_t::value_t>(sharedSize, q_);
   auto shMem2 =
-      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::allocate(
-          sharedSize, q_);
+      blas::helper::allocate<is_usm, typename lhs_t::value_t>(sharedSize, q_);
 
-  typename lhs_t::index_t shMem1_offset =
-      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::get_offset(
-          shMem1);
-  typename lhs_t::index_t shMem2_offset =
-      blas::helper::BlasUsmHelper<is_usm, typename lhs_t::value_t>::get_offset(
-          shMem2);
-
-  auto opShMem1 =
-      lhs_t(blas::helper::BlasUsmHelper<
-                is_usm, typename lhs_t::value_t>::get_container(shMem1),
-            shMem1_offset, 1, sharedSize);
-  auto opShMem2 =
-      lhs_t(blas::helper::BlasUsmHelper<
-                is_usm, typename lhs_t::value_t>::get_container(shMem2),
-            shMem2_offset, 1, sharedSize);
+  auto opShMem1 = lhs_t(shMem1, 0, 1, sharedSize);
+  auto opShMem2 = lhs_t(shMem2, 0, 1, sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;

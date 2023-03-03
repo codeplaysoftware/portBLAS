@@ -64,12 +64,11 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
-  auto device_d1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-  auto device_d2 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-  auto device_x1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-  auto device_y1 = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-  auto device_param =
-      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(param_size, q);
+  auto device_d1 = blas::helper::allocate<true, scalar_t>(1, q);
+  auto device_d2 = blas::helper::allocate<true, scalar_t>(1, q);
+  auto device_x1 = blas::helper::allocate<true, scalar_t>(1, q);
+  auto device_y1 = blas::helper::allocate<true, scalar_t>(1, q);
+  auto device_param = blas::helper::allocate<true, scalar_t>(param_size, q);
 
   auto copy_d1 = blas::helper::copy_to_device(q, &sycl_out.d1, device_d1, 1);
   auto copy_d2 = blas::helper::copy_to_device(q, &sycl_out.d2, device_d2, 1);

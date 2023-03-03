@@ -140,34 +140,38 @@ function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
+  # set(container_list "BufferIterator<${cpp_data}>")
+  # list(APPEND container_list "${cpp_data}*")
   set(container_list "${cpp_data}*")
   foreach(index ${index_list})
     foreach(container0 ${container_list})
       foreach(container1 ${container_list})
-        set(container_names "${container0}_${container1}")
-        foreach(increment ${index_list})
-          sanitize_file_name(file_name
-            "${func}_${data}_${index}_${container_names}_${increment}.cpp")
-          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-              ${PROJECT_SOURCE_DIR}/external/
-              ${SYCLBLAS_SRC_GENERATOR}/gen
-              ${blas_level}
-              ${func}
-              ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              ${cpp_data}
-              ${index}
-              ${increment}
-              ${container0}
-              ${container1}
-              ${file_name}
-            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-            VERBATIM
-          )
-          list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-          endforeach(increment)
+        if (${container0} STREQUAL ${container1})
+          set(container_names "${container0}_${container1}")
+          foreach(increment ${index_list})
+            sanitize_file_name(file_name
+              "${func}_${data}_${index}_${container_names}_${increment}.cpp")
+            add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
+                ${PROJECT_SOURCE_DIR}/external/
+                ${SYCLBLAS_SRC_GENERATOR}/gen
+                ${blas_level}
+                ${func}
+                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                ${cpp_data}
+                ${index}
+                ${increment}
+                ${container0}
+                ${container1}
+                ${file_name}
+              MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+              DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
+              WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+              VERBATIM
+            )
+            list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+            endforeach(increment)
+        endif()
       endforeach(container1)
     endforeach(container0)
   endforeach(index)

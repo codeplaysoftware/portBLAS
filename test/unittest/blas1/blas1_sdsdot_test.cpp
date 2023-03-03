@@ -65,20 +65,19 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      int(vectorSize * incX), q);
+  auto gpu_x_v =
+      blas::helper::allocate<true, scalar_t>(int(vectorSize * incX), q);
   auto copy_x =
       blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
-  auto gpu_y_v = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      int(vectorSize * incY), q);
+  auto gpu_y_v =
+      blas::helper::allocate<true, scalar_t>(int(vectorSize * incY), q);
   auto copy_y =
       blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
 
   sb_handle.wait({copy_x, copy_y});
 
   if (api == api_type::async) {
-    auto gpu_out_s =
-        blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto gpu_out_s = blas::helper::allocate<true, scalar_t>(1, q);
     auto copy_out = blas::helper::copy_to_device(q, &out_s, gpu_out_s, 1);
     sb_handle.wait(copy_out);
     _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);

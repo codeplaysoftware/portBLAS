@@ -544,24 +544,24 @@ template <typename sb_handle_t, typename scalar_t,
           typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type>
 void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
            scalar_t &s) {
-  auto device_a = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      1, sb_handle.get_queue());
-  auto device_b = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      1, sb_handle.get_queue());
-  auto device_c = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      1, sb_handle.get_queue());
-  auto device_s = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(
-      1, sb_handle.get_queue());
+  auto device_a =
+      blas::helper::allocate<true, scalar_t>(1, sb_handle.get_queue());
+  auto device_b =
+      blas::helper::allocate<true, scalar_t>(1, sb_handle.get_queue());
+  auto device_c =
+      blas::helper::allocate<true, scalar_t>(1, sb_handle.get_queue());
+  auto device_s =
+      blas::helper::allocate<true, scalar_t>(1, sb_handle.get_queue());
   auto copy_a =
       blas::helper::copy_to_device(sb_handle.get_queue(), &a, device_a, 1);
   auto copy_b =
       blas::helper::copy_to_device(sb_handle.get_queue(), &b, device_b, 1);
   auto copy_c =
       blas::helper::copy_to_device(sb_handle.get_queue(), &c, device_c, 1);
-  auto copy_d =
+  auto copy_s =
       blas::helper::copy_to_device(sb_handle.get_queue(), &s, device_s, 1);
 
-  sb_handle.wait({copy_a, copy_b, copy_c, copy_d});
+  sb_handle.wait({copy_a, copy_b, copy_c, copy_s});
 
   auto event =
       blas::internal::_rotg(sb_handle, device_a, device_b, device_c, device_s);
@@ -575,10 +575,7 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
   auto event4 =
       blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
 
-  sb_handle.wait(event1);
-  sb_handle.wait(event2);
-  sb_handle.wait(event3);
-  sb_handle.wait(event4);
+  sb_handle.wait({event1, event2, event3, event4});
 }
 
 /**
@@ -604,11 +601,10 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
 _dot(sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
      container_1_t _vy, increment_t _incy) {
-  using element_t =
-      typename ValueType<container_0_t,
-                         std::is_pointer<container_0_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+  using element_t = typename ValueType<container_0_t, is_usm>::type;
   auto res = std::vector<element_t>(1);
-  auto gpu_res = blas::helper::BlasUsmHelper<true, element_t>::allocate(
+  auto gpu_res = blas::helper::allocate<is_usm, element_t>(
       static_cast<index_t>(1), sb_handle.get_queue());
   blas::internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res);
   auto event =
@@ -642,11 +638,10 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
 _sdsdot(sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
         increment_t _incx, container_1_t _vy, increment_t _incy) {
-  using element_t =
-      typename ValueType<container_0_t,
-                         std::is_pointer<container_0_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+  using element_t = typename ValueType<container_0_t, is_usm>::type;
   element_t res{};
-  auto gpu_res = blas::helper::BlasUsmHelper<true, element_t>::allocate(
+  auto gpu_res = blas::helper::allocate<is_usm, element_t>(
       static_cast<index_t>(1), sb_handle.get_queue());
   auto event1 = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy,
                                         _incy, gpu_res);
@@ -666,18 +661,18 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx) {
-  using element_t =
-      typename ValueType<container_t,
-                         std::is_pointer<container_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_t>::value;
+  using element_t = typename ValueType<container_t, is_usm>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
-  auto gpu_res =
-      make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
-  // blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res);
-  // auto event =
-  //     blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(),
-  //     1);
-  // sb_handle.wait(event);
+  if (!is_usm) {
+    auto gpu_res =
+        make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
+    blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res);
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res,
+                                            rsT.data(), 1);
+    sb_handle.wait(event);
+  }
   return rsT[0].get_index();
 }
 
@@ -690,18 +685,18 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx) {
-  using element_t =
-      typename ValueType<container_t,
-                         std::is_pointer<container_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_t>::value;
+  using element_t = typename ValueType<container_t, is_usm>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
-  auto gpu_res =
-      make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
-  // blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res);
-  // auto event =
-  //     blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(),
-  //     1);
-  // sb_handle.wait(event);
+  if (!is_usm) {
+    auto gpu_res =
+        make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
+    blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res);
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res,
+                                            rsT.data(), 1);
+    sb_handle.wait(event);
+  }
   return rsT[0].get_index();
 }
 
@@ -716,11 +711,10 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t, std::is_pointer<container_t>::value>::type
 _asum(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
-  using element_t =
-      typename ValueType<container_t,
-                         std::is_pointer<container_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_t>::value;
+  using element_t = typename ValueType<container_t, is_usm>::type;
   auto res = std::vector<element_t>(1, element_t(0));
-  auto gpu_res = blas::helper::BlasUsmHelper<true, element_t>::allocate(
+  auto gpu_res = blas::helper::allocate<is_usm, element_t>(
       static_cast<index_t>(1), sb_handle.get_queue());
   blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res);
   auto event =
@@ -740,11 +734,10 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t, std::is_pointer<container_t>::value>::type
 _nrm2(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
-  using element_t =
-      typename ValueType<container_t,
-                         std::is_pointer<container_t>::value>::type;
+  constexpr bool is_usm = std::is_pointer<container_t>::value;
+  using element_t = typename ValueType<container_t, is_usm>::type;
   auto res = std::vector<element_t>(1, element_t(0));
-  auto gpu_res = blas::helper::BlasUsmHelper<true, element_t>::allocate(
+  auto gpu_res = blas::helper::allocate<is_usm, element_t>(
       static_cast<index_t>(1), sb_handle.get_queue());
   blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res);
   auto event =

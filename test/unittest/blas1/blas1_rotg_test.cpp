@@ -50,10 +50,10 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t a = a_input;
   scalar_t b = b_input;
   if (api == api_type::async) {
-    auto device_a = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-    auto device_b = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-    auto device_c = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
-    auto device_s = blas::helper::BlasUsmHelper<true, scalar_t>::allocate(1, q);
+    auto device_a = blas::helper::allocate<true, scalar_t>(1, q);
+    auto device_b = blas::helper::allocate<true, scalar_t>(1, q);
+    auto device_c = blas::helper::allocate<true, scalar_t>(1, q);
+    auto device_s = blas::helper::allocate<true, scalar_t>(1, q);
 
     auto copy_a = blas::helper::copy_to_device(q, &a_input, device_a, 1);
     auto copy_b = blas::helper::copy_to_device(q, &b_input, device_b, 1);

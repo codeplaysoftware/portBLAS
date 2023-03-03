@@ -100,6 +100,14 @@ struct VectorView<
         disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
         stride_(strd) {}
 
+  SYCL_BLAS_INLINE VectorView(BufferIterator<scalar_t> data, index_t disp,
+                              increment_t strd, index_t size)
+      : data_{data.template get_range_accessor<
+            cl::sycl::access::mode::read_write>()},
+        size_(calculate_input_data_size(data_, disp, strd, size)),
+        disp_((strd > 0) ? disp : disp + (size_ - 1) * (-strd)),
+        stride_(strd) {}
+
   /*!
    * @brief See VectorView.
    */

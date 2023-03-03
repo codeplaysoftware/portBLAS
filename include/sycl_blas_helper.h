@@ -32,41 +32,32 @@
 namespace blas {
 namespace helper {
 
-template <bool isUsm, typename value_t>
-struct BlasUsmHelper;
+template <bool isUsm, typename element_t>
+struct AllocType;
 
-template <typename value_t>
-struct BlasUsmHelper<false, value_t> {
-  using accessor_t =
-      cl::sycl::accessor<value_t, 1, cl::sycl::access::mode::read_write,
-                         cl::sycl::access::target::global_buffer,
-                         cl::sycl::access::placeholder::true_t>;
-  using index_t = int;
-
-  static BufferIterator<value_t> allocate(int size, cl::sycl::queue) {
-    return make_sycl_iterator_buffer<value_t>(size);
-  }
-
-  static accessor_t get_container(BufferIterator<value_t> buff) {
-    return buff
-        .template get_range_accessor<cl::sycl::access::mode::read_write>();
-  }
-
-  static std::ptrdiff_t get_offset(BufferIterator<value_t> buff) {
-    return buff.get_offset();
-  }
+template <typename element_t>
+struct AllocType<true, element_t> {
+  using type = element_t *;
 };
 
-template <typename value_t>
-struct BlasUsmHelper<true, value_t> {
-  static value_t *allocate(int size, cl::sycl::queue q) {
-    return cl::sycl::malloc_device<value_t>(size, q);
-  }
-
-  static value_t *get_container(value_t *ptr) { return ptr; }
-
-  static std::ptrdiff_t get_offset(value_t *ptr) { return 0; }
+template <typename element_t>
+struct AllocType<false, element_t> {
+  using type = BufferIterator<element_t>;
 };
+
+template <bool isUsm, typename value_t,
+          typename container_t = typename AllocType<isUsm, value_t>::type>
+typename std::enable_if<isUsm, container_t>::type allocate(int size,
+                                                           cl::sycl::queue q) {
+  return cl::sycl::malloc_device<value_t>(size, q);
+}
+
+template <bool isUsm, typename value_t,
+          typename container_t = typename AllocType<isUsm, value_t>::type>
+typename std::enable_if<!isUsm, container_t>::type allocate(int size,
+                                                            cl::sycl::queue q) {
+  return make_sycl_iterator_buffer<value_t>(size);
+}
 
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()

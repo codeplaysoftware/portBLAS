@@ -63,12 +63,9 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v =
-      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incX, q);
-  auto gpu_y_v =
-      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(size * incY, q);
-  auto gpu_param =
-      blas::helper::BlasUsmHelper<true, scalar_t>::allocate(param_size, q);
+  auto gpu_x_v = blas::helper::allocate<true, scalar_t>(size * incX, q);
+  auto gpu_y_v = blas::helper::allocate<true, scalar_t>(size * incY, q);
+  auto gpu_param = blas::helper::allocate<true, scalar_t>(param_size, q);
 
   auto copy_x =
       blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
