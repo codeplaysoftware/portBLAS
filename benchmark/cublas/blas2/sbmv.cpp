@@ -39,7 +39,7 @@ static inline void cublas_routine(args_t&&... args) {
     CUBLAS_CHECK(cublasSsbmv(std::forward<args_t>(args)...));
   }
   else if constexpr (std::is_same_v<scalar_t, double>){
-    CUBLAS_CHECK(cublasDsbmv(std::forward(args)...));
+    CUBLAS_CHECK(cublasDsbmv(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -86,6 +86,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   }
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
+
   cublasFillMode_t c_uplo;
   if ( !(uplo.compare("u"))) {
     c_uplo = CUBLAS_FILL_MODE_UPPER;
@@ -119,7 +120,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   CUDA_CHECK(cudaMemcpy(m_a_gpu, m_a.data(), lda*n*sizeof(scalar_t), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(v_x_gpu, v_x.data(), xlen*sizeof(scalar_t), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(v_y_gpu, v_y.data(), ylen*sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaDeviceSynchronize());
   CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -156,11 +156,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     return;
   };
 
+  cudaEvent_t start;
+  cudaEvent_t stop;
+  CUDA_CHECK(cudaEventCreate(&start));
+  CUDA_CHECK(cudaEventCreate(&stop));
+
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
-    cudaEvent_t start;
-    cudaEvent_t stop;
-    CUDA_CHECK(cudaEventCreate(&start));
-    CUDA_CHECK(cudaEventCreate(&stop));
     CUDA_CHECK(cudaEventRecord(start));
     cublas_routine<scalar_t>(cuda_handle, c_uplo, n, k, d_alpha, m_a_gpu, lda, v_x_gpu,
                        incX, d_beta, v_y_gpu, incY);
@@ -188,12 +189,16 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   }
   
 
-  //blas_benchmark::utils::calc_avg_counters(state);
+  blas_benchmark::utils::calc_avg_counters(state);
+
   CUDA_CHECK(cudaFree(m_a_gpu));
   CUDA_CHECK(cudaFree(v_x_gpu));
   CUDA_CHECK(cudaFree(v_y_gpu));
-  cudaFree(d_beta);
-  cudaFree(d_alpha);
+  CUDA_CHECK(cudaFree(d_beta));
+  CUDA_CHECK(cudaFree(d_alpha));
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
+
 }
 
 template <typename scalar_t>
