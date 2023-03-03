@@ -45,10 +45,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
   // Create data
   constexpr size_t param_size = 5;
-  std::vector<scalar_t> param =
-      blas_benchmark::utils::random_data<scalar_t>(param_size);
-  param[0] =
-      static_cast<scalar_t>(-1.0);  // Use -1.0 flag to use the whole matrix
+  std::vector<scalar_t> param = std::vector<scalar_t>(param_size);
   scalar_t d1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t d2 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t x1 = blas_benchmark::utils::random_data<scalar_t>(1)[0];
@@ -107,6 +104,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
                                 hipMemcpyHostToDevice));
       CHECK_HIP_ERROR(hipMemcpy(d_y1_verify, &y1_verify, sizeof(scalar_t),
                                 hipMemcpyHostToDevice));
+      CHECK_HIP_ERROR(hipMemcpy(d_param_verify, param_verify.data(),
+                                sizeof(scalar_t), hipMemcpyHostToDevice));
 
       rocblas_rotmg_f<scalar_t>(rb_handle, d_d1_verify, d_d2_verify,
                                 d_x1_verify, d_y1_verify, d_param);
@@ -117,7 +116,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
                                 hipMemcpyDeviceToHost));
       CHECK_HIP_ERROR(hipMemcpy(&x1_verify, d_x1_verify, sizeof(scalar_t),
                                 hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipMemcpy(&param_verify, d_param_verify,
+      CHECK_HIP_ERROR(hipMemcpy(param_verify.data(), d_param_verify,
                                 sizeof(scalar_t) * param_size,
                                 hipMemcpyDeviceToHost));
 
