@@ -14,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "benchmark_cli_args.hpp"
@@ -776,10 +777,6 @@ template <typename event_t>
 static inline double time_event(event_t&);
 // Declared here, defined separately in the specific utils.hpp files
 
-#ifndef BUILD_CUBLAS_BENCHMARKS
-using cudaEvent_t = bool;
-#endif
-
 /**
  * @fn time_events
  * @brief Times n events, and returns the aggregate time.
@@ -787,13 +784,19 @@ using cudaEvent_t = bool;
 template <typename event_t>
 static inline double time_events(std::vector<event_t> es) {
   double total_time = 0;
-  if constexpr (std::is_same_v<cudaEvent_t, event_t>) {
-    total_time += time_event(es);
+#if defined(BUILD_CUBLAS_BENCHMARKS)
+  if constexpr(std::is_same_v<cudaEvent_t, event_t>) {
+      total_time += time_event(es);
   } else {
-    for (auto e : es) {
-      total_time += time_event(e);
-    }
+      for (auto e : es) {
+          total_time += time_event(e);
+      }
   }
+#else
+  for (auto e : es) {
+      total_time += time_event(e);
+  }
+#endif
   return total_time;
 }
 
