@@ -27,69 +27,71 @@
 
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, int, scalar_t>;
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    index_t size;
+    index_t incX;
+    index_t incY;
+    scalar_t unused; /* Necessary to work around dpcpp compiler bug */
+    std::tie(size, incX, incY, unused) = combi;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  index_t size;
-  index_t incX;
-  index_t incY;
-  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
-  std::tie(size, incX, incY, unused) = combi;
+    // Input vectors
+    std::vector<scalar_t> a_v(size * incX);
+    fill_random(a_v);
+    std::vector<scalar_t> b_v(size * incY);
+    fill_random(b_v);
 
-  // Input vectors
-  std::vector<scalar_t> a_v(size * incX);
-  fill_random(a_v);
-  std::vector<scalar_t> b_v(size * incY);
-  fill_random(b_v);
+    // Output vectors
+    std::vector<scalar_t> out_s(1, 10.0);
+    std::vector<scalar_t> a_cpu_v(a_v);
+    std::vector<scalar_t> b_cpu_v(b_v);
 
-  // Output vectors
-  std::vector<scalar_t> out_s(1, 10.0);
-  std::vector<scalar_t> a_cpu_v(a_v);
-  std::vector<scalar_t> b_cpu_v(b_v);
+    scalar_t c_d;
+    scalar_t s_d;
+    scalar_t sa = a_v[0];
+    scalar_t sb = a_v[1];
+    reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
-  scalar_t c_d;
-  scalar_t s_d;
-  scalar_t sa = a_v[0];
-  scalar_t sb = a_v[1];
-  reference_blas::rotg(&sa, &sb, &c_d, &s_d);
+    // Reference implementation
+    std::vector<scalar_t> c_cpu_v(size * incX);
+    std::vector<scalar_t> s_cpu_v(size * incY);
+    reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
+                        s_d);
+    auto out_cpu_s =
+        reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
 
-  // Reference implementation
-  std::vector<scalar_t> c_cpu_v(size * incX);
-  std::vector<scalar_t> s_cpu_v(size * incY);
-  reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
-                      s_d);
-  auto out_cpu_s =
-      reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
+    // SYCL implementation
+    auto q = make_queue();
+    blas::SB_Handle sb_handle(q);
 
-  // SYCL implementation
-  auto q = make_queue();
-  blas::SB_Handle sb_handle(q);
+    // Iterators
+    auto gpu_a_v = blas::helper::allocate<isUsm, scalar_t>(size * incX, q);
+    auto gpu_b_v = blas::helper::allocate<isUsm, scalar_t>(size * incY, q);
+    auto gpu_out_s = blas::helper::allocate<isUsm, scalar_t>(1, q);
 
-  // Iterators
-  auto gpu_a_v = blas::helper::allocate<true, scalar_t>(size * incX, q);
-  auto gpu_b_v = blas::helper::allocate<true, scalar_t>(size * incY, q);
-  auto gpu_out_s = blas::helper::allocate<true, scalar_t>(1, q);
+    auto copy_a =
+        blas::helper::copy_to_device(q, a_v.data(), gpu_a_v, size * incX);
+    auto copy_b =
+        blas::helper::copy_to_device(q, b_v.data(), gpu_b_v, size * incY);
 
-  auto copy_a =
-      blas::helper::copy_to_device(q, a_v.data(), gpu_a_v, size * incX);
-  auto copy_b =
-      blas::helper::copy_to_device(q, b_v.data(), gpu_b_v, size * incY);
+    sb_handle.wait({copy_a, copy_b});
 
-  sb_handle.wait({copy_a, copy_b});
+    auto c = static_cast<scalar_t>(c_d);
+    auto s = static_cast<scalar_t>(s_d);
 
-  auto c = static_cast<scalar_t>(c_d);
-  auto s = static_cast<scalar_t>(s_d);
+    _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+    _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
+    auto event = blas::helper::copy_to_host(q, gpu_out_s, out_s.data(), 1);
+    sb_handle.wait(event);
 
-  _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-  _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-  auto event = blas::helper::copy_to_host(q, gpu_out_s, out_s.data(), 1);
-  sb_handle.wait(event);
-
-  // Validate the result
-  const bool isAlmostEqual =
-      utils::almost_equal<scalar_t, scalar_t>(out_s[0], out_cpu_s);
-  ASSERT_TRUE(isAlmostEqual);
-}
+    // Validate the result
+    const bool isAlmostEqual =
+        utils::almost_equal<scalar_t, scalar_t>(out_s[0], out_cpu_s);
+    ASSERT_TRUE(isAlmostEqual);
+  }
+};
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
@@ -116,4 +118,8 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, incX, incY, unused);
 }
 
-BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotUSM, RotUSM, TestRunner<true>::run_test,
+                               combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotBuffer, RotBuffer,
+                               TestRunner<false>::run_test, combination_t,
+                               combi, generate_name);

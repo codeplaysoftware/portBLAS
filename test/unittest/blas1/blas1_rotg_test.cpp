@@ -28,68 +28,74 @@
 template <typename scalar_t>
 using combination_t = std::tuple<api_type, scalar_t, scalar_t>;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  api_type api;
-  scalar_t a_input;
-  scalar_t b_input;
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    api_type api;
+    scalar_t a_input;
+    scalar_t b_input;
+    scalar_t c_input = 1;
+    scalar_t s_input = 1;
 
-  std::tie(api, a_input, b_input) = combi;
+    std::tie(api, a_input, b_input) = combi;
 
-  scalar_t c_ref;
-  scalar_t s_ref;
-  scalar_t a_ref = a_input;
-  scalar_t b_ref = b_input;
-  reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
+    scalar_t c_ref;
+    scalar_t s_ref;
+    scalar_t a_ref = a_input;
+    scalar_t b_ref = b_input;
+    reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
 
-  auto q = make_queue();
-  blas::SB_Handle sb_handle(q);
+    auto q = make_queue();
+    blas::SB_Handle sb_handle(q);
 
-  scalar_t c;
-  scalar_t s;
-  scalar_t a = a_input;
-  scalar_t b = b_input;
-  if (api == api_type::async) {
-    auto device_a = blas::helper::allocate<true, scalar_t>(1, q);
-    auto device_b = blas::helper::allocate<true, scalar_t>(1, q);
-    auto device_c = blas::helper::allocate<true, scalar_t>(1, q);
-    auto device_s = blas::helper::allocate<true, scalar_t>(1, q);
+    scalar_t c;
+    scalar_t s;
+    scalar_t a = a_input;
+    scalar_t b = b_input;
+    if (api == api_type::async) {
+      auto device_a = blas::helper::allocate<isUsm, scalar_t>(1, q);
+      auto device_b = blas::helper::allocate<isUsm, scalar_t>(1, q);
+      auto device_c = blas::helper::allocate<isUsm, scalar_t>(1, q);
+      auto device_s = blas::helper::allocate<isUsm, scalar_t>(1, q);
 
-    auto copy_a = blas::helper::copy_to_device(q, &a_input, device_a, 1);
-    auto copy_b = blas::helper::copy_to_device(q, &b_input, device_b, 1);
-    auto set_c = q.memset(device_c, 1, sizeof(scalar_t));
-    auto set_s = q.memset(device_s, 1, sizeof(scalar_t));
+      auto copy_a = blas::helper::copy_to_device(q, &a_input, device_a, 1);
+      auto copy_b = blas::helper::copy_to_device(q, &b_input, device_b, 1);
+      auto set_c = blas::helper::copy_to_device(q, &c_input, device_c, 1);
+      auto set_s = blas::helper::copy_to_device(q, &s_input, device_s, 1);
 
-    sb_handle.wait({copy_a, copy_b, set_c, set_s});
+      sb_handle.wait({copy_a, copy_b, set_c, set_s});
 
-    auto event0 = _rotg(sb_handle, device_a, device_b, device_c, device_s);
-    sb_handle.wait(event0);
+      auto event0 = _rotg(sb_handle, device_a, device_b, device_c, device_s);
+      sb_handle.wait(event0);
 
-    auto event1 =
-        blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
-    auto event2 =
-        blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
-    auto event3 =
-        blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
-    auto event4 =
-        blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
-    sb_handle.wait({event1, event2, event3, event4});
-  } else {
-    _rotg(sb_handle, a, b, c, s);
+      auto event1 =
+          blas::helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
+      auto event2 =
+          blas::helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);
+      auto event3 =
+          blas::helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
+      auto event4 =
+          blas::helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
+      sb_handle.wait({event1, event2, event3, event4});
+    } else {
+      _rotg(sb_handle, a, b, c, s);
+    }
+
+    /* When there is an overflow in the calculation of the hypotenuse, results
+     * are implementation defined but r should return inf like reference_blas
+     * does */
+    if (std::isinf(a_ref)) {
+      ASSERT_TRUE(std::isinf(a));
+      return;
+    }
+
+    ASSERT_TRUE(utils::almost_equal(a, a_ref));
+    ASSERT_TRUE(utils::almost_equal(b, b_ref));
+    ASSERT_TRUE(utils::almost_equal(c, c_ref));
+    ASSERT_TRUE(utils::almost_equal(s, s_ref));
   }
-
-  /* When there is an overflow in the calculation of the hypotenuse, results are
-   * implementation defined but r should return inf like reference_blas does */
-  if (std::isinf(a_ref)) {
-    ASSERT_TRUE(std::isinf(a));
-    return;
-  }
-
-  ASSERT_TRUE(utils::almost_equal(a, a_ref));
-  ASSERT_TRUE(utils::almost_equal(b, b_ref));
-  ASSERT_TRUE(utils::almost_equal(c, c_ref));
-  ASSERT_TRUE(utils::almost_equal(s, s_ref));
-}
+};
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
@@ -108,4 +114,8 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, api, a, b);
 }
 
-BLAS_REGISTER_TEST_ALL(Rotg, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotgUSM, RotgUSM, TestRunner<true>::run_test,
+                               combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotgBuffer, RotgBuffer,
+                               TestRunner<false>::run_test, combination_t,
+                               combi, generate_name);

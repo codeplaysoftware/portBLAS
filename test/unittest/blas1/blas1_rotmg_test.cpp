@@ -25,7 +25,7 @@
 
 #include "blas_test.hpp"
 
-template <typename scalar_t>
+template <typename scalar_t, bool isUsm>
 struct RotmgTest {
   /* Magic numbers used by the rotmg algorithm */
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
@@ -57,18 +57,18 @@ struct RotmgTest {
   void validate_with_rotm();
 };
 
-template <typename scalar_t>
-void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
+template <typename scalar_t, bool isUsm>
+void RotmgTest<scalar_t, isUsm>::run_sycl_blas_rotmg() {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
-  auto device_d1 = blas::helper::allocate<true, scalar_t>(1, q);
-  auto device_d2 = blas::helper::allocate<true, scalar_t>(1, q);
-  auto device_x1 = blas::helper::allocate<true, scalar_t>(1, q);
-  auto device_y1 = blas::helper::allocate<true, scalar_t>(1, q);
-  auto device_param = blas::helper::allocate<true, scalar_t>(param_size, q);
+  auto device_d1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
+  auto device_d2 = blas::helper::allocate<isUsm, scalar_t>(1, q);
+  auto device_x1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
+  auto device_y1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
+  auto device_param = blas::helper::allocate<isUsm, scalar_t>(param_size, q);
 
   auto copy_d1 = blas::helper::copy_to_device(q, &sycl_out.d1, device_d1, 1);
   auto copy_d2 = blas::helper::copy_to_device(q, &sycl_out.d2, device_d2, 1);
@@ -82,21 +82,17 @@ void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
                        device_param);
   sb_handle.wait(event0);
 
-  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), device_d1,
-                                           &sycl_out.d1, 1);
-  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), device_d2,
-                                           &sycl_out.d2, 1);
-  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), device_x1,
-                                           &sycl_out.x1, 1);
-  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), device_y1,
-                                           &sycl_out.y1, 1);
-  auto event5 = blas::helper::copy_to_host(sb_handle.get_queue(), device_param,
+  auto event1 = blas::helper::copy_to_host(q, device_d1, &sycl_out.d1, 1);
+  auto event2 = blas::helper::copy_to_host(q, device_d2, &sycl_out.d2, 1);
+  auto event3 = blas::helper::copy_to_host(q, device_x1, &sycl_out.x1, 1);
+  auto event4 = blas::helper::copy_to_host(q, device_y1, &sycl_out.y1, 1);
+  auto event5 = blas::helper::copy_to_host(q, device_param,
                                            sycl_out.param.data(), param_size);
   sb_handle.wait({event1, event2, event3, event4, event5});
 }
 
-template <typename scalar_t>
-void RotmgTest<scalar_t>::validate_with_reference() {
+template <typename scalar_t, bool isUsm>
+void RotmgTest<scalar_t, isUsm>::validate_with_reference() {
   scalar_t d1_ref = input.d1;
   scalar_t d2_ref = input.d2;
   scalar_t x1_ref = input.x1;
@@ -173,8 +169,8 @@ void RotmgTest<scalar_t>::validate_with_reference() {
  * x1_output * sqrt(d1_output) = [ h11 h12 ] * [ x1_input]
  * 0.0       * sqrt(d2_output)   [ h21 h22 ]   [ y1_input]
  */
-template <typename scalar_t>
-void RotmgTest<scalar_t>::validate_with_rotm() {
+template <typename scalar_t, bool isUsm>
+void RotmgTest<scalar_t, isUsm>::validate_with_rotm() {
   if (sycl_out.param[0] == 2 || sycl_out.d2 < 0) {
     return;
   }
@@ -199,26 +195,29 @@ void RotmgTest<scalar_t>::validate_with_rotm() {
 template <typename scalar_t>
 using combination_t = std::tuple<scalar_t, scalar_t, scalar_t, scalar_t, bool>;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  scalar_t d1_input;
-  scalar_t d2_input;
-  scalar_t x1_input;
-  scalar_t y1_input;
-  bool will_overflow;
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    scalar_t d1_input;
+    scalar_t d2_input;
+    scalar_t x1_input;
+    scalar_t y1_input;
+    bool will_overflow;
 
-  std::tie(d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
+    std::tie(d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
 
-  RotmgTest<scalar_t> test{d1_input, d2_input, x1_input, y1_input};
-  test.run_sycl_blas_rotmg();
+    RotmgTest<scalar_t, isUsm> test{d1_input, d2_input, x1_input, y1_input};
+    test.run_sycl_blas_rotmg();
 
-  /* Do not test with things that might overflow or underflow. Results will not
-   * make sense if that happens */
-  if (!will_overflow) {
-    test.validate_with_reference();
-    test.validate_with_rotm();
+    /* Do not test with things that might overflow or underflow. Results will
+     * not make sense if that happens */
+    if (!will_overflow) {
+      test.validate_with_reference();
+      test.validate_with_rotm();
+    }
   }
-}
+};
 
 template <typename scalar_t>
 constexpr scalar_t min_rng = 0.5;
@@ -244,15 +243,19 @@ scalar_t r_gen() {
 /* Generate large enough number so that rotmg will scale it down */
 template <typename scalar_t>
 scalar_t scale_down_gen() {
-  return random_scalar<scalar_t>(RotmgTest<scalar_t>::gamma_sq,
-                                 RotmgTest<scalar_t>::gamma_sq * 2);
+  /*Setting the isUsm parameter to true, it should work if set to false as
+   * well*/
+  return random_scalar<scalar_t>(RotmgTest<scalar_t, true>::gamma_sq,
+                                 RotmgTest<scalar_t, true>::gamma_sq * 2);
 }
 
 /* Generate small enough number so that rotmg will scale it up */
 template <typename scalar_t>
 scalar_t scale_up_gen() {
-  return random_scalar<scalar_t>(RotmgTest<scalar_t>::inv_gamma_sq / 2,
-                                 RotmgTest<scalar_t>::inv_gamma_sq);
+  /*Setting the isUsm parameter to true, it should work if set to false as
+   * well*/
+  return random_scalar<scalar_t>(RotmgTest<scalar_t, true>::inv_gamma_sq / 2,
+                                 RotmgTest<scalar_t, true>::inv_gamma_sq);
 }
 
 /* This tests try to cover every code path of the rotmg algorithm */
@@ -370,4 +373,8 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, d1, d2, x1, y1, will_overflow);
 }
 
-BLAS_REGISTER_TEST_ALL(Rotmg, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotmgUSM, RotmgUSM, TestRunner<true>::run_test,
+                               combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(RotmgBuffer, RotmgBuffer,
+                               TestRunner<false>::run_test, combination_t,
+                               combi, generate_name);

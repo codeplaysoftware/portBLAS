@@ -28,52 +28,55 @@
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, int>;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  index_t size;
-  index_t incX;
-  index_t incY;
-  std::tie(size, incX, incY) = combi;
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    index_t size;
+    index_t incX;
+    index_t incY;
+    std::tie(size, incX, incY) = combi;
 
-  // Input/Output vector
-  std::vector<scalar_t> x_v(size * incX);
-  fill_random(x_v);
-  std::vector<scalar_t> x_cpu_v(x_v);
+    // Input/Output vector
+    std::vector<scalar_t> x_v(size * incX);
+    fill_random(x_v);
+    std::vector<scalar_t> x_cpu_v(x_v);
 
-  std::vector<scalar_t> y_v(size * incY);
-  fill_random(y_v);
-  std::vector<scalar_t> y_cpu_v(y_v);
+    std::vector<scalar_t> y_v(size * incY);
+    fill_random(y_v);
+    std::vector<scalar_t> y_cpu_v(y_v);
 
-  // Reference implementation
-  reference_blas::swap(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY);
+    // Reference implementation
+    reference_blas::swap(size, x_cpu_v.data(), incX, y_cpu_v.data(), incY);
 
-  // SYCL implementation
-  auto q = make_queue();
-  blas::SB_Handle sb_handle(q);
+    // SYCL implementation
+    auto q = make_queue();
+    blas::SB_Handle sb_handle(q);
 
-  // Iterators
-  auto gpu_x_v = blas::helper::allocate<true, scalar_t>(size * incX, q);
-  auto gpu_y_v = blas::helper::allocate<true, scalar_t>(size * incY, q);
+    // Iterators
+    auto gpu_x_v = blas::helper::allocate<isUsm, scalar_t>(size * incX, q);
+    auto gpu_y_v = blas::helper::allocate<isUsm, scalar_t>(size * incY, q);
 
-  auto copy_x =
-      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
-  auto copy_y =
-      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
-  sb_handle.wait({copy_x, copy_y});
+    auto copy_x =
+        blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+    auto copy_y =
+        blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
+    sb_handle.wait({copy_x, copy_y});
 
-  _swap(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
-                                          x_v.data(), size * incX);
-  sb_handle.wait(event);
-  event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(),
-                                     size * incY);
-  sb_handle.wait(event);
+    _swap(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
+    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_x_v,
+                                            x_v.data(), size * incX);
+    sb_handle.wait(event);
+    event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
+                                       y_v.data(), size * incY);
+    sb_handle.wait(event);
 
-  // Validate the result
-  // Since this is just a swap operation, float tolerances are fine
-  ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
-  ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
-}
+    // Validate the result
+    // Since this is just a swap operation, float tolerances are fine
+    ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
+    ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
+  }
+};
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
@@ -97,4 +100,8 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, size, incX, incY);
 }
 
-BLAS_REGISTER_TEST_ALL(Swap, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(SwapUSM, SwapUSM, TestRunner<true>::run_test,
+                               combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(SwapBuffer, SwapBuffer,
+                               TestRunner<false>::run_test, combination_t,
+                               combi, generate_name);

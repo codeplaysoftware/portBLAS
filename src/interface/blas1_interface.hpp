@@ -160,7 +160,8 @@ typename sb_handle_t::event_t _sdsdot(sb_handle_t &sb_handle, index_t _N,
                                       increment_t _incy, container_2_t _rs) {
   typename sb_handle_t::event_t dot_event{};
 
-  using element_t = typename blas::ValueType<container_2_t, true>::type;
+  constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+  using element_t = typename blas::ValueType<container_2_t, is_usm>::type;
   auto rs = make_vector_view<element_t>(_rs, static_cast<increment_t>(1),
                                         static_cast<index_t>(1));
 

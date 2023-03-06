@@ -30,68 +30,71 @@
 template <typename scalar_t>
 using combination_t = std::tuple<api_type, int, scalar_t, int, int>;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  /* sdsdot is only valid when using floats */
-  static_assert(std::is_same<scalar_t, float>::value);
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    /* sdsdot is only valid when using floats */
+    static_assert(std::is_same<scalar_t, float>::value);
 
-  index_t N;
-  float sb;
-  index_t incX;
-  index_t incY;
-  api_type api;
-  std::tie(api, N, sb, incX, incY) = combi;
+    index_t N;
+    float sb;
+    index_t incX;
+    index_t incY;
+    api_type api;
+    std::tie(api, N, sb, incX, incY) = combi;
 
-  /* Sycl Buffers do not work with size = 0. So setting input vectors to size
-   * one to test the edge case where if size equals 0 then sb should be
-   * returned. */
-  index_t vectorSize = N > 0 ? N : 1;
+    /* Sycl Buffers do not work with size = 0. So setting input vectors to size
+     * one to test the edge case where if size equals 0 then sb should be
+     * returned. */
+    index_t vectorSize = N > 0 ? N : 1;
 
-  // Input vectors
-  std::vector<scalar_t> x_v(vectorSize * incX);
-  fill_random(x_v);
-  std::vector<scalar_t> y_v(vectorSize * incY);
-  fill_random(y_v);
+    // Input vectors
+    std::vector<scalar_t> x_v(vectorSize * incX);
+    fill_random(x_v);
+    std::vector<scalar_t> y_v(vectorSize * incY);
+    fill_random(y_v);
 
-  // Output scalar
-  scalar_t out_s = 10.0;
+    // Output scalar
+    scalar_t out_s = 10.0;
 
-  // Reference implementation
-  auto out_cpu_s =
-      reference_blas::sdsdot(N, sb, x_v.data(), incX, y_v.data(), incY);
+    // Reference implementation
+    auto out_cpu_s =
+        reference_blas::sdsdot(N, sb, x_v.data(), incX, y_v.data(), incY);
 
-  // SYCL implementation
-  auto q = make_queue();
-  blas::SB_Handle sb_handle(q);
+    // SYCL implementation
+    auto q = make_queue();
+    blas::SB_Handle sb_handle(q);
 
-  // Iterators
-  auto gpu_x_v =
-      blas::helper::allocate<true, scalar_t>(int(vectorSize * incX), q);
-  auto copy_x =
-      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
-  auto gpu_y_v =
-      blas::helper::allocate<true, scalar_t>(int(vectorSize * incY), q);
-  auto copy_y =
-      blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
+    // Iterators
+    auto gpu_x_v =
+        blas::helper::allocate<isUsm, scalar_t>(int(vectorSize * incX), q);
+    auto copy_x =
+        blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
+    auto gpu_y_v =
+        blas::helper::allocate<isUsm, scalar_t>(int(vectorSize * incY), q);
+    auto copy_y =
+        blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
 
-  sb_handle.wait({copy_x, copy_y});
+    sb_handle.wait({copy_x, copy_y});
 
-  if (api == api_type::async) {
-    auto gpu_out_s = blas::helper::allocate<true, scalar_t>(1, q);
-    auto copy_out = blas::helper::copy_to_device(q, &out_s, gpu_out_s, 1);
-    sb_handle.wait(copy_out);
-    _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-    auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                      gpu_out_s, &out_s, 1);
-    sb_handle.wait(event);
-  } else {
-    out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    if (api == api_type::async) {
+      auto gpu_out_s = blas::helper::allocate<isUsm, scalar_t>(1, q);
+      auto copy_out = blas::helper::copy_to_device(q, &out_s, gpu_out_s, 1);
+      sb_handle.wait(copy_out);
+      _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+      auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                        gpu_out_s, &out_s, 1);
+      sb_handle.wait(event);
+    } else {
+      out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    }
+
+    // Validate the result
+    const bool isAlmostEqual = utils::almost_equal(out_s, out_cpu_s);
+    ASSERT_TRUE(isAlmostEqual);
   }
-
-  // Validate the result
-  const bool isAlmostEqual = utils::almost_equal(out_s, out_cpu_s);
-  ASSERT_TRUE(isAlmostEqual);
-}
+};
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
@@ -123,4 +126,9 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, api, size, sb, incX, incY);
 }
 
-BLAS_REGISTER_TEST_FLOAT(Sdsdot, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(SdsdotUSM, SdsdotUSM,
+                                     TestRunner<true>::run_test, combination_t,
+                                     combi, generate_name);
+BLAS_REGISTER_TEST_FLOAT_CUSTOM_NAME(SdsdotBuffer, SdsdotBuffer,
+                                     TestRunner<false>::run_test, combination_t,
+                                     combi, generate_name);

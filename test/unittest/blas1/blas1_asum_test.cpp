@@ -27,56 +27,58 @@
 
 template <typename scalar_t>
 using combination_t = std::tuple<api_type, int, int>;
+template <bool isUsm>
+struct TestRunner {
+  template <typename scalar_t>
+  static void run_test(const combination_t<scalar_t> combi) {
+    api_type api;
+    index_t size;
+    index_t incX;
+    std::tie(api, size, incX) = combi;
 
-template <typename scalar_t>
-void run_test(const combination_t<scalar_t> combi) {
-  api_type api;
-  index_t size;
-  index_t incX;
-  std::tie(api, size, incX) = combi;
+    // Input vector
+    std::vector<scalar_t> x_v(size * incX);
+    fill_random<scalar_t>(x_v);
 
-  // Input vector
-  std::vector<scalar_t> x_v(size * incX);
-  fill_random<scalar_t>(x_v);
+    // We need to guarantee that cl::sycl::half can hold the sum
+    // of x_v without overflow by making sum(x_v) to be 1.0
+    std::transform(std::begin(x_v), std::end(x_v), std::begin(x_v),
+                   [=](scalar_t x) { return x / x_v.size(); });
 
-  // We need to guarantee that cl::sycl::half can hold the sum
-  // of x_v without overflow by making sum(x_v) to be 1.0
-  std::transform(std::begin(x_v), std::end(x_v), std::begin(x_v),
-                 [=](scalar_t x) { return x / x_v.size(); });
+    // Output scalar
+    scalar_t out_s = 0;
 
-  // Output scalar
-  scalar_t out_s = 0;
+    // Reference implementation
+    scalar_t out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
 
-  // Reference implementation
-  scalar_t out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
+    // SYCL implementation
+    auto q = make_queue();
+    blas::SB_Handle sb_handle(q);
 
-  // SYCL implementation
-  auto q = make_queue();
-  blas::SB_Handle sb_handle(q);
+    // Iterators
+    auto gpu_x_v = blas::helper::allocate<isUsm, scalar_t>(size * incX, q);
+    auto copy_x = blas::helper::copy_to_device<scalar_t>(q, x_v.data(), gpu_x_v,
+                                                         size * incX);
+    sb_handle.wait(copy_x);
 
-  // Iterators
-  auto gpu_x_v = blas::helper::allocate<true, scalar_t>(size * incX, q);
-  auto copy_x = blas::helper::copy_to_device<scalar_t>(q, x_v.data(), gpu_x_v,
-                                                       size * incX);
-  sb_handle.wait(copy_x);
+    if (api == api_type::async) {
+      auto gpu_out_s = blas::helper::allocate<isUsm, scalar_t>(1, q);
+      auto copy_out =
+          blas::helper::copy_to_device<scalar_t>(q, &out_s, gpu_out_s, 1);
+      sb_handle.wait(copy_out);
+      _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s);
+      auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                        gpu_out_s, &out_s, 1);
+      sb_handle.wait(event);
+    } else {
+      out_s = _asum(sb_handle, size, gpu_x_v, incX);
+    }
 
-  if (api == api_type::async) {
-    auto gpu_out_s = blas::helper::allocate<true, scalar_t>(1, q);
-    auto copy_out =
-        blas::helper::copy_to_device<scalar_t>(q, &out_s, gpu_out_s, 1);
-    sb_handle.wait(copy_out);
-    _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s);
-    auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                      gpu_out_s, &out_s, 1);
-    sb_handle.wait(event);
-  } else {
-    out_s = _asum(sb_handle, size, gpu_x_v, incX);
+    // Validate the result
+    const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);
+    ASSERT_TRUE(is_almost_equal);
   }
-
-  // Validate the result
-  const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);
-  ASSERT_TRUE(is_almost_equal);
-}
+};
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(api_type::async,
@@ -94,4 +96,8 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, api, size, incX);
 }
 
-BLAS_REGISTER_TEST_ALL(Asum, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(AsumUSM, AsumUSM, TestRunner<true>::run_test,
+                               combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_CUSTOM_NAME(AsumBuffer, AsumBuffer,
+                               TestRunner<false>::run_test, combination_t,
+                               combi, generate_name);
