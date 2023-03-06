@@ -258,36 +258,40 @@ set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
   set(container_list_in "BufferIterator<${cpp_data}>")
+  list(APPEND container_list_in "${cpp_data}*")
   foreach(index ${index_list})
     set(container_list_out
       "BufferIterator<IndexValueTuple<${index},${cpp_data}>>")
+    list(APPEND container_list_out
+      "IndexValueTuple<${index},${cpp_data}>*")
+    set(idx 0)
     foreach(container0 ${container_list_in})
-      foreach(container1 ${container_list_out})
-        set(container_names "${container0}_${container1}")
-        foreach(increment ${index_list})
-          sanitize_file_name(file_name
-            "${func}_${data}_${index}_${container_names}_${increment}.cpp")
-          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
-              ${PROJECT_SOURCE_DIR}/external/
-              ${SYCLBLAS_SRC_GENERATOR}/gen
-              ${blas_level}
-              ${func}
-              ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              ${cpp_data}
-              ${index}
-              ${increment}
-              ${container0}
-              ${container1}
-              ${file_name}
-            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-            VERBATIM
-          )
-          list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-          endforeach(increment)
-      endforeach(container1)
+      list(GET container_list_out ${idx} container1)
+      MATH(EXPR idx "${idx}+1")
+      set(container_names "${container0}_${container1}")
+      foreach(increment ${index_list})
+        sanitize_file_name(file_name
+          "${func}_${data}_${index}_${container_names}_${increment}.cpp")
+        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+          COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
+            ${PROJECT_SOURCE_DIR}/external/
+            ${SYCLBLAS_SRC_GENERATOR}/gen
+            ${blas_level}
+            ${func}
+            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+            ${cpp_data}
+            ${index}
+            ${increment}
+            ${container0}
+            ${container1}
+            ${file_name}
+          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+          DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
+          WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+          VERBATIM
+        )
+        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+        endforeach(increment)
     endforeach(container0)
   endforeach(index)
 endforeach(data)
@@ -902,10 +906,10 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:dot_return>
                 $<TARGET_OBJECTS:sdsdot>
                 $<TARGET_OBJECTS:sdsdot_return>
-                # $<TARGET_OBJECTS:iamax>
-                # $<TARGET_OBJECTS:iamax_return>
-                # $<TARGET_OBJECTS:iamin>
-                # $<TARGET_OBJECTS:iamin_return>
+                $<TARGET_OBJECTS:iamax>
+                $<TARGET_OBJECTS:iamax_return>
+                $<TARGET_OBJECTS:iamin>
+                $<TARGET_OBJECTS:iamin_return>
                 $<TARGET_OBJECTS:nrm2>
                 $<TARGET_OBJECTS:nrm2_return>
                 $<TARGET_OBJECTS:rot>

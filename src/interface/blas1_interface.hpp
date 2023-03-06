@@ -666,14 +666,17 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   using element_t = typename ValueType<container_t, is_usm>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
-  if (!is_usm) {
-    auto gpu_res =
-        make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
-    blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res);
-    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res,
-                                            rsT.data(), 1);
-    sb_handle.wait(event);
-  }
+  auto gpu_res = blas::helper::allocate<is_usm, IndValTuple>(
+      static_cast<index_t>(1), sb_handle.get_queue());
+  auto copy_res = blas::helper::copy_to_device<IndValTuple>(
+      sb_handle.get_queue(), rsT.data(), gpu_res, 1);
+  sb_handle.wait(copy_res);
+  auto kernel_event =
+      blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res);
+  sb_handle.wait(kernel_event);
+  auto event = blas::helper::copy_to_host<IndValTuple>(sb_handle.get_queue(),
+                                                       gpu_res, rsT.data(), 1);
+  sb_handle.wait(event);
   return rsT[0].get_index();
 }
 
@@ -690,14 +693,13 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   using element_t = typename ValueType<container_t, is_usm>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
-  if (!is_usm) {
-    auto gpu_res =
-        make_sycl_iterator_buffer<IndValTuple>(static_cast<index_t>(1));
-    blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res);
-    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res,
-                                            rsT.data(), 1);
-    sb_handle.wait(event);
-  }
+  auto gpu_res = blas::helper::allocate<is_usm, IndValTuple>(
+      static_cast<index_t>(1), sb_handle.get_queue());
+  auto iamin_event = blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res);
+  sb_handle.wait(iamin_event);
+  auto event =
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+  sb_handle.wait(event);
   return rsT[0].get_index();
 }
 
