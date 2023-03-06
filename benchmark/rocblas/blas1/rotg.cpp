@@ -50,10 +50,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
 
   {
     // Device memory allocation
-    blas_benchmark::utils::DeviceVector<scalar_t> d_a(1);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_b(1);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_c(1);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_s(1);
+    blas_benchmark::utils::HIPVector<scalar_t> d_a(1);
+    blas_benchmark::utils::HIPVector<scalar_t> d_b(1);
+    blas_benchmark::utils::HIPVector<scalar_t> d_c(1);
+    blas_benchmark::utils::HIPVector<scalar_t> d_s(1);
 
     // Copy data (H2D)
     CHECK_HIP_ERROR(
@@ -81,10 +81,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
     scalar_t s_verify = s;
 
     {
-      blas_benchmark::utils::DeviceVector<scalar_t> d_a_verify(1);
-      blas_benchmark::utils::DeviceVector<scalar_t> d_b_verify(1);
-      blas_benchmark::utils::DeviceVector<scalar_t> d_c_verify(1);
-      blas_benchmark::utils::DeviceVector<scalar_t> d_s_verify(1);
+      blas_benchmark::utils::HIPVector<scalar_t> d_a_verify(1);
+      blas_benchmark::utils::HIPVector<scalar_t> d_b_verify(1);
+      blas_benchmark::utils::HIPVector<scalar_t> d_c_verify(1);
+      blas_benchmark::utils::HIPVector<scalar_t> d_s_verify(1);
 
       CHECK_HIP_ERROR(hipMemcpy(d_a_verify, &a_verify, sizeof(scalar_t),
                                 hipMemcpyHostToDevice));

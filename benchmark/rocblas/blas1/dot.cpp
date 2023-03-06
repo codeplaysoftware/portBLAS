@@ -58,16 +58,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   scalar_t res;
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v2(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_res(1);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(hipMemcpy(d_v2, v2.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPVector<scalar_t> d_v1(size, v1.data());
+    blas_benchmark::utils::HIPVector<scalar_t> d_v2(size, v2.data());
+    blas_benchmark::utils::HIPScalar<scalar_t> d_res(res);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -77,11 +71,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     {
       // Temp result on device
-      blas_benchmark::utils::DeviceVector<scalar_t> d_res_temp(1);
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_res_temp(res_temp);
       rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, d_res_temp);
-      CHECK_HIP_ERROR(hipMemcpy(&res_temp, d_res_temp, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-    }
+    }  // Result is copied back to host upon destruction of DeviceScalar
 
     if (!utils::almost_equal(res_temp, res_ref)) {
       std::ostringstream err_stream;
@@ -93,7 +85,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, d_res);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
@@ -107,7 +99,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
 
-      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, &res);
+      rocblas_dot_f<scalar_t>(rb_handle, size, d_v1, 1, d_v2, 1, d_res);
 
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));

@@ -56,59 +56,134 @@ void create_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle_ptr,
 
 namespace utils {
 
-// base-class to allocate/deallocate hip device memory
-template <typename T>
-class DeviceVectorMemory {
+/**
+ * @class HIPDeviceMemory
+ * @brief Base-class to allocate/deallocate hip device memory.
+ * @tparam T is the type of the underlying data
+ * @tparam CopyToHost whether to copy back
+ */
+template <typename T, bool CopyToHost = false>
+class HIPDeviceMemory {
  protected:
-  size_t mSize, mBytes;
+  size_t size_;
+  size_t bytes_;
 
-  DeviceVectorMemory(size_t s) : mSize(s), mBytes(s * sizeof(T)) {}
+  HIPDeviceMemory() : size_(1), bytes_(sizeof(T)) {}
 
-  T* setup() {
+  HIPDeviceMemory(size_t s) : size_(s), bytes_(s * sizeof(T)) {}
+
+  // Allocate on Device
+  T* alloc() {
     T* d;
-    if ((hipMalloc)(&d, mBytes) != hipSuccess) {
-      fprintf(stderr, "Error allocating %zu mBytes\n", mBytes);
+    if ((hipMalloc)(&d, bytes_) != hipSuccess) {
+      fprintf(stderr, "Error allocating %zu bytes_\n", bytes_);
       d = nullptr;
     }
     return d;
   }
 
-  void teardown(T* d) {
+  // Copy from Host to Device
+  void copyH2D(const T* hPtr, T* dPtr) {
+    if (dPtr != nullptr) {
+      CHECK_HIP_ERROR(hipMemcpy(dPtr, hPtr, bytes_, hipMemcpyHostToDevice));
+    }
+    return;
+  }
+
+  // Copy from Device to Host
+  void copyD2H(const T* dPtr, T* hPtr) {
+    if (hPtr != nullptr) {
+      CHECK_HIP_ERROR(hipMemcpy(hPtr, dPtr, bytes_, hipMemcpyDeviceToHost));
+    }
+    return;
+  }
+
+  // Free device memory
+  void free(T* d) {
     if (d != nullptr) {
-      // Free device memory
       CHECK_HIP_ERROR((hipFree)(d));
     }
   }
 };
 
-// pseudo-vector subclass which uses device memory
-template <typename T>
-class DeviceVector : private DeviceVectorMemory<T> {
+// Pseudo-vector subclass which uses device memory
+template <typename T, bool CopyToHost = false>
+class HIPVector : private HIPDeviceMemory<T> {
  public:
-  explicit DeviceVector(size_t s) : DeviceVectorMemory<T>(s) {
-    mData = this->setup();
+  explicit HIPVector(size_t s) : HIPDeviceMemory<T>(s) {
+    d_data_ = this->alloc();
   }
 
-  ~DeviceVector() { this->teardown(mData); }
+  // Constructor using host pointer copies data to device
+  HIPVector(size_t s, T* hPtr) : HIPVector<T, CopyToHost>(s) {
+    h_data_ = hPtr;
+    this->copyH2D(h_data_, d_data_);
+  }
 
-  // Decay into pointer wherever pointer is expected
-  operator T*() { return mData; }
+  // Destructor copies data back to host if specified & valid
+  // & free-up device memory
+  ~HIPVector() {
+    if constexpr (CopyToHost) {
+      this->copyD2H(d_data_, h_data_);
+    }
+    this->free(d_data_);
+  }
 
-  operator const T*() const { return mData; }
-
-  T* data() const { return mData; }
-
-  // Tell whether malloc failed
-  explicit operator bool() const { return mData != nullptr; }
+  // Decay into device pointer wherever pointer is expected
+  operator T*() { return d_data_; }
+  operator const T*() const { return d_data_; }
+  T* data() const { return d_data_; }
 
   // Disallow copying or assigning
-  DeviceVector(const DeviceVector&) = delete;
-  DeviceVector& operator=(const DeviceVector&) = delete;
+  HIPVector(const HIPVector&) = delete;
+  HIPVector& operator=(const HIPVector&) = delete;
 
  private:
-  T* mData;
+  T* d_data_;
+  T* h_data_ = nullptr;
 };
 
+// Pseudo-scalar subclass which uses device memory
+template <typename T, bool CopyToHost = false>
+class HIPScalar : private HIPDeviceMemory<T> {
+ public:
+  explicit HIPScalar() : HIPDeviceMemory<T>() { d_data_ = this->alloc(); }
+
+  // Constructor using host scalar reference copies value to device
+  HIPScalar(T& hValue) : HIPScalar<T, CopyToHost>() {
+    h_data_ = &hValue;
+    this->copyH2D(h_data_, d_data_);
+  }
+
+  // Destructor copies data back to host if specified & valid
+  // & free-up device memory
+  ~HIPScalar() {
+    if constexpr (CopyToHost) {
+      this->copyD2H(d_data_, h_data_);
+    }
+    this->free(d_data_);
+  }
+
+  // Decay into device pointer wherever pointer is expected
+  operator T*() { return d_data_; }
+  operator const T*() const { return d_data_; }
+  T* data() const { return d_data_; }
+
+  // Disallow copying or assigning
+  HIPScalar(const HIPScalar&) = delete;
+  HIPScalar& operator=(const HIPScalar&) = delete;
+
+ private:
+  T* d_data_;
+  T* h_data_ = nullptr;
+};
+
+/**
+ * @fn timef_hip
+ * @brief Calculates the time spent executing the function func returning 2
+ * hipEvents (both overall and HIP events time, returned in nanoseconds in a
+ * tuple of double)
+ */
 template <typename function_t, typename... args_t>
 static inline std::tuple<double, double> timef_hip(function_t func,
                                                    args_t&&... args) {

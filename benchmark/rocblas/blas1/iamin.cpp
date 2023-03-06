@@ -58,13 +58,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   int idx;
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<int> d_idx(1);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPVector<scalar_t> d_v1(size, v1.data());
+    blas_benchmark::utils::HIPScalar<int> d_idx(idx);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -73,15 +69,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     int idx_temp = -1;
 
     {
-      blas_benchmark::utils::DeviceVector<int> d_idx_temp(1);
-      CHECK_HIP_ERROR(
-          hipMemcpy(d_idx_temp, &idx_temp, sizeof(int), hipMemcpyHostToDevice));
-
+      blas_benchmark::utils::HIPScalar<int, true> d_idx_temp(idx_temp);
       rocblas_iamin_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx_temp);
-
-      CHECK_HIP_ERROR(
-          hipMemcpy(&idx_temp, d_idx_temp, sizeof(int), hipMemcpyDeviceToHost));
-    }
+    }  // Result is copied back to host upon destruction of DeviceScalar
 
     // xMIN follows 1-based indexing in rocBLAS.
     idx_temp -= 1;

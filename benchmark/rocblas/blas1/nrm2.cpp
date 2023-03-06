@@ -57,13 +57,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   scalar_t vr;
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_vr(1);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPVector<scalar_t> d_v1(size, v1.data());
+    blas_benchmark::utils::HIPScalar<scalar_t> d_vr(vr);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
@@ -71,15 +67,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     scalar_t vr_temp = 0;
 
     {
-      blas_benchmark::utils::DeviceVector<scalar_t> d_vr_temp(1);
-      CHECK_HIP_ERROR(hipMemcpy(d_vr_temp, &vr_temp, sizeof(scalar_t),
-                                hipMemcpyHostToDevice));
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_vr_temp(vr_temp);
 
       rocblas_nrm2_f<scalar_t>(rb_handle, size, d_v1, 1, d_vr_temp);
-
-      CHECK_HIP_ERROR(hipMemcpy(&vr_temp, d_vr_temp, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-    }
+    }  // Result is copied back to host upon destruction of DeviceScalar
 
     if (!utils::almost_equal(vr_temp, vr_ref)) {
       std::ostringstream err_stream;

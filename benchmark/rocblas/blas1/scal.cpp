@@ -54,35 +54,24 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  const scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::DeviceVector<scalar_t> d_v1(size);
-    blas_benchmark::utils::DeviceVector<scalar_t> d_alpha(1);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(hipMemcpy(d_v1, v1.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(
-        hipMemcpy(d_alpha, &alpha, sizeof(scalar_t), hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPVector<scalar_t> d_v1(size, v1.data());
+    blas_benchmark::utils::HIPScalar<scalar_t> d_alpha(alpha);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Run a first time with a verification of the results
     std::vector<scalar_t> v1_ref = v1;
     reference_blas::scal(size, alpha, v1_ref.data(), 1);
-    std::vector<scalar_t> v1_temp = v1;
 
+    std::vector<scalar_t> v1_temp = v1;
     {
-      blas_benchmark::utils::DeviceVector<scalar_t> v1_temp_gpu(size);
-      CHECK_HIP_ERROR(hipMemcpy(v1_temp_gpu, v1_temp.data(),
-                                sizeof(scalar_t) * size,
-                                hipMemcpyHostToDevice));
+      blas_benchmark::utils::HIPVector<scalar_t, true> v1_temp_gpu(
+          size, v1_temp.data());
       rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, v1_temp_gpu, 1);
-      CHECK_HIP_ERROR(hipMemcpy(v1_temp.data(), v1_temp_gpu,
-                                sizeof(scalar_t) * size,
-                                hipMemcpyDeviceToHost));
-    }
+    }  // Result is copied back to host upon destruction of DeviceVector
 
     std::ostringstream err_stream;
     if (!utils::compare_vectors(v1_temp, v1_ref, err_stream, "")) {
