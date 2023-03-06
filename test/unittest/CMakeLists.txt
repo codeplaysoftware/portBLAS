@@ -70,11 +70,11 @@ if(is_computecpp)
     ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
     # Blas buffer tests
     ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
   )

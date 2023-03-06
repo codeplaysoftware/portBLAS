@@ -902,10 +902,10 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:dot_return>
                 $<TARGET_OBJECTS:sdsdot>
                 $<TARGET_OBJECTS:sdsdot_return>
-                $<TARGET_OBJECTS:iamax>
-                $<TARGET_OBJECTS:iamax_return>
-                $<TARGET_OBJECTS:iamin>
-                $<TARGET_OBJECTS:iamin_return>
+                # $<TARGET_OBJECTS:iamax>
+                # $<TARGET_OBJECTS:iamax_return>
+                # $<TARGET_OBJECTS:iamin>
+                # $<TARGET_OBJECTS:iamin_return>
                 $<TARGET_OBJECTS:nrm2>
                 $<TARGET_OBJECTS:nrm2_return>
                 $<TARGET_OBJECTS:rot>
