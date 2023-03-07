@@ -25,7 +25,7 @@
 
 #include "blas_test.hpp"
 
-template <typename scalar_t, bool isUsm>
+template <typename scalar_t, helper::AllocType mem_alloc>
 struct RotmgTest {
   /* Magic numbers used by the rotmg algorithm */
   static constexpr scalar_t gamma = static_cast<scalar_t>(4096.0);
@@ -57,24 +57,24 @@ struct RotmgTest {
   void validate_with_rotm();
 };
 
-template <typename scalar_t, bool isUsm>
-void RotmgTest<scalar_t, isUsm>::run_sycl_blas_rotmg() {
+template <typename scalar_t, helper::AllocType mem_alloc>
+void RotmgTest<scalar_t, mem_alloc>::run_sycl_blas_rotmg() {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
   sycl_out = RotmgParameters{input.d1, input.d2, input.x1, input.y1};
 
-  auto device_d1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
-  auto device_d2 = blas::helper::allocate<isUsm, scalar_t>(1, q);
-  auto device_x1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
-  auto device_y1 = blas::helper::allocate<isUsm, scalar_t>(1, q);
-  auto device_param = blas::helper::allocate<isUsm, scalar_t>(param_size, q);
+  auto device_d1 = helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto device_d2 = helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto device_x1 = helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto device_y1 = helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto device_param = helper::allocate<mem_alloc, scalar_t>(param_size, q);
 
-  auto copy_d1 = blas::helper::copy_to_device(q, &sycl_out.d1, device_d1, 1);
-  auto copy_d2 = blas::helper::copy_to_device(q, &sycl_out.d2, device_d2, 1);
-  auto copy_x1 = blas::helper::copy_to_device(q, &sycl_out.x1, device_x1, 1);
-  auto copy_y1 = blas::helper::copy_to_device(q, &sycl_out.y1, device_y1, 1);
-  auto copy_params = blas::helper::copy_to_device(q, sycl_out.param.data(),
+  auto copy_d1 = helper::copy_to_device(q, &sycl_out.d1, device_d1, 1);
+  auto copy_d2 = helper::copy_to_device(q, &sycl_out.d2, device_d2, 1);
+  auto copy_x1 = helper::copy_to_device(q, &sycl_out.x1, device_x1, 1);
+  auto copy_y1 = helper::copy_to_device(q, &sycl_out.y1, device_y1, 1);
+  auto copy_params = helper::copy_to_device(q, sycl_out.param.data(),
                                                   device_param, param_size);
 
   sb_handle.wait({copy_d1, copy_d2, copy_x1, copy_y1, copy_params});
@@ -82,17 +82,17 @@ void RotmgTest<scalar_t, isUsm>::run_sycl_blas_rotmg() {
                        device_param);
   sb_handle.wait(event0);
 
-  auto event1 = blas::helper::copy_to_host(q, device_d1, &sycl_out.d1, 1);
-  auto event2 = blas::helper::copy_to_host(q, device_d2, &sycl_out.d2, 1);
-  auto event3 = blas::helper::copy_to_host(q, device_x1, &sycl_out.x1, 1);
-  auto event4 = blas::helper::copy_to_host(q, device_y1, &sycl_out.y1, 1);
-  auto event5 = blas::helper::copy_to_host(q, device_param,
+  auto event1 = helper::copy_to_host(q, device_d1, &sycl_out.d1, 1);
+  auto event2 = helper::copy_to_host(q, device_d2, &sycl_out.d2, 1);
+  auto event3 = helper::copy_to_host(q, device_x1, &sycl_out.x1, 1);
+  auto event4 = helper::copy_to_host(q, device_y1, &sycl_out.y1, 1);
+  auto event5 = helper::copy_to_host(q, device_param,
                                            sycl_out.param.data(), param_size);
   sb_handle.wait({event1, event2, event3, event4, event5});
 }
 
-template <typename scalar_t, bool isUsm>
-void RotmgTest<scalar_t, isUsm>::validate_with_reference() {
+template <typename scalar_t, helper::AllocType mem_alloc>
+void RotmgTest<scalar_t, mem_alloc>::validate_with_reference() {
   scalar_t d1_ref = input.d1;
   scalar_t d2_ref = input.d2;
   scalar_t x1_ref = input.x1;
@@ -169,8 +169,8 @@ void RotmgTest<scalar_t, isUsm>::validate_with_reference() {
  * x1_output * sqrt(d1_output) = [ h11 h12 ] * [ x1_input]
  * 0.0       * sqrt(d2_output)   [ h21 h22 ]   [ y1_input]
  */
-template <typename scalar_t, bool isUsm>
-void RotmgTest<scalar_t, isUsm>::validate_with_rotm() {
+template <typename scalar_t, helper::AllocType mem_alloc>
+void RotmgTest<scalar_t, mem_alloc>::validate_with_rotm() {
   if (sycl_out.param[0] == 2 || sycl_out.d2 < 0) {
     return;
   }
@@ -193,31 +193,47 @@ void RotmgTest<scalar_t, isUsm>::validate_with_rotm() {
 }
 
 template <typename scalar_t>
-using combination_t = std::tuple<scalar_t, scalar_t, scalar_t, scalar_t, bool>;
+using combination_t = std::tuple<char, scalar_t, scalar_t, scalar_t, scalar_t, bool>;
 
-template <bool isUsm>
-struct TestRunner {
-  template <typename scalar_t>
-  static void run_test(const combination_t<scalar_t> combi) {
-    scalar_t d1_input;
-    scalar_t d2_input;
-    scalar_t x1_input;
-    scalar_t y1_input;
-    bool will_overflow;
+template <typename scalar_t, helper::AllocType mem_alloc>
+void run_test(const combination_t<scalar_t> combi) {
+  char alloc;
+  scalar_t d1_input;
+  scalar_t d2_input;
+  scalar_t x1_input;
+  scalar_t y1_input;
+  bool will_overflow;
 
-    std::tie(d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
+  std::tie(alloc, d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
 
-    RotmgTest<scalar_t, isUsm> test{d1_input, d2_input, x1_input, y1_input};
-    test.run_sycl_blas_rotmg();
+  RotmgTest<scalar_t, mem_alloc> test{d1_input, d2_input, x1_input, y1_input};
+  test.run_sycl_blas_rotmg();
 
-    /* Do not test with things that might overflow or underflow. Results will
-     * not make sense if that happens */
-    if (!will_overflow) {
-      test.validate_with_reference();
-      test.validate_with_rotm();
-    }
+  /* Do not test with things that might overflow or underflow. Results will
+    * not make sense if that happens */
+  if (!will_overflow) {
+    test.validate_with_reference();
+    test.validate_with_rotm();
   }
-};
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  char alloc;
+  scalar_t d1_input;
+  scalar_t d2_input;
+  scalar_t x1_input;
+  scalar_t y1_input;
+  bool will_overflow;
+
+  std::tie(alloc, d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
+
+  if (alloc == 'u') {  // usm alloc
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+  } else {  // buffer alloc
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
 
 template <typename scalar_t>
 constexpr scalar_t min_rng = 0.5;
@@ -243,138 +259,142 @@ scalar_t r_gen() {
 /* Generate large enough number so that rotmg will scale it down */
 template <typename scalar_t>
 scalar_t scale_down_gen() {
-  /*Setting the isUsm parameter to true, it should work if set to false as
+  /*Setting the mem_alloc parameter to helper::AllocType::usm, it should work if set to false as
    * well*/
-  return random_scalar<scalar_t>(RotmgTest<scalar_t, true>::gamma_sq,
-                                 RotmgTest<scalar_t, true>::gamma_sq * 2);
+  return random_scalar<scalar_t>(RotmgTest<scalar_t, helper::AllocType::usm>::gamma_sq,
+                                 RotmgTest<scalar_t, helper::AllocType::usm>::gamma_sq * 2);
 }
 
 /* Generate small enough number so that rotmg will scale it up */
 template <typename scalar_t>
 scalar_t scale_up_gen() {
-  /*Setting the isUsm parameter to true, it should work if set to false as
+  /*Setting the mem_alloc parameter to helper::AllocType::usm, it should work if set to false as
    * well*/
-  return random_scalar<scalar_t>(RotmgTest<scalar_t, true>::inv_gamma_sq / 2,
-                                 RotmgTest<scalar_t, true>::inv_gamma_sq);
+  return random_scalar<scalar_t>(RotmgTest<scalar_t, helper::AllocType::usm>::inv_gamma_sq / 2,
+                                 RotmgTest<scalar_t, helper::AllocType::usm>::inv_gamma_sq);
 }
 
 /* This tests try to cover every code path of the rotmg algorithm */
-template <typename scalar_t>
-const auto combi = ::testing::Values(
-    /* d1 < 0 */
-    std::make_tuple(-2.5, p_gen<scalar_t>(), r_gen<scalar_t>(),
-                    r_gen<scalar_t>(), false),
-    /* Input point (c, 0) */
-    std::make_tuple(p_gen<scalar_t>(), p_gen<scalar_t>(), r_gen<scalar_t>(),
-                    0.0, false),
-    /* Input point (c, 0) && d2 == 0 */
-    std::make_tuple(p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(), 0.0, false),
-    /* Input point (c, 0) && d2 == 0 */
-    std::make_tuple(p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),
-                    r_gen<scalar_t>(), false),
-    /* Input point (c, 0) and big numbers (test that no rescaling happened) */
-    std::make_tuple(scale_up_gen<scalar_t>(), scale_up_gen<scalar_t>(),
-                    scale_up_gen<scalar_t>(), 0.0, false),
-    std::make_tuple(scale_down_gen<scalar_t>(), scale_down_gen<scalar_t>(),
-                    scale_down_gen<scalar_t>(), 0.0, false),
-    /* Input point (0, c) */
-    std::make_tuple(p_gen<scalar_t>(), p_gen<scalar_t>(), 0.0,
-                    r_gen<scalar_t>(), false),
-    /* Input point (0, c) && d1 == 0 */
-    std::make_tuple(0.0, p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(), false),
-    /* Input point (0, c) && d2 == 0 */
-    std::make_tuple(p_gen<scalar_t>(), 0.0, 0.0, r_gen<scalar_t>(), false),
-    /* Input point (0, c) && d2 < 0 */
-    std::make_tuple(p_gen<scalar_t>(), -3.4, 0.0, r_gen<scalar_t>(), false),
-    /* Input point (0, c) && rescaling */
-    std::make_tuple(p_gen<scalar_t>(), scale_up_gen<scalar_t>(), 0.0,
-                    r_gen<scalar_t>(), false),
-    std::make_tuple(p_gen<scalar_t>(), scale_down_gen<scalar_t>(), 0.0,
-                    r_gen<scalar_t>(), false),
-    std::make_tuple(scale_up_gen<scalar_t>(), p_gen<scalar_t>(), 0.0,
-                    r_gen<scalar_t>(), false),
-    std::make_tuple(scale_down_gen<scalar_t>(), p_gen<scalar_t>(), 0.0,
-                    r_gen<scalar_t>(), false),
-    /* d1 == 0 */
-    std::make_tuple(0.0, p_gen<scalar_t>(), r_gen<scalar_t>(),
-                    r_gen<scalar_t>(), false),
-    /* d1 == 0 && d2 < 0 */
-    std::make_tuple(0.0, -3.4, r_gen<scalar_t>(), r_gen<scalar_t>(), false),
-    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) */
-    std::make_tuple(4.0, 2.1, 3.4, 1.5, false),
-    std::make_tuple(4.0, 1.5, -3.4, 2.1, false),
-    std::make_tuple(4.0, -1.5, 3.4, 2.1, false),
-    std::make_tuple(4.0, -1.5, 3.4, -2.1, false),
-    std::make_tuple(4.0, -1.5, -3.4, -2.1, false),
-    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) && rescaling */
-    std::make_tuple(scale_down_gen<scalar_t>(), 2.1, 3.4, 1.5, false),
-    std::make_tuple(scale_down_gen<scalar_t>(), 2.1, scale_down_gen<scalar_t>(),
-                    1.5, false),
-    std::make_tuple(scale_up_gen<scalar_t>(), 2.1, scale_down_gen<scalar_t>(),
-                    1.5, false),
-    std::make_tuple(scale_down_gen<scalar_t>(), 2.1, scale_up_gen<scalar_t>(),
-                    1.5, false),
-    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) && Underflow */
-    std::make_tuple(0.01, 0.01, std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), true),
-    /* d1 * x1 > d2 * y1 && Overflow */
-    std::make_tuple(std::numeric_limits<scalar_t>::max(),
-                    std::numeric_limits<scalar_t>::max(), 0.01, 0.01, true),
-    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) */
-    std::make_tuple(2.1, 4.0, 1.5, 3.4, false),
-    std::make_tuple(2.1, 4.0, -1.5, 3.4, false),
-    std::make_tuple(2.1, -4.0, 1.5, 3.4, false),
-    std::make_tuple(2.1, -4.0, 1.5, -3.4, false),
-    std::make_tuple(2.1, -4.0, -1.5, -3.4, false),
-    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && rescaling */
-    std::make_tuple(2.1, scale_down_gen<scalar_t>(), 1.5, 3.4, false),
-    std::make_tuple(2.1, scale_down_gen<scalar_t>(), 1.5,
-                    scale_down_gen<scalar_t>(), false),
-    std::make_tuple(2.1, scale_up_gen<scalar_t>(), 1.5,
-                    scale_down_gen<scalar_t>(), false),
-    std::make_tuple(2.1, scale_down_gen<scalar_t>(), 1.5,
-                    scale_up_gen<scalar_t>(), false),
-    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && Underflow */
-    std::make_tuple(std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), 0.01, 0.01, true),
-    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && Overflow */
-    std::make_tuple(0.01, 0.01, std::numeric_limits<scalar_t>::max(),
-                    std::numeric_limits<scalar_t>::max(), true),
-    /* Overflow all */
-    std::make_tuple(std::numeric_limits<scalar_t>::max(),
-                    std::numeric_limits<scalar_t>::max(),
-                    std::numeric_limits<scalar_t>::max(),
-                    std::numeric_limits<scalar_t>::max(), true),
-    /* Underflow all */
-    std::make_tuple(std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), true),
-    /* Numeric limits of one parameter */
-    std::make_tuple(1.0, 1.0, 1.0, std::numeric_limits<scalar_t>::max(), false),
-    std::make_tuple(1.0, 1.0, std::numeric_limits<scalar_t>::max(), 1.0, false),
-    std::make_tuple(1.0, std::numeric_limits<scalar_t>::max(), 1.0, 1.0, false),
-    std::make_tuple(std::numeric_limits<scalar_t>::max(), 1.0, 1.0, 1.0, false),
-    /* Case that creates an infinite loop on cblas */
-    std::make_tuple(std::numeric_limits<scalar_t>::min(), -2.2,
-                    std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), true),
-    /* Case that triggers underflow detection on abs_c <= abs_s && s >= 0 */
-    std::make_tuple(15.5, -2.2, std::numeric_limits<scalar_t>::min(),
-                    std::numeric_limits<scalar_t>::min(), false),
-    /* Test for previous errors */
-    std::make_tuple(0.0516274, -0.197215, -0.270436, -0.157621, false));
+#define INSTANTIATE_ROTMG_TESTS(NAME, C) \
+template <typename scalar_t> \
+const auto NAME = ::testing::Values( \
+    /* d1 < 0 */ \
+    std::make_tuple('C', -2.5, p_gen<scalar_t>(), r_gen<scalar_t>(), \
+                    r_gen<scalar_t>(), false), \
+    /* Input point (c, 0) */ \
+    std::make_tuple('C', p_gen<scalar_t>(), p_gen<scalar_t>(), r_gen<scalar_t>(), \
+                    0.0, false), \
+    /* Input point (c, 0) && d2 == 0 */ \
+    std::make_tuple('C', p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(), 0.0, false), \
+    /* Input point (c, 0) && d2 == 0 */ \
+    std::make_tuple('C', p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(), \
+                    r_gen<scalar_t>(), false), \
+    /* Input point (c, 0) and big numbers (test that no rescaling happened) */ \
+    std::make_tuple('C', scale_up_gen<scalar_t>(), scale_up_gen<scalar_t>(), \
+                    scale_up_gen<scalar_t>(), 0.0, false), \
+    std::make_tuple('C', scale_down_gen<scalar_t>(), scale_down_gen<scalar_t>(), \
+                    scale_down_gen<scalar_t>(), 0.0, false), \
+    /* Input point (0, c) */ \
+    std::make_tuple('C', p_gen<scalar_t>(), p_gen<scalar_t>(), 0.0, \
+                    r_gen<scalar_t>(), false), \
+    /* Input point (0, c) && d1 == 0 */ \
+    std::make_tuple('C', 0.0, p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(), false), \
+    /* Input point (0, c) && d2 == 0 */ \
+    std::make_tuple('C', p_gen<scalar_t>(), 0.0, 0.0, r_gen<scalar_t>(), false), \
+    /* Input point (0, c) && d2 < 0 */ \
+    std::make_tuple('C', p_gen<scalar_t>(), -3.4, 0.0, r_gen<scalar_t>(), false), \
+    /* Input point (0, c) && rescaling */ \
+    std::make_tuple('C', p_gen<scalar_t>(), scale_up_gen<scalar_t>(), 0.0, \
+                    r_gen<scalar_t>(), false), \
+    std::make_tuple('C', p_gen<scalar_t>(), scale_down_gen<scalar_t>(), 0.0, \
+                    r_gen<scalar_t>(), false), \
+    std::make_tuple('C', scale_up_gen<scalar_t>(), p_gen<scalar_t>(), 0.0, \
+                    r_gen<scalar_t>(), false), \
+    std::make_tuple('C', scale_down_gen<scalar_t>(), p_gen<scalar_t>(), 0.0, \
+                    r_gen<scalar_t>(), false), \
+    /* d1 == 0 */ \
+    std::make_tuple('C', 0.0, p_gen<scalar_t>(), r_gen<scalar_t>(), \
+                    r_gen<scalar_t>(), false), \
+    /* d1 == 0 && d2 < 0 */ \
+    std::make_tuple('C', 0.0, -3.4, r_gen<scalar_t>(), r_gen<scalar_t>(), false), \
+    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) */ \
+    std::make_tuple('C', 4.0, 2.1, 3.4, 1.5, false), \
+    std::make_tuple('C', 4.0, 1.5, -3.4, 2.1, false), \
+    std::make_tuple('C', 4.0, -1.5, 3.4, 2.1, false), \
+    std::make_tuple('C', 4.0, -1.5, 3.4, -2.1, false), \
+    std::make_tuple('C', 4.0, -1.5, -3.4, -2.1, false), \
+    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) && rescaling */ \
+    std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1, 3.4, 1.5, false), \
+    std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1, scale_down_gen<scalar_t>(), \
+                    1.5, false), \
+    std::make_tuple('C', scale_up_gen<scalar_t>(), 2.1, scale_down_gen<scalar_t>(), \
+                    1.5, false), \
+    std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1, scale_up_gen<scalar_t>(), \
+                    1.5, false), \
+    /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) && Underflow */ \
+    std::make_tuple('C', 0.01, 0.01, std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), true), \
+    /* d1 * x1 > d2 * y1 && Overflow */ \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::max(), \
+                    std::numeric_limits<scalar_t>::max(), 0.01, 0.01, true), \
+    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) */ \
+    std::make_tuple('C', 2.1, 4.0, 1.5, 3.4, false), \
+    std::make_tuple('C', 2.1, 4.0, -1.5, 3.4, false), \
+    std::make_tuple('C', 2.1, -4.0, 1.5, 3.4, false), \
+    std::make_tuple('C', 2.1, -4.0, 1.5, -3.4, false), \
+    std::make_tuple('C', 2.1, -4.0, -1.5, -3.4, false), \
+    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && rescaling */ \
+    std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5, 3.4, false), \
+    std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5, \
+                    scale_down_gen<scalar_t>(), false), \
+    std::make_tuple('C', 2.1, scale_up_gen<scalar_t>(), 1.5, \
+                    scale_down_gen<scalar_t>(), false), \
+    std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5, \
+                    scale_up_gen<scalar_t>(), false), \
+    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && Underflow */ \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), 0.01, 0.01, true), \
+    /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) && Overflow */ \
+    std::make_tuple('C', 0.01, 0.01, std::numeric_limits<scalar_t>::max(), \
+                    std::numeric_limits<scalar_t>::max(), true), \
+    /* Overflow all */ \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::max(), \
+                    std::numeric_limits<scalar_t>::max(), \
+                    std::numeric_limits<scalar_t>::max(), \
+                    std::numeric_limits<scalar_t>::max(), true), \
+    /* Underflow all */ \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), true), \
+    /* Numeric limits of one parameter */ \
+    std::make_tuple('C', 1.0, 1.0, 1.0, std::numeric_limits<scalar_t>::max(), false), \
+    std::make_tuple('C', 1.0, 1.0, std::numeric_limits<scalar_t>::max(), 1.0, false), \
+    std::make_tuple('C', 1.0, std::numeric_limits<scalar_t>::max(), 1.0, 1.0, false), \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::max(), 1.0, 1.0, 1.0, false), \
+    /* Case that creates an infinite loop on cblas */ \
+    std::make_tuple('C', std::numeric_limits<scalar_t>::min(), -2.2, \
+                    std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), true), \
+    /* Case that triggers underflow detection on abs_c <= abs_s && s >= 0 */ \
+    std::make_tuple('C', 15.5, -2.2, std::numeric_limits<scalar_t>::min(), \
+                    std::numeric_limits<scalar_t>::min(), false), \
+    /* Test for previous errors */ \
+    std::make_tuple('C', 0.0516274, -0.197215, -0.270436, -0.157621, false))
+
+INSTANTIATE_ROTMG_TESTS(combi_usm, u); // instantiate usm tests
+INSTANTIATE_ROTMG_TESTS(combi_buffer, b); // instantiate buffer tests
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  char alloc;
   T d1, d2, x1, y1;
   bool will_overflow;
-  BLAS_GENERATE_NAME(info.param, d1, d2, x1, y1, will_overflow);
+  BLAS_GENERATE_NAME(info.param, alloc, d1, d2, x1, y1, will_overflow);
 }
 
-BLAS_REGISTER_TEST_CUSTOM_NAME(RotmgUSM, RotmgUSM, TestRunner<true>::run_test,
-                               combination_t, combi, generate_name);
-BLAS_REGISTER_TEST_CUSTOM_NAME(RotmgBuffer, RotmgBuffer,
-                               TestRunner<false>::run_test, combination_t,
-                               combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rotmg_Usm, combination_t, combi_usm, generate_name);
+BLAS_REGISTER_TEST_ALL(Rotmg_Buffer, combination_t, combi_buffer, generate_name);
+
+#undef INSTANTIATE_ROTMG_TESTS

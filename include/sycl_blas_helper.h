@@ -32,30 +32,21 @@
 namespace blas {
 namespace helper {
 
-template <bool isUsm, typename element_t>
-struct AllocType;
+/**
+ * Allocation type for tests and benchmarks
+ */
+enum class AllocType : int { usm = 0, buffer = 1 };
 
-template <typename element_t>
-struct AllocType<true, element_t> {
-  using type = element_t *;
-};
-
-template <typename element_t>
-struct AllocType<false, element_t> {
-  using type = BufferIterator<element_t>;
-};
-
-template <bool isUsm, typename value_t,
-          typename container_t = typename AllocType<isUsm, value_t>::type>
-typename std::enable_if<isUsm, container_t>::type allocate(int size,
-                                                           cl::sycl::queue q) {
+template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::usm, value_t *>::type allocate(
+    int size, cl::sycl::queue q) {
   return cl::sycl::malloc_device<value_t>(size, q);
 }
 
-template <bool isUsm, typename value_t,
-          typename container_t = typename AllocType<isUsm, value_t>::type>
-typename std::enable_if<!isUsm, container_t>::type allocate(int size,
-                                                            cl::sycl::queue q) {
+template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::buffer,
+                        BufferIterator<value_t>>::type
+allocate(int size, cl::sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
 

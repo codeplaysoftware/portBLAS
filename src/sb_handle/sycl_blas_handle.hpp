@@ -113,10 +113,12 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
   constexpr bool is_usm = std::is_same<typename lhs_t::container_t,
                                        typename lhs_t::value_t*>::value;
-  auto shMem1 =
-      blas::helper::allocate<is_usm, typename lhs_t::value_t>(sharedSize, q_);
-  auto shMem2 =
-      blas::helper::allocate<is_usm, typename lhs_t::value_t>(sharedSize, q_);
+  auto shMem1 = blas::helper::allocate < is_usm ? helper::AllocType::usm
+                                                : helper::AllocType::buffer,
+       typename lhs_t::value_t > (sharedSize, q_);
+  auto shMem2 = blas::helper::allocate < is_usm ? helper::AllocType::usm
+                                                : helper::AllocType::buffer,
+       typename lhs_t::value_t > (sharedSize, q_);
 
   auto opShMem1 = lhs_t(shMem1, 0, 1, sharedSize);
   auto opShMem2 = lhs_t(shMem2, 0, 1, sharedSize);

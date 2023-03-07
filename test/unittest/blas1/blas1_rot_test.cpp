@@ -26,100 +26,114 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<int, int, int, scalar_t>;
-template <bool isUsm>
-struct TestRunner {
-  template <typename scalar_t>
-  static void run_test(const combination_t<scalar_t> combi) {
-    index_t size;
-    index_t incX;
-    index_t incY;
-    scalar_t unused; /* Necessary to work around dpcpp compiler bug */
-    std::tie(size, incX, incY, unused) = combi;
+using combination_t = std::tuple<char, int, int, int, scalar_t>;
 
-    // Input vectors
-    std::vector<scalar_t> a_v(size * incX);
-    fill_random(a_v);
-    std::vector<scalar_t> b_v(size * incY);
-    fill_random(b_v);
+template <typename scalar_t, helper::AllocType mem_alloc>
+void run_test(const combination_t<scalar_t> combi) {
+  char alloc;
+  index_t size;
+  index_t incX;
+  index_t incY;
+  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
+  std::tie(alloc, size, incX, incY, unused) = combi;
 
-    // Output vectors
-    std::vector<scalar_t> out_s(1, 10.0);
-    std::vector<scalar_t> a_cpu_v(a_v);
-    std::vector<scalar_t> b_cpu_v(b_v);
+  // Input vectors
+  std::vector<scalar_t> a_v(size * incX);
+  fill_random(a_v);
+  std::vector<scalar_t> b_v(size * incY);
+  fill_random(b_v);
 
-    scalar_t c_d;
-    scalar_t s_d;
-    scalar_t sa = a_v[0];
-    scalar_t sb = a_v[1];
-    reference_blas::rotg(&sa, &sb, &c_d, &s_d);
+  // Output vectors
+  std::vector<scalar_t> out_s(1, 10.0);
+  std::vector<scalar_t> a_cpu_v(a_v);
+  std::vector<scalar_t> b_cpu_v(b_v);
 
-    // Reference implementation
-    std::vector<scalar_t> c_cpu_v(size * incX);
-    std::vector<scalar_t> s_cpu_v(size * incY);
-    reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
-                        s_d);
-    auto out_cpu_s =
-        reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
+  scalar_t c_d;
+  scalar_t s_d;
+  scalar_t sa = a_v[0];
+  scalar_t sb = a_v[1];
+  reference_blas::rotg(&sa, &sb, &c_d, &s_d);
 
-    // SYCL implementation
-    auto q = make_queue();
-    blas::SB_Handle sb_handle(q);
+  // Reference implementation
+  std::vector<scalar_t> c_cpu_v(size * incX);
+  std::vector<scalar_t> s_cpu_v(size * incY);
+  reference_blas::rot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY, c_d,
+                      s_d);
+  auto out_cpu_s =
+      reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
 
-    // Iterators
-    auto gpu_a_v = blas::helper::allocate<isUsm, scalar_t>(size * incX, q);
-    auto gpu_b_v = blas::helper::allocate<isUsm, scalar_t>(size * incY, q);
-    auto gpu_out_s = blas::helper::allocate<isUsm, scalar_t>(1, q);
+  // SYCL implementation
+  auto q = make_queue();
+  blas::SB_Handle sb_handle(q);
 
-    auto copy_a =
-        blas::helper::copy_to_device(q, a_v.data(), gpu_a_v, size * incX);
-    auto copy_b =
-        blas::helper::copy_to_device(q, b_v.data(), gpu_b_v, size * incY);
+  // Iterators
+  auto gpu_a_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto gpu_b_v = helper::allocate<mem_alloc, scalar_t>(size * incY, q);
+  auto gpu_out_s = helper::allocate<mem_alloc, scalar_t>(1, q);
 
-    sb_handle.wait({copy_a, copy_b});
+  auto copy_a = helper::copy_to_device(q, a_v.data(), gpu_a_v, size * incX);
+  auto copy_b = helper::copy_to_device(q, b_v.data(), gpu_b_v, size * incY);
 
-    auto c = static_cast<scalar_t>(c_d);
-    auto s = static_cast<scalar_t>(s_d);
+  sb_handle.wait({copy_a, copy_b});
 
-    _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-    _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
-    auto event = blas::helper::copy_to_host(q, gpu_out_s, out_s.data(), 1);
-    sb_handle.wait(event);
+  auto c = static_cast<scalar_t>(c_d);
+  auto s = static_cast<scalar_t>(s_d);
 
-    // Validate the result
-    const bool isAlmostEqual =
-        utils::almost_equal<scalar_t, scalar_t>(out_s[0], out_cpu_s);
-    ASSERT_TRUE(isAlmostEqual);
+  _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
+  _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
+  auto event = helper::copy_to_host(q, gpu_out_s, out_s.data(), 1);
+  sb_handle.wait(event);
+
+  // Validate the result
+  const bool isAlmostEqual =
+      utils::almost_equal<scalar_t, scalar_t>(out_s[0], out_cpu_s);
+  ASSERT_TRUE(isAlmostEqual);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  char alloc;
+  index_t size;
+  index_t incX;
+  index_t incY;
+  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
+  std::tie(alloc, size, incX, incY, unused) = combi;
+
+  if (alloc == 'u') {  // usm alloc
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+  } else {  // buffer alloc
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
   }
-};
+}
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values(11, 65, 1002,
-                                                        1002400),  // size
-                                      ::testing::Values(1, 4),     // incX
-                                      ::testing::Values(1, 3),     // incY
-                                      ::testing::Values(0)         // unused
-);
+const auto combi =
+    ::testing::Combine(::testing::Values('u', 'b'),  // allocation type
+                       ::testing::Values(11, 65, 1002,
+                                         1002400),  // size
+                       ::testing::Values(1, 4),     // incX
+                       ::testing::Values(1, 3),     // incY
+                       ::testing::Values(0)         // unused
+    );
 #else
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(4),         // incX
-                                      ::testing::Values(3),         // incY
-                                      ::testing::Values(0)          // unused
-);
+const auto combi =
+    ::testing::Combine(::testing::Values('u', 'b'),  // allocation type
+                       ::testing::Values(11, 1002),  // size
+                       ::testing::Values(4),         // incX
+                       ::testing::Values(3),         // incY
+                       ::testing::Values(0)          // unused
+    );
 #endif
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  char alloc;
   int size, incX, incY;
   T unused;
-  BLAS_GENERATE_NAME(info.param, size, incX, incY, unused);
+  BLAS_GENERATE_NAME(info.param, alloc, size, incX, incY, unused);
 }
 
-BLAS_REGISTER_TEST_CUSTOM_NAME(RotUSM, RotUSM, TestRunner<true>::run_test,
-                               combination_t, combi, generate_name);
-BLAS_REGISTER_TEST_CUSTOM_NAME(RotBuffer, RotBuffer,
-                               TestRunner<false>::run_test, combination_t,
-                               combi, generate_name);
+BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);

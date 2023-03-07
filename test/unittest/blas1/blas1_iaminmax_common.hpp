@@ -36,7 +36,7 @@ enum class generation_mode_t : char {
 };
 
 template <typename scalar_t>
-using combination_t = std::tuple<api_type, int, int, generation_mode_t>;
+using combination_t = std::tuple<char, api_type, int, int, generation_mode_t>;
 
 template <typename scalar_t>
 void populate_data(generation_mode_t mode, scalar_t limit,
@@ -64,6 +64,7 @@ void populate_data(generation_mode_t mode, scalar_t limit,
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values('u', 'b'),                         // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 10000, 1002400),           // size
     ::testing::Values(1, 5),                             // incX
@@ -73,6 +74,7 @@ const auto combi = ::testing::Combine(
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values('u', 'b'),                         // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1000000),                  // size
     ::testing::Values(5),                                // incX
@@ -90,10 +92,11 @@ inline void dump_arg<generation_mode_t>(std::ostream &ss,
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>> &info) {
+  char alloc;
   api_type api;
   int size, incX;
   generation_mode_t mode;
-  BLAS_GENERATE_NAME(info.param, api, size, incX, mode);
+  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX, mode);
 }
 
 #endif
