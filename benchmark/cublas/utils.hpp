@@ -4,6 +4,7 @@
 #include <chrono>
 #include <tuple>
 
+#include "benchmark/benchmark.h"
 #include "sycl_blas.h"
 #include <common/common_utils.hpp>
 
@@ -33,6 +34,16 @@ inline double time_event<std::vector<cudaEvent_t>>(
   cudaEventElapsedTime(&elapsed_time, cuda_events[0], cuda_events[1]);
   // convert result from ms to ns
   return static_cast<double>(elapsed_time) * 1'000'000.;
+}
+
+template <typename scalar_t>
+inline void init_level_1_counters(benchmark::State& state, index_t size) {
+  // Google-benchmark counters are double.
+  double size_d = static_cast<double>(size);
+  state.counters["size"] = size_d;
+  state.counters["n_fl_ops"] = 2.0 * size_d;
+  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
+  return;
 }
 
 }  // namespace utils

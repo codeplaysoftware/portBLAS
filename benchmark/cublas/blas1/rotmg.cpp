@@ -36,10 +36,11 @@ std::string get_name() {
 
 template <typename scalar_t, typename... args_t>
 static inline void cublas_routine(args_t&&... args) {
-  if constexpr (std::is_same_v<scalar_t, float>)
+  if constexpr (std::is_same_v<scalar_t, float>) {
     CUBLAS_CHECK(cublasSrotmg(std::forward<args_t>(args)...));
-  else if constexpr (std::is_same_v<scalar_t, double>)
-    CUBLAS_CHECK(cublasDrotmg(std::forward(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, double>) {
+    CUBLAS_CHECK(cublasDrotmg(std::forward<args_t>(args)...));
+  }
   return;
 }
 
@@ -71,10 +72,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   CUDA_CHECK(cudaMemcpy(d_d2, &d2, sizeof(scalar_t), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_x1, &x1, sizeof(scalar_t), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_y1, &y1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaDeviceSynchronize());
 
-  CUBLAS_CHECK(
-      cublasSetPointerMode_v2(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
+  CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -139,12 +138,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   }
 
   std::ostringstream err_stream;
-  const bool isAlmostEqual =
-      utils::almost_equal(d1_verify, d1_ref) &&
-      utils::almost_equal(d2_verify, d2_ref) &&
-      utils::almost_equal(x1_verify, x1_ref) &&
-      utils::almost_equal(y1_verify, y1_ref) &&
-      utils::compare_vectors(param_verify, param_ref, err_stream, "");
+  const bool isAlmostEqual = utils::almost_equal(d1_verify, d1_ref) &&
+                             utils::almost_equal(d2_verify, d2_ref) &&
+                             utils::almost_equal(x1_verify, x1_ref) &&
+                             utils::almost_equal(y1_verify, y1_ref) &&
+                             utils::compare_vectors(param_verify, param_ref);
 
   if (!isAlmostEqual) {
     err_stream << "Value mismatch." << std::endl;
@@ -160,12 +158,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     return;
   };
 
+  cudaEvent_t start;
+  cudaEvent_t stop;
+  CUDA_CHECK(cudaEventCreate(&start));
+  CUDA_CHECK(cudaEventCreate(&stop));
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
-    cudaEvent_t start;
-    cudaEvent_t stop;
-    CUDA_CHECK(cudaEventCreate(&start));
-    CUDA_CHECK(cudaEventCreate(&stop));
     CUDA_CHECK(cudaEventRecord(start));
     cublas_routine<scalar_t>(cuda_handle, d_d1, d_d2, d_x1, d_y1, d_param);
     CUDA_CHECK(cudaEventRecord(stop));
@@ -188,11 +187,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
+
   CUDA_CHECK(cudaFree(d_d1));
   CUDA_CHECK(cudaFree(d_d2));
   CUDA_CHECK(cudaFree(d_x1));
   CUDA_CHECK(cudaFree(d_y1));
   CUDA_CHECK(cudaFree(d_param));
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 };
 
 template <typename scalar_t>

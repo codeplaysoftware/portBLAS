@@ -36,21 +36,19 @@ std::string get_name(int size) {
 
 template <typename scalar_t, typename... args_t>
 static inline void cublas_routine(args_t&&... args) {
-  if constexpr (std::is_same_v<scalar_t, float>)
+  if constexpr (std::is_same_v<scalar_t, float>) {
     CUBLAS_CHECK(cublasIsamin(std::forward<args_t>(args)...));
-  else if constexpr (std::is_same_v<scalar_t, double>)
-    CUBLAS_CHECK(cublasIdamin(std::forward(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, double>) {
+    CUBLAS_CHECK(cublasIdamin(std::forward<args_t>(args)...));
+  }
   return;
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
          bool* success) {
-  // Google-benchmark counters are double.
-  double size_d = static_cast<double>(size);
-  state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 2.0 * size_d;
-  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
+  // init Google-benchmark counters.
+  blas_benchmark::utils::init_level_1_counters<scalar_t>(state, size);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -70,7 +68,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   CUDA_CHECK(cudaMalloc(&d_out, sizeof(index_t)));
   CUDA_CHECK(cudaDeviceSynchronize());
 
-  cublasSetPointerMode_v2(cuda_handle, CUBLAS_POINTER_MODE_DEVICE);
+  CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -108,11 +106,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
     return;
   };
 
+  cudaEvent_t start;
+  cudaEvent_t stop;
+  CUDA_CHECK(cudaEventCreate(&start));
+  CUDA_CHECK(cudaEventCreate(&stop));
+
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
-    cudaEvent_t start;
-    cudaEvent_t stop;
-    CUDA_CHECK(cudaEventCreate(&start));
-    CUDA_CHECK(cudaEventCreate(&stop));
     CUDA_CHECK(cudaEventRecord(start));
     cublas_routine<scalar_t>(cuda_handle, size, d_inx, 1, d_out);
     CUDA_CHECK(cudaEventRecord(stop));
@@ -136,8 +135,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
+
   CUDA_CHECK(cudaFree(d_inx));
   CUDA_CHECK(cudaFree(d_out));
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 }
 
 template <typename scalar_t>

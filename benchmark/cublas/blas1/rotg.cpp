@@ -34,10 +34,11 @@ std::string get_name() {
 
 template <typename scalar_t, typename... args_t>
 static inline void cublas_routine(args_t&&... args) {
-  if constexpr (std::is_same_v<scalar_t, float>)
+  if constexpr (std::is_same_v<scalar_t, float>) {
     CUBLAS_CHECK(cublasSrotg(std::forward<args_t>(args)...));
-  else if constexpr (std::is_same_v<scalar_t, double>)
-    CUBLAS_CHECK(cublasDrotg(std::forward(args)...));
+  } else if constexpr (std::is_same_v<scalar_t, double>) {
+    CUBLAS_CHECK(cublasDrotg(std::forward<args_t>(args)...));
+  }
   return;
 }
 
@@ -64,10 +65,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   CUDA_CHECK(cudaMemcpy(d_c, &c, sizeof(scalar_t), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMalloc(&d_s, sizeof(scalar_t)));
   CUDA_CHECK(cudaMemcpy(d_s, &s, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaDeviceSynchronize());
 
-  CUBLAS_CHECK(
-      cublasSetPointerMode_v2(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
+  CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -144,12 +143,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     return;
   };
 
+  cudaEvent_t start;
+  cudaEvent_t stop;
+  CUDA_CHECK(cudaEventCreate(&start));
+  CUDA_CHECK(cudaEventCreate(&stop));
+
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
-    cudaEvent_t start;
-    cudaEvent_t stop;
-    CUDA_CHECK(cudaEventCreate(&start));
-    CUDA_CHECK(cudaEventCreate(&stop));
     CUDA_CHECK(cudaEventRecord(start));
     cublas_routine<scalar_t>(cuda_handle, d_a, d_b, d_c, d_s);
     CUDA_CHECK(cudaEventRecord(stop));
@@ -177,6 +177,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   CUDA_CHECK(cudaFree(d_b));
   CUDA_CHECK(cudaFree(d_c));
   CUDA_CHECK(cudaFree(d_s));
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 };
 
 template <typename scalar_t>
