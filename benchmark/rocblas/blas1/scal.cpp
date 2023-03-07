@@ -62,16 +62,21 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     blas_benchmark::utils::HIPScalar<scalar_t> d_alpha(alpha);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-    // Run a first time with a verification of the results
+    // Reference scal
     std::vector<scalar_t> v1_ref = v1;
     reference_blas::scal(size, alpha, v1_ref.data(), 1);
 
+    // Rocblas verification rotmg
     std::vector<scalar_t> v1_temp = v1;
+
     {
+      // Temp result on device (copied back to Host upon destruction)
+
       blas_benchmark::utils::HIPVector<scalar_t, true> v1_temp_gpu(
           size, v1_temp.data());
+      // RocBLAS function call
       rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, v1_temp_gpu, 1);
-    }  // Result is copied back to host upon destruction of DeviceVector
+    }
 
     std::ostringstream err_stream;
     if (!utils::compare_vectors(v1_temp, v1_ref, err_stream, "")) {
@@ -87,20 +92,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       return;
     };
 
-    // Create a utility lambda describing the blas method that we want to run.
+    hipEvent_t start, stop;
+    CHECK_HIP_ERROR(hipEventCreate(&start));
+    CHECK_HIP_ERROR(hipEventCreate(&stop));
+
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      hipEvent_t start, stop;
-      CHECK_HIP_ERROR(hipEventCreate(&start));
-      CHECK_HIP_ERROR(hipEventCreate(&stop));
-
-      // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-
       rocblas_scal_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1);
-
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
-
       return std::vector{start, stop};
     };
 

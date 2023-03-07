@@ -114,18 +114,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       return;
     };
 
+    hipEvent_t start, stop;
+    CHECK_HIP_ERROR(hipEventCreate(&start));
+    CHECK_HIP_ERROR(hipEventCreate(&stop));
+
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      hipEvent_t start;
-      hipEvent_t stop;
-      CHECK_HIP_ERROR(hipEventCreate(&start));
-      CHECK_HIP_ERROR(hipEventCreate(&stop));
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-
       rocblas_rotm_f<scalar_t>(rb_handle, size, d_xv, 1, d_yv, 1, d_param);
-
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
-
       return std::vector{start, stop};
     };
 

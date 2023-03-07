@@ -90,8 +90,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
       // RocBLAS function call
       rocblas_rotmg_f<scalar_t>(rb_handle, d_d1_verify, d_d2_verify,
                                 d_x1_verify, d_y1_verify, d_param_verify);
-
-    }  // DeviceVector's data is copied back to host upon destruction
+    }
 
     // Verify results
     const bool areAlmostEqual =
@@ -116,18 +115,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
       return;
     };
 
+    hipEvent_t start, stop;
+    CHECK_HIP_ERROR(hipEventCreate(&start));
+    CHECK_HIP_ERROR(hipEventCreate(&stop));
+
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      hipEvent_t start, stop;
-
-      CHECK_HIP_ERROR(hipEventCreate(&start));
-      CHECK_HIP_ERROR(hipEventCreate(&stop));
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-
       rocblas_rotmg_f<scalar_t>(rb_handle, d_d1, d_d2, d_x1, d_y1, d_param);
-
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
-
       return std::vector{start, stop};
     };
 

@@ -63,15 +63,19 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     blas_benchmark::utils::HIPScalar<int> d_idx(idx);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-    // Run a first time with a verification of the results
+    // Reference iamax
     index_t idx_ref =
         static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
+
+    // Rocblas verification iamax
     int idx_temp = -1;
 
     {
+      // Temp result on device (copied back to Host upon destruction)
       blas_benchmark::utils::HIPScalar<int, true> d_idx_temp(idx_temp);
+      // rocBLAS function call
       rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx_temp);
-    }  // Result is copied back to host upon destruction of DeviceScalar
+    }
 
     // xMAX follows 1-based indexing in rocBLAS.
     idx_temp -= 1;
@@ -92,20 +96,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       return;
     };
 
-    // Create a utility lambda describing the blas method that we want to run.
+    hipEvent_t start, stop;
+    CHECK_HIP_ERROR(hipEventCreate(&start));
+    CHECK_HIP_ERROR(hipEventCreate(&stop));
+
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
-      hipEvent_t start, stop;
-      CHECK_HIP_ERROR(hipEventCreate(&start));
-      CHECK_HIP_ERROR(hipEventCreate(&stop));
-
-      // Assuming the NULL (default) stream is the only one in use
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-
       rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx);
-
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
-
       return std::vector{start, stop};
     };
 
