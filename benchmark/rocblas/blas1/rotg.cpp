@@ -51,21 +51,11 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
   scalar_t s = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::HIPVector<scalar_t> d_a(1);
-    blas_benchmark::utils::HIPVector<scalar_t> d_b(1);
-    blas_benchmark::utils::HIPVector<scalar_t> d_c(1);
-    blas_benchmark::utils::HIPVector<scalar_t> d_s(1);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(
-        hipMemcpy(d_a, &a, sizeof(scalar_t), hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(
-        hipMemcpy(d_b, &b, sizeof(scalar_t), hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(
-        hipMemcpy(d_c, &c, sizeof(scalar_t), hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(
-        hipMemcpy(d_s, &s, sizeof(scalar_t), hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPScalar<scalar_t> d_a(a);
+    blas_benchmark::utils::HIPScalar<scalar_t> d_b(b);
+    blas_benchmark::utils::HIPScalar<scalar_t> d_c(c);
+    blas_benchmark::utils::HIPScalar<scalar_t> d_s(s);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference rotg
@@ -83,33 +73,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
     scalar_t s_verify = s;
 
     {
-      blas_benchmark::utils::HIPVector<scalar_t> d_a_verify(1);
-      blas_benchmark::utils::HIPVector<scalar_t> d_b_verify(1);
-      blas_benchmark::utils::HIPVector<scalar_t> d_c_verify(1);
-      blas_benchmark::utils::HIPVector<scalar_t> d_s_verify(1);
-
-      CHECK_HIP_ERROR(hipMemcpy(d_a_verify, &a_verify, sizeof(scalar_t),
-                                hipMemcpyHostToDevice));
-      CHECK_HIP_ERROR(hipMemcpy(d_b_verify, &b_verify, sizeof(scalar_t),
-                                hipMemcpyHostToDevice));
-      CHECK_HIP_ERROR(hipMemcpy(d_c_verify, &c_verify, sizeof(scalar_t),
-                                hipMemcpyHostToDevice));
-      CHECK_HIP_ERROR(hipMemcpy(d_s_verify, &s_verify, sizeof(scalar_t),
-                                hipMemcpyHostToDevice));
-
+      // Temp results on device (copied back to Host upon destruction)
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_a_verify(a_verify);
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_b_verify(b_verify);
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_c_verify(c_verify);
+      blas_benchmark::utils::HIPScalar<scalar_t, true> d_s_verify(s_verify);
+      // RocBLAS function call
       rocblas_rotg_f<scalar_t>(rb_handle, d_a_verify, d_b_verify, d_c_verify,
                                d_s_verify);
-
-      CHECK_HIP_ERROR(hipMemcpy(&a_verify, d_a_verify, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipMemcpy(&b_verify, d_b_verify, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipMemcpy(&c_verify, d_c_verify, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipMemcpy(&s_verify, d_s_verify, sizeof(scalar_t),
-                                hipMemcpyDeviceToHost));
-
-    }  // DeviceVector's data is copied back to host upon destruction
+    }
 
     // Verify results
     const bool areAlmostEqual =

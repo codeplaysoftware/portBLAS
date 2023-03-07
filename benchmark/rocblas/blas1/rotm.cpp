@@ -65,20 +65,11 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
       blas_benchmark::utils::random_data<scalar_t>(size);
 
   {
-    // Device memory allocation
-    blas_benchmark::utils::HIPVector<scalar_t> d_xv(size);
-    blas_benchmark::utils::HIPVector<scalar_t> d_yv(size);
-    blas_benchmark::utils::HIPVector<scalar_t> d_param(param_size);
-
-    // Copy data (H2D)
-    CHECK_HIP_ERROR(hipMemcpy(d_xv, x_v.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
-
-    CHECK_HIP_ERROR(hipMemcpy(d_yv, y_v.data(), sizeof(scalar_t) * size,
-                              hipMemcpyHostToDevice));
-    CHECK_HIP_ERROR(hipMemcpy(d_param, param.data(),
-                              sizeof(scalar_t) * param_size,
-                              hipMemcpyHostToDevice));
+    // Device memory allocation & H2D Copy
+    blas_benchmark::utils::HIPVector<scalar_t> d_xv(size, x_v.data());
+    blas_benchmark::utils::HIPVector<scalar_t> d_yv(size, y_v.data());
+    blas_benchmark::utils::HIPVector<scalar_t> d_param(param_size,
+                                                       param.data());
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference rotm
@@ -93,27 +84,15 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     std::vector<scalar_t> y_v_verify = y_v;
 
     {
-      blas_benchmark::utils::HIPVector<scalar_t> d_xv_verify(size);
-      blas_benchmark::utils::HIPVector<scalar_t> d_yv_verify(size);
-
-      CHECK_HIP_ERROR(hipMemcpy(d_xv_verify, x_v_verify.data(),
-                                sizeof(scalar_t) * size,
-                                hipMemcpyHostToDevice));
-
-      CHECK_HIP_ERROR(hipMemcpy(d_yv_verify, y_v_verify.data(),
-                                sizeof(scalar_t) * size,
-                                hipMemcpyHostToDevice));
-
+      // Temp result on device (copied back to Host upon destruction)
+      blas_benchmark::utils::HIPVector<scalar_t, true> d_xv_verify(
+          size, x_v_verify.data());
+      blas_benchmark::utils::HIPVector<scalar_t, true> d_yv_verify(
+          size, y_v_verify.data());
+      // RocBLAS function call
       rocblas_rotm_f<scalar_t>(rb_handle, size, d_xv_verify, 1, d_yv_verify, 1,
                                d_param);
-
-      CHECK_HIP_ERROR(hipMemcpy(x_v_verify.data(), d_xv_verify,
-                                sizeof(scalar_t) * size,
-                                hipMemcpyDeviceToHost));
-      CHECK_HIP_ERROR(hipMemcpy(y_v_verify.data(), d_yv_verify,
-                                sizeof(scalar_t) * size,
-                                hipMemcpyDeviceToHost));
-    }  // DeviceVector's data is copied back to host upon destruction
+    }
 
     // Verify results
     std::ostringstream err_stream;
