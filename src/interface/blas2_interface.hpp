@@ -244,9 +244,7 @@ typename sb_handle_t::event_t _trmv_impl(
           : (((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol);
   const index_t globalSize = localSize * nWGPerRow * nWGPerCol;
 
-  using element_t =
-      typename ValueType<container_t0,
-                         std::is_pointer<container_t0>::value>::type;
+  using element_t = typename ValueType<container_t0>::type;
   auto valT1 = blas::make_sycl_iterator_buffer<element_t>(N * scratchSize);
   auto mat1 = make_matrix_view<row_major>(valT1, N, scratchSize, scratchSize);
 

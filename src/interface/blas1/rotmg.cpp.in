@@ -1,33 +1,33 @@
 /***************************************************************************
-*
-*  @license
-*  Copyright (C) Codeplay Software Limited
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  For your convenience, a copy of the License has been included in this
-*  repository.
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  SYCL-BLAS: BLAS implementation using SYCL
-*
-*  @filename rotmg.cpp.in
-*
-**************************************************************************/
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  SYCL-BLAS: BLAS implementation using SYCL
+ *
+ *  @filename rotmg.cpp.in
+ *
+ **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -67,7 +67,7 @@ namespace internal {
  * @return Vector of events to wait for.
  */
 template typename SB_Handle::event_t _rotmg(
-   SB_Handle &sb_handle, ${container_t0} _d1, ${container_t1} _d2,
-   ${container_t2} _x1, ${container_t3} _y1, ${container_t4} _param);
+    SB_Handle &sb_handle, ${container_t0} _d1, ${container_t1} _d2,
+    ${container_t2} _x1, ${container_t3} _y1, ${container_t4} _param);
 }  // namespace internal
 }  // namespace blas

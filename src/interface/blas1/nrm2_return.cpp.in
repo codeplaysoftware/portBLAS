@@ -40,9 +40,8 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template typename ValueType<${container_t0},
-                            std::is_pointer<${container_t0}>::value>::type
-_nrm2(SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
-      ${INCREMENT_TYPE} _incx);
+template typename ValueType<${container_t0}>::type _nrm2(
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx);
 }  // namespace internal
 }  // namespace blas

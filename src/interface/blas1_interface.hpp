@@ -114,9 +114,7 @@ typename sb_handle_t::event_t _dot(sb_handle_t &sb_handle, index_t _N,
                                    container_0_t _vx, increment_t _incx,
                                    container_1_t _vy, increment_t _incy,
                                    container_2_t _rs) {
-  using element_t =
-      typename blas::ValueType<container_0_t,
-                               std::is_pointer<container_0_t>::value>::type;
+  using element_t = typename blas::ValueType<container_0_t>::type;
   auto vx = make_vector_view<element_t>(_vx, _incx, _N);
   auto vy = make_vector_view<element_t>(_vy, _incy, _N);
   auto rs = make_vector_view<element_t>(_rs, static_cast<increment_t>(1),
@@ -160,8 +158,7 @@ typename sb_handle_t::event_t _sdsdot(sb_handle_t &sb_handle, index_t _N,
                                       increment_t _incy, container_2_t _rs) {
   typename sb_handle_t::event_t dot_event{};
 
-  constexpr bool is_usm = std::is_pointer<container_0_t>::value;
-  using element_t = typename blas::ValueType<container_2_t, is_usm>::type;
+  using element_t = typename blas::ValueType<container_2_t>::type;
   auto rs = make_vector_view<element_t>(_rs, static_cast<increment_t>(1),
                                         static_cast<index_t>(1));
 
@@ -385,9 +382,7 @@ typename sb_handle_t::event_t _rotm(sb_handle_t &sb_handle, index_t _N,
                                     container_0_t _vx, increment_t _incx,
                                     container_1_t _vy, increment_t _incy,
                                     container_2_t _param) {
-  using element_t =
-      typename ValueType<container_0_t,
-                         std::is_pointer<container_0_t>::value>::type;
+  using element_t = typename ValueType<container_0_t>::type;
 
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
@@ -603,11 +598,13 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
-_dot(sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-     container_1_t _vy, increment_t _incy) {
+typename ValueType<container_0_t>::type _dot(sb_handle_t &sb_handle, index_t _N,
+                                             container_0_t _vx,
+                                             increment_t _incx,
+                                             container_1_t _vy,
+                                             increment_t _incy) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
-  using element_t = typename ValueType<container_0_t, is_usm>::type;
+  using element_t = typename ValueType<container_0_t>::type;
   auto res = std::vector<element_t>(1);
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
@@ -641,11 +638,11 @@ _dot(sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename ValueType<container_0_t, std::is_pointer<container_0_t>::value>::type
-_sdsdot(sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
-        increment_t _incx, container_1_t _vy, increment_t _incy) {
+typename ValueType<container_0_t>::type _sdsdot(
+    sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
+    increment_t _incx, container_1_t _vy, increment_t _incy) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
-  using element_t = typename ValueType<container_0_t, is_usm>::type;
+  using element_t = typename ValueType<container_0_t>::type;
   element_t res{};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
@@ -669,7 +666,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
-  using element_t = typename ValueType<container_t, is_usm>::type;
+  using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
@@ -697,7 +694,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
-  using element_t = typename ValueType<container_t, is_usm>::type;
+  using element_t = typename ValueType<container_t>::type;
   using IndValTuple = IndexValueTuple<index_t, element_t>;
   std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
@@ -720,10 +717,11 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t, std::is_pointer<container_t>::value>::type
-_asum(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+typename ValueType<container_t>::type _asum(sb_handle_t &sb_handle, index_t _N,
+                                            container_t _vx,
+                                            increment_t _incx) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
-  using element_t = typename ValueType<container_t, is_usm>::type;
+  using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
@@ -744,10 +742,11 @@ _asum(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
-typename ValueType<container_t, std::is_pointer<container_t>::value>::type
-_nrm2(sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx) {
+typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
+                                            container_t _vx,
+                                            increment_t _incx) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
-  using element_t = typename ValueType<container_t, is_usm>::type;
+  using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,

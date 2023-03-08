@@ -23,11 +23,11 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -41,7 +41,8 @@ namespace internal {
  * [xi] = [h11 h12] * [xi]
  * [yi]   [h21 h22]   [yi]
  *
- * where h11, h12, h21 and h22 represent the modified Givens transformation matrix.
+ * where h11, h12, h21 and h22 represent the modified Givens transformation
+ * matrix.
  *
  * The value of the flag parameter can be used to modify the matrix as follows:
  *
@@ -60,7 +61,8 @@ namespace internal {
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
  * @param[in, out] _vy Buffer holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12, h22].
+ * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
+ * h22].
  * @return Vector of events to wait for.
  */
 template typename SB_Handle::event_t _rotm(

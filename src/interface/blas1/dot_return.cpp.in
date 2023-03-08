@@ -51,9 +51,8 @@ namespace internal {
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template typename ValueType<${container_t0},
-                            std::is_pointer<${container_t0}>::value>::type
-_dot(SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
-     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
+template typename ValueType<${container_t0}>::type _dot(
+    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
 }  // namespace internal
 }  // namespace blas
