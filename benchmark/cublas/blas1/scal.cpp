@@ -55,16 +55,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
-  scalar_t* d_inx = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_inx, size * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMemcpy(d_inx, v1.data(), size * sizeof(scalar_t),
-                        cudaMemcpyHostToDevice));
-
-  scalar_t* d_alpha = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_alpha, sizeof(scalar_t)));
-  CUDA_CHECK(
-      cudaMemcpy(d_alpha, &alpha, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaDeviceSynchronize());
+  blas_benchmark::utils::CUDAVector<scalar_t> d_inx(size, v1.data());
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_alpha(alpha);
 
   CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
@@ -72,19 +64,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   // Run a first time with a verification of the results
   std::vector<scalar_t> v1_ref = v1;
   reference_blas::scal(size, alpha, v1_ref.data(), 1);
-  std::vector<scalar_t> vr_temp(size);
+  std::vector<scalar_t> vr_temp(v1);
   {
-    scalar_t* vr_temp_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&vr_temp_gpu, size * sizeof(scalar_t)));
-    CUDA_CHECK(cudaMemcpy(vr_temp_gpu, v1.data(), size * sizeof(scalar_t),
-                          cudaMemcpyHostToDevice));
+    // Temp result on device copied back upon destruction
+    blas_benchmark::utils::CUDAVector<scalar_t, true> vr_temp_gpu(
+        size, vr_temp.data());
     CUDA_CHECK(cudaDeviceSynchronize());
     cublas_routine<scalar_t>(cuda_handle, size, d_alpha, vr_temp_gpu, 1);
     CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaMemcpy(vr_temp.data(), vr_temp_gpu, size * sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaFree(vr_temp_gpu));
   }
 
   std::ostringstream err_stream;
@@ -131,8 +118,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   blas_benchmark::utils::calc_avg_counters(state);
 
-  CUDA_CHECK(cudaFree(d_inx));
-  CUDA_CHECK(cudaFree(d_alpha));
   CUDA_CHECK(cudaEventDestroy(start));
   CUDA_CHECK(cudaEventDestroy(stop));
 }

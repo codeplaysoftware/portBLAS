@@ -56,21 +56,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  tuple_scalar_t out{-1, 0};
 
   // This will clamp the values to what scalar_t can represent
   std::transform(std::begin(v1), std::end(v1), std::begin(v1), [](scalar_t v) {
     return utils::clamp_to_limits<scalar_t>(v);
   });
 
-  scalar_t* d_inx = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_inx, size * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMemcpy(d_inx, v1.data(), size * sizeof(scalar_t),
-                        cudaMemcpyHostToDevice));
-
-  index_t* d_out = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_out, sizeof(index_t)));
-  CUDA_CHECK(cudaDeviceSynchronize());
+  blas_benchmark::utils::CUDAVector<scalar_t> d_inx(size, v1.data());
+  blas_benchmark::utils::CUDAScalar<index_t> d_out{};
 
   CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
@@ -78,20 +71,16 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   // Run a first time with a verification of the results
   index_t idx_ref =
       static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
-  index_t idx_temp = 0;
+  index_t idx_temp{0};
   {
-    index_t* idx_temp_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&idx_temp_gpu, sizeof(index_t)));
+    // Temp result on device copied back upon destruction
+    blas_benchmark::utils::CUDAScalar<int, true> idx_temp_gpu(idx_temp);
     CUDA_CHECK(cudaDeviceSynchronize());
     cublas_routine<scalar_t>(cuda_handle, size, d_inx, 1, idx_temp_gpu);
     CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaMemcpy(&idx_temp, idx_temp_gpu, sizeof(index_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaFree(idx_temp_gpu));
   }
 
-  // due to cuBLAS following FORTRAN indexes convention. I need to subtract
+  // due to cuBLAS following FORTRAN indexes convention. Subtract
   // one from the given result.
   idx_temp -= 1;
 
@@ -140,8 +129,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   blas_benchmark::utils::calc_avg_counters(state);
 
-  CUDA_CHECK(cudaFree(d_inx));
-  CUDA_CHECK(cudaFree(d_out));
   CUDA_CHECK(cudaEventDestroy(start));
   CUDA_CHECK(cudaEventDestroy(stop));
 }

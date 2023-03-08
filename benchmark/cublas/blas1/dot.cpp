@@ -59,31 +59,20 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   std::transform(std::begin(v1), std::end(v1), std::begin(v1),
                  [=](scalar_t x) { return x / v1.size(); });
 
-  scalar_t* d_inx = nullptr;
-  scalar_t* d_iny = nullptr;
-  scalar_t* d_inr = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_inx, size * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_iny, size * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_inr, size * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMemcpy(d_inx, v1.data(), size * sizeof(scalar_t),
-                        cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_iny, v2.data(), size * sizeof(scalar_t),
-                        cudaMemcpyHostToDevice));
+  blas_benchmark::utils::CUDAVector<scalar_t> d_inx(size, v1.data());
+  blas_benchmark::utils::CUDAVector<scalar_t> d_iny(size, v2.data());
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_inr{};
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   scalar_t vr_ref = reference_blas::dot(size, v1.data(), 1, v2.data(), 1);
   scalar_t vr_temp = 0;
   {
-    scalar_t* vr_temp_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&vr_temp_gpu, size * sizeof(scalar_t)));
+    // Temp result on device copied back upon destruction
+    blas_benchmark::utils::CUDAScalar<scalar_t, true> vr_temp_gpu(vr_temp);
     cublas_routine<scalar_t>(cuda_handle, size, d_inx, 1, d_iny, 1,
                              vr_temp_gpu);
     CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaMemcpy(&vr_temp, vr_temp_gpu, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaFree(vr_temp_gpu));
   }
 
   if (!utils::almost_equal(vr_temp, vr_ref)) {
@@ -131,9 +120,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   blas_benchmark::utils::calc_avg_counters(state);
 
-  CUDA_CHECK(cudaFree(d_inx));
-  CUDA_CHECK(cudaFree(d_iny));
-  CUDA_CHECK(cudaFree(d_inr));
   CUDA_CHECK(cudaEventDestroy(start));
   CUDA_CHECK(cudaEventDestroy(stop));
 }

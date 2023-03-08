@@ -57,21 +57,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  scalar_t* d_d1 = nullptr;
-  scalar_t* d_d2 = nullptr;
-  scalar_t* d_x1 = nullptr;
-  scalar_t* d_y1 = nullptr;
-  scalar_t* d_param = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_d1, sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_d2, sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_x1, sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_y1, sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&d_param, param_size * sizeof(scalar_t)));
-
-  CUDA_CHECK(cudaMemcpy(d_d1, &d1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_d2, &d2, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_x1, &x1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_y1, &y1, sizeof(scalar_t), cudaMemcpyHostToDevice));
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_d1(d1);
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_d2(d2);
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_x1(x1);
+  blas_benchmark::utils::CUDAScalar<scalar_t> d_y1(y1);
+  blas_benchmark::utils::CUDAVector<scalar_t> d_param(param_size, param.data());
 
   CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 
@@ -83,58 +73,25 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   scalar_t y1_ref = y1;
   std::vector<scalar_t> param_ref = param;
 
-  scalar_t d1_verify;
-  scalar_t d2_verify;
-  scalar_t x1_verify;
-  scalar_t y1_verify;
-  std::vector<scalar_t> param_verify(param_size);
+  scalar_t d1_verify{d1};
+  scalar_t d2_verify{d2};
+  scalar_t x1_verify{x1};
+  scalar_t y1_verify{y1};
+  std::vector<scalar_t> param_verify(param);
   reference_blas::rotmg(&d1_ref, &d2_ref, &x1_ref, &y1_ref, param_ref.data());
 
   {
-    scalar_t* d_d1_verify;
-    scalar_t* d_d2_verify;
-    scalar_t* d_x1_verify;
-    scalar_t* d_y1_verify;
-    scalar_t* d_param_verify;
-    CUDA_CHECK(cudaMalloc(&d_d1_verify, sizeof(scalar_t)));
-    CUDA_CHECK(cudaMalloc(&d_d2_verify, sizeof(scalar_t)));
-    CUDA_CHECK(cudaMalloc(&d_x1_verify, sizeof(scalar_t)));
-    CUDA_CHECK(cudaMalloc(&d_y1_verify, sizeof(scalar_t)));
-    CUDA_CHECK(cudaMalloc(&d_param_verify, param_size * sizeof(scalar_t)));
-
-    CUDA_CHECK(
-        cudaMemcpy(d_d1_verify, &d1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-    CUDA_CHECK(
-        cudaMemcpy(d_d2_verify, &d2, sizeof(scalar_t), cudaMemcpyHostToDevice));
-    CUDA_CHECK(
-        cudaMemcpy(d_x1_verify, &x1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-    CUDA_CHECK(
-        cudaMemcpy(d_y1_verify, &y1, sizeof(scalar_t), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_param_verify, param.data(),
-                          param_size * sizeof(scalar_t),
-                          cudaMemcpyHostToDevice));
+    // Temp result on device copied back upon destruction
+    blas_benchmark::utils::CUDAScalar<scalar_t, true> d_d1_verify(d1_verify);
+    blas_benchmark::utils::CUDAScalar<scalar_t, true> d_d2_verify(d2_verify);
+    blas_benchmark::utils::CUDAScalar<scalar_t, true> d_x1_verify(x1_verify);
+    blas_benchmark::utils::CUDAScalar<scalar_t, true> d_y1_verify(y1_verify);
+    blas_benchmark::utils::CUDAVector<scalar_t, true> d_param_verify(
+        param_size, param_verify.data());
     CUDA_CHECK(cudaDeviceSynchronize());
     cublas_routine<scalar_t>(cuda_handle, d_d1_verify, d_d2_verify, d_x1_verify,
                              d_y1_verify, d_param_verify);
     CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaMemcpy(&d1_verify, d_d1_verify, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(&d2_verify, d_d2_verify, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(&x1_verify, d_x1_verify, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(&y1_verify, d_y1_verify, sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(param_verify.data(), d_param_verify,
-                          param_size * sizeof(scalar_t),
-                          cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaDeviceSynchronize());
-
-    CUDA_CHECK(cudaFree(d_d1_verify));
-    CUDA_CHECK(cudaFree(d_d2_verify));
-    CUDA_CHECK(cudaFree(d_x1_verify));
-    CUDA_CHECK(cudaFree(d_y1_verify));
-    CUDA_CHECK(cudaFree(d_param_verify));
   }
 
   std::ostringstream err_stream;
@@ -188,11 +145,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   blas_benchmark::utils::calc_avg_counters(state);
 
-  CUDA_CHECK(cudaFree(d_d1));
-  CUDA_CHECK(cudaFree(d_d2));
-  CUDA_CHECK(cudaFree(d_x1));
-  CUDA_CHECK(cudaFree(d_y1));
-  CUDA_CHECK(cudaFree(d_param));
   CUDA_CHECK(cudaEventDestroy(start));
   CUDA_CHECK(cudaEventDestroy(stop));
 };
