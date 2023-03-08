@@ -55,6 +55,7 @@ namespace internal {
  */
 template typename ValueType<${container_t0}>::type _sdsdot(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, float sb, ${container_t0} _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
+    typename SB_Handle::event_t dependencies);
 }  // namespace internal
 }  // namespace blas

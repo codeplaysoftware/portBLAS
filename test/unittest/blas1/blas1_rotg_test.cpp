@@ -63,10 +63,9 @@ void run_test(const combination_t<scalar_t> combi) {
     auto set_c = helper::copy_to_device(q, &c_input, device_c, 1);
     auto set_s = helper::copy_to_device(q, &s_input, device_s, 1);
 
-    sb_handle.wait({copy_a, copy_b, set_c, set_s});
-
-    auto event0 = _rotg(sb_handle, device_a, device_b, device_c, device_s);
-    sb_handle.wait(event0);
+    auto rotg_event = _rotg(sb_handle, device_a, device_b, device_c, device_s,
+                            {copy_a, copy_b, set_c, set_s});
+    sb_handle.wait(rotg_event);
 
     auto event1 = helper::copy_to_host(sb_handle.get_queue(), device_c, &c, 1);
     auto event2 = helper::copy_to_host(sb_handle.get_queue(), device_s, &s, 1);

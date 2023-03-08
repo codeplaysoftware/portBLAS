@@ -44,6 +44,7 @@ namespace internal {
  */
 template typename SB_Handle::event_t _copy(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
+    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
+    typename SB_Handle::event_t dependencies);
 }  // namespace internal
 }  // end namespace blas

@@ -58,9 +58,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
   auto copy_y = helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
-  sb_handle.wait({copy_x, copy_y});
 
-  auto axpy_event = _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY);
+  auto axpy_event = _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY,
+                          {copy_x, copy_y});
   sb_handle.wait(axpy_event);
 
   auto event = helper::copy_to_host(q, gpu_y_v, y_v.data(), size * incY);

@@ -73,9 +73,9 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_param =
       helper::copy_to_device(q, param.data(), gpu_param, param_size);
 
-  sb_handle.wait({copy_x, copy_y, copy_param});
-
-  _rotm(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, gpu_param);
+  auto rotm_event = _rotm(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY,
+                          gpu_param, {copy_x, copy_y, copy_param});
+  sb_handle.wait(rotm_event);
 
   auto event1 =
       helper::copy_to_host<scalar_t>(q, gpu_x_v, x_v.data(), size * incX);

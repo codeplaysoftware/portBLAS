@@ -60,13 +60,14 @@ void run_test(const combination_t<scalar_t> combi) {
     auto gpu_out_s = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
     auto copy_out =
         blas::helper::copy_to_device<scalar_t>(q, &out_s, gpu_out_s, 1);
-    sb_handle.wait(copy_out);
-    _nrm2(sb_handle, size, gpu_x_v, incX, gpu_out_s);
+    auto nrm2_event =
+        _nrm2(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x, copy_out});
+    sb_handle.wait(nrm2_event);
     auto event =
         blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
   } else {
-    out_s = _nrm2(sb_handle, size, gpu_x_v, incX);
+    out_s = _nrm2(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result

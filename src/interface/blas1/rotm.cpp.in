@@ -68,6 +68,6 @@ namespace internal {
 template typename SB_Handle::event_t _rotm(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
     ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
-    ${container_t2} _param);
+    ${container_t2} _param, typename SB_Handle::event_t dependencies);
 }  // namespace internal
 }  // namespace blas

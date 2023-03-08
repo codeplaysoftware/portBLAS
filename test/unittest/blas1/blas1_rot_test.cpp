@@ -74,13 +74,14 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_a = helper::copy_to_device(q, a_v.data(), gpu_a_v, size * incX);
   auto copy_b = helper::copy_to_device(q, b_v.data(), gpu_b_v, size * incY);
 
-  sb_handle.wait({copy_a, copy_b});
-
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
-  _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s);
-  _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, gpu_out_s);
+  auto rot_event = _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s,
+                        {copy_a, copy_b});
+  auto dot_event = _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY,
+                        gpu_out_s, {rot_event});
+  sb_handle.wait(dot_event);
   auto event = helper::copy_to_host(q, gpu_out_s, out_s.data(), 1);
   sb_handle.wait(event);
 

@@ -65,25 +65,26 @@ void run_test(const combination_t<scalar_t> combi) {
   // Iterators
   auto gpu_x_v =
       helper::allocate<mem_alloc, scalar_t>(int(vectorSize * incX), q);
-  auto copy_x =
-      helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
   auto gpu_y_v =
       helper::allocate<mem_alloc, scalar_t>(int(vectorSize * incY), q);
+
+  auto copy_x =
+      helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
   auto copy_y =
       helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
-
-  sb_handle.wait({copy_x, copy_y});
 
   if (api == api_type::async) {
     auto gpu_out_s = helper::allocate<mem_alloc, scalar_t>(1, q);
     auto copy_out = helper::copy_to_device(q, &out_s, gpu_out_s, 1);
-    sb_handle.wait(copy_out);
-    _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
+    auto sdsdot_event = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY,
+                                gpu_out_s, {copy_x, copy_y, copy_out});
+    sb_handle.wait(sdsdot_event);
     auto event = helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
                                                 gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
   } else {
-    out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY,
+                    {copy_x, copy_y});
   }
 
   // Validate the result

@@ -55,7 +55,7 @@ template <typename operator_t, reduction_dim_t reduction_dim,
           typename output_t, typename index_t>
 typename sb_handle_t::event_t launch_type_based_reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
-    index_t rows, index_t cols) {
+    index_t rows, index_t cols, typename sb_handle_t::event_t dependencies) {
 #ifdef POWER_VR
   constexpr int ClSize = 32;
   constexpr int WgSize = 64;
@@ -89,7 +89,7 @@ typename sb_handle_t::event_t launch_type_based_reduction(
   if (two_step_reduction) {
     /* Create a temporary buffer */
     auto temp_buffer =
-        blas::helper::allocate<helper::AllocType::usm, element_t>(
+        blas::helper::allocate<helper::AllocType::buffer, element_t>(
             (reduction_dim == reduction_dim_t::outer ? rows : cols) *
                 reduced_group_count,
             sb_handle.get_queue());
@@ -104,21 +104,21 @@ typename sb_handle_t::event_t launch_type_based_reduction(
     /* 1st step */
     auto reduction =
         blas::make_reduction<operator_t, params_t>(matrix_buffer_in, temp_);
-    reduction_event =
-        concatenate_vectors(reduction_event, sb_handle.execute(reduction));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction, dependencies));
 
     /* 2nd step */
     auto reduction_step_2 =
         blas::make_reduction<typename get_second_step_op<operator_t>::type,
                              params_t>(temp_, matrix_buffer_out);
-    reduction_event = concatenate_vectors(reduction_event,
-                                          sb_handle.execute(reduction_step_2));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction_step_2, reduction_event));
   } else {
     /* 1-step reduction */
     auto reduction = blas::make_reduction<operator_t, params_t>(
         matrix_buffer_in, matrix_buffer_out);
-    reduction_event =
-        concatenate_vectors(reduction_event, sb_handle.execute(reduction));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction, dependencies));
   }
 
   return reduction_event;
@@ -126,19 +126,18 @@ typename sb_handle_t::event_t launch_type_based_reduction(
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
-typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
-                                         input_t buffer_in, index_t ld,
-                                         output_t buffer_out, index_t rows,
-                                         index_t cols,
-                                         reduction_dim_t reduction_dim) {
+typename sb_handle_t::event_t _reduction(
+    sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols, reduction_dim_t reduction_dim,
+    typename sb_handle_t::event_t dependencies) {
   if (reduction_dim == reduction_dim_t::inner) {
     return launch_type_based_reduction<operator_t, reduction_dim_t::inner,
-                                       element_t>(sb_handle, buffer_in, ld,
-                                                  buffer_out, rows, cols);
+                                       element_t>(
+        sb_handle, buffer_in, ld, buffer_out, rows, cols, dependencies);
   } else {  // reduction_dim_t::outer
     return launch_type_based_reduction<operator_t, reduction_dim_t::outer,
-                                       element_t>(sb_handle, buffer_in, ld,
-                                                  buffer_out, rows, cols);
+                                       element_t>(
+        sb_handle, buffer_in, ld, buffer_out, rows, cols, dependencies);
   }
 }
 

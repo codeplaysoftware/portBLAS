@@ -56,6 +56,7 @@ template typename SB_Handle::event_t _dot(SB_Handle &sb_handle,
                                           ${INCREMENT_TYPE} _incx,
                                           ${container_t1} _vy,
                                           ${INCREMENT_TYPE} _incy,
-                                          ${container_t2} _rs);
+                                          ${container_t2} _rs,
+                                          typename SB_Handle::event_t dependencies);
 }  // namespace internal
 }  // namespace blas

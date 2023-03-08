@@ -60,9 +60,10 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto copy_event_y =
       blas::helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
-  sb_handle.wait({copy_event_x, copy_event_y});
 
-  _copy(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
+  auto kernel_event = _copy(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY,
+                            {copy_event_x, copy_event_y});
+  sb_handle.wait(kernel_event);
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_y_v,
                                           y_v.data(), size * incY);
   sb_handle.wait(event);

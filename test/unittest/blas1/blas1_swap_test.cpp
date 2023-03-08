@@ -58,15 +58,16 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
   auto copy_y = helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
-  sb_handle.wait({copy_x, copy_y});
 
-  _swap(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY);
-  auto event = helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v.data(),
-                                    size * incX);
-  sb_handle.wait(event);
-  event = helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(),
-                               size * incY);
-  sb_handle.wait(event);
+  auto swap_event =
+      _swap(sb_handle, size, gpu_x_v, incX, gpu_y_v, incY, {copy_x, copy_y});
+  sb_handle.wait(swap_event);
+
+  auto event0 = helper::copy_to_host(sb_handle.get_queue(), gpu_x_v, x_v.data(),
+                                     size * incX);
+  auto event1 = helper::copy_to_host(sb_handle.get_queue(), gpu_y_v, y_v.data(),
+                                     size * incY);
+  sb_handle.wait({event0, event1});
 
   // Validate the result
   // Since this is just a swap operation, float tolerances are fine

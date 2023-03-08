@@ -36,19 +36,18 @@ void run_test(const combination_t<scalar_t> combi) {
   auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
 
   auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
-  sb_handle.wait(copy_x);
 
   if (api == api_type::async) {
     auto gpu_out_s = helper::allocate<mem_alloc, tuple_t>(1, q);
     auto copy_out = helper::copy_to_device<tuple_t>(q, &out_s, gpu_out_s, 1);
-    sb_handle.wait(copy_out);
-    auto iamax_event = _iamax(sb_handle, size, gpu_x_v, incX, gpu_out_s);
+    auto iamax_event =
+        _iamax(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x, copy_out});
     sb_handle.wait(iamax_event);
     auto event = helper::copy_to_host<tuple_t>(sb_handle.get_queue(), gpu_out_s,
                                                &out_s, 1);
     sb_handle.wait(event);
   } else {
-    out_s.ind = _iamax(sb_handle, size, gpu_x_v, incX);
+    out_s.ind = _iamax(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result

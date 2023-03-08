@@ -186,40 +186,41 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_v = blas::helper::copy_to_device<scalar_t>(q, out_v_gpu.data(),
                                                         v_out_gpu, out_size);
 
-  sb_handle.wait({copy_m, copy_v});
-
   blas::SB_Handle::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Mean:
         ev = extension::_reduction<MeanOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
     }
   } catch (cl::sycl::exception& e) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
+
+  sb_handle.wait(ev);
+
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), v_out_gpu, out_v_gpu.data(), out_size);
   sb_handle.wait(event);
