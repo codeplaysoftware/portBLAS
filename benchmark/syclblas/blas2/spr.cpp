@@ -46,11 +46,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
 
   {
     double nflops_XtimesX = 2.0 * size_d;
-    state.counters["n_fl_ops"] = size_d + nflops_XtimesX;
+    state.counters["n_fl_ops"] = size + nflops_XtimesX;
   }
   {
     double mem_readA = size_d;
-    double mem_readX = static_cast<double>(size * std::abs(incX));
+    double mem_readX = static_cast<double>(size);
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX) * sizeof(scalar_t);
   }

@@ -46,11 +46,11 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
 
   {
     double nflops_XtimesX = 2.0 * size_d;
-    state.counters["n_fl_ops"] = size_d + nflops_XtimesX;
+    state.counters["n_fl_ops"] = size + nflops_XtimesX;
   }
   {
     double mem_readA = size_d;
-    double mem_readX = static_cast<double>(size * std::abs(incX));
+    double mem_readX = static_cast<double>(size);
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX) * sizeof(scalar_t);
   }
@@ -73,7 +73,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
                               static_cast<size_t>(m_size));
   MemBuffer<scalar_t> v_x_gpu(executorPtr, v_x.data(),
                               static_cast<size_t>(v_size));
-
+  clblast::Layout layout = clblast::Layout::kColMajor;
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_ref = v_x;
@@ -86,7 +86,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
                                      static_cast<size_t>(m_size));
 
     cl_event event;
-    clblast Layout layout = clblast::Layout::kColMajor;
     clblast::Spr<scalar_t>(layout, triangle, size, alpha, v_x_gpu.dev(), 0,
                            incX, m_a_temp_gpu.dev(), 0, executorPtr->_queue(),
                            &event);
