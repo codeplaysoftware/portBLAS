@@ -257,6 +257,7 @@ For all these operations:
 | `_ger` | `ex`, `M`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector-vector product followed by a matrix sum: `A = alpha * x * yT + A` |
 | `_syr` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
 | `_syr2` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
+| `_spr` | `ex`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mPA` | Symmetric vector-vector product followed by a matrix sum: `mPA = alpha * x * xT + mPA` |
 
 ### BLAS 3
 

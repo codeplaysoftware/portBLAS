@@ -190,6 +190,34 @@ typename sb_handle_t::event_t _syr(
     index_t _lda             // >max(1, _N) The first dimension of _mA
 );
 
+/**
+ * @brief Generalised vector squaring followed by a sum with a packed symmetric
+ * matrix.
+ *
+ * Generalised vector squaring followed by a sum with a packed symmetric matrix,
+ * i.e. computing the mathematical operation:
+
+ * A = alpha*x*xT + A
+
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * https://netlib.org/lapack/explore-html/d2/d9b/sspr_8f.html
+ *
+ * @param sb_handle sb_handle_t (sycl, parallel, serial, etc)
+ * @param _Uplo Whether the matrix is upper/lower ('u', 'l')
+ * @param _N >0 The order of matrix A
+ * @param _alpha Scalar multiplier
+ * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
+ * @param _incx !=0 The increment for the elements of X
+ * @param _mPA (_lda, _N) The output matrix in packed format
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t>
+typename sb_handle_t::event_t _spr(sb_handle_t& sb_handle, char _Uplo,
+                                   index_t _N, element_t _alpha,
+                                   container_0_t _vx, increment_t _incx,
+                                   container_1_t _mPA);
+
 /*!
  @brief Generalised vector products followed by a sum with a symmetric matrix.
 
@@ -513,6 +541,38 @@ typename sb_handle_t::event_t inline _syr(
     index_t _lda             // >max(1, _N) The first dimension of _mA
 ) {
   return internal::_syr(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
+}
+
+/**
+ * @brief Generalised vector squaring followed by a sum with a packed symmetric
+ * matrix.
+ *
+ * Generalised vector squaring followed by a sum with a packed symmetric matrix,
+ * i.e. computing the mathematical operation:
+
+ * A = alpha*x*xT + A
+
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * https://netlib.org/lapack/explore-html/d2/d9b/sspr_8f.html
+ *
+ * @param sb_handle sb_handle_t (sycl, parallel, serial, etc)
+ * @param _Uplo Whether the matrix is upper/lower ('u', 'l')
+ * @param _N >0 The order of matrix A
+ * @param _alpha Scalar multiplier
+ * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
+ * @param _incx !=0 The increment for the elements of X
+ * @param _mPA (_lda, _N) The output matrix in packed format
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename increment_t, typename container_1_t>
+typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
+                                          index_t _N, element_t _alpha,
+                                          container_0_t _vx, increment_t _incx,
+                                          container_1_t _mPA) {
+  return internal::_spr<sb_handle_t, index_t, element_t, container_0_t,
+                        increment_t, container_1_t>(sb_handle, _Uplo, _N,
+                                                    _alpha, _vx, _incx, _mPA);
 }
 
 /*!

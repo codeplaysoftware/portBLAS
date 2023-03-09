@@ -605,6 +605,58 @@ typename sb_handle_t::event_t _syr_impl(
   }
 }
 
+/*! _SPR.
+ * @brief Implementation of the rank 1 operation
+ */
+/*
+sspr 	( 	character  	UPLO,
+   integer  	N,
+   real  	ALPHA,
+   real, dimension(N)  	X,
+   integer  	INCX,
+   real, dimension(N, N + 1 / 2)  	AP
+ )
+*/
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1>
+typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
+                                        index_t _N, element_t _alpha,
+                                        container_t0 _vx, increment_t _incx,
+                                        container_t1 _mPA) {
+  // throw exception if invalid arguments
+  if (_N <= 0) {
+    throw std::invalid_argument("Invalid vector size");
+  }
+
+  // bail out early if alpha == 0
+  if (_alpha == (element_t)0) {
+    std::vector<cl::sycl::event> event;
+    return event;
+  }
+
+  typename sb_handle_t::event_t ret;
+  _Uplo = tolower(_Uplo);
+  const int Upper = _Uplo == 'u';
+  auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+
+  const index_t localSize = sb_handle.get_work_group_size();
+  const index_t nColsWG = localSize;
+
+  const index_t nWGPerCol = (_N * (_N + 1) / 2 - 1) / nColsWG + 1;
+  const index_t globalSize = localSize * nWGPerCol;
+
+  if (Upper) {
+    auto spr = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(spr, localSize, globalSize));
+  } else {
+    auto spr = make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(spr, localSize, globalSize));
+  }
+}
+
 /*
     ssyr2 	( 	character  	UPLO,
                 integer  	N,
@@ -787,6 +839,18 @@ typename sb_handle_t::event_t inline _syr(sb_handle_t& sb_handle, char _Uplo,
   // scratch size per device
   return _syr_impl(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
 }
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1>
+typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
+                                          index_t _N, element_t _alpha,
+                                          container_t0 _vx, increment_t _incx,
+                                          container_t1 _mPA) {
+  return _spr_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
+                   container_t1>(sb_handle, _Uplo, _N, _alpha, _vx, _incx,
+                                 _mPA);
+}
+
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
