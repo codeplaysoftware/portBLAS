@@ -91,9 +91,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   // Verify results
   std::ostringstream err_stream;
   const bool isAlmostEqual = utils::compare_vectors<scalar_t, scalar_t>(
-                                 x_v_ref, x_v_verify, err_stream, "") &&
+                                 x_v_verify, x_v_ref, err_stream, "") &&
                              utils::compare_vectors<scalar_t, scalar_t>(
-                                 y_v_ref, y_v_verify, err_stream, "");
+                                 y_v_verify, y_v_ref, err_stream, "");
 
   if (!isAlmostEqual) {
     const std::string& err_str = err_stream.str();
