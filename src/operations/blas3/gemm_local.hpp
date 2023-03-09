@@ -63,7 +63,8 @@ namespace blas {
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
- * @tparam UseJointMatrix boolean parameter to decide whether to use joint_matrix or not
+ * @tparam UseJointMatrix boolean parameter to decide whether to use
+ * joint_matrix or not
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
@@ -153,15 +154,22 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   const element_t alpha_;
   const element_t beta_;
   index_t batch_size_;
+  index_t stridea_;
+  index_t strideb_;
+  index_t stridec_;
 
   SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size)
+                        element_t beta, index_t batch_size, index_t stride_a,
+                        index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
         c_(C),
         alpha_(alpha),
         beta_(beta / alpha),
-        batch_size_(batch_size) {}
+        batch_size_(batch_size),
+        stridea_{stride_a},
+        strideb_{stride_b},
+        stridec_{stride_c} {}
 
   /*!
    * @brief Get the type of this GemmFactory as a human readable string.
@@ -264,11 +272,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t c_size = ldc * n;
 
     auto ptr_A = a_.get_data().get_pointer() + a_.get_access_displacement() +
-                 (wg_batch_id * a_size);
+                 (wg_batch_id * stridea_);
     auto ptr_B = b_.get_data().get_pointer() + b_.get_access_displacement() +
-                 (wg_batch_id * b_size);
+                 (wg_batch_id * strideb_);
     auto ptr_C = c_.get_data().get_pointer() + c_.get_access_displacement() +
-                 (wg_batch_id * c_size);
+                 (wg_batch_id * stridec_);
 
     const index_t item_id = id.get_local_id(0);
     const index_t tile_id = wg_id / tile_size;
@@ -454,9 +462,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       // store the output
       store_output_block<check_m_limit, check_n_limit>(item_id, mc, nc, C, ldc,
                                                        reg_res, out_of_range);
-      orig_A += (a_size * batch_stride);
-      orig_B += (b_size * batch_stride);
-      orig_C += (c_size * batch_stride);
+      orig_A += (stridea_ * batch_stride);
+      orig_B += (strideb_ * batch_stride);
+      orig_C += (stridec_ * batch_stride);
       // batch_size_ must be signed as the negative value has meaning here.
       batch_size -= batch_stride;
     } while (batch_size > wg_batch_id);

@@ -58,6 +58,15 @@ typename sb_handle_t::event_t _gemm_batched(
     gemm_batch_type_t batch_type = gemm_batch_type_t::strided);
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename sb_handle_t::event_t _gemm_strided_batched(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
+    element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
+    index_t batch_size);
+
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
                                     char uplo, char trans, char diag, index_t M,
@@ -90,6 +99,19 @@ typename sb_handle_t::event_t _gemm_batched(
   return internal::_gemm_batched(sb_handle, _TransA, _TransB, _M, _N, _K,
                                  _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
                                  batch_size, batch_type);
+}
+
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename element_t, typename index_t>
+typename sb_handle_t::event_t _gemm_strided_batched(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
+    element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
+    index_t batch_size) {
+  return internal::_gemm_strided_batched(
+      sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, _stridea, b_,
+      _ldb, _strideb, _beta, _C, _ldc, _stridec, batch_size);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,

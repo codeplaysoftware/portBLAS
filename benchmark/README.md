@@ -92,7 +92,7 @@ The formats for the different BLAS levels are:
 | trsm | *side,triangle,transpose,diagonal,m,n,alpha* | Position of A (`l`, `r`), A is upper or lower triangular (`u`, `l`), transposition of A (`n`, `t`), A is unit or non-unit diagonal(`u`,`n`),dimensions, scalar alpha |
 
 Note: for operations that support a stride, the benchmarks will use a stride of
-1 (contiguous values). For operations that support a leading dimension, the
+1 (contiguous values), except for the GEMM batched operation where valid default stride values are used depending on batch type *(strided or interleaved)*. For operations that support a leading dimension, the
 benchmarks use the minimum possible value (the actual leading dimension of the
 matrix).
 
@@ -127,14 +127,14 @@ Here are the bricks to build expressions with (you can find examples below):
 |--------|----------|-----------|
 | `size_range` | *low, high, mult* | Generates a 1-dimensional range from *low* to *high* with a multiplier *mult* |
 | `value_range` | *val_1, ..., val_n* | Generates a range with exactly the given values |
-| `concat_range` | *range_1, ..., range_n* | Generates a range with the union of all the values from all the given ranges |
+| `concat_ranges` | *range_1, ..., range_n* | Generates a range with the union of all the values from all the given ranges |
 | `nd_range` | *range_1, ..., range_n* | Generates a n-dimensional range by combining 1-dimensional ranges. It generates all the combinations so the cardinality of the resulting range can be really high |
 
 #### Examples
 
 A bunch of flat matrices:
 ```python
-concat_range(nd_range(value_range(8), size_range(128, 512, 2)),
+concat_ranges(nd_range(value_range(8), size_range(128, 512, 2)),
              nd_range(size_range(128, 512, 2), value_range(8)))
 ```
 ```

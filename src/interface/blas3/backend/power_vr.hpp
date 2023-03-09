@@ -292,13 +292,12 @@ struct Gemm_Launcher {
 template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
-                                    index_t _N, index_t _K, element_t _alpha,
-                                    container_0_t _a, index_t _lda,
-                                    container_1_t _b, index_t _ldb,
-                                    element_t _beta, container_2_t _c,
-                                    index_t _ldc, index_t batch_size,
-                                    gemm_batch_type_t batch_type) {
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
+    element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+    container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+    container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
+    gemm_batch_type_t batch_type) {
 #ifdef IMGDNN_LIBRARY
   if (batch_type == gemm_batch_type_t::interleaved) {
     std::cerr << "Error: interleaved gemm is not supported with IMGDNN"
@@ -315,14 +314,10 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         _t_b, static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
-        static_cast<int>(
-            gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle,
-                                                                    _M, _N, _K,
-                                                                    _alpha, _a,
-                                                                    _lda, _b,
-                                                                    _ldb, _beta,
-                                                                    _c, _ldc,
-                                                                    batch_size);
+        static_cast<int>(gemm_batch_type_t::interleaved)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size);
   }
   // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
@@ -359,9 +354,11 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
-                                                                _a, _lda, _b,
-                                                                _ldb, _beta, _c,
-                                                                _ldc,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
                                                                 batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
@@ -376,9 +373,11 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
-                                                                _a, _lda, _b,
-                                                                _ldb, _beta, _c,
-                                                                _ldc,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
                                                                 batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
@@ -400,9 +399,11 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
-                                                                _a, _lda, _b,
-                                                                _ldb, _beta, _c,
-                                                                _ldc,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
                                                                 batch_size);
   } else {
     return blas::Gemm_Launcher<
@@ -413,9 +414,11 @@ typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, index_t _M,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
-                                                                _a, _lda, _b,
-                                                                _ldb, _beta, _c,
-                                                                _ldc,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
                                                                 batch_size);
   }
 #endif
