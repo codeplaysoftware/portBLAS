@@ -28,15 +28,17 @@
 using namespace blas;
 
 template <typename scalar_t>
-std::string get_name(int rows, int cols, reduction_dim_t reduction_dim) {
+std::string get_name(int rows, int cols, reduction_dim_t reduction_dim,
+                     std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Reduction<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << rows << "/" << cols << "/"
-      << (reduction_dim == reduction_dim_t::inner ? "inner" : "outer");
+      << (reduction_dim == reduction_dim_t::inner ? "inner" : "outer") << "/"
+      << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
          index_t cols, reduction_dim_t dim, bool* success) {
   // The counters are double. We convert m, n and k to double to avoid integer
@@ -55,12 +57,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   // Matrix
   std::vector<scalar_t> mat =
       blas_benchmark::utils::random_data<scalar_t>(rows * cols);
-  auto mat_buffer = blas::make_sycl_iterator_buffer<scalar_t>(mat, rows * cols);
-
   // Output vector
   std::vector<scalar_t> vec = blas_benchmark::utils::random_data<scalar_t>(
       (dim == reduction_dim_t::outer) ? rows : cols);
-  auto vec_buffer = blas::make_sycl_iterator_buffer<scalar_t>(vec, vec.size());
+
+  typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type mat_buffer,
+      vec_buffer;
+  cl::sycl::event copy_mat, copy_vec;
+
+  std::tie(mat_buffer, copy_mat) = blas::helper::allocate<mem_alloc, scalar_t>(
+      mat.data(), rows * cols, sb_handle.get_queue());
+  std::tie(vec_buffer, copy_vec) = blas::helper::allocate<mem_alloc, scalar_t>(
+      vec.data(), vec.size(), sb_handle.get_queue());
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -83,11 +91,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   }
   std::vector<scalar_t> vec_temp = vec;
   {
-    auto vec_temp_buffer = blas::make_sycl_iterator_buffer<scalar_t>(
-        vec_temp.data(), vec_temp.size());
+    typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type
+        vec_temp_buffer;
+    cl::sycl::event copy_temp;
+    std::tie(vec_temp_buffer, copy_temp) =
+        blas::helper::allocate<mem_alloc, scalar_t>(
+            vec_temp.data(), vec_temp.size(), sb_handle.get_queue());
 
-    extension::_reduction<AddOperator, scalar_t>(
-        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
+    auto reduction_event = extension::_reduction<AddOperator, scalar_t>(
+        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim,
+        {copy_mat, copy_temp});
+    sb_handle.wait(reduction_event);
+
     auto event =
         blas::helper::copy_to_host(sb_handle.get_queue(), vec_temp_buffer,
                                    vec_temp.data(), vec_temp.size());
@@ -104,7 +119,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
-        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
+        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim,
+        {copy_mat, copy_vec});
     sb_handle.wait(event);
     return event;
   };
@@ -129,31 +145,39 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto red_params = blas_benchmark::utils::get_reduction_params<scalar_t>(args);
 
-  for (auto p : red_params) {
-    index_t rows, cols;
-    std::tie(rows, cols) = p;
-
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
-                         index_t rows, index_t cols, reduction_dim_t dim,
-                         bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, rows, cols, dim, success);
-    };
-    benchmark::RegisterBenchmark(
-        get_name<scalar_t>(rows, cols, reduction_dim_t::inner).c_str(),
-        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::inner, success);
-    benchmark::RegisterBenchmark(
-        get_name<scalar_t>(rows, cols, reduction_dim_t::outer).c_str(),
-        BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::outer, success);
+#define REGISTER_MEM_TYPE_BENCHMARKS(MEMORY, NAME, DIM)                        \
+  for (auto p : red_params) {                                                  \
+    index_t rows, cols;                                                        \
+    std::tie(rows, cols) = p;                                                  \
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, \
+                         index_t rows, index_t cols, reduction_dim_t dim,      \
+                         bool* success) {                                      \
+      run<scalar_t, MEMORY>(st, sb_handle_ptr, rows, cols, dim, success);      \
+    };                                                                         \
+    benchmark::RegisterBenchmark(                                              \
+        get_name<scalar_t>(rows, cols, DIM, NAME).c_str(), BM_lambda,          \
+        sb_handle_ptr, rows, cols, DIM, success);                              \
   }
+
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm",
+                               reduction_dim_t::inner);
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer",
+                               reduction_dim_t::inner);
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm",
+                               reduction_dim_t::outer);
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer",
+                               reduction_dim_t::outer);
+
+#undef REGISTER_MEM_TYPE_BENCHMARKS
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

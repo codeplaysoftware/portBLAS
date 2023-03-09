@@ -26,13 +26,14 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name() {
+std::string get_name(std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Rotg<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          bool* success) {
   // Create data
@@ -43,10 +44,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
-  auto buf_a = blas::make_sycl_iterator_buffer<scalar_t>(&a, 1);
-  auto buf_b = blas::make_sycl_iterator_buffer<scalar_t>(&b, 1);
-  auto buf_c = blas::make_sycl_iterator_buffer<scalar_t>(&c, 1);
-  auto buf_s = blas::make_sycl_iterator_buffer<scalar_t>(&s, 1);
+  typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type buf_a, buf_b,
+      buf_c, buf_s;
+  cl::sycl::event copy_a, copy_b, copy_c, copy_s;
+
+  std::tie(buf_a, copy_a) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&a, 1, sb_handle.get_queue());
+  std::tie(buf_b, copy_b) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&b, 1, sb_handle.get_queue());
+  std::tie(buf_c, copy_c) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&c, 1, sb_handle.get_queue());
+  std::tie(buf_s, copy_s) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&s, 1, sb_handle.get_queue());
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -60,13 +69,28 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   scalar_t c_verify = c;
   scalar_t s_verify = s;
 
-  auto buf_verify_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_verify, 1);
-  auto buf_verify_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_verify, 1);
-  auto buf_verify_c = blas::make_sycl_iterator_buffer<scalar_t>(&c_verify, 1);
-  auto buf_verify_s = blas::make_sycl_iterator_buffer<scalar_t>(&s_verify, 1);
+  typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type buf_verify_a,
+      buf_verify_b, buf_verify_c, buf_verify_s;
+  cl::sycl::event copy_verify_a, copy_verify_b, copy_verify_c, copy_verify_s;
+
+  std::tie(buf_verify_a, copy_verify_a) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&a_verify, 1,
+                                                  sb_handle.get_queue());
+  std::tie(buf_verify_b, copy_verify_b) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&b_verify, 1,
+                                                  sb_handle.get_queue());
+  std::tie(buf_verify_c, copy_verify_c) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&c_verify, 1,
+                                                  sb_handle.get_queue());
+  std::tie(buf_verify_s, copy_verify_s) =
+      blas::helper::allocate<mem_alloc, scalar_t>(&s_verify, 1,
+                                                  sb_handle.get_queue());
 
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
-  _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
+  auto rotg_event =
+      _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s,
+            {copy_verify_a, copy_verify_b, copy_verify_c, copy_verify_s});
+  sb_handle.wait(rotg_event);
 
   auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c,
                                            &c_verify, 1);
@@ -102,7 +126,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _rotg(sb_handle, buf_a, buf_b, buf_c, buf_s);
+    auto event = _rotg(sb_handle, buf_a, buf_b, buf_c, buf_s,
+                       {copy_a, copy_b, copy_c, copy_s});
     sb_handle.wait(event);
     return event;
   };
@@ -131,13 +156,20 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
-                       bool* success) {
-    run<scalar_t>(st, sb_handle_ptr, success);
-  };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
-                               sb_handle_ptr, success)
-      ->UseRealTime();
+#define REGISTER_MEM_TYPE_BENCHMARKS(MEMORY, NAME)                             \
+  {                                                                            \
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, \
+                         bool* success) {                                      \
+      run<scalar_t, MEMORY>(st, sb_handle_ptr, success);                       \
+    };                                                                         \
+    benchmark::RegisterBenchmark(get_name<scalar_t>(NAME).c_str(), BM_lambda,  \
+                                 sb_handle_ptr, success)                       \
+        ->UseRealTime();                                                       \
+  }
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm");
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer");
+
+#undef REGISTER_MEM_TYPE_BENCHMARKS
 }
 
 namespace blas_benchmark {

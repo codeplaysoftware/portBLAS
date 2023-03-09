@@ -37,15 +37,53 @@ namespace helper {
  */
 enum class AllocType : int { usm = 0, buffer = 1 };
 
+template <typename value_t, AllocType mem_alloc>
+struct AllocHelper;
+
+template <typename value_t>
+struct AllocHelper<value_t, AllocType::usm> {
+  using type = value_t *;
+  using tuple_type = std::tuple<value_t *, cl::sycl::event>;
+};
+
+template <typename value_t>
+struct AllocHelper<value_t, AllocType::buffer> {
+  using type = blas::BufferIterator<value_t>;
+  using tuple_type = std::tuple<BufferIterator<value_t>, cl::sycl::event>;
+};
+
 template <AllocType alloc, typename value_t>
-typename std::enable_if<alloc == AllocType::usm, value_t *>::type allocate(
-    int size, cl::sycl::queue q) {
+typename std::enable_if<alloc == AllocType::usm,
+                        typename AllocHelper<value_t, alloc>::type>::type
+allocate(int size, cl::sycl::queue q) {
   return cl::sycl::malloc_device<value_t>(size, q);
 }
 
 template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::usm,
+                        typename AllocHelper<value_t, alloc>::tuple_type>::type
+allocate(const value_t *src, int size, cl::sycl::queue q) {
+  auto dst = cl::sycl::malloc_device<value_t>(size, q);
+  auto event = q.memcpy(dst, src, size * sizeof(value_t));
+  return std::make_tuple(dst, event);
+}
+
+template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::buffer,
-                        BufferIterator<value_t>>::type
+                        typename AllocHelper<value_t, alloc>::tuple_type>::type
+allocate(const value_t *src, int size, cl::sycl::queue q) {
+  auto dst = make_sycl_iterator_buffer<value_t>(size);
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
+    auto acc = dst.template get_range_accessor<cl::sycl::access::mode::write>(
+        cgh, size);
+    cgh.copy(src, acc);
+  });
+  return std::make_tuple(dst, event);
+}
+
+template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::buffer,
+                        typename AllocHelper<value_t, alloc>::type>::type
 allocate(int size, cl::sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
