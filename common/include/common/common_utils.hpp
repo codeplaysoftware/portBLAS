@@ -22,11 +22,6 @@
 #include <common/float_comparison.hpp>
 #include <common/system_reference_blas.hpp>
 
-#ifdef BUILD_CUBLAS_BENCHMARKS
-#include <cuda_runtime.h>
-#include <cuda.h>
-#endif
-
 using index_t = BLAS_INDEX_T;
 
 using blas1_param_t = index_t;
@@ -784,19 +779,9 @@ static inline double time_event(event_t&);
 template <typename event_t>
 static inline double time_events(std::vector<event_t> es) {
   double total_time = 0;
-#if defined(BUILD_CUBLAS_BENCHMARKS)
-  if constexpr(std::is_same_v<cudaEvent_t, event_t>) {
-      total_time += time_event(es);
-  } else {
-      for (auto e : es) {
-          total_time += time_event(e);
-      }
-  }
-#else
   for (auto e : es) {
-      total_time += time_event(e);
+    total_time += time_event(e);
   }
-#endif
   return total_time;
 }
 

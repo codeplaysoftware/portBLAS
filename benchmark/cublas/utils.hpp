@@ -41,20 +41,6 @@ void create_benchmark(Args& args, cublasHandle_t* cuda_handle_ptr,
 
 namespace utils {
 
-/**
- * @fn time_event
- * @brief Get the overall run time (start -> end) of a CUDA operator using
- *  CudaEvent_t
- */
-template <>
-inline double time_event<std::vector<cudaEvent_t>>(
-    std::vector<cudaEvent_t>& cuda_events) {
-  float elapsed_time;
-  cudaEventElapsedTime(&elapsed_time, cuda_events[0], cuda_events[1]);
-  // convert result from ms to ns
-  return static_cast<double>(elapsed_time) * 1'000'000.;
-}
-
 template <typename scalar_t>
 inline void init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -186,6 +172,26 @@ class CUDAScalar : private CUDADeviceMemory<T> {
   T* d_data_;
   T* h_data_ = nullptr;
 };
+/**
+ * @fn timef_cuda
+ * @brief Calculates the time spent executing the function func returning 2
+ * cudaEvents (both overall and CUDA events time, returned in nanoseconds in a
+ * tuple of double)
+ */
+template <typename function_t, typename... args_t>
+static inline std::tuple<double, double> timef_cuda(function_t func,
+                                                    args_t&&... args) {
+  auto start = std::chrono::system_clock::now();
+  std::vector<cudaEvent_t> events = func(std::forward<args_t>(args)...);
+  auto end = std::chrono::system_clock::now();
+
+  double overall_time = (end - start).count();
+
+  float elapsed_time;
+  CUDA_CHECK(cudaEventElapsedTime(&elapsed_time, events.at(0), events.at(1)));
+
+  return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
+}
 
 }  // namespace utils
 }  // namespace blas_benchmark
