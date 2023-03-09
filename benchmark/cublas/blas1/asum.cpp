@@ -62,7 +62,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   blas_benchmark::utils::CUDAVector<scalar_t> d_x(size, v1.data());
   blas_benchmark::utils::CUDAScalar<scalar_t> d_r{};
-  CUDA_CHECK(cudaDeviceSynchronize());
 
   CUBLAS_CHECK(cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_DEVICE));
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -72,9 +71,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   {
     // Temp result on device copied back upon destruction
     blas_benchmark::utils::CUDAScalar<scalar_t, true> vr_temp_gpu(vr_temp);
-    CUDA_CHECK(cudaDeviceSynchronize());
     cublas_routine<scalar_t>(cuda_handle, size, d_x, 1, vr_temp_gpu);
-    CUDA_CHECK(cudaDeviceSynchronize());
   }
 
   if (!utils::almost_equal<scalar_t>(vr_temp, vr_ref)) {
@@ -88,7 +85,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, size, d_x, 1, d_r);
-    CUDA_CHECK(cudaDeviceSynchronize());
     return;
   };
   cudaEvent_t start;
@@ -106,6 +102,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
 
   // Warmup
   blas_benchmark::utils::warmup(blas_warmup);
+  CUDA_CHECK(cudaStreamSynchronize(NULL));
 
   blas_benchmark::utils::init_counters(state);
 
@@ -113,7 +110,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef(blas_method_def);
+        blas_benchmark::utils::timef_cuda(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);

@@ -79,10 +79,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     blas_benchmark::utils::CUDAScalar<scalar_t, true> d_b_verify(b_verify);
     blas_benchmark::utils::CUDAScalar<scalar_t, true> d_c_verify(c_verify);
     blas_benchmark::utils::CUDAScalar<scalar_t, true> d_s_verify(s_verify);
-    CUDA_CHECK(cudaDeviceSynchronize());
     cublas_routine<scalar_t>(cuda_handle, d_a_verify, d_b_verify, d_c_verify,
                              d_s_verify);
-    CUDA_CHECK(cudaDeviceSynchronize());
   }
 
   const bool isAlmostEqual =
@@ -108,7 +106,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, d_a, d_b, d_c, d_s);
-    CUDA_CHECK(cudaDeviceSynchronize());
     return;
   };
 
@@ -128,13 +125,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   // Warm up to avoid benchmarking data transfer
   blas_benchmark::utils::warmup(blas_warmup);
+  CUDA_CHECK(cudaStreamSynchronize(NULL));
 
   blas_benchmark::utils::init_counters(state);
 
   // Measure
   for (auto _ : state) {
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef(blas_method_def);
+        blas_benchmark::utils::timef_cuda(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
