@@ -90,7 +90,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     auto blas_warmup = [&]() -> void {
       rocblas_saxpy_f<scalar_t>(rb_handle, size, d_alpha, d_v1, 1, d_v2, 1);
-      // hipDeviceSynchronize();
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
