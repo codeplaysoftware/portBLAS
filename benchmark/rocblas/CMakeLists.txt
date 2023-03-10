@@ -42,6 +42,14 @@ set(sources
   blas1/rotm.cpp
   blas1/rotmg.cpp
 
+  # Level 2 blas
+  blas2/gemv.cpp
+  blas2/gbmv.cpp
+  blas2/sbmv.cpp
+  blas2/tbmv.cpp
+
+)
+
 )
 
 # Add individual benchmarks for each method
