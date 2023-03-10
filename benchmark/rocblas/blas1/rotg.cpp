@@ -107,7 +107,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
 
     auto blas_warmup = [&]() -> void {
       rocblas_rotg_f<scalar_t>(rb_handle, d_a, d_b, d_c, d_s);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -125,6 +124,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
 
     // Warmup
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 
@@ -139,6 +139,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
     }
 
     blas_benchmark::utils::calc_avg_counters(state);
+
+    CHECK_HIP_ERROR(hipEventDestroy(start));
+    CHECK_HIP_ERROR(hipEventDestroy(stop));
   }  // release device memory via utils::DeviceVector destructors
 };
 

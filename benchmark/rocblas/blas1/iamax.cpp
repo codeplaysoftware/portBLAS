@@ -92,7 +92,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     auto blas_warmup = [&]() -> void {
       rocblas_iamax_f<scalar_t>(rb_handle, size, d_v1, 1, d_idx);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -110,6 +109,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 
     // Warm up to avoid benchmarking data transfer
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 
@@ -123,6 +123,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
     }
 
     blas_benchmark::utils::calc_avg_counters(state);
+
+    CHECK_HIP_ERROR(hipEventDestroy(start));
+    CHECK_HIP_ERROR(hipEventDestroy(stop));
   }  // release device memory via utils::DeviceVector destructors
 };
 
