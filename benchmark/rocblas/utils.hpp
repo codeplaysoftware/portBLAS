@@ -101,7 +101,7 @@ class HIPDeviceMemory {
   // Free device memory
   void free(T* d) {
     if (d != nullptr) {
-      CHECK_HIP_ERROR((hipFree)(d));
+      CHECK_HIP_ERROR(hipFree(d));
     }
   }
 };
@@ -132,7 +132,6 @@ class HIPVector : private HIPDeviceMemory<T> {
   // Decay into device pointer wherever pointer is expected
   operator T*() { return d_data_; }
   operator const T*() const { return d_data_; }
-  T* data() const { return d_data_; }
 
   // Disallow copying or assigning
   HIPVector(const HIPVector&) = delete;

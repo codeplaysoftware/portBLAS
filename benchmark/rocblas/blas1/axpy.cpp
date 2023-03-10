@@ -128,9 +128,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto blas1_params = blas_benchmark::utils::get_blas1_params(args);
+  auto axpy_params = blas_benchmark::utils::get_blas1_params(args);
 
-  for (auto size : blas1_params) {
+  for (auto size : axpy_params) {
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          index_t size, bool* success) {
       run<scalar_t>(st, rb_handle, size, success);
