@@ -102,11 +102,11 @@ SYCL_BLAS_INLINE void store(const cl::sycl::vec<T, Dim> &packet, PtrT ptr) {
  * joint_matrix or not
  */
 template <typename input_t, typename output_t, int ClSize, typename tile_type,
-          bool TransA, bool TransB, typename element_t, bool is_beta_zero,
-          int VectorSize>
+          bool TransA, bool TransB, bool SymmA, bool SymmB, typename element_t,
+          bool is_beta_zero, int VectorSize>
 class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
-           /* NbcB = */ false, ClSize, tile_type, TransA, TransB, element_t,
-           is_beta_zero, static_cast<int>(gemm_memory_t::no_local),
+           /* NbcB = */ false, ClSize, tile_type, TransA, TransB, SymmA, SymmB,
+           element_t, is_beta_zero, static_cast<int>(gemm_memory_t::no_local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
            static_cast<int>(gemm_batch_type_t::interleaved), false> {

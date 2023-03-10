@@ -36,8 +36,8 @@ namespace blas {
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
           int ClSize, typename TileT, bool TransA, bool TransB,
-          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          bool is_beta_zero, int VectorSize,
+          bool SymmA, bool SymmB, int GemmMemoryType, int GemmAlgorithm,
+          int GemmVectorization, bool is_beta_zero, int VectorSize,
           int BatchType = static_cast<int>(gemm_batch_type_t::strided),
           bool UseJointMatrix = false>
 struct Gemm_Launcher {

@@ -70,6 +70,8 @@ if __name__ == '__main__':
     vector_size = sys.argv[35]
     batch_type = sys.argv[36]
     use_joint_matrix = sys.argv[37]
+    symm_a = sys.argv[38]
+    symm_b = sys.argv[39]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -233,6 +235,16 @@ if __name__ == '__main__':
         Iterable(
             key='USE_JOINT_MATRIX',
             vals=[use_joint_matrix],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='SYMM_A',
+            vals=[symm_a],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='SYMM_B',
+            vals=[symm_b],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

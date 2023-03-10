@@ -48,23 +48,24 @@ namespace blas {
  */
 namespace internal {
 
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
-          typename container_2_t, typename element_t, typename index_t>
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
+          typename sb_handle_t, typename container_0_t,
+          typename container_1_t, typename container_2_t,
+          typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm_platform_specific(
     sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     element_t _alpha, container_0_t a_, index_t _lda, index_t _stridea,
     container_1_t b_, index_t _ldb, index_t _strideb, element_t _beta,
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
     gemm_batch_type_t batch_type) {
-  return blas::gemm::backend::_gemm<_t_a, _t_b, is_beta_zero>(
+  return blas::gemm::backend::_gemm<_t_a, _t_b, s_a, s_b, is_beta_zero>(
       sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
       _beta, _C, _ldc, _stridec, batch_size, batch_type);
 }
 
-template <bool _t_a, bool _t_b, typename sb_handle_t, typename container_0_t,
-          typename container_1_t, typename container_2_t, typename element_t,
-          typename index_t>
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, 
+          typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm_is_beta_zero(
     sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     element_t _alpha, container_0_t a_, index_t _lda, index_t _stridea,
@@ -72,10 +73,10 @@ typename sb_handle_t::event_t _gemm_is_beta_zero(
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
     gemm_batch_type_t batch_type) {
   return ((_beta == static_cast<element_t>(0))
-              ? _gemm_platform_specific<_t_a, _t_b, true>(
+              ? _gemm_platform_specific<_t_a, _t_b, s_a, s_b, true>(
                     sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
                     _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type)
-              : _gemm_platform_specific<_t_a, _t_b, false>(
+              : _gemm_platform_specific<_t_a, _t_b, s_a, s_b, false>(
                     sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
                     _strideb, _beta, _C, _ldc, _stridec, batch_size,
                     batch_type));
@@ -137,19 +138,19 @@ typename sb_handle_t::event_t _gemm_backend(
   }
 
   if (_TrA && _TrB) {
-    return _gemm_is_beta_zero<true, true>(
+    return _gemm_is_beta_zero<true, true, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
         _beta, _C, _ldc, _stridec, batch_size, batch_type);
   } else if (!_TrA && _TrB) {
-    return _gemm_is_beta_zero<false, true>(
+    return _gemm_is_beta_zero<false, true, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
         _beta, _C, _ldc, _stridec, batch_size, batch_type);
   } else if (_TrA && !_TrB) {
-    return _gemm_is_beta_zero<true, false>(
+    return _gemm_is_beta_zero<true, false, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
         _beta, _C, _ldc, _stridec, batch_size, batch_type);
   } else {
-    return _gemm_is_beta_zero<false, false>(
+    return _gemm_is_beta_zero<false, false, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
         _beta, _C, _ldc, _stridec, batch_size, batch_type);
   }

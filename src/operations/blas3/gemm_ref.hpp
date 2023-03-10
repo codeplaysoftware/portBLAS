@@ -46,12 +46,12 @@ namespace blas {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::
     Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
          typename std::make_signed<typename input_t::index_t>::type batch_size,
@@ -73,12 +73,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       stridec_{stride_c} {}
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE std::string
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::get_type_string() noexcept {
   std::ostringstream str{};
   str << "ReferenceGemmFactory<" << wg_size << ", "
@@ -92,15 +92,15 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE typename Gemm<
     input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-    TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+    TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
     GemmVectorization, VectorSize, BatchType, UseJointMatrix>::index_t
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::get_workgroup_cluster() const
     noexcept {
   return ((m_ * n_ - 1) / wg_size + 1);
@@ -113,24 +113,24 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
  *
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB, 
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE
     typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  tile_type, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
                   GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
                   BatchType, UseJointMatrix>::index_t
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
          GemmVectorization, VectorSize,
          BatchType, UseJointMatrix>::get_num_workgroup_cluster(index_t compute_units)
         const noexcept {
   constexpr index_t num_gemm_per_compute_units = 4;
   return ((num_gemm_per_compute_units * compute_units - 1) /
               Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                   tile_type, TransA, TransB, element_t, is_beta_zero,
+                   tile_type, TransA, TransB,  SymmA, SymmB, element_t, is_beta_zero,
                    GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
                    BatchType, UseJointMatrix>::get_workgroup_cluster() +
           1);
@@ -138,21 +138,21 @@ SYCL_BLAS_INLINE
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE cl::sycl::nd_range<1>
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize,
      BatchType, UseJointMatrix>::get_nd_range(index_t compute_units) const noexcept {
   const cl::sycl::range<1> nwg(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           TransA, TransB,  SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
            GemmAlgorithm, GemmVectorization, VectorSize,
            BatchType, UseJointMatrix>::get_workgroup_cluster() *
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
+           TransA, TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
            GemmAlgorithm, GemmVectorization, VectorSize,
            BatchType, UseJointMatrix>::get_num_workgroup_cluster(compute_units));
   const cl::sycl::range<1> wgs(wg_size);
@@ -160,28 +160,28 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 }
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE
     typename Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                  tile_type, TransA, TransB, element_t, is_beta_zero,
+                  tile_type, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
                   GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
                   BatchType, UseJointMatrix>::index_t
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
          GemmVectorization, VectorSize, BatchType, UseJointMatrix>::get_size() const {
   return m_ * n_;
 }
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization, int VectorSize,
           int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE bool
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize,
      BatchType, UseJointMatrix>::valid_thread(const cl::sycl::nd_item<1>& ndItem) const {
   return true;
@@ -189,12 +189,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool  SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB,  SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::eval(cl::sycl::nd_item<1>
                                                          id) noexcept {
   const index_t wg_batch_id = id.get_group(0) / get_workgroup_cluster();
@@ -256,12 +256,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool  SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::bind(cl::sycl::handler& h) {
   a_.bind(h);
   b_.bind(h);
@@ -270,12 +270,12 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool  SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 SYCL_BLAS_INLINE void
 Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-     TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
+     TransB,  SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::adjust_access_displacement() {
   a_.adjust_access_displacement();
   b_.adjust_access_displacement();
