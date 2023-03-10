@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -137,9 +137,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
-  auto gemm_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
+  auto gemv_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
-  for (auto p : gemm_params) {
+  for (auto p : gemv_params) {
     std::string ts;
     index_t m, n;
     scalar_t alpha, beta;

@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -109,9 +109,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
                         bool* success) {
-  auto gemm_params = blas_benchmark::utils::get_blas1_params(args);
+  auto iamax_params = blas_benchmark::utils::get_blas1_params(args);
 
-  for (auto size : gemm_params) {
+  for (auto size : iamax_params) {
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, bool* success) {
       run<scalar_t>(st, sb_handle_ptr, size, success);
