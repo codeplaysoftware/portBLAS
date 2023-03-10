@@ -84,25 +84,20 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  cublasFillMode_t cuda_uplo = (*uplo_str == 'u') ?
-    CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
-
-  cublasOperation_t cuda_t = (*t_str == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-  cublasDiagType_t cuda_diag = (*diag_str == 'u') ? CUBLAS_DIAG_UNIT : CUBLAS_DIAG_NON_UNIT;
-
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
       blas_benchmark::utils::random_data<scalar_t>(lda * n);
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
-  scalar_t* m_a_gpu = nullptr;
-  scalar_t* v_x_gpu = nullptr;
-  CUDA_CHECK(cudaMalloc(&m_a_gpu, lda * n * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMalloc(&v_x_gpu, xlen * sizeof(scalar_t)));
-  CUDA_CHECK(cudaMemcpy(m_a_gpu, m_a.data(), lda * n * sizeof(scalar_t), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(v_x_gpu, v_x.data(), xlen * sizeof(scalar_t), cudaMemcpyHostToDevice));
+  blas_benchmark::utils::CUDAVector<scalar_t> m_a_gpu(lda * n, m_a.data());
+  blas_benchmark::utils::CUDAVector<scalar_t> v_x_gpu(xlen, v_x.data());
 
+  cublasFillMode_t cuda_uplo = (*uplo_str == 'u') ?
+    CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
+
+  cublasOperation_t cuda_t = (*t_str == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
+  cublasDiagType_t cuda_diag = (*diag_str == 'u') ? CUBLAS_DIAG_UNIT : CUBLAS_DIAG_NON_UNIT;
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -111,13 +106,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
                        v_x_ref.data(), incX);
   std::vector<scalar_t> v_x_temp = v_x;
   {
-    scalar_t* v_x_temp_gpu = nullptr;
-    CUDA_CHECK(cudaMalloc(&v_x_temp_gpu, xlen * sizeof(scalar_t)));
-    CUDA_CHECK(cudaMemcpy(v_x_temp_gpu, v_x_temp.data(), xlen * sizeof(scalar_t), cudaMemcpyHostToDevice));
+    blas_benchmark::utils::CUDAVector<scalar_t, true> v_x_temp_gpu(xlen, v_x_temp.data());
     cublas_routine<scalar_t>(cuda_handle, cuda_uplo, cuda_t, cuda_diag, n, k, m_a_gpu, lda, v_x_temp_gpu, incX);
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaMemcpy(v_x_temp.data(), v_x_temp_gpu, xlen * sizeof(scalar_t), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(v_x_temp_gpu));
   }
 
   std::ostringstream err_stream;
@@ -130,7 +120,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, cuda_uplo, cuda_t, cuda_diag, n, k, m_a_gpu, lda, v_x_gpu, incX);
-    CUDA_CHECK(cudaDeviceSynchronize());
     return;
   };
   cudaEvent_t start;
@@ -149,6 +138,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   // Warmup
   blas_benchmark::utils::warmup(blas_method_def);
+  CUDA_CHECK(cudaStreamSynchronize(NULL));
 
   blas_benchmark::utils::init_counters(state);
 
@@ -156,7 +146,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef(blas_method_def);
+        blas_benchmark::utils::timef_cuda(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
@@ -164,8 +154,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   blas_benchmark::utils::calc_avg_counters(state);
 
-  CUDA_CHECK(cudaFree(m_a_gpu));
-  CUDA_CHECK(cudaFree(v_x_gpu));
   CUDA_CHECK(cudaEventDestroy(start));
   CUDA_CHECK(cudaEventDestroy(stop));
 }
