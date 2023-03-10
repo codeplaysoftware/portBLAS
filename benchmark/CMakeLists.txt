@@ -65,3 +65,7 @@ endif()
 if(BUILD_CLBLAS_BENCHMARKS)
   add_subdirectory(${BLAS_BENCH}/clBench/clblas)
 endif()
+
+if(BUILD_CUBLAS_BENCHMARKS)
+  add_subdirectory(${BLAS_BENCH}/cublas/)
+endif()
