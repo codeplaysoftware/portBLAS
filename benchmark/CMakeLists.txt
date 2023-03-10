@@ -69,3 +69,7 @@ endif()
 if(BUILD_CUBLAS_BENCHMARKS)
   add_subdirectory(${BLAS_BENCH}/cublas/)
 endif()
+
+if(BUILD_ROCBLAS_BENCHMARKS)
+  add_subdirectory(${BLAS_BENCH}/rocblas)
+endif()
