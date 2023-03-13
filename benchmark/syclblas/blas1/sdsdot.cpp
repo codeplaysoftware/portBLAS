@@ -42,6 +42,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::sdsdot, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Create data
   const float sb = blas_benchmark::utils::random_data<scalar_t>(1)[0];
@@ -51,11 +52,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type inx, iny, inr;
   cl::sycl::event copy_x, copy_y;
 
-  std::tie(inx, copy_x) = blas::helper::allocate<mem_alloc, scalar_t>(
-      v1.data(), size, sb_handle.get_queue());
-  std::tie(iny, copy_y) = blas::helper::allocate<mem_alloc, scalar_t>(
-      v2.data(), size, sb_handle.get_queue());
-  inr = blas::helper::allocate<mem_alloc, scalar_t>(1, sb_handle.get_queue());
+  std::tie(inx, copy_x) =
+      blas::helper::allocate<mem_alloc, scalar_t>(v1.data(), size, q);
+  std::tie(iny, copy_y) =
+      blas::helper::allocate<mem_alloc, scalar_t>(v2.data(), size, q);
+  inr = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -66,15 +67,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type vr_temp_gpu;
     cl::sycl::event copy_vr;
     std::tie(vr_temp_gpu, copy_vr) =
-        blas::helper::allocate<mem_alloc, scalar_t>(&vr_temp, 1,
-                                                    sb_handle.get_queue());
+        blas::helper::allocate<mem_alloc, scalar_t>(&vr_temp, 1, q);
     auto sdsdot_event = _sdsdot(
         sb_handle, size, sb, inx, static_cast<index_t>(1), iny,
         static_cast<index_t>(1), vr_temp_gpu, {copy_x, copy_y, copy_vr});
     sb_handle.wait(sdsdot_event);
-    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), vr_temp_gpu,
-                                            &vr_temp, 1);
+    auto event = blas::helper::copy_to_host(q, vr_temp_gpu, &vr_temp, 1);
     sb_handle.wait(event);
+
+    blas::helper::deallocate<mem_alloc>(vr_temp_gpu, q);
   }
 
   if (!utils::almost_equal(vr_temp, vr_ref)) {
@@ -114,6 +115,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(inx, q);
+  blas::helper::deallocate<mem_alloc>(iny, q);
+  blas::helper::deallocate<mem_alloc>(inr, q);
 }
 
 template <typename scalar_t>

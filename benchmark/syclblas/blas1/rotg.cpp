@@ -43,19 +43,20 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   scalar_t s = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type buf_a, buf_b,
       buf_c, buf_s;
   cl::sycl::event copy_a, copy_b, copy_c, copy_s;
 
   std::tie(buf_a, copy_a) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&a, 1, sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&a, 1, q);
   std::tie(buf_b, copy_b) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&b, 1, sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&b, 1, q);
   std::tie(buf_c, copy_c) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&c, 1, sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&c, 1, q);
   std::tie(buf_s, copy_s) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&s, 1, sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&s, 1, q);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -74,17 +75,13 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   cl::sycl::event copy_verify_a, copy_verify_b, copy_verify_c, copy_verify_s;
 
   std::tie(buf_verify_a, copy_verify_a) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&a_verify, 1,
-                                                  sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&a_verify, 1, q);
   std::tie(buf_verify_b, copy_verify_b) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&b_verify, 1,
-                                                  sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&b_verify, 1, q);
   std::tie(buf_verify_c, copy_verify_c) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&c_verify, 1,
-                                                  sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&c_verify, 1, q);
   std::tie(buf_verify_s, copy_verify_s) =
-      blas::helper::allocate<mem_alloc, scalar_t>(&s_verify, 1,
-                                                  sb_handle.get_queue());
+      blas::helper::allocate<mem_alloc, scalar_t>(&s_verify, 1, q);
 
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
   auto rotg_event =
@@ -92,14 +89,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
             {copy_verify_a, copy_verify_b, copy_verify_c, copy_verify_s});
   sb_handle.wait(rotg_event);
 
-  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c,
-                                           &c_verify, 1);
-  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_s,
-                                           &s_verify, 1);
-  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_a,
-                                           &a_verify, 1);
-  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_b,
-                                           &b_verify, 1);
+  auto event1 = blas::helper::copy_to_host(q, buf_verify_c, &c_verify, 1);
+  auto event2 = blas::helper::copy_to_host(q, buf_verify_s, &s_verify, 1);
+  auto event3 = blas::helper::copy_to_host(q, buf_verify_a, &a_verify, 1);
+  auto event4 = blas::helper::copy_to_host(q, buf_verify_b, &b_verify, 1);
 
   sb_handle.wait({event1, event2, event3, event4});
 
@@ -122,6 +115,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
     state.SkipWithError(err_str.c_str());
     *success = false;
   };
+
+  blas::helper::deallocate<mem_alloc>(buf_verify_a, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_b, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_c, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_s, q);
 #endif
 
   // Create a utility lambda describing the blas method that we want to run.
@@ -151,6 +149,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(buf_a, q);
+  blas::helper::deallocate<mem_alloc>(buf_b, q);
+  blas::helper::deallocate<mem_alloc>(buf_c, q);
+  blas::helper::deallocate<mem_alloc>(buf_s, q);
 };
 
 template <typename scalar_t>

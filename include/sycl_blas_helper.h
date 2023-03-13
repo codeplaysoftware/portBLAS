@@ -88,6 +88,18 @@ allocate(int size, cl::sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
 
+template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::usm>::type deallocate(
+    container_t mem, cl::sycl::queue q) {
+  if (mem != NULL) {
+    cl::sycl::free(reinterpret_cast<void *>(mem), q);
+  }
+}
+
+template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
+    container_t mem, cl::sycl::queue q) {}
+
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()
               .template get_info<cl::sycl::info::device::local_mem_type>() ==

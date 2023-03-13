@@ -72,6 +72,12 @@ void run_test(const combination_t<scalar_t> combi) {
     auto event3 = helper::copy_to_host(sb_handle.get_queue(), device_a, &a, 1);
     auto event4 = helper::copy_to_host(sb_handle.get_queue(), device_b, &b, 1);
     sb_handle.wait({event1, event2, event3, event4});
+
+    helper::deallocate<mem_alloc>(device_a, q);
+    helper::deallocate<mem_alloc>(device_b, q);
+    helper::deallocate<mem_alloc>(device_c, q);
+    helper::deallocate<mem_alloc>(device_s, q);
+
   } else {
     _rotg(sb_handle, a, b, c, s);
   }

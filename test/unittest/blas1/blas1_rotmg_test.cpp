@@ -89,6 +89,12 @@ void RotmgTest<scalar_t, mem_alloc>::run_sycl_blas_rotmg() {
   auto event5 =
       helper::copy_to_host(q, device_param, sycl_out.param.data(), param_size);
   sb_handle.wait({event1, event2, event3, event4, event5});
+
+  helper::deallocate<mem_alloc>(device_d1, q);
+  helper::deallocate<mem_alloc>(device_d2, q);
+  helper::deallocate<mem_alloc>(device_x1, q);
+  helper::deallocate<mem_alloc>(device_y1, q);
+  helper::deallocate<mem_alloc>(device_param, q);
 }
 
 template <typename scalar_t, helper::AllocType mem_alloc>

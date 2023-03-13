@@ -622,6 +622,10 @@ typename ValueType<container_0_t>::type _dot(
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);
+
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return res[0];
 }
 
@@ -663,6 +667,10 @@ typename ValueType<container_0_t>::type _sdsdot(
   auto event2 =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
   sb_handle.wait(event2);
+
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return res;
 }
 
@@ -691,6 +699,9 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   auto event = blas::helper::copy_to_host<IndValTuple>(sb_handle.get_queue(),
                                                        gpu_res, rsT.data(), 1);
   sb_handle.wait(event);
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return rsT[0].get_index();
 }
 
@@ -716,6 +727,9 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
   sb_handle.wait(event);
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return rsT[0].get_index();
 }
 
@@ -741,6 +755,9 @@ typename ValueType<container_t>::type _asum(
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return res[0];
 }
 
@@ -766,6 +783,9 @@ typename ValueType<container_t>::type _nrm2(
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(
+      gpu_res, sb_handle.get_queue());
   return res[0];
 }
 

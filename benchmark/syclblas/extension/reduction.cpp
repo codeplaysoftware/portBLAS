@@ -53,6 +53,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   state.counters["bytes_processed"] = (rows_d * cols_d) * sizeof(scalar_t);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Matrix
   std::vector<scalar_t> mat =
@@ -65,10 +66,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
       vec_buffer;
   cl::sycl::event copy_mat, copy_vec;
 
-  std::tie(mat_buffer, copy_mat) = blas::helper::allocate<mem_alloc, scalar_t>(
-      mat.data(), rows * cols, sb_handle.get_queue());
-  std::tie(vec_buffer, copy_vec) = blas::helper::allocate<mem_alloc, scalar_t>(
-      vec.data(), vec.size(), sb_handle.get_queue());
+  std::tie(mat_buffer, copy_mat) =
+      blas::helper::allocate<mem_alloc, scalar_t>(mat.data(), rows * cols, q);
+  std::tie(vec_buffer, copy_vec) =
+      blas::helper::allocate<mem_alloc, scalar_t>(vec.data(), vec.size(), q);
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -95,18 +96,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
         vec_temp_buffer;
     cl::sycl::event copy_temp;
     std::tie(vec_temp_buffer, copy_temp) =
-        blas::helper::allocate<mem_alloc, scalar_t>(
-            vec_temp.data(), vec_temp.size(), sb_handle.get_queue());
+        blas::helper::allocate<mem_alloc, scalar_t>(vec_temp.data(),
+                                                    vec_temp.size(), q);
 
     auto reduction_event = extension::_reduction<AddOperator, scalar_t>(
         sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim,
         {copy_mat, copy_temp});
     sb_handle.wait(reduction_event);
 
-    auto event =
-        blas::helper::copy_to_host(sb_handle.get_queue(), vec_temp_buffer,
-                                   vec_temp.data(), vec_temp.size());
+    auto event = blas::helper::copy_to_host(q, vec_temp_buffer, vec_temp.data(),
+                                            vec_temp.size());
     sb_handle.wait(event);
+
+    blas::helper::deallocate<mem_alloc>(vec_temp_buffer, q);
   }
 
   std::ostringstream err_stream;
@@ -142,6 +144,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   }
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(mat_buffer, q);
+  blas::helper::deallocate<mem_alloc>(vec_buffer, q);
 };
 
 template <typename scalar_t>

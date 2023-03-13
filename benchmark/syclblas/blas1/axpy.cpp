@@ -41,6 +41,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::axpy, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
@@ -50,10 +51,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type inx, iny;
   cl::sycl::event copy_x, copy_y;
 
-  std::tie(inx, copy_x) = blas::helper::allocate<mem_alloc, scalar_t>(
-      v1.data(), size, sb_handle.get_queue());
-  std::tie(iny, copy_y) = blas::helper::allocate<mem_alloc, scalar_t>(
-      v2.data(), size, sb_handle.get_queue());
+  std::tie(inx, copy_x) =
+      blas::helper::allocate<mem_alloc, scalar_t>(v1.data(), size, q);
+  std::tie(iny, copy_y) =
+      blas::helper::allocate<mem_alloc, scalar_t>(v2.data(), size, q);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -65,14 +66,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type y_temp_gpu;
     cl::sycl::event copy_temp_y;
     std::tie(y_temp_gpu, copy_temp_y) =
-        blas::helper::allocate<mem_alloc, scalar_t>(y_temp.data(), size,
-                                                    sb_handle.get_queue());
+        blas::helper::allocate<mem_alloc, scalar_t>(y_temp.data(), size, q);
     auto event = _axpy(sb_handle, size, alpha, inx, 1, y_temp_gpu, 1,
                        {copy_x, copy_temp_y});
     sb_handle.wait(event);
-    auto copy_output = blas::helper::copy_to_host(
-        sb_handle.get_queue(), y_temp_gpu, y_temp.data(), size);
+    auto copy_output =
+        blas::helper::copy_to_host(q, y_temp_gpu, y_temp.data(), size);
     sb_handle.wait(copy_output);
+
+    blas::helper::deallocate<mem_alloc>(y_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -111,6 +113,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(inx, q);
+  blas::helper::deallocate<mem_alloc>(iny, q);
 }
 
 template <typename scalar_t>

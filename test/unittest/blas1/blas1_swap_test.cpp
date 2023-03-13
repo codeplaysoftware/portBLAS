@@ -73,6 +73,9 @@ void run_test(const combination_t<scalar_t> combi) {
   // Since this is just a swap operation, float tolerances are fine
   ASSERT_TRUE(utils::compare_vectors(y_v, y_cpu_v));
   ASSERT_TRUE(utils::compare_vectors(x_v, x_cpu_v));
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
+  helper::deallocate<mem_alloc>(gpu_y_v, q);
 }
 
 template <typename scalar_t>

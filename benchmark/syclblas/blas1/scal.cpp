@@ -41,6 +41,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::scal, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
@@ -48,8 +49,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 
   typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type in;
   cl::sycl::event copy_in;
-  std::tie(in, copy_in) = blas::helper::allocate<mem_alloc, scalar_t>(
-      v1.data(), size, sb_handle.get_queue());
+  std::tie(in, copy_in) =
+      blas::helper::allocate<mem_alloc, scalar_t>(v1.data(), size, q);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -60,14 +61,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type v1_temp_gpu;
     cl::sycl::event copy_temp;
     std::tie(v1_temp_gpu, copy_temp) =
-        blas::helper::allocate<mem_alloc, scalar_t>(v1_temp.data(), size,
-                                                    sb_handle.get_queue());
+        blas::helper::allocate<mem_alloc, scalar_t>(v1_temp.data(), size, q);
     auto event = _scal(sb_handle, size, alpha, v1_temp_gpu,
                        static_cast<index_t>(1), {copy_temp});
     sb_handle.wait(event);
-    auto copy_output = blas::helper::copy_to_host(
-        sb_handle.get_queue(), v1_temp_gpu, v1_temp.data(), size);
+    auto copy_output =
+        blas::helper::copy_to_host(q, v1_temp_gpu, v1_temp.data(), size);
     sb_handle.wait(copy_output);
+
+    blas::helper::deallocate<mem_alloc>(v1_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -106,6 +108,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(in, q);
 }
 
 template <typename scalar_t>

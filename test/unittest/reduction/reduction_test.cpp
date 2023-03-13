@@ -226,6 +226,9 @@ void run_test(const combination_t<scalar_t> combi) {
   sb_handle.wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
+
+  helper::deallocate<mem_alloc>(m_in_gpu, q);
+  helper::deallocate<mem_alloc>(v_out_gpu, q);
 }
 
 template <typename scalar_t>

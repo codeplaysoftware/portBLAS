@@ -69,6 +69,7 @@ void run_test(const combination_t<scalar_t> combi) {
     auto event = helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
                                                 gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
+    helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
     out_s = _asum(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
@@ -76,6 +77,8 @@ void run_test(const combination_t<scalar_t> combi) {
   // Validate the result
   const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);
   ASSERT_TRUE(is_almost_equal);
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
 }
 
 template <typename scalar_t>

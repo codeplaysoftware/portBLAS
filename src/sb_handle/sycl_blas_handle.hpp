@@ -148,6 +148,11 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     frst = false;
     even = !even;
   } while (_N > 1);
+
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(shMem1, q_);
+  blas::helper::deallocate<is_usm ? helper::AllocType::usm
+                                  : helper::AllocType::buffer>(shMem2, q_);
   return event;
 }
 

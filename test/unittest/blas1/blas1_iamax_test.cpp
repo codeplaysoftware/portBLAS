@@ -46,12 +46,15 @@ void run_test(const combination_t<scalar_t> combi) {
     auto event = helper::copy_to_host<tuple_t>(sb_handle.get_queue(), gpu_out_s,
                                                &out_s, 1);
     sb_handle.wait(event);
+    helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
     out_s.ind = _iamax(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result
   ASSERT_EQ(out_cpu_s, out_s.ind);
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
 }
 
 template <typename scalar_t>

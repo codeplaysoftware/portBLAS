@@ -89,6 +89,10 @@ void run_test(const combination_t<scalar_t> combi) {
   const bool isAlmostEqual = utils::compare_vectors(x_cpu_v, x_v) &&
                              utils::compare_vectors(y_cpu_v, y_v);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
+  helper::deallocate<mem_alloc>(gpu_y_v, q);
+  helper::deallocate<mem_alloc>(gpu_param, q);
 }
 
 template <typename scalar_t>
