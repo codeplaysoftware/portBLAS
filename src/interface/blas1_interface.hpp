@@ -168,7 +168,7 @@ typename sb_handle_t::event_t _sdsdot(
       internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs, dependencies);
   auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
   auto assignOp2 = make_op<Assign>(rs, addOp);
-  auto ret2 = sb_handle.execute(assignOp2, dependencies);
+  auto ret2 = sb_handle.execute(assignOp2, dot_event);
   return blas::concatenate_vectors(dot_event, ret2);
 }
 

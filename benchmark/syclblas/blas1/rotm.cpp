@@ -65,6 +65,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   std::tie(gpu_param, copy_param) = blas::helper::allocate<mem_alloc, scalar_t>(
       param.data(), param_size, sb_handle.get_queue());
 
+  sb_handle.wait(copy_param);
+
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_v_ref = x_v;
