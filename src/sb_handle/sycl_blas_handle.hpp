@@ -149,10 +149,15 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     even = !even;
   } while (_N > 1);
 
-  blas::helper::deallocate<is_usm ? helper::AllocType::usm
-                                  : helper::AllocType::buffer>(shMem1, q_);
-  blas::helper::deallocate<is_usm ? helper::AllocType::usm
-                                  : helper::AllocType::buffer>(shMem2, q_);
+  auto event1 = blas::helper::enqueue_deallocate < is_usm
+                    ? helper::AllocType::usm
+                    : helper::AllocType::buffer > (event, shMem1, q_);
+
+  auto event2 = blas::helper::enqueue_deallocate < is_usm
+                    ? helper::AllocType::usm
+                    : helper::AllocType::buffer > (event, shMem2, q_);
+  event.push_back(event1);
+  event.push_back(event2);
   return event;
 }
 

@@ -97,8 +97,26 @@ typename std::enable_if<alloc == AllocType::usm>::type deallocate(
 }
 
 template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::usm, cl::sycl::event>::type
+enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
+                   cl::sycl::queue q) {
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
+    cgh.depends_on(dependencies);
+    cgh.host_task([=]() { cl::sycl::free(mem, q); });
+  });
+  return event;
+}
+
+template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
     container_t mem, cl::sycl::queue q) {}
+
+template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::buffer, cl::sycl::event>::type
+enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
+                   cl::sycl::queue q) {
+  return q.submit([&](cl::sycl::handler &cgh) { cgh.host_task([=]() {}); });
+}
 
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()
