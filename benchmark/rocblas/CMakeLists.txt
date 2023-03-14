@@ -48,6 +48,7 @@ set(sources
   blas2/sbmv.cpp
   blas2/tbmv.cpp
   blas2/trsv.cpp
+  blas2/spr.cpp
 
 )
 
