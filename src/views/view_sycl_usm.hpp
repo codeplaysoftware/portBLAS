@@ -182,14 +182,6 @@ struct VectorView<view_value_t, view_value_t *, view_index_t,
   SYCL_BLAS_INLINE void adjust_access_displacement() { ptr_ = data_ + disp_; }
 };
 
-template <class view_value_t, int dim, cl::sycl::access::mode acc_mode_t,
-          cl::sycl::access::target access_t,
-          cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout>
-struct MatrixView<
-    view_value_t,
-    cl::sycl::accessor<view_value_t, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout>;
 /*!
  * @brief Specialization of an MatrixView with a USM pointer.
  */
