@@ -19,63 +19,58 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sbmv.cpp
+ *  @filename symv.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, int n, int k) {
+std::string get_name(std::string uplo, int n) {
   std::ostringstream str{};
-  str << "BM_Sbmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << n << "/" << k;
+  str << "BM_Symv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << uplo << "/" << n;
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
-static inline void rocblas_sbmv_f(args_t&&... args) {
+static inline void rocblas_symv_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_ssbmv(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_ssymv(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_dsbmv(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_dsymv(std::forward<args_t>(args)...));
   }
   return;
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
-         index_t n, index_t k, scalar_t alpha, scalar_t beta, bool* success) {
+         index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
 
   index_t xlen = n;
   index_t ylen = n;
 
-  index_t lda = (k + 1);
+  index_t lda = n;
   index_t incX = 1;
   index_t incY = 1;
 
-  // The counters are double. We convert n to double to avoid
+  // The counters are double. We convert m and n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
 
   state.counters["n"] = n_d;
-  state.counters["k"] = k_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = (n_d * (2.0 * k_d + 1.0)) - (k_d * (k_d + 1.0));
 
   {
-    double nflops_AtimesX = 2.0 * A_validVal;
+    double nflops_AtimesX = 2.0 * n_d * n_d;
     double nflops_timesAlpha = ylen;
     double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =
         nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
   }
   {
-    double mem_readA = A_validVal;
+    double mem_readA = n_d * (n_d + 1) / 2;
     double mem_readX = xlen;
     double mem_writeY = ylen;
     double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
@@ -103,26 +98,26 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   {
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
-    blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(xlen, v_x.data());
+    blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(v_x_size, v_x.data());
     blas_benchmark::utils::HIPVector<scalar_t> v_y_gpu(v_y_size, v_y.data());
 
     CHECK_ROCBLAS_STATUS(
         rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
 
 #ifdef BLAS_VERIFY_BENCHMARK
-    // Reference sbmv
+    // Reference symv
     std::vector<scalar_t> v_y_ref = v_y;
-    reference_blas::sbmv(uplo_str, n, k, alpha, m_a.data(), lda, v_x.data(),
-                         incX, beta, v_y_ref.data(), incY);
+    reference_blas::symv(uplo_str, n, alpha, m_a.data(), lda, v_x.data(), incX,
+                         beta, v_y_ref.data(), incY);
 
-    // Rocblas verification sbmv
+    // Rocblas verification symv
     std::vector<scalar_t> v_y_temp = v_y;
     {
       // Temp result on device (copied back to Host upon destruction)
       blas_benchmark::utils::HIPVector<scalar_t, true> v_y_temp_gpu(
           ylen, v_y_temp.data());
       // rocBLAS function call
-      rocblas_sbmv_f<scalar_t>(rb_handle, uplo_rb, n, k, &alpha, m_a_gpu, lda,
+      rocblas_symv_f<scalar_t>(rb_handle, uplo_rb, n, &alpha, m_a_gpu, lda,
                                v_x_gpu, incX, &beta, v_y_temp_gpu, incY);
     }
 
@@ -135,7 +130,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_sbmv_f<scalar_t>(rb_handle, uplo_rb, n, k, &alpha, m_a_gpu, lda,
+      rocblas_symv_f<scalar_t>(rb_handle, uplo_rb, n, &alpha, m_a_gpu, lda,
                                v_x_gpu, incX, &beta, v_y_gpu, incY);
       CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
@@ -147,7 +142,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-      rocblas_sbmv_f<scalar_t>(rb_handle, uplo_rb, n, k, &alpha, m_a_gpu, lda,
+      rocblas_symv_f<scalar_t>(rb_handle, uplo_rb, n, &alpha, m_a_gpu, lda,
                                v_x_gpu, incX, &beta, v_y_gpu, incY);
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
@@ -179,22 +174,21 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto sbmv_params = blas_benchmark::utils::get_sbmv_params<scalar_t>(args);
+  auto symv_params = blas_benchmark::utils::get_symv_params<scalar_t>(args);
 
-  for (auto p : sbmv_params) {
+  for (auto p : symv_params) {
     std::string uplo;
-    index_t n, k;
+    index_t n;
     scalar_t alpha, beta;
-    std::tie(uplo, n, k, alpha, beta) = p;
+    std::tie(uplo, n, alpha, beta) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         std::string uplo, index_t n, index_t k,
-                         scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, rb_handle, uplo, n, k, alpha, beta, success);
+                         std::string uplo, index_t n, scalar_t alpha,
+                         scalar_t beta, bool* success) {
+      run<scalar_t>(st, rb_handle, uplo, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n, k).c_str(),
-                                 BM_lambda, rb_handle, uplo, n, k, alpha, beta,
-                                 success);
+    benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n).c_str(), BM_lambda,
+                                 rb_handle, uplo, n, alpha, beta, success);
   }
 }
 
