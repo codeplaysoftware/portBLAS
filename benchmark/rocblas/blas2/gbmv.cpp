@@ -174,6 +174,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
     }
 
     blas_benchmark::utils::calc_avg_counters(state);
+
+    CHECK_HIP_ERROR(hipEventDestroy(start));
+    CHECK_HIP_ERROR(hipEventDestroy(stop));
   }  // release device memory via utils::DeviceVector destructors
 }
 
