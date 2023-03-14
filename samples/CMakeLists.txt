@@ -11,6 +11,7 @@ find_package(SyclBLAS REQUIRED)
 set(SAMPLES_LIST
   gemv.cpp
   gemm.cpp
+  symm.cpp
 )
 
 foreach(src_file ${SAMPLES_LIST})
@@ -22,6 +23,9 @@ foreach(src_file ${SAMPLES_LIST})
   else()
     set_target_properties(${sample_exec} PROPERTIES CXX_STANDARD 14)
   endif()
+  target_compile_definitions(${sample_exec} PRIVATE -D${TUNING_TARGET})
+  target_compile_definitions(${sample_exec} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
+
   add_sycl_to_target(
     TARGET ${sample_exec}
     SOURCES ${src_file}
