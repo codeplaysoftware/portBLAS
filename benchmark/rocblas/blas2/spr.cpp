@@ -70,7 +70,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo, int n,
       uplo == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
 
   // Data sizes
-  const int m_size = n * n;
+  const int m_size = n * (n + 1) / 2;  // Minimum required size
   const int v_size = 1 + (n - 1) * std::abs(incX);
 
   // Input matrix/vector, output vector.
@@ -83,6 +83,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo, int n,
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
     blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(v_size, v_x.data());
+
+    CHECK_ROCBLAS_STATUS(
+        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference spr

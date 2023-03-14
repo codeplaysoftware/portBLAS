@@ -87,19 +87,24 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   const rocblas_fill uplo_rb =
       uplo_str[0] == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
 
+  // Data sizes
+  const int m_size = lda * n;
+  const int v_x_size = 1 + (xlen - 1) * incX;
+  const int v_y_size = 1 + (ylen - 1) * incY;
+
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(lda * n);
+      blas_benchmark::utils::random_data<scalar_t>(m_size);
   std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(xlen);
+      blas_benchmark::utils::random_data<scalar_t>(v_x_size);
   std::vector<scalar_t> v_y =
-      blas_benchmark::utils::random_data<scalar_t>(ylen);
+      blas_benchmark::utils::random_data<scalar_t>(v_y_size);
 
   {
     // Device memory allocation & H2D copy
-    blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(lda * n, m_a.data());
+    blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
     blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(xlen, v_x.data());
-    blas_benchmark::utils::HIPVector<scalar_t> v_y_gpu(ylen, v_y.data());
+    blas_benchmark::utils::HIPVector<scalar_t> v_y_gpu(v_y_size, v_y.data());
 
     CHECK_ROCBLAS_STATUS(
         rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));

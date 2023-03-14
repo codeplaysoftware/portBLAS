@@ -88,16 +88,20 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   const rocblas_operation trans_rb =
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
+  // Data sizes
+  const int m_size = lda * n;
+  const int v_size = 1 + (xlen - 1) * incX;
+
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(lda * n);
+      blas_benchmark::utils::random_data<scalar_t>(m_size);
   std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(xlen);
+      blas_benchmark::utils::random_data<scalar_t>(v_size);
 
   {
     // Device memory allocation & H2D copy
-    blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(lda * n, m_a.data());
-    blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(xlen, v_x.data());
+    blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
+    blas_benchmark::utils::HIPVector<scalar_t> v_x_gpu(v_size, v_x.data());
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference tbmv
