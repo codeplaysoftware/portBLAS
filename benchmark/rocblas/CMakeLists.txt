@@ -51,8 +51,6 @@ set(sources
 
 )
 
-)
-
 # Add individual benchmarks for each method
 foreach(rocblas_benchmark ${sources})
   get_filename_component(rocblas_bench_exec ${rocblas_benchmark} NAME_WE)
