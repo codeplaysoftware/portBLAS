@@ -251,10 +251,10 @@ void gemv(const char *trans, int m, int n, scalar_t alpha, const scalar_t a[],
 }
 
 template <typename scalar_t>
-void ger(int m, int n, scalar_t alpha, const scalar_t a[], int incX,
-         const scalar_t x[], int incY, scalar_t y[], int lda) {
+void ger(int m, int n, scalar_t alpha, const scalar_t x[], int incX,
+         const scalar_t y[], int incY, scalar_t a[], int lda) {
   auto func = blas_system_function<scalar_t>(&cblas_sger, &cblas_dger);
-  func(CblasColMajor, m, n, alpha, a, incX, x, incY, y, lda);
+  func(CblasColMajor, m, n, alpha, x, incX, y, incY, a, lda);
 }
 
 template <typename scalar_t>

@@ -103,8 +103,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t m,
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference ger
     std::vector<scalar_t> m_a_ref = m_a;
-    reference_blas::ger(m, n, alpha, m_a_ref.data(), incX, v_x.data(), incY,
-                        v_y.data(), lda);
+    reference_blas::ger(m, n, alpha, v_x.data(), incX, v_y.data(), incY,
+                        m_a_ref.data(), lda);
 
     // Rocblas verification ger
     std::vector<scalar_t> m_a_temp = m_a;
