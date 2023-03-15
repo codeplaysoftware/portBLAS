@@ -44,10 +44,11 @@ set(sources
   #blas1/sdsdot.cpp -> not implemented in cuBLAS
   # Level 2 blas 
   blas2/gbmv.cpp 
+  blas2/gemv.cpp
+  blas2/ger.cpp
   blas2/sbmv.cpp 
   blas2/tbmv.cpp
   blas2/trsv.cpp
-  blas2/gemv.cpp
 ) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
