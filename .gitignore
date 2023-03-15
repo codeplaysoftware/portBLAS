@@ -96,5 +96,3 @@ api_doc/
 #Visual Studio files
 .vs/
 CMakeSettings.json
-
-builini*
