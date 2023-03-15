@@ -100,10 +100,13 @@ template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::usm, cl::sycl::event>::type
 enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
                    cl::sycl::queue q) {
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
+  cl::sycl::event event;
+#ifdef SB_ENABLE_USM
+  event = q.submit([&](cl::sycl::handler &cgh) {
     cgh.depends_on(dependencies);
     cgh.host_task([=]() { cl::sycl::free(mem, q); });
   });
+#endif
   return event;
 }
 
@@ -115,7 +118,11 @@ template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer, cl::sycl::event>::type
 enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
                    cl::sycl::queue q) {
-  return q.submit([&](cl::sycl::handler &cgh) { cgh.host_task([=]() {}); });
+  cl::sycl::event event;
+#ifdef SB_ENABLE_USM
+  event = q.submit([&](cl::sycl::handler &cgh) { cgh.host_task([=]() {}); });
+#endif
+  return event;
 }
 
 inline bool has_local_memory(cl::sycl::queue &q) {

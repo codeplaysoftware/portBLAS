@@ -28,8 +28,8 @@
 
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
+#include "views/view.hpp"
 #include "views/view_sycl.hpp"
-#include "views/view_sycl_usm.hpp"
 #include <stdexcept>
 #include <vector>
 

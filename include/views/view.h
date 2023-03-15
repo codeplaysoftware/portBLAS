@@ -53,15 +53,13 @@ struct VectorView {
   using index_t = view_index_t;
   using increment_t = view_increment_t;
   using self_t = VectorView<value_t, container_t, index_t, increment_t>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;
   index_t size_;
   index_t disp_;
   increment_t strd_;  // never size_t, because it could be negative
 
-  VectorView(view_container_t &data, view_index_t disp = 0,
-             view_increment_t strd = 1);
-  VectorView(view_container_t &data, view_index_t disp, view_increment_t strd,
+  VectorView(view_container_t data, view_index_t disp, view_increment_t strd,
              view_index_t size);
   VectorView(
       VectorView<view_value_t, view_container_t, view_index_t, view_increment_t>
@@ -72,22 +70,22 @@ struct VectorView {
   @brief Initializes the view using the indexing values.
   @param originalSize The original size of the container
   */
-  inline void initialize(index_t originalSize);
+  SYCL_BLAS_INLINE void initialize(index_t originalSize);
 
   /*!
    * @brief Returns a reference to the container
    */
-  container_t &get_data();
+  SYCL_BLAS_INLINE container_t get_data();
 
   /*!
    * @brief Returns a pointer containing the raw data of the container
    */
-  value_t *get_pointer();
+  SYCL_BLAS_INLINE value_t *get_pointer();
 
   /*! get_access_displacement.
    * @brief get displacement from the origin.
    */
-  index_t get_access_displacement();
+  SYCL_BLAS_INLINE index_t get_access_displacement();
 
   /*! adjust_access_displacement.
    * @brief this method adjust the position of the data access to point to the
@@ -95,25 +93,57 @@ struct VectorView {
    * begining of an expression so that the kernel wont repeat this operation at
    * every eval call
    */
-  void adjust_access_displacement();
+  SYCL_BLAS_INLINE void adjust_access_displacement();
 
   /*!
    * @brief Returns the size of the underlying container.
    */
-  index_t get_data_size();
+  SYCL_BLAS_INLINE index_t get_data_size();
 
   /*!
    @brief Returns the size of the view
    */
-  inline index_t get_size() const;
+  SYCL_BLAS_INLINE index_t get_size() const;
 
   /*!
    @brief Returns the stride of the view.
   */
-  increment_t get_stride();
+  SYCL_BLAS_INLINE increment_t get_stride();
+
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {}
 
   /**** EVALUATING ****/
-  value_t &eval(index_t i);
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
+      index_t i) {
+    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
+      index_t i) const {
+    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+  }
+
+  SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  SYCL_BLAS_INLINE const value_t eval(cl::sycl::nd_item<1> ndItem) const {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
+      index_t indx) {
+    return *(data_ + indx);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
+      index_t indx) const noexcept {
+    return *(data_ + indx);
+  }
 };
 
 /*! MatrixView
@@ -130,15 +160,15 @@ struct MatrixView {
   using container_t = view_container_t;
   using index_t = view_index_t;
   using self_t = MatrixView<value_t, container_t, index_t, layout>;
-  container_t &data_;
+  container_t data_;
   index_t size_data_;  // real size of the data
   index_t sizeR_;      // number of rows
   index_t sizeC_;      // number of columns
   index_t sizeL_;      // size of the leading dimension
   index_t disp_;       // displacementt od the first element
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
-  MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC);
-  MatrixView(view_container_t &data, view_index_t sizeR, view_index_t sizeC,
+  MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC);
+  MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC,
              view_index_t sizeL, view_index_t disp);
   MatrixView(
       MatrixView<view_value_t, view_container_t, view_index_t, layout> opM,
@@ -148,7 +178,7 @@ struct MatrixView {
   /*!
    * @brief Returns the container
    */
-  container_t &get_data();
+  container_t get_data();
 
   /*!
    * @brief Returns the container
@@ -163,46 +193,87 @@ struct MatrixView {
   /*!
    * @brief Returns the size of the view.
    */
-  inline index_t get_size() const;
+  SYCL_BLAS_INLINE index_t get_size() const;
+
+  /*!
+   * @brief Returns the leading dimension.
+   */
+  SYCL_BLAS_INLINE const index_t getSizeL() const;
 
   /*! get_size_row.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  inline index_t get_size_row() const;
+  SYCL_BLAS_INLINE index_t get_size_row() const;
 
   /*! get_size_col.
    * @brief Return the number of columns.
    * @bug This value should change depending on the access mode, but
    * is currently set to Rows.
    */
-  index_t get_size_col() const;
-
-  /*! get_access_device.
-   * @brief Access on the Device (e.g CPU: Row, GPU: Column).
-   */
-  int get_access_device() const;
+  SYCL_BLAS_INLINE index_t get_size_col() const;
 
   /*! adjust_access_displacement.
    * @brief set displacement from the origin.
    */
-  void adjust_access_displacement();
+  SYCL_BLAS_INLINE void adjust_access_displacement();
 
   /*! get_access_displacement.
    * @brief get displacement from the origin.
    */
-  index_t get_access_displacement() const;
+  SYCL_BLAS_INLINE index_t get_access_displacement() const;
 
-  /*! eval.
-   * @brief Evaluation for the given linear value.
-   */
-  value_t &eval(index_t k);
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {}
 
   /*! eval.
    * @brief Evaluation for the pair of row/col.
    */
-  value_t &eval(index_t i, index_t j);
+  SYCL_BLAS_INLINE value_t &eval(index_t i, index_t j) {
+    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                     : *(data_ + j + sizeL_ * i));
+  }
+
+  SYCL_BLAS_INLINE value_t eval(index_t i, index_t j) const noexcept {
+    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                     : *(data_ + j + sizeL_ * i));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
+      index_t indx) {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
+      index_t indx) const noexcept {
+    const index_t j = indx / sizeR_;
+    const index_t i = indx - sizeR_ * j;
+    return eval(i, j);
+  }
+
+  SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  SYCL_BLAS_INLINE value_t eval(cl::sycl::nd_item<1> ndItem) const noexcept {
+    return eval(ndItem.get_global_id(0));
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
+      index_t indx) {
+    return *(data_ + indx);
+  }
+
+  template <bool use_as_ptr = false>
+  SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
+      index_t indx) const noexcept {
+    return *(data_ + indx);
+  }
 };
 
 template <typename scalar_t, typename container_t, typename index_t,
@@ -218,8 +289,8 @@ struct MatrixViewTypeFactory {
 };
 
 template <typename scalar_t, typename increment_t, typename index_t>
-static inline auto make_vector_view(BufferIterator<scalar_t> buff,
-                                    increment_t inc, index_t sz) {
+static SYCL_BLAS_INLINE auto make_vector_view(BufferIterator<scalar_t> buff,
+                                              increment_t inc, index_t sz) {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
@@ -234,8 +305,9 @@ static inline auto make_vector_view(BufferIterator<scalar_t> buff,
 }
 
 template <typename access_layout_t, typename scalar_t, typename index_t>
-static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
-                                    index_t n, index_t lda) {
+static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<scalar_t> buff,
+                                              index_t m, index_t n,
+                                              index_t lda) {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
@@ -250,17 +322,17 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
 }
 
 template <typename scalar_t, typename increment_t, typename index_t>
-static inline auto make_vector_view(scalar_t* usm_ptr,
-                                    increment_t inc, index_t sz,
-                                    index_t offset = 0) {
+static SYCL_BLAS_INLINE auto make_vector_view(scalar_t *usm_ptr,
+                                              increment_t inc, index_t sz,
+                                              index_t offset = 0) {
   using leaf_node_t = VectorView<scalar_t, scalar_t *, index_t, increment_t>;
   return leaf_node_t{usm_ptr, offset, inc, sz};
 }
 
 template <typename access_layout_t, typename scalar_t, typename index_t>
-static inline auto make_matrix_view(scalar_t* usm_ptr, index_t m,
-                                    index_t n, index_t lda,
-                                    index_t offset = 0) {
+static SYCL_BLAS_INLINE auto make_matrix_view(scalar_t *usm_ptr, index_t m,
+                                              index_t n, index_t lda,
+                                              index_t offset = 0) {
   using leaf_node_t =
       MatrixView<scalar_t, scalar_t *, index_t, access_layout_t>;
   return leaf_node_t{usm_ptr, m, n, lda, offset};

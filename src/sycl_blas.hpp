@@ -54,4 +54,4 @@
 
 #include "views/view_sycl.hpp"
 
-#include "views/view_sycl_usm.hpp"
+#include "views/view.hpp"
