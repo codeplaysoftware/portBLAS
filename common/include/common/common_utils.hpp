@@ -59,6 +59,9 @@ template <typename scalar_t>
 using syr_param_t = std::tuple<std::string, index_t, scalar_t>;
 
 template <typename scalar_t>
+using ger_param_t = std::tuple<index_t, index_t, scalar_t>;
+
+template <typename scalar_t>
 using spr_param_t = std::tuple<std::string, index_t, scalar_t, index_t>;
 
 using tbmv_param_t =
@@ -634,6 +637,42 @@ static inline std::vector<syr_param_t<scalar_t>> get_syr_params(Args& args) {
           }
           try {
             return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_ger_params
+ * @brief Returns a vector containing the ger benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<ger_param_t<scalar_t>> get_ger_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<ger_param_t<scalar_t>> ger_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    for (index_t m = dmin; m <= dmax; m *= 2) {
+      for (index_t n = dmin; n <= dmax; n *= 2) {
+        ger_default.push_back(std::make_tuple(m, n, alpha));
+      }
+    }
+    return ger_default;
+  } else {
+    return parse_csv_file<ger_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(str_to_int<index_t>(v[0]),
+                                   str_to_int<index_t>(v[1]),
                                    str_to_scalar<scalar_t>(v[2]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
