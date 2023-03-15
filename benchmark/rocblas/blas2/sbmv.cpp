@@ -188,8 +188,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     std::tie(uplo, n, k, alpha, beta) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         std::string uplo, index_t n, index_t k,
-                         scalar_t alpha, scalar_t beta, bool* success) {
+                         std::string uplo, index_t n, index_t k, scalar_t alpha,
+                         scalar_t beta, bool* success) {
       run<scalar_t>(st, rb_handle, uplo, n, k, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n, k).c_str(),

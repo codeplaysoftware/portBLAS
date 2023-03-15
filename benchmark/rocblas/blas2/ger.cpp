@@ -28,7 +28,7 @@
 template <typename scalar_t>
 std::string get_name(int m, int n) {
   std::ostringstream str{};
-  str << "BM_ger<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+  str << "BM_Ger<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
       << m << "/" << n;
   return str.str();
 }
