@@ -103,7 +103,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t m,
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference ger
     std::vector<scalar_t> m_a_ref = m_a;
-    reference_blas::ger(m, n, alpha, m_a.data(), incX, v_x.data(), incY,
+    reference_blas::ger(m, n, alpha, m_a_ref.data(), incX, v_x.data(), incY,
                         v_y.data(), lda);
 
     // Rocblas verification ger
@@ -128,7 +128,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t m,
     auto blas_warmup = [&]() -> void {
       rocblas_ger_f<scalar_t>(rb_handle, m, n, &alpha, v_x_gpu, incX, v_y_gpu,
                               incY, m_a_gpu, lda);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -147,6 +146,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t m,
 
     // Warmup
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 

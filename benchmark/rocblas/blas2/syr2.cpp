@@ -109,7 +109,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
     // Reference syr2
     std::vector<scalar_t> m_a_ref = m_a;
     reference_blas::syr2(uplo_str, n, alpha, v_x.data(), incX, v_y.data(), incY,
-                         m_a.data(), lda);
+                         m_a_ref.data(), lda);
 
     // Rocblas verification syr2
     std::vector<scalar_t> m_a_temp = m_a;
@@ -133,7 +133,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
     auto blas_warmup = [&]() -> void {
       rocblas_syr2_f<scalar_t>(rb_handle, uplo_rb, n, &alpha, v_x_gpu, incX,
                                v_y_gpu, incY, m_a_gpu, lda);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -152,6 +151,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
     // Warmup
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 

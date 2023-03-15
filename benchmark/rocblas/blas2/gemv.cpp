@@ -136,7 +136,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
     auto blas_warmup = [&]() -> void {
       rocblas_gemv_f<scalar_t>(rb_handle, transA, m, n, &alpha, m_a_gpu, lda,
                                v_x_gpu, incX, &beta, v_y_gpu, incY);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -155,6 +154,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
 
     // Warmup
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 

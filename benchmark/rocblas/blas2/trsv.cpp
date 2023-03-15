@@ -135,7 +135,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
     auto blas_warmup = [&]() -> void {
       rocblas_trsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n,
                                m_a_gpu, lda, v_x_gpu, incX);
-      CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
       return;
     };
 
@@ -154,6 +153,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
     // Warmup
     blas_benchmark::utils::warmup(blas_warmup);
+    CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
 
