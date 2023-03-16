@@ -160,6 +160,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t m,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
+  // ger operator uses almost all blas2 general params
   auto ger_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
 
   for (auto p : ger_params) {
@@ -168,6 +169,7 @@ void register_benchmark(blas_benchmark::Args& args,
     scalar_t alpha, beta;
     std::tie(ts, m, n, alpha, beta) = p;
 
+    // Repurpose general blas2 params
     if (ts != "n") continue;
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
