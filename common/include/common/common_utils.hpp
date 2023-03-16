@@ -546,7 +546,7 @@ static inline std::vector<sbmv_param_t<scalar_t>> get_sbmv_params(Args& args) {
     constexpr index_t dmin = 64, dmax = 1024;
     constexpr index_t kmin = 1;
     scalar_t alpha = 1;
-    scalar_t beta = 0;
+    scalar_t beta = 1;
     for (std::string ul : {"u", "l"}) {
       for (index_t n = dmin; n <= dmax; n *= 2) {
         for (index_t k = kmin; k <= n / 4; k *= 2) {
