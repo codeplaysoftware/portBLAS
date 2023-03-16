@@ -266,6 +266,14 @@ void tbmv(const char *uplo, const char *trans, const char *diag, int n, int k,
 }
 
 template <typename scalar_t>
+void tbsv(const char *uplo, const char *trans, const char *diag, int n, int k,
+          const scalar_t *a, int lda, scalar_t *x, int incX) {
+  auto func = blas_system_function<scalar_t>(&cblas_stbsv, &cblas_dtbsv);
+  func(CblasColMajor, c_uplo(*uplo), c_trans(*trans), c_diag(*diag), n, k, a,
+       lda, x, incX);
+}
+
+template <typename scalar_t>
 void trmv(const char *uplo, const char *trans, const char *diag, const int n,
           const scalar_t *a, const int lda, scalar_t *x, const int incX) {
   auto func = blas_system_function<scalar_t>(&cblas_strmv, &cblas_dtrmv);
@@ -310,6 +318,14 @@ void syr2(const char *uplo, const int n, const scalar_t alpha,
           scalar_t *a, const int lda) {
   auto func = blas_system_function<scalar_t>(&cblas_ssyr2, &cblas_dsyr2);
   func(CblasColMajor, c_uplo(*uplo), n, alpha, x, incX, y, incY, a, lda);
+}
+
+template <typename scalar_t>
+void spr2(const char *uplo, const int n, const scalar_t alpha,
+          const scalar_t *x, const int incX, const scalar_t *y, const int incY,
+          scalar_t *a) {
+  auto func = blas_system_function<scalar_t>(&cblas_sspr2, &cblas_dspr2);
+  func(CblasColMajor, c_uplo(*uplo), n, alpha, x, incX, y, incY, a);
 }
 
 template <typename scalar_t>
