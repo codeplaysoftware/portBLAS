@@ -56,7 +56,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   // integer overflows for n_fl_ops and bytes_processed
   scalar_t size_d = static_cast<scalar_t>(n * (n + 1) / 2);
 
-  state.counters["size_d"] = static_cast<double>(size_d);
   state.counters["n"] = static_cast<double>(n);
 
   {
