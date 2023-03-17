@@ -105,7 +105,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
                                           scalar_t{-0.1}, scalar_t{0.1});
-
   {
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());

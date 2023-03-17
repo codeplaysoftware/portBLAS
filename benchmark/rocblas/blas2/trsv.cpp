@@ -65,7 +65,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   const double A_validVal = .5 * n_d * (n_d + 1);
 
   {
-    double nflops = n_d * n_d;
+    double nflops = 2.0 * A_validVal;
     state.counters["n_fl_ops"] = nflops;
   }
 

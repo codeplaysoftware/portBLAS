@@ -307,11 +307,25 @@ void sbmv(const char *uplo, int n, int k, scalar_t alpha, const scalar_t a[],
 }
 
 template <typename scalar_t>
+void spmv(const char *uplo, int n, scalar_t alpha, const scalar_t a[],
+          const scalar_t x[], int incX, scalar_t beta, scalar_t y[], int incY) {
+  auto func = blas_system_function<scalar_t>(&cblas_sspmv, &cblas_dspmv);
+  func(CblasColMajor, c_uplo(*uplo), n, alpha, a, x, incX, beta, y, incY);
+}
+
+template <typename scalar_t>
 void tpmv(const char *uplo, const char *trans, const char *diag, const int n,
           const scalar_t *a, scalar_t *x, const int incX) {
   auto func = blas_system_function<scalar_t>(&cblas_stpmv, &cblas_dtpmv);
   func(CblasColMajor, c_uplo(*uplo), c_trans(*trans), c_diag(*diag), n, a, x,
        incX);
+}
+
+template <typename scalar_t>
+void trmv(const char *uplo, int n, scalar_t alpha, const scalar_t a[], int lda,
+          const scalar_t x[], int incX, scalar_t beta, scalar_t y[], int incY) {
+  auto func = blas_system_function<scalar_t>(&cblas_strmv, &cblas_dtrmv);
+  func(CblasColMajor, c_uplo(*uplo), n, alpha, a, lda, x, incX, beta, y, incY);
 }
 
 template <typename scalar_t>

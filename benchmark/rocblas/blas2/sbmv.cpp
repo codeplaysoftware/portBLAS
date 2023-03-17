@@ -69,7 +69,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
   {
     double nflops_AtimesX = 2.0 * A_validVal;
-    double nflops_timesAlpha = ylen;
+    double nflops_timesAlpha = xlen;
     double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =
         nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
