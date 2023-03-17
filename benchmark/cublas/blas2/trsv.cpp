@@ -66,14 +66,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const double A_validVal = .5 * n_d * (n_d + 1);
 
   {
-    double nflops = n_d * n_d;
+    double nflops = 2 * A_validVal;
     state.counters["n_fl_ops"] = nflops;
   }
 
   {
     double mem_readA = A_validVal;
-    double mem_readX = A_validVal;
-    double mem_writeX = A_validVal;
+    double mem_readX = xlen;
+    double mem_writeX = xlen;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
   }
