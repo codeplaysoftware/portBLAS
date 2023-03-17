@@ -85,14 +85,15 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
-  // Populate the correct triangular matrix with larger values.
+  // Populate the correct triangular matrix with larger values
+  // in column-major way
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < n; ++j)
-      m_a[(i * lda) + j] =
-          (*uplo_str == 'u') ? ((i <= j) ? blas_benchmark::utils::random_scalar(
+      m_a[(j * lda) + i] =
+          (*uplo_str == 'u') ? ((i >= j) ? blas_benchmark::utils::random_scalar(
                                                scalar_t{9}, scalar_t{11})
                                          : 0)
-                             : ((i >= j) ? blas_benchmark::utils::random_scalar(
+                             : ((i <= j) ? blas_benchmark::utils::random_scalar(
                                                scalar_t{9}, scalar_t{11})
                                          : 0);
 
