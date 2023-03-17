@@ -19,57 +19,53 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename tbsv.cpp
+ *  @filename tpsv.cpp
  *
  **************************************************************************/
 
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, std::string t, std::string diag, int n,
-                     int k) {
+std::string get_name(std::string uplo, std::string t, std::string diag, int n) {
   std::ostringstream str{};
-  str << "BM_Tbsv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << t << "/" << diag << "/" << n << "/" << k;
+  str << "BM_Tpsv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << uplo << "/" << t << "/" << diag << "/" << n;
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
-static inline void rocblas_tbsv_f(args_t&&... args) {
+static inline void rocblas_tpsv_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_stbsv(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_stpsv(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_dtbsv(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(rocblas_dtpsv(std::forward<args_t>(args)...));
   }
   return;
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
-         std::string t, std::string diag, index_t n, index_t k, bool* success) {
+         std::string t, std::string diag, index_t n, bool* success) {
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
   index_t xlen = n;
-  index_t lda = (k + 1);
   index_t incX = 1;
 
   // The counters are double. We convert n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
 
   state.counters["n"] = n_d;
-  state.counters["k"] = k_d;
 
   // Compute the number of A non-zero elements.
-  const double A_validVal = n_d * (k_d + 1.0) - 0.5 * (k_d * (k_d + 1.0));
+  const double A_validVal = .5 * n_d * (n_d + 1);
 
   {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    state.counters["n_fl_ops"] = nflops_AtimesX;
+    double nflops = 2 * n_d * (n_d + 1) / 2;
+    state.counters["n_fl_ops"] = nflops;
   }
 
   {
@@ -89,7 +85,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = lda * n;
+  const int m_size = n * (n + 1) / 2;  // Minimum required size
   const int v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.
@@ -99,12 +95,14 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::random_data<scalar_t>(v_size);
 
   // Populate the main diagonal with larger values.
-  for (index_t i = 0; i < n; ++i)
-    for (index_t j = 0; j < n; ++j)
-      m_a[(i * lda) + i] = (i == j) ? blas_benchmark::utils::random_scalar(
-                                          scalar_t{9}, scalar_t{11})
-                                    : blas_benchmark::utils::random_scalar(
-                                          scalar_t{-0.1}, scalar_t{0.1});
+  {
+    index_t idx = 0;
+    for (index_t i = 0; i < n; ++i) {
+      m_a[idx] =
+          blas_benchmark::utils::random_scalar(scalar_t{50}, scalar_t{100});
+      idx += (uplo_str[0] == 'u') ? 2 + i : n - i;
+    }
+  }
 
   {
     // Device memory allocation & H2D copy
@@ -114,7 +112,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference tbmv
     std::vector<scalar_t> v_x_ref = v_x;
-    reference_blas::tbsv(uplo_str, t_str, diag_str, n, k, m_a.data(), lda,
+    reference_blas::tpsv(uplo_str, t_str, diag_str, n, m_a.data(),
                          v_x_ref.data(), incX);
 
     // Rocblas verification tbmv
@@ -124,8 +122,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::HIPVector<scalar_t, true> v_x_temp_gpu(
           xlen * incX, v_x_temp.data());
       // rocBLAS function call
-      rocblas_tbsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n, k,
-                               m_a_gpu, lda, v_x_temp_gpu, incX);
+      rocblas_tpsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n,
+                               m_a_gpu, v_x_temp_gpu, incX);
     }
 
     std::ostringstream err_stream;
@@ -137,8 +135,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 #endif
 
     auto blas_warmup = [&]() -> void {
-      rocblas_tbsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n, k,
-                               m_a_gpu, lda, v_x_gpu, incX);
+      rocblas_tpsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n,
+                               m_a_gpu, v_x_gpu, incX);
       return;
     };
 
@@ -148,8 +146,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-      rocblas_tbsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n, k,
-                               m_a_gpu, lda, v_x_gpu, incX);
+      rocblas_tpsv_f<scalar_t>(rb_handle, uplo_rb, trans_rb, diag_rb, n,
+                               m_a_gpu, v_x_gpu, incX);
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
       return std::vector{start, stop};
@@ -181,9 +179,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto tbsv_params = blas_benchmark::utils::get_tbmv_params(args);
+  auto tpsv_params = blas_benchmark::utils::get_tbmv_params(args);
 
-  for (auto p : tbsv_params) {
+  for (auto p : tpsv_params) {
     std::string uplo;
     std::string ts;
     std::string diags;
@@ -191,14 +189,17 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     index_t k;
     std::tie(uplo, ts, diags, n, k) = p;
 
+    // Repurpose tbmv parameters.
+    if (k != 1) continue;
+
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          std::string uplo, std::string ts, std::string diags,
-                         index_t n, index_t k, bool* success) {
-      run<scalar_t>(st, rb_handle, uplo, ts, diags, n, k, success);
+                         index_t n, bool* success) {
+      run<scalar_t>(st, rb_handle, uplo, ts, diags, n, success);
     };
-    benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplo, ts, diags, n, k).c_str(), BM_lambda, rb_handle,
-        uplo, ts, diags, n, k, success);
+    benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, ts, diags, n).c_str(),
+                                 BM_lambda, rb_handle, uplo, ts, diags, n,
+                                 success);
   }
 }
 
