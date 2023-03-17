@@ -240,7 +240,9 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, rows, cols, ld_mul, op, reduction_dim) = combi;
 
   if (alloc == 'u') {
+#ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
+#endif
   } else {
     run_test<scalar_t, helper::AllocType::buffer>(combi);
   }

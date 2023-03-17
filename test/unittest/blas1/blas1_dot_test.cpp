@@ -94,7 +94,9 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, api, size, incX, incY) = combi;
 
   if (alloc == 'u') {  // usm alloc
+#ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
+#endif
   } else {  // buffer alloc
     run_test<scalar_t, helper::AllocType::buffer>(combi);
   }

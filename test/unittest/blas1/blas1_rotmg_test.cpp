@@ -238,7 +238,9 @@ void run_test(const combination_t<scalar_t> combi) {
       combi;
 
   if (alloc == 'u') {  // usm alloc
+#ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
+#endif
   } else {  // buffer alloc
     run_test<scalar_t, helper::AllocType::buffer>(combi);
   }
@@ -419,7 +421,9 @@ scalar_t scale_up_gen() {
              std::make_tuple('C', 0.0516274, -0.197215, -0.270436, -0.157621,  \
                              false))
 
-INSTANTIATE_ROTMG_TESTS(combi_usm, u);     // instantiate usm tests
+#ifdef SB_ENABLE_USM
+INSTANTIATE_ROTMG_TESTS(combi_usm, u);  // instantiate usm tests
+#endif
 INSTANTIATE_ROTMG_TESTS(combi_buffer, b);  // instantiate buffer tests
 
 template <class T>
@@ -431,7 +435,9 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, alloc, d1, d2, x1, y1, will_overflow);
 }
 
+#ifdef SB_ENABLE_USM
 BLAS_REGISTER_TEST_ALL(Rotmg_Usm, combination_t, combi_usm, generate_name);
+#endif
 BLAS_REGISTER_TEST_ALL(Rotmg_Buffer, combination_t, combi_buffer,
                        generate_name);
 
