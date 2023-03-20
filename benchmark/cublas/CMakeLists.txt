@@ -59,6 +59,9 @@ set(sources
   blas2/tpsv.cpp
   blas2/trmv.cpp
   blas2/trsv.cpp
+  # Level 3 blas
+  blas3/gemm.cpp
+  blas3/trsm.cpp
 ) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
