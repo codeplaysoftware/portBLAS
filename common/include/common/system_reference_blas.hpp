@@ -387,6 +387,15 @@ void trsm(const char *side, const char *uplo, const char *trans,
        c_diag(*diag), m, n, alpha, A, lda, B, ldb);
 }
 
+template <typename scalar_t>
+void trmm(const char *side, const char *uplo, const char *trans,
+          const char *diag, int m, int n, scalar_t alpha, const scalar_t A[],
+          int lda, scalar_t B[], int ldb) {
+  auto func = blas_system_function<scalar_t>(&cblas_strmm, &cblas_dtrmm);
+  func(CblasColMajor, c_side(*side), c_uplo(*uplo), c_trans(*trans),
+       c_diag(*diag), m, n, alpha, A, lda, B, ldb);
+}
+
 }  // namespace reference_blas
 
 #endif /* end of include guard: SYSTEM_REFERENCE_BLAS_HPP */
