@@ -179,18 +179,14 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto tpsv_params = blas_benchmark::utils::get_tbmv_params(args);
+  auto tpsv_params = blas_benchmark::utils::get_trsv_params(args);
 
   for (auto p : tpsv_params) {
     std::string uplo;
     std::string ts;
     std::string diags;
     index_t n;
-    index_t k;
-    std::tie(uplo, ts, diags, n, k) = p;
-
-    // Repurpose tbmv parameters.
-    if (k != 1) continue;
+    std::tie(uplo, ts, diags, n) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          std::string uplo, std::string ts, std::string diags,

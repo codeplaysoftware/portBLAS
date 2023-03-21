@@ -26,11 +26,10 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, std::string t, std::string diag, int n,
-                     int k) {
+std::string get_name(std::string uplo, std::string t, std::string diag, int n) {
   std::ostringstream str{};
   str << "BM_Trmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << t << "/" << diag << "/" << n << "/" << k;
+      << uplo << "/" << t << "/" << diag << "/" << n;
   return str.str();
 }
 
@@ -46,7 +45,7 @@ static inline void rocblas_trmv_f(args_t&&... args) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
-         std::string t, std::string diag, index_t n, index_t k, bool* success) {
+         std::string t, std::string diag, index_t n, bool* success) {
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
   const char* t_str = t.c_str();
@@ -171,27 +170,23 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto trmv_params = blas_benchmark::utils::get_tbmv_params(args);
+  auto trmv_params = blas_benchmark::utils::get_trsv_params(args);
 
   for (auto p : trmv_params) {
     std::string uplos;
     std::string ts;
     std::string diags;
     index_t n;
-    index_t k;
-    std::tie(uplos, ts, diags, n, k) = p;
-
-    // Repurpose tbmv parameters.
-    if (k != 1) continue;
+    std::tie(uplos, ts, diags, n) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          std::string uplos, std::string ts, std::string diags,
-                         index_t n, index_t k, bool* success) {
-      run<scalar_t>(st, rb_handle, uplos, ts, diags, n, k, success);
+                         index_t n, bool* success) {
+      run<scalar_t>(st, rb_handle, uplos, ts, diags, n, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplos, ts, diags, n, k).c_str(), BM_lambda,
-        rb_handle, uplos, ts, diags, n, k, success);
+        get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda, rb_handle,
+        uplos, ts, diags, n, success);
   }
 }
 
