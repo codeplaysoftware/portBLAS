@@ -200,11 +200,11 @@ void RotmgTest<scalar_t, mem_alloc>::validate_with_rotm() {
 
 template <typename scalar_t>
 using combination_t =
-    std::tuple<char, scalar_t, scalar_t, scalar_t, scalar_t, bool>;
+    std::tuple<std::string, scalar_t, scalar_t, scalar_t, scalar_t, bool>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   scalar_t d1_input;
   scalar_t d2_input;
   scalar_t x1_input;
@@ -227,7 +227,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   scalar_t d1_input;
   scalar_t d2_input;
   scalar_t x1_input;
@@ -237,7 +237,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, d1_input, d2_input, x1_input, y1_input, will_overflow) =
       combi;
 
-  if (alloc == 'u') {  // usm alloc
+  if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
@@ -292,144 +292,144 @@ scalar_t scale_up_gen() {
   template <typename scalar_t>                                                 \
   const auto NAME = ::testing::                                                \
       Values(/* d1 < 0 */                                                      \
-             std::make_tuple('C', -2.5, p_gen<scalar_t>(), r_gen<scalar_t>(),  \
+             std::make_tuple("C", -2.5, p_gen<scalar_t>(), r_gen<scalar_t>(),  \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (c, 0) */                  \
-             std::make_tuple('C', p_gen<scalar_t>(), p_gen<scalar_t>(),        \
+             std::make_tuple("C", p_gen<scalar_t>(), p_gen<scalar_t>(),        \
                              r_gen<scalar_t>(), 0.0,                           \
                              false), /* Input point (c, 0) && d2 == 0 */       \
-             std::make_tuple('C', p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),   \
+             std::make_tuple("C", p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),   \
                              0.0, false), /* Input point (c, 0) && d2 == 0 */  \
-             std::make_tuple('C', p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),   \
+             std::make_tuple("C", p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),   \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (c, 0) and big numbers     \
                                         (test that no rescaling happened) */   \
-             std::make_tuple('C', scale_up_gen<scalar_t>(),                    \
+             std::make_tuple("C", scale_up_gen<scalar_t>(),                    \
                              scale_up_gen<scalar_t>(),                         \
                              scale_up_gen<scalar_t>(), 0.0, false),            \
-             std::make_tuple('C', scale_down_gen<scalar_t>(),                  \
+             std::make_tuple("C", scale_down_gen<scalar_t>(),                  \
                              scale_down_gen<scalar_t>(),                       \
                              scale_down_gen<scalar_t>(), 0.0,                  \
                              false), /* Input point (0, c) */                  \
-             std::make_tuple('C', p_gen<scalar_t>(), p_gen<scalar_t>(), 0.0,   \
+             std::make_tuple("C", p_gen<scalar_t>(), p_gen<scalar_t>(), 0.0,   \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (0, c) && d1 == 0 */       \
-             std::make_tuple('C', 0.0, p_gen<scalar_t>(), 0.0,                 \
+             std::make_tuple("C", 0.0, p_gen<scalar_t>(), 0.0,                 \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (0, c) && d2 == 0 */       \
-             std::make_tuple('C', p_gen<scalar_t>(), 0.0, 0.0,                 \
+             std::make_tuple("C", p_gen<scalar_t>(), 0.0, 0.0,                 \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (0, c) && d2 < 0 */        \
-             std::make_tuple('C', p_gen<scalar_t>(), -3.4, 0.0,                \
+             std::make_tuple("C", p_gen<scalar_t>(), -3.4, 0.0,                \
                              r_gen<scalar_t>(),                                \
                              false), /* Input point (0, c) && rescaling */     \
-             std::make_tuple('C', p_gen<scalar_t>(), scale_up_gen<scalar_t>(), \
+             std::make_tuple("C", p_gen<scalar_t>(), scale_up_gen<scalar_t>(), \
                              0.0, r_gen<scalar_t>(), false),                   \
-             std::make_tuple('C', p_gen<scalar_t>(),                           \
+             std::make_tuple("C", p_gen<scalar_t>(),                           \
                              scale_down_gen<scalar_t>(), 0.0,                  \
                              r_gen<scalar_t>(), false),                        \
-             std::make_tuple('C', scale_up_gen<scalar_t>(), p_gen<scalar_t>(), \
+             std::make_tuple("C", scale_up_gen<scalar_t>(), p_gen<scalar_t>(), \
                              0.0, r_gen<scalar_t>(), false),                   \
-             std::make_tuple('C', scale_down_gen<scalar_t>(),                  \
+             std::make_tuple("C", scale_down_gen<scalar_t>(),                  \
                              p_gen<scalar_t>(), 0.0, r_gen<scalar_t>(),        \
                              false), /* d1 == 0 */                             \
-             std::make_tuple('C', 0.0, p_gen<scalar_t>(), r_gen<scalar_t>(),   \
+             std::make_tuple("C", 0.0, p_gen<scalar_t>(), r_gen<scalar_t>(),   \
                              r_gen<scalar_t>(),                                \
                              false), /* d1 == 0 && d2 < 0 */                   \
              std::make_tuple(                                                  \
-                 'C', 0.0, -3.4, r_gen<scalar_t>(), r_gen<scalar_t>(),         \
+                 "C", 0.0, -3.4, r_gen<scalar_t>(), r_gen<scalar_t>(),         \
                  false), /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) */          \
-             std::make_tuple('C', 4.0, 2.1, 3.4, 1.5, false),                  \
-             std::make_tuple('C', 4.0, 1.5, -3.4, 2.1, false),                 \
-             std::make_tuple('C', 4.0, -1.5, 3.4, 2.1, false),                 \
-             std::make_tuple('C', 4.0, -1.5, 3.4, -2.1, false),                \
-             std::make_tuple('C', 4.0, -1.5, -3.4, -2.1,                       \
+             std::make_tuple("C", 4.0, 2.1, 3.4, 1.5, false),                  \
+             std::make_tuple("C", 4.0, 1.5, -3.4, 2.1, false),                 \
+             std::make_tuple("C", 4.0, -1.5, 3.4, 2.1, false),                 \
+             std::make_tuple("C", 4.0, -1.5, 3.4, -2.1, false),                \
+             std::make_tuple("C", 4.0, -1.5, -3.4, -2.1,                       \
                              false), /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) \
                                         && rescaling */                        \
-             std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1, 3.4, 1.5,   \
+             std::make_tuple("C", scale_down_gen<scalar_t>(), 2.1, 3.4, 1.5,   \
                              false),                                           \
-             std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1,             \
+             std::make_tuple("C", scale_down_gen<scalar_t>(), 2.1,             \
                              scale_down_gen<scalar_t>(), 1.5, false),          \
-             std::make_tuple('C', scale_up_gen<scalar_t>(), 2.1,               \
+             std::make_tuple("C", scale_up_gen<scalar_t>(), 2.1,               \
                              scale_down_gen<scalar_t>(), 1.5, false),          \
-             std::make_tuple('C', scale_down_gen<scalar_t>(), 2.1,             \
+             std::make_tuple("C", scale_down_gen<scalar_t>(), 2.1,             \
                              scale_up_gen<scalar_t>(), 1.5,                    \
                              false), /* d1 * x1 > d2 * y1 (i.e. abs_c > abs_s) \
                                         && Underflow */                        \
-             std::make_tuple('C', 0.01, 0.01,                                  \
+             std::make_tuple("C", 0.01, 0.01,                                  \
                              std::numeric_limits<scalar_t>::min(),             \
                              std::numeric_limits<scalar_t>::min(),             \
                              true), /* d1 * x1 > d2 * y1 && Overflow */        \
              std::make_tuple(                                                  \
-                 'C', std::numeric_limits<scalar_t>::max(),                    \
+                 "C", std::numeric_limits<scalar_t>::max(),                    \
                  std::numeric_limits<scalar_t>::max(), 0.01, 0.01,             \
                  true), /* d1 * x1 <= d2 * y1 (i.e. abs_c <= abs_s) */         \
-             std::make_tuple('C', 2.1, 4.0, 1.5, 3.4, false),                  \
-             std::make_tuple('C', 2.1, 4.0, -1.5, 3.4, false),                 \
-             std::make_tuple('C', 2.1, -4.0, 1.5, 3.4, false),                 \
-             std::make_tuple('C', 2.1, -4.0, 1.5, -3.4, false),                \
-             std::make_tuple('C', 2.1, -4.0, -1.5, -3.4,                       \
+             std::make_tuple("C", 2.1, 4.0, 1.5, 3.4, false),                  \
+             std::make_tuple("C", 2.1, 4.0, -1.5, 3.4, false),                 \
+             std::make_tuple("C", 2.1, -4.0, 1.5, 3.4, false),                 \
+             std::make_tuple("C", 2.1, -4.0, 1.5, -3.4, false),                \
+             std::make_tuple("C", 2.1, -4.0, -1.5, -3.4,                       \
                              false), /* d1 * x1 <= d2 * y1 (i.e. abs_c <=      \
                                         abs_s) && rescaling */                 \
-             std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5, 3.4,   \
+             std::make_tuple("C", 2.1, scale_down_gen<scalar_t>(), 1.5, 3.4,   \
                              false),                                           \
-             std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5,        \
+             std::make_tuple("C", 2.1, scale_down_gen<scalar_t>(), 1.5,        \
                              scale_down_gen<scalar_t>(), false),               \
-             std::make_tuple('C', 2.1, scale_up_gen<scalar_t>(), 1.5,          \
+             std::make_tuple("C", 2.1, scale_up_gen<scalar_t>(), 1.5,          \
                              scale_down_gen<scalar_t>(), false),               \
-             std::make_tuple('C', 2.1, scale_down_gen<scalar_t>(), 1.5,        \
+             std::make_tuple("C", 2.1, scale_down_gen<scalar_t>(), 1.5,        \
                              scale_up_gen<scalar_t>(),                         \
                              false), /* d1 * x1 <= d2 * y1 (i.e. abs_c <=      \
                                         abs_s) && Underflow */                 \
-             std::make_tuple('C', std::numeric_limits<scalar_t>::min(),        \
+             std::make_tuple("C", std::numeric_limits<scalar_t>::min(),        \
                              std::numeric_limits<scalar_t>::min(), 0.01, 0.01, \
                              true), /* d1 * x1 <= d2 * y1 (i.e. abs_c <=       \
                                        abs_s) && Overflow */                   \
-             std::make_tuple('C', 0.01, 0.01,                                  \
+             std::make_tuple("C", 0.01, 0.01,                                  \
                              std::numeric_limits<scalar_t>::max(),             \
                              std::numeric_limits<scalar_t>::max(),             \
                              true), /* Overflow all */                         \
-             std::make_tuple('C', std::numeric_limits<scalar_t>::max(),        \
+             std::make_tuple("C", std::numeric_limits<scalar_t>::max(),        \
                              std::numeric_limits<scalar_t>::max(),             \
                              std::numeric_limits<scalar_t>::max(),             \
                              std::numeric_limits<scalar_t>::max(),             \
                              true), /* Underflow all */                        \
-             std::make_tuple('C', std::numeric_limits<scalar_t>::min(),        \
+             std::make_tuple("C", std::numeric_limits<scalar_t>::min(),        \
                              std::numeric_limits<scalar_t>::min(),             \
                              std::numeric_limits<scalar_t>::min(),             \
                              std::numeric_limits<scalar_t>::min(),             \
                              true), /* Numeric limits of one parameter */      \
-             std::make_tuple('C', 1.0, 1.0, 1.0,                               \
+             std::make_tuple("C", 1.0, 1.0, 1.0,                               \
                              std::numeric_limits<scalar_t>::max(), false),     \
-             std::make_tuple('C', 1.0, 1.0,                                    \
+             std::make_tuple("C", 1.0, 1.0,                                    \
                              std::numeric_limits<scalar_t>::max(), 1.0,        \
                              false),                                           \
-             std::make_tuple('C', 1.0, std::numeric_limits<scalar_t>::max(),   \
+             std::make_tuple("C", 1.0, std::numeric_limits<scalar_t>::max(),   \
                              1.0, 1.0, false),                                 \
              std::make_tuple(                                                  \
-                 'C', std::numeric_limits<scalar_t>::max(), 1.0, 1.0, 1.0,     \
+                 "C", std::numeric_limits<scalar_t>::max(), 1.0, 1.0, 1.0,     \
                  false), /* Case that creates an infinite loop on cblas */     \
-             std::make_tuple('C', std::numeric_limits<scalar_t>::min(), -2.2,  \
+             std::make_tuple("C", std::numeric_limits<scalar_t>::min(), -2.2,  \
                              std::numeric_limits<scalar_t>::min(),             \
                              std::numeric_limits<scalar_t>::min(),             \
                              true), /* Case that triggers underflow detection  \
                                        on abs_c <= abs_s && s >= 0 */          \
-             std::make_tuple('C', 15.5, -2.2,                                  \
+             std::make_tuple("C", 15.5, -2.2,                                  \
                              std::numeric_limits<scalar_t>::min(),             \
                              std::numeric_limits<scalar_t>::min(),             \
                              false), /* Test for previous errors */            \
-             std::make_tuple('C', 0.0516274, -0.197215, -0.270436, -0.157621,  \
+             std::make_tuple("C", 0.0516274, -0.197215, -0.270436, -0.157621,  \
                              false))
 
 #ifdef SB_ENABLE_USM
-INSTANTIATE_ROTMG_TESTS(combi_usm, u);  // instantiate usm tests
+INSTANTIATE_ROTMG_TESTS(combi_usm, usm);  // instantiate usm tests
 #endif
-INSTANTIATE_ROTMG_TESTS(combi_buffer, b);  // instantiate buffer tests
+INSTANTIATE_ROTMG_TESTS(combi_buffer, buf);  // instantiate buffer tests
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char alloc;
+  std::string alloc;
   T d1, d2, x1, y1;
   bool will_overflow;
   BLAS_GENERATE_NAME(info.param, alloc, d1, d2, x1, y1, will_overflow);

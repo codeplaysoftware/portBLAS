@@ -26,11 +26,11 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, api_type, scalar_t, scalar_t>;
+using combination_t = std::tuple<std::string, api_type, scalar_t, scalar_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   api_type api;
   scalar_t a_input;
   scalar_t b_input;
@@ -98,7 +98,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   api_type api;
   scalar_t a_input;
   scalar_t b_input;
@@ -107,7 +107,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   std::tie(alloc, api, a_input, b_input) = combi;
 
-  if (alloc == 'u') {  // usm alloc
+  if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
@@ -118,7 +118,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values('u', 'b'),                         // allocation type
+    ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values<scalar_t>(0, 2.5, -7.3,
                                 std::numeric_limits<scalar_t>::max()),  // a
@@ -129,7 +129,7 @@ const auto combi = ::testing::Combine(
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char alloc;
+  std::string alloc;
   api_type api;
   T a, b;
   BLAS_GENERATE_NAME(info.param, alloc, api, a, b);

@@ -28,11 +28,12 @@
 #include <type_traits>
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, api_type, int, scalar_t, int, int>;
+using combination_t =
+    std::tuple<std::string, api_type, int, scalar_t, int, int>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   index_t N;
   float sb;
   index_t incX;
@@ -101,7 +102,7 @@ void run_test(const combination_t<scalar_t> combi) {
   /* sdsdot is only valid when using floats */
   static_assert(std::is_same<scalar_t, float>::value);
 
-  char alloc;
+  std::string alloc;
   index_t N;
   float sb;
   index_t incX;
@@ -109,7 +110,7 @@ void run_test(const combination_t<scalar_t> combi) {
   api_type api;
   std::tie(alloc, api, N, sb, incX, incY) = combi;
 
-  if (alloc == 'u') {  // usm alloc
+  if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
@@ -121,7 +122,7 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values('u', 'b'),                         // allocation type
+    ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1002, 1002400),            // N
     ::testing::Values<scalar_t>(9.5f, 0.5f),             // sb
@@ -131,7 +132,7 @@ const auto combi = ::testing::Combine(
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values('u', 'b'),                         // allocation type
+    ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 1002, 0),                      // N
     ::testing::Values<scalar_t>(9.5f, 0.5f, 0.0f),       // sb
@@ -144,7 +145,7 @@ const auto combi = ::testing::Combine(
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char alloc;
+  std::string alloc;
   int size, incX, incY;
   float sb;
   api_type api;

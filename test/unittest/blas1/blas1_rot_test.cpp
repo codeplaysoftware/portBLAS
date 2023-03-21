@@ -26,11 +26,11 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, int, int, int, scalar_t>;
+using combination_t = std::tuple<std::string, int, int, int, scalar_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   index_t size;
   index_t incX;
   index_t incY;
@@ -97,14 +97,14 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   index_t size;
   index_t incX;
   index_t incY;
   scalar_t unused; /* Necessary to work around dpcpp compiler bug */
   std::tie(alloc, size, incX, incY, unused) = combi;
 
-  if (alloc == 'u') {  // usm alloc
+  if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
@@ -116,7 +116,7 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values('u', 'b'),  // allocation type
+    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
                        ::testing::Values(11, 65, 1002,
                                          1002400),  // size
                        ::testing::Values(1, 4),     // incX
@@ -126,18 +126,18 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values('u', 'b'),  // allocation type
-                       ::testing::Values(11, 1002),  // size
-                       ::testing::Values(4),         // incX
-                       ::testing::Values(3),         // incY
-                       ::testing::Values(0)          // unused
+    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+                       ::testing::Values(11, 1002),      // size
+                       ::testing::Values(4),             // incX
+                       ::testing::Values(3),             // incY
+                       ::testing::Values(0)              // unused
     );
 #endif
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char alloc;
+  std::string alloc;
   int size, incX, incY;
   T unused;
   BLAS_GENERATE_NAME(info.param, alloc, size, incX, incY, unused);

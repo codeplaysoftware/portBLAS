@@ -31,7 +31,7 @@ template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
   using tuple_t = IndexValueTuple<int, scalar_t>;
 
-  char alloc;
+  std::string alloc;
   api_type api;
   index_t size;
   index_t incX;
@@ -93,14 +93,14 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   api_type api;
   index_t size;
   index_t incX;
   generation_mode_t mode;
   std::tie(alloc, api, size, incX, mode) = combi;
 
-  if (alloc == 'u') {  // usm alloc
+  if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
