@@ -173,7 +173,7 @@ typename sb_handle_t::event_t _gemm(
                                                                 _beta, _c, _ldc,
                                                                 _stridec,
                                                                 batch_size);
-  } else if (_t_b && !_t_a) {
+  } else if (_t_b && !_t_a && !s_a && !s_b) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
