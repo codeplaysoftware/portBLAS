@@ -396,6 +396,32 @@ void trmm(const char *side, const char *uplo, const char *trans,
        c_diag(*diag), m, n, alpha, A, lda, B, ldb);
 }
 
+template <typename scalar_t>
+void symm(const char *side, const char *uplo, int m, int n, scalar_t alpha,
+          const scalar_t a[], int lda, const scalar_t b[], int ldb,
+          scalar_t beta, scalar_t c[], int ldc) {
+  auto func = blas_system_function<scalar_t>(&cblas_ssymm, &cblas_dsymm);
+  func(CblasColMajor, c_side(*side), c_uplo(*uplo), m, n, alpha, a, lda, b, ldb,
+       beta, c, ldc);
+}
+
+template <typename scalar_t>
+void syrk(const char *uplo, const char *trans, int n, int k, scalar_t alpha,
+          const scalar_t a[], int lda, scalar_t beta, scalar_t c[], int ldc) {
+  auto func = blas_system_function<scalar_t>(&cblas_ssyrk, &cblas_dsyrk);
+  func(CblasColMajor, c_uplo(*uplo), c_trans(*trans), n, k, alpha, a, lda, beta,
+       c, ldc);
+}
+
+template <typename scalar_t>
+void syr2k(const char *uplo, const char *trans, int n, int k, scalar_t alpha,
+           const scalar_t a[], int lda, const scalar_t b[], int ldb,
+           scalar_t beta, scalar_t c[], int ldc) {
+  auto func = blas_system_function<scalar_t>(&cblas_ssyr2k, &cblas_dsyr2k);
+  func(CblasColMajor, c_uplo(*uplo), c_trans(*trans), n, k, alpha, a, lda, b,
+       ldb, beta, c, ldc);
+}
+
 }  // namespace reference_blas
 
 #endif /* end of include guard: SYSTEM_REFERENCE_BLAS_HPP */

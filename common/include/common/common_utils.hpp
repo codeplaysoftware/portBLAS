@@ -45,6 +45,14 @@ using trsm_param_t =
     std::tuple<char, char, char, char, index_t, index_t, scalar_t>;
 
 template <typename scalar_t>
+using symm_param_t =
+    std::tuple<char, char, index_t, index_t, scalar_t, scalar_t>;
+
+template <typename scalar_t>
+using syrk_param_t =
+    std::tuple<char, char, index_t, index_t, scalar_t, scalar_t>;
+
+template <typename scalar_t>
 using gbmv_param_t = std::tuple<std::string, index_t, index_t, index_t, index_t,
                                 scalar_t, scalar_t>;
 
@@ -442,6 +450,93 @@ static inline std::vector<reduction_param_t> get_reduction_params(Args& args) {
   }
 }
 
+/**
+ * @fn get_symm_params
+ * @brief Returns a vector containing the symm benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<symm_param_t<scalar_t>> symm_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr scalar_t alpha{1};
+    for (char side : {'l', 'r'}) {
+      for (char uplo : {'u', 'l'}) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (scalar_t beta : {0, 1}) {
+              symm_default.push_back(
+                  std::make_tuple(side, uplo, m, n, alpha, beta));
+            }
+          }
+        }
+      }
+    }
+    return symm_default;
+  } else {
+    return parse_csv_file<symm_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 6) {
+            throw std::runtime_error(
+                "invalid number of parameters (7 expected)");
+          }
+          try {
+            return std::make_tuple(v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                                   str_to_int<index_t>(v[3]),
+                                   str_to_scalar<scalar_t>(v[4]),
+                                   str_to_scalar<scalar_t>(v[5]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_syrk_params
+ * @brief Returns a vector containing the syrk benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<syrk_param_t<scalar_t>> syrk_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr scalar_t alpha{1};
+    for (char uplo : {'u', 'l'}) {
+      for (char trans : {'n', 't'}) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t k = dmin; k <= dmax; k *= 2) {
+            for (scalar_t beta : {0, 1}) {
+              syrk_default.push_back(
+                  std::make_tuple(uplo, trans, n, k, alpha, beta));
+            }
+          }
+        }
+      }
+    }
+    return syrk_default;
+  } else {
+    return parse_csv_file<syrk_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 6) {
+            throw std::runtime_error(
+                "invalid number of parameters (7 expected)");
+          }
+          try {
+            return std::make_tuple(v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                                   str_to_int<index_t>(v[3]),
+                                   str_to_scalar<scalar_t>(v[4]),
+                                   str_to_scalar<scalar_t>(v[5]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
 /**
  * @fn get_trsm_params
  * @brief Returns a vector containing the trsm benchmark parameters, either
@@ -858,6 +953,24 @@ static inline void fill_trsm_matrix(std::vector<scalar_t>& A, size_t k,
       A[i + j * lda] = value;
     }
   }
+}
+
+/**
+ * @breif Fills fully a symmetrical matrix suitable for testing
+ * @param M The matrix to fill. Size must be at least lda * lda
+ * @param lda The leading dimension of matrix @p M
+ */
+template <typename scalar_t>
+static inline void fill_sym_matrix(std::vector<scalar_t>& m, const int n) {
+  const int lda = n;
+  for (int col = 0; col < n; ++col) {
+    for (int row = 0; row < n; ++row) {
+      // arbitrary number to have a variety of number
+      m[col * lda + row] = random_scalar(scalar_t{-5}, scalar_t{5});
+      m[row * lda + col] = random_scalar(scalar_t{-5}, scalar_t{5});
+    }
+  }
+  return;
 }
 
 /**

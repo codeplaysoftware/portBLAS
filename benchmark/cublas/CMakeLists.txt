@@ -61,6 +61,9 @@ set(sources
   blas2/trsv.cpp
   # Level 3 blas
   blas3/gemm.cpp
+  blas3/symm.cpp
+  blas3/syrk.cpp
+  blas3/syr2k.cpp
   blas3/trsm.cpp
   blas3/trmm.cpp
 ) 
