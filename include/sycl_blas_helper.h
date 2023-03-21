@@ -60,28 +60,6 @@ allocate(int size, cl::sycl::queue q) {
 }
 
 template <AllocType alloc, typename value_t>
-typename std::enable_if<alloc == AllocType::usm,
-                        typename AllocHelper<value_t, alloc>::tuple_type>::type
-allocate(const value_t *src, int size, cl::sycl::queue q) {
-  auto dst = cl::sycl::malloc_device<value_t>(size, q);
-  auto event = q.memcpy(dst, src, size * sizeof(value_t));
-  return std::make_tuple(dst, event);
-}
-
-template <AllocType alloc, typename value_t>
-typename std::enable_if<alloc == AllocType::buffer,
-                        typename AllocHelper<value_t, alloc>::tuple_type>::type
-allocate(const value_t *src, int size, cl::sycl::queue q) {
-  auto dst = make_sycl_iterator_buffer<value_t>(size);
-  auto event = q.submit([&](cl::sycl::handler &cgh) {
-    auto acc = dst.template get_range_accessor<cl::sycl::access::mode::write>(
-        cgh, size);
-    cgh.copy(src, acc);
-  });
-  return std::make_tuple(dst, event);
-}
-
-template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::buffer,
                         typename AllocHelper<value_t, alloc>::type>::type
 allocate(int size, cl::sycl::queue q) {
@@ -97,6 +75,19 @@ typename std::enable_if<alloc == AllocType::usm>::type deallocate(
 }
 
 template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
+    container_t mem, cl::sycl::queue q) {}
+
+// Need to add this guard since the enqueue_deallocate
+// function requires a host_task which throws a runtime
+// exception when used with the enable_profiling{} queue
+// property. We need to create all intermediate memory
+// before launching the kernel to avoid running into this
+// issue.
+// Enabling this code only for DEFAULT_CPU backend to get the
+// CI to pass.
+#ifdef DEFAULT_CPU
+template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::usm, cl::sycl::event>::type
 enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
                    cl::sycl::queue q) {
@@ -111,10 +102,6 @@ enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
 }
 
 template <AllocType alloc, typename container_t>
-typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
-    container_t mem, cl::sycl::queue q) {}
-
-template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer, cl::sycl::event>::type
 enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
                    cl::sycl::queue q) {
@@ -124,6 +111,7 @@ enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
 #endif
   return event;
 }
+#endif
 
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()

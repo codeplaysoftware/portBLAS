@@ -62,14 +62,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   std::vector<scalar_t> vec = blas_benchmark::utils::random_data<scalar_t>(
       (dim == reduction_dim_t::outer) ? rows : cols);
 
-  typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type mat_buffer,
-      vec_buffer;
-  cl::sycl::event copy_mat, copy_vec;
+  auto mat_buffer = blas::helper::allocate<mem_alloc, scalar_t>(rows * cols, q);
+  auto vec_buffer = blas::helper::allocate<mem_alloc, scalar_t>(vec.size(), q);
 
-  std::tie(mat_buffer, copy_mat) =
-      blas::helper::allocate<mem_alloc, scalar_t>(mat.data(), rows * cols, q);
-  std::tie(vec_buffer, copy_vec) =
-      blas::helper::allocate<mem_alloc, scalar_t>(vec.data(), vec.size(), q);
+  auto copy_mat = blas::helper::copy_to_device<scalar_t>(
+      q, mat.data(), mat_buffer, rows * cols);
+  auto copy_vec = blas::helper::copy_to_device<scalar_t>(
+      q, vec.data(), vec_buffer, vec.size());
+
+  sb_handle.wait({copy_mat, copy_vec});
 
 /* If enabled, run a first time with a verification of the results */
 #ifdef BLAS_VERIFY_BENCHMARK
@@ -92,16 +93,13 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
   }
   std::vector<scalar_t> vec_temp = vec;
   {
-    typename blas::helper::AllocHelper<scalar_t, mem_alloc>::type
-        vec_temp_buffer;
-    cl::sycl::event copy_temp;
-    std::tie(vec_temp_buffer, copy_temp) =
-        blas::helper::allocate<mem_alloc, scalar_t>(vec_temp.data(),
-                                                    vec_temp.size(), q);
-
+    auto vec_temp_buffer =
+        blas::helper::allocate<mem_alloc, scalar_t>(vec_temp.size(), q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(
+        q, vec_temp.data(), vec_temp_buffer, vec_temp.size());
+    sb_handle.wait({copy_temp});
     auto reduction_event = extension::_reduction<AddOperator, scalar_t>(
-        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim,
-        {copy_mat, copy_temp});
+        sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
     sb_handle.wait(reduction_event);
 
     auto event = blas::helper::copy_to_host(q, vec_temp_buffer, vec_temp.data(),
@@ -121,8 +119,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = extension::_reduction<AddOperator, scalar_t>(
-        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim,
-        {copy_mat, copy_vec});
+        sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
     sb_handle.wait(event);
     return event;
   };
