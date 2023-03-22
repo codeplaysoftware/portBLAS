@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_gemm_values.hpp
+ *  @filename blas3_gemm_common.hpp
  *
  **************************************************************************/
 
