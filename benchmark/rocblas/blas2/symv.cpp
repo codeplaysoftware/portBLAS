@@ -49,12 +49,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
 
+  index_t incX = 1;
+  index_t incY = 1;
+
   index_t xlen = n;
   index_t ylen = n;
 
   index_t lda = n;
-  index_t incX = 1;
-  index_t incY = 1;
 
   // The counters are double. We convert m and n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
@@ -62,17 +63,16 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
   state.counters["n"] = n_d;
 
-  {
-    double nflops_AtimesX = 2.0 * n_d * n_d;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  }
+  double nflops_AtimesX = 2.0 * n_d * n_d;
+  double nflops_timesAlpha = n_d;
+  double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  double nflops_tot = nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
   {
     double mem_readA = n_d * (n_d + 1) / 2;
-    double mem_readX = xlen;
-    double mem_writeY = ylen;
+    double mem_readX = n_d;
+    double mem_writeY = n_d;
     double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
@@ -163,6 +163,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetItemsProcessed(state.iterations() * nflops_tot);
 
     blas_benchmark::utils::calc_avg_counters(state);
 

@@ -67,15 +67,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   // Compute the number of A non-zero elements.
   const double A_validVal = n_d * (k_d + 1.0) - 0.5 * (k_d * (k_d + 1.0));
 
-  {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    state.counters["n_fl_ops"] = nflops_AtimesX;
-  }
+  double nflops_tot = 2.0 * A_validVal;
+  state.counters["n_fl_ops"] = nflops_tot;
 
   {
     double mem_readA = A_validVal;
-    double mem_readX = xlen;
-    double mem_writeX = xlen;
+    double mem_readX = n_d;
+    double mem_writeX = n_d;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
   }
@@ -93,18 +91,19 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   const int v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.
-  std::vector<scalar_t> m_a =
-      blas_benchmark::utils::random_data<scalar_t>(m_size);
+  std::vector<scalar_t> m_a(m_size);
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(v_size);
 
   // Populate the main diagonal with larger values.
-  for (index_t i = 0; i < n; ++i)
-    for (index_t j = 0; j < n; ++j)
-      m_a[(i * lda) + i] = (i == j) ? blas_benchmark::utils::random_scalar(
-                                          scalar_t{9}, scalar_t{11})
-                                    : blas_benchmark::utils::random_scalar(
-                                          scalar_t{-0.1}, scalar_t{0.1});
+  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
+  for (index_t j = 0; j < n; ++i)
+    for (index_t i = 0; i < lda; ++j)
+      m_a[i + lda * j] =
+          (i == main_diag)
+              ? blas_benchmark::utils::random_scalar(scalar_t{9}, scalar_t{11})
+              : blas_benchmark::utils::random_scalar(scalar_t{-0.1},
+                                                     scalar_t{0.1});
   {
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
@@ -169,6 +168,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetItemsProcessed(state.iterations() * nflops_tot);
 
     blas_benchmark::utils::calc_avg_counters(state);
 

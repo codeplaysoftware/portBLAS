@@ -64,15 +64,13 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   // Compute the number of A non-zero elements.
   const double A_validVal = .5 * n_d * (n_d + 1);
 
-  {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    state.counters["n_fl_ops"] = nflops_AtimesX;
-  }
+  double nflops_tot = 2.0 * A_validVal;
+  state.counters["n_fl_ops"] = nflops_tot;
 
   {
     double mem_readA = A_validVal;
-    double mem_readX = xlen;
-    double mem_writeX = xlen;
+    double mem_readX = n_d;
+    double mem_writeX = n_d;
     state.counters["bytes_processed"] =
         (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
   }
@@ -159,6 +157,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetItemsProcessed(state.iterations() * nflops_tot);
 
     blas_benchmark::utils::calc_avg_counters(state);
 

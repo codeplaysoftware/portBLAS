@@ -76,13 +76,12 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
       (t_str[0] == 'n' ? n_d : m_d) * (kl_d + ku_d + 1.0) -
       0.5 * (kl_d * (kl_d + 1.0)) - 0.5 * (ku_d * (ku_d + 1.0));
 
-  {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  }
+  double nflops_AtimesX = 2.0 * A_validVal;
+  double nflops_timesAlpha = ylen;
+  double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  double nflops_tot = nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
   {
     double mem_readA = A_validVal;
     double mem_readX = xlen;
@@ -177,6 +176,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetItemsProcessed(state.iterations() * nflops_tot);
 
     blas_benchmark::utils::calc_avg_counters(state);
 
