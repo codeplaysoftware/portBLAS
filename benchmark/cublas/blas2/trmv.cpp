@@ -171,18 +171,15 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  auto trmv_params = blas_benchmark::utils::get_tbmv_params(args);
+  // trmv uses the same parameters as trsv
+  auto trmv_params = blas_benchmark::utils::get_trsv_params(args);
 
   for (auto p : trmv_params) {
     std::string uplos;
     std::string ts;
     std::string diags;
     index_t n;
-    index_t k;
-    std::tie(uplos, ts, diags, n, k) = p;
-
-    // Repurpose trmv parameters.
-    if (k != 1) continue;
+    std::tie(uplos, ts, diags, n) = p;
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          std::string uplos, std::string ts, std::string diags,

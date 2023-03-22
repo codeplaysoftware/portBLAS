@@ -26,10 +26,10 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, int n, int k) {
+std::string get_name(std::string uplo, int n, scalar_t alpha, scalar_t beta) {
   std::ostringstream str{};
   str << "BM_Spmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << n << "/" << k;
+      << uplo << "/" << n << "/" << alpha << "/" << beta;
   return str.str();
 }
 
@@ -166,23 +166,21 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  auto spmv_params = blas_benchmark::utils::get_sbmv_params<scalar_t>(args);
+  // spmv and  symv use the same set of params, so reuse the symv function
+  auto spmv_params = blas_benchmark::utils::get_symv_params<scalar_t>(args);
 
   for (auto p : spmv_params) {
     std::string uplos;
-    index_t n, k;
+    index_t n;
     scalar_t alpha, beta;
-    std::tie(uplos, n, k, alpha, beta) = p;
-
-    // Repurpose sbmv params
-    if (k != 1) continue;
+    std::tie(uplos, n, alpha, beta) = p;
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          std::string uplos, index_t n, scalar_t alpha,
                          scalar_t beta, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, uplos, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplos, n, k).c_str(),
+    benchmark::RegisterBenchmark(get_name<scalar_t>(uplos, n, alpha, beta).c_str(),
                                  BM_lambda, cuda_handle_ptr, uplos, n, alpha,
                                  beta, success);
   }

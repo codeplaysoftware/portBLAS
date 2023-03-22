@@ -26,10 +26,10 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int m, int n) {
+std::string get_name(int m, int n) {
   std::ostringstream str{};
   str << "BM_Ger<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t << "/" << m << "/" << n;
+      << m << "/" << n;
   return str.str();
 }
 
@@ -158,26 +158,19 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t m,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  // ger operator uses almost all blas2 general params
-  auto ger_params = blas_benchmark::utils::get_blas2_params<scalar_t>(args);
+  auto ger_params = blas_benchmark::utils::get_ger_params<scalar_t>(args);
 
   for (auto p : ger_params) {
-    std::string ts;
     index_t m, n;
-    scalar_t alpha, beta;
-    std::tie(ts, m, n, alpha, beta) = p;
-
-    // Repurpose general blas2 params
-    if (ts != "n") continue;
+    scalar_t alpha;
+    std::tie(m, n, alpha) = p;
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
-                         index_t m, index_t n, scalar_t alpha, scalar_t beta,
-                         bool* success) {
+                         index_t m, index_t n, scalar_t alpha, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, m, n, alpha, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
-                                 BM_lambda, cuda_handle_ptr, m, n, alpha, beta,
-                                 success);
+    benchmark::RegisterBenchmark(get_name<scalar_t>(m, n).c_str(), BM_lambda,
+                                 cuda_handle_ptr, m, n, alpha, success);
   }
 }
 

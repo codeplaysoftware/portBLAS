@@ -156,6 +156,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
+  // spr2 uses the same parameters as spr
   auto spr2_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
 
   for (auto p : spr2_params) {

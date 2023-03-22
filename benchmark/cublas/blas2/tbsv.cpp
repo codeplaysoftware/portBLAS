@@ -168,6 +168,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
+  // tbsv uses the same parameters as tbmv
   auto tbsv_params = blas_benchmark::utils::get_tbmv_params(args);
 
   for (auto p : tbsv_params) {

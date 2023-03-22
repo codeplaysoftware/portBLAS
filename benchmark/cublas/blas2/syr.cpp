@@ -26,10 +26,10 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int n, scalar_t alpha) {
+std::string get_name(std::string uplo, int n, scalar_t alpha) {
   std::ostringstream str{};
   str << "BM_Syr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t << "/" << n << "/" << alpha;
+      << uplo << "/" << n << "/" << alpha;
   return str.str();
 }
 
