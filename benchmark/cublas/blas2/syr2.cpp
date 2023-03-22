@@ -160,7 +160,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  // syr2 use the same parameters so reuse spr function
+  // syr2 use the same parameters so reuse syr function
   auto syr2_params = blas_benchmark::utils::get_syr_params<scalar_t>(args);
 
   for (auto p : syr2_params) {
