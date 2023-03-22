@@ -58,16 +58,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   state.counters["incX"] = incX;
   state.counters["incY"] = incY;
 
-  {
-    double nflops_XtimesX = 2.0 * n_d;
-    state.counters["n_fl_ops"] = size + nflops_XtimesX;
-  }
-  {
-    double mem_readA = n_d;
-    double mem_readX = static_cast<double>(size * std::abs(incX));
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX) * sizeof(scalar_t);
-  }
+  const double nflops_XtimesX = 2.0 * n_d;
+  const double nflops_tot = size + nflops_XtimesX;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = n_d;
+  const double mem_readX = static_cast<double>(size * std::abs(incX));
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX) * sizeof(scalar_t);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -114,7 +112,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, c_uplo, size, &alpha, v_x_gpu, incX,
                              v_y_gpu, incY, m_a_gpu);
-   return;
+    return;
   };
 
   cudaEvent_t start;
@@ -146,6 +144,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
     // Report
     blas_benchmark::utils::update_counters(state, times);
   }
+
+  state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
 

@@ -64,18 +64,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   // Compute the number of A non-zero elements.
   const double A_validVal = n_d * (n_d + 1) / 2;
 
-  {
-    double nflops = 2 * A_validVal;
-    state.counters["n_fl_ops"] = nflops;
-  }
+  const double nflops_tot = 2 * A_validVal;
+  state.counters["n_fl_ops"] = nflops_tot;
 
-  {
-    double mem_readA = A_validVal;
-    double mem_readX = n_d;
-    double mem_writeX = n_d;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
-  }
+  const double mem_readA = A_validVal;
+  const double mem_readX = n_d;
+  const double mem_writeX = n_d;
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -149,6 +145,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     // Report
     blas_benchmark::utils::update_counters(state, times);
   }
+
+  state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
 

@@ -76,21 +76,19 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
       (t_str[0] == 'n' ? n_d : m_d) * (kl_d + ku_d + 1.0) -
       0.5 * (kl_d * (kl_d + 1.0)) - 0.5 * (ku_d * (ku_d + 1.0));
 
-  {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  }
-  {
-    double mem_readA = A_validVal;
-    double mem_readX = xlen;
-    double mem_writeY = ylen;
-    double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
-  }
+  const double nflops_AtimesX = 2.0 * A_validVal;
+  const double nflops_timesAlpha = ylen;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  const double nflops_tot =
+      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = A_validVal;
+  const double mem_readX = xlen;
+  const double mem_writeY = ylen;
+  const double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -164,6 +162,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
     // Report
     blas_benchmark::utils::update_counters(state, times);
   }
+
+  state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
 
