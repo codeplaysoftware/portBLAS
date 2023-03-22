@@ -86,8 +86,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t m,
   std::vector<scalar_t> v_y =
       blas_benchmark::utils::random_data<scalar_t>(ylen);
 
-  cublasSetPointerMode(cuda_handle, CUBLAS_POINTER_MODE_HOST);
-
   blas_benchmark::utils::CUDAVector<scalar_t> m_a_gpu((m * n), m_a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> v_x_gpu(xlen, v_x.data());
   blas_benchmark::utils::CUDAVector<scalar_t> v_y_gpu(ylen, v_y.data());

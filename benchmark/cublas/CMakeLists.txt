@@ -77,7 +77,6 @@ foreach(cublas_bench ${sources})
   )
 target_include_directories(bench_cublas_${bench_cublas_exec} PRIVATE $ENV{CUBLAS_INCLUDE} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR} ${CBLAS_INCLUDE})
   add_compile_definitions(BUILD_CUBLAS_BENCHMARKS)
-  add_compile_options(-gdwarf-4)
 
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE BLAS_VERIFY_BENCHMARK)

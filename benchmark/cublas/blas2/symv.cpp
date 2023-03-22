@@ -67,7 +67,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const double A_validVal = (n_d * (n_d + 1) / 2);
 
   {
-    double nflops_AtimesX = 2 * n_d;
+    double nflops_AtimesX = 2 * n_d * n_d;
     double nflops_timesAlpha = xlen;
     double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
     state.counters["n_fl_ops"] =

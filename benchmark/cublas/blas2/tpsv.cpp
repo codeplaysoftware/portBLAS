@@ -24,7 +24,6 @@
  **************************************************************************/
 
 #include "../utils.hpp"
-#include "common/common_utils.hpp"
 
 template <typename scalar_t>
 std::string get_name(std::string uplo, std::string t, std::string diag,
