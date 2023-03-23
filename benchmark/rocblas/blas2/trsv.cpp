@@ -95,7 +95,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   // Populate the main diagonal with larger values.
   for (index_t i = 0; i < n; ++i)
     for (index_t j = 0; j < n; ++j)
-      m_a[(i * lda) + i] = (i == j) ? blas_benchmark::utils::random_scalar(
+      m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
                                           scalar_t{-0.1}, scalar_t{0.1});
