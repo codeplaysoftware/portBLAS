@@ -382,7 +382,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
     constexpr index_t dmin = 64, dmax = 1024;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
-    scalar_t beta = 1;
+    scalar_t beta = 0;
     index_t batch_size = 8;
     int batch_type = 0;
     for (std::string& t1 : dtranspose) {
