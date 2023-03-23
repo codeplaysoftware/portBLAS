@@ -61,8 +61,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo, int n,
   {
     double mem_readA = size_d;
     double mem_readX = n_d;
+    double mem_writeA = size_d;
     state.counters["bytes_processed"] =
-        (mem_readA + mem_readX) * sizeof(scalar_t);
+        (mem_readA + mem_readX + mem_writeA) * sizeof(scalar_t);
   }
 
   // Matrix options (rocBLAS)

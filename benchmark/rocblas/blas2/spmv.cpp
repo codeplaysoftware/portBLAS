@@ -64,7 +64,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   // Compute the number of A non-zero elements.
   const double A_validVal = .5 * n_d * (n_d + 1);
 
-  double nflops_AtimesX = 2.0 * A_validVal;
+  double nflops_AtimesX = 2.0 * n_d * n_d;
   double nflops_timesAlpha = n_d;
   double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * n_d : 0;
   double nflops_tot = nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;

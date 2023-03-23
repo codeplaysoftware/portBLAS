@@ -587,7 +587,7 @@ static inline std::vector<symv_param_t<scalar_t>> get_symv_params(Args& args) {
     std::vector<symv_param_t<scalar_t>> symv_default;
     constexpr index_t dmin = 64, dmax = 1024;
     scalar_t alpha = 1;
-    scalar_t beta = 0;
+    scalar_t beta = 1;
     for (std::string uplo : {"u", "l"}) {
       for (index_t n = dmin; n <= dmax; n *= 2) {
         symv_default.push_back(std::make_tuple(uplo, n, alpha, beta));
