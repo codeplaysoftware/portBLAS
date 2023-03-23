@@ -51,9 +51,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo, int n,
   double size_d = static_cast<double>(n * (n + 1) / 2);
   double n_d = static_cast<double>(n);
 
-  state.counters["size_d"] = size_d;
-  state.counters["alpha"] = static_cast<double>(alpha);
-  state.counters["incX"] = incX;
+  state.counters["n"] = n_d;
 
   double nflops_tot = 2.0 * size_d + n_d;
   state.counters["n_fl_ops"] = nflops_tot;
