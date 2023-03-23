@@ -53,17 +53,17 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   // Temporarely set incY to 1 for all benchmarks
   index_t incY = 1;
 
-  state.counters["n_d"] = n_d;
+  state.counters["n"] = n_d;
   state.counters["alpha"] = static_cast<double>(alpha);
   state.counters["incX"] = incX;
   state.counters["incY"] = incY;
 
-  const double nflops_XtimesX = 2.0 * n_d;
+  const double nflops_XtimesX = 4.0 * n_d;
   const double nflops_tot = size + nflops_XtimesX;
   state.counters["n_fl_ops"] = nflops_tot;
 
-  const double mem_readA = n_d;
-  const double mem_readX = static_cast<double>(size * std::abs(incX));
+  const double mem_readA = 2 * n_d;
+  const double mem_readX = 2 * static_cast<double>(size * std::abs(incX));
   state.counters["bytes_processed"] =
       (mem_readA + mem_readX) * sizeof(scalar_t);
 

@@ -66,7 +66,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   state.counters["n_fl_ops"] = nflops_tot;
 
   double mem_readWriteA = 2 * size_d;
-  double mem_readX = static_cast<double>(n * std::abs(incX));
+  double mem_readX = 2 * static_cast<double>(n * std::abs(incX));
   state.counters["bytes_processed"] =
       (mem_readWriteA + mem_readX) * sizeof(scalar_t);
 
