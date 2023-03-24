@@ -59,8 +59,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   // The counters are double. We convert n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
+  const double n_d = static_cast<double>(n);
+  const double k_d = static_cast<double>(k);
 
   state.counters["n"] = n_d;
   state.counters["k"] = k_d;
@@ -72,8 +72,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   state.counters["n_fl_ops"] = nflops_tot;
 
   const double mem_readA = A_validVal;
-  const double mem_readX = xlen;
-  const double mem_writeX = xlen;
+  const double mem_readX = n_d;
+  const double mem_writeX = n_d;
   state.counters["bytes_processed"] =
       (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
 
@@ -85,12 +85,15 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
   // Populate the main diagonal with larger values.
-  for (int i = 0; i < lda; ++i)
-    for (int j = 0; j < n; ++j)
-      m_a[(i * lda) + i] =
-          (i == j)
+  // Populate the main diagonal with larger values.
+  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
+  for (index_t j = 0; j < n; ++j)
+    for (index_t i = 0; i < lda; ++i)
+      m_a[i + lda * j] =
+          (i == main_diag)
               ? blas_benchmark::utils::random_scalar(scalar_t{9}, scalar_t{11})
-              : blas_benchmark::utils::random_scalar(scalar_t{-1}, scalar_t{1});
+              : blas_benchmark::utils::random_scalar(scalar_t{-0.1},
+                                                     scalar_t{0.1});
 
   blas_benchmark::utils::CUDAVector<scalar_t> m_a_gpu(lda * n, m_a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> v_x_gpu(xlen, v_x.data());

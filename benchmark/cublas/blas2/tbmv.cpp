@@ -59,8 +59,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   // The counters are double. We convert n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
+  const double n_d = static_cast<double>(n);
+  const double k_d = static_cast<double>(k);
 
   state.counters["n"] = n_d;
   state.counters["k"] = k_d;
@@ -72,8 +72,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   state.counters["n_fl_ops"] = nflops_AtimesX;
 
   const double mem_readA = A_validVal;
-  const double mem_readX = xlen;
-  const double mem_writeX = xlen;
+  const double mem_readX = n_d;
+  const double mem_writeX = n_d;
   state.counters["bytes_processed"] =
       (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
 
