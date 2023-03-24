@@ -53,10 +53,21 @@ using sbmv_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
+using symv_param_t = std::tuple<std::string, index_t, scalar_t, scalar_t>;
+
+template <typename scalar_t>
+using syr_param_t = std::tuple<std::string, index_t, scalar_t>;
+
+template <typename scalar_t>
+using ger_param_t = std::tuple<index_t, index_t, scalar_t>;
+
+template <typename scalar_t>
 using spr_param_t = std::tuple<std::string, index_t, scalar_t, index_t>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
+
+using trsv_param_t = std::tuple<std::string, std::string, std::string, index_t>;
 
 namespace blas_benchmark {
 
@@ -564,9 +575,120 @@ static inline std::vector<sbmv_param_t<scalar_t>> get_sbmv_params(Args& args) {
 }
 
 /**
- * @fn get_tbmv_params
- * @brief Returns a vector containing the tbmv benchmark parameters, either
+ * @fn get_symv_params
+ * @brief Returns a vector containing the symv (also valid for spmv) benchmark
+ * parameters, either read from a file according to the command-line args, or
+ * the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<symv_param_t<scalar_t>> get_symv_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<symv_param_t<scalar_t>> symv_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    scalar_t beta = 1;
+    for (std::string uplo : {"u", "l"}) {
+      for (index_t n = dmin; n <= dmax; n *= 2) {
+        symv_default.push_back(std::make_tuple(uplo, n, alpha, beta));
+      }
+    }
+    return symv_default;
+  } else {
+    return parse_csv_file<symv_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 4) {
+            throw std::runtime_error(
+                "invalid number of parameters (4 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]),
+                                   str_to_scalar<scalar_t>(v[3]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_syr_params
+ * @brief Returns a vector containing the syr (also valid for syr2 and spr2)
+ * benchmark parameters, either read from a file according to the command-line
+ * args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<syr_param_t<scalar_t>> get_syr_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<syr_param_t<scalar_t>> syr_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    for (std::string uplo : {"u", "l"}) {
+      for (index_t n = dmin; n <= dmax; n *= 2) {
+        syr_default.push_back(std::make_tuple(uplo, n, alpha));
+      }
+    }
+    return syr_default;
+  } else {
+    return parse_csv_file<syr_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_ger_params
+ * @brief Returns a vector containing the ger benchmark parameters, either
  * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<ger_param_t<scalar_t>> get_ger_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<ger_param_t<scalar_t>> ger_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    scalar_t alpha = 1;
+    for (index_t m = dmin; m <= dmax; m *= 2) {
+      for (index_t n = dmin; n <= dmax; n *= 2) {
+        ger_default.push_back(std::make_tuple(m, n, alpha));
+      }
+    }
+    return ger_default;
+  } else {
+    return parse_csv_file<ger_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(str_to_int<index_t>(v[0]),
+                                   str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_tbmv_params
+ * @brief Returns a vector containing the tbmv (also valid for tbsv) benchmark
+ * parameters, either read from a file according to the command-line args, or
+ * the default ones.
  */
 static inline std::vector<tbmv_param_t> get_tbmv_params(Args& args) {
   if (args.csv_param.empty()) {
@@ -597,6 +719,45 @@ static inline std::vector<tbmv_param_t> get_tbmv_params(Args& args) {
             return std::make_tuple(v[0].c_str(), v[1].c_str(), v[2].c_str(),
                                    str_to_int<index_t>(v[3]),
                                    str_to_int<index_t>(v[4]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_trsv_params
+ * @brief Returns a vector containing the trsv (also valid for trmv, tpmv and
+ * tpmv) benchmark parameters, either read from a file according to the
+ * command-line args, or the default ones.
+ */
+static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<trsv_param_t> trsv_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t kmin = 1;
+    for (std::string t : {"n", "t"}) {
+      for (std::string ul : {"u", "l"}) {
+        for (std::string diag : {"n", "u"}) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            trsv_default.push_back(std::make_tuple(ul, t, diag, n));
+          }
+        }
+      }
+    }
+    return trsv_default;
+  } else {
+    return parse_csv_file<trsv_param_t>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 4) {
+            throw std::runtime_error(
+                "invalid number of parameters (4 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), v[1].c_str(), v[2].c_str(),
+                                   str_to_int<index_t>(v[3]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

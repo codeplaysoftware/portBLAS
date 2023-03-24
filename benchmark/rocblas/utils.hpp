@@ -26,7 +26,6 @@
 #ifndef ROCBLAS_UTILS_HPP
 #define ROCBLAS_UTILS_HPP
 
-#include "sycl_blas.h"
 #include <common/common_utils.hpp>
 
 #include <hip/hip_runtime.h>
