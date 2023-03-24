@@ -42,6 +42,23 @@ set(sources
   blas1/rotmg.cpp
   blas1/scal.cpp
   #blas1/sdsdot.cpp -> not implemented in cuBLAS
+  # Level 2 blas 
+  blas2/gbmv.cpp 
+  blas2/gemv.cpp
+  blas2/ger.cpp
+  blas2/sbmv.cpp 
+  blas2/spmv.cpp 
+  blas2/spr.cpp
+  blas2/spr2.cpp
+  blas2/symv.cpp
+  blas2/syr.cpp
+  blas2/syr2.cpp
+  blas2/tbmv.cpp
+  blas2/tbsv.cpp
+  blas2/tpmv.cpp
+  blas2/tpsv.cpp
+  blas2/trmv.cpp
+  blas2/trsv.cpp
 ) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
