@@ -165,15 +165,16 @@ void register_benchmark(blas_benchmark::Args& args,
         sb_handle_ptr, rows, cols, DIM, success);                              \
   }
 
-  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm",
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer",
                                reduction_dim_t::inner);
   REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer",
+                               reduction_dim_t::outer);
+#ifdef SB_ENABLE_USM
+  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm",
                                reduction_dim_t::inner);
   REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::usm, "usm",
                                reduction_dim_t::outer);
-  REGISTER_MEM_TYPE_BENCHMARKS(blas::helper::AllocType::buffer, "buffer",
-                               reduction_dim_t::outer);
-
+#endif
 #undef REGISTER_MEM_TYPE_BENCHMARKS
 }
 

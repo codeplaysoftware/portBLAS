@@ -235,7 +235,9 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(
   cl::sycl::event ev;
   try {
     auto cg1 = [=](cl::sycl::handler &h) mutable {
+#ifdef SB_ENABLE_USM
       h.depends_on(dependencies);
+#endif
       t.bind(h);
       auto scratch = LocalMemory<value_t, using_local_memory>(shMem, h);
 

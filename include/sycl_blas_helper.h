@@ -52,12 +52,14 @@ struct AllocHelper<value_t, AllocType::buffer> {
   using tuple_type = std::tuple<BufferIterator<value_t>, cl::sycl::event>;
 };
 
+#ifdef SB_ENABLE_USM
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::usm,
                         typename AllocHelper<value_t, alloc>::type>::type
 allocate(int size, cl::sycl::queue q) {
   return cl::sycl::malloc_device<value_t>(size, q);
 }
+#endif
 
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::buffer,
@@ -66,6 +68,7 @@ allocate(int size, cl::sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
 
+#ifdef SB_ENABLE_USM
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::usm>::type deallocate(
     container_t mem, cl::sycl::queue q) {
@@ -73,6 +76,7 @@ typename std::enable_if<alloc == AllocType::usm>::type deallocate(
     cl::sycl::free(reinterpret_cast<void *>(mem), q);
   }
 }
+#endif
 
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
@@ -150,12 +154,14 @@ inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
   return event;
 }
 
+#ifdef SB_ENABLE_USM
 template <typename element_t>
 inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
                                       element_t *dst, size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
+#endif
 
 /*  @brief Copying the data back to device
   @tparam element_t is the type of the data
@@ -175,12 +181,14 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q,
   return event;
 }
 
+#ifdef SB_ENABLE_USM
 template <typename element_t>
 inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
                                     element_t *dst, size_t size) {
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
+#endif
 
 template <typename element_t>
 inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
