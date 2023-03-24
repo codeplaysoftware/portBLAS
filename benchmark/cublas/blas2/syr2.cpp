@@ -56,12 +56,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   // The counters are double. We convert m and n to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
   scalar_t size_d = static_cast<scalar_t>(n * (n + 1) / 2);
-
-  state.counters["n"] = static_cast<double>(size_d);
-
   const double n_d = static_cast<double>(n);
+
+  state.counters["n"] = n_d;
+
   const double nflops_AlphaTimesX = n_d;
-  const double nflops_AplusYtimesX = 4 * size_d;
+  const double nflops_AplusYtimesX = 4.0 * size_d;
   const double nflops_tot = nflops_AplusYtimesX + nflops_AlphaTimesX;
   state.counters["n_fl_ops"] = nflops_tot;
 

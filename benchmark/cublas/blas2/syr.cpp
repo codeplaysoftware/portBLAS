@@ -59,7 +59,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   state.counters["n"] = static_cast<double>(n);
 
   const double nflops_timesAlpha = static_cast<double>(n);
-  const double nflops_AplusXtimeAlphaX = 2 * size_d;
+  const double nflops_AplusXtimeAlphaX = 2. * size_d;
   const double nflops_tot = nflops_AplusXtimeAlphaX + nflops_timesAlpha;
   state.counters["n_fl_ops"] = nflops_tot;
 

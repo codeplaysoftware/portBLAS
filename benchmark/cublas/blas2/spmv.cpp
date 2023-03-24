@@ -61,23 +61,21 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   double n_d = static_cast<double>(n);
 
   state.counters["n"] = n_d;
-  state.counters["alpha"] = alpha;
-  state.counters["beta"] = beta;
 
   // Compute the number of A non-zero elements.
   const double A_validVal = (n_d * (n_d + 1) / 2);
 
   const double nflops_AtimesX = 2.0 * n_d * n_d;
-  const double nflops_timesAlpha = ylen;
-  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  const double nflops_timesAlpha = n_d;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * n_d : 0;
   const double nflops_tot =
       nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
   state.counters["n_fl_ops"] = nflops_tot;
 
   const double mem_readA = A_validVal;
-  const double mem_readX = xlen;
-  const double mem_writeY = ylen;
-  const double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
+  const double mem_readX = n_d;
+  const double mem_writeY = n_d;
+  const double mem_readY = (beta != scalar_t{0}) ? n_d : 0;
   state.counters["bytes_processed"] =
       (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
 
@@ -180,9 +178,9 @@ void register_benchmark(blas_benchmark::Args& args,
                          scalar_t beta, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, uplos, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplos, n, alpha, beta).c_str(),
-                                 BM_lambda, cuda_handle_ptr, uplos, n, alpha,
-                                 beta, success);
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(uplos, n, alpha, beta).c_str(), BM_lambda,
+        cuda_handle_ptr, uplos, n, alpha, beta, success);
   }
 }
 

@@ -26,10 +26,10 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
+std::string get_name(char uplo, int n, scalar_t alpha, int incX) {
   std::ostringstream str{};
   str << "BM_Spr2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << size << "/" << alpha << "/" << incX;
+      << uplo << "/" << n << "/" << alpha << "/" << incX;
   return str.str();
 }
 
@@ -45,32 +45,30 @@ static inline void cublas_routine(args_t&&... args) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
-         int size, scalar_t alpha, int incX, bool* success) {
+         int n, scalar_t alpha, int incX, bool* success) {
   // The counters are double. We convert size to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(size * (size + 1) / 2);
+  const double size_d = static_cast<double>(n * (n + 1) / 2);
+  const double n_d = static_cast<double>(n);
 
   // Temporarely set incY to 1 for all benchmarks
   index_t incY = 1;
 
   state.counters["n"] = n_d;
-  state.counters["alpha"] = static_cast<double>(alpha);
-  state.counters["incX"] = incX;
-  state.counters["incY"] = incY;
 
-  const double nflops_XtimesX = 4.0 * n_d;
-  const double nflops_tot = size + nflops_XtimesX;
+  const double nflops_XtimesX = 4.0 * size_d;
+  const double nflops_tot = n_d + nflops_XtimesX;
   state.counters["n_fl_ops"] = nflops_tot;
 
-  const double mem_readA = 2 * n_d;
-  const double mem_readX = 2 * static_cast<double>(size * std::abs(incX));
+  const double mem_readWriteA = 2 * size_d;
+  const double mem_readXreadY = 2 * static_cast<double>(n_d * std::abs(incX));
   state.counters["bytes_processed"] =
-      (mem_readA + mem_readX) * sizeof(scalar_t);
+      (mem_readWriteA + mem_readXreadY) * sizeof(scalar_t);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  const int m_size = size * size;
-  const int v_size = 1 + (size - 1) * std::abs(incX);
+  const int m_size = n * n;
+  const int v_size = 1 + (n - 1) * std::abs(incX);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -90,14 +88,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_a_ref = m_a;
-  reference_blas::spr2<scalar_t>(&uplo, size, alpha, v_x.data(), incX,
+  reference_blas::spr2<scalar_t>(&uplo, n, alpha, v_x.data(), incX,
                                  v_y.data(), incY, m_a_ref.data());
 
   std::vector<scalar_t> m_a_temp = m_a;
   {
     blas_benchmark::utils::CUDAVector<scalar_t, true> m_a_temp_gpu(
         m_size, m_a_temp.data());
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, size, &alpha, v_x_gpu, incX,
+    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, v_x_gpu, incX,
                              v_y_gpu, incY, m_a_temp_gpu);
   }
 
@@ -110,7 +108,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 #endif
 
   auto blas_warmup = [&]() -> void {
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, size, &alpha, v_x_gpu, incX,
+    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, v_x_gpu, incX,
                              v_y_gpu, incY, m_a_gpu);
     return;
   };
@@ -122,7 +120,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
     CUDA_CHECK(cudaEventRecord(start));
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, size, &alpha, v_x_gpu, incX,
+    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, v_x_gpu, incX,
                              v_y_gpu, incY, m_a_gpu);
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));
@@ -169,8 +167,8 @@ void register_benchmark(blas_benchmark::Args& args,
 
     auto BM_lambda_col =
         [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr, char uplo,
-            int size, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t>(st, cuda_handle_ptr, uplo, size, alpha, incX, success);
+            int n, scalar_t alpha, int incX, bool* success) {
+          run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, incX, success);
         };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
