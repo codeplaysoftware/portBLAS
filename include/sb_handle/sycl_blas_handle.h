@@ -134,8 +134,8 @@ class SB_Handle {
 
   inline void wait(cl::sycl::event ev) { cl::sycl::event::wait({ev}); }
 
-  /*  @brief waiting for a list of sycl dependencies
- @param first_event  and next_dependencies are instances of sycl::sycl::event
+  /*  @brief waiting for a list of sycl events
+ @param first_event  and next_events are instances of sycl::sycl::event
 */
   // this must be in header as the number of event is controlled by user and we
   // dont know howmany permutation can be used by a user

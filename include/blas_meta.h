@@ -187,6 +187,9 @@ struct is_sycl_scalar<cl::sycl::half> : std::true_type {};
 template <>
 struct is_sycl_scalar<float *> : std::false_type {};
 
+template <>
+struct is_sycl_scalar<double *> : std::false_type {};
+
 }  // namespace blas
 
 #endif  // BLAS_META_H
