@@ -66,7 +66,7 @@ typename sb_handle_t::event_t _gemm(
                                                               _stridec,
                                                               batch_size);
 #else
-  if (_M <= 128 && _N <= 128 && _K <= 128) {
+  if (_M <= 128 && _N <= 128 && _K <= 128 && !s_a && !s_b) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
@@ -81,12 +81,27 @@ typename sb_handle_t::event_t _gemm(
                                                                 _beta, _c, _ldc,
                                                                 _stridec,
                                                                 batch_size);
-  } else {
+  } else if (!s_a && !s_b) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
+        static_cast<int>(
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
+                                                                batch_size);
+  } else {
+    return blas::Gemm_Launcher<
+        64, false, false, false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b, s_a, s_b,
+        static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::standard),
+        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
