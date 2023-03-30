@@ -57,21 +57,23 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
 
   // The counters are double. We convert m, n and k to double to avoid
   // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
+  const double m_d = static_cast<double>(m);
+  const double n_d = static_cast<double>(n);
 
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
-  double mem_readAreadB = 2 * m_d * n_d;
-  double mem_writeB = m_d * n_d;
-  double total_mem = (mem_readAreadB + mem_writeB) * sizeof(scalar_t);
+  const double mem_readBwriteC = 2 * m_d * n_d;
+  const double mem_readA =
+      (side == 'l') ? m_d * (m_d + 1) / 2 : n_d * (n_d + 1) / 2;
+  const double total_mem = (mem_readBwriteC + mem_readA) * sizeof(scalar_t);
   state.counters["bytes_processed"] = total_mem;
 
-  const double nflops_AtimesB = 2 * m_d * n_d;
+  const double nflops_AtimesB = (side == 'l') ? 2 * m_d * (m_d + 1) / 2 * n_d
+                                              : 2 * n_d * (n_d + 1) / 2 * m_d;
   const double nflops_timesAlpha = m_d * n_d;
-  const double nflops = nflops_AtimesB + nflops_timesAlpha;
-  state.counters["n_fl_ops"] = nflops;
+  const double nflops_tot = nflops_AtimesB + nflops_timesAlpha;
+  state.counters["n_fl_ops"] = nflops_tot;
 
   // Matrices
   std::vector<scalar_t> a(tr_m_size);
@@ -84,10 +86,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
                     : blas_benchmark::utils::random_scalar<scalar_t>(
                           scalar_t{1}, scalar_t{10});
 
-  
-  const auto a_other_dim{tr_m_size/lda};
-  blas_benchmark::utils::fill_trsm_matrix(a, a_other_dim, lda, uplo,
-                                          diagValue, scalar_t{0});
+  const auto a_other_dim{tr_m_size / lda};
+  blas_benchmark::utils::fill_trsm_matrix(a, a_other_dim, lda, uplo, diagValue,
+                                          scalar_t{0});
 
   blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(tr_m_size, a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> b_gpu(ldb * n, b.data());
@@ -161,7 +162,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
   }
 
   state.SetBytesProcessed(state.iterations() * total_mem);
-  state.SetItemsProcessed(state.iterations() * nflops);
+  state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
 

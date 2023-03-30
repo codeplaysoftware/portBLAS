@@ -150,10 +150,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
     state.counters["bytes_processed"] = total_mem;
     state.SetBytesProcessed(state.iterations() * total_mem);
 
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
+    double nflops_AtimesB = (2 * k_d) * m_d * n_d;
     double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    double nflops = nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+    double nflops = nflops_AtimesB + nflops_addBetaC;
     state.counters["n_fl_ops"] = nflops;
     state.SetItemsProcessed(state.iterations() * nflops);
   }

@@ -63,14 +63,19 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
-  double mem_readAreadB = 2 * m_d * n_d;
-  double mem_writeB = m_d * n_d;
-  double total_mem = (mem_readAreadB + mem_writeB) * sizeof(scalar_t);
+  const double mem_readBreadC =
+      (beta != scalar_t{0}) ? 2 * m_d * n_d : m_d * n_d;
+  const double mem_writeC = m_d * n_d;
+  const double mem_readA =
+      (side == 'l') ? (m_d * (m_d + 1) / 2) : (n_d * (n_d + 1) / 2);
+  double total_mem =
+      (mem_readBreadC + mem_writeC + mem_readA) * sizeof(scalar_t);
   state.counters["bytes_processed"] = total_mem;
 
-  const double nflops_AtimesB = 2 * m_d * n_d;
-  const double nflops_timesAlpha = m_d * n_d;
-  const double nflops = nflops_AtimesB + nflops_timesAlpha;
+  const double nflops_AtimesB =
+      (side == 'l') ? (2 * m_d * m_d) * n_d : 2 * n_d * n_d * n_d;
+  const double nflops_addBetaC = 2 * m_d * n_d;
+  const double nflops = nflops_AtimesB + nflops_addBetaC;
   state.counters["n_fl_ops"] = nflops;
 
   const auto a_other_dim = (lda == m) ? m : n;
