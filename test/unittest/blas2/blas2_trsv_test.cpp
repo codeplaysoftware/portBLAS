@@ -26,7 +26,8 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<index_t, bool, bool, bool, index_t, index_t>;
+using combination_t =
+    std::tuple<index_t, bool, bool, bool, index_t, index_t, T>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -36,7 +37,8 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_unit;
   index_t incX;
   index_t lda_mul;
-  std::tie(n, is_upper, trans, is_unit, incX, lda_mul) = combi;
+  scalar_t wa;
+  std::tie(n, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
@@ -46,14 +48,20 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t x_size = 1 + (n - 1) * incX;
 
   // Input matrix
-  std::vector<scalar_t> a_m(a_size);
+  std::vector<scalar_t> a_m(a_size, 1);
   // Input/output vector
   std::vector<scalar_t> x_v(x_size);
   // Input/output system vector
   std::vector<scalar_t> x_v_cpu(x_size);
 
   // Control the magnitude of extra-diagonal elements
-  fill_random_with_range(a_m, scalar_t(-0.05), scalar_t(0.05));
+  for (index_t i = 0; i < n; ++i)
+    for (index_t j = 0; j < n; ++j)
+      a_m[(j * n * lda_mul) + i] =
+          ((!is_upper && (i > j)) || (is_upper && (i < j)))
+              ? random_scalar(scalar_t(-0.05), scalar_t(0.05))
+              : NAN;
+
   if (!is_unit) {
     // Populate main diagonal with dominant elements
     for (index_t i = 0; i < n; ++i)
@@ -82,8 +90,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
 #ifdef PRINTMAXERR
   double maxerr = -1.0;
-  for (index_t i = 0; i < x_size; i += incX)
+  for (index_t i = 0; i < x_size; i += incX) {
     maxerr = std::max(maxerr, std::fabs(double(x_v[i]) - double(x_v_cpu[i])));
+  }
   std::cerr << " Maximum error compared to reference: " << maxerr << std::endl;
 #endif
 
@@ -94,25 +103,25 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(14, 127, 504, 780, 1010, 1140),  // n
+    ::testing::Combine(::testing::Values(14, 64, 33, 515, 1024, 1200, 3000),  // n
                        ::testing::Values(true, false),  // is_upper
                        ::testing::Values(true, false),  // trans
                        ::testing::Values(true, false),  // is_unit
                        ::testing::Values(1, 2),         // incX
-                       ::testing::Values(1, 2)          // lda_mul
-    );
+                       ::testing::Values(1, 2),         // lda_mul
+                       ::testing::Values(0));
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
 // (the stress_test above takes about ~5 minutes)
 template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values(14, 63, 257, 1010),  // n
-                       ::testing::Values(true, false),        // is_upper
-                       ::testing::Values(true, false),        // trans
-                       ::testing::Values(true, false),        // is_unit
-                       ::testing::Values(2),                  // incX
-                       ::testing::Values(2)                   // lda_mul
-    );
+const auto combi = ::testing::Combine(
+    ::testing::Values(14, 127, 504, 780, 1010, 1140, 2300),  // n
+    ::testing::Values(true, false),                          // is_upper
+    ::testing::Values(false, true),                          // trans
+    ::testing::Values(true, false),                          // is_unit
+    ::testing::Values(2),                                    // incX
+    ::testing::Values(2),                                    // lda_mul
+    ::testing::Values(0));
 #endif
 
 template <class T>
@@ -122,7 +131,8 @@ static std::string generate_name(
   bool is_upper;
   bool trans;
   bool is_unit;
-  BLAS_GENERATE_NAME(info.param, n, is_upper, trans, is_unit, incX, ldaMul);
+  T wa;
+  BLAS_GENERATE_NAME(info.param, n, is_upper, trans, is_unit, incX, ldaMul, wa);
 }
 
 BLAS_REGISTER_TEST_ALL(Trsv, combination_t, combi, generate_name);
