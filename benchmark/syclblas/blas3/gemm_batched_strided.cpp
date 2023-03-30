@@ -27,14 +27,12 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int stride_a, int stride_b, int stride_c, int batch_size,
-                     int batch_type) {
+                     int stride_a, int stride_b, int stride_c, int batch_size) {
   std::ostringstream str{};
   str << "BM_GemmBatchedStrided<"
       << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
       << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/"
-      << stride_a << "/" << stride_b << "/" << stride_c << "/";
-
+      << stride_a << "/" << stride_b << "/" << stride_c;
   return str.str();
 }
 
@@ -42,7 +40,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, index_t stride_a,
          index_t stride_b, index_t stride_c, scalar_t alpha, scalar_t beta,
-         index_t batch_size, int batch_type_i, bool* success) {
+         index_t batch_size, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -60,37 +58,36 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 
   // The counters are double. We convert m, n, k and batch_size to double to
   // avoid integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
-  double batch_size_d = static_cast<double>(batch_size);
-
-  state.counters["m"] = m_d;
-  state.counters["k"] = k_d;
-  state.counters["n"] = n_d;
-  state.counters["batch_size"] = batch_size_d;
-
   {
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
+    double m_d = static_cast<double>(m);
+    double n_d = static_cast<double>(n);
+    double k_d = static_cast<double>(k);
+    double batch_size_d = static_cast<double>(batch_size);
+    state.counters["m"] = m_d;
+    state.counters["n"] = n_d;
+    state.counters["k"] = k_d;
+    state.counters["batch_size"] = batch_size_d;
+    const double nflops_AtimesB = 2 * k_d * m_d * n_d;
     double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    state.counters["n_fl_ops"] =
+    const double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
+    const double nflops_tot =
         (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
-  }
-  {
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d *
-        sizeof(scalar_t);
+    state.counters["n_fl_ops"] = nflops_tot;
+
+    const double mem_readA = m_d * k_d;
+    const double mem_readB = k_d * n_d;
+    const double mem_writeC = m_d * n_d;
+    const double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
+    const double total_mem = (mem_readA + mem_readB + mem_readC + mem_writeC) *
+                             batch_size_d * sizeof(scalar_t);
+    state.counters["bytes_processed"] = total_mem;
   }
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Matrices sizes
-  const index_t a_size = m * k;  // TODO Oh no
+  const index_t a_size = m * k;
   const index_t b_size = k * n;
   const index_t c_size = m * n;
 
@@ -130,14 +127,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   {
     auto c_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(c_temp, c_size * batch_size);
-    auto event = _gemm_batched(
+    auto event = _gemm_strided_batched(
         sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, stride_a, b_gpu, ldb,
-        stride_b, beta, c_temp_gpu, ldc, stride_c, batch_size, batch_type);
+        stride_b, beta, c_temp_gpu, ldc, stride_c, batch_size);
     sb_handle.wait(event);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
+  const bool isAlmostEqual =
+      (stride_c == 1) ? utils::compare_vectors(c_temp, c_ref, err_stream, "")
+                      : utils::compare_vectors_strided(c_temp, c_ref, stride_c,
+                                                       c_size, err_stream, "");
+  if (!isAlmostEqual) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -145,9 +146,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu,
-                               lda, stride_a, b_gpu, ldb, stride_b, beta, c_gpu,
-                               ldc, stride_c, batch_size, batch_type);
+    auto event = _gemm_strided_batched(
+        sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, stride_a, b_gpu, ldb,
+        stride_b, beta, c_gpu, ldc, stride_c, batch_size);
     sb_handle.wait(event);
     return event;
   };
@@ -168,16 +169,20 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto gemm_params =
+  auto gemm_batched_strided_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
-  for (auto p : gemm_params) {
+  for (auto p : gemm_batched_strided_params) {
     std::string t1s, t2s;
     index_t m, n, k, batch_size;
     scalar_t alpha, beta;
@@ -186,17 +191,24 @@ void register_benchmark(blas_benchmark::Args& args,
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
 
+    index_t stride_a = m * k;
+    index_t stride_b = k * n;
+    index_t stride_c = m * n;
+
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          int t1, int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
-                         int batch_type, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
-                    batch_type, success);
+                         bool* success) {
+      run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, stride_a, stride_b,
+                    stride_c, alpha, beta, batch_size, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, batch_type).c_str(),
+        get_name<scalar_t>(t1s, t2s, m, k, n, stride_a, stride_b, stride_c,
+                           batch_size)
+            .c_str(),
         BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
-        batch_type, success);
+        success)
+        ->UseRealTime();
   }
 }
 
