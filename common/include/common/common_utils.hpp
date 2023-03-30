@@ -77,6 +77,10 @@ using tbmv_param_t =
 
 using trsv_param_t = std::tuple<std::string, std::string, std::string, index_t>;
 
+template <typename scalar_t>
+using trsm_batched_param_t = std::tuple<char, char, char, char, index_t,
+                                        index_t, scalar_t, index_t, int>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -378,7 +382,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
     constexpr index_t dmin = 64, dmax = 1024;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
-    scalar_t beta = 0;
+    scalar_t beta = 1;
     index_t batch_size = 8;
     int batch_type = 0;
     for (std::string& t1 : dtranspose) {
@@ -414,6 +418,56 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
   }
 }
 
+/**
+ * @fn get_trsm_batched_params
+ * @brief Returns a vector containing the trsm_batched benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<trsm_batched_param_t<scalar_t>>
+get_trsm_batched_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t batch_size = 8;
+    constexpr int batch_type = 0;
+    constexpr scalar_t alpha = 1;
+    for (char side : {'l', 'r'}) {
+      for (char uplo : {'u', 'l'}) {
+        for (char trans : {'n', 't'}) {
+          for (char diag : {'u', 'n'}) {
+            for (index_t m = dmin; m <= dmax; m *= 2) {
+              for (index_t n = dmin; n <= dmax; n *= 2) {
+                trsm_batched_default.push_back(
+                    std::make_tuple(side, uplo, trans, diag, m, n, alpha,
+                                    batch_size, batch_type));
+              }
+            }
+          }
+        }
+      }
+    }
+    return trsm_batched_default;
+  } else {
+    return parse_csv_file<trsm_batched_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (9 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], v[1][0], v[2][0], v[3][0], str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
 /**
  * @fn get_reduction_params
  * @brief Returns a vector containing the reduction benchmark parameters, either
@@ -462,14 +516,13 @@ static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
     std::vector<symm_param_t<scalar_t>> symm_default;
     constexpr index_t dmin = 64, dmax = 1024;
     constexpr scalar_t alpha{1};
+    constexpr scalar_t beta{1};
     for (char side : {'l', 'r'}) {
       for (char uplo : {'u', 'l'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (scalar_t beta : {0, 1}) {
               symm_default.push_back(
                   std::make_tuple(side, uplo, m, n, alpha, beta));
-            }
           }
         }
       }
