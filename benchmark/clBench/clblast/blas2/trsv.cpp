@@ -76,8 +76,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
 
   // Populate the main diagonal with larger values.
   for (int i = 0; i < n; ++i)
-    for (int j = 0; j < n; ++j)
-      m_a[(i * lda) + i] = (i == j) ? blas_benchmark::utils::random_scalar(
+    for (int j = 0; j < lda; ++j)
+      m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
                                           scalar_t{-0.1}, scalar_t{0.1});
@@ -156,18 +156,14 @@ void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
-  auto trsv_params = blas_benchmark::utils::get_tbmv_params(args);
+  auto trsv_params = blas_benchmark::utils::get_trsv_params(args);
 
   for (auto p : trsv_params) {
     std::string uplos;
     std::string ts;
     std::string diags;
     index_t n;
-    index_t k;
-    std::tie(uplos, ts, diags, n, k) = p;
-
-    // Repurpose tbmv parameters.
-    if (k != 1) continue;
+    std::tie(uplos, ts, diags, n) = p;
 
     auto BM_lambda = [&](benchmark::State& st, ExecutorType* exPtr,
                          std::string uplos, std::string ts, std::string diags,
