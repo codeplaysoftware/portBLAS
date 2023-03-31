@@ -122,8 +122,8 @@ inline typename SB_Handle::event_t SB_Handle::execute(
                                                 : helper::AllocType::buffer,
        typename lhs_t::value_t > (sharedSize, q_);
 
-  auto opShMem1 = lhs_t(shMem1, 0, 1, sharedSize);
-  auto opShMem2 = lhs_t(shMem2, 0, 1, sharedSize);
+  auto opShMem1 = make_vector_view(shMem1, 1, sharedSize);
+  auto opShMem2 = make_vector_view(shMem2, 1, sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;
