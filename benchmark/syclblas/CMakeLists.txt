@@ -49,6 +49,7 @@ set(sources
   blas2/syr.cpp
   blas2/syr2.cpp
   blas2/tbmv.cpp
+  blas2/trmv.cpp
   # Level 3 blas
   blas3/gemm.cpp
   blas3/gemm_batched.cpp
