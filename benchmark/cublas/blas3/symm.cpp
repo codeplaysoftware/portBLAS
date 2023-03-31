@@ -167,7 +167,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  // Get params from trsm since they are the same
+
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {

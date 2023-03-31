@@ -69,10 +69,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   state.counters["bytes_processed"] = total_mem;
 
   const double nflops_AtimesBtwice = 2 * n_d * (n_d + 1) * k_d;
-  const double nflops_timesAlpha = n_d * (n_d+1)/2.;
+  const double nflops_timesAlpha = n_d * (n_d + 1) / 2.;
   const double nflops_addBetaC =
       (beta != scalar_t{0}) ? (2 * n_d * (n_d + 1) / 2.) : 0;
-  const double nflops = nflops_AtimesBtwice + nflops_timesAlpha + nflops_addBetaC;
+  const double nflops =
+      nflops_AtimesBtwice + nflops_timesAlpha + nflops_addBetaC;
 
   state.counters["n_fl_ops"] = nflops;
 
@@ -164,7 +165,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  // Get params from trsm since they are the same
   auto syr2k_params = blas_benchmark::utils::get_syrk_params<scalar_t>(args);
 
   for (auto p : syr2k_params) {

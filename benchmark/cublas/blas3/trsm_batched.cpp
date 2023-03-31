@@ -257,10 +257,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  auto trsm_params =
+  auto trsm_batched_params =
       blas_benchmark::utils::get_trsm_batched_params<scalar_t>(args);
 
-  for (auto p : trsm_params) {
+  for (auto p : trsm_batched_params) {
     char s_side, s_uplo, s_t, s_diag;
     index_t m, n, batch_count;
     scalar_t alpha;

@@ -189,10 +189,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-  auto gemm_params =
+  auto gemm_batched_params =
       blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
 
-  for (auto p : gemm_params) {
+  for (auto p : gemm_batched_params) {
     std::string t1s, t2s;
     index_t m, n, k, batch_count;
     scalar_t alpha, beta;
