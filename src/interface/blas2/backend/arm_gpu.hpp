@@ -105,8 +105,8 @@ template <uplo_type uplo, transpose_type trn, diag_type diag,
 typename sb_handle_t::event_t _trsv(sb_handle_t& sb_handle, index_t _N,
                                     container_t0 _mA, index_t _lda,
                                     container_t1 _vx, increment_t _incx) {
-  return blas::internal::_trsv_impl<64, uplo, trn, diag>(sb_handle, _N, _mA,
-                                                         _lda, _vx, _incx);
+  return blas::internal::_trsv_impl<64, 2, uplo, trn, diag>(sb_handle, _N, _mA,
+                                                            _lda, _vx, _incx);
 }
 }  // namespace backend
 }  // namespace trsv

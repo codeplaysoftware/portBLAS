@@ -318,9 +318,10 @@ typename sb_handle_t::event_t _trmv_impl(
 /*! _TRSV.
  * @brief Implementation of the Triangular Matrix Vector product.
  */
-template <uint32_t local_range, uplo_type uplo, transpose_type trn,
-          diag_type diag, typename sb_handle_t, typename index_t,
-          typename container_t0, typename container_t1, typename increment_t>
+template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
 typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          container_t0 _mA, index_t _lda,
                                          container_t1 _vx, increment_t _incx) {
@@ -334,48 +335,23 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
   auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
-  auto blk_trsv = [&](index_t blk_id) {
-    auto trsv = make_trsv<local_range, is_upper, is_transposed, is_unit>(
-        vx, mA, blk_id, vx);
-    return sb_handle.execute(trsv, static_cast<index_t>(local_range),
-                             static_cast<index_t>(local_range),
-                             static_cast<index_t>(local_range));
-  };
+  std::vector<index_t> sync_vec(2);
+  sync_vec[0] =
+      is_forward ? 0 : ((roundUp<index_t>(_N, x_range) / x_range) - 1);
+  sync_vec[1] = sync_vec[0];
 
-  auto blk_gemv = [&](index_t blk_idx, index_t blk_idy) {
-    auto alpha = static_cast<typename container_t0::scalar_t>(-1);
-    auto beta = static_cast<typename container_t0::scalar_t>(1);
+  auto sync_buffer =
+      blas::make_sycl_iterator_buffer<index_t>(sync_vec, sync_vec.size());
+  auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
 
-    index_t dim_x = (local_range * (blk_idx + 1) > _N)
-                        ? _N - local_range * blk_idx
-                        : local_range;
-    index_t dim_y = (local_range * (blk_idy + 1) > _N)
-                        ? _N - local_range * blk_idy
-                        : local_range;
+  auto trsv = make_trsv<x_range, subgroups, is_upper, is_transposed, is_unit>(
+      vx, mA, vx, sync);
 
-    return internal::_gemv(
-        sb_handle, is_transposed ? 't' : 'n', is_transposed ? dim_x : dim_y,
-        is_transposed ? dim_y : dim_x, alpha,
-        _mA + (local_range * (is_transposed ? blk_idx : blk_idy)) +
-            (_lda * local_range * (is_transposed ? blk_idy : blk_idx)),
-        _lda, _vx + (_incx * blk_idx * local_range), _incx,   // input
-        beta, _vx + (_incx * blk_idy * local_range), _incx);  // output
-  };
-
-  typename sb_handle_t::event_t ret;
-
-  const index_t blk_num = (_N + local_range - 1) / local_range;
-  for (index_t i = 0; i < blk_num; ++i)
-    for (index_t j = i; j < blk_num; ++j) {
-      const index_t blk_idx = is_forward ? i : blk_num - 1 - i;
-      const index_t blk_idy = is_forward ? j : blk_num - 1 - j;
-      if (i == j)
-        ret = concatenate_vectors(ret, blk_trsv(blk_idx));
-      else
-        ret = concatenate_vectors(ret, blk_gemv(blk_idx, blk_idy));
-    }
-
-  return ret;
+  const index_t sub_num = subgroups;
+  return sb_handle.execute(
+      trsv, static_cast<index_t>(sub_num * x_range),
+      roundUp<index_t>(sub_num * _N, sub_num * x_range),
+      static_cast<index_t>(x_range * (x_range + 1 + sub_num)));
 }
 
 /*! _SYMV.

@@ -48,7 +48,7 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t x_size = 1 + (n - 1) * incX;
 
   // Input matrix
-  std::vector<scalar_t> a_m(a_size, 1);
+  std::vector<scalar_t> a_m(a_size);
   // Input/output vector
   std::vector<scalar_t> x_v(x_size);
   // Input/output system vector
@@ -103,24 +103,25 @@ void run_test(const combination_t<scalar_t> combi) {
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(14, 64, 33, 515, 1024, 1200, 3000),  // n
-                       ::testing::Values(true, false),  // is_upper
-                       ::testing::Values(true, false),  // trans
-                       ::testing::Values(true, false),  // is_unit
-                       ::testing::Values(1, 2),         // incX
-                       ::testing::Values(1, 2),         // lda_mul
+    ::testing::Combine(::testing::Values(32, 64, 128, 512, 14, 127, 504, 780,
+                                         1010, 1140, 2300, 8192),  // n
+                       ::testing::Values(true, false),             // is_upper
+                       ::testing::Values(true, false),             // trans
+                       ::testing::Values(true, false),             // is_unit
+                       ::testing::Values(1, 2),                    // incX
+                       ::testing::Values(1, 2),                    // lda_mul
                        ::testing::Values(0));
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
 // (the stress_test above takes about ~5 minutes)
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values(14, 127, 504, 780, 1010, 1140, 2300),  // n
-    ::testing::Values(true, false),                          // is_upper
-    ::testing::Values(false, true),                          // trans
-    ::testing::Values(true, false),                          // is_unit
-    ::testing::Values(2),                                    // incX
-    ::testing::Values(2),                                    // lda_mul
+    ::testing::Values(14, 64, 33, 515, 1024, 1200, 3000),  // n
+    ::testing::Values(true, false),                        // is_upper
+    ::testing::Values(true, false),                        // trans
+    ::testing::Values(true, false),                        // is_unit
+    ::testing::Values(4),                                  // incX
+    ::testing::Values(3),                                  // lda_mul
     ::testing::Values(0));
 #endif
 
