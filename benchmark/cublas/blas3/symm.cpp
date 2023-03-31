@@ -68,7 +68,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
   const double mem_writeC = m_d * n_d;
   const double mem_readA =
       (side == 'l') ? (m_d * (m_d + 1) / 2) : (n_d * (n_d + 1) / 2);
-  double total_mem =
+  const double total_mem =
       (mem_readBreadC + mem_writeC + mem_readA) * sizeof(scalar_t);
   state.counters["bytes_processed"] = total_mem;
 
@@ -167,7 +167,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {

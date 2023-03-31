@@ -74,15 +74,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const double nflops_tot = (nflops_AtimesB + nflops_addBetaC) * batch_count_d;
   state.counters["n_fl_ops"] = nflops_tot;
 
-  {
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_count_d *
-        sizeof(scalar_t);
-  }
+  const double mem_readA = m_d * k_d;
+  const double mem_readB = k_d * n_d;
+  const double mem_writeC = m_d * n_d;
+  const double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
+  const double total_mem = (mem_readA + mem_readB + mem_readC + mem_writeC) *
+                           batch_count_d * sizeof(scalar_t);
+  state.counters["bytes_processed"] = total_mem;
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -181,6 +179,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetBytesProcessed(state.iterations() * total_mem);
   state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
