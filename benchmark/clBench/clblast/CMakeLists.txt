@@ -44,6 +44,7 @@ set(sources
   blas2/sbmv.cpp
   blas2/symv.cpp
   blas2/syr.cpp
+  blas2/syr2.cpp
   blas2/tbmv.cpp
   blas2/spr.cpp
   # Level 3 blas
