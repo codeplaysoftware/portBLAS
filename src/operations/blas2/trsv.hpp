@@ -255,7 +255,8 @@ SYCL_BLAS_INLINE
       if (_idx == l_diag) loc_x[_idx] = r_diag;
     }
 
-    if (g_idx < _N) lhs_.eval(g_idx) = loc_x[_idx];
+    volatile value_t *lhs_p = lhs_.get_pointer() + lhs_.get_stride() * g_idx;
+    if (g_idx < _N) *lhs_p = loc_x[_idx];
   }
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
