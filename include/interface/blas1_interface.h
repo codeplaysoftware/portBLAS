@@ -34,9 +34,9 @@ namespace internal {
  * Implements AXPY \f$y = ax + y\f$
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vy BufferIterator
+ * @param _vy BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _dependencies Vector of events
  */
@@ -51,9 +51,9 @@ typename sb_handle_t::event_t _axpy(
  * \brief COPY copies a vector, x, to a vector, y.
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vy BufferIterator
+ * @param _vy BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _dependencies Vector of events
  */
@@ -68,18 +68,18 @@ typename sb_handle_t::event_t _copy(
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (Asynchronous version that returns an event)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -96,19 +96,19 @@ typename sb_handle_t::event_t _dot(sb_handle_t &sb_handle, index_t _N,
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -122,7 +122,7 @@ typename sb_handle_t::event_t _sdsdot(
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -133,7 +133,7 @@ typename sb_handle_t::event_t _asum(
     container_1_t _rs, typename sb_handle_t::event_t _dependencies);
 /**
  * \brief IAMAX finds the index of the first element having maximum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -144,7 +144,7 @@ typename sb_handle_t::event_t _iamax(
     ContainerI _rs, typename sb_handle_t::event_t _dependencies);
 /**
  * \brief IAMIN finds the index of the first element having minimum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -158,9 +158,9 @@ typename sb_handle_t::event_t _iamin(
  * \brief SWAP interchanges two vectors
  *
  * @param sb_handle_t sb_handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vy BufferIterator
+ * @param _vy BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _dependencies Vector of events
  */
@@ -174,7 +174,7 @@ typename sb_handle_t::event_t _swap(
 /**
  * \brief SCALAR  operation on a vector
  * @param sb_handle_t sb_handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -187,7 +187,7 @@ typename sb_handle_t::event_t _scal(
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -200,9 +200,9 @@ typename sb_handle_t::event_t _nrm2(
 /**
  * @brief _rot constructor given plane rotation
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _sin sine
  * @param _cos cosine
@@ -234,16 +234,16 @@ typename sb_handle_t::event_t _rot(sb_handle_t &sb_handle, index_t _N,
  *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
  *
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
- * @param[in, out] _vx Buffer holding input vector x
+ * @param[in, out] _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param[in, out] _vy Buffer holding input vector y
+ * @param[in, out] _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -273,11 +273,11 @@ typename sb_handle_t::event_t _rotm(
  * Rotmg may apply scaling operations to d1, d2 and x1 to avoid overflows.
  *
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
- * @tparam container_3_t Buffer Iterator
- * @tparam container_4_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
+ * @tparam container_3_t Buffer Iterator or USM pointer
+ * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
@@ -285,7 +285,7 @@ typename sb_handle_t::event_t _rotm(
  * y-coordinate. On exit, the re-scaled _d2.
  * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
  * re-scaled _x1
- * @param _y1[in] Buffer holding the y-coordinate of the point.
+ * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
  * @param _dependencies Vector of events
@@ -303,17 +303,17 @@ typename sb_handle_t::event_t _rotmg(
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
- * @tparam container_3_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
+ * @tparam container_3_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
  * exit, the scalar r.
- * @param c[out] Buffer holding the parameter c.
- * @param s[out] Buffer holding the parameter s.
+ * @param c[out] Memory object holding the parameter c.
+ * @param s[out] Memory object holding the parameter s.
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -348,18 +348,18 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (synchronous version that returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -375,19 +375,19 @@ typename ValueType<container_0_t>::type _dot(
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -399,7 +399,7 @@ typename ValueType<container_0_t>::type _sdsdot(
     typename sb_handle_t::event_t _dependencies);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -410,7 +410,7 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -423,7 +423,7 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  * \brief ASUM Takes the sum of the absolute values
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -437,7 +437,7 @@ typename ValueType<container_t>::type _asum(
  * \brief NRM2 Returns the euclidian norm of a vector
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -462,9 +462,9 @@ typename sb_handle_t::event_t _axpy(
  * \brief COPY copies a vector, x, to a vector, y.
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vy BufferIterator
+ * @param _vy BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _dependencies Vector of events
  */
@@ -481,18 +481,18 @@ typename sb_handle_t::event_t _copy(
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (Asynchronous version that returns an event)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -511,19 +511,19 @@ typename sb_handle_t::event_t _dot(
  * accumulation and adds a scalar to the result (Asynchronous version that
  * returns an event)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -540,7 +540,7 @@ typename sb_handle_t::event_t _sdsdot(
 /**
  * \brief ASUM Takes the sum of the absolute values
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -554,7 +554,7 @@ typename sb_handle_t::event_t _asum(
 
 /**
  * \brief IAMAX finds the index of the first element having maximum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -568,7 +568,7 @@ typename sb_handle_t::event_t _iamax(
 
 /**
  * \brief IAMIN finds the index of the first element having minimum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -584,9 +584,9 @@ typename sb_handle_t::event_t _iamin(
  * \brief SWAP interchanges two vectors
  *
  * @param sb_handle_t sb_handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vy BufferIterator
+ * @param _vy BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _dependencies Vector of events
  */
@@ -602,7 +602,7 @@ typename sb_handle_t::event_t _swap(
 /**
  * \brief SCALAR operation on a vector
  * @param sb_handle_t sb_handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -617,7 +617,7 @@ typename sb_handle_t::event_t _scal(
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -634,9 +634,9 @@ typename sb_handle_t::event_t _nrm2(
  * @brief _rot constructor given plane rotation
  *  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incy Increment for the vector Y
  * @param _sin sine
  * @param _cos cosine
@@ -670,16 +670,16 @@ typename sb_handle_t::event_t _rot(
  *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
  *
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
- * @param[in, out] _vx Buffer holding input vector x
+ * @param[in, out] _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param[in, out] _vy Buffer holding input vector y
+ * @param[in, out] _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -712,11 +712,11 @@ typename sb_handle_t::event_t _rotm(
  * Rotmg may apply scaling operations to d1, d2 and x1 to avoid overflows.
  *
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
- * @tparam container_3_t Buffer Iterator
- * @tparam container_4_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
+ * @tparam container_3_t Buffer Iterator or USM pointer
+ * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
  * @param _d1[in,out] On entry, buffer holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
@@ -724,7 +724,7 @@ typename sb_handle_t::event_t _rotm(
  * y-coordinate. On exit, the re-scaled _d2.
  * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
  * re-scaled _x1
- * @param _y1[in] Buffer holding the y-coordinate of the point.
+ * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
  * @param _dependencies Vector of events
@@ -744,17 +744,17 @@ typename sb_handle_t::event_t _rotmg(
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
  * return the parameters c, s, r, and z associated with the Givens rotation.
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
- * @tparam container_3_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
+ * @tparam container_3_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
  * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
  * exit, the scalar z.
  * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
  * exit, the scalar r.
- * @param c[out] Buffer holding the parameter c.
- * @param s[out] Buffer holding the parameter s.
+ * @param c[out] Memory object holding the parameter c.
+ * @param s[out] Memory object holding the parameter s.
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -793,18 +793,18 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (synchronous version that returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -822,19 +822,19 @@ typename ValueType<container_0_t>::type _dot(
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM pointer
+ * @tparam container_1_t Buffer Iterator or USM pointer
+ * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
- * @param _rs Output buffer
+ * @param _rs Output memory object
  * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
@@ -850,7 +850,7 @@ typename ValueType<container_0_t>::type _sdsdot(
 
 /**
  * \brief ICAMAX finds the index of the first element having maximum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -864,7 +864,7 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -880,7 +880,7 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  * \brief ASUM Takes the sum of the absolute values
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
@@ -896,7 +896,7 @@ typename ValueType<container_t>::type _asum(
  * \brief NRM2 Returns the euclidian norm of a vector
  *
  * @param sb_handle SB_Handle
- * @param _vx BufferIterator
+ * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
  * @param _dependencies Vector of events
  */
