@@ -80,7 +80,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
       m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
-                                          scalar_t{-0.1}, scalar_t{0.1});
+                                          scalar_t{-10}, scalar_t{10}) /
+                                          scalar_t(n);
 
   // Specify the layout.
   auto layout = clblast::Layout::kColMajor;

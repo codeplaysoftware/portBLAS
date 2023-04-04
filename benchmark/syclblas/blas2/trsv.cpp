@@ -81,7 +81,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
       m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
-                                          scalar_t{-0.1}, scalar_t{0.1});
+                                          scalar_t{-10}, scalar_t{10}) /
+                                          scalar_t(n);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, lda * n);
   auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);

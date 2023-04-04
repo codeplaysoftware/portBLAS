@@ -59,7 +59,7 @@ void run_test(const combination_t<scalar_t> combi) {
     for (index_t j = 0; j < n; ++j)
       a_m[(j * n * lda_mul) + i] =
           ((!is_upper && (i > j)) || (is_upper && (i < j)))
-              ? random_scalar(scalar_t(-0.05), scalar_t(0.05))
+              ? random_scalar(scalar_t(-10), scalar_t(10)) / scalar_t(n)
               : NAN;
 
   if (!is_unit) {

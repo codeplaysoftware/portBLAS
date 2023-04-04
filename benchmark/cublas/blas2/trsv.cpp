@@ -87,7 +87,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
       m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(
-                                          scalar_t{-0.1}, scalar_t{0.1});
+                                          scalar_t{-10}, scalar_t{10}) /
+                                          scalar_t(n);
 
   blas_benchmark::utils::CUDAVector<scalar_t> m_a_gpu(lda * n, m_a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> v_x_gpu(xlen, v_x.data());
