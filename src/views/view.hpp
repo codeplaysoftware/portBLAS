@@ -119,14 +119,14 @@ VectorView<_value_t, _container_t, _IndexType,
   return disp_;
 }
 
-/*!
- * @brief Returns the displacement
+/*! adjust_access_displacement
+ * @brief adjust pointer offset
+ * The user is responsible to adjust pointer offset for USM.
  */
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 SYCL_BLAS_INLINE void VectorView<_value_t, _container_t, _IndexType,
                                  _IncrementType>::adjust_access_displacement() {
-  data_ += disp_;
 }
 
 /*!
@@ -296,14 +296,14 @@ MatrixView<_value_t, _container_t, _IndexType,
   return disp_;
 }
 
-/*! get_access_displacement.
- * @brief get displacement from the origin.
+/*! adjust_access_displacement.
+ * @brief adjust pointer offset
+ * The user is responsible to adjust pointer offset for USM.
  */
 template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 SYCL_BLAS_INLINE void MatrixView<_value_t, _container_t, _IndexType,
                                  layout>::adjust_access_displacement() {
-  data_ += disp_;
 }
 
 }  // namespace blas
