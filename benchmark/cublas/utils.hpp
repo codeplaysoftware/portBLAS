@@ -1,7 +1,3 @@
-#include "blas_meta.h"
-#include <cstddef>
-#include <numeric>
-#include <vector>
 #/***************************************************************************
 # *
 # *  @license

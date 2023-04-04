@@ -214,7 +214,8 @@ void register_benchmark(blas_benchmark::Args& args,
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_count, batch_type).c_str(),
         BM_lambda, cuda_handle_ptr, t1s.c_str(), t2s.c_str(), m, k, n, alpha,
-        beta, batch_count, batch_type, success);
+        beta, batch_count, batch_type, success)
+        ->UseRealTime();
   }
 }
 
