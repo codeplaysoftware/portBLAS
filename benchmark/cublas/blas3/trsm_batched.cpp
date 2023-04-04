@@ -25,40 +25,6 @@
 
 #include "../utils.hpp"
 
-// Convert batch_type=strided to interleaved on the host
-template <typename scalar_t>
-std::vector<scalar_t> strided_to_interleaved(const std::vector<scalar_t>& input,
-                                             int offset, int ld_rows,
-                                             int ld_cols, int batchs) {
-  std::vector<scalar_t> output(input.size());
-  for (int c = 0; c < ld_cols; ++c) {
-    for (int r = 0; r < ld_rows; ++r) {
-      for (int b = 0; b < batchs; ++b) {
-        output[c * ld_rows * batchs + r * batchs + b + offset] =
-            input[b * ld_cols * ld_rows + c * ld_rows + r + offset];
-      }
-    }
-  }
-  return output;
-}
-
-// Convert batch_type=interleaved to strided on the host
-template <typename scalar_t>
-std::vector<scalar_t> interleaved_to_strided(const std::vector<scalar_t>& input,
-                                             int offset, int ld_rows,
-                                             int ld_cols, int batchs) {
-  std::vector<scalar_t> output(input.size());
-  for (int b = 0; b < batchs; ++b) {
-    for (int c = 0; c < ld_cols; ++c) {
-      for (int r = 0; r < ld_rows; ++r) {
-        output[b * ld_cols * ld_rows + c * ld_rows + r + offset] =
-            input[c * ld_rows * batchs + r * batchs + b + offset];
-      }
-    }
-  }
-  return output;
-}
-
 template <typename scalar_t>
 std::string get_name(const char side, const char uplo, const char t,
                      const char diag, int m, int n, int batch_count,
@@ -180,12 +146,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
                            lda, x_ref.data() + _base(m, n, batch_idx), ldb);
     }
 
-    if (batch_type == blas::gemm_batch_type_t::interleaved) {
-      constexpr int offset = 0;
-      a = strided_to_interleaved(a, offset, lda, t == 't' ? m : n, batch_count);
-      b = strided_to_interleaved(b, offset, ldb, n, batch_count);
-    }
-
     {
       blas_benchmark::utils::CUDAVectorBatched<scalar_t, true> b_temp_gpu(
           n * m, batch_count, b_temp);
@@ -194,10 +154,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
                                b_temp_gpu.get_batch_array(), ldb, batch_count);
     }
 
-    if (batch_type == blas::gemm_batch_type_t::interleaved) {
-      constexpr int offset = 0;
-      b_temp = interleaved_to_strided(b_temp, offset, ldb, n, batch_count);
-    }
     std::ostringstream err_stream;
     for (int i = 0; i < batch_count; ++i) {
       if (!utils::compare_vectors(b_temp, x_ref, err_stream, "")) {
@@ -266,6 +222,13 @@ void register_benchmark(blas_benchmark::Args& args,
     int batch_type;
     std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_count,
              batch_type) = p;
+
+    auto batch_type_enum = static_cast<blas::gemm_batch_type_t>(batch_type);
+    if (batch_type_enum == blas::gemm_batch_type_t::interleaved) {
+      std::cerr << "interleaved memory for trsm_batched operator is not "
+                   "supported by cuBLAS\n";
+      continue;
+    }
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          char side, char uplo, char t, char diag, index_t m,
