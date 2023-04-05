@@ -39,12 +39,12 @@ enum operator_t : int {
 using index_t = int;
 
 template <typename scalar_t>
-using combination_t =
-    std::tuple<char, index_t, index_t, index_t, operator_t, reduction_dim_t>;
+using combination_t = std::tuple<std::string, index_t, index_t, index_t,
+                                 operator_t, reduction_dim_t>;
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values('u', 'b'),                 // allocation type
+    ::testing::Values("usm", "buf"),             // allocation type
     ::testing::Values(1, 7, 513),                // rows
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
@@ -67,7 +67,7 @@ inline void dump_arg<reduction_dim_t>(std::ostream& ss,
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  char alloc;
+  std::string alloc;
   index_t rows, cols, ldMul;
   operator_t op;
   reduction_dim_t reductionDim;
@@ -76,7 +76,7 @@ static std::string generate_name(
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   index_t rows, cols, ld_mul;
   operator_t op;
   reduction_dim_t reduction_dim;
@@ -233,13 +233,13 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
-  char alloc;
+  std::string alloc;
   index_t rows, cols, ld_mul;
   operator_t op;
   reduction_dim_t reduction_dim;
   std::tie(alloc, rows, cols, ld_mul, op, reduction_dim) = combi;
 
-  if (alloc == 'u') {
+  if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
 #endif
