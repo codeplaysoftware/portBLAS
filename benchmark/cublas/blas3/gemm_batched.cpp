@@ -47,10 +47,16 @@ static inline void cublas_routine(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
-         const char* t_a, const char* t_b, index_t m, index_t k, index_t n,
-         scalar_t alpha, scalar_t beta, index_t batch_count, int batch_type_i,
-         bool* success) {
+void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
+         index_t t2, index_t m, index_t k, index_t n, scalar_t alpha,
+         scalar_t beta, index_t batch_count, int batch_type_i, bool* success) {
+  // Standard setup
+  std::string t1s = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(t1));
+  std::string t2s = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(t2));
+  const char* t_a = t1s.c_str();
+  const char* t_b = t2s.c_str();
   auto batch_type = static_cast<blas::gemm_batch_type_t>(batch_type_i);
 
   index_t lda = t_a[0] == 'n' ? m : k;
@@ -204,17 +210,20 @@ void register_benchmark(blas_benchmark::Args& args,
       continue;
     }
 
+    int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
+    int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
+
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
-                         std::string t1, std::string t2, index_t m, index_t k,
-                         index_t n, scalar_t alpha, scalar_t beta,
-                         index_t batch_count, int batch_type, bool* success) {
-      run<scalar_t>(st, cuda_handle_ptr, t1.c_str(), t2.c_str(), m, k, n, alpha,
-                    beta, batch_count, batch_type, success);
+                         int t1, int t2, index_t m, index_t k, index_t n,
+                         scalar_t alpha, scalar_t beta, index_t batch_count,
+                         int batch_type, bool* success) {
+      run<scalar_t>(st, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta,
+                    batch_count, batch_type, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_count, batch_type).c_str(),
-        BM_lambda, cuda_handle_ptr, t1s.c_str(), t2s.c_str(), m, k, n, alpha,
-        beta, batch_count, batch_type, success)
+        BM_lambda, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_count,
+        batch_type, success)
         ->UseRealTime();
   }
 }
