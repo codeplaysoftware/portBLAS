@@ -67,21 +67,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
   ExecutorType& sb_handle = *executorPtr;
 
   // Input matrix/vector, output vector.
-  std::vector<scalar_t> m_a(lda * n);
+  std::vector<scalar_t> m_a =
+      blas_benchmark::utils::random_data<scalar_t>(lda * n);
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
-
-  // Populate the correct triangular matrix with larger values
-  // in column-major way
-  for (int i = 0; i < n; ++i)
-    for (int j = 0; j < n; ++j)
-      m_a[(j * lda) + i] =
-          (*uplo_str == 'u') ? ((i >= j) ? blas_benchmark::utils::random_scalar(
-                                               scalar_t{9}, scalar_t{11})
-                                         : 0)
-                             : ((i <= j) ? blas_benchmark::utils::random_scalar(
-                                               scalar_t{9}, scalar_t{11})
-                                         : 0);
 
   // Specify the triangle.
   clblast::Triangle a_uplo =
