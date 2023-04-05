@@ -73,6 +73,8 @@ SYCL_BLAS_INLINE
     Trsv<lhs_t, matrix_t, vector_t, sync_t, x_range, subgroups, is_upper,
          is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
                                            cl::sycl::nd_item<1> ndItem) {
+#ifndef __COMPUTECPP__
+
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
 
@@ -266,6 +268,7 @@ SYCL_BLAS_INLINE
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
 
+#endif
   return 0;
 }
 
