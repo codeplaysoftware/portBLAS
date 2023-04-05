@@ -55,10 +55,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   const double nflops_tot = nflops_AplusYtimesX + nflops_AlphaTimesX;
   state.counters["n_fl_ops"] = nflops_tot;
 
-  double mem_readWriteA = 2 * size_d;
-  double mem_readX = 2 * static_cast<double>(n * std::abs(incX));
-  state.counters["bytes_processed"] =
+  const double mem_readWriteA = 2 * size_d;
+  const double mem_readX = 2 * static_cast<double>(n * std::abs(incX));
+  const double tot_mem_processed =
       (mem_readWriteA + mem_readX) * sizeof(scalar_t);
+  state.counters["bytes_processed"] = tot_mem_processed;
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -124,6 +125,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetBytesProcessed(state.iterations() * tot_mem_processed);
   state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);

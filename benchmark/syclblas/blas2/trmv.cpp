@@ -61,8 +61,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   const double mem_readA = A_validVal;
   const double mem_readX = n_d;
   const double mem_writeX = n_d;
-  state.counters["bytes_processed"] =
+  const double tot_mem_processed =
       (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
+  state.counters["bytes_processed"] = tot_mem_processed;
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -95,8 +96,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   {
     auto v_x_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(v_x_temp, xlen);
-    auto event = _trmv(sb_handle, *uplo_str, *t_str, *diag_str, n,
-                             m_a_gpu, lda, v_x_temp_gpu, incX);
+    auto event = _trmv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu, lda,
+                       v_x_temp_gpu, incX);
     sb_handle.wait();
   }
 
@@ -109,8 +110,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _trmv(sb_handle, *uplo_str, *t_str, *diag_str, n,
-                             m_a_gpu, lda, v_x_gpu, incX);
+    auto event = _trmv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu, lda,
+                       v_x_gpu, incX);
     sb_handle.wait();
     return event;
   };
@@ -131,10 +132,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetBytesProcessed(state.iterations() * tot_mem_processed);
   state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
-
 }
 
 template <typename scalar_t>
