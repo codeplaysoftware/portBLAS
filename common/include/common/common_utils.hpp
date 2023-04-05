@@ -577,7 +577,7 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 6) {
             throw std::runtime_error(
-                "invalid number of parameters (7 expected)");
+                "invalid number of parameters (6 expected)");
           }
           try {
             return std::make_tuple(v[0][0], v[1][0], str_to_int<index_t>(v[2]),
