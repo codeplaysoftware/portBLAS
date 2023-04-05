@@ -61,8 +61,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t m,
   const double mem_readWriteA = 2 * m_d * n_d;
   const double mem_readX = xlen;
   const double mem_readY = ylen;
-  state.counters["bytes_processed"] =
+  const double tot_mem_processed =
       (mem_readWriteA + mem_readX + mem_readY) * sizeof(scalar_t);
+  state.counters["bytes_processed"] = tot_mem_processed;
 
   ExecutorType& sb_handle = *executorPtr;
 
@@ -132,6 +133,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t m,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetBytesProcessed(state.iterations() * tot_mem_processed);
   state.SetItemsProcessed(state.iterations() * nflops_tot);
 
   blas_benchmark::utils::calc_avg_counters(state);
