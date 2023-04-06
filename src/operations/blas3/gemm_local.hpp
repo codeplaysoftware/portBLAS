@@ -595,29 +595,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
 
     extract_block<!check_m_limit && !check_n_limit, check_m_limit,
-                  check_k_limit, trans_a, symm_a, block_rows, cl_elems, ldsa>(
+                  check_k_limit, trans_a, symm_a, true, block_rows, cl_elems, ldsa>(
         item_id, row_a, col_a, A, lda, sA,
         [&](index_t, index_t cr) SYCL_BLAS_ALWAYS_INLINE { return cr < m; },
         [&](index_t ic, index_t cc)
-            SYCL_BLAS_ALWAYS_INLINE { return cc < k - ic; },
-        [&](index_t row, index_t col) SYCL_BLAS_ALWAYS_INLINE {
-          // If A is symmetric, the valid values are expected on the lower
-          // triangle unless A is transposed, in which case valid values will
-          // be on the upper side.
-          return symm_a ? trans_a ? row <= col : row >= col : true; 
-        });
+            SYCL_BLAS_ALWAYS_INLINE { return cc < k - ic; });
     extract_block<!check_m_limit && !check_n_limit, check_k_limit,
-                  check_n_limit, trans_b, symm_b, cl_elems, block_cols, ldsb>(
+                  check_n_limit, trans_b, symm_b, false, cl_elems, block_cols, ldsb>(
         item_id, row_b, col_b, B, ldb, sB,
         [&](index_t ir, index_t cr)
             SYCL_BLAS_ALWAYS_INLINE { return cr < k - ir; },
-        [&](index_t, index_t cc) SYCL_BLAS_ALWAYS_INLINE { return cc < n; },
-        [&](index_t row, index_t col) SYCL_BLAS_ALWAYS_INLINE { 
-          // If B is symmetric, the valid values are expected on the upper
-          // triangle unless B is transposed, in which case valid values will
-          // be on the lower side.
-          return symm_b ? trans_b ? row >= col : row <= col : true;
-        });
+        [&](index_t, index_t cc) SYCL_BLAS_ALWAYS_INLINE { return cc < n; });
   }
 
   /*!
@@ -632,6 +620,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * condition
    * @tparam trans  iff true, transpose the matrix
    * @tparam symm  whether the matrix is symmetric
+   * @tparam left_side if the matrix is in the left side. 
    * @tparam rows  number of rows in the block
    * @tparam cols  number of columns in the block
    * @tparam lds  leading dimension of the block in shared memory
@@ -654,14 +643,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *                matrix bounds
    */
   template <bool internal, bool check_row_limit, bool check_col_limit,
-            bool trans, bool symm, index_t rows, index_t cols, index_t lds,
+            bool trans, bool symm, bool left_side, index_t rows, index_t cols, index_t lds,
             typename InputPointerType, typename ScratchPointerType,
-            typename RowPredicate, typename ColPredicate,
-            typename TrianglePredicate>
+            typename RowPredicate, typename ColPredicate>
   SYCL_BLAS_INLINE typename std::enable_if<!trans>::type extract_block(
       index_t item_id, index_t row, index_t col, InputPointerType ptr, index_t ld,
-      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col,
-      TrianglePredicate in_triangle) {
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     constexpr index_t bs = rows * cols;
     constexpr index_t multiplier = internal ? packetize_t::packet_size : 1;
 #pragma unroll
@@ -681,9 +668,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                in_col((item_id * multiplier) / rows, col_ofs);
       };
       if constexpr(symm) {
-        load_symm<trans, internal, lds>(
+        load_symm<trans, left_side, internal, lds>(
           row, col, col_ofs, ld, in_range, ptr + (col_ofs * ld),
-          scratch + col_ofs * lds, edge_in_range, in_triangle
+          scratch + col_ofs * lds, edge_in_range
         );
       } else {
         packetize_t::template load<trans, internal, lds>(
@@ -693,14 +680,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
   }
   template <bool internal, bool check_row_limit, bool check_col_limit,
-            bool trans, bool symm, index_t rows, index_t cols, index_t lds,
+            bool trans, bool symm, bool left_side, index_t rows, index_t cols, index_t lds,
             typename InputPointerType, typename ScratchPointerType,
-            typename RowPredicate, typename ColPredicate,
-            typename TrianglePredicate>
+            typename RowPredicate, typename ColPredicate>
   SYCL_BLAS_INLINE typename std::enable_if<trans>::type extract_block(
       index_t item_id, index_t row, index_t col, InputPointerType ptr, index_t ld,
-      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col,
-      TrianglePredicate in_triangle) {
+      ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     const index_t bs = rows * cols;
     constexpr index_t multiplier = internal ? packetize_t::packet_size : 1;
 #pragma unroll
@@ -720,9 +705,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       };
 
       if constexpr(symm) {
-        load_symm<trans, internal, lds>(
+        load_symm<trans, left_side, internal, lds>(
           row, col, row_ofs, ld, in_range, ptr + (row_ofs * ld),
-          scratch + row_ofs, edge_in_range, in_triangle
+          scratch + row_ofs, edge_in_range
         );
       } else {
         packetize_t::template load<trans, internal, lds>(
@@ -819,17 +804,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   /**
    * @brief Performs a vectorised load for symmetric matrices.
   */
-  template <bool trans, bool internal, index_t lds,
+  template <bool trans, bool left_side, bool internal, index_t lds,
             typename SrcPointerType, typename DestPointerType,
-            typename EdgePredicate, typename TrianglePredicate>
+            typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load_symm(
       index_t row , index_t col, index_t col_ofs, index_t ld,
       const bool in_range, SrcPointerType src, DestPointerType dest,
-      EdgePredicate edge_in_range, TrianglePredicate in_triangle) {
+      EdgePredicate edge_in_range) {
     constexpr index_t packet_size = internal ? packetize_t::packet_size : 1;
     const index_t curr_col = col + col_ofs;
-    const bool in_triangle_range = in_triangle(row, curr_col) &&
-      in_triangle(row + (packet_size - 1), curr_col);
+    const bool in_triangle_range = in_triangle<trans, left_side>(row, curr_col) &&
+      in_triangle<trans, left_side>(row + (packet_size - 1), curr_col);
 
     if (in_triangle_range) {
       packetize_t::template load<trans, internal, lds>(
@@ -839,7 +824,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       vector_t packet{};
       for (index_t i = 0; i < packet_size; ++i) {
         reinterpret_cast<value_t *>(&packet)[i] =
-          edge_in_range(i) ? in_triangle(row + i, curr_col) ? 
+          edge_in_range(i) ? in_triangle<trans, left_side>(row + i, curr_col) ? 
             *(src + i) :
             *((src + i) + ((row + i) - curr_col) * ld + (curr_col - (row + i))) :
             value_t{0.0};
@@ -847,22 +832,41 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       packetize_t::template store<trans, lds>(packet, dest);
     }
   }
-  template <bool trans, bool internal, index_t lds,
+  template <bool trans, bool left_side, bool internal, index_t lds,
             typename SrcPointerType, typename DestPointerType,
-            typename EdgePredicate, typename TrianglePredicate>
+            typename EdgePredicate>
   static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load_symm(
       index_t row , index_t col, index_t col_ofs, index_t ld,
       const bool in_range, SrcPointerType src, DestPointerType dest,
-      EdgePredicate edge_in_range, TrianglePredicate in_triangle) {
+      EdgePredicate edge_in_range) {
     const index_t curr_col = col + col_ofs;
     auto ptr = src;
-    if (!in_triangle(row, curr_col)) {
+    if (!in_triangle<trans, left_side>(row, curr_col)) {
       ptr += (row - curr_col) * ld + (curr_col - row);
     }
     packetize_t::template load<trans, internal, lds>(
       in_range, ptr, dest, edge_in_range
     );
   }
+
+  template <bool trans, bool left_side>
+  static SYCL_BLAS_INLINE bool in_triangle(
+    index_t row, index_t col) {
+      // If the matrix is symmetric, the valid values are expected on the lower
+      // triangle unless it is transposed, in which case valid values will
+      // be on the upper side.
+      if constexpr(trans) {
+        if constexpr(left_side) {
+          return row <= col;
+        }
+        return row >= col;
+      } 
+      if constexpr(left_side) {
+        return row >= col;
+      }
+      return row <= col;
+    };
+
 
 };  // Gemm
 

@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *  @license
- *  Copyright (C) 2016 Codeplay Software Limited
+ *  Copyright (C) Codeplay Software Limited
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -112,19 +112,13 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side, cha
     state.counters["k"] = k_d;
     state.counters["n"] = n_d;
 
-    double mem_readA = k_d * (k_d + 1) / 2;
-    double mem_readB = m_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    double total_mem =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
+    double mem_read = (k_d * (k_d + 1) / 2) + 2 * (m_d * n_d);
+    double mem_write = m_d * n_d;
+    double total_mem = (mem_read + mem_write) * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
     state.SetBytesProcessed(state.iterations() * total_mem);
 
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    double nflops = nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC;
+    double nflops = 2 * (k_d * k_d * n_d) + 2 * (m_d * n_d);
     state.counters["n_fl_ops"] = nflops;
     state.SetItemsProcessed(state.iterations() * nflops);
   }
