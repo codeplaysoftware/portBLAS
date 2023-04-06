@@ -43,13 +43,11 @@ struct AllocHelper;
 template <typename value_t>
 struct AllocHelper<value_t, AllocType::usm> {
   using type = value_t *;
-  using tuple_type = std::tuple<value_t *, cl::sycl::event>;
 };
 
 template <typename value_t>
 struct AllocHelper<value_t, AllocType::buffer> {
   using type = blas::BufferIterator<value_t>;
-  using tuple_type = std::tuple<BufferIterator<value_t>, cl::sycl::event>;
 };
 
 #ifdef SB_ENABLE_USM
