@@ -163,6 +163,62 @@ class CUDAVector : private CUDADeviceMemory<T> {
   T* h_data_ = nullptr;
 };
 
+template <typename T, bool CopyToHost = false>
+class CUDAVectorBatched : private CUDADeviceMemory<T> {
+ public:
+  explicit CUDAVectorBatched(size_t matrix_size, size_t batch_count)
+      : CUDADeviceMemory<T>(matrix_size),
+        c_batch_count(batch_count),
+        c_matrix_size(matrix_size) {
+    d_data = std::vector<T*>(batch_count, nullptr);
+    for (int i = 0; i < batch_count; ++i) {
+      CUDA_CHECK(cudaMalloc(&d_data[i], sizeof(T) * matrix_size));
+    }
+    CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&batch_Array),
+                          sizeof(T*) * batch_count));
+    CUDA_CHECK(cudaMemcpy(batch_Array, d_data.data(), sizeof(T*) * batch_count,
+                          cudaMemcpyHostToDevice));
+  }
+
+  CUDAVectorBatched(size_t matrix_size, size_t batch_count, std::vector<T>& h_v)
+      : CUDAVectorBatched<T, CopyToHost>(matrix_size, batch_count) {
+    if constexpr (CopyToHost) h_data = h_v.data();
+    for (int i = 0; i < batch_count; ++i) {
+      CUDA_CHECK(cudaMemcpy(d_data[i], &h_v[matrix_size * i],
+                            sizeof(T) * c_matrix_size, cudaMemcpyHostToDevice));
+    }
+  }
+
+  ~CUDAVectorBatched() {
+    if constexpr (CopyToHost) {
+      for (int i = 0; i < c_batch_count; ++i) {
+        this->copyD2H(d_data[i], (h_data + c_matrix_size * i));
+      }
+    }
+    for (int i = 0; i < c_batch_count; ++i) {
+      this->free(d_data[i]);
+    }
+    free_batch_dpointer(batch_Array);
+  }
+
+  T** get_batch_array() const { return batch_Array; }
+
+  // Disallow copying or assigning
+  CUDAVectorBatched(const CUDAVectorBatched&) = delete;
+  CUDAVectorBatched& operator=(const CUDAVectorBatched&) = delete;
+
+ private:
+  const int c_matrix_size;
+  const int c_batch_count;
+  T** batch_Array;
+  std::vector<T*> d_data;
+  T* h_data = nullptr;
+
+  void free_batch_dpointer(T** batch_pointer) {
+    if (batch_pointer != nullptr) CUDA_CHECK(cudaFree(batch_pointer));
+  }
+};
+
 // Pseudo-scalar subclass which uses device memory
 template <typename T, bool CopyToHost = false>
 class CUDAScalar : private CUDADeviceMemory<T> {
