@@ -77,7 +77,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
 
   // Matrices
   std::vector<scalar_t> a(tr_m_size);
-  //= blas_benchmark::utils::random_data<scalar_t>(tr_m_size);
   std::vector<scalar_t> b =
       blas_benchmark::utils::random_data<scalar_t>(ldb * n);
 
