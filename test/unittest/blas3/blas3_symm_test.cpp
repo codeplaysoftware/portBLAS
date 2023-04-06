@@ -41,7 +41,8 @@ inline void verify_symm(const symm_arguments_t<scalar_t> arguments) {
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
-  std::tie(m, n, side, uplo, alpha, beta, lda_mul, ldb_mul, ldc_mul) = arguments;
+  std::tie(m, n, side, uplo, alpha, beta, lda_mul, ldb_mul, ldc_mul) =
+      arguments;
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
@@ -70,10 +71,8 @@ inline void verify_symm(const symm_arguments_t<scalar_t> arguments) {
   // Use system blas to create a reference output
   const char side_str[2] = {side, '\0'};
   const char uplo_str[2] = {uplo, '\0'};
-  reference_blas::symm(side_str, uplo_str, m, n, alpha,
-                      a_m.data(), lda,
-                      b_m.data(), ldb,
-                      beta, c_m_cpu.data(), ldc);
+  reference_blas::symm(side_str, uplo_str, m, n, alpha, a_m.data(), lda,
+                       b_m.data(), ldb, beta, c_m_cpu.data(), ldc);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(size_a);
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(size_b);
@@ -87,8 +86,8 @@ inline void verify_symm(const symm_arguments_t<scalar_t> arguments) {
                                size_c);
 
   // SYCL BLAS SYMM implementation
-  _symm(sb_handle, side, uplo, m, n, alpha, m_a_gpu, lda,
-            m_b_gpu, ldb, beta, m_c_gpu, ldc);
+  _symm(sb_handle, side, uplo, m, n, alpha, m_a_gpu, lda, m_b_gpu, ldb, beta,
+        m_c_gpu, ldc);
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
                                           c_m_gpu.data(), size_c);
@@ -104,8 +103,8 @@ static std::string generate_name(
   int m, n, ldaMul, ldbMul, ldcMul;
   char side, uplo;
   T alpha, beta;
-  BLAS_GENERATE_NAME(info.param, m, n, side, uplo, alpha,
-                     beta, ldaMul, ldbMul, ldcMul);
+  BLAS_GENERATE_NAME(info.param, m, n, side, uplo, alpha, beta, ldaMul, ldbMul,
+                     ldcMul);
 }
 
 /** Registers SYMM test for all supported data types
@@ -119,57 +118,57 @@ static std::string generate_name(
                                  generate_name);
 
 template <typename scalar_t>
-const auto SmallBetaNonZeroLDMatch = ::testing::Combine(
-    ::testing::Values(11, 16, 32),                 // m  
-    ::testing::Values(11, 16, 32),                 // n
-    ::testing::Values('l', 'r'),                   // side
-    ::testing::Values('l', 'u'),                   // uplo
-    ::testing::Values<scalar_t>(1.5),              // alpha
-    ::testing::Values<scalar_t>(0.5),              // beta
-    ::testing::Values(1),                          // lda_mul
-    ::testing::Values(1),                          // ldb_mul
-    ::testing::Values(1)                           // ldc_mul
-);
+const auto SmallBetaNonZeroLDMatch =
+    ::testing::Combine(::testing::Values(11, 16, 32),     // m
+                       ::testing::Values(11, 16, 32),     // n
+                       ::testing::Values('l', 'r'),       // side
+                       ::testing::Values('l', 'u'),       // uplo
+                       ::testing::Values<scalar_t>(1.5),  // alpha
+                       ::testing::Values<scalar_t>(0.5),  // beta
+                       ::testing::Values(1),              // lda_mul
+                       ::testing::Values(1),              // ldb_mul
+                       ::testing::Values(1)               // ldc_mul
+    );
 GENERATE_SYMM_TEST(Symm, SmallBetaNonZeroLDMatch);
 
 template <typename scalar_t>
-const auto AlphaZero = ::testing::Combine(
-    ::testing::Values(16),                         // m
-    ::testing::Values(16),                         // n
-    ::testing::Values('l', 'r'),                   // side
-    ::testing::Values('l', 'u'),                   // uplo
-    ::testing::Values<scalar_t>(0.0),              // alpha
-    ::testing::Values<scalar_t>(0.0, 1.0),         // beta
-    ::testing::Values(1, 2),                       // lda_mul
-    ::testing::Values(1, 2),                       // ldb_mul
-    ::testing::Values(1, 2)                        // ldc_mul
-);
+const auto AlphaZero =
+    ::testing::Combine(::testing::Values(16),                  // m
+                       ::testing::Values(16),                  // n
+                       ::testing::Values('l', 'r'),            // side
+                       ::testing::Values('l', 'u'),            // uplo
+                       ::testing::Values<scalar_t>(0.0),       // alpha
+                       ::testing::Values<scalar_t>(0.0, 1.0),  // beta
+                       ::testing::Values(1, 2),                // lda_mul
+                       ::testing::Values(1, 2),                // ldb_mul
+                       ::testing::Values(1, 2)                 // ldc_mul
+    );
 GENERATE_SYMM_TEST(Symm, AlphaZero);
 
 template <typename scalar_t>
-const auto OffsetNonZero = ::testing::Combine(
-    ::testing::Values(16, 63),                     // m
-    ::testing::Values(16, 63),                     // n
-    ::testing::Values('l', 'r'),                   // side
-    ::testing::Values('l', 'u'),                   // uplo
-    ::testing::Values<scalar_t>(1.0),              // alpha
-    ::testing::Values<scalar_t>(1.0),              // beta
-    ::testing::Values(1, 2),                       // lda_mul
-    ::testing::Values(1, 2),                       // ldb_mul
-    ::testing::Values(1, 2)                        // ldc_mul
-);
+const auto OffsetNonZero =
+    ::testing::Combine(::testing::Values(16, 63),         // m
+                       ::testing::Values(16, 63),         // n
+                       ::testing::Values('l', 'r'),       // side
+                       ::testing::Values('l', 'u'),       // uplo
+                       ::testing::Values<scalar_t>(1.0),  // alpha
+                       ::testing::Values<scalar_t>(1.0),  // beta
+                       ::testing::Values(1, 2),           // lda_mul
+                       ::testing::Values(1, 2),           // ldb_mul
+                       ::testing::Values(1, 2)            // ldc_mul
+    );
 GENERATE_SYMM_TEST(Symm, OffsetNonZero);
 
 template <typename scalar_t>
-const auto LargeBetaNonZeroLDMatch = ::testing::Combine(
-    ::testing::Values(253, 511),                   // m
-    ::testing::Values(257, 511),                   // n
-    ::testing::Values('l', 'r'),                   // side
-    ::testing::Values('l', 'u'),                   // uplo
-    ::testing::Values<scalar_t>(1.0),              // alpha
-    ::testing::Values<scalar_t>(1.0),              // beta
-    ::testing::Values(1),                          // lda_mul
-    ::testing::Values(1),                          // ldb_mul
-    ::testing::Values(1)                           // ldc_mul
-);
+const auto LargeBetaNonZeroLDMatch =
+    ::testing::Combine(::testing::Values(253, 511),       // m
+                       ::testing::Values(257, 511),       // n
+                       ::testing::Values('l', 'r'),       // side
+                       ::testing::Values('l', 'u'),       // uplo
+                       ::testing::Values<scalar_t>(1.0),  // alpha
+                       ::testing::Values<scalar_t>(1.0),  // beta
+                       ::testing::Values(1),              // lda_mul
+                       ::testing::Values(1),              // ldb_mul
+                       ::testing::Values(1)               // ldc_mul
+    );
 GENERATE_SYMM_TEST(Symm, LargeBetaNonZeroLDMatch);

@@ -29,9 +29,9 @@
 namespace blas {
 namespace gemm {
 namespace backend {
-template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero, typename SB_Handle,
-          typename container_t0, typename container_t1, typename container_t2,
-          typename element_t, typename index_t>
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
+          typename SB_Handle, typename container_t0, typename container_t1,
+          typename container_t2, typename element_t, typename index_t>
 typename SB_Handle::event_t _gemm(SB_Handle& sb_handle, index_t _M, index_t _N,
                                   index_t _K, element_t _alpha, container_t0 a_,
                                   index_t _lda, container_t1 b_, index_t _ldb,

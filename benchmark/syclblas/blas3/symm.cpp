@@ -34,8 +34,8 @@ std::string get_name(char side, char uplo, int m, int n) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side, char uplo,
-         index_t m, index_t n, scalar_t alpha, scalar_t beta,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
+         char uplo, index_t m, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
   const index_t k = side == 'l' ? m : n;
 
@@ -60,8 +60,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side, cha
   std::vector<scalar_t> c_ref = c;
   const char side_str[2] = {side, '\0'};
   const char uplo_str[2] = {uplo, '\0'};
-  reference_blas::symm(side_str, uplo_str, m, n, alpha, a.data(), lda, b.data(), ldb,
-                       beta, c_ref.data(), ldc);
+  reference_blas::symm(side_str, uplo_str, m, n, alpha, a.data(), lda, b.data(),
+                       ldb, beta, c_ref.data(), ldc);
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n);
@@ -127,8 +127,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side, cha
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {
@@ -137,21 +137,21 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
     scalar_t alpha, beta;
     std::tie(side, uplo, m, n, alpha, beta) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char side,
-                         char uplo, index_t m, index_t n,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                         char side, char uplo, index_t m, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
       run<scalar_t>(st, sb_handle_ptr, side, uplo, m, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(side, uplo, m, n).c_str(),
-                                 BM_lambda, sb_handle_ptr, side, uplo, m, n, alpha, beta,
-                                 success)
+                                 BM_lambda, sb_handle_ptr, side, uplo, m, n,
+                                 alpha, beta, success)
         ->UseRealTime();
   }
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

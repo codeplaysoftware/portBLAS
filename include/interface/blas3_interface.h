@@ -77,10 +77,9 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
                                     char _uplo, index_t _M, index_t _N,
-                                    element_t _alpha,
-                                    container_0_t a_, index_t _lda,
-                                    container_1_t b_, index_t _ldb,
-                                    element_t _beta,
+                                    element_t _alpha, container_0_t a_,
+                                    index_t _lda, container_1_t b_,
+                                    index_t _ldb, element_t _beta,
                                     container_2_t _C, index_t _ldc);
 
 }  // namespace internal
@@ -138,15 +137,14 @@ typename sb_handle_t::event_t inline _trsm(sb_handle_t& sb_handle, char side,
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side, 
+typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
                                     char _uplo, index_t _M, index_t _N,
-                                    element_t _alpha,
-                                    container_0_t a_, index_t _lda,
-                                    container_1_t b_, index_t _ldb,
-                                    element_t _beta, 
+                                    element_t _alpha, container_0_t a_,
+                                    index_t _lda, container_1_t b_,
+                                    index_t _ldb, element_t _beta,
                                     container_2_t _C, index_t _ldc) {
-  return internal::_symm(sb_handle, _side, _uplo, _M, _N, _alpha, a_,
-                         _lda, b_, _ldb, _beta, _C, _ldc);
+  return internal::_symm(sb_handle, _side, _uplo, _M, _N, _alpha, a_, _lda, b_,
+                         _ldb, _beta, _C, _ldc);
 }
 
 }  // namespace blas

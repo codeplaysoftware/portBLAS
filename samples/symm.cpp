@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   if (side == 'l') {
     std::cout << "Executing C = " << alpha << "*A*B + " << beta << "*C\n";
   } else {
-        std::cout << "Executing C = " << alpha << "*B*A + " << beta << "*C\n";
+    std::cout << "Executing C = " << alpha << "*B*A + " << beta << "*C\n";
   }
   blas::_symm(sb_handle, side, uplo, m, n, alpha, a_gpu, lda, b_gpu, ldb, beta,
               c_gpu, ldc);

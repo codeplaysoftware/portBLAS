@@ -69,7 +69,8 @@ namespace blas {
 #ifdef SB_ENABLE_JOINT_MATRIX
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero, int VectorSize>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
            TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
            static_cast<int>(gemm_memory_t::local),

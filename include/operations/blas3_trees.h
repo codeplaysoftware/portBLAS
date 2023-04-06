@@ -270,8 +270,9 @@ make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
               GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
-              BatchType,UseJointMatrix>(buffer_a, buffer_b, buffer_c, alpha,
-                              beta, batch_size, _stridea, _strideb, _stridec);
+              BatchType, UseJointMatrix>(buffer_a, buffer_b, buffer_c, alpha,
+                                         beta, batch_size, _stridea, _strideb,
+                                         _stridec);
 }
 
 /**

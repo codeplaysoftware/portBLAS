@@ -35,8 +35,8 @@ namespace blas {
  * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
 template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
-          int ClSize, typename TileT, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, int GemmMemoryType, int GemmAlgorithm,
+          int ClSize, typename TileT, bool TransA, bool TransB, bool SymmA,
+          bool SymmB, int GemmMemoryType, int GemmAlgorithm,
           int GemmVectorization, bool is_beta_zero, int VectorSize,
           int BatchType = static_cast<int>(gemm_batch_type_t::strided),
           bool UseJointMatrix = false>
