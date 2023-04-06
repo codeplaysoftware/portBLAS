@@ -78,16 +78,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
   const double nflops = nflops_AtimesB + nflops_addBetaC;
   state.counters["n_fl_ops"] = nflops;
 
-  const auto a_other_dim = (lda == m) ? m : n;
   // Matrices
-  std::vector<scalar_t> a(lda * lda);
-  // blas_benchmark::utils::random_data<scalar_t>(lda * a_other_dim);
+  std::vector<scalar_t> a =
+      blas_benchmark::utils::random_data<scalar_t>(lda * lda);
   std::vector<scalar_t> b =
       blas_benchmark::utils::random_data<scalar_t>(ldb * n);
   std::vector<scalar_t> c =
       blas_benchmark::utils::random_data<scalar_t>(ldc * n);
-
-  blas_benchmark::utils::fill_sym_matrix(a, lda);
 
   blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(lda * lda, a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> b_gpu(ldb * n, b.data());

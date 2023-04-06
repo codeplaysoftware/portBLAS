@@ -76,9 +76,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   // Matrices
   std::vector<scalar_t> a =
       blas_benchmark::utils::random_data<scalar_t>(m_a_dim);
-  std::vector<scalar_t> c(ldc * n);
-
-  blas_benchmark::utils::fill_sym_matrix(c, ldc);
+  std::vector<scalar_t> c =
+      blas_benchmark::utils::random_data<scalar_t>(ldc * n);
 
   blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(m_a_dim, a.data());
   blas_benchmark::utils::CUDAVector<scalar_t> c_gpu(ldc * n, c.data());
@@ -156,7 +155,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
-
   auto syrk_params = blas_benchmark::utils::get_syrk_params<scalar_t>(args);
 
   for (auto p : syrk_params) {

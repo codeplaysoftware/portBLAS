@@ -521,8 +521,8 @@ static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
       for (char uplo : {'u', 'l'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-              symm_default.push_back(
-                  std::make_tuple(side, uplo, m, n, alpha, beta));
+            symm_default.push_back(
+                std::make_tuple(side, uplo, m, n, alpha, beta));
           }
         }
       }
@@ -1006,24 +1006,6 @@ static inline void fill_trsm_matrix(std::vector<scalar_t>& A, size_t k,
       A[i + j * lda] = value;
     }
   }
-}
-
-/**
- * @breif Fills fully a symmetrical matrix suitable for testing
- * @param M The matrix to fill. Size must be at least lda * lda
- * @param lda The leading dimension of matrix @p M
- */
-template <typename scalar_t>
-static inline void fill_sym_matrix(std::vector<scalar_t>& m, const int n) {
-  const int lda = n;
-  for (int col = 0; col < n; ++col) {
-    for (int row = 0; row < n; ++row) {
-      // arbitrary number to have a variety of number
-      m[col * lda + row] = random_scalar(scalar_t{-5}, scalar_t{5});
-      m[row * lda + col] = random_scalar(scalar_t{-5}, scalar_t{5});
-    }
-  }
-  return;
 }
 
 /**
