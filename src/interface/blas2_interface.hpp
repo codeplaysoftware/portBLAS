@@ -325,6 +325,10 @@ template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
 typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          container_t0 _mA, index_t _lda,
                                          container_t1 _vx, increment_t _incx) {
+#ifdef __COMPUTECPP__
+  throw std::runtime_error("Unimplemented for ComputeCPP");
+#endif
+
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
