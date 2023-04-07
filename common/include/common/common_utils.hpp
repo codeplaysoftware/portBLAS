@@ -864,49 +864,6 @@ static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
 }
 
 /**
- * @fn get_symm_params
- * @brief Returns a vector containing the symm benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
- */
-template <typename scalar_t>
-static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
-  if (args.csv_param.empty()) {
-    warning_no_csv();
-    std::vector<symm_param_t<scalar_t>> symm_default;
-    constexpr index_t dmin = 64, dmax = 1024;
-    scalar_t alpha = 1.5;
-    scalar_t beta = 0.5;
-    for (char side : {'l', 'r'}) {
-      for (char uplo : {'u', 'l'}) {
-        for (index_t m = dmin; m <= dmax; m *= 2) {
-          for (index_t n = dmin; n <= dmax; n *= 2) {
-            symm_default.push_back(std::make_tuple(side, uplo,
-                                                  m, n, alpha, beta));
-          }
-        }
-      }
-    }
-    return symm_default;
-  } else {
-    return parse_csv_file<symm_param_t<scalar_t>>(
-        args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 6) {
-            throw std::runtime_error(
-                "invalid number of parameters (6 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]));
-          } catch (...) {
-            throw std::runtime_error("invalid parameter");
-          }
-        });
-  }
-}
-
-/**
  * @fn get_type_name
  * @brief Returns a string with the given type. The C++ specification doesn't
  * guarantee that typeid(T).name is human readable so we specify the template

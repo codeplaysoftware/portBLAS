@@ -851,7 +851,7 @@ else() # default cpu backend
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
-      endif()
+    endif()
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
