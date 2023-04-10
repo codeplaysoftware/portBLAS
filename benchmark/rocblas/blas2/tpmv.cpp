@@ -54,25 +54,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   index_t xlen = n;
   index_t incX = 1;
 
-  // The counters are double. We convert n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-
-  state.counters["n"] = n_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = .5 * n_d * (n_d + 1);
-
-  double nflops_tot = 2 * A_validVal;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  {
-    double mem_readA = A_validVal;
-    double mem_readX = n_d;
-    double mem_writeX = n_d;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::tpmv, scalar_t>(state, 0, n);
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =
@@ -83,7 +66,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = n * (n + 1) / 2;  // Minimum required size
+  const int m_size = n * n;  // Minimum required size
   const int v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.
@@ -157,7 +140,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::update_counters(state, times);
     }
 
-    state.SetItemsProcessed(state.iterations() * nflops_tot);
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
 
     blas_benchmark::utils::calc_avg_counters(state);
 
@@ -185,7 +170,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, ts, diags, n).c_str(),
                                  BM_lambda, rb_handle, uplo, ts, diags, n,
-                                 success);
+                                 success)
+        ->UseRealTime();
   }
 }
 

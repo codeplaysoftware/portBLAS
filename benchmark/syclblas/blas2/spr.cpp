@@ -36,24 +36,8 @@ std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int size, scalar_t alpha, int incX, bool* success) {
-  // The counters are double. We convert size to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double size_d = static_cast<double>(size * (size + 1) / 2);
-
-  state.counters["size_d"] = size_d;
-  state.counters["alpha"] = static_cast<double>(alpha);
-  state.counters["incX"] = incX;
-
-  {
-    double nflops_XtimesX = 2.0 * size_d;
-    state.counters["n_fl_ops"] = size + nflops_XtimesX;
-  }
-  {
-    double mem_readA = size_d;
-    double mem_readX = static_cast<double>(size);
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, 0, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -119,6 +103,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 }
 
@@ -142,7 +130,8 @@ void register_benchmark(blas_benchmark::Args& args,
         };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        sb_handle_ptr, uplo_c, n, alpha, incX, success);
+        sb_handle_ptr, uplo_c, n, alpha, incX, success)
+        ->UseRealTime();
   }
 }
 

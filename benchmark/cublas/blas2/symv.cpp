@@ -57,28 +57,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   index_t xlen = n;
   index_t ylen = n;
 
-  // The counters are double. We convert n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-
-  state.counters["n"] = n_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = (n_d * (n_d + 1) / 2);
-
-  const double nflops_AtimesX = 2 * n_d * n_d;
-  const double nflops_timesAlpha = xlen;
-  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-  const double nflops_tot =
-      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  const double mem_readA = A_validVal;
-  const double mem_readX = xlen;
-  const double mem_writeY = ylen;
-  const double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
-  state.counters["bytes_processed"] =
-      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::symv, scalar_t>(state, 0, n);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -155,7 +135,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetItemsProcessed(state.iterations() * nflops_tot);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 
@@ -179,9 +161,10 @@ void register_benchmark(blas_benchmark::Args& args,
                          scalar_t beta, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, uplos, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplos, n, alpha, beta).c_str(),
-                                 BM_lambda, cuda_handle_ptr, uplos, n, alpha,
-                                 beta, success);
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(uplos, n, alpha, beta).c_str(), BM_lambda,
+        cuda_handle_ptr, uplos, n, alpha, beta, success)
+        ->UseRealTime();
   }
 }
 
