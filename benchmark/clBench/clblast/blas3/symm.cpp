@@ -56,8 +56,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
       blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
 
   // Specify the side/uplo
-  clblast::Side _side = blas_benchmark::utils::translate_side(const_cast<char>(side));
-  clblast::Triangle _uplo = blas_benchmark::utils::translate_triangle(const_cast<char>(uplo));
+  const char side_str[2] = {side, '\0'};
+  const char uplo_str[2] = {uplo, '\0'};
+  clblast::Side side_cl = blas_benchmark::utils::translate_side(side_str);
+  clblast::Triangle uplo_cl = blas_benchmark::utils::translate_triangle(uplo_str);
   auto layout = clblast::Layout::kColMajor;
 
   // Device matrices
@@ -68,8 +70,6 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> c_ref = c;
-  const char side_str[2] = {side, '\0'};
-  const char uplo_str[2] = {uplo, '\0'};
   reference_blas::symm(side_str, uplo_str, m, n, alpha, a.data(), lda, b.data(),
                        ldb, beta, c_ref.data(), ldc);
   std::vector<scalar_t> c_temp = c;
@@ -77,7 +77,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
     MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
                                    static_cast<size_t>(m * n));
     cl_event event;
-    clblast::Symm<scalar_t>(layout, _side, _uplo, m, n, alpha, a_gpu.dev(), 0,
+    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_temp_gpu.dev(), 0,
                             ldc, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
@@ -94,7 +94,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
-    clblast::Symm<scalar_t>(layout, _side, _uplo, m, n, alpha, a_gpu.dev(), 0,
+    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(), 0,
                             lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
                             executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
