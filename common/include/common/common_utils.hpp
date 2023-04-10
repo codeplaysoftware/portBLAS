@@ -595,8 +595,9 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
 }
 /**
  * @fn get_trsm_params
- * @brief Returns a vector containing the trsm benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
+ * @brief Returns a vector containing the trsm benchmark parameters (also valid
+ * for trmm), either read from a file according to the command-line args, or the
+ * default ones.
  */
 template <typename scalar_t>
 static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
