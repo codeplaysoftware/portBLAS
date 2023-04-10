@@ -66,16 +66,6 @@ void create_benchmark(Args& args, cublasHandle_t* cuda_handle_ptr,
 
 namespace utils {
 
-template <typename scalar_t>
-inline void init_level_1_counters(benchmark::State& state, index_t size) {
-  // Google-benchmark counters are double.
-  double size_d = static_cast<double>(size);
-  state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 2.0 * size_d;
-  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
-  return;
-}
-
 /**
  * @class CUDADeviceMemory
  * @brief Base-class to allocate/deallocate cuda device memory.
