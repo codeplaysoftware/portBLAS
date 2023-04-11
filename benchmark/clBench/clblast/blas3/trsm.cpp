@@ -49,6 +49,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   const int sizeA = k * lda;
   const int sizeB = n * ldb;
 
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::trsm, scalar_t>(state, 0, m, n, 0, 1,
+                                                       side);
+
   // Matrices
   std::vector<data_t> a(sizeA);
   std::vector<data_t> b = blas_benchmark::utils::random_data<data_t>(sizeB);
@@ -130,30 +134,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  {
-    // The counters are double. We convert m, n and k to double to avoid
-    // integer overflows for n_fl_ops and bytes_processed
-    double m_d = static_cast<double>(m);
-    double n_d = static_cast<double>(n);
-    double k_d = static_cast<double>(k);
-
-    state.counters["m"] = m_d;
-    state.counters["k"] = k_d;
-    state.counters["n"] = n_d;
-
-    double mem_read = k_d * (k_d + 1) / 2;
-    double mem_write = m_d * n_d;
-
-    double total_mem = (mem_read * mem_write) * sizeof(scalar_t);
-    state.counters["bytes_processed"] = total_mem;
-    state.SetBytesProcessed(state.iterations() * total_mem);
-
-    double nflops_AtimesB = 2 * k_d * (k_d + 1) / 2 * (side == 'l' ? n_d : m_d);
-    double nflops_timesAlpha = m_d * n_d;
-    double nflops = nflops_AtimesB + nflops_timesAlpha;
-    state.counters["n_fl_ops"] = nflops;
-    state.SetItemsProcessed(state.iterations() * nflops);
-  }
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 };

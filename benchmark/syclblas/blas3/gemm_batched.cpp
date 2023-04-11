@@ -87,34 +87,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1, int t2
   index_t ldb = t_b[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  // The counters are double. We convert m, n, k and batch_size to double to
-  // avoid integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
-  double batch_size_d = static_cast<double>(batch_size);
-
-  state.counters["m"] = m_d;
-  state.counters["k"] = k_d;
-  state.counters["n"] = n_d;
-  state.counters["batch_size"] = batch_size_d;
-
-  {
-    double nflops_AtimesB = (2 * k_d - 1) * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
-    double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    state.counters["n_fl_ops"] =
-        (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
-  }
-  {
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * batch_size_d *
-        sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::gemm_batched, scalar_t>(
+      state, beta, m, n, k, batch_size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -200,6 +175,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1, int t2
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
@@ -227,8 +206,9 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, batch_type).c_str(),
-        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, batch_type,
-        success);
+        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
+        batch_type, success)
+        ->UseRealTime();
   }
 }
 
