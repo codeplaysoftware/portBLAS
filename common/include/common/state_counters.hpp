@@ -50,7 +50,7 @@ enum class Level2Op : int {
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gbmv>::type
-init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
@@ -69,7 +69,7 @@ init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gemv>::type
-init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
@@ -83,8 +83,8 @@ init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::ger>::type init_level_2_counters(
-    benchmark::State& state, index_t m = 0, index_t n = 0, index_t k = 0,
-    index_t ku = 0, index_t kl = 0) {
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
@@ -97,7 +97,7 @@ inline typename std::enable_if<op == Level2Op::ger>::type init_level_2_counters(
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::sbmv>::type
-init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
@@ -112,8 +112,8 @@ init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::spmv || op == Level2Op::symv>::type
-    init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
-                          index_t k = 0, index_t ku = 0, index_t kl = 0) {
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
@@ -125,7 +125,7 @@ inline
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::spr || op == Level2Op::syr>::type
-init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
@@ -139,8 +139,8 @@ init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::spr2 || op == Level2Op::syr2>::type
-    init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
-                          index_t k = 0, index_t ku = 0, index_t kl = 0) {
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
@@ -153,8 +153,8 @@ inline
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::tbmv || op == Level2Op::tbsv>::type
-    init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
-                          index_t k = 0, index_t ku = 0, index_t kl = 0) {
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
@@ -169,8 +169,8 @@ template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
                             op == Level2Op::trsv || op == Level2Op::tpsv>::type
-    init_level_2_counters(benchmark::State& state, index_t m = 0, index_t n = 0,
-                          index_t k = 0, index_t ku = 0, index_t kl = 0) {
+init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
