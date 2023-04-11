@@ -26,6 +26,7 @@
 #ifndef ROCBLAS_UTILS_HPP
 #define ROCBLAS_UTILS_HPP
 
+#include "sycl_blas.h"
 #include <common/common_utils.hpp>
 
 #include <hip/hip_runtime.h>
@@ -59,9 +60,8 @@ namespace utils {
  * @class HIPDeviceMemory
  * @brief Base-class to allocate/deallocate hip device memory.
  * @tparam T is the type of the underlying data
- * @tparam CopyToHost whether to copy back
  */
-template <typename T, bool CopyToHost = false>
+template <typename T>
 class HIPDeviceMemory {
  protected:
   size_t size_;
@@ -174,6 +174,100 @@ class HIPScalar : private HIPDeviceMemory<T> {
  private:
   T* d_data_;
   T* h_data_ = nullptr;
+};
+
+// Pseudo batch of vectors subclass which uses device memory
+template <typename T, bool CopyToHost = false>
+class HIPVectorBatched : private HIPDeviceMemory<T*> {
+ public:
+  explicit HIPVectorBatched(size_t vector_size, size_t batch_count)
+      : HIPDeviceMemory<T*>(batch_count),
+        vector_size_(vector_size),
+        vector_bytes_(vector_size * sizeof(T)) {
+    // Initiate array of batch_count pointers
+    d_ptr_array_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
+
+    // Allocate vector_bytes_ device memory for each pointers in the array
+    for (int i = 0; i < HIPDeviceMemory<T*>::size_; i++) {
+      CHECK_HIP_ERROR(hipMalloc(&d_ptr_array_[i], vector_bytes_));
+    }
+
+    // Allocate pointers array on device & copy H2D pointers
+    d_batch_data_ = this->alloc();
+    this->copyH2D(d_ptr_array_, d_batch_data_);
+  }
+
+  // Constructor using host array of pointer copies batches of data to device
+  HIPVectorBatched(size_t vector_size, size_t batch_count, T* h_v[])
+      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_count) {
+    auto size = HIPDeviceMemory<T*>::size_;
+    if constexpr (CopyToHost) {
+      h_batch_data_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
+      for (int i = 0; i < size; i++) {
+        h_batch_data_[i] = h_v[i];
+      }
+    }
+
+    for (int i = 0; i < size; i++) {
+      CHECK_HIP_ERROR(hipMemcpy(d_ptr_array_[i], h_v[i], vector_bytes_,
+                                hipMemcpyHostToDevice));
+    }
+  }
+
+  // Constructor using host pointer of contiguous arrays copies batched data to
+  // device
+  HIPVectorBatched(size_t vector_size, size_t batch_count, T* h_v)
+      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_count) {
+    auto size = HIPDeviceMemory<T*>::size_;
+    if constexpr (CopyToHost) {
+      h_batch_data_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
+      for (int i = 0; i < size; i++) {
+        h_batch_data_[i] = &h_v[i * vector_size_];
+      }
+    }
+
+    for (int i = 0; i < size; i++) {
+      CHECK_HIP_ERROR(hipMemcpy(d_ptr_array_[i], &h_v[i * vector_size_],
+                                vector_bytes_, hipMemcpyHostToDevice));
+    }
+  }
+
+  // Destructor copies data back to host if specified & valid
+  // & free-up device memories
+  ~HIPVectorBatched() {
+    auto size = HIPDeviceMemory<T*>::size_;
+    if constexpr (CopyToHost) {
+      for (int i = 0; i < size; i++) {
+        if (h_batch_data_[i] != nullptr) {
+          CHECK_HIP_ERROR(hipMemcpy(h_batch_data_[i], d_ptr_array_[i],
+                                    vector_bytes_, hipMemcpyDeviceToHost));
+        }
+      }
+    }
+    for (int i = 0; i < size; i++) {
+      if (d_ptr_array_[i] != nullptr) {
+        CHECK_HIP_ERROR(hipFree(d_ptr_array_[i]));
+      }
+    }
+    this->free(d_batch_data_);
+    free(d_ptr_array_);
+  }
+
+  // Decay into device array pointer wherever pointer is expected
+  operator T**() { return d_batch_data_; }
+  operator const T**() const { return d_batch_data_; }
+
+  // Disallow copying or assigning
+  HIPVectorBatched(const HIPVectorBatched&) = delete;
+  HIPVectorBatched& operator=(const HIPVectorBatched&) = delete;
+
+ private:
+  T** d_batch_data_;
+  T** d_ptr_array_;
+  T** h_batch_data_ = nullptr;
+
+  size_t vector_size_;
+  size_t vector_bytes_;
 };
 
 /**

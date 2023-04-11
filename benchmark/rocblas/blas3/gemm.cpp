@@ -87,9 +87,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
   }
 
   // Matrix options (rocBLAS)
-  const rocblas_operation trans_a =
+  const rocblas_operation trans_a_rb =
       t_a_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
-  const rocblas_operation trans_b =
+  const rocblas_operation trans_b_rb =
       t_b_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
@@ -127,8 +127,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
       blas_benchmark::utils::HIPVector<scalar_t, true> c_temp_gpu(
           c_size, c_temp.data());
       // rocBLAS function call
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a, trans_b, m, n, k, &alpha,
-                               a_gpu, lda, b_gpu, ldb, &beta, c_temp_gpu, ldc);
+      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                               &alpha, a_gpu, lda, b_gpu, ldb, &beta,
+                               c_temp_gpu, ldc);
     }
 
     std::ostringstream err_stream;
@@ -139,8 +140,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
     };
 #endif
     auto blas_warmup = [&]() -> void {
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a, trans_b, m, n, k, &alpha,
-                               a_gpu, lda, b_gpu, ldb, &beta, c_gpu, ldc);
+      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                               &alpha, a_gpu, lda, b_gpu, ldb, &beta, c_gpu,
+                               ldc);
       return;
     };
 
@@ -150,8 +152,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
 
     auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-      rocblas_gemm_f<scalar_t>(rb_handle, trans_a, trans_b, m, n, k, &alpha,
-                               a_gpu, lda, b_gpu, ldb, &beta, c_gpu, ldc);
+      rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
+                               &alpha, a_gpu, lda, b_gpu, ldb, &beta, c_gpu,
+                               ldc);
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
       return std::vector{start, stop};
