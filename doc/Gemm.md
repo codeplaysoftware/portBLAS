@@ -58,8 +58,8 @@ where A, B and C are matrices and alpha and beta are scalars.
 
 - `gemm_no_local_full_vec.hpp` - Doesn't use local memory. Supports full vectorization.
 
-- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. 
-Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses).
+- `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. This means that the batch axis is the fastest moving dimension.
+Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses). Also, the interleaved batched gemm is not subject to custom striding as it beats its initial purpose.
 
 ## Relevant CMake Variables
 
@@ -113,7 +113,9 @@ You can see examples of how to handle these issues by looking at the `gemm_local
 Batched `GEMM` is not officially part of the BLAS specification but is a common use case, particularly when you have a series of smaller matrices to multiply it makes more sense to perform them as a batched operation. 
 All `GEMM` kernels support batched operations but the interleaved `GEMM` can only be used for batched operations as it is designed specifically for it.
 
-Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place.
+Batched `GEMM` is called with a separate `_gemm_batched` function, however beyond the user facing functions all `GEMM` calls take the same path, with `batch_size` and `batch_type` parameters controlling if and how a batched operation takes place. For the strided `batch_type` case, all matrices have the same parameters (sizes and leading dimensions) and are stored within a fixed stride-distance equal to each matrix size by default.
+
+The `_gemm_strided_batched` operation, just like the `_gemm_batched`, assumes all the matrices have the same parameters. This operator processes batches of strided matrices, with a custom stride for each matrix batch that can be set by the user (`stride_a`, `stride_b` and `stride_c`). The stride of the output matrix batch `stride_c` must be at least equal to the matrix c size to avoid overlapping writes to the output. A's or B's stride can also be set to zero, which translates to a batched gemm operation of `batch_size` matrices with 1 matrix.
 
 # GEMM Dispatch
 
@@ -260,9 +262,9 @@ template typename SB_Handle::event_t _gemm(
 template typename SB_Handle::event_t _gemm_batched(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
+    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
+    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
+    ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
 }  // namespace internal
 }  // namespace blas
 ```
@@ -317,10 +319,10 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(
             gemm_batch_type_t::interleaved)>::template _select_gemm(sb_handle, _M, _N,
                                                                     _K, _alpha,
-                                                                    _a, _lda,
-                                                                    _b, _ldb,
+                                                                    _a, _lda, _stridea,
+                                                                    _b, _ldb, _strideb,
                                                                     _beta, _c,
-                                                                    _ldc,
+                                                                    _ldc, _stridec,
                                                                     batch_size);
   }
 ```
@@ -336,9 +338,10 @@ The first configuration is only used if `interleaved` is specified for the `GEMM
       static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
       static_cast<int>(
           gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
-                                                              _alpha, _a, _lda,
-                                                              _b, _ldb, _beta,
-                                                              _c, _ldc,
+                                                              _alpha, _a, _lda, 
+                                                              _stridea, _b, _ldb,
+                                                              _strideb, _beta,
+                                                              _c, _ldc, _stridec,
                                                               batch_size);
 #else
 ```
@@ -356,10 +359,11 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
-                                                                _alpha, _a,
-                                                                _lda, _b, _ldb,
-                                                                _beta, _c, _ldc,
-                                                                batch_size);
+                                                              _alpha, _a, _lda, 
+                                                              _stridea, _b, _ldb,
+                                                              _strideb, _beta,
+                                                              _c, _ldc, _stridec,
+                                                              batch_size);
   } else {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
@@ -368,10 +372,11 @@ if (_M <= 128 && _N <= 128 && _K <= 128) {
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M, _N, _K,
-                                                                _alpha, _a,
-                                                                _lda, _b, _ldb,
-                                                                _beta, _c, _ldc,
-                                                                batch_size);
+                                                              _alpha, _a, _lda, 
+                                                              _stridea, _b, _ldb,
+                                                              _strideb, _beta,
+                                                              _c, _ldc, _stridec,
+                                                              batch_size);
   }
 #endif
 }

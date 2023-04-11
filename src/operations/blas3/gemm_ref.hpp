@@ -54,7 +54,8 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
      TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
      GemmVectorization, VectorSize, BatchType, UseJointMatrix>::
     Gemm(input_t A, input_t B, output_t C, element_t alpha, element_t beta,
-         typename std::make_signed<typename input_t::index_t>::type batch_size)
+         typename std::make_signed<typename input_t::index_t>::type batch_size,
+         index_t stride_a, index_t stride_b, index_t stride_c)
     : a_(A),
       b_(B),
       c_(C),
@@ -66,7 +67,10 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       lda_(a_.getSizeL()),
       ldb_(b_.getSizeL()),
       ldc_(c_.getSizeL()),
-      batch_size_(batch_size) {}
+      batch_size_(batch_size),
+      stridea_{stride_a},
+      strideb_{stride_b},
+      stridec_{stride_c} {}
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
           typename element_t, bool is_beta_zero, int GemmMemoryType,
@@ -204,9 +208,9 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
   const index_t b_size = trans_b ? ldb_ * k_ : n_ * ldb_;
   const index_t c_size = ldc_ * n_;
 
-  auto orig_A = a_.get_pointer() + (wg_batch_id * a_size);
-  auto orig_B = b_.get_pointer() + (wg_batch_id * b_size);
-  auto orig_C = c_.get_pointer() + (wg_batch_id * c_size);
+  auto orig_A = a_.get_pointer() + (wg_batch_id * stridea_);
+  auto orig_B = b_.get_pointer() + (wg_batch_id * strideb_);
+  auto orig_C = c_.get_pointer() + (wg_batch_id * stridec_);
 
   index_t item_id =
       (id.get_group(0) % get_workgroup_cluster()) * (id.get_local_range(0)) +
@@ -241,9 +245,9 @@ Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
       C[0] = alpha_ * reg_res + beta_ * C[0];
     }
 
-    orig_A += (a_size * batch_stride);
-    orig_B += (b_size * batch_stride);
-    orig_C += (c_size * batch_stride);
+    orig_A += (stridea_ * batch_stride);
+    orig_B += (strideb_ * batch_stride);
+    orig_C += (stridec_ * batch_stride);
     k_ = a_.get_size_col();
     // batch_size_ must be signed as the negative value has meaning here.
     batch_size_ -= batch_stride;
