@@ -53,7 +53,7 @@ jobs:
             target: "opencl"
     
     steps:
-    - uses: actions/checkout@v3.0.2
+    - uses: actions/checkout@v3.2.0
     - name: Push Event Environment Vars
       if: github.event_name == 'push'
       run: |
