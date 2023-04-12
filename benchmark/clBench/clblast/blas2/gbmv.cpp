@@ -50,7 +50,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   index_t incY = 1;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, m, n, 0, ku, kl);
+      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, t_str, beta, m, n,
+                                                       0, ku, kl);
 
   ExecutorType& ex = *executorPtr;
 

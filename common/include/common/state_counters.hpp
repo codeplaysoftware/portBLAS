@@ -50,82 +50,148 @@ enum class Level2Op : int {
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gbmv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, const char* t_str,
+                      scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double kl_d = static_cast<double>(kl);
   double ku_d = static_cast<double>(ku);
+  double xlen = t_str[0] == 'n' ? n_d : m_d;
+  double ylen = t_str[0] == 'n' ? m_d : n_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
   state.counters["kl"] = kl_d;
   state.counters["ku"] = ku_d;
-  state.counters["n_fl_ops"] = 2 * (kl + ku + 1) * std::min(m, n) + m;
+  const double A_validVal = xlen * (kl_d + ku_d + 1.0) -
+                            0.5 * (kl_d * (kl_d + 1.0)) -
+                            0.5 * (ku_d * (ku_d + 1.0));
+
+  const double nflops_AtimesX = 2.0 * A_validVal;
+  const double nflops_timesAlpha = ylen;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  const double nflops_tot =
+      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = A_validVal;
+  const double mem_readX = xlen;
+  const double mem_writeY = ylen;
+  const double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
   state.counters["bytes_processed"] =
-      ((kl + ku + 1) * std::min(m, n) + 2 * m + n) * sizeof(scalar_t);
+      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   return;
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gemv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, const char* t_str,
+                      scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
+  double xlen = t_str[0] == 'n' ? n_d : m_d;
+  double ylen = t_str[0] == 'n' ? m_d : n_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
-  state.counters["n_fl_ops"] = 2 * m * n + m + std::min(n, m);
-  state.counters["bytes_processed"] = (m * n + 2 * m + n) * sizeof(scalar_t);
+
+  const double nflops_AtimesX = 2.0 * m_d * n_d;
+  const double nflops_timesAlpha = xlen;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
+  const double nflops_tot =
+      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = m_d * n_d;
+  const double mem_readX = xlen;
+  const double mem_writeY = ylen;
+  const double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   return;
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::ger>::type init_level_2_counters(
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
-                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
+    benchmark::State& state, const char* t_str, scalar_t beta = scalar_t{0},
+    index_t m = 0, index_t n = 0, index_t k = 0, index_t ku = 0,
+    index_t kl = 0) {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
-  state.counters["n_fl_ops"] = 2 * m * n + std::min(n, m);
-  state.counters["bytes_processed"] = (2 * m * n + m + n) * sizeof(scalar_t);
+  state.counters["n_fl_ops"] = 2 * m_d * n_d + std::min(n_d, m_d);
+  state.counters["bytes_processed"] =
+      (2 * m_d * n_d + m_d + n_d) * sizeof(scalar_t);
   return;
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::sbmv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, const char* t_str,
+                      scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
   state.counters["k"] = k_d;
   state.counters["n"] = n_d;
-  state.counters["n_fl_ops"] = 2 * (2 * k + 1) * n + n;
-  state.counters["bytes_processed"] = (((k + 1) + 3) * n) * sizeof(scalar_t);
+
+  // Compute the number of A non-zero elements.
+  const double A_validVal = (n_d * (2.0 * k_d + 1.0)) - (k_d * (k_d + 1.0));
+
+  const double nflops_AtimesX = 2.0 * A_validVal;
+  const double nflops_timesAlpha = n_d;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * n_d : 0;
+  const double nflops_tot =
+      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = A_validVal;
+  const double mem_readX = n_d;
+  const double mem_writeY = n_d;
+  const double mem_readY = (beta != scalar_t{0}) ? n_d : 0;
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   return;
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::spmv || op == Level2Op::symv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
-                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
+    init_level_2_counters(benchmark::State& state, const char* t_str,
+                          scalar_t beta = scalar_t{0}, index_t m = 0,
+                          index_t n = 0, index_t k = 0, index_t ku = 0,
+                          index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
-  state.counters["n_fl_ops"] = 2 * n * n + n;
+  // Compute the number of A non-zero elements.
+  const double A_validVal = (n_d * (n_d + 1) / 2);
+
+  const double nflops_AtimesX = 2 * n_d * n_d;
+  const double nflops_timesAlpha = n_d;
+  const double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * n_d : 0;
+  const double nflops_tot =
+      nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = A_validVal;
+  const double mem_readX = n_d;
+  const double mem_writeY = n_d;
+  const double mem_readY = (beta != scalar_t{0}) ? n_d : 0;
   state.counters["bytes_processed"] =
-      ((((n + 1) / 2) + 3) * n) * sizeof(scalar_t);
+      (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
   return;
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::spr || op == Level2Op::syr>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
+init_level_2_counters(benchmark::State& state, const char* t_str,
+                      scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
@@ -139,8 +205,10 @@ init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::spr2 || op == Level2Op::syr2>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
-                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
+    init_level_2_counters(benchmark::State& state, const char* t_str,
+                          scalar_t beta = scalar_t{0}, index_t m = 0,
+                          index_t n = 0, index_t k = 0, index_t ku = 0,
+                          index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
@@ -153,15 +221,26 @@ init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::tbmv || op == Level2Op::tbsv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
-                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
+    init_level_2_counters(benchmark::State& state, const char* t_str,
+                          scalar_t beta = scalar_t{0}, index_t m = 0,
+                          index_t n = 0, index_t k = 0, index_t ku = 0,
+                          index_t kl = 0) {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
   state.counters["k"] = k_d;
-  state.counters["n_fl_ops"] = 2 * (k + 1) * n;
-  state.counters["bytes_processed"] = (((k + 1) + 2) * n) * sizeof(scalar_t);
+  // Compute the number of A non-zero elements.
+  const double A_validVal = (n_d * (k_d + 1.0)) - (0.5 * (k_d * (k_d + 1.0)));
+
+  const double nflops_AtimesX = 2.0 * A_validVal;
+  state.counters["n_fl_ops"] = nflops_AtimesX;
+
+  const double mem_readA = A_validVal;
+  const double mem_readX = n_d;
+  const double mem_writeX = n_d;
+  state.counters["bytes_processed"] =
+      (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
   return;
 }
 
@@ -169,14 +248,16 @@ template <Level2Op op, typename scalar_t, typename index_t>
 inline
     typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
                             op == Level2Op::trsv || op == Level2Op::tpsv>::type
-init_level_2_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0, index_t n = 0,
-                      index_t k = 0, index_t ku = 0, index_t kl = 0) {
+    init_level_2_counters(benchmark::State& state, const char* t_str,
+                          scalar_t beta = scalar_t{0}, index_t m = 0,
+                          index_t n = 0, index_t k = 0, index_t ku = 0,
+                          index_t kl = 0) {
   // Google-benchmark counters are double.
   double n_d = static_cast<double>(n);
   state.counters["n"] = n_d;
-  state.counters["n_fl_ops"] = 2 * n * ((n + 1) / 2);
+  state.counters["n_fl_ops"] = 2 * n_d * ((n_d + 1) / 2);
   state.counters["bytes_processed"] =
-      ((((n + 1) / 2) + 2) * n) * sizeof(scalar_t);
+      ((((n_d + 1) / 2) + 2) * n_d) * sizeof(scalar_t);
   return;
 }
 

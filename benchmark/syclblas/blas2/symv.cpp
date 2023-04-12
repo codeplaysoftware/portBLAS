@@ -48,7 +48,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   index_t ylen = n;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::symv, scalar_t>(state, 0, n);
+      blas_benchmark::utils::Level2Op::symv, scalar_t>(state, "n", beta, 0, n);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 

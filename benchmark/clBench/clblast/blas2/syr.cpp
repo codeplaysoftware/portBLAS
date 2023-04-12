@@ -43,7 +43,7 @@ void run(benchmark::State& state, ExecutorType* executorPtr, std::string uplo,
   index_t incX = 1;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::syr, scalar_t>(state, 0, n);
+      blas_benchmark::utils::Level2Op::syr, scalar_t>(state, "n", 0, 0, n);
 
   ExecutorType& ex = *executorPtr;
 

@@ -47,7 +47,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
          int n, scalar_t alpha, int incX, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, 0, n);
+      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, "n", 0, 0, n);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 

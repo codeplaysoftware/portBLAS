@@ -47,7 +47,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo, int n,
          scalar_t alpha, int incX, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, 0, n);
+      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, "n", 0, 0, n);
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =

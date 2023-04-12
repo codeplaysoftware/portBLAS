@@ -57,7 +57,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   index_t incX = 1;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::tbmv, scalar_t>(state, 0, n, k);
+      blas_benchmark::utils::Level2Op::tbmv, scalar_t>(state, "n", 0, 0, n, k);
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =

@@ -37,7 +37,7 @@ template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int size, scalar_t alpha, int incX, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, 0, size);
+      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, "n", 0, 0, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 

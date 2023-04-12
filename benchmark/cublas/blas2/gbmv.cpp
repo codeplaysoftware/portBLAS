@@ -60,7 +60,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
   index_t incY = 1;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, m, n, 0, ku, kl);
+      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, t_str, beta, m, n,
+                                                       0, ku, kl);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
