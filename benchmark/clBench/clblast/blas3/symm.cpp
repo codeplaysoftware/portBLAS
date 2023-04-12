@@ -120,23 +120,29 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
     // integer overflows for n_fl_ops and bytes_processed
     double m_d = static_cast<double>(m);
     double n_d = static_cast<double>(n);
-    double k_d = static_cast<double>(k);
 
     state.counters["m"] = m_d;
-    state.counters["k"] = k_d;
     state.counters["n"] = n_d;
 
-    double mem_read = (k_d * (k_d + 1) / 2) + 2 * (m_d * n_d);
-    double mem_write = m_d * n_d;
-    double total_mem = (mem_read + mem_write) * sizeof(scalar_t);
+    const double mem_readBreadC =
+        (beta != scalar_t{0}) ? 2 * m_d * n_d : m_d * n_d;
+    const double mem_writeC = m_d * n_d;
+    const double mem_readA =
+        (side == 'l') ? (m_d * (m_d + 1) / 2) : (n_d * (n_d + 1) / 2);
+    const double total_mem =
+        (mem_readBreadC + mem_writeC + mem_readA) * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
-    state.SetBytesProcessed(state.iterations() * total_mem);
 
-    double nflops = 2 * (k_d * k_d * n_d) + 2 * (m_d * n_d);
+    const double nflops_AtimesB =
+        (side == 'l') ? (2 * m_d * m_d) * n_d : 2 * n_d * n_d * n_d;
+    const double nflops_addBetaC = 2 * m_d * n_d;
+    const double nflops = nflops_AtimesB + nflops_addBetaC;
     state.counters["n_fl_ops"] = nflops;
+    
+    state.SetBytesProcessed(state.iterations() * total_mem);
     state.SetItemsProcessed(state.iterations() * nflops);
   }
-
+  
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
