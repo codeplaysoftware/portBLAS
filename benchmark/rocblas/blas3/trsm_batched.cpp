@@ -60,11 +60,12 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
   index_t k = side == 'l' ? m : n;
 
   {
-    // The counters are double. We convert m, n, k and batch_size to double to
-    // avoid integer overflows for n_fl_ops and bytes_processed
+    // The counters are double. We convert dimensions, strides & batch_size to
+    // double to avoid integer overflows for n_fl_ops and bytes_processed
     const double m_d = static_cast<double>(m);
     const double n_d = static_cast<double>(n);
     const double k_d = static_cast<double>(k);
+    const double batch_size_d = static_cast<double>(batch_size);
 
     state.counters["m"] = m_d;
     state.counters["n"] = n_d;
@@ -75,7 +76,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
     const double mem_readA = k_d * (k_d + 1) / 2;
     const double mem_readBwriteB = 2 * m_d * n_d;
     const double total_mem =
-        ((mem_readA + mem_readBwriteB) * sizeof(scalar_t)) * batch_size;
+        ((mem_readA + mem_readBwriteB) * sizeof(scalar_t)) * batch_size_d;
     state.counters["bytes_processed"] = total_mem;
     state.SetBytesProcessed(state.iterations() * total_mem);
 
@@ -83,7 +84,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
         2 * k_d * (k_d + 1) / 2 * (side == 'l' ? n_d : m_d);
     const double nflops_timesAlpha = m_d * n_d;
     const double total_nflops =
-        (nflops_AtimesB + nflops_timesAlpha) * batch_size;
+        (nflops_AtimesB + nflops_timesAlpha) * batch_size_d;
     state.counters["n_fl_ops"] = total_nflops;
     state.SetItemsProcessed(state.iterations() * total_nflops);
   }
