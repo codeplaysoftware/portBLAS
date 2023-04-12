@@ -81,8 +81,9 @@ using tbmv_param_t =
 using trsv_param_t = std::tuple<std::string, std::string, std::string, index_t>;
 
 template <typename scalar_t>
-using trsm_batched_param_t = std::tuple<char, char, char, char, index_t,
-                                        index_t, scalar_t, index_t, int>;
+using trsm_batched_param_t =
+    std::tuple<char, char, char, char, index_t, index_t, scalar_t, index_t,
+               index_t, index_t>;
 
 namespace blas_benchmark {
 
@@ -434,18 +435,28 @@ get_trsm_batched_params(Args& args) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
     constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t stride_a_mul_min = 0, stride_a_mul_max = 2;
+    constexpr index_t stride_b_mul_min = 1, stride_b_mul_max = 2;
     constexpr index_t batch_size = 8;
-    constexpr int batch_type = 0;
     constexpr scalar_t alpha = 1;
     for (char side : {'l', 'r'}) {
       for (char uplo : {'u', 'l'}) {
         for (char trans : {'n', 't'}) {
           for (char diag : {'u', 'n'}) {
-            for (index_t m = dmin; m <= dmax; m *= 2) {
-              for (index_t n = dmin; n <= dmax; n *= 2) {
-                trsm_batched_default.push_back(
-                    std::make_tuple(side, uplo, trans, diag, m, n, alpha,
-                                    batch_size, batch_type));
+            for (index_t stride_a_mul = stride_a_mul_min;
+                 stride_a_mul <= stride_a_mul_max; stride_a_mul += 1) {
+              for (index_t stride_b_mul = stride_b_mul_min;
+                   stride_b_mul <= stride_b_mul_min; stride_b_mul += 1) {
+                for (index_t m = dmin; m <= dmax; m *= 2) {
+                  for (index_t n = dmin; n <= dmax; n *= 2) {
+                    auto stride_a =
+                        stride_a_mul * ((side == 'l') ? m * m : n * n);
+                    auto stride_b = stride_b_mul * m * n;
+                    trsm_batched_default.push_back(
+                        std::make_tuple(side, uplo, trans, diag, m, n, alpha,
+                                        batch_size, stride_a, stride_b));
+                  }
+                }
               }
             }
           }
@@ -456,15 +467,16 @@ get_trsm_batched_params(Args& args) {
   } else {
     return parse_csv_file<trsm_batched_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
+          if (v.size() != 10) {
             throw std::runtime_error(
-                "invalid number of parameters (9 expected)");
+                "invalid number of parameters (10 expected)");
           }
           try {
             return std::make_tuple(
                 v[0][0], v[1][0], v[2][0], v[3][0], str_to_int<index_t>(v[4]),
                 str_to_int<index_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                str_to_int<index_t>(v[9]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

@@ -28,21 +28,23 @@
 template <typename scalar_t>
 std::string get_name(const char side, const char uplo, const char t,
                      const char diag, int m, int n, int batch_size,
-                     int batch_type) {
+                     int stride_a, int stride_b) {
   std::ostringstream str{};
   str << "BM_TrsmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << side << "/" << uplo << "/" << t << "/" << diag << "/" << m
-      << "/" << n << "/" << batch_size << "/"
-      << blas_benchmark::utils::batch_type_to_str(batch_type);
+      << "/" << n << "/" << batch_size << "/" << stride_a << "/" << stride_b
+      << "/";
   return str.str();
 }
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_trsm_batched_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
-    CHECK_ROCBLAS_STATUS(rocblas_strsm_batched(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(
+        rocblas_strsm_strided_batched(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CHECK_ROCBLAS_STATUS(rocblas_dtrsm_batched(std::forward<args_t>(args)...));
+    CHECK_ROCBLAS_STATUS(
+        rocblas_dtrsm_strided_batched(std::forward<args_t>(args)...));
   }
   return;
 }
@@ -50,26 +52,25 @@ static inline void rocblas_trsm_batched_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
          const char uplo, const char trans, const char diag, index_t m,
-         index_t n, scalar_t alpha, index_t batch_size, int batch_type_i,
-         bool* success) {
+         index_t n, scalar_t alpha, index_t batch_size, index_t stride_a,
+         index_t stride_b, bool* success) {
   // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
-
-  auto batch_type = static_cast<blas::gemm_batch_type_t>(batch_type_i);
 
   {
     // The counters are double. We convert m, n, k and batch_size to double to
     // avoid integer overflows for n_fl_ops and bytes_processed
     const double m_d = static_cast<double>(m);
     const double n_d = static_cast<double>(n);
-    const double batch_size_d = static_cast<double>(batch_size);
     const double k_d = static_cast<double>(k);
 
     state.counters["m"] = m_d;
     state.counters["n"] = n_d;
-    state.counters["batch_size"] = batch_size_d;
+    state.counters["batch_size"] = static_cast<double>(batch_size);
+    state.counters["stride_a"] = static_cast<double>(stride_a);
+    state.counters["stride_b"] = static_cast<double>(stride_b);
 
     const double mem_readA = k_d * (k_d + 1) / 2;
     const double mem_readBwriteB = 2 * m_d * n_d;
@@ -101,57 +102,63 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
       (diag == 'u') ? rocblas_diagonal_unit : rocblas_diagonal_non_unit;
 
   // Data sizes
+  // Elementary matrices
   const int a_size = lda * k;
   const int b_size = ldb * n;
+  // Batched matrices
+  const int size_a_batch = a_size + (batch_size - 1) * stride_a;
+  const int size_b_batch = b_size + (batch_size - 1) * stride_b;
 
   // Matrices
-  std::vector<scalar_t> a(a_size * batch_size);
+  std::vector<scalar_t> a(size_a_batch);
   {
     // Populate the main input diagonal for each batch.
-    std::vector<scalar_t> a_batch(a_size);
+    std::vector<scalar_t> a_unit(a_size);
     for (int i = 0; i < batch_size; ++i) {
       const scalar_t diagValue =
           diag == 'u' ? scalar_t{1}
                       : blas_benchmark::utils::random_scalar<scalar_t>(
                             scalar_t{1}, scalar_t{10});
-      blas_benchmark::utils::fill_trsm_matrix(a_batch, k, lda, uplo, diagValue,
+      blas_benchmark::utils::fill_trsm_matrix(a_unit, k, lda, uplo, diagValue,
                                               scalar_t{0});
 
-      std::copy(a_batch.begin(), a_batch.end(), a.begin() + i * a_size);
+      std::copy(a_unit.begin(), a_unit.end(), a.begin() + i * stride_a);
     }
   }
+
   std::vector<scalar_t> b =
-      blas_benchmark::utils::random_data<scalar_t>(b_size * batch_size);
+      blas_benchmark::utils::random_data<scalar_t>(size_b_batch);
 
   {
     // Device memory allocation & H2D copy
-    blas_benchmark::utils::HIPVectorBatched<scalar_t> a_batched_gpu(
-        a_size, batch_size, a.data());
-    blas_benchmark::utils::HIPVectorBatched<scalar_t> b_batched_gpu(
-        b_size, batch_size, b.data());
+    blas_benchmark::utils::HIPVectorBatchedStrided<scalar_t> a_batched_gpu(
+        a_size, batch_size, stride_a, a.data());
+    blas_benchmark::utils::HIPVectorBatchedStrided<scalar_t> b_batched_gpu(
+        b_size, batch_size, stride_b, b.data());
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference batched trsm
     std::vector<scalar_t> x_ref = b;
     for (int batch = 0; batch < batch_size; batch++) {
       reference_blas::trsm(&side, &uplo, &trans, &diag, m, n, alpha,
-                           a.data() + batch * a_size, lda,
-                           x_ref.data() + batch * b_size, ldb);
+                           a.data() + batch * stride_a, lda,
+                           x_ref.data() + batch * stride_b, ldb);
     }
 
     // Rocblas verification trsm_batched
     std::vector<scalar_t> x_temp = b;
     {
-      blas_benchmark::utils::HIPVectorBatched<scalar_t, true> x_temp_gpu(
-          b_size, batch_size, x_temp.data());
+      blas_benchmark::utils::HIPVectorBatchedStrided<scalar_t, true> x_temp_gpu(
+          b_size, batch_size, stride_b, x_temp.data());
 
-      rocblas_trsm_batched_f<scalar_t>(rb_handle, side_rb, uplo_rb, trans_rb,
-                                       diag_rb, m, n, &alpha, a_batched_gpu,
-                                       lda, x_temp_gpu, ldb, batch_size);
+      rocblas_trsm_batched_f<scalar_t>(
+          rb_handle, side_rb, uplo_rb, trans_rb, diag_rb, m, n, &alpha,
+          a_batched_gpu, lda, stride_a, x_temp_gpu, ldb, stride_b, batch_size);
     }
 
     std::ostringstream err_stream;
-    if (!utils::compare_vectors(x_temp, x_ref, err_stream, "")) {
+    if (!utils::compare_vectors_strided(x_temp, x_ref, stride_b, b_size,
+                                        err_stream, "")) {
       const std::string& err_str = err_stream.str();
       state.SkipWithError(err_str.c_str());
       *success = false;
@@ -162,7 +169,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
     auto blas_warmup = [&]() -> void {
       rocblas_trsm_batched_f<scalar_t>(rb_handle, side_rb, uplo_rb, trans_rb,
                                        diag_rb, m, n, &alpha, a_batched_gpu,
-                                       lda, b_batched_gpu, ldb, batch_size);
+                                       lda, stride_a, b_batched_gpu, ldb,
+                                       stride_b, batch_size);
       return;
     };
 
@@ -174,7 +182,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
       rocblas_trsm_batched_f<scalar_t>(rb_handle, side_rb, uplo_rb, trans_rb,
                                        diag_rb, m, n, &alpha, a_batched_gpu,
-                                       lda, b_batched_gpu, ldb, batch_size);
+                                       lda, stride_a, b_batched_gpu, ldb,
+                                       stride_b, batch_size);
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
       return std::vector{start, stop};
@@ -211,32 +220,24 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
 
   for (auto p : trsm_batched_params) {
     char s_side, s_uplo, s_t, s_diag;
-    index_t m, n, batch_size;
+    index_t m, n, batch_size, stride_a, stride_b;
     scalar_t alpha;
-    int batch_type;
-    std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_size, batch_type) =
-        p;
-
-    auto batch_type_enum = static_cast<blas::gemm_batch_type_t>(batch_type);
-    if (batch_type_enum == blas::gemm_batch_type_t::interleaved) {
-      std::cerr << "interleaved memory for trsm_batched operator is not "
-                   "supported by rocBLAS\n";
-      continue;
-    }
+    std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_size, stride_a,
+             stride_b) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          char side, char uplo, char t, char diag, index_t m,
                          index_t n, scalar_t alpha, index_t batch_size,
-                         int batch_type, bool* success) {
+                         index_t stride_a, index_t stride_b, bool* success) {
       run<scalar_t>(st, rb_handle, side, uplo, t, diag, m, n, alpha, batch_size,
-                    batch_type, success);
+                    stride_a, stride_b, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(s_side, s_uplo, s_t, s_diag, m, n, batch_size,
-                           batch_type)
+                           stride_a, stride_b)
             .c_str(),
         BM_lambda, rb_handle, s_side, s_uplo, s_t, s_diag, m, n, alpha,
-        batch_size, batch_type, success)
+        batch_size, stride_a, stride_b, success)
         ->UseRealTime();
   }
 }

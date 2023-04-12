@@ -180,11 +180,11 @@ class HIPScalar : private HIPDeviceMemory<T> {
 template <typename T, bool CopyToHost = false>
 class HIPVectorBatched : private HIPDeviceMemory<T*> {
  public:
-  explicit HIPVectorBatched(size_t vector_size, size_t batch_count)
-      : HIPDeviceMemory<T*>(batch_count),
+  explicit HIPVectorBatched(size_t vector_size, size_t batch_size)
+      : HIPDeviceMemory<T*>(batch_size),
         vector_size_(vector_size),
         vector_bytes_(vector_size * sizeof(T)) {
-    // Initiate array of batch_count pointers
+    // Initiate array of batch_size pointers
     d_ptr_array_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
 
     // Allocate vector_bytes_ device memory for each pointers in the array
@@ -198,8 +198,8 @@ class HIPVectorBatched : private HIPDeviceMemory<T*> {
   }
 
   // Constructor using host array of pointer copies batches of data to device
-  HIPVectorBatched(size_t vector_size, size_t batch_count, T* h_v[])
-      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_count) {
+  HIPVectorBatched(size_t vector_size, size_t batch_size, T* h_v[])
+      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_size) {
     auto size = HIPDeviceMemory<T*>::size_;
     if constexpr (CopyToHost) {
       h_batch_data_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
@@ -216,8 +216,8 @@ class HIPVectorBatched : private HIPDeviceMemory<T*> {
 
   // Constructor using host pointer of contiguous arrays copies batched data to
   // device
-  HIPVectorBatched(size_t vector_size, size_t batch_count, T* h_v)
-      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_count) {
+  HIPVectorBatched(size_t vector_size, size_t batch_size, T* h_v)
+      : HIPVectorBatched<T, CopyToHost>(vector_size, batch_size) {
     auto size = HIPDeviceMemory<T*>::size_;
     if constexpr (CopyToHost) {
       h_batch_data_ = (T**)malloc(HIPDeviceMemory<T*>::bytes_);
@@ -268,6 +268,86 @@ class HIPVectorBatched : private HIPDeviceMemory<T*> {
 
   size_t vector_size_;
   size_t vector_bytes_;
+};
+
+// Strided batched pseudo-vector subclass which uses device memory
+template <typename T, bool CopyToHost = false>
+class HIPVectorBatchedStrided : private HIPDeviceMemory<T> {
+ public:
+  // Construct using explicit vector, batch and stride sizes
+  explicit HIPVectorBatchedStrided(size_t vector_size, size_t batch_size,
+                                   size_t stride)
+      : HIPDeviceMemory<T>(vector_size + (batch_size - 1) * stride),
+        vector_size_{vector_size},
+        batch_size_{batch_size},
+        stride_{stride},
+        vector_bytes_{vector_size * sizeof(T)} {
+    d_data_ = this->alloc();
+  }
+
+  // Construct using explicit vector and batch sizes, and use vector size as
+  // default stride
+  explicit HIPVectorBatchedStrided(size_t vector_size, size_t batch_size)
+      : HIPVectorBatchedStrided<T, CopyToHost>(vector_size, batch_size,
+                                               vector_size) {}
+
+  // Constructor using host pointer copies data to device
+  HIPVectorBatchedStrided(size_t vector_size, size_t batch_size, size_t stride,
+                          T* hPtr)
+      : HIPVectorBatchedStrided<T, CopyToHost>(vector_size, batch_size,
+                                               stride) {
+    h_data_ = hPtr;
+    if (stride_ <= vector_size_) {
+      // Full copy
+      this->copyH2D(h_data_, d_data_);
+    } else {
+      // Interleaved copy
+      if (d_data_ != nullptr) {
+        for (int i = 0; i < batch_size_; i++) {
+          CHECK_HIP_ERROR(hipMemcpy(d_data_ + i * stride_,
+                                    h_data_ + i * stride_, vector_bytes_,
+                                    hipMemcpyHostToDevice));
+        }
+      }
+    }
+  }
+  // Destructor copies data back to host if specified & valid
+  // & free-up device memory
+  ~HIPVectorBatchedStrided() {
+    if constexpr (CopyToHost) {
+      if (stride_ <= vector_size_) {
+        // Full copy
+        this->copyD2H(d_data_, h_data_);
+      } else {
+        // Interleaved copy
+        if (h_data_ != nullptr) {
+          for (int i = 0; i < batch_size_; i++) {
+            CHECK_HIP_ERROR(hipMemcpy(h_data_ + i * stride_,
+                                      d_data_ + i * stride_, vector_bytes_,
+                                      hipMemcpyDeviceToHost));
+          }
+        }
+      }
+    }
+    this->free(d_data_);
+  }
+
+  // Decay into device pointer wherever pointer is expected
+  operator T*() { return d_data_; }
+  operator const T*() const { return d_data_; }
+
+  // Disallow copying or assigning
+  HIPVectorBatchedStrided(const HIPVectorBatchedStrided&) = delete;
+  HIPVectorBatchedStrided& operator=(const HIPVectorBatchedStrided&) = delete;
+
+ private:
+  T* d_data_;
+  T* h_data_ = nullptr;
+
+  size_t vector_size_;
+  size_t vector_bytes_;
+  size_t stride_;
+  size_t batch_size_;
 };
 
 /**
