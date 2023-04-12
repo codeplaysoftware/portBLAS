@@ -27,11 +27,11 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int batch_count, int batch_type) {
+                     int batch_size, int batch_type) {
   std::ostringstream str{};
   str << "BM_GemmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n << "/"
-      << batch_count << "/"
+      << batch_size << "/"
       << blas_benchmark::utils::batch_type_to_str(batch_type);
   return str.str();
 }
@@ -49,7 +49,7 @@ static inline void rocblas_gemm_batched_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
          index_t t_bi, index_t m, index_t k, index_t n, scalar_t alpha,
-         scalar_t beta, index_t batch_count, int batch_type_i, bool* success) {
+         scalar_t beta, index_t batch_size, int batch_type_i, bool* success) {
   // Standard setup
   std::string t_a = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t_ai));
@@ -64,22 +64,22 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
   index_t ldc = m;
 
   {
-    // The counters are double. We convert m, n, k and batch_count to double to
+    // The counters are double. We convert m, n, k and batch_size to double to
     // avoid integer overflows for n_fl_ops and bytes_processed
     double m_d = static_cast<double>(m);
     double n_d = static_cast<double>(n);
     double k_d = static_cast<double>(k);
-    double batch_count_d = static_cast<double>(batch_count);
+    double batch_size_d = static_cast<double>(batch_size);
 
     state.counters["m"] = m_d;
     state.counters["k"] = k_d;
     state.counters["n"] = n_d;
-    state.counters["batch_count"] = batch_count_d;
+    state.counters["batch_size"] = batch_size_d;
 
     const double nflops_AtimesB = (2 * k_d) * m_d * n_d;
     const double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
     const double total_nflops =
-        (nflops_AtimesB + nflops_addBetaC) * batch_count_d;
+        (nflops_AtimesB + nflops_addBetaC) * batch_size_d;
     state.counters["n_fl_ops"] = total_nflops;
     state.SetItemsProcessed(state.iterations() * total_nflops);
 
@@ -88,7 +88,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
     const double mem_writeC = m_d * n_d;
     const double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
     const double total_mem = (mem_readA + mem_readB + mem_readC + mem_writeC) *
-                             batch_count_d * sizeof(scalar_t);
+                             batch_size_d * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
     state.SetBytesProcessed(state.iterations() * total_mem);
   }
@@ -106,25 +106,25 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
 
   // Matrices
   std::vector<scalar_t> a =
-      blas_benchmark::utils::random_data<scalar_t>(a_size * batch_count);
+      blas_benchmark::utils::random_data<scalar_t>(a_size * batch_size);
   std::vector<scalar_t> b =
-      blas_benchmark::utils::random_data<scalar_t>(b_size * batch_count);
+      blas_benchmark::utils::random_data<scalar_t>(b_size * batch_size);
   std::vector<scalar_t> c =
-      blas_benchmark::utils::const_data<scalar_t>(c_size * batch_count, 0);
+      blas_benchmark::utils::const_data<scalar_t>(c_size * batch_size, 0);
 
   {
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVectorBatched<scalar_t> a_batched_gpu(
-        a_size, batch_count, a.data());
+        a_size, batch_size, a.data());
     blas_benchmark::utils::HIPVectorBatched<scalar_t> b_batched_gpu(
-        b_size, batch_count, b.data());
-    blas_benchmark::utils::HIPVectorBatched<scalar_t> c_batched_gpu(
-        c_size, batch_count);
+        b_size, batch_size, b.data());
+    blas_benchmark::utils::HIPVectorBatched<scalar_t> c_batched_gpu(c_size,
+                                                                    batch_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference batched gemm
     std::vector<scalar_t> c_ref = c;
-    for (int batch = 0; batch < batch_count; batch++) {
+    for (int batch = 0; batch < batch_size; batch++) {
       reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha,
                            a.data() + batch * a_size, lda,
                            b.data() + batch * b_size, ldb, beta,
@@ -135,27 +135,25 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
     std::vector<scalar_t> c_temp = c;
     {
       blas_benchmark::utils::HIPVectorBatched<scalar_t, true> c_temp_gpu(
-          c_size, batch_count, c_temp.data());
+          c_size, batch_size, c_temp.data());
       rocblas_gemm_batched_f<scalar_t>(
           rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha, a_batched_gpu,
-          lda, b_batched_gpu, ldb, &beta, c_temp_gpu, ldc, batch_count);
+          lda, b_batched_gpu, ldb, &beta, c_temp_gpu, ldc, batch_size);
     }
 
     std::ostringstream err_stream;
-    for (int i = 0; i < batch_count; ++i) {
-      if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
-        const std::string& err_str = err_stream.str();
-        state.SkipWithError(err_str.c_str());
-        *success = false;
-      };
-    }
+    if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
+      const std::string& err_str = err_stream.str();
+      state.SkipWithError(err_str.c_str());
+      *success = false;
+    };
 
 #endif
 
     auto blas_warmup = [&]() -> void {
       rocblas_gemm_batched_f<scalar_t>(
           rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha, a_batched_gpu,
-          lda, b_batched_gpu, ldb, &beta, c_batched_gpu, ldc, batch_count);
+          lda, b_batched_gpu, ldb, &beta, c_batched_gpu, ldc, batch_size);
       return;
     };
 
@@ -167,7 +165,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_ai,
       CHECK_HIP_ERROR(hipEventRecord(start, NULL));
       rocblas_gemm_batched_f<scalar_t>(
           rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha, a_batched_gpu,
-          lda, b_batched_gpu, ldb, &beta, c_batched_gpu, ldc, batch_count);
+          lda, b_batched_gpu, ldb, &beta, c_batched_gpu, ldc, batch_size);
       CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
       CHECK_HIP_ERROR(hipEventSynchronize(stop));
       return std::vector{start, stop};
@@ -204,10 +202,10 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
 
   for (auto p : gemm_batched_params) {
     std::string t_a, t_b;
-    index_t m, n, k, batch_count;
+    index_t m, n, k, batch_size;
     scalar_t alpha, beta;
     int batch_type;
-    std::tie(t_a, t_b, m, k, n, alpha, beta, batch_count, batch_type) = p;
+    std::tie(t_a, t_b, m, k, n, alpha, beta, batch_size, batch_type) = p;
 
     if (batch_type == 1) {
       std::cerr << "interleaved memory for gemm_batched operator is not "
@@ -220,14 +218,14 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          int t_ai, int t_bi, index_t m, index_t k, index_t n,
-                         scalar_t alpha, scalar_t beta, index_t batch_count,
+                         scalar_t alpha, scalar_t beta, index_t batch_size,
                          int batch_type, bool* success) {
-      run<scalar_t>(st, rb_handle, t_ai, t_bi, m, k, n, alpha, beta,
-                    batch_count, batch_type, success);
+      run<scalar_t>(st, rb_handle, t_ai, t_bi, m, k, n, alpha, beta, batch_size,
+                    batch_type, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t_a, t_b, m, k, n, batch_count, batch_type).c_str(),
-        BM_lambda, rb_handle, t_ai, t_bi, m, k, n, alpha, beta, batch_count,
+        get_name<scalar_t>(t_a, t_b, m, k, n, batch_size, batch_type).c_str(),
+        BM_lambda, rb_handle, t_ai, t_bi, m, k, n, alpha, beta, batch_size,
         batch_type, success)
         ->UseRealTime();
   }

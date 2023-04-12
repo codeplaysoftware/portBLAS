@@ -254,8 +254,8 @@ class HIPVectorBatched : private HIPDeviceMemory<T*> {
   }
 
   // Decay into device array pointer wherever pointer is expected
-  operator T**() { return d_batch_data_; }
-  operator const T**() const { return d_batch_data_; }
+  operator T* *() { return d_batch_data_; }
+  operator const T* *() const { return d_batch_data_; }
 
   // Disallow copying or assigning
   HIPVectorBatched(const HIPVectorBatched&) = delete;

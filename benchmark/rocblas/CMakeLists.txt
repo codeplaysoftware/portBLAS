@@ -67,7 +67,7 @@ set(sources
   blas3/syr2k.cpp
   blas3/trsm.cpp
   blas3/trmm.cpp
-  # blas3/trsm_batched.cpp
+  blas3/trsm_batched.cpp
   blas3/gemm_batched.cpp
   # blas3/gemm_batched_strided.cpp
 
