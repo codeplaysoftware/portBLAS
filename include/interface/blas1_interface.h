@@ -45,7 +45,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _axpy(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief COPY copies a vector, x, to a vector, y.
@@ -62,7 +62,7 @@ template <typename sb_handle_t, typename index_t, typename container_0_t,
 typename sb_handle_t::event_t _copy(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -85,11 +85,10 @@ typename sb_handle_t::event_t _copy(
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _dot(sb_handle_t &sb_handle, index_t _N,
-                                   container_0_t _vx, increment_t _incx,
-                                   container_1_t _vy, increment_t _incy,
-                                   container_2_t _rs,
-                                   typename sb_handle_t::event_t _dependencies);
+typename sb_handle_t::event_t _dot(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs,
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -117,7 +116,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -130,7 +129,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _rs, typename sb_handle_t::event_t _dependencies);
+    container_1_t _rs, const typename sb_handle_t::event_t &_dependencies);
 /**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator or USM pointer
@@ -141,7 +140,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    ContainerI _rs, typename sb_handle_t::event_t _dependencies);
+    ContainerI _rs, const typename sb_handle_t::event_t &_dependencies);
 /**
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx BufferIterator or USM pointer
@@ -152,7 +151,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    ContainerI _rs, typename sb_handle_t::event_t _dependencies);
+    ContainerI _rs, const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief SWAP interchanges two vectors
@@ -169,7 +168,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _swap(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief SCALAR  operation on a vector
@@ -182,7 +181,7 @@ template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _scal(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
-    increment_t _incx, typename sb_handle_t::event_t _dependencies);
+    increment_t _incx, const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
@@ -195,7 +194,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _rs, typename sb_handle_t::event_t _dependencies);
+    container_1_t _rs, const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * @brief _rot constructor given plane rotation
@@ -211,11 +210,10 @@ typename sb_handle_t::event_t _nrm2(
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
-typename sb_handle_t::event_t _rot(sb_handle_t &sb_handle, index_t _N,
-                                   container_0_t _vx, increment_t _incx,
-                                   container_1_t _vy, increment_t _incy,
-                                   element_t _cos, element_t _sin,
-                                   typename sb_handle_t::event_t _dependencies);
+typename sb_handle_t::event_t _rot(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin,
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * @brief Performs a modified Givens rotation of points.
@@ -255,7 +253,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _rotm(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * Given the Cartesian coordinates (x1, y1) of a point, the rotmg routines
@@ -297,7 +295,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _rotmg(
     sb_handle_t &sb_handle, container_0_t _d1, container_1_t _d2,
     container_2_t _x1, container_3_t _y1, container_4_t _param,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Given the Cartesian coordinates (a, b) of a point, the rotg routines
@@ -323,7 +321,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
                                   bool>::type = true>
 typename sb_handle_t::event_t _rotg(
     sb_handle_t &sb_handle, container_0_t a, container_1_t b, container_2_t c,
-    container_3_t s, typename sb_handle_t::event_t _dependencies);
+    container_3_t s, const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Synchronous version of rotg.
@@ -342,7 +340,7 @@ template <
     typename sb_handle_t, typename scalar_t,
     typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
 void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
-           scalar_t &s, typename sb_handle_t::event_t _dependencies);
+           scalar_t &s, const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -368,7 +366,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief Computes the inner product of two vectors with double precision
@@ -396,7 +394,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t>::type _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 /**
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator or USM pointer
@@ -406,7 +404,8 @@ typename ValueType<container_0_t>::type _sdsdot(
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
-               increment_t _incx, typename sb_handle_t::event_t _dependencies);
+               increment_t _incx,
+               const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief ICAMIN finds the index of the first element having minimum
@@ -417,7 +416,8 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
-               increment_t _incx, typename sb_handle_t::event_t _dependencies);
+               increment_t _incx,
+               const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief ASUM Takes the sum of the absolute values
@@ -431,7 +431,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 
 /**
  * \brief NRM2 Returns the euclidian norm of a vector
@@ -445,7 +445,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    typename sb_handle_t::event_t _dependencies);
+    const typename sb_handle_t::event_t &_dependencies);
 }  // namespace internal
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -453,7 +453,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _axpy(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_axpy(sb_handle, _N, _alpha, _vx, _incx, _vy, _incy,
                          _dependencies);
 }
@@ -473,7 +473,7 @@ template <typename sb_handle_t, typename index_t, typename container_0_t,
 typename sb_handle_t::event_t _copy(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_copy(sb_handle, _N, _vx, _incx, _vy, _incy, _dependencies);
 }
 
@@ -501,7 +501,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs,
                         _dependencies);
 }
@@ -532,7 +532,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy, _rs,
                            _dependencies);
 }
@@ -548,7 +548,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _rs, typename sb_handle_t::event_t _dependencies = {}) {
+    container_1_t _rs,
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_asum(sb_handle, _N, _vx, _incx, _rs, _dependencies);
 }
 
@@ -562,7 +563,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    ContainerI _rs, typename sb_handle_t::event_t _dependencies = {}) {
+    ContainerI _rs, const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_iamax(sb_handle, _N, _vx, _incx, _rs, _dependencies);
 }
 
@@ -576,7 +577,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    ContainerI _rs, typename sb_handle_t::event_t _dependencies = {}) {
+    ContainerI _rs, const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_iamin(sb_handle, _N, _vx, _incx, _rs, _dependencies);
 }
 
@@ -595,7 +596,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _swap(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_swap(sb_handle, _N, _vx, _incx, _vy, _incy, _dependencies);
 }
 
@@ -610,7 +611,8 @@ template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _scal(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
-    increment_t _incx, typename sb_handle_t::event_t _dependencies = {}) {
+    increment_t _incx,
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_scal(sb_handle, _N, _alpha, _vx, _incx, _dependencies);
 }
 
@@ -625,7 +627,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
 typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
-    container_1_t _rs, typename sb_handle_t::event_t _dependencies = {}) {
+    container_1_t _rs,
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_nrm2(sb_handle, _N, _vx, _incx, _rs, _dependencies);
 }
 
@@ -648,7 +651,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _rot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, element_t _cos, element_t _sin,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_rot(sb_handle, _N, _vx, _incx, _vy, _incy, _cos, _sin,
                         _dependencies);
 }
@@ -691,7 +694,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _rotm(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_rotm(sb_handle, _N, _vx, _incx, _vy, _incy, _param,
                          _dependencies);
 }
@@ -736,7 +739,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _rotmg(
     sb_handle_t &sb_handle, container_0_t _d1, container_1_t _d2,
     container_2_t _x1, container_3_t _y1, container_4_t _param,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_rotmg(sb_handle, _d1, _d2, _x1, _y1, _param, _dependencies);
 }
 
@@ -764,7 +767,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
                                   bool>::type = true>
 typename sb_handle_t::event_t _rotg(
     sb_handle_t &sb_handle, container_0_t a, container_1_t b, container_2_t c,
-    container_3_t s, typename sb_handle_t::event_t _dependencies = {}) {
+    container_3_t s, const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_rotg(sb_handle, a, b, c, s, _dependencies);
 }
 
@@ -785,7 +788,8 @@ template <
     typename sb_handle_t, typename scalar_t,
     typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type = true>
 void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
-           scalar_t &s, typename sb_handle_t::event_t _dependencies = {}) {
+           scalar_t &s,
+           const typename sb_handle_t::event_t &_dependencies = {}) {
   internal::_rotg(sb_handle, a, b, c, s, _dependencies);
 }
 
@@ -813,7 +817,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _dependencies);
 }
 
@@ -843,7 +847,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename ValueType<container_0_t>::type _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy, _incy,
                            _dependencies);
 }
@@ -858,7 +862,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx,
-               typename sb_handle_t::event_t _dependencies = {}) {
+               const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_iamax(sb_handle, _N, _vx, _incx, _dependencies);
 }
 
@@ -872,7 +876,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                increment_t _incx,
-               typename sb_handle_t::event_t _dependencies = {}) {
+               const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_iamin(sb_handle, _N, _vx, _incx, _dependencies);
 }
 
@@ -888,7 +892,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_asum(sb_handle, _N, _vx, _incx, _dependencies);
 }
 
@@ -904,7 +908,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
-    typename sb_handle_t::event_t _dependencies = {}) {
+    const typename sb_handle_t::event_t &_dependencies = {}) {
   return internal::_nrm2(sb_handle, _N, _vx, _incx, _dependencies);
 }
 

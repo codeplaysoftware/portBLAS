@@ -44,7 +44,7 @@ template typename SB_Handle::event_t _iamax(SB_Handle &sb_handle,
                                             ${container_t0} _vx,
                                             ${INCREMENT_TYPE} _incx,
                                             ${container_t1} _rs,
-                                            typename SB_Handle::event_t dependencies);
+                                            const typename SB_Handle::event_t& dependencies);
 
 }  // namespace internal
 }  // namespace blas

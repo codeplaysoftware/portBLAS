@@ -40,7 +40,7 @@ template <typename operator_t, typename element_t, typename sb_handle_t,
 typename sb_handle_t::event_t _reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, reduction_dim_t reduction_dim,
-    typename sb_handle_t::event_t dependencies);
+    const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
@@ -49,10 +49,10 @@ template <typename operator_t, typename element_t, typename sb_handle_t,
 typename sb_handle_t::event_t _reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, reduction_dim_t reduction_dim,
-    typename sb_handle_t::event_t dependencies = {}) {
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_reduction<operator_t, element_t>(
       sb_handle, buffer_in, ld, buffer_out, rows, cols, reduction_dim,
-      dependencies);
+      _dependencies);
 }
 }  // namespace extension
 

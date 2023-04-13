@@ -44,7 +44,7 @@ namespace blas {
  */
 template <typename expression_tree_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
-    expression_tree_t t, typename SB_Handle::event_t dependencies) {
+    expression_tree_t t, const typename SB_Handle::event_t& dependencies) {
   const auto localSize = get_work_group_size();
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
@@ -61,7 +61,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 template <typename expression_tree_t, typename index_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     expression_tree_t t, index_t localSize,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   auto _N = t.get_size();
   auto nWG = (_N + localSize - 1) / localSize;
   auto globalSize = nWG * localSize;
@@ -76,7 +76,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 template <typename expression_tree_t, typename index_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     expression_tree_t t, index_t localSize, index_t globalSize,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   return {execute_tree<using_local_memory::disabled>(
       q_, t, localSize, globalSize, 0, dependencies)};
 }
@@ -88,7 +88,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 template <typename expression_tree_t, typename index_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     expression_tree_t t, index_t localSize, index_t globalSize, index_t shMem,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   return {execute_tree<using_local_memory::enabled>(
       q_, t, localSize, globalSize, shMem, dependencies)};
 }
@@ -99,7 +99,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 template <typename operator_t, typename lhs_t, typename rhs_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
   auto localSize = t.local_num_thread_;
@@ -179,7 +179,7 @@ template <typename operator_t, typename lhs_t, typename rhs_t,
           typename local_memory_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
   auto _N = t.get_size();
   auto localSize = t.local_num_thread_;
@@ -233,7 +233,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
          GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
          UseJointMatrix>
         gemm_tree,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
                       tile_type, TransA, TransB, SymmA, SymmB, element_t,
                       is_beta_zero, GemmMemoryType, GemmAlgorithm,
@@ -258,7 +258,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
          static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
          VectorSize, BatchType>
         gemm_wrapper,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
 
   const index_t rows = gemm_wrapper.m_;
@@ -354,7 +354,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
         gemm_partial,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   auto gemm_partial_range =
       gemm_partial.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
@@ -370,7 +370,7 @@ template <typename operator_t, typename params_t, typename input_t,
           typename output_t>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Reduction<operator_t, params_t, input_t, output_t> reduction,
-    typename SB_Handle::event_t dependencies) {
+    const typename SB_Handle::event_t& dependencies) {
   auto step_range = reduction.get_nd_range(SB_Handle::get_num_compute_units());
 
   return {execute_tree<using_local_memory::enabled>(

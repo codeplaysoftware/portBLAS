@@ -53,27 +53,27 @@ class SB_Handle {
         computeUnits_(helper::get_num_compute_units(q)) {}
 
   template <typename expression_tree_t>
-  event_t execute(expression_tree_t tree, event_t dependencies = {});
+  event_t execute(expression_tree_t tree, const event_t& dependencies = {});
 
   template <typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize,
-                  event_t dependencies = {});
+                  const event_t& dependencies = {});
 
   template <typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize, index_t globalSize,
-                  event_t dependencies = {});
+                  const event_t& dependencies = {});
   template <typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize, index_t globalSize,
-                  index_t local_memory_size, event_t dependencies = {});
+                  index_t local_memory_size, const event_t& dependencies = {});
 
   template <typename operator_t, typename lhs_t, typename rhs_t>
   event_t execute(AssignReduction<operator_t, lhs_t, rhs_t>,
-                  event_t dependencies = {});
+                  const event_t& dependencies = {});
 
   template <typename operator_t, typename lhs_t, typename rhs_t,
             typename local_memory_t>
   event_t execute(AssignReduction<operator_t, lhs_t, rhs_t> t,
-                  local_memory_t scr, event_t dependencies = {});
+                  local_memory_t scr, const event_t& dependencies = {});
 
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
             bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
@@ -85,7 +85,7 @@ class SB_Handle {
                        is_beta_zero, GemmMemoryType, GemmAlgorithm,
                        GemmVectorization, VectorSize, BatchType, UseJointMatrix>
                       gemm_tree,
-                  event_t dependencies = {});
+                  const event_t& dependencies = {});
 
   // Tall and skinny Gemm specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -99,7 +99,7 @@ class SB_Handle {
            GemmMemoryType, static_cast<int>(gemm_algorithm_t::tall_skinny),
            GemmVectorization, VectorSize, BatchType>
           gemm_wrapper,
-      event_t dependencies = {});
+      const event_t& dependencies = {});
 
   // GemmPartial specialization
   template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
@@ -110,14 +110,14 @@ class SB_Handle {
                               ClSize, tile_type, TransA, TransB, IsFinal,
                               IsBetaZero, element_t, GemmMemoryType>
                       gemm_partial,
-                  event_t dependencies = {});
+                  const event_t& dependencies = {});
 
   // Reduction specialization (inner or outer dimension)
   template <typename operator_t, typename params_t, typename input_t,
             typename output_t>
   event_t execute(
       Reduction<operator_t, params_t, input_t, output_t> reduction_wrapper,
-      event_t dependencies = {});
+      const event_t& dependencies = {});
 
   inline bool has_local_memory() const { return localMemorySupport_; }
   inline queue_t get_queue() const { return q_; }

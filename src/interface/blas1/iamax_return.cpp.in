@@ -41,7 +41,7 @@ namespace internal {
  */
 template ${INDEX_TYPE} _iamax(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
-                              typename SB_Handle::event_t dependencies);
+                              const typename SB_Handle::event_t& dependencies);
 
 }  // namespace internal
 }  // namespace blas

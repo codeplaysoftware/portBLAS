@@ -46,6 +46,6 @@ namespace internal {
  * @param s[out] Scalar representing the output s.
  */
 template void _rotg(SB_Handle &sb_handle, ${DATA_TYPE} & a, ${DATA_TYPE} & b,
-                    ${DATA_TYPE} & c, ${DATA_TYPE} & s, typename SB_Handle::event_t dependencies);
+                    ${DATA_TYPE} & c, ${DATA_TYPE} & s, const typename SB_Handle::event_t& dependencies);
 }  // namespace internal
 }  // namespace blas
