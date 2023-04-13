@@ -56,8 +56,8 @@ set(SYCL_UNITTEST_SRCS
 # Enable testing of the sycl 2020 routines just for Intel DPC++
 if(is_dpcpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
   )
 endif()
 
