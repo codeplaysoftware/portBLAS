@@ -27,12 +27,11 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int stride_a, int stride_b, int stride_c, int batch_size) {
+                     int batch_size) {
   std::ostringstream str{};
   str << "BM_GemmBatchedStrided<"
       << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
-      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/"
-      << stride_a << "/" << stride_b << "/" << stride_c;
+      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size;
   return str.str();
 }
 
@@ -134,11 +133,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   }
 
   std::ostringstream err_stream;
-  const bool isAlmostEqual =
-      (stride_c == 1) ? utils::compare_vectors(c_temp, c_ref, err_stream, "")
-                      : utils::compare_vectors_strided(c_temp, c_ref, stride_c,
-                                                       c_size, err_stream, "");
-  if (!isAlmostEqual) {
+  if (!utils::compare_vectors_strided(c_temp, c_ref, stride_c, c_size,
+                                      err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -203,11 +199,8 @@ void register_benchmark(blas_benchmark::Args& args,
                     stride_c, alpha, beta, batch_size, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t1s, t2s, m, k, n, stride_a, stride_b, stride_c,
-                           batch_size)
-            .c_str(),
-        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
-        success)
+        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
+        sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, success)
         ->UseRealTime();
   }
 }
