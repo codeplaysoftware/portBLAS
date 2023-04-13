@@ -81,7 +81,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo,
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =
       (uplo == 'u') ? rocblas_fill_upper : rocblas_fill_lower;
-
   const rocblas_operation trans_rb =
       (trans == 'n') ? rocblas_operation_none : rocblas_operation_transpose;
 
@@ -122,6 +121,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo,
       *success = false;
     };
 #endif
+
     auto blas_warmup = [&]() -> void {
       rocblas_syrk_f<scalar_t>(rb_handle, uplo_rb, trans_rb, n, k, &alpha,
                                a_gpu, lda, &beta, c_gpu, ldc);

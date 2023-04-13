@@ -233,13 +233,12 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     int t_b_i = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t_b));
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         int t_a_i, int t_b_i, index_t m, index_t k, index_t n,
+                         int t1i, int t2i, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          index_t stride_a_mul, index_t stride_b_mul,
                          index_t stride_c_mul, bool* success) {
-      run<scalar_t>(st, rb_handle, t_a_i, t_b_i, m, k, n, alpha, beta,
-                    batch_size, stride_a_mul, stride_b_mul, stride_c_mul,
-                    success);
+      run<scalar_t>(st, rb_handle, t1i, t2i, m, k, n, alpha, beta, batch_size,
+                    stride_a_mul, stride_b_mul, stride_c_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t_a, t_b, m, k, n, batch_size, stride_a_mul,

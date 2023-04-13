@@ -44,14 +44,14 @@ static inline void rocblas_gemm_f(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
-         index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         bool* success) {
+void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
+         int t_b_i, index_t m, index_t k, index_t n, scalar_t alpha,
+         scalar_t beta, bool* success) {
   // Standard test setup.
   std::string t_a = blas_benchmark::utils::from_transpose_enum(
-      static_cast<blas_benchmark::utils::Transposition>(t_ai));
+      static_cast<blas_benchmark::utils::Transposition>(t_a_i));
   std::string t_b = blas_benchmark::utils::from_transpose_enum(
-      static_cast<blas_benchmark::utils::Transposition>(t_bi));
+      static_cast<blas_benchmark::utils::Transposition>(t_b_i));
   const char* t_a_str = t_a.c_str();
   const char* t_b_str = t_b.c_str();
 
@@ -123,10 +123,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_ai, int t_bi,
     // Rocblas verification gemm
     std::vector<scalar_t> c_temp = c;
     {
-      // Temp result on device (copied back to Host upon destruction)
       blas_benchmark::utils::HIPVector<scalar_t, true> c_temp_gpu(
           c_size, c_temp.data());
-      // rocBLAS function call
       rocblas_gemm_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k,
                                &alpha, a_gpu, lda, b_gpu, ldb, &beta,
                                c_temp_gpu, ldc);
@@ -193,16 +191,16 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     index_t m, n, k;
     scalar_t alpha, beta;
     std::tie(t_a, t_b, m, k, n, alpha, beta) = p;
-    int t_ai = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t_a));
-    int t_bi = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t_b));
+    int t_a_i = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t_a));
+    int t_b_i = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t_b));
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         int t_ai, int t_bi, index_t m, index_t k, index_t n,
+                         int t1i, int t2i, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, rb_handle, t_ai, t_bi, m, k, n, alpha, beta, success);
+      run<scalar_t>(st, rb_handle, t1i, t2i, m, k, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(t_a, t_b, m, k, n).c_str(),
-                                 BM_lambda, rb_handle, t_ai, t_bi, m, k, n,
+                                 BM_lambda, rb_handle, t_a_i, t_b_i, m, k, n,
                                  alpha, beta, success)
         ->UseRealTime();
   }

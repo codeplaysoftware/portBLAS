@@ -311,6 +311,7 @@ class HIPVectorBatchedStrided : private HIPDeviceMemory<T> {
       }
     }
   }
+
   // Destructor copies data back to host if specified & valid
   // & free-up device memory
   ~HIPVectorBatchedStrided() {

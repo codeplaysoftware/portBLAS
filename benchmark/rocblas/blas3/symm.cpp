@@ -85,7 +85,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char side,
   // Matrix options (rocBLAS)
   const rocblas_side side_rb =
       (side == 'l') ? rocblas_side_left : rocblas_side_right;
-
   const rocblas_fill uplo_rb =
       (uplo == 'u') ? rocblas_fill_upper : rocblas_fill_lower;
 
@@ -133,6 +132,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char side,
       *success = false;
     };
 #endif
+
     auto blas_warmup = [&]() -> void {
       rocblas_symm_f<scalar_t>(rb_handle, side_rb, uplo_rb, m, n, &alpha, a_gpu,
                                lda, b_gpu, ldb, &beta, c_gpu, ldc);

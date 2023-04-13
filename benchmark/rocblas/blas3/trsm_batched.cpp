@@ -92,13 +92,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
   // Matrix options (rocBLAS)
   const rocblas_side side_rb =
       (side == 'l') ? rocblas_side_left : rocblas_side_right;
-
   const rocblas_fill uplo_rb =
       (uplo == 'u') ? rocblas_fill_upper : rocblas_fill_lower;
-
   const rocblas_operation trans_rb =
       (trans == 'n') ? rocblas_operation_none : rocblas_operation_transpose;
-
   const rocblas_diagonal diag_rb =
       (diag == 'u') ? rocblas_diagonal_unit : rocblas_diagonal_non_unit;
 
@@ -151,7 +148,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
     {
       blas_benchmark::utils::HIPVectorBatchedStrided<scalar_t, true> x_temp_gpu(
           b_size, batch_size, stride_b, x_temp.data());
-
       rocblas_trsm_batched_f<scalar_t>(
           rb_handle, side_rb, uplo_rb, trans_rb, diag_rb, m, n, &alpha,
           a_batched_gpu, lda, stride_a, x_temp_gpu, ldb, stride_b, batch_size);

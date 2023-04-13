@@ -150,7 +150,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
       state.SkipWithError(err_str.c_str());
       *success = false;
     };
-
 #endif
 
     auto blas_warmup = [&]() -> void {
