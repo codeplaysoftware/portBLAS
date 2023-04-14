@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename state_counters.hpp
+ *  @filename blas1_state_counters.hpp
  *
  **************************************************************************/
 
-#ifndef COMMON_STATE_COUNTERS
-#define COMMON_STATE_COUNTERS
+#ifndef COMMON_BLAS1_STATE_COUNTERS
+#define COMMON_BLAS1_STATE_COUNTERS
 
 namespace blas_benchmark {
 namespace utils {
@@ -134,4 +134,4 @@ init_level_1_counters(benchmark::State& state, index_t size) {
 }  // namespace utils
 }  // namespace blas_benchmark
 
-#endif  // COMMON_STATE_COUNTERS
+#endif  // COMMON_BLAS1_STATE_COUNTERS

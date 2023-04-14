@@ -18,8 +18,8 @@
 
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
+#include <common/blas1_state_counters.hpp>
 #include <common/float_comparison.hpp>
-#include <common/state_counters.hpp>
 #include <common/system_reference_blas.hpp>
 
 using index_t = BLAS_INDEX_T;
