@@ -456,9 +456,9 @@ get_gemm_batched_strided_params(Args& args) {
               for (index_t stride_a_mul = stride_a_mul_min;
                    stride_a_mul <= stride_a_mul_max; stride_a_mul += 1) {
                 for (index_t stride_b_mul = stride_b_mul_min;
-                     stride_b_mul <= stride_b_mul_min; stride_b_mul += 1) {
+                     stride_b_mul <= stride_b_mul_max; stride_b_mul += 1) {
                   for (index_t stride_c_mul = stride_c_mul_min;
-                       stride_c_mul <= stride_c_mul_min; stride_c_mul += 1) {
+                       stride_c_mul <= stride_c_mul_max; stride_c_mul += 1) {
                     gemm_batched_strided_default.push_back(std::make_tuple(
                         t1, t2, m, k, n, alpha, beta, batch_size, stride_a_mul,
                         stride_b_mul, stride_c_mul));
