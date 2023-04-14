@@ -19,12 +19,12 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename state_counters.hpp
+ *  @filename blas3_state_counters.hpp
  *
  **************************************************************************/
 
-#ifndef COMMON_STATE_COUNTERS
-#define COMMON_STATE_COUNTERS
+#ifndef COMMON_BLAS3_STATE_COUNTERS
+#define COMMON_BLAS3_STATE_COUNTERS
 
 namespace blas_benchmark {
 namespace utils {
@@ -46,7 +46,8 @@ inline typename std::enable_if<op == Level3Op::gemm_batched_strided ||
                                op == Level3Op::gemm_batched ||
                                op == Level3Op::gemm>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
-                      index_t n = 0, index_t k = 0, index_t batch_size = 1, char side = 'l') {
+                      index_t n = 0, index_t k = 0, index_t batch_size = 1,
+                      char side = 'l') {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
@@ -76,7 +77,8 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 template <Level3Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level3Op::symm>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
-                      index_t n = 0, index_t k = 0, index_t batch_size = 1, char side = 'l') {
+                      index_t n = 0, index_t k = 0, index_t batch_size = 1,
+                      char side = 'l') {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
@@ -103,7 +105,8 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 template <Level3Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level3Op::syr2k>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
-                      index_t n = 0, index_t k = 0, index_t batch_size = 1, char side = 'l') {
+                      index_t n = 0, index_t k = 0, index_t batch_size = 1,
+                      char side = 'l') {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
@@ -119,7 +122,8 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   state.counters["n_fl_ops"] = nflops;
 
   const double mem_readAreadB = 2 * n_d * k_d;
-  const double mem_readWriteC = (beta != scalar_t{0} ? 2 : 1) * n_d * (n_d + 1) / 2.;
+  const double mem_readWriteC =
+      (beta != scalar_t{0} ? 2 : 1) * n_d * (n_d + 1) / 2.;
   const double total_mem = (mem_readAreadB + mem_readWriteC) * sizeof(scalar_t);
 
   state.counters["bytes_processed"] = total_mem;
@@ -129,7 +133,8 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 template <Level3Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level3Op::syrk>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
-                      index_t n = 0, index_t k = 0, index_t batch_size = 1, char side = 'l') {
+                      index_t n = 0, index_t k = 0, index_t batch_size = 1,
+                      char side = 'l') {
   // Google-benchmark counters are double.
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
@@ -142,7 +147,8 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   state.counters["n_fl_ops"] = nflops;
 
   const double mem_readAreadB = 2 * n_d * k_d;
-  const double mem_readWriteC = (beta != scalar_t{0} ? 2 : 1) * n_d * (n_d + 1) / 2.;
+  const double mem_readWriteC =
+      (beta != scalar_t{0} ? 2 : 1) * n_d * (n_d + 1) / 2.;
   const double total_mem = (mem_readAreadB + mem_readWriteC) * sizeof(scalar_t);
 
   state.counters["bytes_processed"] = total_mem;
@@ -180,4 +186,4 @@ inline
 }  // namespace utils
 }  // namespace blas_benchmark
 
-#endif  // COMMON_STATE_COUNTERS
+#endif  // COMMON_BLAS3_STATE_COUNTERS
