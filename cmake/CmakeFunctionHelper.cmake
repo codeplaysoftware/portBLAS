@@ -900,6 +900,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:syr2>
                 $<TARGET_OBJECTS:tbmv>
                 $<TARGET_OBJECTS:trmv>
+                $<TARGET_OBJECTS:trsv>
                 $<TARGET_OBJECTS:gemm_launcher>
                 $<TARGET_OBJECTS:gemm>
                 $<TARGET_OBJECTS:symm>

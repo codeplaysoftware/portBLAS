@@ -315,6 +315,49 @@ typename sb_handle_t::event_t _trmv_impl(
   return ret;
 }
 
+/*! _TRSV.
+ * @brief Implementation of the Triangular Matrix Vector product.
+ */
+template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
+typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         container_t0 _mA, index_t _lda,
+                                         container_t1 _vx, increment_t _incx) {
+#ifdef __COMPUTECPP__
+  throw std::runtime_error("Unimplemented for ComputeCPP");
+#endif
+
+  constexpr bool is_upper = (uplo == uplo_type::Upper);
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
+  constexpr bool is_unit = (diag == diag_type::Unit);
+
+  constexpr bool is_forward =
+      (is_upper && is_transposed) || (!is_upper && !is_transposed);
+
+  auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
+  auto vx = make_vector_view(_vx, _incx, _N);
+
+  std::vector<index_t> sync_vec(2);
+  sync_vec[0] =
+      is_forward ? 0 : ((roundUp<index_t>(_N, x_range) / x_range) - 1);
+  sync_vec[1] = sync_vec[0];
+
+  auto sync_buffer =
+      blas::make_sycl_iterator_buffer<index_t>(sync_vec, sync_vec.size());
+  auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
+
+  auto trsv = make_trsv<x_range, subgroups, is_upper, is_transposed, is_unit>(
+      vx, mA, vx, sync);
+
+  const index_t sub_num = subgroups;
+  return sb_handle.execute(
+      trsv, static_cast<index_t>(sub_num * x_range),
+      roundUp<index_t>(sub_num * _N, sub_num * x_range),
+      static_cast<index_t>(x_range * (x_range + 1 + sub_num)));
+}
+
 /*! _SYMV.
  * @brief Implementation of the Symmetric Matrix Vector product.
  */
@@ -766,6 +809,57 @@ typename sb_handle_t::event_t inline _trmv(sb_handle_t& sb_handle, char _Uplo,
              : _trmv_impl<transpose_type::Transposed>(
                    sb_handle, _Uplo, _Diag, _N, _mA, _lda, _vx, _incx);
 }
+
+#define INST_UPLO_TRANS_DIAG(func, ...)                           \
+  if (tolower(_Uplo) == 'u') {                                    \
+    if (tolower(_trans) == 'n') {                                 \
+      if (tolower(_Diag) == 'n') {                                \
+        return func<uplo_type::Upper, transpose_type::Normal,     \
+                    diag_type::Nonunit>(__VA_ARGS__);             \
+      } else {                                                    \
+        return func<uplo_type::Upper, transpose_type::Normal,     \
+                    diag_type::Unit>(__VA_ARGS__);                \
+      }                                                           \
+    } else {                                                      \
+      if (tolower(_Diag) == 'n') {                                \
+        return func<uplo_type::Upper, transpose_type::Transposed, \
+                    diag_type::Nonunit>(__VA_ARGS__);             \
+      } else {                                                    \
+        return func<uplo_type::Upper, transpose_type::Transposed, \
+                    diag_type::Unit>(__VA_ARGS__);                \
+      }                                                           \
+    }                                                             \
+  } else {                                                        \
+    if (tolower(_trans) == 'n') {                                 \
+      if (tolower(_Diag) == 'n') {                                \
+        return func<uplo_type::Lower, transpose_type::Normal,     \
+                    diag_type::Nonunit>(__VA_ARGS__);             \
+      } else {                                                    \
+        return func<uplo_type::Lower, transpose_type::Normal,     \
+                    diag_type::Unit>(__VA_ARGS__);                \
+      }                                                           \
+    } else {                                                      \
+      if (tolower(_Diag) == 'n') {                                \
+        return func<uplo_type::Lower, transpose_type::Transposed, \
+                    diag_type::Nonunit>(__VA_ARGS__);             \
+      } else {                                                    \
+        return func<uplo_type::Lower, transpose_type::Transposed, \
+                    diag_type::Unit>(__VA_ARGS__);                \
+      }                                                           \
+    }                                                             \
+  }
+
+template <typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t inline _trsv(sb_handle_t& sb_handle, char _Uplo,
+                                           char _trans, char _Diag, index_t _N,
+                                           container_t0 _mA, index_t _lda,
+                                           container_t1 _vx,
+                                           increment_t _incx) {
+  INST_UPLO_TRANS_DIAG(blas::trsv::backend::_trsv, sb_handle, _N, _mA, _lda,
+                       _vx, _incx)
+}
+
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
@@ -870,51 +964,8 @@ typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
                                     char _trans, char _Diag, index_t _N,
                                     index_t _K, container_t0 _mA, index_t _lda,
                                     container_t1 _vx, increment_t _incx) {
-  if (tolower(_Uplo) == 'u') {
-    if (tolower(_trans) == 'n') {
-      if (tolower(_Diag) == 'n') {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Upper, transpose_type::Normal, diag_type::Nonunit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      } else {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Upper, transpose_type::Normal, diag_type::Unit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      }
-    } else {
-      if (tolower(_Diag) == 'n') {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Upper, transpose_type::Transposed, diag_type::Nonunit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      } else {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Upper, transpose_type::Transposed, diag_type::Unit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      }
-    }
-  } else {
-    if (tolower(_trans) == 'n') {
-      if (tolower(_Diag) == 'n') {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Lower, transpose_type::Normal, diag_type::Nonunit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      } else {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Lower, transpose_type::Normal, diag_type::Unit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      }
-    } else {
-      if (tolower(_Diag) == 'n') {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Lower, transpose_type::Transposed, diag_type::Nonunit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      } else {
-        return blas::tbmv::backend::_tbmv<
-            uplo_type::Lower, transpose_type::Transposed, diag_type::Unit>(
-            sb_handle, _N, _K, _mA, _lda, _vx, _incx);
-      }
-    }
-  }
+  INST_UPLO_TRANS_DIAG(blas::tbmv::backend::_tbmv, sb_handle, _N, _K, _mA, _lda,
+                       _vx, _incx)
 }
 
 }  // namespace internal

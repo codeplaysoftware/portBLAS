@@ -34,6 +34,7 @@ generate_blas_binary_objects(blas2 syr)
 generate_blas_binary_objects(blas2 tbmv)
 generate_blas_binary_objects(blas2 spr)
 generate_blas_binary_objects(blas2 trmv)
+generate_blas_binary_objects(blas2 trsv)
 
 if(BLAS_ENABLE_CONST_INPUT)
     generate_blas_ternary_objects(blas2 gemv_const)
