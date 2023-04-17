@@ -112,7 +112,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_warmup);
   CUDA_CHECK(cudaStreamSynchronize(NULL));
 
   blas_benchmark::utils::init_counters(state);
