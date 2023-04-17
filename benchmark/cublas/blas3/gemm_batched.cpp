@@ -169,6 +169,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t t1,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+  
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 };
 
 template <typename scalar_t>

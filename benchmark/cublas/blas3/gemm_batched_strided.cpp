@@ -31,7 +31,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n,
   std::ostringstream str{};
   str << "BM_GemmBatchedStrided<"
       << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
-      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/";
+      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size;
 
   return str.str();
 }
@@ -175,6 +175,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 };
 
 template <typename scalar_t>
