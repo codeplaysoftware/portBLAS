@@ -521,12 +521,9 @@ get_trsm_batched_params(Args& args) {
                      stride_a_mul <= stride_a_mul_max; stride_a_mul += 1) {
                   for (index_t stride_b_mul = stride_b_mul_min;
                        stride_b_mul <= stride_b_mul_min; stride_b_mul += 1) {
-                    // Computed strides from stride mutipliers & matrices sizes
-                    auto stride_a = stride_a_mul * a_size;
-                    auto stride_b = stride_b_mul * b_size;
-                    trsm_batched_default.push_back(
-                        std::make_tuple(side, uplo, trans, diag, m, n, alpha,
-                                        batch_size, stride_a, stride_b));
+                    trsm_batched_default.push_back(std::make_tuple(
+                        side, uplo, trans, diag, m, n, alpha, batch_size,
+                        stride_a_mul, stride_b_mul));
                   }
                 }
               }

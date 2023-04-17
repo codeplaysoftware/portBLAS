@@ -140,7 +140,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
         c_size, batch_size, stride_c, c.data());
 
 #ifdef BLAS_VERIFY_BENCHMARK
-    // Reference batched gemm
+    // Reference gemm batched strided (strided loop of gemm)
     std::vector<scalar_t> c_ref = c;
     for (int batch = 0; batch < batch_size; batch++) {
       reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha,
@@ -237,10 +237,10 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          int t1i, int t2i, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
-                         index_t stride_a_mul, index_t stride_b_mul,
-                         index_t stride_c_mul, bool* success) {
+                         index_t strd_a_mul, index_t strd_b_mul,
+                         index_t strd_c_mul, bool* success) {
       run<scalar_t>(st, rb_handle, t1i, t2i, m, k, n, alpha, beta, batch_size,
-                    stride_a_mul, stride_b_mul, stride_c_mul, success);
+                    strd_a_mul, strd_b_mul, strd_c_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t_a, t_b, m, k, n, batch_size, stride_a_mul,

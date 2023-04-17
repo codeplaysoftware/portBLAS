@@ -28,12 +28,12 @@
 template <typename scalar_t>
 std::string get_name(const char side, const char uplo, const char t,
                      const char diag, int m, int n, int batch_size,
-                     int stride_a, int stride_b) {
+                     int stride_a_mul, int stride_b_mul) {
   std::ostringstream str{};
   str << "BM_TrsmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << side << "/" << uplo << "/" << t << "/" << diag << "/" << m
-      << "/" << n << "/" << batch_size << "/" << stride_a << "/" << stride_b
-      << "/";
+      << "/" << n << "/" << batch_size << "/" << stride_a_mul << "/"
+      << stride_b_mul << "/";
   return str.str();
 }
 
@@ -52,8 +52,8 @@ static inline void rocblas_trsm_batched_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
          const char uplo, const char trans, const char diag, index_t m,
-         index_t n, scalar_t alpha, index_t batch_size, index_t stride_a,
-         index_t stride_b, bool* success) {
+         index_t n, scalar_t alpha, index_t batch_size, index_t stride_a_mul,
+         index_t stride_b_mul, bool* success) {
   // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
@@ -70,8 +70,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
     state.counters["m"] = m_d;
     state.counters["n"] = n_d;
     state.counters["batch_size"] = static_cast<double>(batch_size);
-    state.counters["stride_a"] = static_cast<double>(stride_a);
-    state.counters["stride_b"] = static_cast<double>(stride_b);
+    state.counters["stride_a_mul"] = static_cast<double>(stride_a_mul);
+    state.counters["stride_b_mul"] = static_cast<double>(stride_b_mul);
 
     const double mem_readA = k_d * (k_d + 1) / 2;
     const double mem_readBwriteB = 2 * m_d * n_d;
@@ -101,6 +101,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, const char side,
   // Elementary matrices
   const int a_size = lda * k;
   const int b_size = ldb * n;
+  // Strides
+  const index_t stride_a = stride_a_mul * a_size;
+  const index_t stride_b = stride_b_mul * b_size;
   // Batched matrices
   const int size_a_batch = a_size + (batch_size - 1) * stride_a;
   const int size_b_batch = b_size + (batch_size - 1) * stride_b;
@@ -219,24 +222,25 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
 
   for (auto p : trsm_batched_params) {
     char s_side, s_uplo, s_t, s_diag;
-    index_t m, n, batch_size, stride_a, stride_b;
+    index_t m, n, batch_size, stride_a_mul, stride_b_mul;
     scalar_t alpha;
-    std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_size, stride_a,
-             stride_b) = p;
+    std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_size, stride_a_mul,
+             stride_b_mul) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          char side, char uplo, char t, char diag, index_t m,
                          index_t n, scalar_t alpha, index_t batch_size,
-                         index_t stride_a, index_t stride_b, bool* success) {
+                         index_t strd_a_mul, index_t strd_b_mul,
+                         bool* success) {
       run<scalar_t>(st, rb_handle, side, uplo, t, diag, m, n, alpha, batch_size,
-                    stride_a, stride_b, success);
+                    strd_a_mul, strd_b_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(s_side, s_uplo, s_t, s_diag, m, n, batch_size,
-                           stride_a, stride_b)
+                           stride_a_mul, stride_b_mul)
             .c_str(),
         BM_lambda, rb_handle, s_side, s_uplo, s_t, s_diag, m, n, alpha,
-        batch_size, stride_a, stride_b, success)
+        batch_size, stride_a_mul, stride_b_mul, success)
         ->UseRealTime();
   }
 }
