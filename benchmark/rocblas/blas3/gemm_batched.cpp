@@ -172,7 +172,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
     };
 
     // Warmup
-    blas_benchmark::utils::warmup(blas_method_def);
+    blas_benchmark::utils::warmup(blas_warmup);
     CHECK_HIP_ERROR(hipStreamSynchronize(NULL));
 
     blas_benchmark::utils::init_counters(state);
