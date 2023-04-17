@@ -89,7 +89,7 @@ enabled.
 @tparam expression_tree_t Type of the tree.
 @tparam local_memory_t Value type of the shared memory.
 */
-template <int using_local_memory, typename expression_tree_t,
+template <int vector_type, int using_local_memory, typename expression_tree_t,
           typename local_memory_t>
 struct ExpressionTreeEvaluator;
 
@@ -102,7 +102,7 @@ struct ExpressionTreeEvaluator;
 @param scratch_ shared memory object (local accessor).
 @param t_ Tree object.
 */
-template <int using_local_memory, typename expression_tree_t,
+template <int vector_size, int using_local_memory, typename expression_tree_t,
           typename local_memory_t, typename value_t>
 struct ExpressionTreeFunctor;
 

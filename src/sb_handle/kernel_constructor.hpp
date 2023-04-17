@@ -126,7 +126,7 @@ enabled.
 @tparam expression_tree_t Type of the tree.
 @tparam local_memory_t Value type of the shared memory.
 */
-template <int using_local_memory, typename expression_tree_t,
+template <int vector_size, int using_local_memory, typename expression_tree_t,
           typename local_memory_t>
 struct ExpressionTreeEvaluator {
   /*!
@@ -140,7 +140,11 @@ struct ExpressionTreeEvaluator {
       expression_tree_t &tree,
       LocalMemory<local_memory_t, using_local_memory> scratch,
       cl::sycl::nd_item<1> index) {
-    tree.eval(scratch, index);
+    if constexpr (vector_size == 1) {
+      tree.eval(scratch, index);
+    } else {
+      tree.template eval<vector_size>(scratch, index);
+    }
   }
 };
 
@@ -153,9 +157,9 @@ enabled.
 @tparam expression_tree_t Type of the tree.
 @tparam local_memory_t Value type of the shared memory.
 */
-template <typename expression_tree_t, typename local_memory_t>
-struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
-                               local_memory_t> {
+template <int vector_size, typename expression_tree_t, typename local_memory_t>
+struct ExpressionTreeEvaluator<vector_size, using_local_memory::disabled,
+                               expression_tree_t, local_memory_t> {
   /*!
   @brief Static function that calls eval on a tree, passing only the index.
   @param tree Tree object.
@@ -165,8 +169,14 @@ struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
       expression_tree_t &tree,
       LocalMemory<local_memory_t, using_local_memory::disabled>,
       cl::sycl::nd_item<1> index) {
-    if (tree.valid_thread(index)) {
-      tree.eval(index);
+    if constexpr (vector_size == 1) {
+      if (tree.valid_thread(index)) {
+        tree.eval(index);
+      }
+    } else {
+      if (tree.template valid_thread<vector_size>(index)) {
+        tree.template eval<vector_size>(index);
+      }
     }
   }
 };
@@ -179,9 +189,10 @@ enabled.
 @tparam expression_tree_t Type of the tree.
 @tparam local_memory_t Value type of the shared memory.
 */
-template <typename expression_tree_t, typename subgroup_memory_t>
-struct ExpressionTreeEvaluator<using_local_memory::subgroup, expression_tree_t,
-                               subgroup_memory_t> {
+template <int vector_size, typename expression_tree_t,
+          typename subgroup_memory_t>
+struct ExpressionTreeEvaluator<vector_size, using_local_memory::subgroup,
+                               expression_tree_t, subgroup_memory_t> {
   /*!
 @brief Static function that calls eval on a tree, passing the accessor and
 index.
@@ -193,7 +204,11 @@ index.
       expression_tree_t &tree,
       LocalMemory<subgroup_memory_t, using_local_memory::subgroup> scratch,
       cl::sycl::nd_item<1> index) {
-    tree.eval(scratch, index);
+    if constexpr (vector_size == 1) {
+      tree.eval(scratch, index);
+    } else {
+      tree.template eval<vector_size>(scratch, index);
+    }
   }
 };
 
@@ -206,7 +221,7 @@ index.
 @param scratch_ shared memory object (local accessor).
 @param t_ Tree object.
 */
-template <int using_local_memory, typename expression_tree_t,
+template <int vector_size, int using_local_memory, typename expression_tree_t,
           typename local_memory_t, typename value_t>
 struct ExpressionTreeFunctor {
   local_memory_t scratch_;
@@ -217,12 +232,13 @@ struct ExpressionTreeFunctor {
   SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) const {
     expression_tree_t &non_const_t = *const_cast<expression_tree_t *>(&t_);
     non_const_t.adjust_access_displacement();
-    ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
+    ExpressionTreeEvaluator<vector_size, using_local_memory, expression_tree_t,
                             value_t>::eval(non_const_t, scratch_, i);
   }
 };
 
-template <int using_local_memory, typename queue_t, typename expression_tree_t>
+template <int vector_size, int using_local_memory, typename queue_t,
+          typename expression_tree_t>
 static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
                                                      expression_tree_t t,
                                                      size_t _localSize,
@@ -244,8 +260,9 @@ static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
           cl::sycl::range<1>{globalSize}, cl::sycl::range<1>{localSize}};
       h.parallel_for(
           gridConfiguration,
-          ExpressionTreeFunctor<using_local_memory, expression_tree_t,
-                                decltype(scratch), value_t>(scratch, t));
+          ExpressionTreeFunctor<vector_size, using_local_memory,
+                                expression_tree_t, decltype(scratch), value_t>(
+              scratch, t));
     };
 
     ev = q_.submit(cg1);

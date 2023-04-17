@@ -52,43 +52,46 @@ class SB_Handle {
         localMemorySupport_(helper::has_local_memory(q)),
         computeUnits_(helper::get_num_compute_units(q)) {}
 
-  template <typename expression_tree_t>
+  template <int vector_size = 1, typename expression_tree_t>
   event_t execute(expression_tree_t tree);
 
-  template <typename expression_tree_t, typename index_t>
+  template <int vector_size = 1, typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize);
 
-  template <typename expression_tree_t, typename index_t>
+  template <int vector_size = 1, typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize,
                   index_t globalSize);
-  template <typename expression_tree_t, typename index_t>
+  template <int vector_size = 1, typename expression_tree_t, typename index_t>
   event_t execute(expression_tree_t tree, index_t localSize, index_t globalSize,
                   index_t local_memory_size);
 
-  template <typename operator_t, typename lhs_t, typename rhs_t>
+  template <int vector_size = 1, typename operator_t, typename lhs_t,
+            typename rhs_t>
   event_t execute(AssignReduction<operator_t, lhs_t, rhs_t>);
 
-  template <typename operator_t, typename lhs_t, typename rhs_t,
-            typename local_memory_t>
+  template <int vector_size = 1, typename operator_t, typename lhs_t,
+            typename rhs_t, typename local_memory_t>
   event_t execute(AssignReduction<operator_t, lhs_t, rhs_t> t,
                   local_memory_t scr);
 
-  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int GemmMemoryType,
-            int GemmAlgorithm, int GemmVectorization, int VectorSize,
-            int BatchType, bool UseJointMatrix>
-  event_t execute(
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseJointMatrix>
-          gemm_tree);
+  template <int vector_size = 1, typename input_t, typename output_t,
+            bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
+            typename tile_type, bool TransA, bool TransB, typename element_t,
+            bool is_beta_zero, int GemmMemoryType, int GemmAlgorithm,
+            int GemmVectorization, int VectorSize, int BatchType,
+            bool UseJointMatrix>
+  event_t execute(Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                       tile_type, TransA, TransB, element_t, is_beta_zero,
+                       GemmMemoryType, GemmAlgorithm, GemmVectorization,
+                       VectorSize, BatchType, UseJointMatrix>
+                      gemm_tree);
 
   // Tall and skinny Gemm specialization
-  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            typename element_t, bool is_beta_zero, int GemmMemoryType,
-            int GemmVectorization, int VectorSize, int BatchType>
+  template <int vector_size = 1, typename input_t, typename output_t,
+            bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
+            typename tile_type, bool TransA, bool TransB, typename element_t,
+            bool is_beta_zero, int GemmMemoryType, int GemmVectorization,
+            int VectorSize, int BatchType>
   event_t execute(
       Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
            TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
@@ -97,18 +100,18 @@ class SB_Handle {
           gemm_wrapper);
 
   // GemmPartial specialization
-  template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
-            bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-            bool IsFinal, bool IsBetaZero, typename element_t,
-            int GemmMemoryType>
+  template <int vector_size = 1, typename input_t, typename output_t,
+            bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
+            typename tile_type, bool TransA, bool TransB, bool IsFinal,
+            bool IsBetaZero, typename element_t, int GemmMemoryType>
   event_t execute(GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB,
                               ClSize, tile_type, TransA, TransB, IsFinal,
                               IsBetaZero, element_t, GemmMemoryType>
                       gemm_partial);
 
   // Reduction specialization (inner or outer dimension)
-  template <typename operator_t, typename params_t, typename input_t,
-            typename output_t>
+  template <int vector_size = 1, typename operator_t, typename params_t,
+            typename input_t, typename output_t>
   event_t execute(
       Reduction<operator_t, params_t, input_t, output_t> reduction_wrapper);
 
