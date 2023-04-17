@@ -156,11 +156,11 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
 }
 
 template <Level3Op op, typename scalar_t, typename index_t>
-inline
-    typename std::enable_if<op == Level3Op::trmm || op == Level3Op::trsm>::type
-    init_level_3_counters(benchmark::State& state, scalar_t beta = 0,
-                          index_t m = 0, index_t n = 0, index_t k = 0,
-                          index_t batch_size = 1, char side = 'l') {
+inline typename std::enable_if<op == Level3Op::trmm || op == Level3Op::trsm ||
+                               op == Level3Op::trsm_batched>::type
+init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
+                      index_t n = 0, index_t k = 0, index_t batch_size = 1,
+                      char side = 'l') {
   // Google-benchmark counters are double.
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);

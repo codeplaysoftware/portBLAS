@@ -54,7 +54,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char side,
   index_t ldc = ldb;
 
   blas_benchmark::utils::init_level_3_counters<
-      blas_benchmark::utils::Level3Op::symm, scalar_t>(state, beta, m, n, k, 1,
+      blas_benchmark::utils::Level3Op::symm, scalar_t>(state, beta, m, n, 0, 1,
                                                        side);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
