@@ -43,6 +43,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_sbmv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_spmv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_spr2_test.cpp

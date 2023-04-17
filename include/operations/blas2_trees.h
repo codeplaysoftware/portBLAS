@@ -310,6 +310,46 @@ Sbmv<lhs_t, matrix_t, vector_t, local_range, uplo> make_sbmv(
 }
 
 /**
+ * @struct Spmv
+ * @brief Tree node representing a symmetric band matrix_ vector_
+ * multiplication.
+ */
+template <typename lhs_t, typename matrix_t, typename vector_t,
+          uint32_t local_range_x, uint32_t local_range_y, bool uplo>
+struct Spmv {
+  using value_t = typename vector_t::value_t;
+  using index_t = typename vector_t::index_t;
+
+  lhs_t lhs_;
+  matrix_t matrix_;
+  index_t k_;
+  vector_t vector_;
+  value_t alpha_, beta_;
+
+  Spmv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, value_t _alpha,
+       value_t _beta);
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i);
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename sharedT>
+  value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+/*!
+ @brief Generator/factory for SPMV trees.
+ */
+template <uint32_t local_range_x, uint32_t local_range_y, bool uplo,
+          typename lhs_t, typename matrix_t, typename vector_t>
+Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, uplo> make_spmv(
+    typename vector_t::value_t alpha_, matrix_t &matrix_, vector_t &vector_,
+    typename vector_t::value_t beta_, lhs_t &lhs_) {
+  return Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, uplo>(
+      lhs_, matrix_, vector_, alpha_, beta_);
+}
+
+/**
  * @struct Tbmv
  * @brief Tree node representing a triangular band matrix_ vector_
  * multiplication.

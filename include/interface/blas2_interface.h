@@ -409,6 +409,49 @@ typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
                                          increment_t _incy);
 
 /**
+ * @brief Matrix vector product with symmetric packed matrices.
+ *
+ * Matrix vector product with a symmetric packed matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*A*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d8/d68/sspmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _N Number of rows and columns of A
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer containing the coefficient of A in the Packed Triangular
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
+ * @param _incy Increment for _vy
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
+                                    index_t _N, element_t _alpha,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx, element_t _beta,
+                                    container_2_t _vy, increment_t _incy);
+
+template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
+          typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename container_t1, typename increment_t,
+          typename container_t2>
+typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         element_t _alpha, container_t0 _mA,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy);
+
+/**
  * @brief Matrix vector product with triangular band matrices.
  *
  * Matrix vector product with a triangular band matrix, i.e. computing the
@@ -859,6 +902,43 @@ typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
                                     increment_t _incy) {
   return internal::_sbmv(sb_handle, _Uplo, _N, _K, _alpha, _mA, _lda, _vx,
                          _incx, _beta, _vy, _incy);
+}
+
+/**
+ * @brief Matrix vector product with symmetric packed matrices.
+ *
+ * Matrix vector product with a symmetric packed matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * y = alpha*A*x + beta*y
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d8/d68/sspmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _N Number of rows and columns of A
+ * @param _alpha Scalar parameter alpha
+ * @param _mA Buffer containing the coefficient of A in the Packed Triangular
+ *            Matrix format
+ * @param _lda Leading dimension _mA at least (_K + 1)
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ * @param _beta Scalar parameter beta
+ * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
+ * @param _incy Increment for _vy
+ */
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_0_t, typename container_1_t, typename increment_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
+                                    index_t _N, element_t _alpha,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx, element_t _beta,
+                                    container_2_t _vy, increment_t _incy) {
+  return internal::_spmv(sb_handle, _Uplo, _N, _alpha, _mA, _vx, _incx, _beta,
+                         _vy, _incy);
 }
 
 /**
