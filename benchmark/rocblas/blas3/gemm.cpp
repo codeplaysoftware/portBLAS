@@ -77,13 +77,11 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
     double total_mem =
         (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
-    state.SetBytesProcessed(state.iterations() * total_mem);
 
     double nflops_AtimesB = (2 * k_d) * m_d * n_d;
     double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    double nflops_tot = nflops_AtimesB + nflops_addBetaC;
-    state.counters["n_fl_ops"] = nflops_tot;
-    state.SetItemsProcessed(state.iterations() * nflops_tot);
+    double total_nflops = nflops_AtimesB + nflops_addBetaC;
+    state.counters["n_fl_ops"] = total_nflops;
   }
 
   // Matrix options (rocBLAS)
@@ -110,9 +108,6 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
     blas_benchmark::utils::HIPVector<scalar_t> a_gpu(a_size, a.data());
     blas_benchmark::utils::HIPVector<scalar_t> b_gpu(b_size, b.data());
     blas_benchmark::utils::HIPVector<scalar_t> c_gpu(c_size, c.data());
-
-    CHECK_ROCBLAS_STATUS(
-        rocblas_set_pointer_mode(rb_handle, rocblas_pointer_mode_host));
 
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference gemm
@@ -173,6 +168,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
 
     blas_benchmark::utils::calc_avg_counters(state);
 

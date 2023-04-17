@@ -68,14 +68,12 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo,
     const double total_mem =
         (mem_readA + mem_readC + mem_writeC) * sizeof(scalar_t);
     state.counters["bytes_processed"] = total_mem;
-    state.SetBytesProcessed(state.iterations() * total_mem);
 
     const double nflops_AtimesA = n_d * (n_d + 1) * k_d;
     const double nflops_addBetaC =
         (beta != scalar_t{0}) ? (n_d * (n_d + 1)) : 0;
     const double total_nflops = nflops_AtimesA + nflops_addBetaC;
     state.counters["n_fl_ops"] = total_nflops;
-    state.SetItemsProcessed(state.iterations() * total_nflops);
   }
 
   // Matrix options (rocBLAS)
@@ -156,6 +154,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo,
       // Report
       blas_benchmark::utils::update_counters(state, times);
     }
+
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
 
     blas_benchmark::utils::calc_avg_counters(state);
 
