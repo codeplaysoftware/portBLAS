@@ -31,7 +31,6 @@ include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 set(SYCL_UNITTEST_SRCS
   # Blas 1 tests
   ${SYCLBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
@@ -66,6 +65,7 @@ endif()
 if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
+    ${SYCLBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
