@@ -33,6 +33,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
+#include "interface/blas1/backend/backend.hpp"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
@@ -82,10 +83,11 @@ template <typename sb_handle_t, typename index_t, typename container_0_t,
 typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
                                     container_0_t _vx, increment_t _incx,
                                     container_1_t _vy, increment_t _incy) {
+  constexpr int vector_size = backend::HardwareSpec::get_vector_size();
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
-  auto ret = sb_handle.execute(assignOp2);
+  auto ret = sb_handle.template execute<vector_size>(assignOp2);
   return ret;
 }
 

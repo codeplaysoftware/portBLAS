@@ -28,6 +28,7 @@
 
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
+#include "views/packet_helper.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
@@ -176,6 +177,15 @@ SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
 }
 
 template <typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  using index_t = typename Assign<lhs_t, rhs_t>::index_t;
+  return (static_cast<index_t>(ndItem.get_global_id(0)) <
+          (Assign<lhs_t, rhs_t>::get_size() - 1 / vector_size) + 1);
+}
+
+template <typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::value_t
 Assign<lhs_t, rhs_t>::eval(typename Assign<lhs_t, rhs_t>::index_t i) {
   auto val = lhs_.eval(i) = rhs_.eval(i);
@@ -186,6 +196,24 @@ template <typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::value_t
 Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   return Assign<lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
+}
+
+template <typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE
+    cl::sycl::vec<typename Assign<lhs_t, rhs_t>::value_t, vector_size>
+    Assign<lhs_t, rhs_t>::eval(typename Assign<lhs_t, rhs_t>::index_t i) {
+  auto val = rhs_.template eval<vector_size>(i);
+  lhs_.template eval<vector_size>(i, val);
+  return val;
+}
+
+template <typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE
+    cl::sycl::vec<typename Assign<lhs_t, rhs_t>::value_t, vector_size>
+    Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+  return Assign<lhs_t, rhs_t>::eval<vector_size>(ndItem.get_global_id(0));
 }
 
 template <typename lhs_t, typename rhs_t>

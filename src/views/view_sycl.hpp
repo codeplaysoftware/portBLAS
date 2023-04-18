@@ -30,6 +30,7 @@
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
+#include "views/packet_helper.hpp"
 #include "views/view.h"
 
 namespace blas {
@@ -181,9 +182,121 @@ struct VectorView<
     return *(ptr_ + indx);
   }
 
+  template <int vector_size, bool use_as_ptr = false>
+  SYCL_BLAS_INLINE
+      typename std::enable_if<!use_as_ptr,
+                              cl::sycl::vec<scalar_t, vector_size>>::type
+      eval(index_t i) const {
+    const int position = ((stride_ == 1) ? i : i * stride_) * vector_size;
+    return internal_load<vector_size>(position);
+  }
+
+  template <int vector_size, bool use_as_ptr = false>
+  SYCL_BLAS_INLINE
+      typename std::enable_if<!use_as_ptr,
+                              cl::sycl::vec<scalar_t, vector_size> &>::type
+      eval(index_t i, cl::sycl::vec<scalar_t, vector_size> &packet) const {
+    const int position = ((stride_ == 1) ? i : i * stride_) * vector_size;
+    return internal_store<vector_size>(position, packet);
+  }
+
+  template <int vector_size, bool use_as_ptr = false>
+  SYCL_BLAS_INLINE
+      typename std::enable_if<use_as_ptr,
+                              cl::sycl::vec<scalar_t, vector_size>>::type
+      eval(index_t indx) const noexcept {
+    const int position = indx * vector_size;
+    return internal_load<vector_size>(position);
+  }
+
+  template <int vector_size, bool use_as_ptr = false>
+  SYCL_BLAS_INLINE
+      typename std::enable_if<use_as_ptr,
+                              cl::sycl::vec<scalar_t, vector_size> &>::type
+      eval(index_t indx,
+           cl::sycl::vec<scalar_t, vector_size> &packet) const noexcept {
+    const int position = indx * vector_size;
+    return internal_store<vector_size>(position, packet);
+  }
+
+  template <int vector_size>
+  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> eval(
+      cl::sycl::nd_item<1> ndItem) const {
+    return eval<vector_size>(ndItem.get_global_id(0));
+  }
+
+  template <int vector_size>
+  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> &eval(
+      cl::sycl::nd_item<1> ndItem,
+      cl::sycl::vec<scalar_t, vector_size> &packet) const {
+    return eval<vector_size>(ndItem.get_global_id(0), packet);
+  }
+
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }
   SYCL_BLAS_INLINE void adjust_access_displacement() {
     ptr_ = data_.get_pointer() + disp_;
+  }
+
+  template <int vector_size>
+  SYCL_BLAS_INLINE cl::sycl::vec<scalar_t, vector_size> internal_load(
+      const int position) const {
+    using PacketHelper = PacketHelper<vector_size, scalar_t, index_t>;
+    const index_t data_size = get_size() * stride_;
+    const bool in_range = position + (vector_size - 1) * stride_ < data_size;
+    const bool unit_stride = stride_ == 1;
+    if (in_range) {
+      if (unit_stride) {
+        return PacketHelper::template load<true>(ptr_ + position, stride_);
+      } else {
+        return PacketHelper::template load<false>(ptr_ + position, stride_);
+      }
+    } else if (position < data_size) {
+      if (unit_stride) {
+        return PacketHelper::template load<true>(
+            ptr_ + position, stride_, [this, &position, &data_size](index_t i) {
+              return position + i < data_size;
+            });
+      } else {
+        return PacketHelper::template load<false>(
+            ptr_ + position, stride_, [this, &position, &data_size](index_t i) {
+              return position + i < data_size;
+            });
+      }
+    } else {
+      typename PacketHelper::packet_t empty_packet{};
+      return empty_packet;
+    }
+  }
+
+  template <int vector_size>
+  SYCL_BLAS_INLINE cl::sycl::vec<scalar_t, vector_size> &internal_store(
+      const int position, cl::sycl::vec<scalar_t, vector_size> &packet) const {
+    using PacketHelper = PacketHelper<vector_size, scalar_t, index_t>;
+    const index_t data_size = get_size() * stride_;
+    const bool in_range = position + (vector_size - 1) * stride_ < data_size;
+    const bool unit_stride = stride_ == 1;
+    if (in_range) {
+      if (unit_stride) {
+        PacketHelper::template store<true>(packet, ptr_ + position, stride_);
+      } else {
+        PacketHelper::template store<false>(packet, ptr_ + position, stride_);
+      }
+    } else if (position < data_size) {
+      if (unit_stride) {
+        PacketHelper::template store<true>(
+            packet, ptr_ + position, stride_,
+            [this, &position, &data_size](index_t i) {
+              return position + i < data_size;
+            });
+      } else {
+        PacketHelper::template store<false>(
+            packet, ptr_ + position, stride_,
+            [this, &position, &data_size](index_t i) {
+              return position + i < data_size;
+            });
+      }
+    }
+    return packet;
   }
 };
 

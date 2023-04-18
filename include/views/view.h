@@ -114,6 +114,11 @@ struct VectorView {
 
   /**** EVALUATING ****/
   value_t &eval(index_t i);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> eval(index_t i);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> &eval(
+      index_t i, cl::sycl::vec<value_t, vector_size> &packet);
 };
 
 /*! MatrixView
