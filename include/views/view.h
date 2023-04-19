@@ -59,6 +59,9 @@ struct VectorView {
   index_t disp_;
   increment_t strd_;  // never size_t, because it could be negative
 
+  // global pointer access inside the kernel
+  cl::sycl::global_ptr<value_t> ptr_;
+
   VectorView(view_container_t data, view_index_t disp, view_increment_t strd,
              view_index_t size);
   VectorView(
@@ -116,13 +119,13 @@ struct VectorView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
       index_t i) {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
       index_t i) const {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
   SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
@@ -136,13 +139,13 @@ struct VectorView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
       index_t indx) {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
       index_t indx) const noexcept {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 };
 
@@ -165,7 +168,11 @@ struct MatrixView {
   index_t sizeR_;      // number of rows
   index_t sizeC_;      // number of columns
   index_t sizeL_;      // size of the leading dimension
-  index_t disp_;       // displacementt od the first element
+  index_t disp_;       // displacement of the first element
+
+  // global pointer access inside the kernel
+  cl::sycl::global_ptr<value_t> ptr_;
+
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC);
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC,
@@ -178,17 +185,17 @@ struct MatrixView {
   /*!
    * @brief Returns the container
    */
-  container_t get_data();
+  SYCL_BLAS_INLINE container_t get_data();
 
   /*!
    * @brief Returns the container
    */
-  value_t *get_pointer();
+  SYCL_BLAS_INLINE value_t *get_pointer();
 
   /*!
    * @brief Returns the data size
    */
-  index_t get_data_size() const;
+  SYCL_BLAS_INLINE index_t get_data_size() const;
 
   /*!
    * @brief Returns the size of the view.
@@ -230,13 +237,13 @@ struct MatrixView {
    * @brief Evaluation for the pair of row/col.
    */
   SYCL_BLAS_INLINE value_t &eval(index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
-                                     : *(data_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
   }
 
   SYCL_BLAS_INLINE value_t eval(index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
-                                     : *(data_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
   }
 
   template <bool use_as_ptr = false>
@@ -266,13 +273,13 @@ struct MatrixView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
       index_t indx) {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
       index_t indx) const noexcept {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 };
 
