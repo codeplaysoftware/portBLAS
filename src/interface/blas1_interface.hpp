@@ -87,7 +87,8 @@ typename sb_handle_t::event_t _copy(sb_handle_t &sb_handle, index_t _N,
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
-  auto ret = sb_handle.template execute<vector_size>(assignOp2);
+  auto ret =
+      sb_handle.template execute<decltype(assignOp2), vector_size>(assignOp2);
   return ret;
 }
 
