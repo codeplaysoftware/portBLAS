@@ -193,6 +193,7 @@ void register_benchmark(blas_benchmark::Args& args,
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          int t1, int t2, index_t m, index_t k, index_t n,
+                         index_t stride_a, index_t stride_b, index_t stride_c,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          bool* success) {
       run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, stride_a, stride_b,
@@ -200,7 +201,7 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
-        sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, success)
+        sb_handle_ptr, t1, t2, m, k, n, stride_a, stride_b, stride_c, alpha, beta, batch_size, success)
         ->UseRealTime();
   }
 }
