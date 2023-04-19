@@ -42,7 +42,7 @@ namespace blas {
 /*!
  * @brief Executes the tree without defining required shared memory.
  */
-template <int vector_size, typename expression_tree_t>
+template <typename expression_tree_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t) {
   const auto localSize = get_work_group_size();
   auto _N = t.get_size();
@@ -57,7 +57,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t) {
  * @brief Executes the tree fixing the localSize but without defining
  * required shared memory.
  */
-template <int vector_size, typename expression_tree_t, typename index_t>
+template <typename expression_tree_t, typename index_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
                                                       index_t localSize) {
   auto _N = t.get_size();
@@ -71,7 +71,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
  * @brief Executes the tree fixing the localSize but without defining
  * required shared memory.
  */
-template <int vector_size, typename expression_tree_t, typename index_t>
+template <typename expression_tree_t, typename index_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
                                                       index_t localSize,
                                                       index_t globalSize) {
@@ -83,7 +83,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
  * @brief Executes the tree with specific local, global and shared
  * memory values.
  */
-template <int vector_size, typename expression_tree_t, typename index_t>
+template <typename expression_tree_t, typename index_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
                                                       index_t localSize,
                                                       index_t globalSize,
@@ -95,7 +95,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
 /*!
  * @brief Applies a reduction to a tree.
  */
-template <int vector_size, typename operator_t, typename lhs_t, typename rhs_t>
+template <typename operator_t, typename lhs_t, typename rhs_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
@@ -151,8 +151,8 @@ inline typename SB_Handle::event_t SB_Handle::execute(
  * @brief Applies a reduction to a tree, receiving a scratch
  * BufferIterator.
  */
-template <int vector_size, typename operator_t, typename lhs_t, typename rhs_t,
-          typename local_memory_t>
+template <typename operator_t, typename lhs_t, typename rhs_t,
+          typename local_memory_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     AssignReduction<operator_t, lhs_t, rhs_t> t, local_memory_t scr) {
   using expression_tree_t = AssignReduction<operator_t, lhs_t, rhs_t>;
@@ -197,12 +197,11 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   return event;
 }
 
-template <int vector_size, typename input_t, typename output_t,
-          bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
-          typename tile_type, bool TransA, bool TransB, typename element_t,
-          bool is_beta_zero, int GemmMemoryType, int GemmAlgorithm,
-          int GemmVectorization, int VectorSize, int BatchType,
-          bool UseJointMatrix>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmAlgorithm, int GemmVectorization, int VectorSize,
+          int BatchType, bool UseJointMatrix, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
@@ -222,11 +221,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 }
 
 /* Tall and skinny Gemm */
-template <int vector_size, typename input_t, typename output_t,
-          bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
-          typename tile_type, bool TransA, bool TransB, typename element_t,
-          bool is_beta_zero, int GemmMemoryType, int GemmVectorization,
-          int VectorSize, int BatchType>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          typename element_t, bool is_beta_zero, int GemmMemoryType,
+          int GemmVectorization, int VectorSize, int BatchType, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
          TransB, element_t, is_beta_zero, GemmMemoryType,
@@ -321,10 +319,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 }
 
 /* GemmPartial */
-template <int vector_size, typename input_t, typename output_t,
-          bool DoubleBuffer, bool NbcA, bool NbcB, int ClSize,
-          typename tile_type, bool TransA, bool TransB, bool IsFinal,
-          bool IsBetaZero, typename element_t, int GemmMemoryType>
+template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
+          bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
+          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType,
+          int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
                 TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
@@ -341,8 +339,8 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 }
 
 /* ReductionPartial */
-template <int vector_size, typename operator_t, typename params_t,
-          typename input_t, typename output_t>
+template <typename operator_t, typename params_t, typename input_t,
+          typename output_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Reduction<operator_t, params_t, input_t, output_t> reduction) {
   auto step_range = reduction.get_nd_range(SB_Handle::get_num_compute_units());
