@@ -53,6 +53,7 @@ set(sources
   blas3/gemm.cpp
   blas3/gemm_batched.cpp
   blas3/trsm.cpp
+  blas3/symm.cpp
 )
 
 # Add individual benchmarks for each method

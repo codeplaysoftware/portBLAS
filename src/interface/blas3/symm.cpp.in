@@ -19,16 +19,23 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas3_interface.hpp
+ *  @filename symm.cpp.in
  *
  **************************************************************************/
-
-#ifndef SYCL_BLAS_BLAS3_INTERFACE_HPP
-#define SYCL_BLAS_BLAS3_INTERFACE_HPP
-
+#include "container/sycl_iterator.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 #include "interface/gemm_interface.hpp"
-#include "interface/gemm_launcher.hpp"
 #include "interface/symm_interface.hpp"
-#include "interface/trsm_interface.hpp"
+#include "operations/blas_constants.hpp"
+#include "views/view_sycl.hpp"
 
-#endif  // SYCL_BLAS_BLAS3_INTERFACE_HPP
+namespace blas {
+namespace internal {
+
+template typename SB_Handle::event_t _symm(
+    SB_Handle& sb_handle, char _side, char _uplo, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, ${container_t0} a_, ${INDEX_TYPE} _lda, ${container_t1} b_,
+    ${INDEX_TYPE} _ldb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+
+}  // namespace internal
+}  // namespace blas

@@ -199,18 +199,19 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmAlgorithm, int GemmVectorization, int VectorSize,
-          int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
+          int VectorSize, int BatchType, bool UseJointMatrix>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, GemmMemoryType, GemmAlgorithm,
-         GemmVectorization, VectorSize, BatchType, UseJointMatrix>
+         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
+         GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
+         UseJointMatrix>
         gemm_tree) {
-  using gemm_t =
-      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-           TransA, TransB, element_t, is_beta_zero, GemmMemoryType,
-           GemmAlgorithm, GemmVectorization, VectorSize, BatchType, UseJointMatrix>;
+  using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
+                      tile_type, TransA, TransB, SymmA, SymmB, element_t,
+                      is_beta_zero, GemmMemoryType, GemmAlgorithm,
+                      GemmVectorization, VectorSize, BatchType, UseJointMatrix>;
   auto rng = gemm_tree.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
@@ -222,11 +223,12 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 /* Tall and skinny Gemm */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          typename element_t, bool is_beta_zero, int GemmMemoryType,
-          int GemmVectorization, int VectorSize, int BatchType>
+          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
+          int GemmMemoryType, int GemmVectorization, int VectorSize,
+          int BatchType>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, element_t, is_beta_zero, GemmMemoryType,
+         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
          static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
          VectorSize, BatchType>
         gemm_wrapper) {
