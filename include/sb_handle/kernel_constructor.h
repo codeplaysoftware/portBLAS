@@ -117,7 +117,8 @@ struct ExpressionTreeFunctor;
 @param _shMem Size in elements of the shared memory (should be zero if
 using_local_memory == false).
 */
-template <int using_local_memory, typename queue_t, typename expression_tree_t>
+template <int vector_size, int using_local_memory, typename queue_t,
+          typename expression_tree_t>
 static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
                                     size_t _localSize, size_t _globalSize,
                                     size_t _shMem);

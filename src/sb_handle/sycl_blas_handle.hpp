@@ -332,6 +332,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   auto gemm_partial_range =
       gemm_partial.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
+      vector_size,
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
              using_local_memory::enabled, using_local_memory::disabled>::type>(
       q_, gemm_partial, gemm_partial_range.get_local_range()[0],
