@@ -45,6 +45,9 @@ static inline void rocblas_rotmg_f(args_t&&... args) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
+  // Google-benchmark counters are double.
+  blas_benchmark::utils::init_level_1_counters<
+      blas_benchmark::utils::Level1Op::rotmg, scalar_t>(state, 1);
   // Create data
   constexpr size_t param_size = 5;
   std::vector<scalar_t> param = std::vector<scalar_t>(param_size);
@@ -142,6 +145,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
       blas_benchmark::utils::update_counters(state, times);
     }
 
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
+
     blas_benchmark::utils::calc_avg_counters(state);
 
     CHECK_HIP_ERROR(hipEventDestroy(start));
@@ -157,7 +164,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     run<scalar_t>(st, rb_handle, success);
   };
   benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
-                               rb_handle, success);
+                               rb_handle, success)
+      ->UseRealTime();
 }
 
 namespace blas_benchmark {
