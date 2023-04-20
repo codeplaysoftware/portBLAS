@@ -764,12 +764,13 @@ sspr 	( 	character  	UPLO,
  )
 */
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_t0, typename increment_t, typename container_t1>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
 typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
                                          index_t _N, element_t _alpha,
                                          container_t0 _vx, increment_t _incx,
-                                         container_t0 _vy, increment_t _incy,
-                                         container_t1 _mPA) {
+                                         container_t1 _vy, increment_t _incy,
+                                         container_t2 _mPA) {
   // throw exception if invalid arguments
   if (_N <= 0) {
     throw std::invalid_argument("Invalid vector size");
@@ -785,8 +786,8 @@ typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
   _Uplo = tolower(_Uplo);
   const int Upper = _Uplo == 'u';
   auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
-  auto vx = make_vector_view(_vx, _incx, (1 + (_N-1)*_incx));
-  auto vy = make_vector_view(_vy, _incy, (1 + (_N-1)*_incy));
+  auto vx = make_vector_view(_vx, _incx, (1 + (_N - 1) * _incx));
+  auto vy = make_vector_view(_vy, _incy, (1 + (_N - 1) * _incy));
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
@@ -1051,15 +1052,16 @@ typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_t0, typename increment_t, typename container_t1>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
 typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
                                            index_t _N, element_t _alpha,
                                            container_t0 _vx, increment_t _incx,
-                                           container_t0 _vy, increment_t _incy,
-                                           container_t1 _mPA) {
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mPA) {
   return _spr2_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
-                    container_t1>(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy,
-                                  _incy, _mPA);
+                    container_t1, container_t2>(sb_handle, _Uplo, _N, _alpha,
+                                                _vx, _incx, _vy, _incy, _mPA);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,

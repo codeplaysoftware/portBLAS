@@ -34,10 +34,10 @@ namespace internal {
 
 template typename SB_Handle::event_t
 _spr2<SB_Handle, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0},
-      ${INCREMENT_TYPE}, ${container_t1}>(
+      ${INCREMENT_TYPE}, ${container_t1}, ${container_t2}>(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t0} _vy,
-    ${INCREMENT_TYPE} _incy, ${container_t1} _mPA);
+    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
+    ${INCREMENT_TYPE} _incy, ${container_t2} _mPA);
 
 }  // namespace internal
 }  // namespace blas

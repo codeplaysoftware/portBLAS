@@ -66,8 +66,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto a_mp_gpu = blas::make_sycl_iterator_buffer(a_mp, n * n);
 
   _spr2<blas::SB_Handle, index_t, scalar_t, decltype(vx_gpu), index_t,
-        decltype(a_mp_gpu)>(sb_handle, uplo, n, alpha, vx_gpu, incX, vy_gpu,
-                            incY, a_mp_gpu);
+        decltype(vy_gpu), decltype(a_mp_gpu)>(sb_handle, uplo, n, alpha, vx_gpu,
+                                              incX, vy_gpu, incY, a_mp_gpu);
 
   auto event =
       helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu, a_mp.data(), n * n);

@@ -279,12 +279,13 @@ typename sb_handle_t::event_t _spr(sb_handle_t& sb_handle, char _Uplo,
  * @param _mPA (_lda, _N) The output matrix in packed format
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_0_t, typename increment_t, typename container_1_t>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
 typename sb_handle_t::event_t _spr2(sb_handle_t& sb_handle, char _Uplo,
                                     index_t _N, element_t _alpha,
-                                    container_0_t _vx, increment_t _incx,
-                                    container_0_t _vy, increment_t _incy,
-                                    container_1_t _mPA);
+                                    container_t0 _vx, increment_t _incx,
+                                    container_t1 _vy, increment_t _incy,
+                                    container_t2 _mPA);
 
 /*!
  @brief Generalised vector products followed by a sum with a symmetric matrix.
@@ -739,14 +740,15 @@ typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
  * @param _mPA (_lda, _N) The output matrix in packed format
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
-          typename container_0_t, typename increment_t, typename container_1_t>
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
 typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
                                            index_t _N, element_t _alpha,
-                                           container_0_t _vx, increment_t _incx,
-                                           container_0_t _vy, increment_t _incy,
-                                           container_1_t _mPA) {
-  return internal::_spr2<sb_handle_t, index_t, element_t, container_0_t,
-                         increment_t, container_1_t>(
+                                           container_t0 _vx, increment_t _incx,
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mPA) {
+  return internal::_spr2<sb_handle_t, index_t, element_t, container_t0,
+                         increment_t, container_t1, container_t2>(
       sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mPA);
 }
 
