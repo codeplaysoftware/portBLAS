@@ -54,12 +54,14 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double kl_d = static_cast<double>(kl);
   double ku_d = static_cast<double>(ku);
   double xlen = t_str[0] == 'n' ? n_d : m_d;
   double ylen = t_str[0] == 'n' ? m_d : n_d;
+  state.counters["beta"] = beta_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
   state.counters["kl"] = kl_d;
@@ -90,10 +92,12 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double xlen = t_str[0] == 'n' ? n_d : m_d;
   double ylen = t_str[0] == 'n' ? m_d : n_d;
+  state.counters["beta"] = beta_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
@@ -135,8 +139,10 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
                       index_t k = 0, index_t ku = 0, index_t kl = 0) {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["k"] = k_d;
   state.counters["n"] = n_d;
 
@@ -167,7 +173,9 @@ inline
                           index_t n = 0, index_t k = 0, index_t ku = 0,
                           index_t kl = 0) {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["n"] = n_d;
   // Compute the number of A non-zero elements.
   const double A_validVal = (n_d * (n_d + 1) / 2);
