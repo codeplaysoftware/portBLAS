@@ -49,10 +49,12 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
                       char side = 'l') {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
   double k_d = static_cast<double>(k);
   double batch_size_d = static_cast<double>(batch_size);
+  state.counters["beta"] = beta_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
   state.counters["k"] = k_d;
@@ -80,8 +82,10 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
                       char side = 'l') {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
@@ -108,8 +112,10 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
                       char side = 'l') {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["k"] = k_d;
   state.counters["n"] = n_d;
 
@@ -136,8 +142,10 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
                       char side = 'l') {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double k_d = static_cast<double>(k);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["k"] = k_d;
   state.counters["n"] = n_d;
 
@@ -162,8 +170,10 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
                       char side = 'l') {
   // Google-benchmark counters are double.
+  double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
   double n_d = static_cast<double>(n);
+  state.counters["beta"] = beta_d;
   state.counters["m"] = m_d;
   state.counters["n"] = n_d;
 
