@@ -753,7 +753,7 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
  * @brief Implementation of the rank 2 operation
  */
 /*
-sspr 	( 	character  	UPLO,
+sspr2 	( 	character  	UPLO,
    integer  	N,
    real  	ALPHA,
    real, dimension(N)  	X,

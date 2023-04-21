@@ -254,13 +254,11 @@ typename sb_handle_t::event_t _spr(sb_handle_t& sb_handle, char _Uplo,
                                    container_1_t _mPA);
 
 /**
- * @brief Generalised two vector squaring followed by a sum with a packed
- symmetric
- * matrix.
+ * @brief Generalised two vectors squaring followed by a sum with a packed
+ * symmetric matrix.
  *
  * Generalised two vector squaring followed by a sum with a packed symmetric
- matrix,
- * i.e. computing the mathematical operation:
+ * matrix, i.e. computing the mathematical operation:
 
  * A = alpha*x*yT + alpha*y*xT + A
 
@@ -715,13 +713,11 @@ typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
 }
 
 /**
- * @brief Generalised two vector squaring followed by a sum with a packed
- symmetric
- * matrix.
+ * @brief Generalised two vectors squaring followed by a sum with a packed
+ * symmetric matrix.
  *
  * Generalised two vector squaring followed by a sum with a packed symmetric
- matrix,
- * i.e. computing the mathematical operation:
+ * matrix, i.e. computing the mathematical operation:
 
  * A = alpha*x*yT + alpha*y*xT + A
 

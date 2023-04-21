@@ -40,6 +40,8 @@ void run_test(const combination_t<scalar_t> combi) {
 
   const size_t x_size = 1 + (n - 1) * incX;
   const size_t y_size = 1 + (n - 1) * incY;
+  const size_t m_size = n * n;
+
   // Input vector
   std::vector<scalar_t> vx_cpu(x_size);
   fill_random(vx_cpu);
@@ -48,8 +50,8 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(vy_cpu);
 
   // Output matrix
-  std::vector<scalar_t> a_mp(n * n, 7.0);
-  std::vector<scalar_t> a_cpu_mp(n * n, 7.0);
+  std::vector<scalar_t> a_mp(m_size, 7.0);
+  std::vector<scalar_t> a_cpu_mp(m_size, 7.0);
 
   uplo = (uplo == 'u' && layout == 'c') || (uplo == 'l' && layout == 'r') ? 'u'
                                                                           : 'l';
@@ -63,14 +65,14 @@ void run_test(const combination_t<scalar_t> combi) {
   auto vx_gpu = blas::make_sycl_iterator_buffer(vx_cpu, x_size);
   auto vy_gpu = blas::make_sycl_iterator_buffer(vy_cpu, y_size);
 
-  auto a_mp_gpu = blas::make_sycl_iterator_buffer(a_mp, n * n);
+  auto a_mp_gpu = blas::make_sycl_iterator_buffer(a_mp, m_size);
 
   _spr2<blas::SB_Handle, index_t, scalar_t, decltype(vx_gpu), index_t,
         decltype(vy_gpu), decltype(a_mp_gpu)>(sb_handle, uplo, n, alpha, vx_gpu,
                                               incX, vy_gpu, incY, a_mp_gpu);
 
   auto event =
-      helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu, a_mp.data(), n * n);
+      helper::copy_to_host(sb_handle.get_queue(), a_mp_gpu, a_mp.data(), m_size);
 
   sb_handle.wait(event);
 
