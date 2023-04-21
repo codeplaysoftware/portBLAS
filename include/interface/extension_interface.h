@@ -23,10 +23,11 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_REDUCTION_INTERFACE_H
-#define SYCL_BLAS_REDUCTION_INTERFACE_H
+#ifndef SYCL_BLAS_EXTENSION_INTERFACE_H
+#define SYCL_BLAS_EXTENSION_INTERFACE_H
 
 #include "operations/extension/reduction.h"
+#include "operations/extension/matcopy.h"
 #include "sb_handle/sycl_blas_handle.h"
 
 namespace blas {
@@ -34,6 +35,13 @@ namespace blas {
 namespace extension {
 
 namespace internal {
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_out_t>
+typename sb_handle_t::event_t _imatcopy(sb_handle_t& sb_handle, char trans,
+                                        index_t m, index_t n, element_t alpha,
+                                        in_out_t memory, index_t ld_in,
+                                        index_t ld_out);
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -44,6 +52,16 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
                                          reduction_dim_t reduction_dim);
 
 }  // namespace internal
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_out_t>
+typename sb_handle_t::event_t _imatcopy(sb_handle_t& sb_handle, char trans,
+                                        index_t m, index_t n, element_t alpha,
+                                        in_out_t memory, index_t ld_in,
+                                        index_t ld_out) {
+  return internal::_imatcopy(sb_handle, trans, m, n, alpha, memory, ld_in,
+                             ld_out);
+}
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -59,4 +77,4 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_REDUCTION_INTERFACE_H
+#endif  // SYCL_BLAS_EXTENSION_INTERFACE_H

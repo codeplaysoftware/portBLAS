@@ -19,27 +19,25 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename reduction.cpp.in
+ *  @filename imatcopy.cpp.in
  *
  **************************************************************************/
 
-#include "operations/extension/reduction.hpp"
+#include "operations/extension/matcopy.hpp"
 #include "container/sycl_iterator.hpp"
 #include "sb_handle/sycl_blas_handle.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "interface/blas1_interface.hpp"
-#include "interface/reduction_interface.hpp"
+#include "interface/extension_interface.hpp"
 #include "operations/blas_constants.hpp"
-#include "views/view_sycl.hpp"
 
 namespace blas {
 namespace extension {
 namespace internal {
 
 template 
-typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
-    SB_Handle& sb_handle, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
-    ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type);
+typename SB_Handle::event_t _imatcopy(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n, ${DATA_TYPE} alpha,
+    ${container_t} memory, ${INDEX_TYPE} ld_in, ${INDEX_TYPE} ld_out);
 
 }  // namespace internal
 }  // namespace extension

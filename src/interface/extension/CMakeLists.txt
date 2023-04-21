@@ -22,8 +22,13 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-#reduction
-generate_blas_reduction_objects(reduction reduction)
-if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_reduction_objects(reduction reduction_const)
+
+generate_blas_extension_objects(extension imatcopy)
+
+if(${BLAS_ENABLE_EXTENSIONS})
+    generate_blas_reduction_objects(extension reduction)
+    if(BLAS_ENABLE_CONST_INPUT)
+        generate_blas_reduction_objects(extension reduction_const)
+    endif()
 endif()
+

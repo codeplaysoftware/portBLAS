@@ -23,10 +23,11 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_REDUCTION_INTERFACE_HPP
-#define SYCL_BLAS_REDUCTION_INTERFACE_HPP
+#ifndef SYCL_BLAS_EXTENSION_INTERFACE_HPP
+#define SYCL_BLAS_EXTENSION_INTERFACE_HPP
 
 #include "blas_meta.h"
+#include "operations/extension/matcopy.h"
 #include "operations/extension/reduction.h"
 #include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
@@ -45,6 +46,50 @@ template <>
 struct get_second_step_op<MeanOperator> {
   using type = AddOperator;
 };
+
+template <bool trans, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_out_t>
+typename std::enable_if<trans, typename sb_handle_t::event_t>::type
+_imatcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+               in_out_t memory, index_t ld_in, index_t ld_out) {
+  typename sb_handle_t::event_t ret;
+  // copy a vector of all 0s to the output memory
+  // if (alpha == 0) {
+  //   std::vector<element_t> vec(m * n, 0);
+  //   auto event = blas::helper::copy_to_device<element_t>(
+  //       sb_handle.get_queue(), vec.data(), memory, m * n);
+  //   ret = concatenate_vectors(ret, typename sb_handle_t::event_t{event});
+  // } else {
+  //   auto imatcopy =
+  //       make_copy<matcopy_op::inplace, 32, trans, trans, Tile<1, 1, 1, 1>>(
+  //           memory, memory, memory, alpha, element_t{0}, m, n, ld_out, ld_in,
+  //           ld_in, 1, 1, 1);
+  //   ret = sb_handle.execute(imatcopy);
+  // }
+  return ret;
+}
+
+template <bool trans, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_out_t>
+typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
+_imatcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+               in_out_t memory, index_t ld_in, index_t ld_out) {
+  typename sb_handle_t::event_t ret;
+  // copy a vector of all 0s to the output memory
+  if (alpha == 0) {
+    std::vector<element_t> vec(m * n, 0);
+    auto event = blas::helper::copy_to_device<element_t>(
+        sb_handle.get_queue(), vec.data(), memory, m * n);
+    ret = concatenate_vectors(ret, typename sb_handle_t::event_t{event});
+  } else {
+    auto in_view = make_matrix_view<col_major>(memory, m, n, ld_in);
+    auto out_view = make_matrix_view<col_major>(memory, m, n, ld_out);
+    auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
+    auto copy_op = make_op<Assign>(out_view, scal_op);
+    ret = sb_handle.execute(copy_op);
+  }
+  return ret;
+}
 
 /*!
  * @brief Wrapper around Reduction. Creates the views, then makes and launches
@@ -122,6 +167,25 @@ typename sb_handle_t::event_t launch_type_based_reduction(
   return reduction_event;
 }
 
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_out_t>
+typename sb_handle_t::event_t _imatcopy(sb_handle_t& sb_handle, char trans,
+                                        index_t m, index_t n, element_t alpha,
+                                        in_out_t memory, index_t ld_in,
+                                        index_t ld_out) {
+  // bail out early if the leading dimensions are not correct
+  if (ld_in < m || ld_out < (trans == 't' ? n : m)) {
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
+
+  if (trans == 't') {
+    return _imatcopy_impl<true>(sb_handle, m, n, alpha, memory, ld_in, ld_out);
+  } else {
+    return _imatcopy_impl<false>(sb_handle, m, n, alpha, memory, ld_in, ld_out);
+  }
+}
+
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
@@ -144,4 +208,4 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
 }  // namespace extension
 }  // namespace blas
 
-#endif  // SYCL_BLAS_REDUCTION_INTERFACE_HPP
+#endif  // SYCL_BLAS_EXTENSION_INTERFACE_HPP
