@@ -41,7 +41,7 @@
 
 #include "interface/gemm_launcher.h"
 
-#include "interface/reduction_interface.h"
+#include "interface/extension_interface.h"
 
 #include "operations/blas1_trees.h"
 
@@ -50,6 +50,8 @@
 #include "operations/blas3_trees.h"
 
 #include "operations/extension/reduction.h"
+
+#include "operations/extension/matcopy.h"
 
 #include "operations/blas_constants.h"
 

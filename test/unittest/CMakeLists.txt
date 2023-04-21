@@ -55,6 +55,8 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
+
+  ${SYCLBLAS_UNITTEST}/extension/imatcopy_test.cpp
 )
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
@@ -83,7 +85,7 @@ if(is_computecpp)
   )
 
   if(${BLAS_ENABLE_EXTENSIONS})
-    list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/reduction/reduction_test.cpp")
+    list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp")
   endif()
 endif()
 
