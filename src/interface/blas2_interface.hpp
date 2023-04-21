@@ -739,11 +739,11 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto spr = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(spr, localSize, globalSize));
   } else {
-    auto spr = make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(spr, localSize, globalSize));
   }
@@ -796,11 +796,11 @@ typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto spr2 = make_gerp<false, true>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    auto spr2 = make_spr<false, true>(mA, _N, _alpha, vx, _incx, vy, _incy);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(spr2, localSize, globalSize));
   } else {
-    auto spr2 = make_gerp<false, false>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    auto spr2 = make_spr<false, false>(mA, _N, _alpha, vx, _incx, vy, _incy);
     return ret = concatenate_vectors(
                ret, sb_handle.execute(spr2, localSize, globalSize));
   }
