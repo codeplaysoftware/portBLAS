@@ -46,24 +46,11 @@ static inline void cublas_routine(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
          int n, scalar_t alpha, int incX, bool* success) {
-  // The counters are double. We convert size to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  const double size_d = static_cast<double>(n * (n + 1) / 2);
-  const double n_d = static_cast<double>(n);
-
   // Temporarely set incY to 1 for all benchmarks
   index_t incY = 1;
 
-  state.counters["n"] = n_d;
-
-  const double nflops_XtimesX = 4.0 * size_d;
-  const double nflops_tot = n_d + nflops_XtimesX;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  const double mem_readWriteA = 2 * size_d;
-  const double mem_readXreadY = 2 * static_cast<double>(n_d * std::abs(incX));
-  state.counters["bytes_processed"] =
-      (mem_readWriteA + mem_readXreadY) * sizeof(scalar_t);
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, n);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -143,7 +130,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetItemsProcessed(state.iterations() * nflops_tot);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 
@@ -172,7 +161,8 @@ void register_benchmark(blas_benchmark::Args& args,
         };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        cuda_handle_ptr, uplo_c, n, alpha, incX, success);
+        cuda_handle_ptr, uplo_c, n, alpha, incX, success)
+        ->UseRealTime();
   }
 }
 

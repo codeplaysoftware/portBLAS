@@ -46,24 +46,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   index_t lda = n;
   index_t incX = 1;
 
-  // The counters are double. We convert n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  const double n_d = static_cast<double>(n);
-
-  state.counters["n"] = n_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = n_d * (n_d + 1) / 2;
-
-  const double nflops_tot = 2 * A_validVal;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  const double mem_readA = A_validVal;
-  const double mem_readX = n_d;
-  const double mem_writeX = n_d;
-  const double tot_mem_processed =
-      (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
-  state.counters["bytes_processed"] = tot_mem_processed;
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::trmv, scalar_t>(state, t_str, 0, 0, n);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -121,8 +105,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetBytesProcessed(state.iterations() * tot_mem_processed);
-  state.SetItemsProcessed(state.iterations() * nflops_tot);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 }
@@ -147,7 +132,8 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda,
-        sb_handle_ptr, uplos, ts, diags, n, success);
+        sb_handle_ptr, uplos, ts, diags, n, success)
+        ->UseRealTime();
   }
 }
 

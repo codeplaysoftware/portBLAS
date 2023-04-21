@@ -54,25 +54,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   index_t lda = n;
   index_t incX = 1;
 
-  // The counters are double. We convert m and n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-
-  state.counters["n"] = n_d;
-
-  double nflops_XtimesAlpha = n_d;
-  double nflops_XtimesX = n_d * (n_d + 1) / 2;
-  double nflops_addA = n_d * (n_d + 1) / 2;
-  double nflops_tot = nflops_XtimesAlpha + nflops_XtimesX + nflops_addA;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  {
-    double mem_readA = n_d * (n_d + 1) / 2;
-    double mem_readX = xlen;
-    double mem_writeA = n_d * (n_d + 1) / 2;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeA) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::syr, scalar_t>(state, "n", 0, 0, n);
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =
@@ -156,7 +139,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::update_counters(state, times);
     }
 
-    state.SetItemsProcessed(state.iterations() * nflops_tot);
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
 
     blas_benchmark::utils::calc_avg_counters(state);
 
@@ -182,7 +167,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
       run<scalar_t>(st, rb_handle, uplo, n, alpha, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n).c_str(), BM_lambda,
-                                 rb_handle, uplo, n, alpha, success);
+                                 rb_handle, uplo, n, alpha, success)
+        ->UseRealTime();
   }
 }
 

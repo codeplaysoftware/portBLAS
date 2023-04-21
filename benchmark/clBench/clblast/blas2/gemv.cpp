@@ -48,29 +48,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
   index_t incX = 1;
   index_t incY = 1;
 
-  // The counters are double. We convert m and n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
-
-  state.counters["m"] = m_d;
-  state.counters["n"] = n_d;
-
-  {
-    double nflops_AtimesX = 2.0 * m_d * n_d;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != 0) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  }
-  {
-    double mem_readA = m_d * n_d;
-    double mem_readX = xlen;
-    double mem_writeY = ylen;
-    double mem_readY = (beta != 0) ? ylen : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::gemv, scalar_t>(state, t_str, beta, m,
+                                                       n);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -145,6 +125,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, int ti, index_t m,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
@@ -167,7 +151,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(ts, m, n).c_str(),
                                  BM_lambda, exPtr, t, m, n, alpha, beta,
-                                 success);
+                                 success)
+        ->UseRealTime();
   }
 }
 
