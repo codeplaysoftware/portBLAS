@@ -45,12 +45,21 @@ namespace blas {
 template <typename expression_tree_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t) {
   const auto localSize = get_work_group_size();
-  auto _N = t.get_size();
-  auto nWG = (_N + localSize - 1) / localSize;
-  auto globalSize = nWG * localSize;
+  if constexpr (vector_size == 1) {
+    auto _N = t.get_size();
+    auto nWG = (_N + localSize - 1) / localSize;
+    auto globalSize = nWG * localSize;
 
-  return {execute_tree<vector_size, using_local_memory::disabled>(
-      get_queue(), t, localSize, globalSize, 0)};
+    return {execute_tree<vector_size, using_local_memory::disabled>(
+        get_queue(), t, localSize, globalSize, 0)};
+  } else {
+    auto _N = t.template get_size_vector<vector_size>();
+    auto nWG = (_N + localSize - 1) / localSize;
+    auto globalSize = nWG * localSize;
+
+    return {execute_tree<vector_size, using_local_memory::disabled>(
+        get_queue(), t, localSize, globalSize, 0)};
+  }
 };
 
 /*!
@@ -60,11 +69,19 @@ inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t) {
 template <typename expression_tree_t, typename index_t, int vector_size>
 inline typename SB_Handle::event_t SB_Handle::execute(expression_tree_t t,
                                                       index_t localSize) {
-  auto _N = t.get_size();
-  auto nWG = (_N + localSize - 1) / localSize;
-  auto globalSize = nWG * localSize;
-  return {execute_tree<vector_size, using_local_memory::disabled>(
-      q_, t, localSize, globalSize, 0)};
+  if constexpr (vector_size == 1) {
+    auto _N = t.get_size();
+    auto nWG = (_N + localSize - 1) / localSize;
+    auto globalSize = nWG * localSize;
+    return {execute_tree<vector_size, using_local_memory::disabled>(
+        q_, t, localSize, globalSize, 0)};
+  } else {
+    auto _N = t.template get_size_vector<vector_size>();
+    auto nWG = (_N + localSize - 1) / localSize;
+    auto globalSize = nWG * localSize;
+    return {execute_tree<vector_size, using_local_memory::disabled>(
+        q_, t, localSize, globalSize, 0)};
+  }
 };
 
 /*!

@@ -174,8 +174,8 @@ struct ExpressionTreeEvaluator<vector_size, using_local_memory::disabled,
         tree.eval(index);
       }
     } else {
-      if (tree.template valid_thread<vector_size>(index)) {
-        tree.template eval<vector_size>(index);
+      if (tree.template valid_thread_vector<vector_size>(index)) {
+        tree.template eval_vector<vector_size>(index);
       }
     }
   }
