@@ -505,8 +505,9 @@ get_trsm_batched_params(Args& args) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
     constexpr index_t dmin = 64, dmax = 1024;
-    constexpr index_t stride_a_mul_min = 0, stride_a_mul_max = 2;
-    constexpr index_t stride_b_mul_min = 1, stride_b_mul_max = 2;
+    // Stride Multipliers are set by default and correspond to default striding
+    constexpr index_t stride_a_mul = 1;
+    constexpr index_t stride_b_mul = 1;
     constexpr index_t batch_size = 8;
     constexpr scalar_t alpha = 1;
     for (char side : {'l', 'r'}) {
@@ -515,17 +516,9 @@ get_trsm_batched_params(Args& args) {
           for (char diag : {'u', 'n'}) {
             for (index_t m = dmin; m <= dmax; m *= 2) {
               for (index_t n = dmin; n <= dmax; n *= 2) {
-                auto a_size = (side == 'l') ? m * m : n * n;
-                auto b_size = m * n;
-                for (index_t stride_a_mul = stride_a_mul_min;
-                     stride_a_mul <= stride_a_mul_max; stride_a_mul += 1) {
-                  for (index_t stride_b_mul = stride_b_mul_min;
-                       stride_b_mul <= stride_b_mul_min; stride_b_mul += 1) {
-                    trsm_batched_default.push_back(std::make_tuple(
-                        side, uplo, trans, diag, m, n, alpha, batch_size,
-                        stride_a_mul, stride_b_mul));
-                  }
-                }
+                trsm_batched_default.push_back(
+                    std::make_tuple(side, uplo, trans, diag, m, n, alpha,
+                                    batch_size, stride_a_mul, stride_b_mul));
               }
             }
           }
