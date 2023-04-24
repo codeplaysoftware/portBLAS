@@ -139,6 +139,11 @@ struct VectorView<
    */
   SYCL_BLAS_INLINE index_t get_size() const { return size_; }
 
+  template <int vector_size>
+  SYCL_BLAS_INLINE index_t get_size_vector() const {
+    return ((size_ - 1) / vector_size) + 1;
+  }
+
   /*!
    * @brief See VectorView.
    */
@@ -186,7 +191,7 @@ struct VectorView<
   SYCL_BLAS_INLINE
       typename std::enable_if<!use_as_ptr,
                               cl::sycl::vec<scalar_t, vector_size>>::type
-      eval(index_t i) const {
+      eval_vector(index_t i) const {
     const int position = ((stride_ == 1) ? i : i * stride_) * vector_size;
     return internal_load<vector_size>(position);
   }
@@ -195,7 +200,8 @@ struct VectorView<
   SYCL_BLAS_INLINE
       typename std::enable_if<!use_as_ptr,
                               cl::sycl::vec<scalar_t, vector_size> &>::type
-      eval(index_t i, cl::sycl::vec<scalar_t, vector_size> &packet) const {
+      eval_vector(index_t i,
+                  cl::sycl::vec<scalar_t, vector_size> &packet) const {
     const int position = ((stride_ == 1) ? i : i * stride_) * vector_size;
     return internal_store<vector_size>(position, packet);
   }
@@ -204,7 +210,7 @@ struct VectorView<
   SYCL_BLAS_INLINE
       typename std::enable_if<use_as_ptr,
                               cl::sycl::vec<scalar_t, vector_size>>::type
-      eval(index_t indx) const noexcept {
+      eval_vector(index_t indx) const noexcept {
     const int position = indx * vector_size;
     return internal_load<vector_size>(position);
   }
@@ -213,23 +219,23 @@ struct VectorView<
   SYCL_BLAS_INLINE
       typename std::enable_if<use_as_ptr,
                               cl::sycl::vec<scalar_t, vector_size> &>::type
-      eval(index_t indx,
-           cl::sycl::vec<scalar_t, vector_size> &packet) const noexcept {
+      eval_vector(index_t indx,
+                  cl::sycl::vec<scalar_t, vector_size> &packet) const noexcept {
     const int position = indx * vector_size;
     return internal_store<vector_size>(position, packet);
   }
 
   template <int vector_size>
-  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> eval(
+  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> eval_vector(
       cl::sycl::nd_item<1> ndItem) const {
-    return eval<vector_size>(ndItem.get_global_id(0));
+    return eval_vector<vector_size>(ndItem.get_global_id(0));
   }
 
   template <int vector_size>
-  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> &eval(
+  SYCL_BLAS_INLINE const cl::sycl::vec<scalar_t, vector_size> &eval_vector(
       cl::sycl::nd_item<1> ndItem,
       cl::sycl::vec<scalar_t, vector_size> &packet) const {
-    return eval<vector_size>(ndItem.get_global_id(0), packet);
+    return eval_vector<vector_size>(ndItem.get_global_id(0), packet);
   }
 
   SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) { h.require(data_); }

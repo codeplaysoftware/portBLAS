@@ -169,6 +169,13 @@ Assign<lhs_t, rhs_t>::get_size() const {
 }
 
 template <typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE typename Assign<lhs_t, rhs_t>::index_t
+Assign<lhs_t, rhs_t>::get_size_vector() const {
+  return rhs_.template get_size_vector<vector_size>();
+}
+
+template <typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   using index_t = typename Assign<lhs_t, rhs_t>::index_t;
@@ -178,11 +185,11 @@ SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
 
 template <typename lhs_t, typename rhs_t>
 template <int vector_size>
-SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread(
+SYCL_BLAS_INLINE bool Assign<lhs_t, rhs_t>::valid_thread_vector(
     cl::sycl::nd_item<1> ndItem) const {
   using index_t = typename Assign<lhs_t, rhs_t>::index_t;
   return (static_cast<index_t>(ndItem.get_global_id(0)) <
-          (Assign<lhs_t, rhs_t>::get_size() - 1 / vector_size) + 1);
+          ((Assign<lhs_t, rhs_t>::get_size() - 1) / vector_size) + 1);
 }
 
 template <typename lhs_t, typename rhs_t>
@@ -200,11 +207,11 @@ Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
 
 template <typename lhs_t, typename rhs_t>
 template <int vector_size>
-SYCL_BLAS_INLINE
-    cl::sycl::vec<typename Assign<lhs_t, rhs_t>::value_t, vector_size>
-    Assign<lhs_t, rhs_t>::eval(typename Assign<lhs_t, rhs_t>::index_t i) {
-  auto val = rhs_.template eval<vector_size>(i);
-  lhs_.template eval<vector_size>(i, val);
+SYCL_BLAS_INLINE cl::sycl::vec<typename Assign<lhs_t, rhs_t>::value_t,
+                               vector_size>
+Assign<lhs_t, rhs_t>::eval_vector(typename Assign<lhs_t, rhs_t>::index_t i) {
+  auto val = rhs_.template eval_vector<vector_size>(i);
+  lhs_.template eval_vector<vector_size>(i, val);
   return val;
 }
 
@@ -212,8 +219,9 @@ template <typename lhs_t, typename rhs_t>
 template <int vector_size>
 SYCL_BLAS_INLINE
     cl::sycl::vec<typename Assign<lhs_t, rhs_t>::value_t, vector_size>
-    Assign<lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
-  return Assign<lhs_t, rhs_t>::eval<vector_size>(ndItem.get_global_id(0));
+    Assign<lhs_t, rhs_t>::eval_vector(cl::sycl::nd_item<1> ndItem) {
+  return Assign<lhs_t, rhs_t>::eval_vector<vector_size>(
+      ndItem.get_global_id(0));
 }
 
 template <typename lhs_t, typename rhs_t>

@@ -61,15 +61,17 @@ struct Assign {
   rhs_t rhs_;
   Assign(lhs_t &_l, rhs_t _r);
   index_t get_size() const;
+  template <int vector_size>
+  index_t get_size_vector() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   template <int vector_size>
-  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  bool valid_thread_vector(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
   template <int vector_size>
-  cl::sycl::vec<value_t, vector_size> eval(index_t i);
+  cl::sycl::vec<value_t, vector_size> eval_vector(index_t i);
   template <int vector_size>
-  cl::sycl::vec<value_t, vector_size> eval(cl::sycl::nd_item<1> ndItem);
+  cl::sycl::vec<value_t, vector_size> eval_vector(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
