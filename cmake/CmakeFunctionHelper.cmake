@@ -519,71 +519,77 @@ function(add_gemm_configuration
     return()
   endif()
   cpp_type(cpp_data ${data})
-  foreach(trans_a ${boolean_list})
-    foreach(trans_b ${boolean_list})
-      foreach(is_beta_zero ${boolean_list})
-          foreach(index ${index_list})
-            set(file_name "${func}_${double_buffer}_${conflict_a}_"
-                          "${conflict_b}_${trans_a}_${trans_b}_"
-                          "${is_beta_zero}_${gemm_memory_type}_"
-                          "${gemm_shape_type}_${gemm_vectorize_type}_"
-                          "${vector_size}_${batch_type}_${use_joint_matrix}_"
-                          "${data}_${index}_${tir}_${tic}_${twr}_"
-                          "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
-                          "${item_batch}_${wg_batch}_"
-                          "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
-                          "${wg_size}_${cache_line_size}.cpp")
-            sanitize_file_name(file_name "${file_name}")
-            add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${double_buffer}
-                ${conflict_a}
-                ${conflict_b}
-                ${trans_a}
-                ${trans_b}
-                ${is_beta_zero}
-                ${gemm_memory_type}
-                ${gemm_shape_type}
-                ${tir}
-                ${tic}
-                ${twr}
-                ${twc}
-                ${tsr}
-                ${tsc}
-                ${tlr}
-                ${tlc}
-                ${item_batch}
-                ${wg_batch}
-                ${jm_m}
-                ${jm_n}
-                ${jm_k}
-                ${jm_in_type}
-                ${jm_out_type}
-                ${wg_size}
-                ${cache_line_size}
-                ${file_name}
-                ${gemm_vectorize_type}
-                ${vector_size}
-                ${batch_type}
-                ${use_joint_matrix}
-              MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-              WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-              VERBATIM
-            )
-            list(APPEND gemm_sources "${LOCATION}/${file_name}")
-            set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
-          endforeach(index)
-      endforeach(is_beta_zero)
-    endforeach(trans_b)
-  endforeach(trans_a)
+  foreach(symm_a ${boolean_list})
+    foreach(symm_b ${boolean_list})
+      foreach(trans_a ${boolean_list})
+        foreach(trans_b ${boolean_list})
+          foreach(is_beta_zero ${boolean_list})
+              foreach(index ${index_list})
+                set(file_name "${func}_${double_buffer}_${conflict_a}_"
+                              "${conflict_b}_${trans_a}_${trans_b}_"
+                              "${is_beta_zero}_${gemm_memory_type}_"
+                              "${gemm_shape_type}_${gemm_vectorize_type}_"
+                              "${vector_size}_${batch_type}_${use_joint_matrix}_"
+                              "${data}_${index}_${tir}_${tic}_${twr}_"
+                              "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
+                              "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
+                              "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
+                              "${wg_size}_${cache_line_size}.cpp")
+                sanitize_file_name(file_name "${file_name}")
+                add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                  COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                    ${PROJECT_SOURCE_DIR}/external/
+                    ${SYCLBLAS_SRC_GENERATOR}/gen
+                    ${blas_level}
+                    ${func}
+                    ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                    ${cpp_data}
+                    ${index}
+                    ${double_buffer}
+                    ${conflict_a}
+                    ${conflict_b}
+                    ${trans_a}
+                    ${trans_b}
+                    ${is_beta_zero}
+                    ${gemm_memory_type}
+                    ${gemm_shape_type}
+                    ${tir}
+                    ${tic}
+                    ${twr}
+                    ${twc}
+                    ${tsr}
+                    ${tsc}
+                    ${tlr}
+                    ${tlc}
+                    ${item_batch}
+                    ${wg_batch}
+                    ${jm_m}
+                    ${jm_n}
+                    ${jm_k}
+                    ${jm_in_type}
+                    ${jm_out_type}
+                    ${wg_size}
+                    ${cache_line_size}
+                    ${file_name}
+                    ${gemm_vectorize_type}
+                    ${vector_size}
+                    ${batch_type}
+                    ${use_joint_matrix}
+                    ${symm_a}
+                    ${symm_b}
+                  MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                  VERBATIM
+                )
+                list(APPEND gemm_sources "${LOCATION}/${file_name}")
+                set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
+              endforeach(index)
+          endforeach(is_beta_zero)
+        endforeach(trans_b)
+      endforeach(trans_a)
+    endforeach(symm_b)
+  endforeach(symm_a)
 endfunction()
 if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
@@ -842,6 +848,9 @@ else() # default cpu backend
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
         64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
+      add_gemm_configuration(
+        "${data}"  64 "false" "false" "false"
+        64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
     endif()
 
     add_gemm_configuration(
@@ -890,9 +899,12 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:spr>
                 $<TARGET_OBJECTS:syr2>
                 $<TARGET_OBJECTS:tbmv>
+                $<TARGET_OBJECTS:tbsv>
                 $<TARGET_OBJECTS:trmv>
+                $<TARGET_OBJECTS:trsv>
                 $<TARGET_OBJECTS:gemm_launcher>
                 $<TARGET_OBJECTS:gemm>
+                $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>)
 
   if (${ENABLE_EXTENSIONS})

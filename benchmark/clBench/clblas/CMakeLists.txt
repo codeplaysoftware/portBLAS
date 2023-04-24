@@ -30,7 +30,11 @@ endif()
 find_package(clBLAS REQUIRED)
 
 set(sources
-  "blas3/trsm.cpp"
+  # Level 2 blas
+  blas2/trsv.cpp
+  blas2/tbsv.cpp
+  # Level 3 blas
+  blas3/trsm.cpp
 )
 
 foreach(clblas_benchmark ${sources})

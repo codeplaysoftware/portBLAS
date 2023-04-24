@@ -56,27 +56,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   index_t lda = (k + 1);
   index_t incX = 1;
 
-  // The counters are double. We convert n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-  double k_d = static_cast<double>(k);
-
-  state.counters["n"] = n_d;
-  state.counters["k"] = k_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = n_d * (k_d + 1.0) - 0.5 * (k_d * (k_d + 1.0));
-
-  double nflops_tot = 2.0 * A_validVal;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  {
-    double mem_readA = A_validVal;
-    double mem_readX = n_d;
-    double mem_writeX = n_d;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::tbsv, scalar_t>(state, "n", 0, 0, n, k);
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =
@@ -102,8 +83,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       m_a[i + lda * j] =
           (i == main_diag)
               ? blas_benchmark::utils::random_scalar(scalar_t{9}, scalar_t{11})
-              : blas_benchmark::utils::random_scalar(scalar_t{-0.1},
-                                                     scalar_t{0.1});
+              : (blas_benchmark::utils::random_scalar(scalar_t{-10},
+                                                      scalar_t{10}) /
+                 scalar_t(n));
+
   {
     // Device memory allocation & H2D copy
     blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(m_size, m_a.data());
@@ -169,7 +152,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::update_counters(state, times);
     }
 
-    state.SetItemsProcessed(state.iterations() * nflops_tot);
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
 
     blas_benchmark::utils::calc_avg_counters(state);
 
@@ -198,7 +183,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo, ts, diags, n, k).c_str(), BM_lambda, rb_handle,
-        uplo, ts, diags, n, k, success);
+        uplo, ts, diags, n, k, success)
+        ->UseRealTime();
   }
 }
 

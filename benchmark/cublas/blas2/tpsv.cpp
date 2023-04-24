@@ -55,27 +55,12 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   index_t xlen = n;
   index_t incX = 1;
 
-  // The counters are double. We convert n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double n_d = static_cast<double>(n);
-
-  state.counters["n"] = n_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal = (n_d * (n_d + 1.0) / 2);
-
-  const double nflops_tot = 2 * A_validVal;
-  state.counters["n_fl_ops"] = nflops_tot;
-
-  const double mem_readA = A_validVal;
-  const double mem_readX = xlen;
-  const double mem_writeX = xlen;
-  state.counters["bytes_processed"] =
-      (mem_readA + mem_readX + mem_writeX) * sizeof(scalar_t);
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::tpsv, scalar_t>(state, "n", 0, 0, n);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  const int m_size = static_cast<int>(A_validVal);
+  const int m_size = static_cast<int>(n * n);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a(m_size, 0);
@@ -143,7 +128,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_warmup);
   CUDA_CHECK(cudaStreamSynchronize(NULL));
 
   blas_benchmark::utils::init_counters(state);
@@ -158,7 +143,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetItemsProcessed(state.iterations() * nflops_tot);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 
@@ -186,7 +173,8 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda,
-        cuda_handle_ptr, uplos, ts, diags, n, success);
+        cuda_handle_ptr, uplos, ts, diags, n, success)
+        ->UseRealTime();
   }
 }
 

@@ -28,6 +28,7 @@
 
 #include "interface/gemm_interface.hpp"
 #include "interface/gemm_launcher.hpp"
+#include "interface/symm_interface.hpp"
 #include "interface/trsm_interface.hpp"
 
 #endif  // SYCL_BLAS_BLAS3_INTERFACE_HPP

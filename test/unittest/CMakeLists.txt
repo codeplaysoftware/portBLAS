@@ -50,7 +50,16 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
 )
+
+# Enable testing of the sycl 2020 routines just for Intel DPC++
+if(is_dpcpp)
+  set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
+    ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
+    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+  )
+endif()
 
 # Temporary disabling the following tests fro Intel DPC++ as currently Intel compiler crashes while running the following tests
 if(is_computecpp)

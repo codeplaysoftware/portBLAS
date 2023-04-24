@@ -29,8 +29,10 @@
 #include "blas2/gbmv.hpp"
 #include "blas2/gemv.hpp"
 #include "blas2/ger.hpp"
+#include "blas2/gerp.hpp"
 #include "blas2/sbmv.hpp"
 #include "blas2/tbmv.hpp"
-#include "blas2/gerp.hpp"
+#include "blas2/tbsv.hpp"
+#include "blas2/trsv.hpp"
 
 #endif  // BLAS2_TREES_HPP

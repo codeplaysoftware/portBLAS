@@ -48,7 +48,8 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
          bool* success) {
   // init Google-benchmark counters.
-  blas_benchmark::utils::init_level_1_counters<scalar_t>(state, size);
+  blas_benchmark::utils::init_level_1_counters<
+      blas_benchmark::utils::Level1Op::nrm2, scalar_t>(state, size);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -117,6 +118,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 
   CUDA_CHECK(cudaEventDestroy(start));
@@ -134,7 +139,8 @@ void register_benchmark(blas_benchmark::Args& args,
       run<scalar_t>(st, cuda_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 cuda_handle_ptr, size, success);
+                                 cuda_handle_ptr, size, success)
+        ->UseRealTime();
   }
 }
 

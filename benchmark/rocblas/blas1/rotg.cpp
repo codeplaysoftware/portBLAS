@@ -138,6 +138,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
       blas_benchmark::utils::update_counters(state, times);
     }
 
+    state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+    state.SetBytesProcessed(state.iterations() *
+                            state.counters["bytes_processed"]);
+
     blas_benchmark::utils::calc_avg_counters(state);
 
     CHECK_HIP_ERROR(hipEventDestroy(start));
@@ -153,7 +157,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     run<scalar_t>(st, rb_handle, success);
   };
   benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
-                               rb_handle, success);
+                               rb_handle, success)
+      ->UseRealTime();
 }
 
 namespace blas_benchmark {

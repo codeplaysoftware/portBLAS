@@ -37,10 +37,8 @@ template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
-  double size_d = static_cast<double>(size);
-  state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 2 * size_d;
-  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
+  blas_benchmark::utils::init_level_1_counters<
+      blas_benchmark::utils::Level1Op::asum, scalar_t>(state, size);
 
   using data_t = scalar_t;
 
@@ -96,6 +94,10 @@ void run(benchmark::State& state, ExecutorType* executorPtr, index_t size,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 };
 
@@ -110,7 +112,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
       run<scalar_t>(st, exPtr, size, success);
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 exPtr, size, success);
+                                 exPtr, size, success)
+        ->UseRealTime();
   }
 }
 

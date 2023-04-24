@@ -30,8 +30,8 @@ namespace blas {
 namespace gemm {
 namespace backend {
 
-template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
-          typename container_0_t, typename container_1_t,
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm(
     sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
@@ -42,7 +42,7 @@ typename sb_handle_t::event_t _gemm(
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
         64, false, false, false, 64, Tile<2, 2, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a,
-        _t_b, static_cast<int>(gemm_memory_t::no_local),
+        _t_b, s_a, s_b, static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(gemm_batch_type_t::interleaved)>::
@@ -52,7 +52,7 @@ typename sb_handle_t::event_t _gemm(
   }
 #if defined(NAIVE_GEMM)
   return blas::Gemm_Launcher<
-      64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
+      64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b, s_a, s_b,
       static_cast<int>(gemm_memory_t::no_local),
       static_cast<int>(gemm_algorithm_t::naive),
       static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
@@ -66,9 +66,9 @@ typename sb_handle_t::event_t _gemm(
                                                               _stridec,
                                                               batch_size);
 #else
-  if (_M <= 128 && _N <= 128 && _K <= 128) {
+  if (_M <= 128 && _N <= 128 && _K <= 128 && !s_a && !s_b) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b,
+        64, false, false, false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
@@ -81,12 +81,27 @@ typename sb_handle_t::event_t _gemm(
                                                                 _beta, _c, _ldc,
                                                                 _stridec,
                                                                 batch_size);
-  } else {
+  } else if (!s_a && !s_b) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b,
+        64, false, false, false, 64, Tile<8, 8, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,
+        static_cast<int>(
+            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
+                                                                _N, _K, _alpha,
+                                                                _a, _lda,
+                                                                _stridea, _b,
+                                                                _ldb, _strideb,
+                                                                _beta, _c, _ldc,
+                                                                _stridec,
+                                                                batch_size);
+  } else {
+    return blas::Gemm_Launcher<
+        64, false, false, false, 64, Tile<2, 2, 8, 8>, _t_a, _t_b, s_a, s_b,
+        static_cast<int>(gemm_memory_t::local),
+        static_cast<int>(gemm_algorithm_t::standard),
+        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
