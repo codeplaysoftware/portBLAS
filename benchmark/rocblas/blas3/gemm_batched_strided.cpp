@@ -33,7 +33,7 @@ std::string get_name(std::string t1, std::string t2, int m, int k, int n,
   str << "BM_GemmBatchedStrided<"
       << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
       << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/"
-      << stride_a_mul << "/" << stride_b_mul << "/" << stride_c_mul << "/";
+      << stride_a_mul << "/" << stride_b_mul << "/" << stride_c_mul;
 
   return str.str();
 }
