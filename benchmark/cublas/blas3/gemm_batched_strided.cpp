@@ -49,7 +49,8 @@ static inline void cublas_routine(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         index_t batch_size, bool* success) {
+         index_t batch_size, index_t stride_a_mul, index_t stride_b_mul,
+         index_t stride_c_mul, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -68,9 +69,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
   // Stride parameters are computed automatically inside the run function
   // instead of passing them as function argument. It makes more readable and do
   // not affect perfomance measurment.
-  const long long int stride_a = trA ? (lda * k) : (lda * m);
-  const long long int stride_b = trB ? (ldb * n) : (ldb * k);
-  const long long int stride_c = m * n;
+  const long long int stride_a = stride_a_mul * (trA ? (lda * k) : (lda * m));
+  const long long int stride_b = stride_b_mul * (trB ? (ldb * n) : (ldb * k));
+  const long long int stride_c = stride_c_mul * m * n;
 
   blas_benchmark::utils::init_level_3_counters<
       blas_benchmark::utils::Level3Op::gemm_batched_strided, scalar_t>(
@@ -188,29 +189,25 @@ void register_benchmark(blas_benchmark::Args& args,
 
   for (auto p : gemm_batched_strided_params) {
     std::string t1s, t2s;
-    index_t m, n, k, batch_size;
+    index_t m, n, k, batch_size, stride_a_mul, stride_b_mul, stride_c_mul;
     scalar_t alpha, beta;
-    int batch_type;
-    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, batch_type) = p;
+    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, stride_a_mul,
+             stride_b_mul, stride_c_mul) = p;
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
-
-    if (batch_type == 1) {
-      std::cerr << "computing gemm_strided_batched batch type interleaved "
-                   "cannot be used in cuBLAS\n";
-      continue;
-    }
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          int t1, int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
-                         bool* success) {
+                         index_t strd_a_mul, index_t strd_b_mul,
+                         index_t strd_c_mul, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta,
-                    batch_size, success);
+                    batch_size, strd_a_mul, strd_b_mul, strd_c_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
-        cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, success)
+        cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, stride_a_mul,
+        stride_b_mul, stride_c_mul, success)
         ->UseRealTime();
   }
 }
