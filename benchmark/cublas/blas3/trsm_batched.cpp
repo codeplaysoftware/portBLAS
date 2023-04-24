@@ -28,12 +28,11 @@
 template <typename scalar_t>
 std::string get_name(const char side, const char uplo, const char t,
                      const char diag, int m, int n, int batch_count,
-                     int batch_type) {
+                     int stride_a_mul, int stride_b_mul) {
   std::ostringstream str{};
   str << "BM_TrsmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << side << "/" << uplo << "/" << t << "/" << diag << "/" << m
-      << "/" << n << "/" << batch_count << "/"
-      << blas_benchmark::utils::batch_type_to_str(batch_type);
+      << "/" << n << "/" << batch_count;
   return str.str();
 }
 
@@ -50,8 +49,8 @@ static inline void cublas_routine(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
          const char side, const char uplo, const char t, const char diag,
-         index_t m, index_t n, scalar_t alpha, index_t batch_count,
-         int batch_type_i, bool* success) {
+         index_t m, index_t n, scalar_t alpha, index_t batch_count, index_t,
+         index_t, bool* success) {
   // Standard test setup.
   index_t lda = side == 'l' ? m : n;
   index_t ldb = m;
@@ -200,32 +199,25 @@ void register_benchmark(blas_benchmark::Args& args,
 
   for (auto p : trsm_batched_params) {
     char s_side, s_uplo, s_t, s_diag;
-    index_t m, n, batch_count;
+    index_t m, n, batch_count, stride_a_mul, stride_b_mul;
     scalar_t alpha;
-    int batch_type;
     std::tie(s_side, s_uplo, s_t, s_diag, m, n, alpha, batch_count,
-             batch_type) = p;
-
-    auto batch_type_enum = static_cast<blas::gemm_batch_type_t>(batch_type);
-    if (batch_type_enum == blas::gemm_batch_type_t::interleaved) {
-      std::cerr << "interleaved memory for trsm_batched operator is not "
-                   "supported by cuBLAS\n";
-      continue;
-    }
+             stride_a_mul, stride_b_mul) = p;
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          char side, char uplo, char t, char diag, index_t m,
                          index_t n, scalar_t alpha, index_t batch_count,
-                         int batch_type, bool* success) {
+                         index_t strd_a_mul, index_t strd_b_mul,
+                         bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, side, uplo, t, diag, m, n, alpha,
-                    batch_count, batch_type, success);
+                    batch_count, strd_a_mul, strd_b_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(s_side, s_uplo, s_t, s_diag, m, n, batch_count,
-                           batch_type)
+                           stride_a_mul, stride_b_mul)
             .c_str(),
         BM_lambda, cuda_handle_ptr, s_side, s_uplo, s_t, s_diag, m, n, alpha,
-        batch_count, batch_type, success)
+        batch_count, stride_a_mul, stride_b_mul, success)
         ->UseRealTime();
   }
 }
