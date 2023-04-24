@@ -59,13 +59,15 @@ typename sb_handle_t::event_t _axpy(sb_handle_t &sb_handle, index_t _N,
                                     element_t _alpha, container_0_t _vx,
                                     increment_t _incx, container_1_t _vy,
                                     increment_t _incy) {
+  constexpr int vector_size = backend::HardwareSpec::get_vector_size();
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
 
   auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
   auto addOp = make_op<BinaryOp, AddOperator>(vy, scalOp);
   auto assignOp = make_op<Assign>(vy, addOp);
-  auto ret = sb_handle.execute(assignOp);
+  auto ret =
+      sb_handle.template execute<decltype(assignOp), vector_size>(assignOp);
   return ret;
 }
 

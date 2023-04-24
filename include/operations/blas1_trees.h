@@ -108,9 +108,17 @@ struct ScalarOp {
   rhs_t rhs_;
   ScalarOp(scalar_t _scl, rhs_t &_r);
   index_t get_size() const;
+  template <int vector_size>
+  index_t get_size_vector() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  template <int vector_size>
+  bool valid_thread_vector(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> eval_vector(index_t i);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> eval_vector(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
@@ -143,9 +151,17 @@ struct BinaryOp {
   rhs_t rhs_;
   BinaryOp(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
+  template <int vector_size>
+  index_t get_size_vector() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  template <int vector_size>
+  bool valid_thread_vector(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> eval_vector(index_t i);
+  template <int vector_size>
+  cl::sycl::vec<value_t, vector_size> eval_vector(cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
@@ -249,7 +265,7 @@ template and function arguments. Non-specialized case for N reference operands.
 @return Constructed operation node.
 */
 template <template <class...> class operation_t, typename... operand_t>
-inline operation_t<operand_t...> make_op(operand_t &... operands) {
+inline operation_t<operand_t...> make_op(operand_t &...operands) {
   return operation_t<operand_t...>(operands...);
 }
 
@@ -265,7 +281,7 @@ reference operands.
 */
 template <template <class...> class operation_t, typename operator_t,
           typename... operand_t>
-inline operation_t<operator_t, operand_t...> make_op(operand_t &... operands) {
+inline operation_t<operator_t, operand_t...> make_op(operand_t &...operands) {
   return operation_t<operator_t, operand_t...>(operands...);
 }
 
@@ -286,7 +302,7 @@ operation node.
 template <template <class...> class operation_t, typename operator_t,
           typename first_operand_t, typename... operand_t>
 inline operation_t<operator_t, first_operand_t, operand_t...> make_op(
-    first_operand_t operand0, operand_t &... operands) {
+    first_operand_t operand0, operand_t &...operands) {
   return operation_t<operator_t, first_operand_t, operand_t...>(operand0,
                                                                 operands...);
 }

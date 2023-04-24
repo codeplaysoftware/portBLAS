@@ -314,12 +314,32 @@ SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::index_t
 ScalarOp<operator_t, scalar_t, rhs_t>::get_size() const {
   return rhs_.get_size();
 }
+
+template <typename operator_t, typename scalar_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::index_t
+ScalarOp<operator_t, scalar_t, rhs_t>::get_size_vector() const {
+  return rhs_.template get_size_vector<vector_size>();
+}
+
 template <typename operator_t, typename scalar_t, typename rhs_t>
 SYCL_BLAS_INLINE bool ScalarOp<operator_t, scalar_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) <
            ScalarOp<operator_t, scalar_t, rhs_t>::get_size()));
 }
+
+template <typename operator_t, typename scalar_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE bool
+ScalarOp<operator_t, scalar_t, rhs_t>::valid_thread_vector(
+    cl::sycl::nd_item<1> ndItem) const {
+  return (
+      ndItem.get_global_id(0) <
+      ((ScalarOp<operator_t, scalar_t, rhs_t>::get_size() - 1) / vector_size +
+       1));
+}
+
 template <typename operator_t, typename scalar_t, typename rhs_t>
 SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t
 ScalarOp<operator_t, scalar_t, rhs_t>::eval(
@@ -331,6 +351,26 @@ SYCL_BLAS_INLINE typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t
 ScalarOp<operator_t, scalar_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   return ScalarOp<operator_t, scalar_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
+
+template <typename operator_t, typename scalar_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE cl::sycl::vec<
+    typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t, vector_size>
+ScalarOp<operator_t, scalar_t, rhs_t>::eval_vector(
+    typename ScalarOp<operator_t, scalar_t, rhs_t>::index_t i) {
+  return operator_t::eval(internal::get_scalar(scalar_),
+                          rhs_.template eval_vector<vector_size>(i));
+}
+template <typename operator_t, typename scalar_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE cl::sycl::vec<
+    typename ScalarOp<operator_t, scalar_t, rhs_t>::value_t, vector_size>
+ScalarOp<operator_t, scalar_t, rhs_t>::eval_vector(
+    cl::sycl::nd_item<1> ndItem) {
+  return ScalarOp<operator_t, scalar_t, rhs_t>::eval_vector<vector_size>(
+      ndItem.get_global_id(0));
+}
+
 template <typename operator_t, typename scalar_t, typename rhs_t>
 SYCL_BLAS_INLINE void ScalarOp<operator_t, scalar_t, rhs_t>::bind(
     cl::sycl::handler &h) {
@@ -393,10 +433,25 @@ SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::index_t
 BinaryOp<operator_t, lhs_t, rhs_t>::get_size() const {
   return rhs_.get_size();
 }
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::index_t
+BinaryOp<operator_t, lhs_t, rhs_t>::get_size_vector() const {
+  return rhs_.template get_size_vector<vector_size>();
+}
+
 template <typename operator_t, typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE bool BinaryOp<operator_t, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return ((ndItem.get_global_id(0) < get_size()));
+}
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE bool BinaryOp<operator_t, lhs_t, rhs_t>::valid_thread_vector(
+    cl::sycl::nd_item<1> ndItem) const {
+  return ((ndItem.get_global_id(0) < ((get_size() - 1) / vector_size + 1)));
 }
 
 template <typename operator_t, typename lhs_t, typename rhs_t>
@@ -410,6 +465,25 @@ SYCL_BLAS_INLINE typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t
 BinaryOp<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
   return BinaryOp<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
 }
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE cl::sycl::vec<
+    typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t, vector_size>
+BinaryOp<operator_t, lhs_t, rhs_t>::eval_vector(
+    typename BinaryOp<operator_t, lhs_t, rhs_t>::index_t i) {
+  return operator_t::eval(lhs_.template eval_vector<vector_size>(i),
+                          rhs_.template eval_vector<vector_size>(i));
+}
+template <typename operator_t, typename lhs_t, typename rhs_t>
+template <int vector_size>
+SYCL_BLAS_INLINE cl::sycl::vec<
+    typename BinaryOp<operator_t, lhs_t, rhs_t>::value_t, vector_size>
+BinaryOp<operator_t, lhs_t, rhs_t>::eval_vector(cl::sycl::nd_item<1> ndItem) {
+  return BinaryOp<operator_t, lhs_t, rhs_t>::eval_vector(
+      ndItem.get_global_id(0));
+}
+
 template <typename operator_t, typename lhs_t, typename rhs_t>
 SYCL_BLAS_INLINE void BinaryOp<operator_t, lhs_t, rhs_t>::bind(
     cl::sycl::handler &h) {
