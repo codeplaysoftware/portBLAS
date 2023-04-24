@@ -185,7 +185,7 @@ template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
   auto gemm_batched_strided_params =
-      blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
+      blas_benchmark::utils::get_gemm_batched_strided_params<scalar_t>(args);
 
   for (auto p : gemm_batched_strided_params) {
     std::string t1s, t2s;
