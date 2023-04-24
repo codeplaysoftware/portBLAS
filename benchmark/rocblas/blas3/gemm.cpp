@@ -59,30 +59,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
   index_t ldb = t_b_str[0] == 'n' ? k : n;
   index_t ldc = m;
 
-  {
-    // The counters are double. We convert m, n and k to double to avoid
-    // integer overflows for n_fl_ops and bytes_processed
-    double m_d = static_cast<double>(m);
-    double n_d = static_cast<double>(n);
-    double k_d = static_cast<double>(k);
-
-    state.counters["m"] = m_d;
-    state.counters["k"] = k_d;
-    state.counters["n"] = n_d;
-
-    double mem_readA = m_d * k_d;
-    double mem_readB = k_d * n_d;
-    double mem_writeC = m_d * n_d;
-    double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    double total_mem =
-        (mem_readA + mem_readB + mem_readC + mem_writeC) * sizeof(scalar_t);
-    state.counters["bytes_processed"] = total_mem;
-
-    double nflops_AtimesB = (2 * k_d) * m_d * n_d;
-    double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    double total_nflops = nflops_AtimesB + nflops_addBetaC;
-    state.counters["n_fl_ops"] = total_nflops;
-  }
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::gemm, scalar_t>(state, beta, m, n, k);
 
   // Matrix options (rocBLAS)
   const rocblas_operation trans_a_rb =
