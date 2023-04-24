@@ -55,32 +55,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   index_t ldb = trB ? n : k;
   index_t ldc = m;
 
-  // The counters are double. We convert m, n, k and batch_size to double to
-  // avoid integer overflows for n_fl_ops and bytes_processed
-  {
-    double m_d = static_cast<double>(m);
-    double n_d = static_cast<double>(n);
-    double k_d = static_cast<double>(k);
-    double batch_size_d = static_cast<double>(batch_size);
-    state.counters["m"] = m_d;
-    state.counters["n"] = n_d;
-    state.counters["k"] = k_d;
-    state.counters["batch_size"] = batch_size_d;
-    const double nflops_AtimesB = 2 * k_d * m_d * n_d;
-    double nflops_timesAlpha = m_d * n_d;
-    const double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
-    const double nflops_tot =
-        (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
-    state.counters["n_fl_ops"] = nflops_tot;
-
-    const double mem_readA = m_d * k_d;
-    const double mem_readB = k_d * n_d;
-    const double mem_writeC = m_d * n_d;
-    const double mem_readC = (beta != scalar_t{0}) ? m_d * n_d : 0;
-    const double total_mem = (mem_readA + mem_readB + mem_readC + mem_writeC) *
-                             batch_size_d * sizeof(scalar_t);
-    state.counters["bytes_processed"] = total_mem;
-  }
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::gemm_batched_strided, scalar_t>(
+      state, beta, m, n, k, batch_size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();

@@ -57,30 +57,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   index_t ldb = m;
   index_t k = side == 'l' ? m : n;
 
-  auto batch_type = static_cast<blas::gemm_batch_type_t>(batch_type_i);
-
-  // The counters are double. We convert m, n, k and batch_count to double to
-  // avoid integer overflows for n_fl_ops and bytes_processed
-  const double m_d = static_cast<double>(m);
-  const double n_d = static_cast<double>(n);
-  const double batch_count_d = static_cast<double>(batch_count);
-  const double k_d = static_cast<double>(k);
-
-  state.counters["m"] = m_d;
-  state.counters["n"] = n_d;
-  state.counters["batch_count"] = batch_count_d;
-
-  const double mem_readA = k_d * (k_d + 1) / 2;
-  const double mem_readBwriteB = 2 * m_d * n_d;
-  const double total_mem =
-      ((mem_readA + mem_readBwriteB) * sizeof(scalar_t)) * batch_count;
-  state.counters["bytes_processed"] = total_mem;
-
-  const double nflops_AtimesB =
-      2 * k_d * (k_d + 1) / 2 * (side == 'l' ? n_d : m_d);
-  const double nflops_timesAlpha = m_d * n_d;
-  const double nflops_tot = (nflops_AtimesB + nflops_timesAlpha) * batch_count;
-  state.counters["n_fl_ops"] = nflops_tot;
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::trsm_batched, scalar_t>(
+      state, 0, m, n, 0, batch_count, side);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
@@ -203,10 +182,14 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetBytesProcessed(state.iterations() * total_mem);
-  state.SetItemsProcessed(state.iterations() * nflops_tot);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 };
 
 template <typename scalar_t>

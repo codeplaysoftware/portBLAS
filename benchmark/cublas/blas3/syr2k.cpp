@@ -52,30 +52,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
   const index_t lda = (trans == 'n') ? n : k;
   const index_t ldc = n;
 
+  blas_benchmark::utils::init_level_3_counters<
+      blas_benchmark::utils::Level3Op::syr2k, scalar_t>(state, beta, 0, n, k);
+
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
-
-  // The counters are double. We convert m, n and k to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  const double n_d = static_cast<double>(n);
-  const double k_d = static_cast<double>(k);
-
-  state.counters["k"] = k_d;
-  state.counters["n"] = n_d;
-
-  const double mem_readAreadB = 2 * n_d * k_d;
-  const double mem_readWriteC = 2 * n_d * (n_d + 1) / 2.;
-  const double total_mem = (mem_readAreadB + mem_readWriteC) * sizeof(scalar_t);
-
-  state.counters["bytes_processed"] = total_mem;
-
-  const double nflops_AtimesBtwice = 2 * n_d * (n_d + 1) * k_d;
-  const double nflops_timesAlpha = n_d * (n_d + 1) / 2.;
-  const double nflops_addBetaC =
-      (beta != scalar_t{0}) ? (2 * n_d * (n_d + 1) / 2.) : 0;
-  const double nflops =
-      nflops_AtimesBtwice + nflops_timesAlpha + nflops_addBetaC;
-
-  state.counters["n_fl_ops"] = nflops;
 
   const auto m_a_dim = (trans == 'n') ? (lda * k) : (lda * n);
 
@@ -152,8 +132,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetBytesProcessed(state.iterations() * total_mem);
-  state.SetItemsProcessed(state.iterations() * nflops);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 
