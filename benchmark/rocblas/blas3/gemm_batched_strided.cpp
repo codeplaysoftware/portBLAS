@@ -72,7 +72,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
 
   blas_benchmark::utils::init_level_3_counters<
       blas_benchmark::utils::Level3Op::gemm_batched_strided, scalar_t>(
-      state, beta, m, n, k, batch_size);
+      state, beta, m, n, k, batch_size, stride_a_mul, stride_b_mul,
+      stride_c_mul);
 
   // Matrix options (rocBLAS)
   const rocblas_operation trans_a_rb =

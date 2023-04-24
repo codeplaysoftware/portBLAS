@@ -59,7 +59,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 
   blas_benchmark::utils::init_level_3_counters<
       blas_benchmark::utils::Level3Op::gemm_batched_strided, scalar_t>(
-      state, beta, m, n, k, batch_size);
+      state, beta, m, n, k, batch_size, stride_a_mul, stride_b_mul,
+      stride_c_mul);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();

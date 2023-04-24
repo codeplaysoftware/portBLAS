@@ -47,7 +47,8 @@ inline typename std::enable_if<op == Level3Op::gemm_batched_strided ||
                                op == Level3Op::gemm>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
-                      char side = 'l') {
+                      index_t stride_a_mul = 1, index_t stride_b_mul = 1,
+                      index_t stride_c_mul = 1) {
   // Google-benchmark counters are double.
   double beta_d = static_cast<double>(beta);
   double m_d = static_cast<double>(m);
@@ -59,6 +60,15 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   state.counters["n"] = n_d;
   state.counters["k"] = k_d;
   state.counters["batch_size"] = batch_size_d;
+  if constexpr (op == Level3Op::gemm_batched_strided) {
+    double stride_a_mul_d = static_cast<double>(stride_a_mul);
+    double stride_b_mul_d = static_cast<double>(stride_b_mul);
+    double stride_c_mul_d = static_cast<double>(stride_c_mul);
+
+    state.counters["stride_a_mul"] = stride_a_mul_d;
+    state.counters["stride_b_mul"] = stride_b_mul_d;
+    state.counters["stride_c_mul"] = stride_c_mul_d;
+  }
   const double nflops_AtimesB = 2 * k_d * m_d * n_d;
   double nflops_timesAlpha = m_d * n_d;
   const double nflops_addBetaC = (beta != scalar_t{0}) ? 2 * m_d * n_d : 0;
