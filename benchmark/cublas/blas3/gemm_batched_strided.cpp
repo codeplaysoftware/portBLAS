@@ -27,11 +27,13 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int batch_size) {
+                     int batch_size, int stride_a_mul, int stride_b_mul,
+                     int stride_c_mul) {
   std::ostringstream str{};
   str << "BM_GemmBatchedStrided<"
       << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
-      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size;
+      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/"
+      << stride_a_mul << "/" << stride_b_mul << "/" << stride_c_mul;
 
   return str.str();
 }
@@ -49,7 +51,8 @@ static inline void cublas_routine(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
-         index_t batch_size, bool* success) {
+         index_t batch_size, index_t stride_a_mul, index_t stride_b_mul,
+         index_t stride_c_mul, bool* success) {
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t1));
@@ -65,39 +68,39 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
   index_t ldb = trB ? k : n;
   index_t ldc = m;
 
-  // Stride parameters are computed automatically inside the run function
-  // instead of passing them as function argument. It makes more readable and do
-  // not affect perfomance measurment.
-  const long long int stride_a = trA ? (lda * k) : (lda * m);
-  const long long int stride_b = trB ? (ldb * n) : (ldb * k);
-  const long long int stride_c = m * n;
-
   blas_benchmark::utils::init_level_3_counters<
       blas_benchmark::utils::Level3Op::gemm_batched_strided, scalar_t>(
-      state, beta, m, n, k, batch_size);
+      state, beta, m, n, k, batch_size, stride_a_mul, stride_b_mul,
+      stride_c_mul);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  // Matrices sizes
+  // Data sizes
+  // Elementary matrices
   const index_t a_size = m * k;
   const index_t b_size = k * n;
   const index_t c_size = m * n;
+  // Strides
+  const index_t stride_a = stride_a_mul * a_size;
+  const index_t stride_b = stride_b_mul * b_size;
+  const index_t stride_c = stride_c_mul * c_size;
+  // Batched matrices
+  const int size_a_batch = a_size + (batch_size - 1) * stride_a;
+  const int size_b_batch = b_size + (batch_size - 1) * stride_b;
+  const int size_c_batch = c_size + (batch_size - 1) * stride_c;
 
   // Matrices (Total size is equal to matrix size x batch_size since we're using
   // default striding values)
   std::vector<scalar_t> a =
-      blas_benchmark::utils::random_data<scalar_t>(a_size * batch_size);
+      blas_benchmark::utils::random_data<scalar_t>(size_a_batch);
   std::vector<scalar_t> b =
-      blas_benchmark::utils::random_data<scalar_t>(b_size * batch_size);
+      blas_benchmark::utils::random_data<scalar_t>(size_b_batch);
   std::vector<scalar_t> c =
-      blas_benchmark::utils::const_data<scalar_t>(c_size * batch_size, 0);
+      blas_benchmark::utils::const_data<scalar_t>(size_c_batch, 0);
 
-  blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(a_size * batch_size,
-                                                    a.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> b_gpu(b_size * batch_size,
-                                                    b.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> c_gpu(c_size * batch_size,
-                                                    c.data());
+  blas_benchmark::utils::CUDAVector<scalar_t> a_gpu(size_a_batch, a.data());
+  blas_benchmark::utils::CUDAVector<scalar_t> b_gpu(size_b_batch, b.data());
+  blas_benchmark::utils::CUDAVector<scalar_t> c_gpu(size_c_batch, c.data());
 
   cublasOperation_t c_t_a = trA ? CUBLAS_OP_N : CUBLAS_OP_T;
 
@@ -106,27 +109,25 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> c_ref = c;
-  auto _base = [=](index_t dim0, index_t dim1, index_t idx) {
-    return dim0 * dim1 * idx;
-  };
   for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
     reference_blas::gemm(t_a, t_b, m, n, k, alpha,
-                         a.data() + _base(m, k, batch_idx), lda,
-                         b.data() + _base(k, n, batch_idx), ldb, beta,
-                         c_ref.data() + _base(m, n, batch_idx), ldc);
+                         a.data() + batch_idx * stride_a, lda,
+                         b.data() + batch_idx * stride_b, ldb, beta,
+                         c_ref.data() + batch_idx * stride_c, ldc);
   }
 
   std::vector<scalar_t> c_temp = c;
   {
-    blas_benchmark::utils::CUDAVector<scalar_t, true> c_temp_gpu(
-        c_size * batch_size, c_temp.data());
+    blas_benchmark::utils::CUDAVector<scalar_t, true> c_temp_gpu(size_c_batch,
+                                                                 c_temp.data());
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha, a_gpu,
                              lda, stride_a, b_gpu, ldb, stride_b, &beta,
                              c_temp_gpu, ldc, stride_c, batch_size);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(c_temp, c_ref, err_stream, "")) {
+  if (!utils::compare_vectors_strided(c_temp, c_ref, stride_c, c_size,
+                                      err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
@@ -184,33 +185,31 @@ template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         cublasHandle_t* cuda_handle_ptr, bool* success) {
   auto gemm_batched_strided_params =
-      blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
+      blas_benchmark::utils::get_gemm_batched_strided_params<scalar_t>(args);
 
   for (auto p : gemm_batched_strided_params) {
     std::string t1s, t2s;
-    index_t m, n, k, batch_size;
+    index_t m, n, k, batch_size, stride_a_mul, stride_b_mul, stride_c_mul;
     scalar_t alpha, beta;
-    int batch_type;
-    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, batch_type) = p;
+    std::tie(t1s, t2s, m, k, n, alpha, beta, batch_size, stride_a_mul,
+             stride_b_mul, stride_c_mul) = p;
     int t1 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t1s));
     int t2 = static_cast<int>(blas_benchmark::utils::to_transpose_enum(t2s));
-
-    if (batch_type == 1) {
-      std::cerr << "computing gemm_strided_batched batch type interleaved "
-                   "cannot be used in cuBLAS\n";
-      continue;
-    }
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          int t1, int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
-                         bool* success) {
+                         index_t strd_a_mul, index_t strd_b_mul,
+                         index_t strd_c_mul, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta,
-                    batch_size, success);
+                    batch_size, strd_a_mul, strd_b_mul, strd_c_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size).c_str(), BM_lambda,
-        cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size, success)
+        get_name<scalar_t>(t1s, t2s, m, k, n, batch_size, stride_a_mul,
+                           stride_b_mul, stride_c_mul)
+            .c_str(),
+        BM_lambda, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
+        stride_a_mul, stride_b_mul, stride_c_mul, success)
         ->UseRealTime();
   }
 }

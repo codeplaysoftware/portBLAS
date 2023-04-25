@@ -41,6 +41,11 @@ using gemm_batched_param_t =
     std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
                scalar_t, index_t, int>;
 
+template <typename scalar_t>
+using gemm_batched_strided_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
+               scalar_t, index_t, index_t, index_t, index_t>;
+
 using reduction_param_t = std::tuple<index_t, index_t>;
 
 template <typename scalar_t>
@@ -81,8 +86,9 @@ using tbmv_param_t =
 using trsv_param_t = std::tuple<std::string, std::string, std::string, index_t>;
 
 template <typename scalar_t>
-using trsm_batched_param_t = std::tuple<char, char, char, char, index_t,
-                                        index_t, scalar_t, index_t, int>;
+using trsm_batched_param_t =
+    std::tuple<char, char, char, char, index_t, index_t, scalar_t, index_t,
+               index_t, index_t>;
 
 namespace blas_benchmark {
 
@@ -422,6 +428,71 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
 }
 
 /**
+ * @fn get_gemm_batched_strided_params
+ * @brief Returns a vector containing the gemm_batched_strided benchmark
+ * parameters, either read from a file according to the command-line args, or
+ * the default ones.
+ */
+template <typename scalar_t>
+inline std::vector<gemm_batched_strided_param_t<scalar_t>>
+get_gemm_batched_strided_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<gemm_batched_strided_param_t<scalar_t>>
+        gemm_batched_strided_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    constexpr index_t stride_a_mul_min = 0, stride_a_mul_max = 2;
+    constexpr index_t stride_b_mul_min = 0, stride_b_mul_max = 2;
+    constexpr index_t stride_c_mul_min = 1, stride_c_mul_max = 2;
+    std::vector<std::string> dtranspose = {"n", "t"};
+    scalar_t alpha = 1;
+    scalar_t beta = 1;
+    index_t batch_size = 8;
+    for (std::string& t1 : dtranspose) {
+      for (std::string& t2 : dtranspose) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t k = dmin; k <= dmax; k *= 2) {
+            for (index_t n = dmin; n <= dmax; n *= 2) {
+              for (index_t stride_a_mul = stride_a_mul_min;
+                   stride_a_mul <= stride_a_mul_max; stride_a_mul += 1) {
+                for (index_t stride_b_mul = stride_b_mul_min;
+                     stride_b_mul <= stride_b_mul_max; stride_b_mul += 1) {
+                  for (index_t stride_c_mul = stride_c_mul_min;
+                       stride_c_mul <= stride_c_mul_max; stride_c_mul += 1) {
+                    gemm_batched_strided_default.push_back(std::make_tuple(
+                        t1, t2, m, k, n, alpha, beta, batch_size, stride_a_mul,
+                        stride_b_mul, stride_c_mul));
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return gemm_batched_strided_default;
+  } else {
+    return parse_csv_file<gemm_batched_strided_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 11) {
+            throw std::runtime_error(
+                "invalid number of parameters (11 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]));
+          } catch (...) {
+            std::throw_with_nested(std::runtime_error("invalid parameter"));
+          }
+        });
+  }
+}
+
+/**
  * @fn get_trsm_batched_params
  * @brief Returns a vector containing the trsm_batched benchmark parameters,
  * either read from a file according to the command-line args, or the default
@@ -434,8 +505,10 @@ get_trsm_batched_params(Args& args) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
     constexpr index_t dmin = 64, dmax = 1024;
+    // Stride Multipliers are set by default and correspond to default striding
+    constexpr index_t stride_a_mul = 1;
+    constexpr index_t stride_b_mul = 1;
     constexpr index_t batch_size = 8;
-    constexpr int batch_type = 0;
     constexpr scalar_t alpha = 1;
     for (char side : {'l', 'r'}) {
       for (char uplo : {'u', 'l'}) {
@@ -445,7 +518,7 @@ get_trsm_batched_params(Args& args) {
               for (index_t n = dmin; n <= dmax; n *= 2) {
                 trsm_batched_default.push_back(
                     std::make_tuple(side, uplo, trans, diag, m, n, alpha,
-                                    batch_size, batch_type));
+                                    batch_size, stride_a_mul, stride_b_mul));
               }
             }
           }
@@ -456,15 +529,16 @@ get_trsm_batched_params(Args& args) {
   } else {
     return parse_csv_file<trsm_batched_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
+          if (v.size() != 10) {
             throw std::runtime_error(
-                "invalid number of parameters (9 expected)");
+                "invalid number of parameters (10 expected)");
           }
           try {
             return std::make_tuple(
                 v[0][0], v[1][0], v[2][0], v[3][0], str_to_int<index_t>(v[4]),
                 str_to_int<index_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_batch_type(v[8]));
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                str_to_int<index_t>(v[9]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
@@ -595,8 +669,9 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
 }
 /**
  * @fn get_trsm_params
- * @brief Returns a vector containing the trsm benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
+ * @brief Returns a vector containing the trsm benchmark parameters (also valid
+ * for trmm), either read from a file according to the command-line args, or the
+ * default ones.
  */
 template <typename scalar_t>
 static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
