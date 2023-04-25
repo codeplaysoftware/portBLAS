@@ -34,44 +34,47 @@ namespace blas {
  * multiplication.
  */
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
-SYCL_BLAS_INLINE
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::Tbsv(vector_t &_l, matrix_t &_matrix,
-                        typename Tbsv<vector_t, matrix_t, sync_t, x_range,
-                                      subgroups, is_upper, is_transposed,
-                                      is_unitdiag>::index_t &_k,
-                        sync_t &_sync)
+SYCL_BLAS_INLINE Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups,
+                      is_upper, is_transposed, is_unitdiag>::
+    Tbsv(vector_t &_l, matrix_t &_matrix,
+         typename Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups,
+                       is_upper, is_transposed, is_unitdiag>::index_t &_k,
+         sync_t &_sync)
     : lhs_(_l), matrix_(_matrix), k_(_k), sync_(_sync) {}
 
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
-SYCL_BLAS_INLINE typename Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups,
-                               is_upper, is_transposed, is_unitdiag>::index_t
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::get_size() const {
+SYCL_BLAS_INLINE
+    typename Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups,
+                  is_upper, is_transposed, is_unitdiag>::index_t
+    Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+         is_transposed, is_unitdiag>::get_size() const {
   return matrix_.get_size();
 }
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
 SYCL_BLAS_INLINE bool
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
+Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+     is_transposed, is_unitdiag>::valid_thread(cl::sycl::nd_item<1> ndItem)
+    const {
   // Valid threads are established by ::eval.
   return true;
 }
 
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
 template <typename local_memory_t>
-SYCL_BLAS_INLINE typename Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups,
-                               is_upper, is_transposed, is_unitdiag>::value_t
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::eval(local_memory_t local_mem, cl::sycl::nd_item<1> ndItem) {
+SYCL_BLAS_INLINE
+    typename Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups,
+                  is_upper, is_transposed, is_unitdiag>::value_t
+    Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+         is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
+                                           cl::sycl::nd_item<1> ndItem) {
 #ifndef __COMPUTECPP__
 
   constexpr bool is_forward =
@@ -79,6 +82,7 @@ Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
 
   // Number of sub-groups per work-group
   constexpr index_t sub_num = subgroups;
+  constexpr index_t x_range = subgroup_size;
   constexpr index_t y_range = x_range / sub_num;
 
   const index_t _N = lhs_.get_size();
@@ -151,7 +155,7 @@ Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
 
   // Solve extra-diagonal blocks
 
-  volatile int *p = &sync_.eval(1);
+  volatile index_t *p = &sync_.eval(1);
   index_t ready_block =
       (_idy == 0)
           ? sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
@@ -257,7 +261,7 @@ Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
 
-  volatile int *sync = sync_.get_pointer() + 1;
+  volatile index_t *sync = sync_.get_pointer() + 1;
   if (!not_wi0) *sync = wg_id + (is_forward ? 1 : -1);
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
@@ -267,21 +271,21 @@ Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
 }
 
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
 SYCL_BLAS_INLINE void
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::bind(cl::sycl::handler &h) {
+Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+     is_transposed, is_unitdiag>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
   sync_.bind(h);
 }
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unitdiag>
 SYCL_BLAS_INLINE void
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unitdiag>::adjust_access_displacement() {
+Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+     is_transposed, is_unitdiag>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   matrix_.adjust_access_displacement();
   sync_.adjust_access_displacement();

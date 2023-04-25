@@ -133,7 +133,7 @@ typename sb_handle_t::event_t _trsv(sb_handle_t& sb_handle, char _Uplo,
                                     container_0_t _mA, index_t _lda,
                                     container_1_t _vx, increment_t _incx);
 
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
@@ -443,7 +443,7 @@ typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
                                     index_t _K, container_0_t _mA, index_t _lda,
                                     container_1_t _vx, increment_t _incx);
 
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
