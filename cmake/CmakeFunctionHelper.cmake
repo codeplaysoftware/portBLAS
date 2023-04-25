@@ -941,8 +941,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 # $<TARGET_OBJECTS:gemm_launcher>
                 # $<TARGET_OBJECTS:gemm>
                 # $<TARGET_OBJECTS:symm>
-                # $<TARGET_OBJECTS:trsm>
-                )
+                # $<TARGET_OBJECTS:trsm>)
 
   if (${ENABLE_EXTENSIONS})
     list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
@@ -950,14 +949,14 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
 
   add_library(${LIB_NAME} ${LIB_SRCS})
 
-  # if(BLAS_ENABLE_CONST_INPUT)
+  if(BLAS_ENABLE_CONST_INPUT)
   #   set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>
   #                  $<TARGET_OBJECTS:gemm_const>)
 
-  #   if(${ENABLE_EXTENSIONS})
-  #     list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
-  #   endif()
+    if(${ENABLE_EXTENSIONS})
+      list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
+    endif()
 
-  #   target_sources(${LIB_NAME} PRIVATE ${CONST_SRCS})
-  # endif()
+    target_sources(${LIB_NAME} PRIVATE ${CONST_SRCS})
+  endif()
 endfunction(build_library)
