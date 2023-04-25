@@ -926,18 +926,18 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:rotg_return>
                 $<TARGET_OBJECTS:scal>
                 $<TARGET_OBJECTS:swap>
-                # $<TARGET_OBJECTS:gbmv>
-                # $<TARGET_OBJECTS:gemv>
-                # $<TARGET_OBJECTS:ger>
-                # $<TARGET_OBJECTS:sbmv>
-                # $<TARGET_OBJECTS:symv>
-                # $<TARGET_OBJECTS:syr>
-                # $<TARGET_OBJECTS:spr>
-                # $<TARGET_OBJECTS:syr2>
-                # $<TARGET_OBJECTS:tbmv>
-                # $<TARGET_OBJECTS:tbsv>
-                # $<TARGET_OBJECTS:trmv>
-                # $<TARGET_OBJECTS:trsv>
+                $<TARGET_OBJECTS:gbmv>
+                $<TARGET_OBJECTS:gemv>
+                $<TARGET_OBJECTS:ger>
+                $<TARGET_OBJECTS:sbmv>
+                $<TARGET_OBJECTS:symv>
+                $<TARGET_OBJECTS:syr>
+                $<TARGET_OBJECTS:spr>
+                $<TARGET_OBJECTS:syr2>
+                $<TARGET_OBJECTS:tbmv>
+                $<TARGET_OBJECTS:tbsv>
+                $<TARGET_OBJECTS:trmv>
+                $<TARGET_OBJECTS:trsv>
                 # $<TARGET_OBJECTS:gemm_launcher>
                 # $<TARGET_OBJECTS:gemm>
                 # $<TARGET_OBJECTS:symm>
@@ -951,7 +951,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
   add_library(${LIB_NAME} ${LIB_SRCS})
 
   if(BLAS_ENABLE_CONST_INPUT)
-  #   set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>
+    set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>)
   #                  $<TARGET_OBJECTS:gemm_const>)
 
     if(${ENABLE_EXTENSIONS})

@@ -26,20 +26,39 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
+std::string get_name(char uplo, int size, scalar_t alpha, int incX,
+                     std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Spr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
       << uplo << "/" << size << "/" << alpha << "/" << incX;
+  str << "/" << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int size, scalar_t alpha, int incX, bool* success) {
-  blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::spr, scalar_t>(state, "n", 0, 0, size);
+  // The counters are double. We convert size to double to avoid
+  // integer overflows for n_fl_ops and bytes_processed
+  double size_d = static_cast<double>(size * (size + 1) / 2);
+
+  state.counters["size_d"] = size_d;
+  state.counters["alpha"] = static_cast<double>(alpha);
+  state.counters["incX"] = incX;
+
+  {
+    double nflops_XtimesX = 2.0 * size_d;
+    state.counters["n_fl_ops"] = size + nflops_XtimesX;
+  }
+  {
+    double mem_readA = size_d;
+    double mem_readX = static_cast<double>(size);
+    state.counters["bytes_processed"] =
+        (mem_readA + mem_readX) * sizeof(scalar_t);
+  }
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   const int m_size = size * size;
   const int v_size = 1 + (size - 1) * std::abs(incX);
@@ -50,9 +69,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(v_size);
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_size);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, v_size);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m_size, q);
+  auto v_x_gpu = blas::helper::allocate<mem_alloc, scalar_t>(v_size, q);
 
+  auto copy_a =
+      blas::helper::copy_to_device<scalar_t>(q, m_a.data(), m_a_gpu, m_size);
+  auto copy_x =
+      blas::helper::copy_to_device<scalar_t>(q, v_x.data(), v_x_gpu, v_size);
+
+  sb_handle.wait({copy_a, copy_x});
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> x_ref = v_x;
@@ -62,13 +87,20 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
 
   std::vector<scalar_t> m_a_temp = m_a;
   {
-    auto m_a_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(m_a_temp, m_size);
+    auto m_a_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m_size, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(
+        q, m_a_temp.data(), m_a_temp_gpu, m_size);
+    sb_handle.wait({copy_temp});
 
-    blas::_spr<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu), index_t,
-               decltype(m_a_gpu)>(sb_handle, uplo, size, alpha, v_x_gpu, incX,
-                                  m_a_temp_gpu);
-    sb_handle.wait();
+    auto spr_event = blas::_spr<blas::SB_Handle, index_t, scalar_t,
+                                decltype(v_x_gpu), index_t, decltype(m_a_gpu)>(
+        sb_handle, uplo, size, alpha, v_x_gpu, incX, m_a_temp_gpu);
+    sb_handle.wait({spr_event});
+    auto copy_out = blas::helper::copy_to_host<scalar_t>(
+        q, m_a_temp_gpu, m_a_temp.data(), m_size);
+    sb_handle.wait({copy_out});
+
+    blas::helper::deallocate<mem_alloc>(m_a_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -103,19 +135,17 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
-  state.SetBytesProcessed(state.iterations() *
-                          state.counters["bytes_processed"]);
-
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(m_a_gpu, q);
+  blas::helper::deallocate<mem_alloc>(v_x_gpu, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto spr_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
-
-  for (auto p : spr_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<spr_param_t<scalar_t>> params) {
+  for (auto p : params) {
     int n, incX;
     std::string uplo;
     scalar_t alpha;
@@ -126,13 +156,26 @@ void register_benchmark(blas_benchmark::Args& args,
     auto BM_lambda_col =
         [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
             int size, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t>(st, sb_handle_ptr, uplo, size, alpha, incX, success);
+          run<scalar_t, mem_alloc>(st, sb_handle_ptr, uplo, size, alpha, incX,
+                                   success);
         };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        sb_handle_ptr, uplo_c, n, alpha, incX, success)
-        ->UseRealTime();
+        get_name<scalar_t>(uplo_c, n, alpha, incX, mem_type).c_str(),
+        BM_lambda_col, sb_handle_ptr, uplo_c, n, alpha, incX, success);
   }
+}
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto spr_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, "buffer", spr_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, "usm", spr_params);
+#endif
 }
 
 namespace blas_benchmark {

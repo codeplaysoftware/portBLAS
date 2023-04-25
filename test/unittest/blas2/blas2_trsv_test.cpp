@@ -27,10 +27,11 @@
 
 template <typename T>
 using combination_t =
-    std::tuple<index_t, bool, bool, bool, index_t, index_t, T>;
+    std::tuple<std::string, index_t, bool, bool, bool, index_t, index_t, T>;
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   index_t n;
   bool trans;
   bool is_upper;
@@ -38,7 +39,7 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incX;
   index_t lda_mul;
   scalar_t wa;
-  std::tie(n, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
+  std::tie(alloc, n, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
@@ -77,12 +78,18 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, a_size);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(a_size, q);
+  auto v_x_gpu = blas::helper::allocate<mem_alloc, scalar_t>(x_size, q);
+
+  auto copy_m =
+      blas::helper::copy_to_device<scalar_t>(q, a_m.data(), m_a_gpu, a_size);
+  auto copy_v =
+      blas::helper::copy_to_device<scalar_t>(q, x_v.data(), v_x_gpu, x_size);
 
   // SYCL TRSV
-  _trsv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu, n * lda_mul,
-        v_x_gpu, incX);
+  auto trsv_event = _trsv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
+                          n * lda_mul, v_x_gpu, incX, {copy_m, copy_v});
+  sb_handle.wait(trsv_event);
 
   auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_x_gpu,
                                           x_v.data(), x_size);
@@ -98,12 +105,35 @@ void run_test(const combination_t<scalar_t> combi) {
 
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
+
+  blas::helper::deallocate<mem_alloc>(m_a_gpu, q);
+  blas::helper::deallocate<mem_alloc>(v_x_gpu, q);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  index_t n;
+  bool trans;
+  bool is_upper;
+  bool is_unit;
+  index_t incX;
+  index_t lda_mul;
+  scalar_t wa;
+  std::tie(alloc, n, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
+
+  if (alloc == "usm") {
+    run_test<scalar_t, blas::helper::AllocType::usm>(combi);
+  } else {
+    run_test<scalar_t, blas::helper::AllocType::buffer>(combi);
+  }
 }
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(32, 64, 128, 512, 14, 127, 504, 780,
+    ::testing::Combine(::testing::Values("usm", "buffer"),  // allocation type
+                       ::testing::Values(32, 64, 128, 512, 14, 127, 504, 780,
                                          1010, 1140, 2300, 8192),  // n
                        ::testing::Values(true, false),             // is_upper
                        ::testing::Values(true, false),             // trans
@@ -116,6 +146,7 @@ const auto combi =
 // (the stress_test above takes about ~5 minutes)
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values("usm", "buffer"),                    // allocation type
     ::testing::Values(14, 64, 33, 515, 1024, 1200, 3000),  // n
     ::testing::Values(true, false),                        // is_upper
     ::testing::Values(true, false),                        // trans
@@ -128,12 +159,14 @@ const auto combi = ::testing::Combine(
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   index_t n, incX, ldaMul;
   bool is_upper;
   bool trans;
   bool is_unit;
   T wa;
-  BLAS_GENERATE_NAME(info.param, n, is_upper, trans, is_unit, incX, ldaMul, wa);
+  BLAS_GENERATE_NAME(info.param, alloc, n, is_upper, trans, is_unit, incX,
+                     ldaMul, wa);
 }
 
 BLAS_REGISTER_TEST_ALL(Trsv, combination_t, combi, generate_name);

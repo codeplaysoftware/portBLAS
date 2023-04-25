@@ -32,22 +32,25 @@ namespace backend {
 template <transpose_type trn, typename SB_Handle, typename index_t,
           typename element_t, typename container_t0, typename container_t1,
           typename increment_t, typename container_t2>
-typename SB_Handle::event_t _gemv(SB_Handle& sb_handle, index_t _M, index_t _N,
-                                  element_t _alpha, container_t0 _mA,
-                                  index_t _lda, container_t1 _vx,
-                                  increment_t _incx, element_t _beta,
-                                  container_t2 _vy, increment_t _incy) {
+typename SB_Handle::event_t _gemv(
+    SB_Handle& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename SB_Handle::event_t& _dependencies) {
   if (_M >= 512 && trn != transpose_type::Normal) {
     if (_M >= 1024) {
       return blas::internal::_gemv_impl<8, 64, gemv_memory_t::local, trn>(
-          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy,
+          _dependencies);
     } else {
       return blas::internal::_gemv_impl<16, 64, gemv_memory_t::local, trn>(
-          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy,
+          _dependencies);
     }
   } else {
     return blas::internal::_gemv_impl<32, 64, gemv_memory_t::local, trn>(
-        sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+        sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy,
+        _dependencies);
   }
 }
 }  // namespace backend
@@ -58,15 +61,14 @@ namespace backend {
 template <transpose_type trn, typename SB_Handle, typename index_t,
           typename element_t, typename container_t0, typename container_t1,
           typename increment_t, typename container_t2>
-typename SB_Handle::event_t inline _gbmv(SB_Handle& sb_handle, index_t _M,
-                                         index_t _N, index_t _KL, index_t _KU,
-                                         element_t _alpha, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx, element_t _beta,
-                                         container_t2 _vy, increment_t _incy) {
+typename SB_Handle::event_t inline _gbmv(
+    SB_Handle& sb_handle, index_t _M, index_t _N, index_t _KL, index_t _KU,
+    element_t _alpha, container_t0 _mA, index_t _lda, container_t1 _vx,
+    increment_t _incx, element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename SB_Handle::event_t& _dependencies) {
   return blas::internal::_gbmv_impl<32, trn>(sb_handle, _M, _N, _KL, _KU,
                                              _alpha, _mA, _lda, _vx, _incx,
-                                             _beta, _vy, _incy);
+                                             _beta, _vy, _incy, _dependencies);
 }
 }  // namespace backend
 }  // namespace gbmv
@@ -76,14 +78,14 @@ namespace backend {
 template <uplo_type uplo, typename SB_Handle, typename index_t,
           typename element_t, typename container_t0, typename container_t1,
           typename increment_t, typename container_t2>
-typename SB_Handle::event_t inline _sbmv(SB_Handle& sb_handle, index_t _N,
-                                         index_t _K, element_t _alpha,
-                                         container_t0 _mA, index_t _lda,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy) {
-  return blas::internal::_sbmv_impl<32, uplo>(
-      sb_handle, _N, _K, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+typename SB_Handle::event_t inline _sbmv(
+    SB_Handle& sb_handle, index_t _N, index_t _K, element_t _alpha,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename SB_Handle::event_t& _dependencies) {
+  return blas::internal::_sbmv_impl<32, uplo>(sb_handle, _N, _K, _alpha, _mA,
+                                              _lda, _vx, _incx, _beta, _vy,
+                                              _incy, _dependencies);
 }
 }  // namespace backend
 }  // namespace sbmv
@@ -93,11 +95,12 @@ namespace backend {
 template <uplo_type uplo, transpose_type trn, diag_type diag,
           typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, index_t _N,
-                                    index_t _K, container_t0 _mA, index_t _lda,
-                                    container_t1 _vx, increment_t _incx) {
-  return blas::internal::_tbmv_impl<32, uplo, trn, diag>(sb_handle, _N, _K, _mA,
-                                                         _lda, _vx, _incx);
+typename sb_handle_t::event_t _tbmv(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    typename sb_handle_t::event_t _dependencies) {
+  return blas::internal::_tbmv_impl<32, uplo, trn, diag>(
+      sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
 }
 }  // namespace backend
 }  // namespace tbmv
@@ -107,11 +110,12 @@ namespace backend {
 template <uplo_type uplo, transpose_type trn, diag_type diag,
           typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _trsv(sb_handle_t& sb_handle, index_t _N,
-                                    container_t0 _mA, index_t _lda,
-                                    container_t1 _vx, increment_t _incx) {
-  return blas::internal::_trsv_impl<64, 4, uplo, trn, diag>(sb_handle, _N, _mA,
-                                                            _lda, _vx, _incx);
+typename sb_handle_t::event_t _trsv(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, index_t _lda,
+    container_t1 _vx, increment_t _incx,
+    typename sb_handle_t::event_t _dependencies) {
+  return blas::internal::_trsv_impl<64, 4, uplo, trn, diag>(
+      sb_handle, _N, _mA, _lda, _vx, _incx, _dependencies);
 }
 }  // namespace backend
 }  // namespace trsv
