@@ -329,6 +329,7 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
   throw std::runtime_error("Unimplemented for ComputeCPP");
 #endif
 
+  using one = constant<increment_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
@@ -339,15 +340,15 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
   auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
-  std::vector<index_t> sync_vec(2);
+  std::vector<int32_t> sync_vec(2);
   sync_vec[0] =
       is_forward ? 0
                  : ((roundUp<index_t>(_N, subgroup_size) / subgroup_size) - 1);
   sync_vec[1] = sync_vec[0];
 
   auto sync_buffer =
-      blas::make_sycl_iterator_buffer<index_t>(sync_vec, sync_vec.size());
-  auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
+      blas::make_sycl_iterator_buffer<int32_t>(sync_vec, sync_vec.size());
+  auto sync = make_vector_view(sync_buffer, one::value(), sync_vec.size());
 
   auto trsv =
       make_trsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
@@ -576,6 +577,7 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
 
   if (_K >= _N) throw std::invalid_argument("Erroneous parameter: _K >= _N");
 
+  using one = constant<increment_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
@@ -586,15 +588,15 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
   auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
-  std::vector<index_t> sync_vec(2);
+  std::vector<int32_t> sync_vec(2);
   sync_vec[0] =
       is_forward ? 0
                  : ((roundUp<index_t>(_N, subgroup_size) / subgroup_size) - 1);
   sync_vec[1] = sync_vec[0];
 
   auto sync_buffer =
-      blas::make_sycl_iterator_buffer<index_t>(sync_vec, sync_vec.size());
-  auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
+      blas::make_sycl_iterator_buffer<int32_t>(sync_vec, sync_vec.size());
+  auto sync = make_vector_view(sync_buffer, one::value(), sync_vec.size());
 
   auto tbsv =
       make_tbsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(

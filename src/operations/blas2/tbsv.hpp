@@ -112,7 +112,7 @@ SYCL_BLAS_INLINE
   value_t *const par_x = loc_x + x_range + x_range * _idy;
   value_t *const loc_recip = loc_x + x_range;
 
-  auto a = sycl::atomic_ref<index_t, sycl::memory_order::relaxed,
+  auto a = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed,
                             sycl::memory_scope::device,
                             sycl::access::address_space::global_space>(
       sync_.eval(0));
@@ -155,8 +155,8 @@ SYCL_BLAS_INLINE
 
   // Solve extra-diagonal blocks
 
-  volatile index_t *p = &sync_.eval(1);
-  index_t ready_block =
+  volatile int32_t *p = &sync_.eval(1);
+  int32_t ready_block =
       (_idy == 0)
           ? sycl::group_broadcast(ndItem.get_sub_group(), not_wi0 ? 0 : *p)
           : 0;
@@ -261,7 +261,7 @@ SYCL_BLAS_INLINE
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
 
-  volatile index_t *sync = sync_.get_pointer() + 1;
+  volatile int32_t *sync = sync_.get_pointer() + 1;
   if (!not_wi0) *sync = wg_id + (is_forward ? 1 : -1);
 
   sycl::atomic_fence(sycl::memory_order::seq_cst, sycl::memory_scope::device);
