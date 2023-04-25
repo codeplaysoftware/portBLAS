@@ -26,13 +26,14 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name() {
+std::string get_name(std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Rotg<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
+  str << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          bool* success) {
   // Create data
@@ -42,11 +43,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   scalar_t s = blas_benchmark::utils::random_data<scalar_t>(1)[0];
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
-  auto buf_a = blas::make_sycl_iterator_buffer<scalar_t>(&a, 1);
-  auto buf_b = blas::make_sycl_iterator_buffer<scalar_t>(&b, 1);
-  auto buf_c = blas::make_sycl_iterator_buffer<scalar_t>(&c, 1);
-  auto buf_s = blas::make_sycl_iterator_buffer<scalar_t>(&s, 1);
+  auto buf_a = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_b = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_c = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_s = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+
+  auto copy_a = blas::helper::copy_to_device<scalar_t>(q, &a, buf_a, 1);
+  auto copy_b = blas::helper::copy_to_device<scalar_t>(q, &b, buf_b, 1);
+  auto copy_c = blas::helper::copy_to_device<scalar_t>(q, &c, buf_c, 1);
+  auto copy_s = blas::helper::copy_to_device<scalar_t>(q, &s, buf_s, 1);
+
+  sb_handle.wait({copy_a, copy_b, copy_c, copy_s});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -60,22 +69,32 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   scalar_t c_verify = c;
   scalar_t s_verify = s;
 
-  auto buf_verify_a = blas::make_sycl_iterator_buffer<scalar_t>(&a_verify, 1);
-  auto buf_verify_b = blas::make_sycl_iterator_buffer<scalar_t>(&b_verify, 1);
-  auto buf_verify_c = blas::make_sycl_iterator_buffer<scalar_t>(&c_verify, 1);
-  auto buf_verify_s = blas::make_sycl_iterator_buffer<scalar_t>(&s_verify, 1);
-
   reference_blas::rotg(&a_ref, &b_ref, &c_ref, &s_ref);
-  _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
 
-  auto event1 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_c,
-                                           &c_verify, 1);
-  auto event2 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_s,
-                                           &s_verify, 1);
-  auto event3 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_a,
-                                           &a_verify, 1);
-  auto event4 = blas::helper::copy_to_host(sb_handle.get_queue(), buf_verify_b,
-                                           &b_verify, 1);
+  auto buf_verify_a = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_verify_b = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_verify_c = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+  auto buf_verify_s = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+
+  auto copy_verify_a =
+      blas::helper::copy_to_device<scalar_t>(q, &a_verify, buf_verify_a, 1);
+  auto copy_verify_b =
+      blas::helper::copy_to_device<scalar_t>(q, &b_verify, buf_verify_b, 1);
+  auto copy_verify_c =
+      blas::helper::copy_to_device<scalar_t>(q, &c_verify, buf_verify_c, 1);
+  auto copy_verify_s =
+      blas::helper::copy_to_device<scalar_t>(q, &s_verify, buf_verify_s, 1);
+
+  sb_handle.wait({copy_verify_a, copy_verify_b, copy_verify_c, copy_verify_s});
+
+  auto rotg_event =
+      _rotg(sb_handle, buf_verify_a, buf_verify_b, buf_verify_c, buf_verify_s);
+  sb_handle.wait(rotg_event);
+
+  auto event1 = blas::helper::copy_to_host(q, buf_verify_c, &c_verify, 1);
+  auto event2 = blas::helper::copy_to_host(q, buf_verify_s, &s_verify, 1);
+  auto event3 = blas::helper::copy_to_host(q, buf_verify_a, &a_verify, 1);
+  auto event4 = blas::helper::copy_to_host(q, buf_verify_b, &b_verify, 1);
 
   sb_handle.wait({event1, event2, event3, event4});
 
@@ -98,6 +117,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
     state.SkipWithError(err_str.c_str());
     *success = false;
   };
+
+  blas::helper::deallocate<mem_alloc>(buf_verify_a, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_b, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_c, q);
+  blas::helper::deallocate<mem_alloc>(buf_verify_s, q);
 #endif
 
   // Create a utility lambda describing the blas method that we want to run.
@@ -126,18 +150,35 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(buf_a, q);
+  blas::helper::deallocate<mem_alloc>(buf_b, q);
+  blas::helper::deallocate<mem_alloc>(buf_c, q);
+  blas::helper::deallocate<mem_alloc>(buf_s, q);
 };
+
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type) {
+  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
+                       bool* success) {
+    run<scalar_t, mem_alloc>(st, sb_handle_ptr, success);
+  };
+
+  benchmark::RegisterBenchmark(get_name<scalar_t>(mem_type).c_str(), BM_lambda,
+                               sb_handle_ptr, success)
+      ->UseRealTime();
+}
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
-                       bool* success) {
-    run<scalar_t>(st, sb_handle_ptr, success);
-  };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
-                               sb_handle_ptr, success)
-      ->UseRealTime();
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, "buffer");
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(sb_handle_ptr,
+                                                             success, "usm");
+#endif
 }
 
 namespace blas_benchmark {

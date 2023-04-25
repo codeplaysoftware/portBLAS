@@ -26,14 +26,14 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(int size) {
+std::string get_name(int size, std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Iamin<" << blas_benchmark::utils::get_type_name<scalar_t>();
-  str << ">/" << size;
+  str << ">/" << size << "/" << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
   // Google-benchmark counters are double.
@@ -41,6 +41,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::iamin, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
@@ -52,8 +53,12 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     return utils::clamp_to_limits<scalar_t>(v);
   });
 
-  auto inx = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
-  auto outI = blas::make_sycl_iterator_buffer<tuple_scalar_t>(&out, 1);
+  auto inx = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
+  auto outI = blas::helper::allocate<mem_alloc, tuple_scalar_t>(1, q);
+
+  auto copy_x = blas::helper::copy_to_device<scalar_t>(q, v1.data(), inx, size);
+
+  sb_handle.wait({copy_x});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -61,11 +66,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       static_cast<index_t>(reference_blas::iamin(size, v1.data(), 1));
   tuple_scalar_t idx_temp{-1, -1};
   {
-    auto idx_temp_gpu = blas::make_sycl_iterator_buffer<
-        blas::IndexValueTuple<index_t, scalar_t>>(&idx_temp, 1);
-    auto event =
+    auto idx_temp_gpu = blas::helper::allocate<mem_alloc, tuple_scalar_t>(1, q);
+    auto iamin_event =
         _iamin(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
-    sb_handle.wait(event);
+    sb_handle.wait(iamin_event);
+    auto copy_output =
+        blas::helper::copy_to_host(q, idx_temp_gpu, &idx_temp, 1);
+    sb_handle.wait(copy_output);
+
+    blas::helper::deallocate<mem_alloc>(idx_temp_gpu, q);
   }
 
   if (idx_temp.ind != idx_ref) {
@@ -105,27 +114,43 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(inx, q);
+  blas::helper::deallocate<mem_alloc>(outI, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
-  auto iamin_params = blas_benchmark::utils::get_blas1_params(args);
-
-  for (auto size : iamin_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<blas1_param_t> params) {
+  for (auto size : params) {
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, size, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 sb_handle_ptr, size, success)
+
+    benchmark::RegisterBenchmark(get_name<scalar_t>(size, mem_type).c_str(),
+                                 BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
 }
 
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto iamin_params = blas_benchmark::utils::get_blas1_params(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, "buffer", iamin_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, "usm", iamin_params);
+#endif
+}
+
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

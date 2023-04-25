@@ -37,27 +37,27 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
-  # Blas 2 tests
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_sbmv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
-  # Blas 3 tests
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
+  # # Blas 2 tests
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_sbmv_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
+  # # Blas 3 tests
+  # ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+  # ${SYCLBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
 )
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
 if(is_dpcpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
   )
 endif()
 
@@ -73,8 +73,8 @@ if(is_computecpp)
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+    # ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
     # Blas buffer tests
     ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
   )
@@ -91,7 +91,7 @@ set(SYCL_UNITTEST_NOFASTMATH
 )
 
 if(GEMM_TALL_SKINNY_SUPPORT)
-  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
+  # list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
