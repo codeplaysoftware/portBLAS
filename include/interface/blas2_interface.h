@@ -444,19 +444,19 @@ typename sb_handle_t::event_t _tbmv_impl(
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx);
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         index_t _K, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx);
+typename sb_handle_t::event_t _tbsv_impl(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
@@ -867,12 +867,13 @@ typename sb_handle_t::event_t _tbmv(
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx) {
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_tbsv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
-                         _vx, _incx);
+                         _vx, _incx, _dependencies);
 }
 }  // namespace blas
 

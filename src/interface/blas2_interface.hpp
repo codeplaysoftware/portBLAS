@@ -652,10 +652,10 @@ template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         index_t _K, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx) {
+typename sb_handle_t::event_t _tbsv_impl(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies) {
 #ifdef __COMPUTECPP__
   throw std::runtime_error("Unimplemented for ComputeCPP");
 #endif
@@ -677,18 +677,36 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
       is_forward ? 0 : ((roundUp<index_t>(_N, x_range) / x_range) - 1);
   sync_vec[1] = sync_vec[0];
 
-  auto sync_buffer =
-      blas::make_sycl_iterator_buffer<index_t>(sync_vec, sync_vec.size());
+  constexpr bool is_usm = std::is_pointer<container_t0>::value;
+  auto queue = sb_handle.get_queue();
+
+  auto sync_buffer = blas::helper::allocate < is_usm
+                         ? blas::helper::AllocType::usm
+                         : blas::helper::AllocType::buffer,
+       index_t > (sync_vec.size(), queue);
+  auto copy_sync = blas::helper::copy_to_device<index_t>(
+      queue, sync_vec.data(), sync_buffer, sync_vec.size());
+  sb_handle.wait(copy_sync);
+
   auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
 
   auto tbsv = make_tbsv<x_range, subgroups, is_upper, is_transposed, is_unit>(
       vx, mA, _K, sync);
 
   const index_t sub_num = subgroups;
-  return sb_handle.execute(
+  auto ret = sb_handle.execute(
       tbsv, static_cast<index_t>(sub_num * x_range),
       roundUp<index_t>(sub_num * _N, sub_num * x_range),
-      static_cast<index_t>(x_range * (x_range + 1 + sub_num)));
+      static_cast<index_t>(x_range * (x_range + 1 + sub_num)), _dependencies);
+
+#ifdef DEFAULT_CPU
+  auto free_sync = blas::helper::enqueue_deallocate < is_usm
+                       ? helper::AllocType::usm
+                       : helper::AllocType::buffer > (ret, sync_buffer, queue);
+  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_sync});
+#endif
+
+  return ret;
 }
 
 /**** RANK 1 MODIFICATION ****/
@@ -1106,12 +1124,12 @@ typename sb_handle_t::event_t _tbmv(
 }
 template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_t0 _mA, index_t _lda,
-                                    container_t1 _vx, increment_t _incx) {
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_t0 _mA, index_t _lda, container_t1 _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
   INST_UPLO_TRANS_DIAG(blas::tbsv::backend::_tbsv, sb_handle, _N, _K, _mA, _lda,
-                       _vx, _incx)
+                       _vx, _incx, _dependencies)
 }
 }  // namespace internal
 }  // namespace blas

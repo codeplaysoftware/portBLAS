@@ -51,38 +51,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   index_t incX = 1;
   index_t incY = 1;
 
-  // The counters are double. We convert m and n to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double m_d = static_cast<double>(m);
-  double n_d = static_cast<double>(n);
-  double kl_d = static_cast<double>(kl);
-  double ku_d = static_cast<double>(ku);
-
-  state.counters["m"] = m_d;
-  state.counters["n"] = n_d;
-  state.counters["kl"] = kl_d;
-  state.counters["ku"] = ku_d;
-
-  // Compute the number of A non-zero elements.
-  const double A_validVal =
-      (t_str[0] == 'n' ? n_d : m_d) * (kl_d + ku_d + 1.0) -
-      0.5 * (kl_d * (kl_d + 1.0)) - 0.5 * (ku_d * (ku_d + 1.0));
-
-  {
-    double nflops_AtimesX = 2.0 * A_validVal;
-    double nflops_timesAlpha = ylen;
-    double nflops_addBetaY = (beta != scalar_t{0}) ? 2 * ylen : 0;
-    state.counters["n_fl_ops"] =
-        nflops_AtimesX + nflops_timesAlpha + nflops_addBetaY;
-  }
-  {
-    double mem_readA = A_validVal;
-    double mem_readX = xlen;
-    double mem_writeY = ylen;
-    double mem_readY = (beta != scalar_t{0}) ? ylen : 0;
-    state.counters["bytes_processed"] =
-        (mem_readA + mem_readX + mem_writeY + mem_readY) * sizeof(scalar_t);
-  }
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, t_str, beta, m, n,
+                                                       0, ku, kl);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
@@ -159,6 +130,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 
   blas::helper::deallocate<mem_alloc>(m_a_gpu, q);
@@ -185,7 +160,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(ts, m, n, kl, ku, mem_type).c_str(), BM_lambda,
-        sb_handle_ptr, t, m, n, kl, ku, alpha, beta, success);
+        sb_handle_ptr, t, m, n, kl, ku, alpha, beta, success)
+        ->UseRealTime();
   }
 }
 

@@ -119,11 +119,12 @@ namespace backend {
 template <uplo_type uplo, transpose_type trn, diag_type diag,
           typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, index_t _N,
-                                    index_t _K, container_t0 _mA, index_t _lda,
-                                    container_t1 _vx, increment_t _incx) {
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies) {
   return blas::internal::_tbsv_impl<32, 4, uplo, trn, diag>(
-      sb_handle, _N, _K, _mA, _lda, _vx, _incx);
+      sb_handle, _N, _K, _mA, _lda, _vx, _incx, _dependencies);
 }
 }  // namespace backend
 }  // namespace tbsv
