@@ -52,6 +52,7 @@ namespace internal {
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator or USM pointer
  * @param _incy Increment in Y axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
@@ -77,6 +78,7 @@ typename sb_handle_t::event_t _axpy(
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator or USM pointer
  * @param _incy Increment in Y axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
@@ -107,6 +109,7 @@ typename sb_handle_t::event_t _copy(
  * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output memory object
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -149,6 +152,7 @@ typename sb_handle_t::event_t _dot(
  * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output memory object
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -176,6 +180,8 @@ typename sb_handle_t::event_t _sdsdot(
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _rs BufferIterator or USM pointer
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -198,6 +204,8 @@ typename sb_handle_t::event_t _asum(
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _rs BufferIterator or USM pointer
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
@@ -220,6 +228,8 @@ typename sb_handle_t::event_t _iamax(
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _rs BufferIterator or USM pointer
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
           typename index_t, typename increment_t>
@@ -247,6 +257,7 @@ typename sb_handle_t::event_t _iamin(
  * @param _incx Increment in X axis
  * @param _vy  BufferIterator or USM pointer
  * @param _incy Increment in Y axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -267,6 +278,7 @@ typename sb_handle_t::event_t _swap(
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename element_t, typename container_0_t,
           typename index_t, typename increment_t>
@@ -292,6 +304,8 @@ typename sb_handle_t::event_t _scal(
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _rs BufferIterator or USM pointer
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
@@ -326,7 +340,7 @@ typename sb_handle_t::event_t _nrm2(
  * @param _sin  sine
  * @param _cos cosine
  * @param _N data size
- *
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t, typename increment_t>
@@ -377,6 +391,7 @@ typename sb_handle_t::event_t _rot(
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -467,6 +482,7 @@ typename sb_handle_t::event_t _rotm(
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -508,6 +524,7 @@ typename sb_handle_t::event_t _rotmg(
  * exit, the scalar r.
  * @param c[out] Memory object holding the parameter c.
  * @param s[out] Memory object holding the parameter s.
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <
@@ -539,6 +556,7 @@ typename sb_handle_t::event_t _rotg(
  * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
  * @param c[out] Scalar representing the output c.
  * @param s[out] Scalar representing the output s.
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename scalar_t,
           typename std::enable_if<is_sycl_scalar<scalar_t>::value, bool>::type>
@@ -600,6 +618,7 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output memory object
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -644,6 +663,7 @@ typename ValueType<container_0_t>::type _dot(
  * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output memory object
+ * @param _dependencies Vector of events
  * @return Vector of events to wait for.
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -675,6 +695,7 @@ typename ValueType<container_0_t>::type _sdsdot(
  * \brief ICAMAX finds the index of the first element having maximum
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
@@ -708,6 +729,7 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  * \brief ICAMIN finds the index of the first element having minimum
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
@@ -739,6 +761,7 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>
@@ -767,6 +790,7 @@ typename ValueType<container_t>::type _asum(
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename index_t,
           typename increment_t>

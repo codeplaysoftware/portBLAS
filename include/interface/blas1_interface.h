@@ -123,6 +123,7 @@ typename sb_handle_t::event_t _sdsdot(
  * @param sb_handle SB_Handle
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -134,6 +135,7 @@ typename sb_handle_t::event_t _asum(
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
@@ -145,6 +147,7 @@ typename sb_handle_t::event_t _iamax(
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
@@ -188,6 +191,7 @@ typename sb_handle_t::event_t _scal(
  * @param sb_handle SB_Handle
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -277,12 +281,12 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param _d1[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d1[in,out] On entry, memory object holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
- * @param _d2[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d2[in,out] On entry, memory object holding the scaling factor for the
  * y-coordinate. On exit, the re-scaled _d2.
- * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
- * re-scaled _x1
+ * @param _x1[in,out] On entry, memory object holding the x-coordinate. On exit,
+ * the re-scaled _x1
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -306,10 +310,10 @@ typename sb_handle_t::event_t _rotmg(
  * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
- * exit, the scalar z.
- * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
- * exit, the scalar r.
+ * @param a[in, out] On entry, memory object holding the x-coordinate of the
+ * point. On exit, the scalar z.
+ * @param b[in, out] On entry, memory object holding the y-coordinate of the
+ * point. On exit, the scalar r.
  * @param c[out] Memory object holding the parameter c.
  * @param s[out] Memory object holding the parameter s.
  * @param _dependencies Vector of events
@@ -542,6 +546,7 @@ typename sb_handle_t::event_t _sdsdot(
  * @param sb_handle SB_Handle
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -571,6 +576,7 @@ typename sb_handle_t::event_t _iamax(
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_t, typename ContainerI,
@@ -621,6 +627,7 @@ typename sb_handle_t::event_t _scal(
  * @param sb_handle SB_Handle
  * @param _vx BufferIterator or USM pointer
  * @param _incx Increment for the vector X
+ * @param _rs BufferIterator or USM pointer
  * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -721,12 +728,12 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param _d1[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d1[in,out] On entry, memory object holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
- * @param _d2[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d2[in,out] On entry, memory object holding the scaling factor for the
  * y-coordinate. On exit, the re-scaled _d2.
- * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
- * re-scaled _x1
+ * @param _x1[in,out] On entry, memory object holding the x-coordinate. On exit,
+ * the re-scaled _x1
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -752,10 +759,10 @@ typename sb_handle_t::event_t _rotmg(
  * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
- * exit, the scalar z.
- * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
- * exit, the scalar r.
+ * @param a[in, out] On entry, memory object holding the x-coordinate of the
+ * point. On exit, the scalar z.
+ * @param b[in, out] On entry, memory object holding the y-coordinate of the
+ * point. On exit, the scalar r.
  * @param c[out] Memory object holding the parameter c.
  * @param s[out] Memory object holding the parameter s.
  * @param _dependencies Vector of events
