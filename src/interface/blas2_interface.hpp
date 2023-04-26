@@ -722,7 +722,7 @@ typename sb_handle_t::event_t _spr_impl(sb_handle_t& sb_handle, char _Uplo,
 
   // bail out early if alpha == 0
   if (_alpha == (element_t)0) {
-    std::vector<cl::sycl::event> event;
+    typename sb_handle_t::event_t event;
     return event;
   }
 
@@ -778,7 +778,7 @@ typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
 
   // bail out early if alpha == 0
   if (_alpha == (element_t)0) {
-    std::vector<cl::sycl::event> event;
+    typename sb_handle_t::event_t event;
     return event;
   }
 

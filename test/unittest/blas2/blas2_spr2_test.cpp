@@ -24,7 +24,6 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
-#include "sb_handle/sycl_blas_handle.h"
 
 template <typename scalar_t>
 using combination_t =
@@ -55,7 +54,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   uplo = (uplo == 'u' && layout == 'c') || (uplo == 'l' && layout == 'r') ? 'u'
                                                                           : 'l';
-  // SYSTEM SPR
+  // SYSTEM SPR2
   reference_blas::spr2<scalar_t>(&uplo, n, alpha, vx_cpu.data(), incX,
                                  vy_cpu.data(), incY, a_cpu_mp.data());
 

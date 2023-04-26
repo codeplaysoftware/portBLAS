@@ -502,9 +502,8 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
 }
 
 /**** SPR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
-/* This is a specialization of the GER class for the packed
- * symmetric matrices (P stands for Packed in the name). For more details
- * on matrix layouts, refer to the explanation here:
+/* This class performs rank 1/2 update for symmetric packed matrices. For more
+ * details on matrix refer to the explanation here:
  * https://spec.oneapi.io/versions/1.1-rev-1/elements/oneMKL/source/domains/matrix-storage.html#matrix-storage
  */
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
@@ -528,7 +527,7 @@ struct Spr {
   static constexpr index_t sqrt_overflow_limit = 1048576;
 
   Spr(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, index_t _incX_1,
-       rhs_2_t &_r2, index_t _incX_2);
+      rhs_2_t &_r2, index_t _incX_2);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(cl::sycl::nd_item<1> ndItem);
@@ -587,8 +586,8 @@ Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t> make_spr(
     lhs_t &lhs_, typename rhs_1_t::index_t _N, typename lhs_t::value_t alpha_,
     rhs_1_t &rhs_1_, typename rhs_1_t::index_t incX_1, rhs_2_t &rhs_2_,
     typename rhs_1_t::index_t incX_2) {
-  return Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>(
-      lhs_, _N, alpha_, rhs_1_, incX_1, rhs_2_, incX_2);
+  return Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>(lhs_, _N, alpha_, rhs_1_,
+                                                       incX_1, rhs_2_, incX_2);
 }
 
 }  // namespace blas
