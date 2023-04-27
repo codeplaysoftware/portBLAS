@@ -25,6 +25,9 @@
 #ifndef SYCL_BLAS_BLAS1_NVIDIA_GPU_HPP
 #define SYCL_BLAS_BLAS1_NVIDIA_GPU_HPP
 
+namespace blas {
+namespace backend {
+
 class HardwareSpec {
  private:
   static constexpr int vector_size = 4;
@@ -32,5 +35,8 @@ class HardwareSpec {
  public:
   static constexpr int get_vector_size() { return vector_size; }
 };
+
+}  // namespace backend
+}  // namespace blas
 
 #endif  // SYCL_BLAS_BLAS1_NVIDIA_GPU_HPP
