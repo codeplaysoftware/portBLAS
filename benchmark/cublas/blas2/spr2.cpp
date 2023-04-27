@@ -75,8 +75,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_a_ref = m_a;
-  reference_blas::spr2<scalar_t>(&uplo, n, alpha, v_x.data(), incX,
-                                 v_y.data(), incY, m_a_ref.data());
+  reference_blas::spr2<scalar_t>(&uplo, n, alpha, v_x.data(), incX, v_y.data(),
+                                 incY, m_a_ref.data());
 
   std::vector<scalar_t> m_a_temp = m_a;
   {
@@ -154,11 +154,11 @@ void register_benchmark(blas_benchmark::Args& args,
 
     char uplo_c = uplo[0];
 
-    auto BM_lambda_col =
-        [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr, char uplo,
-            int n, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, incX, success);
-        };
+    auto BM_lambda_col = [&](benchmark::State& st,
+                             cublasHandle_t* cuda_handle_ptr, char uplo, int n,
+                             scalar_t alpha, int incX, bool* success) {
+      run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, incX, success);
+    };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
         cuda_handle_ptr, uplo_c, n, alpha, incX, success)

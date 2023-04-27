@@ -223,7 +223,7 @@ struct MatrixView<
   const index_t sizeL_;  // size of the leading dimension
   const index_t disp_;   // displacementt od the first element
   cl::sycl::global_ptr<scalar_t>
-      ptr_;  // global pointer access inside the kernel
+      ptr_;              // global pointer access inside the kernel
 
   /**** CONSTRUCTORS ****/
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,

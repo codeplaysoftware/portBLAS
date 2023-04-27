@@ -57,7 +57,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   const char side_str[2] = {side, '\0'};
   const char uplo_str[2] = {uplo, '\0'};
   clblast::Side side_cl = blas_benchmark::utils::translate_side(side_str);
-  clblast::Triangle uplo_cl = blas_benchmark::utils::translate_triangle(uplo_str);
+  clblast::Triangle uplo_cl =
+      blas_benchmark::utils::translate_triangle(uplo_str);
   auto layout = clblast::Layout::kColMajor;
 
   // Device matrices
@@ -75,9 +76,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
     MemBuffer<scalar_t> c_temp_gpu(executorPtr, c_temp.data(),
                                    static_cast<size_t>(m * n));
     cl_event event;
-    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(), 0,
-                            lda, b_gpu.dev(), 0, ldb, beta, c_temp_gpu.dev(), 0,
-                            ldc, executorPtr->_queue(), &event);
+    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(),
+                            0, lda, b_gpu.dev(), 0, ldb, beta, c_temp_gpu.dev(),
+                            0, ldc, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
   }
 
@@ -92,9 +93,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
   // Create a utility lambda describing the blas method that we want to run.
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
-    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(), 0,
-                            lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0, ldc,
-                            executorPtr->_queue(), &event);
+    clblast::Symm<scalar_t>(layout, side_cl, uplo_cl, m, n, alpha, a_gpu.dev(),
+                            0, lda, b_gpu.dev(), 0, ldb, beta, c_gpu.dev(), 0,
+                            ldc, executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
   };
@@ -121,8 +122,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char side,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        ExecutorType* executorPtr, bool* success) {
+void register_benchmark(blas_benchmark::Args& args, ExecutorType* executorPtr,
+                        bool* success) {
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {
@@ -144,8 +145,8 @@ void register_benchmark(blas_benchmark::Args& args,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args,
-                      ExecutorType* executorPtr, bool* success) {
+void create_benchmark(blas_benchmark::Args& args, ExecutorType* executorPtr,
+                      bool* success) {
   BLAS_REGISTER_BENCHMARK(args, executorPtr, success);
 }
 }  // namespace blas_benchmark

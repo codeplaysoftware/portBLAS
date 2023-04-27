@@ -158,7 +158,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda, exPtr,
-        uplos, ts, diags, n, success)->UseRealTime();
+        uplos, ts, diags, n, success)
+        ->UseRealTime();
   }
 }
 

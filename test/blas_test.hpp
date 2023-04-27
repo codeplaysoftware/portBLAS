@@ -165,7 +165,7 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param unused Value to put in the unused parts of the matrix
  */
 template <typename scalar_t>
-static inline void fill_trsm_matrix(std::vector<scalar_t>& A, size_t k,
+static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
                                     size_t lda, char uplo, char unit_diag,
                                     scalar_t diag = scalar_t{1},
                                     scalar_t unused = scalar_t{0}) {

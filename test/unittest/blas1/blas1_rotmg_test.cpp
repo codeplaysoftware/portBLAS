@@ -352,9 +352,7 @@ const auto combi = ::testing::Values(
     std::make_tuple(15.5, -2.2, std::numeric_limits<scalar_t>::min(),
                     std::numeric_limits<scalar_t>::min(), false),
     /* Test for previous errors */
-    std::make_tuple(0.0516274, -0.197215, -0.270436,
-                    -0.157621, false)
-  );
+    std::make_tuple(0.0516274, -0.197215, -0.270436, -0.157621, false));
 
 template <class T>
 static std::string generate_name(

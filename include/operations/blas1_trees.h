@@ -241,7 +241,7 @@ template and function arguments. Non-specialized case for N reference operands.
 @return Constructed operation node.
 */
 template <template <class...> class operation_t, typename... operand_t>
-inline operation_t<operand_t...> make_op(operand_t &... operands) {
+inline operation_t<operand_t...> make_op(operand_t &...operands) {
   return operation_t<operand_t...>(operands...);
 }
 
@@ -257,7 +257,7 @@ reference operands.
 */
 template <template <class...> class operation_t, typename operator_t,
           typename... operand_t>
-inline operation_t<operator_t, operand_t...> make_op(operand_t &... operands) {
+inline operation_t<operator_t, operand_t...> make_op(operand_t &...operands) {
   return operation_t<operator_t, operand_t...>(operands...);
 }
 
@@ -278,7 +278,7 @@ operation node.
 template <template <class...> class operation_t, typename operator_t,
           typename first_operand_t, typename... operand_t>
 inline operation_t<operator_t, first_operand_t, operand_t...> make_op(
-    first_operand_t operand0, operand_t &... operands) {
+    first_operand_t operand0, operand_t &...operands) {
   return operation_t<operator_t, first_operand_t, operand_t...>(operand0,
                                                                 operands...);
 }

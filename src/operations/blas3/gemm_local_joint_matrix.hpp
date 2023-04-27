@@ -321,8 +321,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t it_mod_cl = item_id % cl_elems;
     const index_t it_div_cl = item_id / cl_elems;
 
-    ptr_B += (trans_b ? it_div_bcols * ldb +
-                            (wg_col + it_mod_bcols)
+    ptr_B += (trans_b ? it_div_bcols * ldb + (wg_col + it_mod_bcols)
                       : it_mod_cl + (wg_col + it_div_cl) * ldb);
 
     n = n - wg_col - (trans_b ? it_mod_bcols : it_div_cl);
@@ -336,7 +335,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                  : it_mod_cl % tile_type::joint_matrix_K +
                        (it_mod_cl / tile_type::joint_matrix_K) *
                            (ldsb * block_cols) +
-                       it_div_cl *ldsb);
+                       it_div_cl * ldsb);
 
     const index_t s2_offset =
         (sg_id / jm_row_frags) * tile_type::joint_matrix_N * ldsb;
@@ -851,7 +850,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
       const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &... ss) noexcept {
+      Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }

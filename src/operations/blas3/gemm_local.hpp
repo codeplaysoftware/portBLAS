@@ -789,7 +789,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
       const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &... ss) noexcept {
+      Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }

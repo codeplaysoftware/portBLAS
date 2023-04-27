@@ -478,7 +478,7 @@ class TokenStream {
     return m_tokenBuffer.front();
   }
 
-  auto operator-> () const -> Token const * {
+  auto operator->() const -> Token const * {
     assert(!m_tokenBuffer.empty());
     return &m_tokenBuffer.front();
   }
@@ -1055,8 +1055,7 @@ struct Help : Opt {
           showHelpFlag = flag;
           return ParserResult::ok(ParseResultType::ShortCircuitAll);
         }) {
-    static_cast<Opt &> (*this)(
-        "display usage information")["-?"]["-h"]["--help"]
+    static_cast<Opt &>(*this)("display usage information")["-?"]["-h"]["--help"]
         .optional();
   }
 };

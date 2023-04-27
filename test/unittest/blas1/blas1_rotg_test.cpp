@@ -85,9 +85,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
-    ::testing::Values(api_type::async, api_type::sync),  // Api
+    ::testing::Values(api_type::async, api_type::sync),                   // Api
     ::testing::Values<scalar_t>(0, 2.5, -7.3,
-                                std::numeric_limits<scalar_t>::max()),  // a
+                                std::numeric_limits<scalar_t>::max()),    // a
     ::testing::Values<scalar_t>(0, 0.5, -4.3,
                                 std::numeric_limits<scalar_t>::lowest())  // b
 );

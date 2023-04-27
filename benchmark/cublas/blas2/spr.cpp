@@ -148,11 +148,11 @@ void register_benchmark(blas_benchmark::Args& args,
 
     char uplo_c = uplo[0];
 
-    auto BM_lambda_col =
-        [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr, char uplo,
-            int n, scalar_t alpha, int incX, bool* success) {
-          run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, incX, success);
-        };
+    auto BM_lambda_col = [&](benchmark::State& st,
+                             cublasHandle_t* cuda_handle_ptr, char uplo, int n,
+                             scalar_t alpha, int incX, bool* success) {
+      run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, incX, success);
+    };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
         cuda_handle_ptr, uplo_c, n, alpha, incX, success)

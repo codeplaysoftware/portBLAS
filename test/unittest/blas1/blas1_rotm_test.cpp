@@ -91,13 +91,13 @@ const auto combi = ::testing::Combine(
 );
 #else
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
-                                      ::testing::Values(4),         // incX
-                                      ::testing::Values(3),         // incY
-                                      ::testing::Values<scalar_t>(-2.0, -1.0,
-                                                                  0.0, 1.0,
-                                                                  -4.0)  // flag
-);
+const auto combi =
+    ::testing::Combine(::testing::Values(11, 1002),       // size
+                       ::testing::Values(4),              // incX
+                       ::testing::Values(3),              // incY
+                       ::testing::Values<scalar_t>(-2.0, -1.0, 0.0, 1.0,
+                                                   -4.0)  // flag
+    );
 #endif
 
 template <class T>

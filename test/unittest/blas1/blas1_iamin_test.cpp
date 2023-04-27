@@ -70,8 +70,8 @@ void run_test(const combination_t<scalar_t> combi) {
   if (api == api_type::async) {
     auto gpu_out_s = blas::make_sycl_iterator_buffer<tuple_t>(&out_s, 1);
     _iamin(sb_handle, size, gpu_x_v, incX, gpu_out_s);
-    auto event = blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s,
-                                            &out_s, 1);
+    auto event =
+        blas::helper::copy_to_host(sb_handle.get_queue(), gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
   } else {
     out_s.ind = _iamin(sb_handle, size, gpu_x_v, incX);

@@ -154,8 +154,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto trsm_params = blas_benchmark::utils::get_trsm_params<scalar_t>(args);
 
   for (auto p : trsm_params) {
@@ -167,7 +167,8 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          char side, char uplo, char trans, char diag, index_t m,
                          index_t n, scalar_t alpha, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, side, uplo, trans, diag, m, n, alpha, success);
+      run<scalar_t>(st, sb_handle_ptr, side, uplo, trans, diag, m, n, alpha,
+                    success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(side, uplo, trans, diag, m, n).c_str(), BM_lambda,
@@ -177,8 +178,8 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark
