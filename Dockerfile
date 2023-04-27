@@ -90,6 +90,7 @@ CMD cd /sycl-blas && \
         echo "Unknown SYCL implementation ${SYCL_IMPL}"; return 1; \
       fi \
     elif [ "${COMMAND}" = 'auto-tuner' ]; then \
+      if [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
         if [ "${TARGET}" = 'host' ]; then \
           export COMPUTECPP_TARGET="host" && mkdir -p tools/gemm_tuner/build && \
           cd tools/gemm_tuner/build && \
