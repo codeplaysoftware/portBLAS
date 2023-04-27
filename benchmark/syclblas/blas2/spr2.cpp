@@ -38,10 +38,6 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int n, scalar_t alpha, int incX, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, n);
-  // The counters are double. We convert size to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  double size_d = static_cast<double>(n * (n + 1) / 2);
-  const double n_d = static_cast<double>(n);
 
   index_t incY = 1;
 
