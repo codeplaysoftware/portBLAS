@@ -44,20 +44,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
   // Temporarely set incY to 1 for all benchmarks
   index_t incY = 1;
 
-  state.counters["n"] = n_d;
-  state.counters["size_d"] = size_d;
-  state.counters["alpha"] = static_cast<double>(alpha);
-  state.counters["incX"] = incX;
-
-  const double nflops_XtimesX = 4.0 * size_d;
-  const double tot_nflops = size + nflops_XtimesX;
-  state.counters["n_fl_ops"] = tot_nflops;
-
-  const double mem_readWriteA = 2 * size_d;
-  const double mem_readXreadY = 2 * static_cast<double>(n_d * std::abs(incX));
-  const double tot_mem_processed =
-      (mem_readWriteA + mem_readXreadY) * sizeof(scalar_t);
-  state.counters["bytes_processed"] = tot_mem_processed;
+  blas_benchmark::utils::init_level_2_counters<
+      blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, size);
 
   ExecutorType& ex = *executorPtr;
 
@@ -114,8 +102,8 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
   auto blas_method_def = [&]() -> std::vector<cl_event> {
     cl_event event;
     clblast::Spr2<scalar_t>(layout, triangle, size, alpha, v_x_gpu.dev(), 0,
-                           incX, v_y_gpu.dev(), 0, incY, m_a_gpu.dev(), 0,
-                           executorPtr->_queue(), &event);
+                            incX, v_y_gpu.dev(), 0, incY, m_a_gpu.dev(), 0,
+                            executorPtr->_queue(), &event);
     CLEventHandler::wait(event);
     return {event};
   };
@@ -135,8 +123,9 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
     blas_benchmark::utils::update_counters(state, times);
   }
 
-  state.SetBytesProcessed(state.iterations() * tot_mem_processed);
-  state.SetItemsProcessed(state.iterations() * tot_nflops);
+  state.SetItemsProcessed(state.iterations() * state.counters["n_fl_ops"]);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
 }
@@ -160,7 +149,8 @@ void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        exPtr, uplo_c, n, alpha, incX, success);
+        exPtr, uplo_c, n, alpha, incX, success)
+        ->UseRealTime();
   }
 }
 
