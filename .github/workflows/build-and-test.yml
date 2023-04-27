@@ -40,18 +40,31 @@ jobs:
       matrix:
         include:
           - impl: "COMPUTECPP"
+            command: "build-test"
             cxx_compiler: "g++-7"
             cc_compiler: "gcc-7"
             target: "opencl"
           - impl: "COMPUTECPP"
+            command: "build-test"
             cxx_compiler: "clang++-6.0"
             cc_compiler: "clang-6.0"
             target: "opencl"
           - impl: "DPCPP"
+            command: "build-test"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
             target: "opencl"
-    
+          - impl: "DPCPP"
+            command: "auto-tuner"
+            cxx_compiler: "/tmp/dpcpp/bin/clang++"
+            cc_compiler: "/tmp/dpcpp/bin/clang"
+            target: "opencl"
+          - impl: ""
+            command: "format"
+            cxx_compiler: ""
+            cc_compiler: ""
+            target: ""
+
     steps:
     - uses: actions/checkout@v3.5.2
     - name: Push Event Environment Vars
@@ -76,6 +89,7 @@ jobs:
                          --build-arg git_slug=${GIT_SLUG}
                          --build-arg impl=${IMPL}
                          --build-arg target=${TARGET}
+                         --build-arg command=${COMMAND}
                          -t sycl-blas .
     - name: Run the Docker image
       run: docker run -t sycl-blas
