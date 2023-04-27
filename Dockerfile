@@ -92,22 +92,22 @@ CMD cd /sycl-blas && \
     elif [ "${COMMAND}" = 'auto-tuner' ]; then \
       if [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
         if [ "${TARGET}" = 'host' ]; then \
-          export COMPUTECPP_TARGET="host" && mkdir -p tools/gemm_tuner/build && \
-          cd tools/gemm_tuner/build && \
+          export COMPUTECPP_TARGET="host" && mkdir -p tools/auto_tuner/build && \
+          cd tools/auto_tuner/build && \
           cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
           -DSYCL_COMPILER=computecpp -DComputeCpp_DIR=/tmp/ComputeCpp-latest \
           -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build -DCMAKE_BUILD_TYPE=Release; \
         else \
           /tmp/ComputeCpp-latest/bin/computecpp_info && \
-          export COMPUTECPP_TARGET="intel:cpu" && mkdir -p tools/gemm_tuner/build \
-          && cd tools/gemm_tuner/build && \
+          export COMPUTECPP_TARGET="intel:cpu" && mkdir -p tools/auto_tuner/build \
+          && cd tools/auto_tuner/build && \
           cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
           -DSYCL_COMPILER=computecpp -DComputeCpp_DIR=/tmp/ComputeCpp-latest \
           -DCMAKE_BUILD_TYPE=Release; \
         fi \
       elif [ "${SYCL_IMPL}" = 'DPCPP' ]; then \
-        export LD_LIBRARY_PATH="/tmp/dpcpp/lib" && mkdir -p tools/gemm_tuner/build \
-        && cd tools/gemm_tuner/build && \
+        export LD_LIBRARY_PATH="/tmp/dpcpp/lib" && mkdir -p tools/auto_tuner/build \
+        && cd tools/auto_tuner/build && \
         cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
         -DSYCL_COMPILER=dpcpp \
         -DBLAS_ENABLE_CONST_INPUT=OFF -DCMAKE_BUILD_TYPE=Release && \
