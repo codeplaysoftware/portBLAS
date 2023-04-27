@@ -41,14 +41,14 @@ RUN if [ "${command}" = 'format' ]; then apt-get install -yq                 \
     clang-format; fi
 
 # OpenCL ICD Loader
-RUN if [ "${command}" = 'build-test' || "${command}" = 'auto-tuner' ]; then   \
+RUN if [ "${command}" -eq 'build-test'] || ["${command}" -eq 'auto-tuner' ]; then   \
     apt-get install -yq --allow-downgrades --allow-remove-essential               \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers; fi
 
 RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /sycl-blas
 
 #OpenBLAS
-RUN if [ "${command}" = 'build-test' || "${command}" = 'auto-tuner' ]; then   \
+RUN if [ "${command}" -eq 'build-test'] || ["${command}" -eq 'auto-tuner' ]; then   \
     bash /sycl-blas/.scripts/build_OpenBLAS.sh; fi
 # Intel OpenCL Runtime
 RUN if [ "${target}" = 'opencl' ]; then bash /sycl-blas/.scripts/install_intel_opencl.sh; fi
@@ -121,4 +121,3 @@ CMD cd /sycl-blas && \
     else \
       echo "Unknown command ${COMMAND}"; return 1; \
     fi \
-
