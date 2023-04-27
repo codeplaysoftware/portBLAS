@@ -117,7 +117,7 @@ CMD cd /sycl-blas && \
     elif [ "${COMMAND}" = 'format' ]; then \
       find . | grep -E ".*(\.c|\.cc|\.cpp|\.h|\.hh|\.hpp)$" | xargs clang-format -i --style=file --Werror --dry-run \
     fi \
-    else
+    else \
       echo "Unknown command ${COMMAND}"; return 1; \
     fi \
 
