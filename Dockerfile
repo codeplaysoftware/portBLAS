@@ -36,10 +36,6 @@ RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
     g++-7 gcc-7; fi
 
-RUN if [ "${command}" = 'format' ]; then apt-get install -yq                 \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-    clang-format; fi
-
 # OpenCL ICD Loader
 RUN if [ "${command}" = 'build-test' ] || [ "${command}" = 'auto-tuner' ]; then   \
     apt-get install -yq --allow-downgrades --allow-remove-essential               \
@@ -115,8 +111,6 @@ CMD cd /sycl-blas && \
       else \
         echo "Unknown SYCL implementation ${SYCL_IMPL}"; return 1; \
       fi \
-    elif [ "${COMMAND}" = 'format' ]; then \
-      find . | grep -E ".*(\.c|\.cc|\.cpp|\.h|\.hh|\.hpp)$" | xargs clang-format -i --style=file --Werror --dry-run; \
     else \
       echo "Unknown command ${COMMAND}"; return 1; \
     fi \
