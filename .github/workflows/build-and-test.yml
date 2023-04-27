@@ -83,6 +83,7 @@ jobs:
         CXX_COMPILER: ${{matrix.cxx_compiler}}
         IMPL: ${{matrix.impl}}
         TARGET: ${{matrix.target}}
+        COMMAND: ${{matrix.command}}
       run: docker build --build-arg c_compiler=${C_COMPILER}
                          --build-arg cxx_compiler=${CXX_COMPILER}
                          --build-arg git_branch=${GIT_BRANCH}
