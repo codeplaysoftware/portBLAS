@@ -26,8 +26,8 @@
 #ifndef SYCL_BLAS_EXTENSION_INTERFACE_H
 #define SYCL_BLAS_EXTENSION_INTERFACE_H
 
-#include "operations/extension/reduction.h"
 #include "operations/extension/matcopy.h"
+#include "operations/extension/reduction.h"
 #include "sb_handle/sycl_blas_handle.h"
 
 namespace blas {
@@ -37,11 +37,11 @@ namespace extension {
 namespace internal {
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename in_out_t>
-typename sb_handle_t::event_t _imatcopy(sb_handle_t& sb_handle, char trans,
-                                        index_t m, index_t n, element_t alpha,
-                                        in_out_t memory, index_t ld_in,
-                                        index_t ld_out);
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
+                                       index_t m, index_t n, element_t alpha,
+                                       in_t memory, index_t ld_in,
+                                       out_t out_memory, index_t ld_out);
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -59,8 +59,18 @@ typename sb_handle_t::event_t _imatcopy(sb_handle_t& sb_handle, char trans,
                                         index_t m, index_t n, element_t alpha,
                                         in_out_t memory, index_t ld_in,
                                         index_t ld_out) {
-  return internal::_imatcopy(sb_handle, trans, m, n, alpha, memory, ld_in,
-                             ld_out);
+  return internal::_matcopy(sb_handle, trans, m, n, alpha, memory, ld_in,
+                            memory, ld_out);
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
+                                        index_t m, index_t n, element_t alpha,
+                                        in_t in_memory, index_t ld_in,
+                                        out_t out_memory, index_t ld_out) {
+  return internal::_matcopy(sb_handle, trans, m, n, alpha, in_memory, ld_in,
+                            out_memory, ld_out);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,

@@ -862,7 +862,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:gemm>
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>
-                $<TARGET_OBJECTS:imatcopy>)
+                $<TARGET_OBJECTS:matcopy>)
 
   if (${ENABLE_EXTENSIONS})
     list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
