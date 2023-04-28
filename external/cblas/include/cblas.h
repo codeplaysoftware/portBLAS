@@ -572,6 +572,19 @@ void cblas_dimatcopy(const enum CBLAS_ORDER CORDER,
                      const int ccols, const double calpha, double *a,
                      const int clda, const int cldb);
 
+void cblas_somatcopy(const enum CBLAS_ORDER CORDER,
+                     const enum CBLAS_TRANSPOSE CTRANS,
+                     const int crows, const int ccols,
+                     const float calpha, const float *a,
+                     const int clda, float *b,
+                     const int cldb);
+void cblas_domatcopy(const enum CBLAS_ORDER CORDER,
+                     const enum CBLAS_TRANSPOSE CTRANS,
+                     const int crows, const int ccols,
+                     const double calpha, const double *a,
+                     const int clda, double *b,
+                     const int cldb);
+
 #ifdef __cplusplus
 }
 #endif

@@ -19,25 +19,23 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename imatcopy.cpp.in
+ *  @filename matcopy.cpp.in
  *
  **************************************************************************/
 
-#include "operations/extension/matcopy.hpp"
-#include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/extension_interface.hpp"
-#include "operations/blas_constants.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 
 namespace blas {
 namespace extension {
 namespace internal {
 
-template 
-typename SB_Handle::event_t _imatcopy(
-    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n, ${DATA_TYPE} alpha,
-    ${container_t} memory, ${INDEX_TYPE} ld_in, ${INDEX_TYPE} ld_out);
+// This function represents both imatcopy and omatcopy operators
+template typename SB_Handle::event_t _matcopy(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
+    ${container_t} out_memory, ${INDEX_TYPE} ld_out);
 
 }  // namespace internal
 }  // namespace extension

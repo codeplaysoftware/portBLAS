@@ -23,7 +23,7 @@
 # *
 # **************************************************************************/
 
-generate_blas_extension_objects(extension imatcopy)
+generate_blas_extension_objects(extension matcopy)
 
 if(${BLAS_ENABLE_EXTENSIONS})
     generate_blas_reduction_objects(extension reduction)
