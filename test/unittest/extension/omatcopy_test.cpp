@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename imatcopy_test.cpp
+ *  @filename omatcopy_test.cpp
  *
  **************************************************************************/
 
@@ -45,35 +45,39 @@ void run_test(const combination_t<scalar_t> combi) {
 
   int64_t size = std::max(ld_in, ld_out) * (trans == 't' ? std::max(m, n) : n);
   std::vector<scalar_t> A(size);
+  std::vector<scalar_t> B(size);
 
   fill_random(A);
 
   std::vector<scalar_t> A_ref = A;
+  std::vector<scalar_t> B_ref = B;
 
   // Reference implementation
-  reference_blas::imatcopy(trans, m, n, alpha, A_ref.data(), ld_in, ld_out);
+  reference_blas::omatcopy(trans, m, n, alpha, A_ref.data(), ld_in,
+                           B_ref.data(), ld_out);
 
-  auto matrix = blas::make_sycl_iterator_buffer<scalar_t>(A, size);
+  auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size);
+  auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size);
 
-  blas::extension::_imatcopy(sb_handle, trans, m, n, alpha, matrix, ld_in,
-                             ld_out);
+  blas::extension::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in,
+                             matrix_out, ld_out);
 
   auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                    matrix, A.data(), size);
+                                                    matrix_out, B.data(), size);
   sb_handle.wait(event);
 
   // Validate the result
-  const bool isAlmostEqual = utils::compare_vectors(A, A_ref);
+  const bool isAlmostEqual = utils::compare_vectors(B, B_ref);
   ASSERT_TRUE(isAlmostEqual);
 }
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values<char>('n'),
-                                      ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<int64_t>(2, 3),
+                                      ::testing::Values<int64_t>(64, 128, 256, 512),
+                                      ::testing::Values<int64_t>(64, 128, 256, 512),
                                       ::testing::Values<scalar_t>(2),
-                                      ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<int64_t>(2, 3));
+                                      ::testing::Values<int64_t>(64, 128, 256, 512),
+                                      ::testing::Values<int64_t>(64, 128, 256, 512));
 
 template <class T>
 static std::string generate_name(
@@ -84,4 +88,4 @@ static std::string generate_name(
   BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, ld_in, ld_out);
 }
 
-BLAS_REGISTER_TEST_ALL(ImatCopy, combination_t, combi, generate_name);
+BLAS_REGISTER_TEST_ALL(OmatCopy, combination_t, combi, generate_name);
