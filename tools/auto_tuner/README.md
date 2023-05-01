@@ -11,7 +11,7 @@ Building
 --------
 
 1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
-2. Create a build directory as `tools/gemm_tuner/build`.
+2. Create a build directory as `tools/auto_tuner/build`.
 3. Run `CMake` and `Ninja` from the build directory:
 
 ```
