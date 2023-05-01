@@ -81,8 +81,7 @@ template <typename scalar_t>
 using ger_param_t = std::tuple<index_t, index_t, scalar_t>;
 
 template <typename scalar_t>
-using spr_param_t =
-    std::tuple<std::string, index_t, scalar_t, index_t, scalar_t>;
+using spr_param_t = std::tuple<std::string, index_t, scalar_t, index_t>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
