@@ -743,9 +743,8 @@ typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
                                            container_t0 _vx, increment_t _incx,
                                            container_t1 _vy, increment_t _incy,
                                            container_t2 _mPA) {
-  return internal::_spr2<sb_handle_t, index_t, element_t, container_t0,
-                         increment_t, container_t1, container_t2>(
-      sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy, _mPA);
+  return internal::_spr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
+                         _mPA);
 }
 
 /*!

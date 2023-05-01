@@ -70,9 +70,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
     auto m_a_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(m_a_temp, m_size);
 
-    blas::_spr2<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu), index_t,
-                decltype(v_y_gpu), decltype(m_a_gpu)>(
-        sb_handle, uplo, n, alpha, v_x_gpu, incX, v_y_gpu, incY, m_a_temp_gpu);
+    blas::_spr2(sb_handle, uplo, n, alpha, v_x_gpu, incX, v_y_gpu, incY,
+                m_a_temp_gpu);
     sb_handle.wait();
   }
 
@@ -85,10 +84,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event =
-        blas::_spr2<blas::SB_Handle, index_t, scalar_t, decltype(v_x_gpu),
-                    index_t, decltype(v_x_gpu), decltype(m_a_gpu)>(
-            sb_handle, uplo, n, alpha, v_x_gpu, incX, v_y_gpu, incY, m_a_gpu);
+    auto event = blas::_spr2(sb_handle, uplo, n, alpha, v_x_gpu, incX, v_y_gpu,
+                             incY, m_a_gpu);
     sb_handle.wait(event);
     return event;
   };
@@ -129,11 +126,11 @@ void register_benchmark(blas_benchmark::Args& args,
 
     char uplo_c = uplo[0];
 
-    auto BM_lambda_col = [&](benchmark::State& st,
-                             blas::SB_Handle* sb_handle_ptr, char uplo, int n,
-                             scalar_t alpha, int incX, int incY, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, uplo, n, alpha, incX, incY, success);
-    };
+    auto BM_lambda_col =
+        [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
+            int n, scalar_t alpha, int incX, int incY, bool* success) {
+          run<scalar_t>(st, sb_handle_ptr, uplo, n, alpha, incX, incY, success);
+        };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplo_c, n, alpha, incX, incY).c_str(), BM_lambda_col,
         sb_handle_ptr, uplo_c, n, alpha, incX, incY, success)
