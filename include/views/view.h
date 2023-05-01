@@ -27,7 +27,6 @@
 #define SYCL_BLAS_VIEW_H
 
 #include "blas_meta.h"
-#include "container/sycl_iterator.h"
 #include <iostream>
 #include <stdexcept>
 #include <vector>

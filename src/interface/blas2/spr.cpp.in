@@ -24,10 +24,8 @@
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
 #include "interface/blas2_interface.hpp"
-#include "operations/blas2_trees.hpp"
 #include "sb_handle/kernel_constructor.hpp"
 #include "sb_handle/sycl_blas_handle.hpp"
-#include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
@@ -36,7 +34,8 @@ template typename SB_Handle::event_t
 _spr<SB_Handle, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}, ${INCREMENT_TYPE},
      ${container_t1}>(SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N,
                       ${DATA_TYPE} _alpha, ${container_t0} _vx,
-                      ${INCREMENT_TYPE} _incx, ${container_t1} _mPA, const typename SB_Handle::event_t& _dependencies);
+                      ${INCREMENT_TYPE} _incx, ${container_t1} _mPA,
+                      const typename SB_Handle::event_t& _dependencies);
 
 }  // namespace internal
 }  // namespace blas
