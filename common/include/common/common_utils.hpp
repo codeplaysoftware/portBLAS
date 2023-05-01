@@ -33,6 +33,9 @@ using blas2_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
+using copy_param_t = std::tuple<index_t, index_t, index_t, scalar_t>;
+
+template <typename scalar_t>
 using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
                                  index_t, scalar_t, scalar_t>;
 
@@ -78,7 +81,8 @@ template <typename scalar_t>
 using ger_param_t = std::tuple<index_t, index_t, scalar_t>;
 
 template <typename scalar_t>
-using spr_param_t = std::tuple<std::string, index_t, scalar_t, index_t>;
+using spr_param_t =
+    std::tuple<std::string, index_t, scalar_t, index_t, scalar_t>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
@@ -283,6 +287,44 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
                                    str_to_int<index_t>(v[2]),
                                    str_to_scalar<scalar_t>(v[3]),
                                    str_to_scalar<scalar_t>(v[4]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_copy_params
+ * @brief Returns a vector containing the blas1 copy benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<copy_param_t<scalar_t>> default_values;
+    for (index_t incx = 1; incx <= 8; incx *= 2) {
+      for (index_t incy = 1; incy <= 8; incy *= 2) {
+        for (index_t size = 4096; size <= 536870912; size *= 2) {
+          default_values.push_back(
+              std::make_tuple(size, incx, incy, scalar_t(0)));
+        }
+      }
+    }
+    return default_values;
+  } else {
+    return parse_csv_file<copy_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(str_to_int<index_t>(v[0]),
+                                   str_to_int<index_t>(v[1]),
+                                   str_to_int<index_t>(v[2]), scalar_t(0));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
