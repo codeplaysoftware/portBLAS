@@ -26,24 +26,16 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
+std::string get_name(char uplo, int size, scalar_t alpha, int incX, int incY) {
   std::ostringstream str{};
   str << "BM_Spr2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << size << "/" << alpha << "/" << incX;
+      << uplo << "/" << size << "/" << alpha << "/" << incX << "/" << incY;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
-         int size, scalar_t alpha, int incX, bool* success) {
-  // The counters are double. We convert size to double to avoid
-  // integer overflows for n_fl_ops and bytes_processed
-  const double size_d = static_cast<double>(size * (size + 1) / 2);
-  const double n_d = static_cast<double>(size);
-
-  // Temporarely set incY to 1 for all benchmarks
-  index_t incY = 1;
-
+         int size, scalar_t alpha, int incX, int incY, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, size);
 
@@ -133,23 +125,23 @@ void run(benchmark::State& state, ExecutorType* executorPtr, char uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, ExecutorType* exPtr,
                         bool* success) {
-  auto spr2_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
+  auto spr2_params = blas_benchmark::utils::get_spr2_params<scalar_t>(args);
 
   for (auto p : spr2_params) {
-    int n, incX;
+    int n, incX, incY;
     std::string uplo;
     scalar_t alpha;
-    std::tie(uplo, n, alpha, incX) = p;
+    std::tie(uplo, n, alpha, incX, incY) = p;
 
     char uplo_c = uplo[0];
     auto BM_lambda_col = [&](benchmark::State& st, ExecutorType* exPtr,
                              char uplo, int size, scalar_t alpha, int incX,
-                             bool* success) {
-      run<scalar_t>(st, exPtr, uplo, size, alpha, incX, success);
+                             int incY, bool* success) {
+      run<scalar_t>(st, exPtr, uplo, size, alpha, incX, incY, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        exPtr, uplo_c, n, alpha, incX, success)
+        get_name<scalar_t>(uplo_c, n, alpha, incX, incY).c_str(), BM_lambda_col,
+        exPtr, uplo_c, n, alpha, incX, incY, success)
         ->UseRealTime();
   }
 }

@@ -26,37 +26,36 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(char uplo, int size, scalar_t alpha, int incX) {
+std::string get_name(char uplo, int size, scalar_t alpha, int incX, int incY) {
   std::ostringstream str{};
   str << "BM_Spr2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << size << "/" << alpha << "/" << incX;
+      << uplo << "/" << size << "/" << alpha << "/" << incX << "/" << incY;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
-         int n, scalar_t alpha, int incX, bool* success) {
+         int n, scalar_t alpha, int incX, int incY, bool* success) {
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, n);
-
-  index_t incY = 1;
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   const int m_size = n * n;
-  const int v_size = 1 + (n - 1) * std::abs(incX);
+  const int vx_size = 1 + (n - 1) * std::abs(incX);
+  const int vy_size = 1 + (n - 1) * std::abs(incY);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
       blas_benchmark::utils::random_data<scalar_t>(m_size);
   std::vector<scalar_t> v_x =
-      blas_benchmark::utils::random_data<scalar_t>(v_size);
+      blas_benchmark::utils::random_data<scalar_t>(vx_size);
   std::vector<scalar_t> v_y =
-      blas_benchmark::utils::random_data<scalar_t>(v_size);
+      blas_benchmark::utils::random_data<scalar_t>(vy_size);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_size);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, v_size);
-  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, v_size);
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, vx_size);
+  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, vy_size);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -120,24 +119,24 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto spr2_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
+  auto spr2_params = blas_benchmark::utils::get_spr2_params<scalar_t>(args);
 
   for (auto p : spr2_params) {
-    int n, incX;
+    int n, incX, incY;
     std::string uplo;
     scalar_t alpha;
-    std::tie(uplo, n, alpha, incX) = p;
+    std::tie(uplo, n, alpha, incX, incY) = p;
 
     char uplo_c = uplo[0];
 
     auto BM_lambda_col = [&](benchmark::State& st,
                              blas::SB_Handle* sb_handle_ptr, char uplo, int n,
-                             scalar_t alpha, int incX, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, uplo, n, alpha, incX, success);
+                             scalar_t alpha, int incX, int incY, bool* success) {
+      run<scalar_t>(st, sb_handle_ptr, uplo, n, alpha, incX, incY, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplo_c, n, alpha, incX).c_str(), BM_lambda_col,
-        sb_handle_ptr, uplo_c, n, alpha, incX, success)
+        get_name<scalar_t>(uplo_c, n, alpha, incX, incY).c_str(), BM_lambda_col,
+        sb_handle_ptr, uplo_c, n, alpha, incX, incY, success)
         ->UseRealTime();
   }
 }
