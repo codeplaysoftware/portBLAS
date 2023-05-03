@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename tbsv.cpp
+ *  @filename tpsv.cpp
  *
  **************************************************************************/
 
@@ -27,21 +27,17 @@
 
 template <typename scalar_t>
 std::string get_name(std::string uplo, std::string t, std::string diag,
-                     const int n, const int k) {
+                     const int n) {
   std::ostringstream str{};
-  str << "BM_Tbsv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << t << "/" << diag << "/" << n << "/" << k;
+  str << "BM_Tpsv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
+      << uplo << "/" << t << "/" << diag << "/" << n;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          std::string uplo, std::string t, std::string diag, index_t n,
-         index_t k, bool* success) {
-  // initialize the state label
-  blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
-
+         bool* success) {
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
   const char* t_str = t.c_str();
@@ -49,43 +45,43 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 
   index_t incX = 1;
   index_t xlen = 1 + (n - 1) * incX;
-  index_t lda = (k + 1);
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::tbsv, scalar_t>(state, "n", 0, 0, n, k);
+      blas_benchmark::utils::Level2Op::tpsv, scalar_t>(state, "n", 0, 0, n);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
+  index_t m_size = ((n + 1) * n) / 2;
+
   // Input matrix/vector, output vector.
-  std::vector<scalar_t> m_a(lda * n);
+  std::vector<scalar_t> m_a(m_size);
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
   // Populate the main diagonal with larger values.
-  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
-  for (index_t j = 0; j < n; ++j)
-    for (index_t i = 0; i < lda; ++i)
-      m_a[i + lda * j] =
-          (i == main_diag)
-              ? blas_benchmark::utils::random_scalar(scalar_t{9}, scalar_t{11})
-              : (blas_benchmark::utils::random_scalar(scalar_t{-10},
-                                                      scalar_t{10}) /
-                 scalar_t(n));
+  {
+    int d_idx = 0;
+    for (int i = 0; i < n; ++i) {
+      m_a[d_idx] =
+          blas_benchmark::utils::random_scalar(scalar_t{50}, scalar_t{100});
+      d_idx += (*uplo_str == 'u') ? 2 + i : n - i;
+    }
+  }
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, lda * n);
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_size);
   auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> v_x_ref = v_x;
-  reference_blas::tbsv(uplo_str, t_str, diag_str, n, k, m_a.data(), lda,
-                       v_x_ref.data(), incX);
+  reference_blas::tpsv(uplo_str, t_str, diag_str, n, m_a.data(), v_x_ref.data(),
+                       incX);
   std::vector<scalar_t> v_x_temp = v_x;
   {
     auto v_x_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(v_x_temp, xlen);
-    auto event = _tbsv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
-                       lda, v_x_temp_gpu, incX);
+    auto event = _tpsv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
+                       v_x_temp_gpu, incX);
     sb_handle.wait();
   }
 
@@ -98,8 +94,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _tbsv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
-                       lda, v_x_gpu, incX);
+    auto event = _tpsv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
+                       v_x_gpu, incX);
     sb_handle.wait(event);
     return event;
   };
@@ -130,24 +126,24 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto tbsv_params = blas_benchmark::utils::get_tbmv_params(args);
+  // tpsv uses the same parameters as trsv
+  auto tpsv_params = blas_benchmark::utils::get_trsv_params(args);
 
-  for (auto p : tbsv_params) {
+  for (auto p : tpsv_params) {
     std::string uplos;
     std::string ts;
     std::string diags;
     index_t n;
-    index_t k;
-    std::tie(uplos, ts, diags, n, k) = p;
+    std::tie(uplos, ts, diags, n) = p;
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          std::string uplos, std::string ts, std::string diags,
-                         index_t n, index_t k, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, uplos, ts, diags, n, k, success);
+                         index_t n, bool* success) {
+      run<scalar_t>(st, sb_handle_ptr, uplos, ts, diags, n, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplos, ts, diags, n, k).c_str(), BM_lambda,
-        sb_handle_ptr, uplos, ts, diags, n, k, success)
+        get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda,
+        sb_handle_ptr, uplos, ts, diags, n, success)
         ->UseRealTime();
   }
 }

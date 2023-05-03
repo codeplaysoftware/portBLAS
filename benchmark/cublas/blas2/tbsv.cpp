@@ -56,9 +56,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
-  index_t lda = (k + 1);
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * incX;
+  index_t lda = (k + 1);
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::tbsv, scalar_t>(state, "n", 0, 0, n, k);

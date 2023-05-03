@@ -19,20 +19,18 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename blas2_trees.hpp
+ *  @filename tpsv.cpp.in
  *
  **************************************************************************/
+#include "interface/blas2_interface.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 
-#ifndef SYCL_BLAS_BLAS2_TREES_HPP
-#define SYCL_BLAS_BLAS2_TREES_HPP
+namespace blas {
+namespace internal {
+template typename SB_Handle::event_t _tpsv(
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${container_t0} _mA, ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
 
-#include "blas2/gbmv.hpp"
-#include "blas2/gemv.hpp"
-#include "blas2/ger.hpp"
-#include "blas2/sbmv.hpp"
-#include "blas2/spr.hpp"
-#include "blas2/tbmv.hpp"
-#include "blas2/txsv.hpp"
-#include "blas2/xpmv.hpp"
-
-#endif  // BLAS2_TREES_HPP
+}  // namespace internal
+}  // namespace blas

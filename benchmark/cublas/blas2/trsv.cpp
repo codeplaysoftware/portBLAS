@@ -55,9 +55,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
-  index_t lda = n;
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * incX;
+  index_t lda = n;
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::trsv, scalar_t>(state, "n", 0, 0, n);
@@ -70,8 +70,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
   // Populate the main diagonal with larger values.
-  for (int i = 0; i < n; ++i)
-    for (int j = 0; j < lda; ++j)
+  for (index_t i = 0; i < n; ++i)
+    for (index_t j = 0; j < lda; ++j)
       m_a[(i * lda) + j] = (i == j) ? blas_benchmark::utils::random_scalar(
                                           scalar_t{9}, scalar_t{11})
                                     : blas_benchmark::utils::random_scalar(

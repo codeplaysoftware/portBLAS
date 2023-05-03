@@ -54,8 +54,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * incX;
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::tpsv, scalar_t>(state, "n", 0, 0, n);
@@ -69,7 +69,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = n * n;  // Minimum required size
+  const int m_size = ((n + 1) * n) / 2;
   const int v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.

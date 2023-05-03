@@ -37,6 +37,7 @@ generate_blas_binary_objects(blas2 tpmv)
 generate_blas_binary_objects(blas2 spr)
 generate_blas_ternary_objects(blas2 spr2)
 generate_blas_binary_objects(blas2 tbsv)
+generate_blas_binary_objects(blas2 tpsv)
 generate_blas_binary_objects(blas2 trmv)
 generate_blas_binary_objects(blas2 trsv)
 
