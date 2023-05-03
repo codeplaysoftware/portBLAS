@@ -353,7 +353,7 @@ make_tbmv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
  * multiplication.
  */
 template <typename lhs_t, typename matrix_t, typename vector_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit>
 struct Trsv {
   using value_t = typename vector_t::value_t;
@@ -375,14 +375,14 @@ struct Trsv {
 /*!
  @brief Generator/factory for TRSV trees.
  */
-template <uint32_t x_range, uint32_t subgroups, bool is_upper,
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit, typename lhs_t, typename matrix_t,
           typename vector_t, typename sync_t>
-Trsv<lhs_t, matrix_t, vector_t, sync_t, x_range, subgroups, is_upper,
+Trsv<lhs_t, matrix_t, vector_t, sync_t, subgroup_size, subgroups, is_upper,
      is_transposed, is_unit>
 make_trsv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_, sync_t &sync_) {
-  return Trsv<lhs_t, matrix_t, vector_t, sync_t, x_range, subgroups, is_upper,
-              is_transposed, is_unit>(lhs_, matrix_, vector_, sync_);
+  return Trsv<lhs_t, matrix_t, vector_t, sync_t, subgroup_size, subgroups,
+              is_upper, is_transposed, is_unit>(lhs_, matrix_, vector_, sync_);
 }
 
 /**
@@ -391,7 +391,7 @@ make_trsv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_, sync_t &sync_) {
  * multiplication.
  */
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit>
 struct Tbsv {
   using value_t = typename vector_t::value_t;
@@ -413,14 +413,14 @@ struct Tbsv {
 /*!
  @brief Generator/factory for TBSV trees.
  */
-template <uint32_t x_range, uint32_t subgroups, bool is_upper,
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit, typename vector_t,
           typename matrix_t, typename sync_t>
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unit>
+Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+     is_transposed, is_unit>
 make_tbsv(vector_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
           sync_t &sync_) {
-  return Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper,
+  return Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
               is_transposed, is_unit>(lhs_, matrix_, k_, sync_);
 }
 
