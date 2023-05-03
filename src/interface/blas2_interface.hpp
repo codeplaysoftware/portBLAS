@@ -786,8 +786,8 @@ typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
   _Uplo = tolower(_Uplo);
   const int Upper = _Uplo == 'u';
   auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
-  auto vx = make_vector_view(_vx, _incx, (1 + (_N - 1) * std::abs(_incx)));
-  auto vy = make_vector_view(_vy, _incy, (1 + (_N - 1) * std::abs(_incy)));
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
