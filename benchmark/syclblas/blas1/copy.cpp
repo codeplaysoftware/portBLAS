@@ -37,9 +37,9 @@ template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          index_t incx, index_t incy, bool* success) {
   double size_d = static_cast<double>(size);
-  state.counters["size"] = size_d;
-  state.counters["n_fl_ops"] = 0.0;
-  state.counters["bytes_processed"] = size_d * sizeof(scalar_t);
+
+  blas_benchmark::utils::init_level_1_counters<
+      blas_benchmark::utils::Level1Op::copy, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -94,15 +94,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     blas_benchmark::utils::update_counters(state, times);
   }
 
+  state.SetItemsProcessed(0);
+  state.SetBytesProcessed(state.iterations() *
+                          state.counters["bytes_processed"]);
+
   blas_benchmark::utils::calc_avg_counters(state);
 }
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto params = blas_benchmark::utils::get_copy_params<scalar_t>(args);
+  auto copy_params = blas_benchmark::utils::get_copy_params<scalar_t>(args);
 
-  for (auto p : params) {
+  for (auto p : copy_params) {
     index_t size, incx, incy;
     scalar_t unused;  // Work around a dpcpp compiler bug
     std::tie(size, incx, incy, unused) = p;
@@ -114,7 +118,8 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(get_name<scalar_t>(size, incx, incy).c_str(),
                                  BM_lambda, sb_handle_ptr, size, incx, incy,
-                                 success);
+                                 success)
+        ->UseRealTime();
   }
 }
 

@@ -304,8 +304,8 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<copy_param_t<scalar_t>> default_values;
-    for (index_t incx = 1; incx <= 8; incx *= 2) {
-      for (index_t incy = 1; incy <= 8; incy *= 2) {
+    for (index_t incx = 1; incx <= 1; incx *= 2) {
+      for (index_t incy = 1; incy <= 1; incy *= 2) {
         for (index_t size = 4096; size <= 536870912; size *= 2) {
           default_values.push_back(
               std::make_tuple(size, incx, incy, scalar_t(0)));
