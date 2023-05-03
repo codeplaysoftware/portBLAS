@@ -33,7 +33,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  scalar_t unused; /* Work around dpcpp compiler bug */
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
   std::tie(size, incX, incY, unused) = combi;
 
   // Input vector

@@ -109,6 +109,7 @@ void register_benchmark(blas_benchmark::Args& args,
   for (auto p : copy_params) {
     index_t size, incx, incy;
     scalar_t unused;  // Work around a dpcpp compiler bug
+                      // (https://github.com/intel/llvm/issues/7075)
     std::tie(size, incx, incy, unused) = p;
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
