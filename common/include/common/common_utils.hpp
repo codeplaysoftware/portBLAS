@@ -356,7 +356,7 @@ static inline std::vector<spr2_param_t<scalar_t>> get_spr2_params(Args& args) {
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 5) {
             throw std::runtime_error(
-                "invalid number of parameters (4 expected)");
+                "invalid number of parameters (5 expected)");
           }
           try {
             return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
