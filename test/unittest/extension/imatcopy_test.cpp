@@ -71,7 +71,7 @@ template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values<char>('n'),
                                       ::testing::Values<int64_t>(2, 3),
                                       ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<scalar_t>(2),
+                                      ::testing::Values<scalar_t>(0,2),
                                       ::testing::Values<int64_t>(2, 3),
                                       ::testing::Values<int64_t>(2, 3));
 
