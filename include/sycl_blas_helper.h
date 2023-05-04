@@ -190,7 +190,8 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
 
 template <typename element_t>
 inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
-                            element_t value, size_t size) {
+                            element_t value, size_t size,
+                            const std::vector<cl::sycl::event> &) {
   auto event = q.submit([&](cl::sycl::handler &cgh) {
     auto acc = buff.template get_range_accessor<cl::sycl::access::mode::write>(
         cgh, size);
@@ -198,6 +199,20 @@ inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
   });
   return event;
 }
+
+#ifdef SB_ENABLE_USM
+template <typename element_t>
+inline cl::sycl::event fill(cl::sycl::queue q, element_t *buff, element_t value,
+                            size_t size,
+                            const std::vector<cl::sycl::event> &dependencies) {
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
+    cgh.depends_on(dependencies);
+    cgh.fill(buff, value, size);
+  });
+  return event;
+}
+#endif
+
 }  // end namespace helper
 }  // end namespace blas
 #endif  // SYCL_BLAS_HELPER_H

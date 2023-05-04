@@ -28,13 +28,14 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using gemm_arguments_t = std::tuple<int, int, int, int, int, char, char, T, T,
-                                    int, int, int, gemm_batch_type_t>;
+using gemm_arguments_t =
+    std::tuple<std::string, int, int, int, int, int, char, char, T, T, int, int,
+               int, gemm_batch_type_t>;
 
 template <typename T>
 using gemm_batched_strided_arguments_t =
-    std::tuple<int, int, int, int, int, char, char, T, T, int, int, int, int,
-               int, int>;
+    std::tuple<std::string, int, int, int, int, int, char, char, T, T, int, int,
+               int, int, int, int>;
 
 // Convert batch_type=strided to interleaved on the host
 template <typename scalar_t>
@@ -70,8 +71,9 @@ inline std::vector<scalar_t> interleaved_to_strided(
   return output;
 }
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+  std::string alloc;
   index_t offset;
   index_t batch;
   index_t m;
@@ -85,7 +87,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   index_t ldb_mul;
   index_t ldc_mul;
   gemm_batch_type_t batch_type;
-  std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
+  std::tie(alloc, offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, batch_type) = arguments;
 
   const char ta_str[2] = {transa, '\0'};
@@ -131,29 +133,33 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
     c_m_gpu = strided_to_interleaved(c_m_gpu, offset, ldc, n, batch);
   }
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_a);
-  auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
-  auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_a, q);
+  auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_b, q);
+  auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
 
-  blas::helper::copy_to_device(sb_handle.get_queue(), a_m.data(), m_a_gpu,
-                               buffer_size_a);
-  blas::helper::copy_to_device(sb_handle.get_queue(), b_m.data(), m_b_gpu,
-                               buffer_size_b);
-  blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
-                               buffer_size_c);
+  auto copy_a =
+      blas::helper::copy_to_device(q, a_m.data(), m_a_gpu, buffer_size_a);
+  auto copy_b =
+      blas::helper::copy_to_device(q, b_m.data(), m_b_gpu, buffer_size_b);
+  auto copy_c =
+      blas::helper::copy_to_device(q, c_m_gpu.data(), m_c_gpu, buffer_size_c);
 
   // SYCL BLAS GEMM implementation
+  typename blas::SB_Handle::event_t gemm_event;
   if (batch == 1) {
-    _gemm(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
-          m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
+    gemm_event = _gemm(sb_handle, transa, transb, m, n, k, alpha,
+                       m_a_gpu + offset, lda, m_b_gpu + offset, ldb, beta,
+                       m_c_gpu + offset, ldc, {copy_a, copy_b, copy_c});
   } else {
-    _gemm_batched(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset,
-                  lda, m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc,
-                  batch, batch_type);
+    gemm_event = _gemm_batched(sb_handle, transa, transb, m, n, k, alpha,
+                               m_a_gpu + offset, lda, m_b_gpu + offset, ldb,
+                               beta, m_c_gpu + offset, ldc, batch, batch_type,
+                               {copy_a, copy_b, copy_c});
   }
+  sb_handle.wait(gemm_event);
 
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
-                                          c_m_gpu.data(), buffer_size_c);
+  auto event =
+      blas::helper::copy_to_host(q, m_c_gpu, c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -164,6 +170,38 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(m_a_gpu, q);
+  helper::deallocate<mem_alloc>(m_b_gpu, q);
+  helper::deallocate<mem_alloc>(m_c_gpu, q);
+}
+
+template <typename scalar_t>
+inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+  std::string alloc;
+  index_t offset;
+  index_t batch;
+  index_t m;
+  index_t n;
+  index_t k;
+  char transa;
+  char transb;
+  scalar_t alpha;
+  scalar_t beta;
+  index_t lda_mul;
+  index_t ldb_mul;
+  index_t ldc_mul;
+  gemm_batch_type_t batch_type;
+  std::tie(alloc, offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
+           ldb_mul, ldc_mul, batch_type) = arguments;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    verify_gemm<scalar_t, helper::AllocType::usm>(arguments);
+#endif
+  } else {
+    verify_gemm<scalar_t, helper::AllocType::buffer>(arguments);
+  }
 }
 
 template <>
@@ -175,17 +213,19 @@ inline void dump_arg<gemm_batch_type_t>(std::ostream& ss,
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<gemm_arguments_t<T>>& info) {
+  std::string alloc;
   int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul;
   char transa, transb;
   T alpha, beta;
   gemm_batch_type_t batchType;
-  BLAS_GENERATE_NAME(info.param, offset, batch, m, n, k, transa, transb, alpha,
-                     beta, ldaMul, ldbMul, ldcMul, batchType);
+  BLAS_GENERATE_NAME(info.param, alloc, offset, batch, m, n, k, transa, transb,
+                     alpha, beta, ldaMul, ldbMul, ldcMul, batchType);
 }
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(
     const gemm_batched_strided_arguments_t<scalar_t> arguments) {
+  std::string alloc;
   index_t offset;
   index_t batch;
   index_t m;
@@ -201,7 +241,7 @@ inline void verify_gemm(
   index_t stride_a_mul;
   index_t stride_b_mul;
   index_t stride_c_mul;
-  std::tie(offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
+  std::tie(alloc, offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, stride_a_mul, stride_b_mul, stride_c_mul) =
       arguments;
 
@@ -244,24 +284,26 @@ inline void verify_gemm(
                          c_m_cpu.data() + i * stride_c + offset, ldc);
   }
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_a);
-  auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_b);
-  auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(buffer_size_c);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_a, q);
+  auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_b, q);
+  auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_c, q);
 
-  blas::helper::copy_to_device(sb_handle.get_queue(), a_m.data(), m_a_gpu,
-                               buffer_size_a);
-  blas::helper::copy_to_device(sb_handle.get_queue(), b_m.data(), m_b_gpu,
-                               buffer_size_b);
-  blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
-                               buffer_size_c);
+  auto copy_a =
+      blas::helper::copy_to_device(q, a_m.data(), m_a_gpu, buffer_size_a);
+  auto copy_b =
+      blas::helper::copy_to_device(q, b_m.data(), m_b_gpu, buffer_size_b);
+  auto copy_c =
+      blas::helper::copy_to_device(q, c_m_gpu.data(), m_c_gpu, buffer_size_c);
 
   // SYCL BLAS GEMM STRIDED BATCHED implementation
-  _gemm_strided_batched(sb_handle, transa, transb, m, n, k, alpha,
-                        m_a_gpu + offset, lda, stride_a, m_b_gpu + offset, ldb,
-                        stride_b, beta, m_c_gpu + offset, ldc, stride_c, batch);
+  auto gemm_batched_event = _gemm_strided_batched(
+      sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
+      stride_a, m_b_gpu + offset, ldb, stride_b, beta, m_c_gpu + offset, ldc,
+      stride_c, batch, {copy_a, copy_b, copy_c});
 
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), m_c_gpu,
-                                          c_m_gpu.data(), buffer_size_c);
+  sb_handle.wait({gemm_batched_event});
+  auto event =
+      blas::helper::copy_to_host(q, m_c_gpu, c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
   const bool isAlmostEqual =
@@ -269,18 +311,55 @@ inline void verify_gemm(
           ? utils::compare_vectors(c_m_gpu, c_m_cpu)
           : utils::compare_vectors_strided(c_m_gpu, c_m_cpu, stride_c, size_c);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(m_a_gpu, q);
+  helper::deallocate<mem_alloc>(m_b_gpu, q);
+  helper::deallocate<mem_alloc>(m_c_gpu, q);
+}
+
+template <typename scalar_t>
+inline void verify_gemm(
+    const gemm_batched_strided_arguments_t<scalar_t> arguments) {
+  std::string alloc;
+  index_t offset;
+  index_t batch;
+  index_t m;
+  index_t n;
+  index_t k;
+  char transa;
+  char transb;
+  scalar_t alpha;
+  scalar_t beta;
+  index_t lda_mul;
+  index_t ldb_mul;
+  index_t ldc_mul;
+  index_t stride_a_mul;
+  index_t stride_b_mul;
+  index_t stride_c_mul;
+  std::tie(alloc, offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
+           ldb_mul, ldc_mul, stride_a_mul, stride_b_mul, stride_c_mul) =
+      arguments;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    verify_gemm<scalar_t, helper::AllocType::usm>(arguments);
+#endif
+  } else {
+    verify_gemm<scalar_t, helper::AllocType::buffer>(arguments);
+  }
 }
 
 template <class T>
 static std::string generate_batched_strided_name(
     const ::testing::TestParamInfo<gemm_batched_strided_arguments_t<T>>& info) {
+  std::string alloc;
   int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul, stride_a_mul,
       stride_b_mul, stride_c_mul;
   char transa, transb;
   T alpha, beta;
-  BLAS_GENERATE_NAME(info.param, offset, batch, m, n, k, transa, transb, alpha,
-                     beta, ldaMul, ldbMul, ldcMul, stride_a_mul, stride_b_mul,
-                     stride_c_mul);
+  BLAS_GENERATE_NAME(info.param, alloc, offset, batch, m, n, k, transa, transb,
+                     alpha, beta, ldaMul, ldbMul, ldcMul, stride_a_mul,
+                     stride_b_mul, stride_c_mul);
 }
 
 /** Registers GEMM test for all supported data types

@@ -54,11 +54,11 @@ set(sources
   blas2/trsv.cpp
   blas2/tbsv.cpp
   # Level 3 blas
-  # blas3/gemm.cpp
-  # blas3/gemm_batched.cpp
-  # blas3/gemm_batched_strided.cpp
-  # blas3/trsm.cpp
-  # blas3/symm.cpp
+  blas3/gemm.cpp
+  blas3/gemm_batched.cpp
+  blas3/gemm_batched_strided.cpp
+  blas3/trsm.cpp
+  blas3/symm.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})

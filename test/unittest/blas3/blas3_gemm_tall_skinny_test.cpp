@@ -28,6 +28,7 @@
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(7, 65),                      // m
@@ -46,6 +47,7 @@ GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMatch);
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMultiplied = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(7, 65),                      // m
@@ -64,6 +66,7 @@ GENERATE_GEMM_TEST(TallSkinnyGemm, BetaNonZeroLDMultiplied);
 
 template <typename scalar_t>
 const auto BetaZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(7),                          // m
@@ -82,6 +85,7 @@ GENERATE_GEMM_TEST(TallSkinnyGemm, BetaZero);
 
 template <typename scalar_t>
 const auto OffsetNonZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(10),                         // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(7),                          // m
