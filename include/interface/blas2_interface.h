@@ -489,6 +489,42 @@ typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
                                          increment_t _incx);
 
 /**
+ * @brief Matrix vector product with triangular packed matrices.
+ *
+ * Matrix vector product with a triangular band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * x = op(A)*x
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/db/db1/stpmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _ma buffer containing the coefficient of a in the packed triangular
+ *            matrix format
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx);
+
+template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
+typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         container_t0 _mA, container_t1 _vx,
+                                         increment_t _incx);
+
+/**
  * @brief Linear system solver for triangular band matrices.
  *
  * Linear system solver for triangular band matrices, i.e., computing x s.t.
@@ -971,6 +1007,36 @@ typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
                                     container_1_t _vx, increment_t _incx) {
   return internal::_tbmv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
                          _vx, _incx);
+}
+
+/**
+ * @brief Matrix vector product with triangular packed matrices.
+ *
+ * Matrix vector product with a triangular band matrix, i.e. computing the
+ * mathematical operation:
+ *
+ * x = op(A)*x
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/db/db1/stpmv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _ma buffer containing the coefficient of a in the packed triangular
+ *            matrix format
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx) {
+  return internal::_tpmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx);
 }
 
 /**
