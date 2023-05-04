@@ -425,7 +425,6 @@ typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
  * @param _alpha Scalar parameter alpha
  * @param _mA Buffer containing the coefficient of A in the Packed Triangular
  *            Matrix format
- * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
  * @param _beta Scalar parameter beta
