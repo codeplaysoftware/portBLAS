@@ -235,7 +235,8 @@ static inline auto make_vector_view(BufferIterator<scalar_t> buff,
 
 template <typename access_layout_t, typename scalar_t, typename index_t>
 static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
-                                    index_t n, index_t lda) {
+                                    index_t n, index_t lda,
+                                    index_t stride = static_cast<index_t>(1)) {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
@@ -246,7 +247,7 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
           access_mode_t>,
       index_t, access_layout_t>::output_t;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
-                     lda, (index_t)buff.get_offset()};
+                     lda, stride, (index_t)buff.get_offset()};
 }
 
 }  // namespace blas

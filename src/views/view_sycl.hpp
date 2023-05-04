@@ -218,17 +218,23 @@ struct MatrixView<
   // Information related to the data
   container_t data_;
   // Information related to the operation
-  const index_t sizeR_;  // number of rows
-  const index_t sizeC_;  // number of columns
-  const index_t sizeL_;  // size of the leading dimension
-  const index_t disp_;   // displacementt od the first element
+  const index_t sizeR_;   // number of rows
+  const index_t sizeC_;   // number of columns
+  const index_t sizeL_;   // size of the leading dimension
+  const index_t stride_;  // internal stride between same row/column elements
+  const index_t disp_;    // displacementt od the first element
   cl::sycl::global_ptr<scalar_t>
       ptr_;  // global pointer access inside the kernel
 
   /**** CONSTRUCTORS ****/
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
-      : data_{data}, sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), disp_(disp) {}
+      : data_{data},
+        sizeR_(sizeR),
+        sizeC_(sizeC),
+        sizeL_(sizeL),
+        stride_(1),
+        disp_(disp) {}
 
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
       : MatrixView(data, sizeR, sizeC,
@@ -237,6 +243,15 @@ struct MatrixView<
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
       : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
+
+  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
+                              index_t sizeL, index_t stride, index_t disp)
+      : data_{data},
+        sizeR_(sizeR),
+        sizeC_(sizeC),
+        sizeL_(sizeL),
+        stride_(stride),
+        disp_(disp) {}
 
   /**** RETRIEVING DATA ****/
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
@@ -258,13 +273,13 @@ struct MatrixView<
   /**** EVALUATING ***/
 
   SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(ptr_ + i * stride_ + sizeL_ * j)
+                                     : *(ptr_ + j * stride_ + sizeL_ * i));
   }
 
   SYCL_BLAS_INLINE scalar_t eval(index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(ptr_ + i * stride_ + sizeL_ * j)
+                                     : *(ptr_ + j * stride_ + sizeL_ * i));
   }
 
   template <bool use_as_ptr = false>

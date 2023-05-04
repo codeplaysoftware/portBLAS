@@ -51,7 +51,8 @@ template <bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, out_t out_memory, index_t ld_out) {
+              in_t in_memory, index_t ld_in, index_t in_stride,
+              out_t out_memory, index_t ld_out, index_t out_stride) {
   typename sb_handle_t::event_t ret;
   // copy a vector of all 0s to the output memory
   // if (alpha == 0) {
@@ -73,22 +74,22 @@ template <bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, out_t out_memory, index_t ld_out) {
+              in_t in_memory, index_t ld_in, index_t in_stride,
+              out_t out_memory, index_t ld_out, index_t out_stride) {
   typename sb_handle_t::event_t ret;
-  // copy a vector of all 0s to the output memory
-  if (alpha == 0) {
-    std::vector<element_t> vec(m * n, 0);
-    auto event = blas::helper::copy_to_device<element_t>(
-        sb_handle.get_queue(), vec.data(), out_memory, m * n);
-    ret = concatenate_vectors(ret, typename sb_handle_t::event_t{event});
-  } else if (alpha == 1) {
-    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in);
-    auto out_view = make_matrix_view<col_major>(out_memory, m, n, ld_out);
+  // if alpha=1 no need to multiply
+  if (alpha == 1) {
+    auto in_view =
+        make_matrix_view<col_major>(in_memory, m, n, ld_in, in_stride);
+    auto out_view =
+        make_matrix_view<col_major>(out_memory, m, n, ld_out, out_stride);
     auto copy_op = make_op<Assign>(out_view, in_view);
     ret = sb_handle.execute(copy_op);
   } else {
-    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in);
-    auto out_view = make_matrix_view<col_major>(out_memory, m, n, ld_out);
+    auto in_view =
+        make_matrix_view<col_major>(in_memory, m, n, ld_in, in_stride);
+    auto out_view =
+        make_matrix_view<col_major>(out_memory, m, n, ld_out, out_stride);
     auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
     auto copy_op = make_op<Assign>(out_view, scal_op);
     ret = sb_handle.execute(copy_op);
@@ -177,7 +178,8 @@ template <typename sb_handle_t, typename element_t, typename index_t,
 typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
                                        in_t in_memory, index_t ld_in,
-                                       out_t out_memory, index_t ld_out) {
+                                       index_t in_stride, out_t out_memory,
+                                       index_t ld_out, index_t out_stride) {
   // bail out early if the leading dimensions are not correct
   if (ld_in < m || ld_out < (trans == 't' ? n : m)) {
     typename sb_handle_t::event_t ret;
@@ -186,10 +188,10 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
 
   if (trans == 't') {
     return _matcopy_impl<true>(sb_handle, m, n, alpha, in_memory, ld_in,
-                               out_memory, ld_out);
+                               in_stride, out_memory, ld_out, out_stride);
   } else {
     return _matcopy_impl<false>(sb_handle, m, n, alpha, in_memory, ld_in,
-                                out_memory, ld_out);
+                                in_stride, out_memory, ld_out, out_stride);
   }
 }
 
