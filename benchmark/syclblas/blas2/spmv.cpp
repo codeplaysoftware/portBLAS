@@ -134,7 +134,8 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplos, n, alpha, beta).c_str(), BM_lambda,
-        sb_handle_ptr, uplos, n, alpha, beta, success);
+        sb_handle_ptr, uplos, n, alpha, beta, success)
+        ->UseRealTime();
   }
 }
 
