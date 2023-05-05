@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<int, T, T, bool, int, int>;
+using combination_t = std::tuple<index_t, T, T, bool, index_t, index_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -40,9 +40,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   const char* uplo_str = upper ? "u" : "l";
 
-  int a_size = ((n + 1) * n) / 2;
-  int x_size = (1 + (n - 1) * incX);
-  int y_size = (1 + (n - 1) * incY);
+  index_t a_size = ((n + 1) * n) / 2;
+  index_t x_size = (1 + (n - 1) * incX);
+  index_t y_size = (1 + (n - 1) * incY);
 
   // Input matrix
   std::vector<scalar_t> a_m(a_size);
@@ -107,7 +107,7 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int n, k, incX, incY;
+  index_t n, k, incX, incY;
   T alpha, beta;
   bool upper;
   BLAS_GENERATE_NAME(info.param, n, alpha, beta, upper, incX, incY);
