@@ -36,8 +36,6 @@ std::string get_name(int size, int incx, int incy) {
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          index_t incx, index_t incy, bool* success) {
-  double size_d = static_cast<double>(size);
-
   blas_benchmark::utils::init_level_1_counters<
       blas_benchmark::utils::Level1Op::copy, scalar_t>(state, size);
 
