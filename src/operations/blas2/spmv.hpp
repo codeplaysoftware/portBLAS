@@ -52,14 +52,6 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::Spmv(
 
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_upper>
-SYCL_BLAS_INLINE typename Spmv<lhs_t, matrix_t, vector_t, local_range_x,
-                               local_range_y, is_upper>::index_t
-Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
-     is_upper>::get_size() const {
-  return matrix_.get_size();
-}
-template <typename lhs_t, typename matrix_t, typename vector_t,
-          uint32_t local_range_x, uint32_t local_range_y, bool is_upper>
 SYCL_BLAS_INLINE bool
 Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
      is_upper>::valid_thread(cl::sycl::nd_item<1> ndItem) const {

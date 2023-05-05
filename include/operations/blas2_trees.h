@@ -330,8 +330,6 @@ struct Spmv {
        value_t _beta);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
-  value_t eval(index_t i);
-  value_t eval(cl::sycl::nd_item<1> ndItem);
   template <typename sharedT>
   value_t eval(sharedT shrMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
