@@ -63,7 +63,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       uplo_str[0] == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
 
   // Data sizes
-  const int m_size = n * n;
+  const int m_size = ((n + 1) * n) / 2;
   const int v_x_size = 1 + (xlen - 1) * incX;
   const int v_y_size = 1 + (ylen - 1) * incY;
 
