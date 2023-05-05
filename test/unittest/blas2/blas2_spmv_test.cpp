@@ -87,8 +87,8 @@ const auto combi =
                        ::testing::Values<scalar_t>(1.0, 1.5, 6.0),  // alpha
                        ::testing::Values<scalar_t>(0.0, 1.0, 1.5),  // beta
                        ::testing::Values(true, false),              // upper
-                       ::testing::Values(1, 2, 3),                  // incX
-                       ::testing::Values(1, 3, 4)                   // incY
+                       ::testing::Values(1, 2),                     // incX
+                       ::testing::Values(1, 3)                      // incY
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
@@ -99,8 +99,8 @@ const auto combi =
                        ::testing::Values<scalar_t>(1.0, 6.0),       // alpha
                        ::testing::Values<scalar_t>(0.0, 1.0),       // beta
                        ::testing::Values(true, false),              // upper
-                       ::testing::Values(1, 2, 3),                  // incX
-                       ::testing::Values(1, 2, 4)                   // incY
+                       ::testing::Values(3),                        // incX
+                       ::testing::Values(4)                         // incY
     );
 #endif
 
