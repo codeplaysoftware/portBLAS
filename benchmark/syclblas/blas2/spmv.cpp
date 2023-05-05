@@ -37,7 +37,6 @@ template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          std::string uplo, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
-  // Standard test setup.
   const char* uplo_str = uplo.c_str();
 
   index_t xlen = n;
