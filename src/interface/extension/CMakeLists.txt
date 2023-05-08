@@ -24,6 +24,7 @@
 # **************************************************************************/
 
 generate_blas_extension_objects(extension matcopy)
+generate_blas_extension_objects(extension omatadd)
 
 if(${BLAS_ENABLE_EXTENSIONS})
     generate_blas_reduction_objects(extension reduction)
