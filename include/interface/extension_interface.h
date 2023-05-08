@@ -44,6 +44,15 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t in_stride, out_t out_memory,
                                        index_t ld_out, index_t out_stride);
 
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_t>
+typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
+                                       char trans_b, index_t m, index_t n,
+                                       element_t alpha, container_t a,
+                                       index_t lda, element_t beta,
+                                       container_t b, index_t ldb,
+                                       container_t c, index_t ldc);
+
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
@@ -85,6 +94,18 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                          index_t ld_out, index_t out_stride) {
   return internal::_matcopy(sb_handle, trans, m, n, alpha, in_memory, ld_in,
                             in_stride, out_memory, ld_out, out_stride);
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_t>
+typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
+                                       char trans_b, index_t m, index_t n,
+                                       element_t alpha, container_t a,
+                                       index_t lda, element_t beta,
+                                       container_t b, index_t ldb,
+                                       container_t c, index_t ldc) {
+  return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, a, lda,
+                            beta, b, ldb, c, ldc);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
