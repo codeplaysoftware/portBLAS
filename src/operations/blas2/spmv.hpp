@@ -68,20 +68,20 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
     sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
   const index_t gid = ndItem.get_group(0);
 
-  constexpr index_t x_range = local_range_x;
+  constexpr index_t loc_x_dim = local_range_x;
   constexpr index_t y_range = local_range_y;
-  constexpr index_t y_chunck = x_range / y_range;
-  constexpr index_t loc_lda = x_range + 1;
+  constexpr index_t priv_y_dim = loc_x_dim / y_range;
+  constexpr index_t loc_lda = loc_x_dim + 1;
 
-  const index_t l_idx = ndItem.get_local_id(0) % x_range;
-  const index_t l_idy = ndItem.get_local_id(0) / x_range;
-  const index_t l_y_offset = y_chunck * l_idy;
+  const index_t l_idx = ndItem.get_local_id(0) % loc_x_dim;
+  const index_t l_idy = ndItem.get_local_id(0) / loc_x_dim;
+  const index_t l_y_offset = priv_y_dim * l_idy;
 
   const index_t N = lhs_.get_size();
-  const index_t nblock = (N + x_range - 1) / x_range;
+  const index_t nblock = (N + loc_x_dim - 1) / loc_x_dim;
 
   value_t *const loc_x = shrMem.localAcc.get_pointer();
-  value_t *const loc_A = loc_x + x_range;
+  value_t *const loc_A = loc_x + loc_x_dim;
 
   // ------------------------------------------------------------------------ //
 
@@ -104,38 +104,34 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
   value_t priv_res = value_t(0);
 
   {
-    const index_t I_offset = gid * x_range + l_idx;
+    const index_t I_offset = gid * loc_x_dim + l_idx;
     value_t *const A_I_offset = matrix_.get_pointer() + I_offset;
 
-    value_t priv_A[y_chunck];
+    value_t priv_A[priv_y_dim];
 
-    // it doesn't need local memory for storing the matrix
     for (index_t b = (is_upper ? gid + 1 : 0); b < (is_upper ? nblock : gid);
          ++b) {
       if (!l_idy) {
-        const index_t x_idx = b * x_range + l_idx;
+        const index_t x_idx = b * loc_x_dim + l_idx;
         const bool read_it = is_upper ? (x_idx < N) : true;
         loc_x[l_idx] = read_it ? vector_.eval(x_idx) : value_t(0);
       }
 
-      const index_t J = b * x_range + l_y_offset;
+      const index_t J = b * loc_x_dim + l_y_offset;
       value_t *A = A_I_offset + _mat_J_offset(J);
       index_t stride = _mat_initial_stride(J);
 
-      // load A to registers
 #pragma unroll
-      for (index_t _j = 0; _j < y_chunck; ++_j) {
+      for (index_t _j = 0; _j < priv_y_dim; ++_j) {
         const bool read_it = is_upper ? (J + _j < N) : (I_offset < N);
         priv_A[_j] = read_it ? *A : value_t(0);
         A += _mat_next_stride(stride);
       }
 
-      // wait for x
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
-      // compute
 #pragma unroll
-      for (index_t _j = 0; _j < y_chunck; ++_j)
+      for (index_t _j = 0; _j < priv_y_dim; ++_j)
         priv_res += priv_A[_j] * loc_x[l_y_offset + _j];
 
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
@@ -144,7 +140,7 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
 
   // ------------------------------------------------------------------------ //
 
-  const index_t J = gid * x_range + l_y_offset;
+  const index_t J = gid * loc_x_dim + l_y_offset;
   value_t *const A_J_offset = matrix_.get_pointer() + _mat_J_offset(J) + l_idx;
 
   // ------------------------------------------------------------------------ //
@@ -152,17 +148,17 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
   // CENTER
   {
     if (!l_idy) {
-      const index_t x_idx = gid * x_range + l_idx;
+      const index_t x_idx = gid * loc_x_dim + l_idx;
       const bool read_it = x_idx < N;
       loc_x[l_idx] = read_it ? vector_.eval(x_idx) : value_t(0);
     }
 
-    const index_t I_offset = gid * x_range;
+    const index_t I_offset = gid * loc_x_dim;
     value_t *A = A_J_offset + I_offset;
     index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
-    for (index_t _j = 0; _j < y_chunck; ++_j) {
+    for (index_t _j = 0; _j < priv_y_dim; ++_j) {
       const index_t j = l_y_offset + _j;
       const bool read_it = is_upper ? (J + _j < N) : (I_offset + l_idx < N);
 
@@ -181,25 +177,23 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
   // VERTICAL
 
   {
-    value_t priv_A[y_chunck];
+    value_t priv_A[priv_y_dim];
 
-    // this stores the matrix in local memory
     for (index_t b = (is_upper ? 0 : gid + 1); b < (is_upper ? gid : nblock);
          ++b) {
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 #pragma unroll
-      for (index_t _j = 0; _j < y_chunck; ++_j) {
+      for (index_t _j = 0; _j < priv_y_dim; ++_j) {
         const index_t j = l_y_offset + _j;
         priv_res += loc_A[loc_lda * j + l_idx] * loc_x[j];
       }
 
-      const index_t I_offset = b * x_range;
+      const index_t I_offset = b * loc_x_dim;
       value_t *A = A_J_offset + I_offset;
       index_t stride = _mat_initial_stride(J);
 
-      // row full-blocks
 #pragma unroll
-      for (index_t _j = 0; _j < y_chunck; ++_j) {
+      for (index_t _j = 0; _j < priv_y_dim; ++_j) {
         const index_t j = l_y_offset + _j;
         const bool read_it = is_upper ? (J + _j < N) : (I_offset + l_idx < N);
         priv_A[_j] = read_it ? *A : value_t(0);
@@ -209,13 +203,13 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
       ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
       if (!l_idy) {
-        const index_t x_idx = b * x_range + l_idx;
+        const index_t x_idx = b * loc_x_dim + l_idx;
         const bool read_it = is_upper ? true : (x_idx < N);
         loc_x[l_idx] = read_it ? vector_.eval(x_idx) : value_t(0);
       }
 
 #pragma unroll
-      for (index_t _j = 0; _j < y_chunck; ++_j) {
+      for (index_t _j = 0; _j < priv_y_dim; ++_j) {
         const index_t j = l_y_offset + _j;
         loc_A[loc_lda * l_idx + j] = priv_A[_j];
       }
@@ -225,7 +219,7 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
   ndItem.barrier(cl::sycl::access::fence_space::local_space);
 
 #pragma unroll
-  for (index_t _j = 0; _j < y_chunck; ++_j) {
+  for (index_t _j = 0; _j < priv_y_dim; ++_j) {
     const index_t j = l_y_offset + _j;
     priv_res += loc_A[loc_lda * j + l_idx] * loc_x[j];
   }
@@ -241,7 +235,7 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
 #pragma unroll
     for (index_t _j = 0; _j < y_range; ++_j) res += loc_A[loc_lda * _j + l_idx];
 
-    const index_t lhs_idx = gid * x_range + l_idx;
+    const index_t lhs_idx = gid * loc_x_dim + l_idx;
     if (lhs_idx < N)
       return lhs_.eval(lhs_idx) = AddOperator::eval(
                  ProductOperator::eval(alpha_, res),
