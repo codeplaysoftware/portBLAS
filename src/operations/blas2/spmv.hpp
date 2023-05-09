@@ -243,9 +243,9 @@ Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_upper>::eval(
 
     const index_t lhs_idx = gid * x_range + l_idx;
     if (lhs_idx < N)
-      lhs_.eval(lhs_idx) =
-          AddOperator::eval(ProductOperator::eval(alpha_, res),
-                            ProductOperator::eval(beta_, lhs_.eval(lhs_idx)));
+      return lhs_.eval(lhs_idx) = AddOperator::eval(
+                 ProductOperator::eval(alpha_, res),
+                 ProductOperator::eval(beta_, lhs_.eval(lhs_idx)));
   }
 
   return 0;
