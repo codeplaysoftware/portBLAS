@@ -282,15 +282,15 @@ typename sb_handle_t::event_t _spr(
  * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
  * @param _incy !=0 The increment for the elements of Y
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t _spr2(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_t0 _vx, increment_t _incx,
-                                    container_t1 _vy, increment_t _incy,
-                                    container_t2 _mPA);
+typename sb_handle_t::event_t _spr2(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA, const typename sb_handle_t::event_t& _dependencies);
 
 /*!
  @brief Generalised vector products followed by a sum with a symmetric matrix.
@@ -720,9 +720,8 @@ typename sb_handle_t::event_t inline _spr(
     sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
     container_0_t _vx, increment_t _incx, container_1_t _mPA,
     const typename sb_handle_t::event_t& _dependencies = {}) {
-  return internal::_spr<sb_handle_t, index_t, element_t, container_0_t,
-                        increment_t, container_1_t>(
-      sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA, _dependencies);
+  return internal::_spr(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA,
+                        _dependencies);
 }
 
 /**
@@ -747,17 +746,18 @@ typename sb_handle_t::event_t inline _spr(
  * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
  * @param _incy !=0 The increment for the elements of Y
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
-                                           index_t _N, element_t _alpha,
-                                           container_t0 _vx, increment_t _incx,
-                                           container_t1 _vy, increment_t _incy,
-                                           container_t2 _mPA) {
+typename sb_handle_t::event_t inline _spr2(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_spr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
-                         _mPA);
+                         _mPA, _dependencies);
 }
 
 /*!

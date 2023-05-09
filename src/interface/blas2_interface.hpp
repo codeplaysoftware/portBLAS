@@ -876,11 +876,10 @@ sspr2 	( 	character  	UPLO,
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
-                                         index_t _N, element_t _alpha,
-                                         container_t0 _vx, increment_t _incx,
-                                         container_t1 _vy, increment_t _incy,
-                                         container_t2 _mPA) {
+typename sb_handle_t::event_t _spr2_impl(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA, const typename sb_handle_t::event_t& _dependencies) {
   // throw exception if invalid arguments
   if (_N <= 0) {
     throw std::invalid_argument("Invalid vector size");
@@ -908,11 +907,13 @@ typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
   if (Upper) {
     auto spr2 = make_spr<false, true>(mA, _N, _alpha, vx, _incx, vy, _incy);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(spr2, localSize, globalSize));
+               ret,
+               sb_handle.execute(spr2, localSize, globalSize, _dependencies));
   } else {
     auto spr2 = make_spr<false, false>(mA, _N, _alpha, vx, _incx, vy, _incy);
     return ret = concatenate_vectors(
-               ret, sb_handle.execute(spr2, localSize, globalSize));
+               ret,
+               sb_handle.execute(spr2, localSize, globalSize, _dependencies));
   }
 }
 
@@ -1165,14 +1166,14 @@ typename sb_handle_t::event_t inline _spr(
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
-                                           index_t _N, element_t _alpha,
-                                           container_t0 _vx, increment_t _incx,
-                                           container_t1 _vy, increment_t _incy,
-                                           container_t2 _mPA) {
+typename sb_handle_t::event_t inline _spr2(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA, const typename sb_handle_t::event_t& _dependencies) {
   return _spr2_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
                     container_t1, container_t2>(sb_handle, _Uplo, _N, _alpha,
-                                                _vx, _incx, _vy, _incy, _mPA);
+                                                _vx, _incx, _vy, _incy, _mPA,
+                                                _dependencies);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,
