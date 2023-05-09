@@ -135,7 +135,7 @@ typename sb_handle_t::event_t _trsv(
     container_0_t _mA, index_t _lda, container_1_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t& _dependencies = {});
 
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
@@ -259,6 +259,38 @@ typename sb_handle_t::event_t _spr(
     sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
     container_0_t _vx, increment_t _incx, container_1_t _mPA,
     const typename sb_handle_t::event_t& _dependencies);
+
+/**
+ * @brief Generalised two vectors squaring followed by a sum with a packed
+ * symmetric matrix.
+ *
+ * Generalised two vector squaring followed by a sum with a packed symmetric
+ * matrix, i.e. computing the mathematical operation:
+
+ * A = alpha*x*yT + alpha*y*xT + A
+
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * https://netlib.org/lapack/explore-html/db/d3e/sspr2_8f.html
+ *
+ * @param sb_handle sb_handle_t (sycl, parallel, serial, etc)
+ * @param _Uplo Whether the matrix is upper/lower ('u', 'l')
+ * @param _N >0 The order of matrix A
+ * @param _alpha Scalar multiplier
+ * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
+ * @param _incx !=0 The increment for the elements of X
+ * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
+ * @param _incy !=0 The increment for the elements of Y
+ * @param _mPA (_lda, _N) The output matrix in packed format
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
+typename sb_handle_t::event_t _spr2(sb_handle_t& sb_handle, char _Uplo,
+                                    index_t _N, element_t _alpha,
+                                    container_t0 _vx, increment_t _incx,
+                                    container_t1 _vy, increment_t _incy,
+                                    container_t2 _mPA);
 
 /*!
  @brief Generalised vector products followed by a sum with a symmetric matrix.
@@ -449,7 +481,7 @@ typename sb_handle_t::event_t _tbsv(
     index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
@@ -691,6 +723,41 @@ typename sb_handle_t::event_t inline _spr(
   return internal::_spr<sb_handle_t, index_t, element_t, container_0_t,
                         increment_t, container_1_t>(
       sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA, _dependencies);
+}
+
+/**
+ * @brief Generalised two vectors squaring followed by a sum with a packed
+ * symmetric matrix.
+ *
+ * Generalised two vector squaring followed by a sum with a packed symmetric
+ * matrix, i.e. computing the mathematical operation:
+
+ * A = alpha*x*yT + alpha*y*xT + A
+
+ * See the netlib blas interface documentation for more details of the high
+ * level interface:
+ * https://netlib.org/lapack/explore-html/db/d3e/sspr2_8f.html
+ *
+ * @param sb_handle sb_handle_t (sycl, parallel, serial, etc)
+ * @param _Uplo Whether the matrix is upper/lower ('u', 'l')
+ * @param _N >0 The order of matrix A
+ * @param _alpha Scalar multiplier
+ * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
+ * @param _incx !=0 The increment for the elements of X
+ * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
+ * @param _incy !=0 The increment for the elements of Y
+ * @param _mPA (_lda, _N) The output matrix in packed format
+ */
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
+typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _vx, increment_t _incx,
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mPA) {
+  return internal::_spr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
+                         _mPA);
 }
 
 /*!

@@ -355,7 +355,7 @@ typename sb_handle_t::event_t _trmv_impl(
 /*! _TRSV.
  * @brief Implementation of the Triangular Matrix Vector product.
  */
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
@@ -367,6 +367,7 @@ typename sb_handle_t::event_t _trsv_impl(
   throw std::runtime_error("Unimplemented for ComputeCPP");
 #endif
 
+  using one = constant<increment_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
@@ -377,9 +378,10 @@ typename sb_handle_t::event_t _trsv_impl(
   auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
-  std::vector<index_t> sync_vec(2);
+  std::vector<int32_t> sync_vec(2);
   sync_vec[0] =
-      is_forward ? 0 : ((roundUp<index_t>(_N, x_range) / x_range) - 1);
+      is_forward ? 0
+                 : ((roundUp<index_t>(_N, subgroup_size) / subgroup_size) - 1);
   sync_vec[1] = sync_vec[0];
 
   auto queue = sb_handle.get_queue();
@@ -394,15 +396,16 @@ typename sb_handle_t::event_t _trsv_impl(
 
   auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
 
-  auto trsv = make_trsv<x_range, subgroups, is_upper, is_transposed, is_unit>(
-      vx, mA, vx, sync);
+  auto trsv =
+      make_trsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
+          vx, mA, vx, sync);
 
   const index_t sub_num = subgroups;
 
   auto ret = sb_handle.execute(
-      trsv, static_cast<index_t>(sub_num * x_range),
-      roundUp<index_t>(sub_num * _N, sub_num * x_range),
-      static_cast<index_t>(x_range * (x_range + 1 + sub_num)), _dependencies);
+      trsv, static_cast<index_t>(sub_num * subgroup_size),
+      roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
+      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)), _dependencies);
 
 #ifdef DEFAULT_CPU
   auto free_sync = blas::helper::enqueue_deallocate < is_usm
@@ -648,7 +651,7 @@ typename sb_handle_t::event_t _tbmv_impl(
   return ret;
 }
 
-template <uint32_t x_range, uint32_t subgroups, uplo_type uplo,
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
@@ -662,6 +665,7 @@ typename sb_handle_t::event_t _tbsv_impl(
 
   if (_K >= _N) throw std::invalid_argument("Erroneous parameter: _K >= _N");
 
+  using one = constant<increment_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
@@ -672,9 +676,10 @@ typename sb_handle_t::event_t _tbsv_impl(
   auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
-  std::vector<index_t> sync_vec(2);
+  std::vector<int32_t> sync_vec(2);
   sync_vec[0] =
-      is_forward ? 0 : ((roundUp<index_t>(_N, x_range) / x_range) - 1);
+      is_forward ? 0
+                 : ((roundUp<index_t>(_N, subgroup_size) / subgroup_size) - 1);
   sync_vec[1] = sync_vec[0];
 
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
@@ -690,14 +695,15 @@ typename sb_handle_t::event_t _tbsv_impl(
 
   auto sync = make_vector_view(sync_buffer, 1, sync_vec.size());
 
-  auto tbsv = make_tbsv<x_range, subgroups, is_upper, is_transposed, is_unit>(
-      vx, mA, _K, sync);
+  auto tbsv =
+      make_tbsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
+          vx, mA, _K, sync);
 
   const index_t sub_num = subgroups;
   auto ret = sb_handle.execute(
-      tbsv, static_cast<index_t>(sub_num * x_range),
-      roundUp<index_t>(sub_num * _N, sub_num * x_range),
-      static_cast<index_t>(x_range * (x_range + 1 + sub_num)), _dependencies);
+      tbsv, static_cast<index_t>(sub_num * subgroup_size),
+      roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
+      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)), _dependencies);
 
 #ifdef DEFAULT_CPU
   auto free_sync = blas::helper::enqueue_deallocate < is_usm
@@ -824,7 +830,7 @@ typename sb_handle_t::event_t _spr_impl(
 
   // bail out early if alpha == 0
   if (_alpha == (element_t)0) {
-    std::vector<cl::sycl::event> event;
+    typename sb_handle_t::event_t event;
     return event;
   }
 
@@ -841,15 +847,72 @@ typename sb_handle_t::event_t _spr_impl(
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto spr = make_gerp<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr, localSize, globalSize, _dependencies));
   } else {
-    auto spr = make_gerp<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr, localSize, globalSize, _dependencies));
+  }
+}
+
+/*! _SPR2.
+ * @brief Implementation of the rank 2 operation
+ */
+/*
+sspr2 	( 	character  	UPLO,
+   integer  	N,
+   real  	ALPHA,
+   real, dimension(N)  	X,
+   integer  	INCX,
+   real, dimension(N)  	Y,
+   integer  	INCY,
+   real, dimension(N, N + 1 / 2)  	AP
+ )
+*/
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
+typename sb_handle_t::event_t _spr2_impl(sb_handle_t& sb_handle, char _Uplo,
+                                         index_t _N, element_t _alpha,
+                                         container_t0 _vx, increment_t _incx,
+                                         container_t1 _vy, increment_t _incy,
+                                         container_t2 _mPA) {
+  // throw exception if invalid arguments
+  if (_N <= 0) {
+    throw std::invalid_argument("Invalid vector size");
+  }
+
+  // bail out early if alpha == 0
+  if (_alpha == (element_t)0) {
+    typename sb_handle_t::event_t event;
+    return event;
+  }
+
+  typename sb_handle_t::event_t ret;
+  _Uplo = tolower(_Uplo);
+  const int Upper = _Uplo == 'u';
+  auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
+
+  const index_t localSize = sb_handle.get_work_group_size();
+  const index_t nColsWG = localSize;
+
+  const index_t nWGPerCol = (_N * (_N + 1) / 2 - 1) / nColsWG + 1;
+  const index_t globalSize = localSize * nWGPerCol;
+
+  if (Upper) {
+    auto spr2 = make_spr<false, true>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(spr2, localSize, globalSize));
+  } else {
+    auto spr2 = make_spr<false, false>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    return ret = concatenate_vectors(
+               ret, sb_handle.execute(spr2, localSize, globalSize));
   }
 }
 
@@ -1102,10 +1165,24 @@ typename sb_handle_t::event_t inline _spr(
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t inline _syr2(
-    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
-    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
-    container_t2 _mA, index_t _lda,
+typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _vx, increment_t _incx,
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mPA) {
+  return _spr2_impl<sb_handle_t, index_t, element_t, container_t0, increment_t,
+                    container_t1, container_t2>(sb_handle, _Uplo, _N, _alpha,
+                                                _vx, _incx, _vy, _incy, _mPA);
+}
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename increment_t, typename container_t1,
+          typename container_t2>
+typename sb_handle_t::event_t inline _syr2(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _vx, increment_t _incx,
+                                           container_t1 _vy, increment_t _incy,
+                                           container_t2 _mA, index_t _lda,
     const typename sb_handle_t::event_t& _dependencies) {
   // TODO: Here we can use some heuristics to select localn global, local, and
   // scratch size per device

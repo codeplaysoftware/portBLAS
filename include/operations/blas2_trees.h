@@ -353,7 +353,7 @@ make_tbmv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
  * multiplication.
  */
 template <typename lhs_t, typename matrix_t, typename vector_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit>
 struct Trsv {
   using value_t = typename vector_t::value_t;
@@ -375,14 +375,14 @@ struct Trsv {
 /*!
  @brief Generator/factory for TRSV trees.
  */
-template <uint32_t x_range, uint32_t subgroups, bool is_upper,
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit, typename lhs_t, typename matrix_t,
           typename vector_t, typename sync_t>
-Trsv<lhs_t, matrix_t, vector_t, sync_t, x_range, subgroups, is_upper,
+Trsv<lhs_t, matrix_t, vector_t, sync_t, subgroup_size, subgroups, is_upper,
      is_transposed, is_unit>
 make_trsv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_, sync_t &sync_) {
-  return Trsv<lhs_t, matrix_t, vector_t, sync_t, x_range, subgroups, is_upper,
-              is_transposed, is_unit>(lhs_, matrix_, vector_, sync_);
+  return Trsv<lhs_t, matrix_t, vector_t, sync_t, subgroup_size, subgroups,
+              is_upper, is_transposed, is_unit>(lhs_, matrix_, vector_, sync_);
 }
 
 /**
@@ -391,7 +391,7 @@ make_trsv(lhs_t &lhs_, matrix_t &matrix_, vector_t &vector_, sync_t &sync_) {
  * multiplication.
  */
 template <typename vector_t, typename matrix_t, typename sync_t,
-          uint32_t x_range, uint32_t subgroups, bool is_upper,
+          uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit>
 struct Tbsv {
   using value_t = typename vector_t::value_t;
@@ -413,14 +413,14 @@ struct Tbsv {
 /*!
  @brief Generator/factory for TBSV trees.
  */
-template <uint32_t x_range, uint32_t subgroups, bool is_upper,
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
           bool is_transposed, bool is_unit, typename vector_t,
           typename matrix_t, typename sync_t>
-Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper, is_transposed,
-     is_unit>
+Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
+     is_transposed, is_unit>
 make_tbsv(vector_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
           sync_t &sync_) {
-  return Tbsv<vector_t, matrix_t, sync_t, x_range, subgroups, is_upper,
+  return Tbsv<vector_t, matrix_t, sync_t, subgroup_size, subgroups, is_upper,
               is_transposed, is_unit>(lhs_, matrix_, k_, sync_);
 }
 
@@ -501,15 +501,14 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t> make_ger_col(
       lhs_, scalar_, rhs_1_, rhs_2_, nWG_row_, nWG_col_, local_memory_size_);
 }
 
-/**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
-/* This is a specialization of the GER class for the packed
- * symmetric matrices (P stands for Packed in the name). For more details
- * on matrix layouts, refer to the explanation here:
+/**** SPR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
+/* This class performs rank 1/2 update for symmetric packed matrices. For more
+ * details on matrix refer to the explanation here:
  * https://spec.oneapi.io/versions/1.1-rev-1/elements/oneMKL/source/domains/matrix-storage.html#matrix-storage
  */
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-struct Gerp {
+struct Spr {
   using value_t = typename rhs_1_t::value_t;
   using index_t = typename rhs_1_t::index_t;
 
@@ -527,8 +526,8 @@ struct Gerp {
   // for a more naive limit. (1048576 = 1024 * 1024)
   static constexpr index_t sqrt_overflow_limit = 1048576;
 
-  Gerp(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, index_t _incX_1,
-       rhs_2_t &_r2, index_t _incX_2);
+  Spr(lhs_t &_l, index_t N_, value_t _alpha, rhs_1_t &_r1, index_t _incX_1,
+      rhs_2_t &_r2, index_t _incX_2);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(cl::sycl::nd_item<1> ndItem);
@@ -583,12 +582,12 @@ struct Gerp {
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t> make_gerp(
+Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t> make_spr(
     lhs_t &lhs_, typename rhs_1_t::index_t _N, typename lhs_t::value_t alpha_,
     rhs_1_t &rhs_1_, typename rhs_1_t::index_t incX_1, rhs_2_t &rhs_2_,
     typename rhs_1_t::index_t incX_2) {
-  return Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>(
-      lhs_, _N, alpha_, rhs_1_, incX_1, rhs_2_, incX_2);
+  return Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>(lhs_, _N, alpha_, rhs_1_,
+                                                       incX_1, rhs_2_, incX_2);
 }
 
 }  // namespace blas
