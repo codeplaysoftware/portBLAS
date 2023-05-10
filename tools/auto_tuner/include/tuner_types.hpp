@@ -40,9 +40,13 @@ template <typename DataType>
 using DeviceContainer = typename ::blas::BufferIterator<DataType>;
 
 template <typename DataType>
-using MatrixContainer =
-    typename ::blas::MatrixViewTypeFactory<DataType, int,
-                                           ::blas::col_major>::output_t;
+using MatrixContainer = typename ::blas::MatrixViewTypeFactory<
+    DataType,
+    typename ::blas::BufferIterator<DataType>::template default_accessor_t<
+        ::blas::Choose<std::is_const<DataType>::value, cl::sycl::access::mode,
+                       cl::sycl::access::mode::read,
+                       cl::sycl::access::mode::read_write>::type>,
+    int, ::blas::col_major>::output_t;
 
 struct TestResultEntry {
   std::string name;
@@ -84,6 +88,8 @@ template <bool _TransA, bool _TransB, ::blas::gemm_memory_t _MemoryMode,
 struct GemmConfig {
   static constexpr auto TransA = _TransA;
   static constexpr auto TransB = _TransB;
+  static constexpr auto SymmA = false;
+  static constexpr auto SymmB = false;
   static constexpr auto MemoryMode = _MemoryMode;
   static constexpr auto ShapeMode = _ShapeMode;
   static constexpr auto BatchType = _BatchType;
@@ -107,6 +113,9 @@ struct GemmArgs {
   int ldc;
   int batch_size;
   const HostContainer<element_t> &expected_c;
+  int stride_a;
+  int stride_b;
+  int stride_c;
 };
 
 #endif  // SYCLBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
