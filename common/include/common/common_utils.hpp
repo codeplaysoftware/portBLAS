@@ -33,6 +33,9 @@ using blas2_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
+using copy_param_t = std::tuple<index_t, index_t, index_t, scalar_t>;
+
+template <typename scalar_t>
 using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
                                  index_t, scalar_t, scalar_t>;
 
@@ -79,6 +82,10 @@ using ger_param_t = std::tuple<index_t, index_t, scalar_t>;
 
 template <typename scalar_t>
 using spr_param_t = std::tuple<std::string, index_t, scalar_t, index_t>;
+
+template <typename scalar_t>
+using spr2_param_t =
+    std::tuple<std::string, index_t, scalar_t, index_t, index_t>;
 
 using tbmv_param_t =
     std::tuple<std::string, std::string, std::string, index_t, index_t>;
@@ -291,6 +298,44 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
 }
 
 /**
+ * @fn get_copy_params
+ * @brief Returns a vector containing the blas1 copy benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<copy_param_t<scalar_t>> default_values;
+    for (index_t incx = 1; incx <= 1; incx *= 2) {
+      for (index_t incy = 1; incy <= 1; incy *= 2) {
+        for (index_t size = 4096; size <= 536870912; size *= 2) {
+          default_values.push_back(
+              std::make_tuple(size, incx, incy, scalar_t(0)));
+        }
+      }
+    }
+    return default_values;
+  } else {
+    return parse_csv_file<copy_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 3) {
+            throw std::runtime_error(
+                "invalid number of parameters (3 expected)");
+          }
+          try {
+            return std::make_tuple(str_to_int<index_t>(v[0]),
+                                   str_to_int<index_t>(v[1]),
+                                   str_to_int<index_t>(v[2]), scalar_t(0));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
  * @fn get_spr_params
  * @brief Returns a vector containing the spr benchmark parameters, either
  * read from a file according to the command-line args, or the default ones.
@@ -301,13 +346,11 @@ static inline std::vector<spr_param_t<scalar_t>> get_spr_params(Args& args) {
     warning_no_csv();
     std::vector<spr_param_t<scalar_t>> spr_default;
     constexpr index_t dmin = 64, dmax = 1024;
-    for (index_t incX : {1, 2}) {
-      for (scalar_t alpha : {1.0, 1.5, 2.0}) {
-        for (std::string uplo : {"u", "l"}) {
-          for (index_t m = dmin; m <= dmax; m *= 2) {
-            spr_default.push_back(std::make_tuple(uplo, m, alpha, incX));
-          }
-        }
+    const index_t incX = 1;
+    const scalar_t alpha = 1;
+    for (std::string uplo : {"u", "l"}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        spr_default.push_back(std::make_tuple(uplo, m, alpha, incX));
       }
     }
     return spr_default;
@@ -322,6 +365,45 @@ static inline std::vector<spr_param_t<scalar_t>> get_spr_params(Args& args) {
             return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
                                    str_to_scalar<scalar_t>(v[2]),
                                    str_to_int<index_t>(v[3]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_spr2_params
+ * @brief Returns a vector containing the spr2 benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<spr2_param_t<scalar_t>> get_spr2_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<spr2_param_t<scalar_t>> spr2_default;
+    constexpr index_t dmin = 64, dmax = 1024;
+    const index_t incX = 1;
+    const index_t incY = 1;
+    const scalar_t alpha = 1;
+    for (std::string uplo : {"u", "l"}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        spr2_default.push_back(std::make_tuple(uplo, m, alpha, incX, incY));
+      }
+    }
+    return spr2_default;
+  } else {
+    return parse_csv_file<spr2_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 5) {
+            throw std::runtime_error(
+                "invalid number of parameters (5 expected)");
+          }
+          try {
+            return std::make_tuple(v[0].c_str(), str_to_int<index_t>(v[1]),
+                                   str_to_scalar<scalar_t>(v[2]),
+                                   str_to_int<index_t>(v[3]),
+                                   str_to_int<index_t>(v[4]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
