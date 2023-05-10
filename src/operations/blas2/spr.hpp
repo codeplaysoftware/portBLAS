@@ -19,22 +19,22 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename gerp.hpp
+ *  @filename spr.hpp
  *
  **************************************************************************/
 
-#ifndef GERP_HPP
-#define GERP_HPP
+#ifndef SPR_HPP
+#define SPR_HPP
 
 #include <operations/blas2_trees.h>
 
 namespace blas {
 
-/**** GERP N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
+/**** SPR N COLS x (N + 1)/2 ROWS FOR PACKED MATRIX ****/
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Gerp(
+SYCL_BLAS_INLINE Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Spr(
     lhs_t& _l, typename rhs_1_t::index_t _N, value_t _alpha, rhs_1_t& _r1,
     typename rhs_1_t::index_t _incX_1, rhs_2_t& _r2,
     typename rhs_1_t::index_t _incX_2)
@@ -48,7 +48,7 @@ SYCL_BLAS_INLINE Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Gerp(
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-typename rhs_1_t::value_t Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
+typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
   const index_t id = ndItem.get_local_linear_id();
   const index_t group_id = ndItem.get_group(0);
@@ -57,25 +57,31 @@ typename rhs_1_t::value_t Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
   const int64_t lhs_size = N_ * (N_ + 1) / 2;
 
   index_t row = 0, col = 0;
+  value_t out{0};
 
   if (global_idx < lhs_size) {
     value_t lhs_val = lhs_.eval(global_idx);
 
-    Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<isUpper>(
+    Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col<isUpper>(
         global_idx, N_, row, col);
 
     value_t rhs_1_val = rhs_1_.eval(row);
     value_t rhs_2_val = rhs_2_.eval(col);
-
-    value_t out = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
+    if constexpr (!Single) {
+      value_t rhs_1_val_second = rhs_1_.eval(col);
+      value_t rhs_2_val_second = rhs_2_.eval(row);
+      out = rhs_1_val * rhs_2_val * alpha_ +
+            rhs_1_val_second * rhs_2_val_second * alpha_ + lhs_val;
+    } else
+      out = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
 
     lhs_.eval(global_idx) = out;
   }
-  return lhs_.eval(global_idx);
+  return out;
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
+SYCL_BLAS_INLINE void Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
     cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
@@ -85,7 +91,7 @@ SYCL_BLAS_INLINE void Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 SYCL_BLAS_INLINE void
-Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
+Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
   rhs_2_.adjust_access_displacement();
@@ -94,14 +100,14 @@ Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 SYCL_BLAS_INLINE
-    typename Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
-    Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
+    typename Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
+    Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
 SYCL_BLAS_INLINE bool
-Gerp<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
+Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
