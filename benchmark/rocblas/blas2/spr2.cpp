@@ -26,10 +26,11 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, int n) {
+std::string get_name(char uplo, int size, scalar_t alpha, index_t incX,
+                     index_t incY) {
   std::ostringstream str{};
   str << "BM_Spr2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << n;
+      << uplo << "/" << size << "/" << alpha << "/" << incX << "/" << incY;
   return str.str();
 }
 
@@ -45,15 +46,12 @@ static inline void rocblas_spr2_f(args_t&&... args) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
-         index_t n, scalar_t alpha, bool* success) {
+         index_t n, scalar_t alpha, index_t incX, index_t incY, bool* success) {
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
 
   index_t xlen = n;
   index_t ylen = n;
-
-  index_t incX = 1;
-  index_t incY = 1;
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, n);
@@ -64,8 +62,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
   // Data sizes
   const int m_size = n * n;
-  const int v_x_size = 1 + (xlen - 1) * incX;
-  const int v_y_size = 1 + (ylen - 1) * incY;
+  const int v_x_size = 1 + (xlen - 1) * std::abs(incX);
+  const int v_y_size = 1 + (ylen - 1) * std::abs(incY);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -158,21 +156,22 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto spr2_params = blas_benchmark::utils::get_syr_params<scalar_t>(args);
+  auto spr2_params = blas_benchmark::utils::get_spr2_params<scalar_t>(args);
 
   for (auto p : spr2_params) {
     std::string uplo;
-    index_t n;
+    index_t n, incX, incY;
     scalar_t alpha;
-    std::tie(uplo, n, alpha) = p;
+    std::tie(uplo, n, alpha, incX, incY) = p;
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          std::string uplo, index_t n, scalar_t alpha,
-                         bool* success) {
-      run<scalar_t>(st, rb_handle, uplo, n, alpha, success);
+                         index_t incX, index_t incY, bool* success) {
+      run<scalar_t>(st, rb_handle, uplo, n, alpha, incX, incY, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n).c_str(), BM_lambda,
-                                 rb_handle, uplo, n, alpha, success)
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(uplo, n, alpha, incX, incY).c_str(), BM_lambda,
+        rb_handle, uplo, n, alpha, incX, incY, success)
         ->UseRealTime();
   }
 }

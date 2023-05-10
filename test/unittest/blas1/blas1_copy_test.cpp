@@ -26,14 +26,16 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<int, int, int>;
+using combination_t = std::tuple<int, int, int, scalar_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(size, incX, incY) = combi;
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
+  std::tie(size, incX, incY, unused) = combi;
 
   // Input vector
   std::vector<scalar_t> x_v(size * incX);
@@ -75,7 +77,8 @@ const auto combi = ::testing::Combine(::testing::Values(11, 65, 1002,
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(1, 4),      // incX
-                                      ::testing::Values(1, 3)       // incY
+                                      ::testing::Values(1, 3),      // incY
+                                      ::testing::Values(0)          // unused
 );
 #endif
 
@@ -83,7 +86,8 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   int size, incX, incY;
-  BLAS_GENERATE_NAME(info.param, size, incX, incY);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, size, incX, incY, unused);
 }
 
 BLAS_REGISTER_TEST_ALL(Copy, combination_t, combi, generate_name);

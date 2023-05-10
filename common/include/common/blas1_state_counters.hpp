@@ -39,7 +39,8 @@ enum class Level1Op : int {
   rotm = 6,
   rotmg = 7,
   scal = 8,
-  sdsdot = 9
+  sdsdot = 9,
+  copy = 10
 };
 
 template <Level1Op op, typename scalar_t, typename index_t>
@@ -127,6 +128,16 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   double size_d = static_cast<double>(size);
   state.counters["size"] = size_d;
   state.counters["n_fl_ops"] = 2 * size_d;
+  state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
+  return;
+}
+
+template <Level1Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level1Op::copy>::type
+init_level_1_counters(benchmark::State& state, index_t size) {
+  // Google-benchmark counters are double.
+  double size_d = static_cast<double>(size);
+  state.counters["size"] = size_d;
   state.counters["bytes_processed"] = 2 * size_d * sizeof(scalar_t);
   return;
 }
