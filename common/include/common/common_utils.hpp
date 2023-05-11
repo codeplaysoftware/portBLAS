@@ -22,6 +22,7 @@
 #include <common/blas2_state_counters.hpp>
 #include <common/blas3_state_counters.hpp>
 #include <common/float_comparison.hpp>
+#include <common/set_benchmark_label.hpp>
 #include <common/system_reference_blas.hpp>
 
 using index_t = BLAS_INDEX_T;

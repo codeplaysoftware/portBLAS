@@ -67,6 +67,59 @@ if(CMAKE_CROSSCOMPILING)
      message(STATUS "Crossing : ${cmake_toolchain}")
 endif()
 
+# Creates a git-config.tmp file containing the commit hash and date. A custom
+# target ensures that this command is always executed.
+add_custom_target(generate_git_config
+  ${CMAKE_CURRENT_SOURCE_DIR}/make_git_config.$<IF:$<BOOL:${WIN32}>,bat,sh> >
+    ${CMAKE_CURRENT_BINARY_DIR}/git_config.tmp
+  BYPRODUCTS
+    git_config.tmp
+  WORKING_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Conditionally copies the new git-config.tmp to git-config.h if the file has
+# changed. This pattern is used to prevent constant rebuilds even though the git
+# history hasn't changed.
+add_custom_command(OUTPUT git_config.h
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_if_different git_config.tmp git_config.h
+  DEPENDS
+    generate_git_config git_config.tmp
+  WORKING_DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Assume ComputeCpp not available by default.
+set(ComputeCpp_INFO_AVAILABLE false)
+set(ComputeCpp_VERSION_NUMBER "N/A")
+set(ComputeCpp_EDITION "N/A")
+
+if(is_computecpp)
+  execute_process(COMMAND ${ComputeCpp_DEVICE_COMPILER_EXECUTABLE} "--version"
+    OUTPUT_VARIABLE ComputeCpp_DEVICE_COMPILER_VERSION
+    RESULT_VARIABLE ComputeCpp_DEVICE_COMPILER_EXECUTABLE_RESULT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT ComputeCpp_DEVICE_COMPILER_EXECUTABLE_RESULT EQUAL "0")
+    message(WARNING "Compute++ not found - Error obtaining device compiler and ComputeCpp version!")
+  else()
+    # Store information about ComputeCpp/compiler for benchmarking.
+    set(ComputeCpp_INFO_AVAILABLE true)
+    string(REGEX MATCH
+      "(CE|PE|RC)" ComputeCpp_EDITION ${ComputeCpp_DEVICE_COMPILER_VERSION})
+    if(${ComputeCpp_EDITION} STREQUAL "RC")
+      set(ComputeCpp_EDITION "Internal")
+    endif()
+    string(REGEX MATCH "([0-9]+\.[0-9]+\.[0-9]+)"
+      ComputeCpp_VERSION_NUMBER ${ComputeCpp_DEVICE_COMPILER_VERSION})
+  endif()
+endif()
+
+configure_file(computecpp_version_config.h.in computecpp_version_config.h @ONLY)
+
+add_library(bench_info STATIC bench_info.cc git_config.h computecpp_version_config.h)
+target_include_directories(bench_info PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 if(VERBOSE)
   add_definitions(-DVERBOSE=VERBOSE)
 endif(VERBOSE)
