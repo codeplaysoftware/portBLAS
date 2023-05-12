@@ -27,6 +27,7 @@
 #define SYCL_BLAS_EXTENSION_INTERFACE_HPP
 
 #include "blas_meta.h"
+#include "interface/transpose_launcher.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 #include "operations/extension/matcopy.h"
@@ -49,30 +50,42 @@ struct get_second_step_op<MeanOperator> {
   using type = AddOperator;
 };
 
-template <bool trans, typename sb_handle_t, typename element_t,
+template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t in_stride,
               out_t out_memory, index_t ld_out, index_t out_stride) {
   typename sb_handle_t::event_t ret;
-  // copy a vector of all 0s to the output memory
-  // if (alpha == 0) {
-  //   std::vector<element_t> vec(m * n, 0);
-  //   auto event = blas::helper::copy_to_device<element_t>(
-  //       sb_handle.get_queue(), vec.data(), memory, m * n);
-  //   ret = concatenate_vectors(ret, typename sb_handle_t::event_t{event});
-  // } else {
-  //   auto imatcopy =
-  //       make_copy<matcopy_op::inplace, 32, trans, trans, Tile<1, 1, 1, 1>>(
-  //           memory, memory, memory, alpha, element_t{0}, m, n, ld_out, ld_in,
-  //           ld_in, 1, 1, 1);
-  //   ret = sb_handle.execute(imatcopy);
-  // }
+
+  bool use_local_memory = sb_handle.has_local_memory();
+
+  if (use_local_memory) {
+    // Using local Memory
+    if (m > 1024 && n > 1024) {
+      ret = Transpose_Launcher<in_place, 32, true>::template _select_transpose(
+          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
+          ld_out, out_stride);
+    } else if (m > 64 && n > 64) {
+      ret = Transpose_Launcher<in_place, 16, true>::template _select_transpose(
+          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
+          ld_out, out_stride);
+    } else {
+      ret = Transpose_Launcher<in_place, 8, true>::template _select_transpose(
+          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
+          ld_out, out_stride);
+    }
+  } else {
+    // With no local Memory
+    ret = Transpose_Launcher<in_place, 16, false>::template _select_transpose(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride);
+  }
+
   return ret;
 }
 
-template <bool trans, typename sb_handle_t, typename element_t,
+template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
@@ -215,25 +228,29 @@ typename sb_handle_t::event_t launch_type_based_reduction(
   return reduction_event;
 }
 
-template <typename sb_handle_t, typename element_t, typename index_t,
-          typename in_t, typename out_t>
+template <bool in_place, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
                                        in_t in_memory, index_t ld_in,
                                        index_t in_stride, out_t out_memory,
                                        index_t ld_out, index_t out_stride) {
   // bail out early if the leading dimensions are not correct
-  if (ld_in < m || ld_out < (trans == 't' ? n : m)) {
+  if (ld_in < (in_stride * (m - 1) + 1) ||
+      (ld_out - 1) <
+          (trans == 't' ? out_stride * (n - 1) : out_stride * (m - 1))) {
     typename sb_handle_t::event_t ret;
     return ret;
   }
 
   if (trans == 't') {
-    return _matcopy_impl<true>(sb_handle, m, n, alpha, in_memory, ld_in,
-                               in_stride, out_memory, ld_out, out_stride);
+    return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, in_memory,
+                                         ld_in, in_stride, out_memory, ld_out,
+                                         out_stride);
   } else {
-    return _matcopy_impl<false>(sb_handle, m, n, alpha, in_memory, ld_in,
-                                in_stride, out_memory, ld_out, out_stride);
+    return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
+                                          ld_in, in_stride, out_memory, ld_out,
+                                          out_stride);
   }
 }
 

@@ -43,7 +43,8 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
-  int64_t size = std::max(ld_in, ld_out) * (trans == 't' ? std::max(m, n) : n);
+  int64_t size = (trans == 't') ? std::max(ld_in * n, ld_out * m)
+                                : (std::max(ld_in, ld_out) * n);
   std::vector<scalar_t> A(size);
 
   fill_random(A);
@@ -68,12 +69,12 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values<char>('n'),
-                                      ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<scalar_t>(0,2),
-                                      ::testing::Values<int64_t>(2, 3),
-                                      ::testing::Values<int64_t>(2, 3));
+const auto combi = ::testing::Combine(::testing::Values<char>('t'),
+                                      ::testing::Values<int64_t>(16, 32),
+                                      ::testing::Values<int64_t>(16, 32),
+                                      ::testing::Values<scalar_t>(0, 2),
+                                      ::testing::Values<int64_t>(16, 32),
+                                      ::testing::Values<int64_t>(16, 32));
 
 template <class T>
 static std::string generate_name(

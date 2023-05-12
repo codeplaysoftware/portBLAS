@@ -91,7 +91,8 @@ void run_test(const combination_t<scalar_t> combi) {
   const int64_t ldb = (trans_b == 'n') ? m : n;
 
   // Reference implementation
-  omatadd((trans_a == 't'), (trans_b == 't'), m, n, alpha, A_ref, lda, beta, B_ref, ldb, C_ref, m);
+  omatadd((trans_a == 't'), (trans_b == 't'), m, n, alpha, A_ref, lda, beta,
+          B_ref, ldb, C_ref, m);
 
   auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(A, size);
   auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(B, size);

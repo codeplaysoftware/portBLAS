@@ -19,41 +19,35 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.hpp
+ *  @filename transpose_launcher.cpp.in
  *
  **************************************************************************/
-#include "sycl_blas.h"
 
 #include "container/sycl_iterator.hpp"
-
 #include "sb_handle/sycl_blas_handle.hpp"
-
 #include "sb_handle/kernel_constructor.hpp"
-
-#include "interface/blas1_interface.hpp"
-
-#include "interface/blas2_interface.hpp"
-
-#include "interface/blas3_interface.hpp"
-
-#include "interface/gemm_launcher.hpp"
-
-#include "interface/extension_interface.hpp"
-
-#include "operations/blas1_trees.hpp"
-
-#include "operations/blas2_trees.hpp"
-
-#include "operations/blas3_trees.hpp"
-
-#include "operations/extension/reduction.hpp"
-
-#include "operations/extension/matcopy.hpp"
-
+#include "interface/transpose_launcher.hpp"
 #include "operations/extension/transpose.hpp"
-
-#include "operations/blas_constants.hpp"
-
-#include "operations/blas_operators.hpp"
-
 #include "views/view_sycl.hpp"
+
+namespace blas {
+namespace extension {
+namespace internal {
+template class Transpose_Launcher<${IN_PLACE}, ${TILE_SIZE}, ${LOCAL_MEM}>;
+
+template typename SB_Handle::event_t Transpose_Launcher<
+    ${IN_PLACE}, ${TILE_SIZE}, ${LOCAL_MEM}>::
+    _select_transpose<SB_Handle,
+                 BufferIterator<${DATA_TYPE}>,
+                 BufferIterator<${DATA_TYPE}>,
+                 ${DATA_TYPE},
+                 ${INDEX_TYPE}>(
+        SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+        ${DATA_TYPE} _alpha,
+        BufferIterator<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
+        ${INDEX_TYPE} _stridea, BufferIterator<${DATA_TYPE}> b_,
+        ${INDEX_TYPE} _ldb, ${INDEX_TYPE} _strideb);
+
+}  // namespace internal
+}  // namespace extension
+}  // namespace blas
