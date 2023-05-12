@@ -509,6 +509,60 @@ function(generate_blas_rotmg_objects blas_level func)
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_rotmg_objects)
 
+
+function(generate_blas_transpose_objects blas_level func)
+set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+set(trans_sources "")
+
+function(add_transpose_configuration
+  tile_size
+)
+  foreach(data ${data_list})
+    cpp_type(cpp_data ${data})
+    foreach(local_memory ${boolean_list})    
+      foreach(in_place ${boolean_list})
+        set(idx_list "int64_t")
+        foreach(index ${idx_list})
+          set(file_name "transpose_launcher_${in_place}_${tile_size}_${local_memory}.cpp")
+          sanitize_file_name(file_name "${file_name}")
+          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
+              ${PROJECT_SOURCE_DIR}/external/
+              ${SYCLBLAS_SRC_GENERATOR}/gen
+              ${blas_level}
+              ${func}
+              ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+              ${cpp_data}
+              ${index}
+              ${in_place}
+              ${tile_size}
+              ${local_memory}
+              ${file_name}
+            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+            VERBATIM
+          )
+          list(APPEND trans_sources "${LOCATION}/${file_name}")
+          set(trans_sources "${trans_sources}" PARENT_SCOPE)
+        endforeach(index)
+      endforeach(in_place)
+    endforeach(local_memory)
+  endforeach(data)
+endfunction(add_transpose_configuration)
+
+add_transpose_configuration(8 1)
+add_transpose_configuration(16 1)
+add_transpose_configuration(32 1)
+
+add_library(${func} OBJECT ${trans_sources})
+set_target_compile_def(${func})
+target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
+                           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
+message(STATUS "Adding SYCL to target ${func}")
+add_sycl_to_target(TARGET ${func} SOURCES ${trans_sources})
+endfunction(generate_blas_transpose_objects)
+
 # blas gemm function for generating source code
 function(generate_blas_gemm_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
@@ -863,7 +917,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>
                 $<TARGET_OBJECTS:matcopy>
-                $<TARGET_OBJECTS:omatadd>)
+                $<TARGET_OBJECTS:omatadd>
+                $<TARGET_OBJECTS:transpose_launcher>)
 
   if (${ENABLE_EXTENSIONS})
     list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)

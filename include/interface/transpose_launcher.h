@@ -19,35 +19,35 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename matcopy.cpp.in
+ *  @filename transpose_launcher.h
  *
  **************************************************************************/
 
-#include "operations/extension/matcopy.hpp"
-#include "operations/extension/transpose.hpp"
-#include "interface/extension_interface.hpp"
-#include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#ifndef SYCL_BLAS_EXTENSION_TRANSPOSE_LAUNCHER_H
+#define SYCL_BLAS_EXTENSION_TRANSPOSE_LAUNCHER_H
+
+#include "operations/extension/transpose.h"
+#include "sb_handle/sycl_blas_handle.h"
 
 namespace blas {
 namespace extension {
 namespace internal {
-
-// This function represents both imatcopy and omatcopy operators depending on 
-// template parameter for in_place / out_of_place
- 
-template typename SB_Handle::event_t _matcopy<true>(
-    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride);
-
-template typename SB_Handle::event_t _matcopy<false>(
-    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride);
+/*!
+ * @brief Wrapper around Transpose. Creates the views, then makes and launches
+ * Transpose
+ */
+template <bool in_place, int Tile_size, bool local_memory>
+struct Transpose_Launcher {
+  template <typename sb_handle_t, typename container_0_t,
+            typename container_1_t, typename element_t, typename index_t>
+  static typename sb_handle_t::event_t _select_transpose(
+      sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+      container_0_t in_, index_t _ld_in, index_t _stride_in, container_1_t out_,
+      index_t _ld_out, index_t _stride_out);
+};
 
 }  // namespace internal
 }  // namespace extension
 }  // namespace blas
+
+#endif  // SYCL_BLAS_EXTENSION_TRANSPOSE_LAUNCHER_H
