@@ -433,7 +433,7 @@ void imatcopy(char trans, int m, int n, scalar_t alpha, scalar_t *ptr, int lda,
 
 template <typename scalar_t>
 void omatcopy(char trans, int m, int n, scalar_t alpha, scalar_t *a, int lda,
-              scalar_t* b, int ldb) {
+              scalar_t *b, int ldb) {
   auto func =
       blas_system_function<scalar_t>(&cblas_somatcopy, &cblas_domatcopy);
   func(CblasColMajor, c_trans(trans), m, n, alpha, a, lda, b, ldb);
