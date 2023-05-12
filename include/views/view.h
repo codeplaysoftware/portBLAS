@@ -246,8 +246,12 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
       typename BufferIterator<scalar_t>::template default_accessor_t<
           access_mode_t>,
       index_t, access_layout_t>::output_t;
-  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
-                     lda, stride, (index_t)buff.get_offset()};
+  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(),
+                     m,
+                     n,
+                     lda,
+                     stride,
+                     (index_t)buff.get_offset()};
 }
 
 }  // namespace blas
