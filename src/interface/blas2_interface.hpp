@@ -526,6 +526,41 @@ typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
                            roundUp<index_t>(vector_size, local_range));
 }
 
+/*! _spmv_impl.
+ * @brief Implementation of the Symmetric Packed Matrix Vector product.
+ *
+ */
+template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
+          typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename container_t1, typename increment_t,
+          typename container_t2>
+typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         element_t _alpha, container_t0 _mA,
+                                         container_t1 _vx, increment_t _incx,
+                                         element_t _beta, container_t2 _vy,
+                                         increment_t _incy) {
+  static_assert(local_range_x % local_range_y == 0,
+                "Local y range needs to be a multiple of local x range.");
+
+  constexpr index_t one = 1;
+
+  index_t vector_size = _N;
+  index_t matrix_size = ((_N + 1) * _N) / 2;
+
+  auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
+  auto vx = make_vector_view(_vx, _incx, vector_size);
+  auto vy = make_vector_view(_vy, _incy, vector_size);
+
+  auto spmv = make_spmv<local_range_x, local_range_y, uplo == uplo_type::Upper>(
+      _alpha, mA, vx, _beta, vy);
+
+  return sb_handle.execute(
+      spmv, static_cast<index_t>(local_range_y * local_range_x),
+      roundUp<index_t>(local_range_y * vector_size,
+                       local_range_y * local_range_x),
+      static_cast<index_t>(local_range_x * (local_range_x + 1 + 2)));
+}
+
 template <uint32_t local_range, uplo_type uplo, transpose_type trn,
           diag_type diag, typename sb_handle_t, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
@@ -1027,6 +1062,22 @@ typename sb_handle_t::event_t inline _sbmv(
                                : blas::sbmv::backend::_sbmv<uplo_type::Lower>(
                                      sb_handle, _N, _K, _alpha, _mA, _lda, _vx,
                                      _incx, _beta, _vy, _incy);
+}
+
+template <typename sb_handle_t, typename index_t, typename element_t,
+          typename container_t0, typename container_t1, typename increment_t,
+          typename container_t2>
+typename sb_handle_t::event_t inline _spmv(sb_handle_t& sb_handle, char _Uplo,
+                                           index_t _N, element_t _alpha,
+                                           container_t0 _mA, container_t1 _vx,
+                                           increment_t _incx, element_t _beta,
+                                           container_t2 _vy,
+                                           increment_t _incy) {
+  return tolower(_Uplo) == 'u'
+             ? blas::spmv::backend::_spmv<uplo_type::Upper>(
+                   sb_handle, _N, _alpha, _mA, _vx, _incx, _beta, _vy, _incy)
+             : blas::spmv::backend::_spmv<uplo_type::Lower>(
+                   sb_handle, _N, _alpha, _mA, _vx, _incx, _beta, _vy, _incy);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,

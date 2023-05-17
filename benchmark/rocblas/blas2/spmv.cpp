@@ -46,7 +46,6 @@ static inline void rocblas_spmv_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
          index_t n, scalar_t alpha, scalar_t beta, bool* success) {
-  // Standard test setup.
   const char* uplo_str = uplo.c_str();
 
   index_t xlen = n;
@@ -63,7 +62,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       uplo_str[0] == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
 
   // Data sizes
-  const int m_size = n * n;
+  const int m_size = ((n + 1) * n) / 2;
   const int v_x_size = 1 + (xlen - 1) * incX;
   const int v_y_size = 1 + (ylen - 1) * incY;
 
