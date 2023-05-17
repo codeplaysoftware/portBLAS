@@ -520,10 +520,9 @@ function(add_transpose_configuration
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
     foreach(local_memory ${boolean_list})    
-      foreach(in_place ${boolean_list})
         set(idx_list "int64_t")
         foreach(index ${idx_list})
-          set(file_name "transpose_launcher_${in_place}_${tile_size}_${local_memory}.cpp")
+          set(file_name "transpose_launcher_${tile_size}_${local_memory}.cpp")
           sanitize_file_name(file_name "${file_name}")
           add_custom_command(OUTPUT "${LOCATION}/${file_name}"
             COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
@@ -534,7 +533,6 @@ function(add_transpose_configuration
               ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
               ${cpp_data}
               ${index}
-              ${in_place}
               ${tile_size}
               ${local_memory}
               ${file_name}
@@ -546,7 +544,6 @@ function(add_transpose_configuration
           list(APPEND trans_sources "${LOCATION}/${file_name}")
           set(trans_sources "${trans_sources}" PARENT_SCOPE)
         endforeach(index)
-      endforeach(in_place)
     endforeach(local_memory)
   endforeach(data)
 endfunction(add_transpose_configuration)

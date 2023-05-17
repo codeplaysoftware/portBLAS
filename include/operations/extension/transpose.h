@@ -37,7 +37,6 @@ class Transpose {
  public:
   using index_t = typename in_t::index_t;
   using value_t = element_t;
-  static constexpr int wg_size_ = Tile_size * Tile_size;
   in_t A_;
   out_t At_;
   index_t lda_;
@@ -77,10 +76,10 @@ class Transpose {
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t, typename index_t>
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>
-make_transpose(in_t& A, index_t& stridea, out_t& At, index_t& strideat,
+make_transpose(in_t& A, index_t stridea, out_t& At, index_t stridea_t,
                element_t& alpha) {
   return Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>(
-      A, stridea, At, strideat, alpha);
+      A, stridea, At, stridea_t, alpha);
 }
 
 }  // namespace blas

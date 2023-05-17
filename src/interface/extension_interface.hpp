@@ -52,7 +52,7 @@ struct get_second_step_op<MeanOperator> {
 
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
-typename std::enable_if<trans, typename sb_handle_t::event_t>::type
+typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t in_stride,
               out_t out_memory, index_t ld_out, index_t out_stride) {
@@ -63,25 +63,36 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   if (use_local_memory) {
     // Using local Memory
     if (m > 1024 && n > 1024) {
-      ret = Transpose_Launcher<in_place, 32, true>::template _select_transpose(
+      ret = Transpose_Launcher<32, true>::template _select_transpose_outplace(
           sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
           ld_out, out_stride);
     } else if (m > 64 && n > 64) {
-      ret = Transpose_Launcher<in_place, 16, true>::template _select_transpose(
+      ret = Transpose_Launcher<16, true>::template _select_transpose_outplace(
           sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
           ld_out, out_stride);
     } else {
-      ret = Transpose_Launcher<in_place, 8, true>::template _select_transpose(
+      ret = Transpose_Launcher<8, true>::template _select_transpose_outplace(
           sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
           ld_out, out_stride);
     }
   } else {
     // With no local Memory
-    ret = Transpose_Launcher<in_place, 16, false>::template _select_transpose(
+    ret = Transpose_Launcher<16, false>::template _select_transpose_outplace(
         sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
         out_stride);
   }
 
+  return ret;
+}
+
+template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
+typename std::enable_if<trans && in_place, typename sb_handle_t::event_t>::type
+_matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              in_t in_memory, index_t ld_in, index_t in_stride,
+              out_t out_memory, index_t ld_out, index_t out_stride) {
+  // TODO
+  typename sb_handle_t::event_t ret;
   return ret;
 }
 
@@ -118,19 +129,8 @@ typename std::enable_if<trans_a || trans_b, typename sb_handle_t::event_t>::type
 _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               container_t a, index_t lda, element_t beta, container_t b,
               index_t ldb, container_t c, index_t ldc) {
+  // TODO
   typename sb_handle_t::event_t ret;
-  /*
-  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
-  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
-  auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
-  if constexpr (trans_a){}
-  if constexpr (trans_b){}
-  auto scal_a = make_op<ScalarOp, ProductOperator>(alpha, m_a_view);
-  auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
-  auto sum_matrix = make_op<BinaryOp, AddOperator>(scal_a, scal_b);
-  auto copy_op = make_op<Assign>(m_c_view, sum_matrix);
-  return sb_handle.execute(copy_op);
-  */
   return ret;
 }
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
@@ -244,9 +244,9 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
   }
 
   if (trans == 't') {
-    return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, in_memory,
-                                         ld_in, in_stride, out_memory, ld_out,
-                                         out_stride);
+    return _matcopy_impl<false, true>(sb_handle, m, n, alpha, in_memory, ld_in,
+                                      in_stride, out_memory, ld_out,
+                                      out_stride);
   } else {
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
                                           ld_in, in_stride, out_memory, ld_out,
@@ -262,13 +262,21 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        index_t lda, element_t beta,
                                        container_t b, index_t ldb,
                                        container_t c, index_t ldc) {
-  // typename sb_handle_t::event_t ret;
-  if (trans_a == 't' || trans_b == 't') {
-    typename sb_handle_t::event_t ret;
-    return ret;
+  if (trans_a == 't') {
+    if (trans_b == 't') {
+      return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                       ldb, c, ldc);
+    } else {
+      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                        ldb, c, ldc);
+    }
+  } else if (trans_b == 't') {
+    return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, alpha, a,
+                                      lda, c, ldc);
+  } else {
+    return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                       ldb, c, ldc);
   }
-  return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                     ldb, c, ldc);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
