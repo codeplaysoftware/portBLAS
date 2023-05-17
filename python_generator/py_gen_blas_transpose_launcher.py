@@ -40,10 +40,9 @@ if __name__ == '__main__':
     blas_template_impl = sys.argv[5]
     data = sys.argv[6]
     index = sys.argv[7]
-    in_place = sys.argv[8]
-    tile_size = sys.argv[9]
-    local_memory = sys.argv[10]
-    file_name = sys.argv[11]
+    tile_size = sys.argv[8]
+    local_memory = sys.argv[9]
+    file_name = sys.argv[10]
 
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
@@ -63,11 +62,6 @@ if __name__ == '__main__':
         Iterable(
             key='INDEX_TYPE',
             vals=[index],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='IN_PLACE',
-            vals=[in_place],
             itermode=Itermode.combinations,
             iter_modifier=1),
         Iterable(

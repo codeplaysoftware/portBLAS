@@ -69,12 +69,12 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values<char>('t'),
+const auto combi = ::testing::Combine(::testing::Values<char>('n'),
                                       ::testing::Values<int64_t>(16, 32),
                                       ::testing::Values<int64_t>(16, 32),
                                       ::testing::Values<scalar_t>(0, 2),
-                                      ::testing::Values<int64_t>(16, 32),
-                                      ::testing::Values<int64_t>(16, 32));
+                                      ::testing::Values<int64_t>(16, 32, 64),
+                                      ::testing::Values<int64_t>(16, 32, 64));
 
 template <class T>
 static std::string generate_name(

@@ -33,14 +33,14 @@ namespace blas {
 namespace extension {
 namespace internal {
 /*!
- * @brief Wrapper around Transpose. Creates the views, then makes and launches
- * Transpose
+ * @brief Wrapper around Transpose (in & out place). Creates the views, then
+ * makes and launches Transpose
  */
-template <bool in_place, int Tile_size, bool local_memory>
+template <int Tile_size, bool local_memory>
 struct Transpose_Launcher {
   template <typename sb_handle_t, typename container_0_t,
             typename container_1_t, typename element_t, typename index_t>
-  static typename sb_handle_t::event_t _select_transpose(
+  static typename sb_handle_t::event_t _select_transpose_outplace(
       sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
       container_0_t in_, index_t _ld_in, index_t _stride_in, container_1_t out_,
       index_t _ld_out, index_t _stride_out);

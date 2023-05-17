@@ -33,19 +33,21 @@
 namespace blas {
 namespace extension {
 namespace internal {
-template class Transpose_Launcher<${IN_PLACE}, ${TILE_SIZE}, ${LOCAL_MEM}>;
+template class Transpose_Launcher<${TILE_SIZE}, ${LOCAL_MEM}>;
 
 template typename SB_Handle::event_t Transpose_Launcher<
-    ${IN_PLACE}, ${TILE_SIZE}, ${LOCAL_MEM}>::
-    _select_transpose<SB_Handle,
+    ${TILE_SIZE}, ${LOCAL_MEM}>::
+    _select_transpose_outplace<SB_Handle,
                  BufferIterator<${DATA_TYPE}>,
                  BufferIterator<${DATA_TYPE}>,
                  ${DATA_TYPE},
                  ${INDEX_TYPE}>(
-        SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+        SB_Handle& sb_handle, 
+        ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${DATA_TYPE} _alpha,
-        BufferIterator<${DATA_TYPE}> a_, ${INDEX_TYPE} _lda,
-        ${INDEX_TYPE} _stridea, BufferIterator<${DATA_TYPE}> b_,
+        BufferIterator<${DATA_TYPE}> a_, 
+        ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, 
+        BufferIterator<${DATA_TYPE}> b_,
         ${INDEX_TYPE} _ldb, ${INDEX_TYPE} _strideb);
 
 }  // namespace internal

@@ -70,8 +70,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
   auto idx = id.get_global_linear_id();
 
   if (idx < get_size()) {
-    auto A = A_.get_data().get_pointer() + A_.get_access_displacement();
-    auto At = At_.get_data().get_pointer() + At_.get_access_displacement();
+    auto A = A_.get_data().get_pointer();
+    auto At = At_.get_data().get_pointer();
 
     auto j = idx / M_;
     auto i = idx - j * M_;
@@ -118,8 +118,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
   if (idx < get_size()) {
     value_t *local = local_mem.localAcc.get_pointer();
 
-    auto A = A_.get_data().get_pointer() + A_.get_access_displacement();
-    auto At = At_.get_data().get_pointer() + At_.get_access_displacement();
+    auto A = A_.get_data().get_pointer();
+    auto At = At_.get_data().get_pointer();
 
     index_t in_index, in_local_id, out_index, out_local_id;
 
