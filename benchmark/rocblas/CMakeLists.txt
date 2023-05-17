@@ -77,7 +77,7 @@ set(sources
 foreach(rocblas_benchmark ${sources})
   get_filename_component(rocblas_bench_exec ${rocblas_benchmark} NAME_WE)
   add_executable(bench_rocblas_${rocblas_bench_exec} ${rocblas_benchmark} main.cpp)
-  target_link_libraries(bench_rocblas_${rocblas_bench_exec} PRIVATE benchmark Clara::Clara roc::rocblas) 
+  target_link_libraries(bench_rocblas_${rocblas_bench_exec} PRIVATE benchmark Clara::Clara roc::rocblas bench_info) 
   target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   target_include_directories(bench_rocblas_${rocblas_bench_exec} PRIVATE  ${SYCLBLAS_INCLUDE} ${rocblas_INCLUDE_DIRS} ${CBLAS_INCLUDE} ${BLAS_BENCH} ${SYCLBLAS_COMMON_INCLUDE_DIR})
 
