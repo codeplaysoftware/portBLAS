@@ -25,14 +25,16 @@
 
 #include "blas_test.hpp"
 
+using index_t = int;
+
 template <typename scalar_t>
-using combination_t = std::tuple<char, char, int64_t, int64_t, scalar_t,
-                                 scalar_t, int64_t, int64_t>;
+using combination_t = std::tuple<char, char, index_t, index_t, scalar_t,
+                                 scalar_t, index_t, index_t>;
 
 template <typename T>
 [[clang::always_inline]] inline void otp_transpose_matrix(
-    std::vector<T> &m, const int64_t rows, const int64_t cols,
-    const int64_t ldm, const int64_t ldm_out) {
+    std::vector<T> &m, const index_t rows, const index_t cols,
+    const index_t ldm, const index_t ldm_out) {
   std::vector<T> b(m.size());
   for (int i = 0; i < cols; ++i) {
     for (int j = 0; j < rows; ++j) {
@@ -43,10 +45,10 @@ template <typename T>
 }
 
 template <typename T>
-void omatadd(const char trans_a, const char trans_b, const int64_t m,
-             const int64_t n, const T alpha, std::vector<T> &a,
-             const int64_t lda, const T beta, std::vector<T> &b,
-             const int64_t ldb, std::vector<T> &c, const int64_t ldc) {
+void omatadd(const char trans_a, const char trans_b, const index_t m,
+             const index_t n, const T alpha, std::vector<T> &a,
+             const index_t lda, const T beta, std::vector<T> &b,
+             const index_t ldb, std::vector<T> &c, const index_t ldc) {
   if (trans_a) {
     otp_transpose_matrix(a, n, m, lda, ldc);
   }
@@ -63,7 +65,7 @@ void omatadd(const char trans_a, const char trans_b, const int64_t m,
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   char trans_a, trans_b;
-  int64_t m, n, ld_in, ld_out;
+  index_t m, n, ld_in, ld_out;
   scalar_t alpha, beta;
 
   std::tie(trans_a, trans_b, m, n, alpha, beta, ld_in, ld_out) = combi;
@@ -74,7 +76,7 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
-  int64_t size = m * n;
+  index_t size = m * n;
   // std::max(ld_in, ld_out) * (trans_a == 't' ? std::max(m, n) : n);
   std::vector<scalar_t> A(size);
   std::vector<scalar_t> B(size);
@@ -87,8 +89,8 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B_ref = B;
   std::vector<scalar_t> C_ref = C;
 
-  const int64_t lda = (trans_a == 'n') ? m : n;
-  const int64_t ldb = (trans_b == 'n') ? m : n;
+  const index_t lda = (trans_a == 'n') ? m : n;
+  const index_t ldb = (trans_b == 'n') ? m : n;
 
   // Reference implementation
   omatadd((trans_a == 't'), (trans_b == 't'), m, n, alpha, A_ref, lda, beta,
@@ -113,15 +115,15 @@ void run_test(const combination_t<scalar_t> combi) {
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values<char>('n'), ::testing::Values<char>('n'),
-    ::testing::Values<int64_t>(64, 128), ::testing::Values<int64_t>(64, 128),
+    ::testing::Values<index_t>(64, 128), ::testing::Values<index_t>(64, 128),
     ::testing::Values<scalar_t>(0, 1, 2), ::testing::Values<scalar_t>(0, 1, 2),
-    ::testing::Values<int64_t>(64, 128), ::testing::Values<int64_t>(64, 128));
+    ::testing::Values<index_t>(64, 128), ::testing::Values<index_t>(64, 128));
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>> &info) {
   char trans_a, trans_b;
-  int64_t m, n, ld_in, ld_out;
+  index_t m, n, ld_in, ld_out;
   T alpha, beta;
   BLAS_GENERATE_NAME(info.param, trans_a, trans_b, m, n, alpha, beta, ld_in,
                      ld_out);
