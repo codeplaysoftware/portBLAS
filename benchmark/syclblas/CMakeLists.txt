@@ -30,6 +30,7 @@ set(sources
   # Level 1 blas
   blas1/axpy.cpp
   blas1/asum.cpp
+  blas1/copy.cpp
   blas1/dot.cpp
   blas1/sdsdot.cpp
   blas1/iamax.cpp
@@ -46,6 +47,7 @@ set(sources
   blas2/gemv.cpp
   blas2/ger.cpp
   blas2/sbmv.cpp
+  blas2/spmv.cpp
   blas2/symv.cpp
   blas2/syr.cpp
   blas2/syr2.cpp
