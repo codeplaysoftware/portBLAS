@@ -66,11 +66,11 @@ struct Gemm_Launcher {
     auto interop_event = sb_handle.get_queue().submit([&](cl::sycl::codeplay::
                                                               handler& cgh) {
       auto a_acc =
-          a_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          a_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       auto b_acc =
-          b_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          b_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       auto c_acc =
-          c_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          c_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       cgh.interop_task([&, a_acc, b_acc, c_acc](
                            const cl::sycl::codeplay::interop_handle& handle) {
         auto m_cl_device = handle.get_device();
