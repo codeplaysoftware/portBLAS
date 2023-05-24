@@ -52,7 +52,7 @@ template <bool in_place, int Tile_size, bool local_memory, typename in_t,
 SYCL_BLAS_INLINE typename in_t::index_t
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>::get_size()
     const {
-  return A_.get_size();
+  return (tile_count_m_ * tile_count_n_ * Tile_size * Tile_size);
 }
 
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
@@ -85,10 +85,11 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
 
 template <int Tile_size, typename index_t>
 SYCL_BLAS_INLINE void compute_trans_indices(
-    cl::sycl::nd_item<1> id, const index_t &m_tiles, const index_t &lda,
-    const index_t &stride_a, const index_t &ldat, const index_t &stride_at,
-    index_t &in_idx, index_t &in_idc, index_t &out_idx, index_t &out_idc) {
-  index_t idx = id.get_global_linear_id();
+    const index_t &M, const index_t &N, const index_t &m_tiles,
+    cl::sycl::nd_item<1> id, const index_t &lda, const index_t &stride_a,
+    const index_t &ldat, const index_t &stride_at, index_t &in_idx,
+    index_t &in_idc, index_t &out_idx, index_t &out_idc, bool &valid_index_in,
+    bool &valid_index_out) {
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id();
 
@@ -98,12 +99,18 @@ SYCL_BLAS_INLINE void compute_trans_indices(
   const index_t jl = idc / Tile_size;
   const index_t il = idc - jl * Tile_size;
 
-  in_idx = ig * Tile_size * stride_a + jg * Tile_size * lda + il * stride_a +
-           jl * lda;
+  const index_t i_block_start = ig * Tile_size;
+  const index_t j_block_start = jg * Tile_size;
+
+  valid_index_in = (i_block_start + il < M && j_block_start + jl < N);
+  valid_index_out = (i_block_start + jl < M && j_block_start + il < N);
+
+  in_idx =
+      i_block_start * stride_a + j_block_start * lda + il * stride_a + jl * lda;
   in_idc = jl * (Tile_size + 1) + il;
 
-  out_idx = ig * Tile_size * ldat + jg * Tile_size * stride_at +
-            il * stride_at + jl * ldat;
+  out_idx = i_block_start * ldat + j_block_start * stride_at + il * stride_at +
+            jl * ldat;
   out_idc = il * (Tile_size + 1) + jl;
 }
 
@@ -122,18 +129,23 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
     auto At = At_.get_data().get_pointer();
 
     index_t in_index, in_local_id, out_index, out_local_id;
+    bool valid_index_in, valid_index_out;
 
-    compute_trans_indices<Tile_size>(id, tile_count_m_, lda_, stridea_, ldat_,
-                                     strideat_, in_index, in_local_id,
-                                     out_index, out_local_id);
+    compute_trans_indices<Tile_size>(
+        M_, N_, tile_count_m_, id, lda_, stridea_, ldat_, strideat_, in_index,
+        in_local_id, out_index, out_local_id, valid_index_in, valid_index_out);
 
     // Copy input to local memory
-    local[in_local_id] = alpha_ * A[in_index];
+    if (valid_index_in) {
+      local[in_local_id] = alpha_ * A[in_index];
+    }
 
     id.barrier(sycl::access::fence_space::local_space);
 
     // Copy output from local memory
-    At[out_index] = local[out_local_id];
+    if (valid_index_out) {
+      At[out_index] = local[out_local_id];
+    }
   }
 }
 

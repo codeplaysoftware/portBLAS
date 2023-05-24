@@ -58,8 +58,8 @@ class Transpose {
         M_(A_.get_size_row()),
         N_(A_.get_size_col()),
         alpha_(alpha),
-        tile_count_m_{M_ / Tile_size},
-        tile_count_n_{N_ / Tile_size},
+        tile_count_m_{(M_ - 1) / Tile_size + 1},
+        tile_count_n_{(N_ - 1) / Tile_size + 1},
         stridea_(stridea),
         strideat_(strideat) {}
 

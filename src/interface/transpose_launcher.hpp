@@ -52,8 +52,8 @@ Transpose_Launcher<Tile_size, local_memory>::_select_transpose_outplace(
 
   // Work items & groups sizes
   index_t local_size = static_cast<index_t>(Tile_size * Tile_size);
-  index_t nWG = (_M * _N + local_size - 1) / local_size;
-  index_t global_size = nWG * local_size;
+  index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
+  index_t global_size = n_wg * local_size;
 
   // Transpose expression Tree
   auto trans_scale_tree = make_transpose<false, Tile_size, local_memory>(
