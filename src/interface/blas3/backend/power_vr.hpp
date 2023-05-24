@@ -66,11 +66,11 @@ struct Gemm_Launcher {
     auto interop_event = sb_handle.get_queue().submit([&](cl::sycl::codeplay::
                                                               handler& cgh) {
       auto a_acc =
-          a_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          a_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       auto b_acc =
-          b_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          b_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       auto c_acc =
-          c_buffer.template get_access<cl::sycl::access::mode::read_write>(cgh);
+          c_buffer.template get_access<cl::sycl::access::mode::read>(cgh);
       cgh.interop_task([&, a_acc, b_acc, c_acc](
                            const cl::sycl::codeplay::interop_handle& handle) {
         auto m_cl_device = handle.get_device();
@@ -289,7 +289,7 @@ struct Gemm_Launcher {
 
 #endif
 
-template <bool _t_a, bool _t_b, bool s_a, s_b, bool is_beta_zero,
+template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t _gemm(
@@ -333,9 +333,9 @@ typename sb_handle_t::event_t _gemm(
         static_cast<int>(
             gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
                                                                 _N, _K, _alpha,
-                                                                _a, _lda, _b,
-                                                                _ldb, _beta, _c,
-                                                                _ldc,
+                                                                _a, _lda, _stridea, _b,
+                                                                _ldb, _strideb, _beta, _c,
+                                                                _ldc, _stridec,
                                                                 batch_size);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
