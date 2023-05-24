@@ -198,6 +198,8 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
     verify_gemm<scalar_t, helper::AllocType::usm>(arguments);
+#else
+    GTEST_SKIP();
 #endif
   } else {
     verify_gemm<scalar_t, helper::AllocType::buffer>(arguments);

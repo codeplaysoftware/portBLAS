@@ -121,6 +121,8 @@ inline void verify_symm(const symm_arguments_t<scalar_t> arguments) {
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
     verify_symm<scalar_t, helper::AllocType::usm>(arguments);
+#else
+    GTEST_SKIP();
 #endif
   } else {
     verify_symm<scalar_t, helper::AllocType::buffer>(arguments);
