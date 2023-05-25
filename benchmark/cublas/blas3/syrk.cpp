@@ -49,6 +49,10 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, char uplo,
          char trans, index_t n, index_t k, scalar_t alpha, scalar_t beta,
          bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   index_t lda = (trans == 'n') ? n : k;
   index_t ldc = n;
 

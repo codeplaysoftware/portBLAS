@@ -46,6 +46,10 @@ static inline void rocblas_sbmv_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
          index_t n, index_t k, scalar_t alpha, scalar_t beta, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
 

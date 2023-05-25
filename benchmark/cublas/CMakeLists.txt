@@ -79,7 +79,7 @@ set(sources
 foreach(cublas_bench ${sources})
   get_filename_component(bench_cublas_exec ${cublas_bench} NAME_WE)
   add_executable(bench_cublas_${bench_cublas_exec} ${cublas_bench} main.cpp)
-  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart sycl_blas Clara::Clara )
+  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart sycl_blas Clara::Clara bench_info)
   target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   add_sycl_to_target(
     TARGET bench_cublas_${bench_cublas_exec}
