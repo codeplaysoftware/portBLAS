@@ -48,9 +48,11 @@ class Transpose {
   value_t alpha_;
   index_t tile_count_m_;
   index_t tile_count_n_;
+  index_t M_pad_;
+  index_t N_pad_;
 
-  Transpose(in_t& A, index_t& stridea, out_t& At, index_t& strideat,
-            value_t& alpha)
+  Transpose(in_t &A, index_t &stridea, out_t &At, index_t &strideat,
+            value_t &alpha)
       : A_(A),
         At_(At),
         lda_(A_.getSizeL()),
@@ -58,26 +60,34 @@ class Transpose {
         M_(A_.get_size_row()),
         N_(A_.get_size_col()),
         alpha_(alpha),
-        tile_count_m_{(M_ - 1) / Tile_size + 1},
-        tile_count_n_{(N_ - 1) / Tile_size + 1},
+        tile_count_m_((M_ - 1) / Tile_size + 1),
+        tile_count_n_((N_ - 1) / Tile_size + 1),
         stridea_(stridea),
-        strideat_(strideat) {}
+        strideat_(strideat),
+        M_pad_(tile_count_m_ * Tile_size),
+        N_pad_(tile_count_n_ * Tile_size) {}
 
   index_t get_size() const;
 
   bool valid_thread(cl::sycl::nd_item<1> item) const;
-  void bind(cl::sycl::handler& cgh);
+  void bind(cl::sycl::handler &cgh);
   void adjust_access_displacement();
   void eval(cl::sycl::nd_item<1> item);
   template <typename local_memory_t>
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
+
+  template <typename index_t>
+  void compute_trans_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
+                             index_t &in_idc, index_t &out_idx,
+                             index_t &out_idc, bool &valid_index_in,
+                             bool &valid_index_out);
 };
 
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t, typename index_t>
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>
-make_transpose(in_t& A, index_t stridea, out_t& At, index_t stridea_t,
-               element_t& alpha) {
+make_transpose(in_t &A, index_t stridea, out_t &At, index_t stridea_t,
+               element_t &alpha) {
   return Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>(
       A, stridea, At, stridea_t, alpha);
 }
