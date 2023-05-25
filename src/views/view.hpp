@@ -42,15 +42,11 @@ namespace blas {
 */
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
-SYCL_BLAS_INLINE
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
-    _container_t data, _IndexType disp, _IncrementType strd, _IndexType size)
-    : data_(data),
-      size_data_(size),
-      size_(size),
-      disp_(disp),
-      strd_(strd),
-      ptr_(data) {}
+SYCL_BLAS_INLINE VectorView<_value_t, _container_t, _IndexType,
+                            _IncrementType>::VectorView(_container_t data,
+                                                        _IncrementType strd,
+                                                        _IndexType size)
+    : data_(data), size_(size), strd_(strd), ptr_(data) {}
 
 /*!
  @brief Creates a view from an existing view.
@@ -60,40 +56,8 @@ template <class _value_t, class _container_t, typename _IndexType,
 SYCL_BLAS_INLINE
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
     VectorView<_value_t, _container_t, _IndexType, _IncrementType> opV,
-    _IndexType disp, _IncrementType strd, _IndexType size)
-    : data_(opV.get_data()),
-      size_data_(opV.get_data().size()),
-      size_(0),
-      disp_(disp),
-      strd_(strd),
-      ptr_(opV.get_data()) {
-  initialize(size);
-}
-
-/*!
-@brief Initializes the view using the indexing values.
-@param originalSize The original size of the container
-*/
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-SYCL_BLAS_INLINE void
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::initialize(
-    _IndexType originalSize) {
-  if (strd_ > 0) {
-    auto sizeV = (size_data_ - disp_);
-    auto quot = (sizeV + strd_ - 1) / strd_;  // ceiling
-    size_ = quot;
-  } else if (strd_ > 0) {
-    auto nstrd = -strd_;
-    auto quot = (disp_ + nstrd) / nstrd;  // ceiling
-    size_ = quot;
-  } else {
-    // Stride is zero, not valid!
-    throw std::invalid_argument("Cannot create view with 0 stride");
-  }
-  if (originalSize < size_) size_ = originalSize;
-  if (strd_ < 0) disp_ += (size_ - 1) * strd_;
-}
+    _IncrementType strd, _IndexType size)
+    : data_(opV.get_data()), size_(size), strd_(strd), ptr_(opV.get_data()) {}
 
 /*!
  * @brief Returns a reference to the container
@@ -114,16 +78,6 @@ SYCL_BLAS_INLINE _value_t*
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_pointer() {
   return ptr_;
 }
-/*!
- * @brief Returns the displacement
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-SYCL_BLAS_INLINE _IndexType
-VectorView<_value_t, _container_t, _IndexType,
-           _IncrementType>::get_access_displacement() {
-  return disp_;
-}
 
 /*! adjust_access_displacement
  * @brief adjust pointer offset
@@ -133,16 +87,6 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 SYCL_BLAS_INLINE void VectorView<_value_t, _container_t, _IndexType,
                                  _IncrementType>::adjust_access_displacement() {
-}
-
-/*!
- * @brief Returns the size of the underlying container.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename _IncrementType>
-SYCL_BLAS_INLINE _IndexType VectorView<_value_t, _container_t, _IndexType,
-                                       _IncrementType>::get_data_size() {
-  return size_data_;
 }
 
 /*!
@@ -178,11 +122,9 @@ SYCL_BLAS_INLINE MatrixView<_value_t, _container_t, _IndexType,
                                                 _IndexType sizeR,
                                                 _IndexType sizeC)
     : data_(data),
-      size_data_(sizeR * sizeC),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_((layout::is_col_major()) ? sizeR_ : sizeC_),
-      disp_(0),
       ptr_(data) {}
 
 /*!
@@ -197,15 +139,8 @@ template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 SYCL_BLAS_INLINE
 MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
-    _container_t data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL,
-    _IndexType disp)
-    : data_(data),
-      size_data_(sizeR * sizeC),
-      sizeR_(sizeR),
-      sizeC_(sizeC),
-      sizeL_(sizeL),
-      disp_(disp),
-      ptr_(data) {}
+    _container_t data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL)
+    : data_(data), sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), ptr_(data) {}
 
 /*!
  *@brief Creates a matrix view from the given one but with different access
@@ -221,14 +156,12 @@ template <class _value_t, class _container_t, typename _IndexType,
 SYCL_BLAS_INLINE
 MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     MatrixView<_value_t, _container_t, _IndexType, layout> opM,
-    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL, _IndexType disp)
-    : data_(opM.data_),
-      size_data_(opM.size_data_),
+    _IndexType sizeR, _IndexType sizeC, _IndexType sizeL)
+    : data_(opM.get_data()),
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      disp_(disp),
-      ptr_(opM.data) {}
+      ptr_(opM.get_data()) {}
 
 /*!
  * @brief Returns the container
@@ -238,16 +171,6 @@ template <class _value_t, class _container_t, typename _IndexType,
 SYCL_BLAS_INLINE _container_t
 MatrixView<_value_t, _container_t, _IndexType, layout>::get_data() {
   return data_;
-}
-
-/*!
- * @brief Returns the data size
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-SYCL_BLAS_INLINE _IndexType
-MatrixView<_value_t, _container_t, _IndexType, layout>::get_data_size() const {
-  return size_data_;
 }
 
 /*!
@@ -302,17 +225,6 @@ template <class _value_t, class _container_t, typename _IndexType,
 SYCL_BLAS_INLINE const _IndexType
 MatrixView<_value_t, _container_t, _IndexType, layout>::getSizeL() const {
   return sizeL_;
-}
-
-/*! get_access_displacement.
- * @brief get displacement from the origin.
- */
-template <class _value_t, class _container_t, typename _IndexType,
-          typename layout>
-SYCL_BLAS_INLINE _IndexType
-MatrixView<_value_t, _container_t, _IndexType,
-           layout>::get_access_displacement() const {
-  return disp_;
 }
 
 /*! adjust_access_displacement.

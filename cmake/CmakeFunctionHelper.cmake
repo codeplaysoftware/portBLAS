@@ -554,12 +554,37 @@ function(add_gemm_configuration
     # Tall/skinny configurations not enabled, skip
     return()
   endif()
+  string(FIND ${func} "_const" const_pos)
+  if(const_pos)
+    string(REPLACE "_const" "" actualfunc ${func})
+  endif()
   cpp_type(cpp_data ${data})
-  foreach(symm_a ${boolean_list})
-    foreach(symm_b ${boolean_list})
-      foreach(trans_a ${boolean_list})
-        foreach(trans_b ${boolean_list})
-          foreach(is_beta_zero ${boolean_list})
+  set(container_list_in)
+  if(const_pos EQUAL -1)
+    list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    if(is_dpcpp)
+      list(APPEND container_list_in "${cpp_data}*")
+    endif()
+  else()
+    list(APPEND container_list_in "BufferIterator<${cpp_data}> const")
+    if(is_dpcpp)
+      list(APPEND container_list_in "${cpp_data}* const")
+    endif()
+  endif()
+  set(container_list_out "BufferIterator<${cpp_data}>")
+  if(is_dpcpp)
+    list(APPEND container_list_out "${cpp_data}*")
+  endif()
+  set(idx 0)
+  foreach (container0 ${container_list_in})
+    list(GET container_list_in ${idx} container1)
+    list(GET container_list_out ${idx} container2)
+    MATH(EXPR idx "${idx}+1")
+    foreach(symm_a ${boolean_list})
+      foreach(symm_b ${boolean_list})
+        foreach(trans_a ${boolean_list})
+          foreach(trans_b ${boolean_list})
+            foreach(is_beta_zero ${boolean_list})
               foreach(index ${index_list})
                 set(file_name "${func}_${double_buffer}_${conflict_a}_"
                               "${conflict_b}_${trans_a}_${trans_b}_"
@@ -570,7 +595,7 @@ function(add_gemm_configuration
                               "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
                               "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
                               "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
-                              "${wg_size}_${cache_line_size}.cpp")
+                              "${wg_size}_${cache_line_size}_${container0}.cpp")
                 sanitize_file_name(file_name "${file_name}")
                 add_custom_command(OUTPUT "${LOCATION}/${file_name}"
                   COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
@@ -613,6 +638,9 @@ function(add_gemm_configuration
                     ${use_joint_matrix}
                     ${symm_a}
                     ${symm_b}
+                    ${container0}
+                    ${container1}
+                    ${container2}
                   MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                   DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
@@ -621,11 +649,12 @@ function(add_gemm_configuration
                 list(APPEND gemm_sources "${LOCATION}/${file_name}")
                 set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
               endforeach(index)
-          endforeach(is_beta_zero)
-        endforeach(trans_b)
-      endforeach(trans_a)
-    endforeach(symm_b)
-  endforeach(symm_a)
+            endforeach(is_beta_zero)
+          endforeach(trans_b)
+        endforeach(trans_a)
+      endforeach(symm_b)
+    endforeach(symm_a)
+  endforeach(container0)
 endfunction()
 if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
@@ -939,11 +968,10 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:tbsv>
                 $<TARGET_OBJECTS:trmv>
                 $<TARGET_OBJECTS:trsv>
-                # $<TARGET_OBJECTS:gemm_launcher>
-                # $<TARGET_OBJECTS:gemm>
-                # $<TARGET_OBJECTS:symm>
-                # $<TARGET_OBJECTS:trsm>
-              )
+                $<TARGET_OBJECTS:gemm_launcher>
+                $<TARGET_OBJECTS:gemm>
+                $<TARGET_OBJECTS:symm>
+                $<TARGET_OBJECTS:trsm>)
 
   if (${ENABLE_EXTENSIONS})
     list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
@@ -952,8 +980,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
   add_library(${LIB_NAME} ${LIB_SRCS})
 
   if(BLAS_ENABLE_CONST_INPUT)
-    set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>)
-  #                  $<TARGET_OBJECTS:gemm_const>)
+    set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>
+                   $<TARGET_OBJECTS:gemm_const>)
 
     if(${ENABLE_EXTENSIONS})
       list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)

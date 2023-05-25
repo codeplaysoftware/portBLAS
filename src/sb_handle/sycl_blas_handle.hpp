@@ -283,10 +283,14 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     return events;
   }
   /* Else use the tall and skinny algorithm */
+  constexpr bool is_usm =
+      std::is_same<typename input_t::container_t, element_t*>::value;
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
-  auto cube_buffer = make_sycl_iterator_buffer<element_t>(rows * cols * depth);
+  auto cube_buffer = helper::allocate < is_usm ? helper::AllocType::usm
+                                               : helper::AllocType::buffer,
+       element_t > (rows * cols * depth, q_);
 
   /* Create a first matrix view used for the partial gemm */
   auto cube_gemm =
@@ -320,7 +324,9 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   /* Otherwise we reduce to a temporary buffer */
   else {
     /* Create a temporary buffer to hold alpha * A * B */
-    auto temp_buffer = make_sycl_iterator_buffer<element_t>(rows * cols);
+    auto temp_buffer = helper::allocate < is_usm ? helper::AllocType::usm
+                                                 : helper::AllocType::buffer,
+         element_t > (rows * cols, q_);
     auto temp = make_matrix_view<col_major>(temp_buffer, rows, cols, rows);
 
     /* Execute the reduction */
@@ -341,7 +347,31 @@ inline typename SB_Handle::event_t SB_Handle::execute(
       auto assignOp = make_op<Assign>(gemm_wrapper.c_, addOp);
       events = concatenate_vectors(events, execute(assignOp, events));
     }
+
+#ifdef DEFAULT_CPU
+    auto free_temp_buffer =
+        helper::enqueue_deallocate < is_usm
+            ? helper::AllocType::usm
+            : helper::AllocType::buffer > (events, temp_buffer, q_);
+    events.push_back(free_temp_buffer);
+#endif
   }
+
+  // Need to add this guard since the enqueue_deallocate
+  // function requires a host_task which throws a runtime
+  // exception when used with the enable_profiling{} queue
+  // property. We need to create all intermediate memory
+  // before launching the kernel to avoid running into this
+  // issue.
+  // Enabling this code only for DEFAULT_CPU backend to get the
+  // CI to pass.
+#ifdef DEFAULT_CPU
+  auto free_cube_buffer =
+      helper::enqueue_deallocate < is_usm
+          ? helper::AllocType::usm
+          : helper::AllocType::buffer > (events, cube_buffer, q_);
+  events.push_back(free_cube_buffer);
+#endif
 
   return events;
 }

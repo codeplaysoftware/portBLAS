@@ -29,7 +29,7 @@
 namespace blas {
 namespace gemm {
 namespace backend {
-template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
+template <bool _t_a, bool _t_b, bool s_a, s_b, bool is_beta_zero,
           typename SB_Handle, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
 typename SB_Handle::event_t _gemm(SB_Handle& sb_handle, index_t _M, index_t _N,
@@ -40,46 +40,39 @@ typename SB_Handle::event_t _gemm(SB_Handle& sb_handle, index_t _M, index_t _N,
                                   gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a,
-        _t_b, s_a, s_b, static_cast<int>(gemm_memory_t::no_local),
+        container_0_t, container_1_t, container_2_t, 64, false, false, false,
+        64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a, _t_b, s_a, s_b,
+        static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(gemm_batch_type_t::interleaved)>::
         template _select_gemm(sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea,
                               b_, _ldb, _strideb, _beta, _C, _ldc, _stridec,
-                              batch_size);
+                              batch_size, _dependencies);
   }
   if (_M < 512 && _N < 512) {
     return blas::Gemm_Launcher<
-        32, false, false, false, 128, Tile<4, 8, 8, 4>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 32, false, false, false,
+        128, Tile<4, 8, 8, 4>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                a_, _lda,
-                                                                _stridea, b_,
-                                                                _ldb, _strideb,
-                                                                _beta, _C, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea,
+                              b_, _ldb, _strideb, _beta, _C, _ldc, _stridec,
+                              batch_size, _dependencies);
 
   } else {
     return blas::Gemm_Launcher<
-        32, false, false, false, 128, Tile<8, 4, 4, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 32, false, false, false,
+        128, Tile<8, 4, 4, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                a_, _lda,
-                                                                _stridea, b_,
-                                                                _ldb, _strideb,
-                                                                _beta, _C, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea,
+                              b_, _ldb, _strideb, _beta, _C, _ldc, _stridec,
+                              batch_size, _dependencies);
   }
 }
 }  // namespace backend
