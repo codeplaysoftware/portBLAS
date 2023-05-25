@@ -44,6 +44,10 @@ static inline void rocblas_rotg_f(args_t&&... args) {
 
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Create data
   scalar_t a = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t b = blas_benchmark::utils::random_data<scalar_t>(1)[0];
