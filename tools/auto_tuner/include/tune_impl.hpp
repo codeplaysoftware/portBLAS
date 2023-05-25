@@ -34,20 +34,19 @@
 template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
           bool Nbcb, typename Config, typename T>
 TestResultEntry tune(int r, GemmArgs<T> a) {
-  using Gemm =
-      ::blas::Gemm<MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca,
-                   Nbcb, Cls, Tile, Config::TransA, Config::TransB, T, false,
-                   static_cast<int>(Config::MemoryMode),
-                   static_cast<int>(Config::ShapeMode),
-                   static_cast<int>(Config::VecType), VecSize,
-                   static_cast<int>(Config::BatchType)>;
+  using Gemm = ::blas::Gemm<
+      MatrixContainer<T>, MatrixContainer<T>, DoubleBuffer, Nbca, Nbcb, Cls,
+      Tile, Config::TransA, Config::TransB, Config::SymmA, Config::SymmB, T,
+      false, static_cast<int>(Config::MemoryMode),
+      static_cast<int>(Config::ShapeMode), static_cast<int>(Config::VecType),
+      VecSize, static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
   auto sb_handle = get_sycl_blas_handle();
   {
     {
-      auto event_list = blas::helper::copy_to_host(
+      auto event = blas::helper::copy_to_device(
           sb_handle.get_queue(), a.init_c.data(), a.c, a.init_c.size());
-      event_list.back().wait_and_throw();
+      event.wait_and_throw();
     }
 
     auto accA =
@@ -56,7 +55,8 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
         ::blas::make_matrix_view<::blas::col_major>(a.b, a.k, a.n, a.ldb);
     auto accC =
         ::blas::make_matrix_view<::blas::col_major>(a.c, a.m, a.n, a.ldc);
-    auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size);
+    auto gemm = Gemm(accA, accB, accC, a.alpha, a.beta, a.batch_size,
+                     a.stride_a, a.stride_b, a.stride_c);
     const double flop_count = 2.0 * a.m * a.n * a.k * a.batch_size;
     run_tune(r, flop_count, result, [&] {
       auto event_list = sb_handle.execute(gemm);
@@ -65,9 +65,9 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
       }
     });
     {
-      auto event_list = blas::helper::copy_to_host(
+      auto event = blas::helper::copy_to_host(
           sb_handle.get_queue(), a.c, a.output_c.data(), a.output_c.size());
-      event_list.back().wait_and_throw();
+      event.wait_and_throw();
     }
   }
   result.error = relative_diff(a.expected_c, a.output_c);

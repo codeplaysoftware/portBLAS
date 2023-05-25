@@ -45,10 +45,9 @@ static inline void rocblas_spr2_f(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
+void run(benchmark::State& state, rocblas_handle& rb_handle, char uplo,
          index_t n, scalar_t alpha, index_t incX, index_t incY, bool* success) {
   // Standard test setup.
-  const char* uplo_str = uplo.c_str();
 
   index_t xlen = n;
   index_t ylen = n;
@@ -58,7 +57,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 
   // Matrix options (rocBLAS)
   const rocblas_fill uplo_rb =
-      uplo_str[0] == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
+      uplo == 'u' ? rocblas_fill_upper : rocblas_fill_lower;
 
   // Data sizes
   const int m_size = n * n;
@@ -85,7 +84,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
 #ifdef BLAS_VERIFY_BENCHMARK
     // Reference spr2
     std::vector<scalar_t> m_a_ref = m_a;
-    reference_blas::spr2(uplo_str, n, alpha, v_x.data(), incX, v_y.data(), incY,
+    reference_blas::spr2(&uplo, n, alpha, v_x.data(), incX, v_y.data(), incY,
                          m_a_ref.data());
 
     // Rocblas verification spr2
@@ -164,14 +163,16 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     scalar_t alpha;
     std::tie(uplo, n, alpha, incX, incY) = p;
 
+    char uplo_c = uplo[0];
+
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         std::string uplo, index_t n, scalar_t alpha,
-                         index_t incX, index_t incY, bool* success) {
+                         char uplo, index_t n, scalar_t alpha, index_t incX,
+                         index_t incY, bool* success) {
       run<scalar_t>(st, rb_handle, uplo, n, alpha, incX, incY, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplo, n, alpha, incX, incY).c_str(), BM_lambda,
-        rb_handle, uplo, n, alpha, incX, incY, success)
+        get_name<scalar_t>(uplo_c, n, alpha, incX, incY).c_str(), BM_lambda,
+        rb_handle, uplo_c, n, alpha, incX, incY, success)
         ->UseRealTime();
   }
 }

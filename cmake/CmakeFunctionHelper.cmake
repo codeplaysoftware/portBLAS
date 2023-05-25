@@ -959,6 +959,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:gemv>
                 $<TARGET_OBJECTS:ger>
                 $<TARGET_OBJECTS:sbmv>
+                $<TARGET_OBJECTS:spmv>
                 $<TARGET_OBJECTS:symv>
                 $<TARGET_OBJECTS:syr>
                 $<TARGET_OBJECTS:spr>

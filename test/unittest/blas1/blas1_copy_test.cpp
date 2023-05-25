@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<std::string, int, int, int>;
+using combination_t = std::tuple<std::string, int, int, int, scalar_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -34,7 +34,9 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(alloc, size, incX, incY) = combi;
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
+  std::tie(alloc, size, incX, incY, unused) = combi;
 
   // Input vector
   std::vector<scalar_t> x_v(size * incX);
@@ -82,7 +84,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(alloc, size, incX, incY) = combi;
+  scalar_t unused;
+  std::tie(alloc, size, incX, incY, unused) = combi;
 
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
@@ -108,7 +111,8 @@ const auto combi =
     ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
                        ::testing::Values(11, 1002),      // size
                        ::testing::Values(1, 4),          // incX
-                       ::testing::Values(1, 3)           // incY
+                       ::testing::Values(1, 3),           // incY
+                       ::testing::Values(0)          // unused
     );
 #endif
 
@@ -117,7 +121,8 @@ static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   std::string alloc;
   int size, incX, incY;
-  BLAS_GENERATE_NAME(info.param, alloc, size, incX, incY);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, alloc, size, incX, incY, unused);
 }
 
 BLAS_REGISTER_TEST_ALL(Copy, combination_t, combi, generate_name);

@@ -33,18 +33,8 @@ std::string get_name(std::string uplo, int n, scalar_t alpha, scalar_t beta) {
   return str.str();
 }
 
-template <typename scalar_t, typename... args_t>
-static inline void cublas_routine(args_t&&... args) {
-  if constexpr (std::is_same_v<scalar_t, float>) {
-    CUBLAS_CHECK(cublasSspmv(std::forward<args_t>(args)...));
-  } else if constexpr (std::is_same_v<scalar_t, double>) {
-    CUBLAS_CHECK(cublasDspmv(std::forward<args_t>(args)...));
-  }
-  return;
-}
-
 template <typename scalar_t>
-void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
+void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          std::string uplo, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
   const char* uplo_str = uplo.c_str();
@@ -58,7 +48,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spmv, scalar_t>(state, "n", beta, 0, n);
 
-  cublasHandle_t& cuda_handle = *cuda_handle_ptr;
+  blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -68,12 +58,9 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   std::vector<scalar_t> v_y =
       blas_benchmark::utils::random_data<scalar_t>(ylen);
 
-  blas_benchmark::utils::CUDAVector<scalar_t> m_a_gpu(m_a.size(), m_a.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> v_x_gpu(xlen, v_x.data());
-  blas_benchmark::utils::CUDAVector<scalar_t> v_y_gpu(ylen, v_y.data());
-
-  cublasFillMode_t c_uplo =
-      (*uplo_str == 'u') ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
+  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_a.size());
+  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
+  auto v_y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_y, ylen);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -82,10 +69,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
                        v_y_ref.data(), incY);
   std::vector<scalar_t> v_y_temp = v_y;
   {
-    blas_benchmark::utils::CUDAVector<scalar_t, true> v_y_temp_gpu(
-        ylen, v_y_temp.data());
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, m_a_gpu, v_x_gpu,
-                             incX, &beta, v_y_temp_gpu, incY);
+    auto v_y_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(v_y_temp, ylen);
+    auto event = _spmv(sb_handle, *uplo_str, n, alpha, m_a_gpu, v_x_gpu, incX,
+                       beta, v_y_temp_gpu, incY);
+    sb_handle.wait();
   }
 
   std::ostringstream err_stream;
@@ -96,29 +84,16 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   };
 #endif
 
-  auto blas_warmup = [&]() -> void {
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, m_a_gpu, v_x_gpu,
-                             incX, &beta, v_y_gpu, incY);
-    return;
-  };
-
-  cudaEvent_t start;
-  cudaEvent_t stop;
-  CUDA_CHECK(cudaEventCreate(&start));
-  CUDA_CHECK(cudaEventCreate(&stop));
-
-  auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
-    CUDA_CHECK(cudaEventRecord(start));
-    cublas_routine<scalar_t>(cuda_handle, c_uplo, n, &alpha, m_a_gpu, v_x_gpu,
-                             incX, &beta, v_y_gpu, incY);
-    CUDA_CHECK(cudaEventRecord(stop));
-    CUDA_CHECK(cudaEventSynchronize(stop));
-    return std::vector{start, stop};
+  auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
+    auto event = _spmv(sb_handle, *uplo_str, n, alpha, m_a_gpu, v_x_gpu, incX,
+                       beta, v_y_gpu, incY);
+    sb_handle.wait(event);
+    return event;
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_warmup);
-  CUDA_CHECK(cudaStreamSynchronize(NULL));
+  blas_benchmark::utils::warmup(blas_method_def);
+  sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
 
@@ -126,7 +101,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   for (auto _ : state) {
     // Run
     std::tuple<double, double> times =
-        blas_benchmark::utils::timef_cuda(blas_method_def);
+        blas_benchmark::utils::timef(blas_method_def);
 
     // Report
     blas_benchmark::utils::update_counters(state, times);
@@ -137,14 +112,11 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
-
-  CUDA_CHECK(cudaEventDestroy(start));
-  CUDA_CHECK(cudaEventDestroy(stop));
 }
 
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
-                        cublasHandle_t* cuda_handle_ptr, bool* success) {
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   // spmv and  symv use the same set of params, so reuse the symv function
   auto spmv_params = blas_benchmark::utils::get_symv_params<scalar_t>(args);
 
@@ -154,21 +126,21 @@ void register_benchmark(blas_benchmark::Args& args,
     scalar_t alpha, beta;
     std::tie(uplos, n, alpha, beta) = p;
 
-    auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
+    auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          std::string uplos, index_t n, scalar_t alpha,
                          scalar_t beta, bool* success) {
-      run<scalar_t>(st, cuda_handle_ptr, uplos, n, alpha, beta, success);
+      run<scalar_t>(st, sb_handle_ptr, uplos, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(uplos, n, alpha, beta).c_str(), BM_lambda,
-        cuda_handle_ptr, uplos, n, alpha, beta, success)
+        sb_handle_ptr, uplos, n, alpha, beta, success)
         ->UseRealTime();
   }
 }
 
 namespace blas_benchmark {
 void create_benchmark(blas_benchmark::Args& args,
-                      cublasHandle_t* cuda_handle_ptr, bool* success) {
-  BLAS_REGISTER_BENCHMARK(args, cuda_handle_ptr, success);
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
+  BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

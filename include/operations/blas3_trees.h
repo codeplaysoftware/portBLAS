@@ -167,6 +167,8 @@ struct Tile {
  *                   level tiles to use, see Tile
  * @tparam TransA  iff true, matrix A will be transposed on the fly
  * @tparam TransB  iff true, matrix B will be transposed on the fly
+ * @tparam SymmA   whether the matrix A is a symmetric triangular matrix
+ * @tparam SymmB   whether the matrix B is a symmetric triangular matrix
  * @tparam element_t  type of matrix elements
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  *                        joint_matrix or not
