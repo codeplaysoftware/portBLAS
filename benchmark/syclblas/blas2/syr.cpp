@@ -36,6 +36,10 @@ std::string get_name(std::string uplo, int n, scalar_t alpha) {
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          std::string uplo, index_t n, scalar_t alpha, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Standard test setup.
   const char* uplo_str = uplo.c_str();
 

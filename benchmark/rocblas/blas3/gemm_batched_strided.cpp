@@ -55,6 +55,10 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
          int t_b_i, index_t m, index_t k, index_t n, scalar_t alpha,
          scalar_t beta, index_t batch_size, index_t stride_a_mul,
          index_t stride_b_mul, index_t stride_c_mul, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Standard test setup.
   std::string t_a = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t_a_i));
