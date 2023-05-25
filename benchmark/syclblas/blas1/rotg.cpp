@@ -36,6 +36,10 @@ std::string get_name(std::string mem_type) {
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Create data
   scalar_t a = blas_benchmark::utils::random_data<scalar_t>(1)[0];
   scalar_t b = blas_benchmark::utils::random_data<scalar_t>(1)[0];

@@ -38,6 +38,10 @@ template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
          char uplo, index_t m, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   const index_t k = side == 'l' ? m : n;
 
   index_t lda = k;

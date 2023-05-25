@@ -47,6 +47,10 @@ static inline void rocblas_iamin_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
          bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Google-benchmark counters are double.
   blas_benchmark::utils::init_level_1_counters<
       blas_benchmark::utils::Level1Op::iamin, scalar_t>(state, size);

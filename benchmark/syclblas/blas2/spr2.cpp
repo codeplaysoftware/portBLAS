@@ -38,6 +38,10 @@ std::string get_name(char uplo, int size, scalar_t alpha, int incX, int incY,
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
          int n, scalar_t alpha, int incX, int incY, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::spr2, scalar_t>(state, "n", 0, 0, n);
 

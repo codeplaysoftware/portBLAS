@@ -50,6 +50,10 @@ template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
          index_t t_b_i, index_t m, index_t k, index_t n, scalar_t alpha,
          scalar_t beta, index_t batch_size, int batch_type_i, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Standard setup
   std::string t_a = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(t_a_i));
