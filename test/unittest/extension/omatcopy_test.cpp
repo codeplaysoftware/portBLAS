@@ -34,20 +34,23 @@ using combination_t =
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   char trans;
-  index_t m, n, ld_in, ld_out;
+  index_t m, n, ld_in_m, ld_out_m;
   scalar_t alpha;
 
-  std::tie(trans, m, n, alpha, ld_in, ld_out) = combi;
+  std::tie(trans, m, n, alpha, ld_in_m, ld_out_m) = combi;
 
-  // bail out early if the leading dimensions are not correct
-  if (ld_in < m || ld_out < (trans == 't' ? n : m)) return;
+  // Compute leading dimensions using ld multipliers
+  index_t ld_in = ld_in_m * m;
+  index_t ld_out = ld_out_m * (trans == 't' ? n : m);
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
-  index_t size = std::max(ld_in, ld_out) * (trans == 't' ? std::max(m, n) : n);
-  std::vector<scalar_t> A(size);
-  std::vector<scalar_t> B(size);
+  index_t size_a = ld_in * n;
+  index_t size_b = ld_out * (trans == 't' ? m : n);
+
+  std::vector<scalar_t> A(size_a);
+  std::vector<scalar_t> B(size_b);
 
   fill_random(A);
 
@@ -58,14 +61,14 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::omatcopy(trans, m, n, alpha, A_ref.data(), ld_in,
                            B_ref.data(), ld_out);
 
-  auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size);
-  auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size);
+  auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size_a);
+  auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size_b);
 
   blas::extension::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in,
                              matrix_out, ld_out);
 
-  auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                    matrix_out, B.data(), size);
+  auto event = blas::helper::copy_to_host<scalar_t>(
+      sb_handle.get_queue(), matrix_out, B.data(), size_b);
   sb_handle.wait(event);
 
   // Validate the result
@@ -74,20 +77,19 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values<char>('n', 't'),
-                                      ::testing::Values<index_t>(64, 129, 255),
-                                      ::testing::Values<index_t>(64, 129, 255),
-                                      ::testing::Values<scalar_t>(0, 1, 2),
-                                      ::testing::Values<index_t>(64, 129, 512),
-                                      ::testing::Values<index_t>(64, 129, 512));
+const auto combi = ::testing::Combine(
+    ::testing::Values<char>('n', 't'), ::testing::Values<index_t>(64, 129, 255),
+    ::testing::Values<index_t>(64, 129, 255),
+    ::testing::Values<scalar_t>(0, 1, 2), ::testing::Values<index_t>(1, 2, 3),
+    ::testing::Values<index_t>(1, 2, 3));
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   char trans;
-  index_t m, n, ld_in, ld_out;
+  index_t m, n, ld_in_m, ld_out_m;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, ld_in, ld_out);
+  BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, ld_in_m, ld_out_m);
 }
 
 BLAS_REGISTER_TEST_ALL(OmatCopy, combination_t, combi, generate_name);
