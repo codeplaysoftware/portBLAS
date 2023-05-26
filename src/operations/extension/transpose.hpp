@@ -76,8 +76,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
     auto A = A_.get_data().get_pointer();
     auto At = At_.get_data().get_pointer();
 
-    auto in_index = i + j * lda_;
-    auto out_index = i * ldat_ + j;
+    auto in_index = i * stridea_ + j * lda_;
+    auto out_index = i * ldat_ + j * strideat_;
 
     At[out_index] = alpha_ * A[in_index];
   }
