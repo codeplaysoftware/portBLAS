@@ -48,8 +48,6 @@
 
 #include "operations/extension/reduction.hpp"
 
-#include "operations/extension/matcopy.hpp"
-
 #include "operations/extension/transpose.hpp"
 
 #include "operations/blas_constants.hpp"
