@@ -30,7 +30,6 @@
 #include "interface/transpose_launcher.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
-#include "operations/extension/matcopy.h"
 #include "operations/extension/reduction.h"
 #include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
@@ -120,35 +119,6 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
     auto copy_op = make_op<Assign>(out_view, scal_op);
     ret = sb_handle.execute(copy_op);
   }
-  return ret;
-}
-
-template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
-          typename index_t, typename container_t>
-typename std::enable_if<trans_a || trans_b, typename sb_handle_t::event_t>::type
-_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              container_t a, index_t lda, element_t beta, container_t b,
-              index_t ldb, container_t c, index_t ldc) {
-  // TODO
-  typename sb_handle_t::event_t ret;
-  return ret;
-}
-template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
-          typename index_t, typename container_t>
-typename std::enable_if<!trans_a && !trans_b,
-                        typename sb_handle_t::event_t>::type
-_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              container_t a, index_t lda, element_t beta, container_t b,
-              index_t ldb, container_t c, index_t ldc) {
-  typename sb_handle_t::event_t ret;
-  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
-  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
-  auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
-  auto scal_a = make_op<ScalarOp, ProductOperator>(alpha, m_a_view);
-  auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
-  auto sum_op = make_op<BinaryOp, AddOperator>(scal_a, scal_b);
-  auto copy_op = make_op<Assign>(m_c_view, sum_op);
-  ret = sb_handle.execute(copy_op);
   return ret;
 }
 
@@ -251,31 +221,6 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
                                           ld_in, in_stride, out_memory, ld_out,
                                           out_stride);
-  }
-}
-
-template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
-typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
-                                       char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t a,
-                                       index_t lda, element_t beta,
-                                       container_t b, index_t ldb,
-                                       container_t c, index_t ldc) {
-  if (trans_a == 't') {
-    if (trans_b == 't') {
-      return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                       ldb, c, ldc);
-    } else {
-      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                        ldb, c, ldc);
-    }
-  } else if (trans_b == 't') {
-    return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, alpha, a,
-                                      lda, c, ldc);
-  } else {
-    return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                       ldb, c, ldc);
   }
 }
 

@@ -23,7 +23,6 @@
  *
  **************************************************************************/
 
-#include "operations/extension/matcopy.hpp"
 #include "operations/extension/transpose.hpp"
 #include "interface/extension_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"

@@ -29,12 +29,14 @@ template <typename scalar_t>
 using combination_t =
     std::tuple<char, index_t, index_t, scalar_t, index_t, index_t>;
 
-template <bool col_major, typename scalar_t, typename index_t>
-std::enable_if_t<col_major, std::vector<scalar_t>> omatcopy2(
-    const char t, const index_t rows, const index_t cols, const scalar_t alpha,
-    std::vector<scalar_t>& in_matrix, const index_t ldm, const index_t stride,
-    std::vector<scalar_t>& out_matrix, const index_t out_ldm,
-    const index_t out_stride) {
+template <typename scalar_t, typename index_t>
+std::vector<scalar_t> omatcopy2(const char t, const index_t rows,
+                                const index_t cols, const scalar_t alpha,
+                                std::vector<scalar_t>& in_matrix,
+                                const index_t ldm, const index_t stride,
+                                std::vector<scalar_t>& out_matrix,
+                                const index_t out_ldm,
+                                const index_t out_stride) {
   if (t == 't') {
     for (int i = 0; i < rows; ++i) {
       for (int j = 0, c = 0; j < cols; ++j, ++c) {
@@ -93,11 +95,11 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B_ref = B;
 
   // Reference implementation
-  // TODO: There isn't a reference implemantion from any library. So we compare
+  // TODO: There isn't a reference implemention from any library. So we compare
   // the results with a basic host implementation above. Working on a better
   // comparison.
-  omatcopy2<true>(trans, m, n, alpha, A_ref, ld_in, stride_in, B_ref, ld_out,
-                  stride_out);
+  omatcopy2(trans, m, n, alpha, A_ref, ld_in, stride_in, B_ref, ld_out,
+            stride_out);
 
   auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, m_a_size);
   auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, m_b_size);

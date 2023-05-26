@@ -912,7 +912,6 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>
                 $<TARGET_OBJECTS:matcopy>
-                $<TARGET_OBJECTS:omatadd>
                 $<TARGET_OBJECTS:transpose_launcher>)
 
   if (${ENABLE_EXTENSIONS})
