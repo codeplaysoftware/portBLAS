@@ -39,10 +39,32 @@ template <int Tile_size, int wg_size, int cl_size, bool local_memory>
 struct Transpose_Launcher {
   template <typename sb_handle_t, typename container_0_t,
             typename container_1_t, typename element_t, typename index_t>
+  static typename sb_handle_t::event_t _select_transpose_inplace(
+      sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+      container_0_t in_, index_t _ld_in, container_1_t out_, index_t _ld_out);
+
+  template <typename sb_handle_t, typename container_0_t,
+            typename container_1_t, typename element_t, typename index_t>
   static typename sb_handle_t::event_t _select_transpose_outplace(
       sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
       container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
       index_t _ld_out, index_t _inc_out);
+};
+
+/*!
+ * @brief Wrapper around TransposeAdd. Creates the views, then makes and
+ * launches Transpose Add.
+ */
+template <bool both_trans, int Tile_size, bool local_memory>
+struct TransposeAdd_Launcher {
+  template <typename sb_handle_t, typename container_0_t,
+            typename container_1_t, typename container_2_t, typename element_t,
+            typename index_t>
+  static typename sb_handle_t::event_t _select_transpose_add(
+      sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+      container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
+      element_t _beta, container_1_t b_, index_t _ld_b, index_t _nrows_b,
+      index_t _ncols_b, container_2_t c_, index_t _ldc);
 };
 
 }  // namespace extension

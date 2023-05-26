@@ -33,6 +33,8 @@
 namespace blas {
 namespace extension {
 template class Transpose_Launcher<${TILE_SIZE}, ${WG_SIZE}, ${CL_SIZE}, ${LOCAL_MEM}>;
+template class TransposeAdd_Launcher<true, ${TILE_SIZE}, ${LOCAL_MEM}>;
+template class TransposeAdd_Launcher<false, ${TILE_SIZE}, ${LOCAL_MEM}>;
 
 template typename SB_Handle::event_t Transpose_Launcher<
     ${TILE_SIZE}, ${WG_SIZE}, ${CL_SIZE}, ${LOCAL_MEM}>::
@@ -49,5 +51,41 @@ template typename SB_Handle::event_t Transpose_Launcher<
         ${container_t} b_,
         ${INDEX_TYPE} _ld_out, ${INDEX_TYPE} _inc_out);
 
+template typename SB_Handle::event_t TransposeAdd_Launcher<
+    true, ${TILE_SIZE}, ${LOCAL_MEM}>::
+    _select_transpose_add(SB_Handle& sb_handle,  
+                            ${INDEX_TYPE} _M,
+                            ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+                            BufferIterator<${DATA_TYPE}> a_, 
+                            ${INDEX_TYPE} _lda,
+                            ${INDEX_TYPE} _nrows_a,
+                            ${INDEX_TYPE} _ncols_a,
+                            ${DATA_TYPE} _beta, 
+                            BufferIterator<${DATA_TYPE}> b_,
+                            ${INDEX_TYPE} _ldb, 
+                            ${INDEX_TYPE} _nrows_b,
+                            ${INDEX_TYPE} _ncols_b,
+                            BufferIterator<${DATA_TYPE}> c_,
+                            ${INDEX_TYPE} _ldc);
+
+template typename SB_Handle::event_t TransposeAdd_Launcher<
+    false, ${TILE_SIZE}, ${LOCAL_MEM}>::
+    _select_transpose_add(SB_Handle& sb_handle,  
+                            ${INDEX_TYPE} _M,
+                            ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+                            BufferIterator<${DATA_TYPE}> a_, 
+                            ${INDEX_TYPE} _lda,
+                            ${INDEX_TYPE} _nrows_a,
+                            ${INDEX_TYPE} _ncols_a,
+                            ${DATA_TYPE} _beta, 
+                            BufferIterator<${DATA_TYPE}> b_,
+                            ${INDEX_TYPE} _ldb, 
+                            ${INDEX_TYPE} _nrows_b,
+                            ${INDEX_TYPE} _ncols_b,
+                            BufferIterator<${DATA_TYPE}> c_,
+                            ${INDEX_TYPE} _ldc);
+
+
+}  // namespace internal
 }  // namespace extension
 }  // namespace blas
