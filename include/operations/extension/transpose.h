@@ -31,6 +31,25 @@
 
 namespace blas {
 
+/*!
+ * @brief This class holds the kernel for the transpose-scale used in matcopy
+ * operators.
+ *
+ * This templated class is designed to support omatcopy, imatcopy & omatcopy2,
+ * with and without the use of local memory, while remaining customizable
+ * Tiling-size wise.
+ *
+ * The reduction kernel uses the following algorithm:
+ *
+ * @tparam in_place Whether the transpose is in or out of place
+ * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
+ * used to compute work-group size in the non-local memory case.
+ * @tparam local_memory Whether to use local memory
+ * @tparam in_t The input matrix type
+ * @tparam out_t The output matrix type
+ * @tparam element_t The scaling factor type
+ *
+ */
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t>
 class Transpose {
@@ -46,8 +65,10 @@ class Transpose {
   index_t N_;
   index_t M_;
   value_t alpha_;
+  // Minimum number of tiles used to cover matrices rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
+  // Minimum number of Tile-mutliple rows & columns to cover the matrices
   index_t M_pad_;
   index_t N_pad_;
 
@@ -77,12 +98,14 @@ class Transpose {
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
 
   template <typename index_t>
-  void compute_trans_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
-                             index_t &in_idc, index_t &out_idx,
-                             index_t &out_idc, bool &valid_index_in,
-                             bool &valid_index_out);
+  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx, index_t &in_idc,
+                   index_t &out_idx, index_t &out_idc, bool &valid_index_in,
+                   bool &valid_index_out);
 };
 
+/*!
+ @brief Generator/factory for Transpose trees.
+ */
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t, typename index_t>
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>

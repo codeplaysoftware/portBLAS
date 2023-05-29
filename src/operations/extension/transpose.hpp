@@ -52,6 +52,7 @@ template <bool in_place, int Tile_size, bool local_memory, typename in_t,
 SYCL_BLAS_INLINE typename in_t::index_t
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>::get_size()
     const {
+  // Smallest TileSize square-multiple containing input/output matrices
   return (M_pad_ * N_pad_);
 }
 
@@ -83,16 +84,32 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
   }
 }
 
+/*!
+ *@brief get_indices. This function is used in the local-memory kernel to
+ *compute local & global input & output indices.
+ *
+ * @param id [input] the sycl::nd_item<1> of the current work_item
+ * @param in_idx [output] the input global index
+ * @param out_idx [output] the output global index
+ * @param in_idc [output] the input local-memory index
+ * @param out_idc [output] the output local-memory index
+ * @param valid_index_in [output] whether current input global index is within
+ *input range
+ * @param valid_index_in [output] whether current output global index is within
+ *outpu range
+ *
+ */
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t>
 template <typename index_t>
-SYCL_BLAS_INLINE void
-Transpose<in_place, Tile_size, local_memory, in_t, out_t,
-          element_t>::compute_trans_indices(cl::sycl::nd_item<1> id,
-                                            index_t &in_idx, index_t &in_idc,
-                                            index_t &out_idx, index_t &out_idc,
-                                            bool &valid_index_in,
-                                            bool &valid_index_out) {
+SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
+                                element_t>::get_indices(cl::sycl::nd_item<1> id,
+                                                        index_t &in_idx,
+                                                        index_t &in_idc,
+                                                        index_t &out_idx,
+                                                        index_t &out_idc,
+                                                        bool &valid_index_in,
+                                                        bool &valid_index_out) {
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id();
 
@@ -134,8 +151,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
     index_t in_index, in_local_id, out_index, out_local_id;
     bool valid_index_in, valid_index_out;
 
-    compute_trans_indices(id, in_index, in_local_id, out_index, out_local_id,
-                          valid_index_in, valid_index_out);
+    get_indices(id, in_index, in_local_id, out_index, out_local_id,
+                valid_index_in, valid_index_out);
 
     // Copy input to local memory
     if (valid_index_in) {
