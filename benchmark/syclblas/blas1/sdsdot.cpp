@@ -37,6 +37,10 @@ std::string get_name(int size) {
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Google-benchmark counters are double.
   blas_benchmark::utils::init_level_1_counters<
       blas_benchmark::utils::Level1Op::sdsdot, scalar_t>(state, size);

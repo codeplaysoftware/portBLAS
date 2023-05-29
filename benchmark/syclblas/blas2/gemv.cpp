@@ -36,6 +36,10 @@ std::string get_name(std::string t, int m, int n) {
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, scalar_t beta, bool* success) {
+  // initialize the state label
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(
+      state, sb_handle_ptr->get_queue());
+
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(
       static_cast<blas_benchmark::utils::Transposition>(ti));
