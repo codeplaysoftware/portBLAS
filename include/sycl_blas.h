@@ -43,6 +43,8 @@
 
 #include "interface/extension_interface.h"
 
+#include "interface/transpose_launcher.h"
+
 #include "operations/blas1_trees.h"
 
 #include "operations/blas2_trees.h"

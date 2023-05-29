@@ -40,6 +40,8 @@
 
 #include "interface/extension_interface.hpp"
 
+#include "interface/transpose_launcher.hpp"
+
 #include "operations/blas1_trees.hpp"
 
 #include "operations/blas2_trees.hpp"
