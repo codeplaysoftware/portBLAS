@@ -134,7 +134,23 @@ make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
                    out_t, element_t>(A, inc_a, At, inc_a_t, alpha);
 }
 
-// Transpose-Add
+/*!
+ * @brief This class holds the kernel for the transpose-scale-add used in
+ * omatadd operator.
+ *
+ * This templated class is designed to support omatadd when either one or both
+ * input matrices are transposed, with and without the use of local memory,
+ * while remaining customizable Tiling-size wise.
+ *
+ * @tparam in_place Whether the transpose is in or out of place
+ * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
+ * used to compute work-group size in the non-local memory case.
+ * @tparam local_memory Whether to use local memory
+ * @tparam in_t The input matrix type
+ * @tparam out_t The output matrix type
+ * @tparam element_t The scaling factor type
+ *
+ */
 template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
           typename in2_t, typename out_t, typename element_t>
 class TransposeAdd {
@@ -153,10 +169,10 @@ class TransposeAdd {
   index_t M_;
   value_t alpha_;
   value_t beta_;
-
+  // Minimum number of tiles used to cover output matrix rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
-
+  // Minimum number of Tile-mutliple rows & columns to cover the output matrix
   index_t M_pad_;
   index_t N_pad_;
 
@@ -186,12 +202,15 @@ class TransposeAdd {
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
 
   template <typename index_t>
-  void compute_trans_add_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
-                                 index_t &in_b_idx, index_t &in_local_idx,
-                                 index_t &out_idx, index_t &out_local_idx,
-                                 bool &valid_index_in, bool &valid_index_out);
+  void get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
+                   index_t &in_b_idx, index_t &in_local_idx, index_t &out_idx,
+                   index_t &out_local_idx, bool &valid_index_in,
+                   bool &valid_index_out);
 };
 
+/*!
+ * @brief Generator/factory for Transpose-Add trees.
+ */
 template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
           typename in2_t, typename out_t, typename element_t>
 TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,

@@ -241,7 +241,8 @@ template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
 SYCL_BLAS_INLINE typename in1_t::index_t
 TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
              element_t>::get_size() const {
-  return (tile_count_m_ * tile_count_n_ * Tile_size * Tile_size);
+  // Smallest TileSize square-multiple containing input/output matrices
+  return (M_pad_ * N_pad_);
 }
 
 template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
@@ -297,19 +298,32 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
   }
 }
 
+/*!
+ *@brief get_indices. This function is used in the local-memory kernel to
+ *compute local & global input & output indices.
+ *
+ * @param id [input] the sycl::nd_item<1> of the current work_item
+ * @param in_a_idx [output] the global index for input matrix A
+ * @param in_b_idx [output] the global index for input matrix B
+ * @param out_idx [output] the output global index
+ * @param in_local_idx [output] the input local-memory index
+ * @param out_local_idx [output] the output local-memory index
+ * @param valid_index_in [output] whether current input global index is within
+ *input range
+ * @param valid_index_in [output] whether current output global index is within
+ *outpu range
+ *
+ */
 template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
           typename in2_t, typename out_t, typename element_t>
 template <typename index_t>
 SYCL_BLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
-             element_t>::compute_trans_add_indices(cl::sycl::nd_item<1> id,
-                                                   index_t &in_a_idx,
-                                                   index_t &in_b_idx,
-                                                   index_t &in_local_idx,
-                                                   index_t &out_idx,
-                                                   index_t &out_local_idx,
-                                                   bool &valid_index_in,
-                                                   bool &valid_index_out) {
+             element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
+                                     index_t &in_b_idx, index_t &in_local_idx,
+                                     index_t &out_idx, index_t &out_local_idx,
+                                     bool &valid_index_in,
+                                     bool &valid_index_out) {
   index_t M = both_trans ? N_ : M_;
   index_t N = both_trans ? M_ : N_;
   index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
@@ -365,8 +379,8 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
     bool valid_index_in, valid_index_out;
 
     if constexpr (both_trans) {
-      compute_trans_add_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx,
-                                out_local_id, valid_index_in, valid_index_out);
+      get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
+                  valid_index_in, valid_index_out);
 
       // Compute & Copy sum/scaled input to local memory (before transpose)
       if (valid_index_in) {
@@ -381,8 +395,8 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
       }
 
     } else {
-      compute_trans_add_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx,
-                                out_local_id, valid_index_in, valid_index_out);
+      get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
+                  valid_index_in, valid_index_out);
 
       // Compute transposed-scaled A & copy to local memory
       if (valid_index_out) {
