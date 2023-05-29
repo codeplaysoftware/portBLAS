@@ -43,22 +43,18 @@ jobs:
             command: "build-test"
             cxx_compiler: "g++-7"
             cc_compiler: "gcc-7"
-            target: "opencl"
           - impl: "COMPUTECPP"
             command: "build-test"
             cxx_compiler: "clang++-6.0"
             cc_compiler: "clang-6.0"
-            target: "opencl"
           - impl: "DPCPP"
             command: "build-test"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
-            target: "opencl"
           - impl: "DPCPP"
             command: "auto-tuner"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
-            target: "opencl"
 
     steps:
     - uses: actions/checkout@v3.5.2
@@ -77,14 +73,12 @@ jobs:
         C_COMPILER: ${{matrix.cc_compiler}}
         CXX_COMPILER: ${{matrix.cxx_compiler}}
         IMPL: ${{matrix.impl}}
-        TARGET: ${{matrix.target}}
         COMMAND: ${{matrix.command}}
       run: docker build --build-arg c_compiler=${C_COMPILER}
                          --build-arg cxx_compiler=${CXX_COMPILER}
                          --build-arg git_branch=${GIT_BRANCH}
                          --build-arg git_slug=${GIT_SLUG}
                          --build-arg impl=${IMPL}
-                         --build-arg target=${TARGET}
                          --build-arg command=${COMMAND}
                          -t sycl-blas .
     - name: Run the Docker image
