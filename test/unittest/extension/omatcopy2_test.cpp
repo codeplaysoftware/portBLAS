@@ -30,15 +30,18 @@ using combination_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
                                  index_t, index_t, index_t>;
 
 namespace reference_blas {
+/*!
+ * @brief Host-baseline implementation of omatcopy2 used as reference.
+ */
 template <bool col_major, typename scalar_t, typename index_t>
 std::enable_if_t<col_major, std::vector<scalar_t>> omatcopy2(
-    const char t, const index_t rows, const index_t cols, const scalar_t alpha,
-    std::vector<scalar_t>& in_matrix, const index_t ld_in,
-    const index_t in_stride, std::vector<scalar_t>& out_matrix,
-    const index_t ld_out, const index_t out_stride) {
+    const char& t, const index_t& m, const index_t& n, const scalar_t& alpha,
+    std::vector<scalar_t>& in_matrix, const index_t& ld_in,
+    const index_t& in_stride, std::vector<scalar_t>& out_matrix,
+    const index_t& ld_out, const index_t out_stride) {
   if (t == 't') {
-    for (int i = 0; i < rows; ++i) {
-      for (int j = 0, c = 0; j < cols; ++j, ++c) {
+    for (int i = 0; i < m; ++i) {
+      for (int j = 0, c = 0; j < n; ++j, ++c) {
         {
           out_matrix[j * out_stride + i * ld_out] =
               alpha * in_matrix[i * in_stride + j * ld_in];
@@ -46,8 +49,8 @@ std::enable_if_t<col_major, std::vector<scalar_t>> omatcopy2(
       }
     }
   } else {
-    for (int i = 0; i < cols; ++i) {
-      for (int j = 0, c = 0; j < rows; ++j, ++c) {
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0, c = 0; j < m; ++j, ++c) {
         {
           out_matrix[j * out_stride + i * ld_out] =
               alpha * in_matrix[j * in_stride + i * ld_in];
