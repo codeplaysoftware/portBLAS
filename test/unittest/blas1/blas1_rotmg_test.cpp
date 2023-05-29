@@ -423,8 +423,6 @@ scalar_t scale_up_gen() {
 
 #ifdef SB_ENABLE_USM
 INSTANTIATE_ROTMG_TESTS(combi_usm, "usm");  // instantiate usm tests
-#else
-GTEST_SKIP();
 #endif
 INSTANTIATE_ROTMG_TESTS(combi_buffer, "buf");  // instantiate buffer tests
 
