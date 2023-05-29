@@ -40,19 +40,15 @@ jobs:
       matrix:
         include:
           - impl: "COMPUTECPP"
-            command: "build-test"
             cxx_compiler: "g++-7"
             cc_compiler: "gcc-7"
           - impl: "COMPUTECPP"
-            command: "build-test"
             cxx_compiler: "clang++-6.0"
             cc_compiler: "clang-6.0"
           - impl: "DPCPP"
-            command: "build-test"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
           - impl: "DPCPP"
-            command: "auto-tuner"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
 
@@ -73,7 +69,47 @@ jobs:
         C_COMPILER: ${{matrix.cc_compiler}}
         CXX_COMPILER: ${{matrix.cxx_compiler}}
         IMPL: ${{matrix.impl}}
-        COMMAND: ${{matrix.command}}
+        COMMAND: "build-test"
+      run: docker build --build-arg c_compiler=${C_COMPILER}
+                         --build-arg cxx_compiler=${CXX_COMPILER}
+                         --build-arg git_branch=${GIT_BRANCH}
+                         --build-arg git_slug=${GIT_SLUG}
+                         --build-arg impl=${IMPL}
+                         --build-arg command=${COMMAND}
+                         -t sycl-blas .
+    - name: Run the Docker image
+      run: docker run -t sycl-blas
+# Builds the dockerfile in the repo and uses that to build auto-tuner.
+  Build-Auto-Tuner:
+    needs: skip-check
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - impl: "DPCPP"
+            cxx_compiler: "/tmp/dpcpp/bin/clang++"
+            cc_compiler: "/tmp/dpcpp/bin/clang"
+
+    steps:
+    - uses: actions/checkout@v3.5.2
+    - name: Push Event Environment Vars
+      if: github.event_name == 'push'
+      run: |
+        echo "GIT_SLUG=${GITHUB_REPOSITORY}" >> $GITHUB_ENV
+        echo "GIT_BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+    - name: PR Event Environment Vars
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "GIT_SLUG=${{github.event.pull_request.head.repo.full_name}}" >> $GITHUB_ENV
+        echo "GIT_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+    - name: Build the Docker image
+      env:
+        C_COMPILER: ${{matrix.cc_compiler}}
+        CXX_COMPILER: ${{matrix.cxx_compiler}}
+        IMPL: ${{matrix.impl}}
+        COMMAND: "auto-tuner"
       run: docker build --build-arg c_compiler=${C_COMPILER}
                          --build-arg cxx_compiler=${CXX_COMPILER}
                          --build-arg git_branch=${GIT_BRANCH}
