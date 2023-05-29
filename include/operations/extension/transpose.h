@@ -39,8 +39,6 @@ namespace blas {
  * with and without the use of local memory, while remaining customizable
  * Tiling-size wise.
  *
- * The reduction kernel uses the following algorithm:
- *
  * @tparam in_place Whether the transpose is in or out of place
  * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
  * used to compute work-group size in the non-local memory case.
@@ -98,8 +96,9 @@ class Transpose {
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
 
   template <typename index_t>
-  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx, index_t &in_idc,
-                   index_t &out_idx, index_t &out_idc, bool &valid_index_in,
+  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
+                   index_t &in_local_idx, index_t &out_idx,
+                   index_t &out_local_idx, bool &valid_index_in,
                    bool &valid_index_out);
 };
 

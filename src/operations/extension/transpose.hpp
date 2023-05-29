@@ -91,8 +91,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
  * @param id [input] the sycl::nd_item<1> of the current work_item
  * @param in_idx [output] the input global index
  * @param out_idx [output] the output global index
- * @param in_idc [output] the input local-memory index
- * @param out_idc [output] the output local-memory index
+ * @param in_local_idx [output] the input local-memory index
+ * @param out_local_idx [output] the output local-memory index
  * @param valid_index_in [output] whether current input global index is within
  *input range
  * @param valid_index_in [output] whether current output global index is within
@@ -105,9 +105,9 @@ template <typename index_t>
 SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
                                 element_t>::get_indices(cl::sycl::nd_item<1> id,
                                                         index_t &in_idx,
-                                                        index_t &in_idc,
+                                                        index_t &in_local_idx,
                                                         index_t &out_idx,
-                                                        index_t &out_idc,
+                                                        index_t &out_local_idx,
                                                         bool &valid_index_in,
                                                         bool &valid_index_out) {
   index_t idg = id.get_group(0);
@@ -127,11 +127,11 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
 
   in_idx = i_block_start * stridea_ + j_block_start * lda_ + il * stridea_ +
            jl * lda_;
-  in_idc = jl * (Tile_size + 1) + il;
+  in_local_idx = jl * (Tile_size + 1) + il;
 
   out_idx = i_block_start * ldat_ + j_block_start * strideat_ + il * strideat_ +
             jl * ldat_;
-  out_idc = il * (Tile_size + 1) + jl;
+  out_local_idx = il * (Tile_size + 1) + jl;
 }
 
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
