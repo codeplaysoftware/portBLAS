@@ -103,6 +103,8 @@ void run_test(const combination_t<scalar_t> combi) {
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
 #endif
   } else {  // buffer alloc
     run_test<scalar_t, helper::AllocType::buffer>(combi);

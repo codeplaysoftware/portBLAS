@@ -123,7 +123,11 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, n, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
 
   if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
     run_test<scalar_t, blas::helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
   } else {
     run_test<scalar_t, blas::helper::AllocType::buffer>(combi);
   }
