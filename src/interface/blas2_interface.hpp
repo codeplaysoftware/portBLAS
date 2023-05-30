@@ -612,11 +612,10 @@ template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         element_t _alpha, container_t0 _mA,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy) {
+typename sb_handle_t::event_t _spmv_impl(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_t0 _mA,
+    container_t1 _vx, increment_t _incx, element_t _beta, container_t2 _vy,
+    increment_t _incy, const typename sb_handle_t::event_t& _dependencies) {
   static_assert(local_range_x % local_range_y == 0,
                 "Local y range needs to be a multiple of local x range.");
 
@@ -636,7 +635,8 @@ typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
       spmv, static_cast<index_t>(local_range_y * local_range_x),
       roundUp<index_t>(local_range_y * vector_size,
                        local_range_y * local_range_x),
-      static_cast<index_t>(local_range_x * (local_range_x + 1 + 2)));
+      static_cast<index_t>(local_range_x * (local_range_x + 1 + 2)),
+      _dependencies);
 }
 
 template <uint32_t local_range, uplo_type uplo, transpose_type trn,
@@ -1179,17 +1179,17 @@ typename sb_handle_t::event_t inline _sbmv(
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename sb_handle_t::event_t inline _spmv(sb_handle_t& sb_handle, char _Uplo,
-                                           index_t _N, element_t _alpha,
-                                           container_t0 _mA, container_t1 _vx,
-                                           increment_t _incx, element_t _beta,
-                                           container_t2 _vy,
-                                           increment_t _incy) {
-  return tolower(_Uplo) == 'u'
-             ? blas::spmv::backend::_spmv<uplo_type::Upper>(
-                   sb_handle, _N, _alpha, _mA, _vx, _incx, _beta, _vy, _incy)
-             : blas::spmv::backend::_spmv<uplo_type::Lower>(
-                   sb_handle, _N, _alpha, _mA, _vx, _incx, _beta, _vy, _incy);
+typename sb_handle_t::event_t inline _spmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _mA, container_t1 _vx, increment_t _incx, element_t _beta,
+    container_t2 _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies) {
+  return tolower(_Uplo) == 'u' ? blas::spmv::backend::_spmv<uplo_type::Upper>(
+                                     sb_handle, _N, _alpha, _mA, _vx, _incx,
+                                     _beta, _vy, _incy, _dependencies)
+                               : blas::spmv::backend::_spmv<uplo_type::Lower>(
+                                     sb_handle, _N, _alpha, _mA, _vx, _incx,
+                                     _beta, _vy, _incy, _dependencies);
 }
 
 template <typename sb_handle_t, typename index_t, typename element_t,

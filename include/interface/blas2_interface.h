@@ -439,21 +439,20 @@ typename sb_handle_t::event_t _sbmv_impl(
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx, element_t _beta,
-                                    container_2_t _vy, increment_t _incy);
+typename sb_handle_t::event_t _spmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _mA, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         element_t _alpha, container_t0 _mA,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy);
+typename sb_handle_t::event_t _spmv_impl(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_t0 _mA,
+    container_t1 _vx, increment_t _incx, element_t _beta, container_t2 _vy,
+    increment_t _incy, const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Matrix vector product with triangular band matrices.
@@ -945,13 +944,13 @@ typename sb_handle_t::event_t _sbmv(
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx, element_t _beta,
-                                    container_2_t _vy, increment_t _incy) {
+typename sb_handle_t::event_t _spmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _mA, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_spmv(sb_handle, _Uplo, _N, _alpha, _mA, _vx, _incx, _beta,
-                         _vy, _incy);
+                         _vy, _incy, _dependencies);
 }
 
 /**
