@@ -200,8 +200,6 @@ class TransposeAdd {
   void eval(cl::sycl::nd_item<1> item);
   template <typename local_memory_t>
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
-
-  template <typename index_t>
   void get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
                    index_t &in_b_idx, index_t &in_local_idx, index_t &out_idx,
                    index_t &out_local_idx, bool &valid_index_in,

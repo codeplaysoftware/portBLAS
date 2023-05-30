@@ -316,7 +316,6 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
  */
 template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
           typename in2_t, typename out_t, typename element_t>
-template <typename index_t>
 SYCL_BLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
              element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
@@ -329,7 +328,7 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
   index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
 
   index_t idg = id.get_group(0);
-  index_t idc = id.get_local_id();
+  index_t idc = id.get_local_id(0);
 
   const index_t jg = idg / m_tiles;
   const index_t ig = idg - jg * m_tiles;
@@ -387,7 +386,7 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
         local[in_local_id] = alpha_ * A[in_a_idx] + beta_ * B[in_b_idx];
       }
 
-      id.barrier(sycl::access::fence_space::local_space);
+      id.barrier(cl::sycl::access::fence_space::local_space);
 
       // Copy transposed output from local memory
       if (valid_index_out) {
@@ -403,7 +402,7 @@ TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
         local[in_local_id] = alpha_ * A[in_a_idx];
       }
 
-      id.barrier(sycl::access::fence_space::local_space);
+      id.barrier(cl::sycl::access::fence_space::local_space);
 
       // Compute & Copy output from local & global memory to global memory
       if (valid_index_in) {
