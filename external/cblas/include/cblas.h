@@ -563,15 +563,6 @@ void cblas_zher2k(const enum CBLAS_ORDER Order, const enum CBLAS_UPLO Uplo,
 void cblas_xerbla(int p, const char *rout, const char *form, ...);
 
 // blas-like extensions
-void cblas_simatcopy(const enum CBLAS_ORDER CORDER,
-                     const enum CBLAS_TRANSPOSE CTRANS, const int crows,
-                     const int ccols, const float calpha, float *a,
-                     const int clda, const int cldb);
-void cblas_dimatcopy(const enum CBLAS_ORDER CORDER,
-                     const enum CBLAS_TRANSPOSE CTRANS, const int crows,
-                     const int ccols, const double calpha, double *a,
-                     const int clda, const int cldb);
-
 void cblas_somatcopy(const enum CBLAS_ORDER CORDER,
                      const enum CBLAS_TRANSPOSE CTRANS, const int crows,
                      const int ccols, const float calpha, const float *a,
