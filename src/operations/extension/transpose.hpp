@@ -88,7 +88,7 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
  *@brief get_indices. This function is used in the local-memory kernel to
  *compute local & global input & output indices.
  *
- * @param id [input] the sycl::nd_item<1> of the current work_item
+ * @param id [input] the cl::sycl::nd_item<1> of the current work_item
  * @param in_idx [output] the input global-memory index
  * @param out_idx [output] the output global-memory index
  * @param in_local_idx [output] the input local-memory index
@@ -101,7 +101,6 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
  */
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t>
-template <typename index_t>
 SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
                                 element_t>::get_indices(cl::sycl::nd_item<1> id,
                                                         index_t &in_idx,
@@ -111,7 +110,7 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
                                                         bool &valid_index_in,
                                                         bool &valid_index_out) {
   index_t idg = id.get_group(0);
-  index_t idc = id.get_local_id();
+  index_t idc = id.get_local_id(0);
 
   const index_t jg = idg / tile_count_m_;
   const index_t ig = idg - jg * tile_count_m_;
@@ -159,7 +158,7 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
       local[in_local_id] = alpha_ * A[in_index];
     }
 
-    id.barrier(sycl::access::fence_space::local_space);
+    id.barrier(cl::sycl::access::fence_space::local_space);
 
     // Copy output from local memory
     if (valid_index_out) {
