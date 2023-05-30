@@ -518,31 +518,35 @@ function(add_transpose_configuration
 )
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
-    foreach(local_memory ${boolean_list})    
-        foreach(index ${index_list})
-          set(file_name "transpose_launcher_${tile_size}_${local_memory}.cpp")
-          sanitize_file_name(file_name "${file_name}")
-          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
-              ${PROJECT_SOURCE_DIR}/external/
-              ${SYCLBLAS_SRC_GENERATOR}/gen
-              ${blas_level}
-              ${func}
-              ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-              ${cpp_data}
-              ${index}
-              ${tile_size}
-              ${local_memory}
-              ${file_name}
-            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-            VERBATIM
-          )
-          list(APPEND trans_sources "${LOCATION}/${file_name}")
-          set(trans_sources "${trans_sources}" PARENT_SCOPE)
-        endforeach(index)
-    endforeach(local_memory)
+    set(container_list "BufferIterator<${cpp_data}>")
+    foreach(container_t ${container_list})
+      foreach(local_memory ${boolean_list})    
+          foreach(index ${index_list})
+            set(file_name "transpose_launcher_${tile_size}_${local_memory}.cpp")
+            sanitize_file_name(file_name "${file_name}")
+            add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+              COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
+                ${PROJECT_SOURCE_DIR}/external/
+                ${SYCLBLAS_SRC_GENERATOR}/gen
+                ${blas_level}
+                ${func}
+                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                ${cpp_data}
+                ${container_t}
+                ${index}
+                ${tile_size}
+                ${local_memory}
+                ${file_name}
+              MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+              DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_transpose_launcher.py
+              WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+              VERBATIM
+            )
+            list(APPEND trans_sources "${LOCATION}/${file_name}")
+            set(trans_sources "${trans_sources}" PARENT_SCOPE)
+          endforeach(index)
+      endforeach(local_memory)
+    endforeach(container_t)
   endforeach(data)
 endfunction(add_transpose_configuration)
 

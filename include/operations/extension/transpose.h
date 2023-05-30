@@ -32,12 +32,12 @@
 namespace blas {
 
 /*!
- * @brief This class holds the kernel for the transpose-scale used in matcopy
- * operators.
+ * @brief This class holds the kernel for the matrix transpose operator. It can
+ * also be used to perform matrix scaling and other pre/post-transpose
+ * operations.
  *
- * This templated class is designed to support omatcopy, imatcopy & omatcopy2,
- * with and without the use of local memory, while remaining customizable
- * Tiling-size wise.
+ * This templated kernel is designed to use or not local memory, while remaining
+ * customizable Tiling-size wise for performance purposes.
  *
  * @tparam in_place Whether the transpose is in or out of place
  * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and

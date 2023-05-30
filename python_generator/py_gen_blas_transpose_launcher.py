@@ -39,10 +39,11 @@ if __name__ == '__main__':
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
     data = sys.argv[6]
-    index = sys.argv[7]
-    tile_size = sys.argv[8]
-    local_memory = sys.argv[9]
-    file_name = sys.argv[10]
+    container = sys.argv[7]
+    index = sys.argv[8]
+    tile_size = sys.argv[9]
+    local_memory = sys.argv[10]
+    file_name = sys.argv[11]
 
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
@@ -72,6 +73,11 @@ if __name__ == '__main__':
         Iterable(
             key='LOCAL_MEM',
             vals=[local_memory],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='container_t',
+            vals=[container],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]
