@@ -41,8 +41,8 @@ template <bool in_place, typename sb_handle_t, typename element_t,
 typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
                                        in_t memory, index_t ld_in,
-                                       index_t in_stride, out_t out_memory,
-                                       index_t ld_out, index_t out_stride);
+                                       index_t inc_in, out_t out_memory,
+                                       index_t ld_out, index_t inc_out);
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -70,11 +70,10 @@ template <typename sb_handle_t, typename element_t, typename index_t,
 typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                          index_t m, index_t n, element_t alpha,
                                          in_t in_memory, index_t ld_in,
-                                         index_t in_stride, out_t out_memory,
-                                         index_t ld_out, index_t out_stride) {
+                                         index_t inc_in, out_t out_memory,
+                                         index_t ld_out, index_t inc_out) {
   return internal::_matcopy<false>(sb_handle, trans, m, n, alpha, in_memory,
-                                   ld_in, in_stride, out_memory, ld_out,
-                                   out_stride);
+                                   ld_in, inc_in, out_memory, ld_out, inc_out);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,

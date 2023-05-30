@@ -56,13 +56,15 @@ class Transpose {
   using value_t = element_t;
   in_t A_;
   out_t At_;
-  index_t lda_;
-  index_t ldat_;
-  index_t stridea_;
-  index_t strideat_;
   index_t N_;
   index_t M_;
   value_t alpha_;
+  // Leading dimensions
+  index_t lda_;
+  index_t ldat_;
+  // Increment value (denoted stride in oneMKL specification)
+  index_t inc_a_;
+  index_t inc_at_;
   // Minimum number of tiles used to cover matrices rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
@@ -70,8 +72,7 @@ class Transpose {
   index_t M_pad_;
   index_t N_pad_;
 
-  Transpose(in_t &A, index_t &stridea, out_t &At, index_t &strideat,
-            value_t &alpha)
+  Transpose(in_t &A, index_t &inc_a, out_t &At, index_t &inc_at, value_t &alpha)
       : A_(A),
         At_(At),
         lda_(A_.getSizeL()),
@@ -81,8 +82,8 @@ class Transpose {
         alpha_(alpha),
         tile_count_m_((M_ - 1) / Tile_size + 1),
         tile_count_n_((N_ - 1) / Tile_size + 1),
-        stridea_(stridea),
-        strideat_(strideat),
+        inc_a_(inc_a),
+        inc_at_(inc_at),
         M_pad_(tile_count_m_ * Tile_size),
         N_pad_(tile_count_n_ * Tile_size) {}
 
@@ -108,10 +109,10 @@ class Transpose {
 template <bool in_place, int Tile_size, bool local_memory, typename in_t,
           typename out_t, typename element_t, typename index_t>
 Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>
-make_transpose(in_t &A, index_t stridea, out_t &At, index_t stridea_t,
+make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
                element_t &alpha) {
   return Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>(
-      A, stridea, At, stridea_t, alpha);
+      A, inc_a, At, inc_a_t, alpha);
 }
 
 }  // namespace blas
