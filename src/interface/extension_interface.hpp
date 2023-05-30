@@ -53,8 +53,8 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t in_stride,
-              out_t out_memory, index_t ld_out, index_t out_stride) {
+              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
+              index_t ld_out, index_t inc_out) {
   typename sb_handle_t::event_t ret;
 
   bool use_local_memory = sb_handle.has_local_memory();
@@ -63,22 +63,22 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
     // Using local Memory
     if (m > 1024 && n > 1024) {
       ret = Transpose_Launcher<32, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
-          ld_out, out_stride);
+          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+          inc_out);
     } else if (m > 64 && n > 64) {
       ret = Transpose_Launcher<16, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
-          ld_out, out_stride);
+          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+          inc_out);
     } else {
       ret = Transpose_Launcher<8, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
-          ld_out, out_stride);
+          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+          inc_out);
     }
   } else {
     // With no local Memory
     ret = Transpose_Launcher<16, false>::template _select_transpose_outplace(
-        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-        out_stride);
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+        inc_out);
   }
 
   return ret;
@@ -88,8 +88,8 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans && in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t in_stride,
-              out_t out_memory, index_t ld_out, index_t out_stride) {
+              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
+              index_t ld_out, index_t inc_out) {
   // TODO
   typename sb_handle_t::event_t ret;
   return ret;
@@ -99,22 +99,20 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t in_stride,
-              out_t out_memory, index_t ld_out, index_t out_stride) {
+              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
+              index_t ld_out, index_t inc_out) {
   typename sb_handle_t::event_t ret;
   // if alpha=1 no need to multiply
   if (alpha == 1) {
-    auto in_view =
-        make_matrix_view<col_major>(in_memory, m, n, ld_in, in_stride);
+    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
     auto out_view =
-        make_matrix_view<col_major>(out_memory, m, n, ld_out, out_stride);
+        make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
     auto copy_op = make_op<Assign>(out_view, in_view);
     ret = sb_handle.execute(copy_op);
   } else {
-    auto in_view =
-        make_matrix_view<col_major>(in_memory, m, n, ld_in, in_stride);
+    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
     auto out_view =
-        make_matrix_view<col_major>(out_memory, m, n, ld_out, out_stride);
+        make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
     auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
     auto copy_op = make_op<Assign>(out_view, scal_op);
     ret = sb_handle.execute(copy_op);
@@ -203,24 +201,22 @@ template <bool in_place, typename sb_handle_t, typename element_t,
 typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
                                        in_t in_memory, index_t ld_in,
-                                       index_t in_stride, out_t out_memory,
-                                       index_t ld_out, index_t out_stride) {
+                                       index_t inc_in, out_t out_memory,
+                                       index_t ld_out, index_t inc_out) {
   // bail out early if the leading dimensions are not correct
-  if (ld_in < (in_stride * (m - 1) + 1) ||
-      (ld_out - 1) <
-          (trans == 't' ? out_stride * (n - 1) : out_stride * (m - 1))) {
+  if (ld_in < (inc_in * (m - 1) + 1) ||
+      (ld_out - 1) < (trans == 't' ? inc_out * (n - 1) : inc_out * (m - 1))) {
     typename sb_handle_t::event_t ret;
     return ret;
   }
 
   if (trans == 't') {
     return _matcopy_impl<false, true>(sb_handle, m, n, alpha, in_memory, ld_in,
-                                      in_stride, out_memory, ld_out,
-                                      out_stride);
+                                      inc_in, out_memory, ld_out, inc_out);
   } else {
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
-                                          ld_in, in_stride, out_memory, ld_out,
-                                          out_stride);
+                                          ld_in, inc_in, out_memory, ld_out,
+                                          inc_out);
   }
 }
 

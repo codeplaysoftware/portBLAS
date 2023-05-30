@@ -38,14 +38,14 @@ namespace internal {
 template typename SB_Handle::event_t _matcopy<true>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
     ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride);
+    ${INDEX_TYPE} inc_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out);
 
 template typename SB_Handle::event_t _matcopy<false>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
     ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride);
+    ${INDEX_TYPE} inc_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out);
 
 }  // namespace internal
 }  // namespace extension

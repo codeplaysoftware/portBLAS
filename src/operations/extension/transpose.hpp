@@ -77,8 +77,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
     auto A = A_.get_data().get_pointer();
     auto At = At_.get_data().get_pointer();
 
-    auto in_index = i * stridea_ + j * lda_;
-    auto out_index = i * ldat_ + j * strideat_;
+    auto in_index = i * inc_a_ + j * lda_;
+    auto out_index = i * ldat_ + j * inc_at_;
 
     At[out_index] = alpha_ * A[in_index];
   }
@@ -89,8 +89,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
  *compute local & global input & output indices.
  *
  * @param id [input] the sycl::nd_item<1> of the current work_item
- * @param in_idx [output] the input global index
- * @param out_idx [output] the output global index
+ * @param in_idx [output] the input global-memory index
+ * @param out_idx [output] the output global-memory index
  * @param in_local_idx [output] the input local-memory index
  * @param out_local_idx [output] the output local-memory index
  * @param valid_index_in [output] whether current input global index is within
@@ -125,11 +125,11 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
   valid_index_in = (i_block_start + il < M_ && j_block_start + jl < N_);
   valid_index_out = (i_block_start + jl < M_ && j_block_start + il < N_);
 
-  in_idx = i_block_start * stridea_ + j_block_start * lda_ + il * stridea_ +
-           jl * lda_;
+  in_idx =
+      i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ + jl * lda_;
   in_local_idx = jl * (Tile_size + 1) + il;
 
-  out_idx = i_block_start * ldat_ + j_block_start * strideat_ + il * strideat_ +
+  out_idx = i_block_start * ldat_ + j_block_start * inc_at_ + il * inc_at_ +
             jl * ldat_;
   out_local_idx = il * (Tile_size + 1) + jl;
 }

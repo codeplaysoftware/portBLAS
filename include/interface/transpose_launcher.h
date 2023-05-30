@@ -42,8 +42,8 @@ struct Transpose_Launcher {
             typename container_1_t, typename element_t, typename index_t>
   static typename sb_handle_t::event_t _select_transpose_outplace(
       sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
-      container_0_t in_, index_t _ld_in, index_t _stride_in, container_1_t out_,
-      index_t _ld_out, index_t _stride_out);
+      container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
+      index_t _ld_out, index_t _inc_out);
 };
 
 }  // namespace internal
