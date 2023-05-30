@@ -38,16 +38,16 @@ template class Transpose_Launcher<${TILE_SIZE}, ${LOCAL_MEM}>;
 template typename SB_Handle::event_t Transpose_Launcher<
     ${TILE_SIZE}, ${LOCAL_MEM}>::
     _select_transpose_outplace<SB_Handle,
-                 BufferIterator<${DATA_TYPE}>,
-                 BufferIterator<${DATA_TYPE}>,
+                 ${container_t},
+                 ${container_t},
                  ${DATA_TYPE},
                  ${INDEX_TYPE}>(
         SB_Handle& sb_handle, 
         ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
         ${DATA_TYPE} _alpha,
-        BufferIterator<${DATA_TYPE}> a_, 
+        ${container_t} a_, 
         ${INDEX_TYPE} _ld_in, ${INDEX_TYPE} _inc_in, 
-        BufferIterator<${DATA_TYPE}> b_,
+        ${container_t} b_,
         ${INDEX_TYPE} _ld_out, ${INDEX_TYPE} _inc_out);
 
 }  // namespace internal

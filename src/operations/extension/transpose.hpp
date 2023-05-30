@@ -76,10 +76,8 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
   if (i < M_ && j < N_) {
     auto A = A_.get_data().get_pointer();
     auto At = At_.get_data().get_pointer();
-
     auto in_index = i * inc_a_ + j * lda_;
     auto out_index = i * ldat_ + j * inc_at_;
-
     At[out_index] = alpha_ * A[in_index];
   }
 }
@@ -143,13 +141,10 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
 
   if (idx < get_size()) {
     value_t *local = local_mem.localAcc.get_pointer();
-
     auto A = A_.get_data().get_pointer();
     auto At = At_.get_data().get_pointer();
-
     index_t in_index, in_local_id, out_index, out_local_id;
     bool valid_index_in, valid_index_out;
-
     get_indices(id, in_index, in_local_id, out_index, out_local_id,
                 valid_index_in, valid_index_out);
 
@@ -157,7 +152,6 @@ SYCL_BLAS_INLINE void Transpose<in_place, Tile_size, local_memory, in_t, out_t,
     if (valid_index_in) {
       local[in_local_id] = alpha_ * A[in_index];
     }
-
     id.barrier(cl::sycl::access::fence_space::local_space);
 
     // Copy output from local memory
