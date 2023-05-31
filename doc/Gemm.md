@@ -69,8 +69,6 @@ There are several CMake variables which are specific to `GEMM` :
 - `GEMM_VECTORIZATION_SUPPORT` (Default: `OFF`) - Enables vectorization within the `GEMM` kernels. 
 If `OFF` it is equivalent to passing `1` for the vector size to the `Gemm` launcher.
 - `GEMM_TALL_SKINNY_SUPPORT` (Default: `ON`) - Enables optimizations for tall, skinny matrices. Not used on all targets.
-- `BLAS_MODEL_OPTIMIZATION` - Passing a machine learning model name here (`VGG_16` or `RESNET_50`) enables optimizations for the `GEMM` sizes used in these models. 
-Only applies to the `ARM_GPU` target.
 
 ## Kernel Structure
 
@@ -167,14 +165,10 @@ Backend selection is controlled by passing the cmake variable `TUNING_TARGET` du
 This cmake variable causes a corresponding define for the selected platform to be included in the source which then controls backend selection through `#ifdef`s in `src/interface/blas3/backend/backend.hpp` like so:
 
 ```c++
-#if defined(RCAR)
-#include "interface/blas3/backend/rcar.hpp"
-#elif defined INTEL_GPU
+#ifdef defined INTEL_GPU
 #include "interface/blas3/backend/intel_gpu.hpp"
 #elif defined AMD_GPU
 #include "interface/blas3/backend/amd_gpu.hpp"
-#elif defined ARM_GPU
-#include "interface/blas3/backend/arm_gpu.hpp"
 #elif defined POWER_VR
 #include "interface/blas3/backend/power_vr.hpp"
 #else
@@ -348,7 +342,6 @@ The first configuration is only used if `interleaved` is specified for the `GEMM
 
 Next we have an `#if` directive for when we want to force naive `GEMM` configurations. 
 This is triggered by a cmake variable. 
-You can see other examples like this in `arm_gpu.hpp` which does similar things for different values of the cmake variable `BLAS_MODEL_OPTIMIZATION` .
 
 ```c++
 if (_M <= 128 && _N <= 128 && _K <= 128) {
@@ -391,31 +384,77 @@ The generation of the `Gemm`, `Gemm_Launcher` and other operation's instantiatio
 The configurations to be generated, along with associated functions, are located in `cmake/CmakeFunctionHelper.cmake` and these functions are called from `src/interface/<blas_level>/CMakeLists.txt`. 
 Configurations are provided per backend target and will be generated for each data type set during CMake configuration with the variable `BLAS_DATA_TYPES`.
 
-As an example let's look at the configurations in `CmakeFunctionHelper.cmake` for the `RCAR` target backend, inside the function `generate_blas_gemm_objects`:
+As an example let's look at the configurations in `CmakeFunctionHelper.cmake` for the `INTEL_GPU` target backend, inside the function `generate_blas_gemm_objects`:
 
 ```cmake
-if(${TUNING_TARGET} STREQUAL "RCAR")
+if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
+    "double"
+    "half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
-      "${data}" 32 "false" "false" "false"
-      128 4 8 8 4 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
-    add_gemm_configuration(
-      "${data}" 32 "false" "false" "false"
-      128 8 4 4 8 1 1 1 1 1 1 "local" "standard" "full" 4 "strided")
+      "${data}" 64 "true" "false" "false"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 "no_local" "standard" "full" 4 "interleaved")
+      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 64 "false" "false" "false"
+      64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
+
+    if (${data} STREQUAL "half")
+      add_gemm_configuration(
+         "${data}" 16 "true" "false" "false"
+         64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+      add_gemm_configuration(
+        "${data}" 16 "true" "false" "false"
+         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    else()
+      add_gemm_configuration(
+         "${data}" 16 "true" "false" "false"
+         64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+      add_gemm_configuration(
+        "${data}" 16 "true" "false" "false"
+         64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    endif()
+
+    add_gemm_configuration(
+      "${data}" 64 "true" "true" "true"
+      64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 64 "true" "true" "true"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+
+    if (${data} STREQUAL "double")
+      add_gemm_configuration(
+        "${data}" 256 "true" "true" "true"
+        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    else()
+      add_gemm_configuration(
+        "${data}" 256 "true" "true" "true"
+        64 4 4 16 16 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    endif()
+
+    add_gemm_configuration(
+      "${data}" 32 "true" "true" "true"
+      64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 32 "true" "true" "true"
+      64 2 2 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+
+    add_gemm_configuration(
+      "${data}" 64 "false" "false" "false"
+      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 ```
 
 First we are setting the data types supported by the target. 
-In this case RCAR only supports float but other platforms might also include `half` or `double` . 
+In this case `INTEL_GPU` supports `float`, `double` and `half`, but other platforms may not include `half` or `double`. 
 Then we iterate over these supported data types calling `add_gemm_configuration()` for each configuration that we want to add. 
 If a data type is passed which the user has not explicitly enabled with `BLAS_DATA_TYPES` then that configuration will be silently skipped. 
-The configurations listed here must mirror those in the header for the backend, in this case `interface/blas3/backend/rcar.hpp` .
+The configurations listed here must mirror those in the header for the backend, in this case `interface/blas3/backend/intel_gpu.hpp` .
 
 If you encounter errors after adding a new configuration this is the first place to check for inconsistencies. 
 Having configurations in CMake which are _not_ present in the backend target header will not cause errors.

@@ -29,12 +29,6 @@ set(tuner_def_file ${CMAKE_CURRENT_BINARY_DIR}/generated_combinations.def)
 
 # The generator's configuration file - add any new jsons to this
 set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/default.json)
-if(${TUNING_TARGET} STREQUAL "RCAR")
-  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/rcar.json)
-endif()
-if(${TUNING_TARGET} STREQUAL "ARM_GPU")
-  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/arm.json)
-endif()
 if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/intel_gpu.json)
 endif()
