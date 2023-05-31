@@ -46,9 +46,8 @@ Transpose_Launcher<Tile_size, local_memory>::_select_transpose_outplace(
     container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
     index_t _ld_out, index_t _inc_out) {
   // Matrix Views
-  auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in, (index_t)1);
-  auto out_view =
-      make_matrix_view<col_major>(out_, _M, _N, _ld_out, (index_t)1);
+  auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in, _inc_in);
+  auto out_view = make_matrix_view<col_major>(out_, _M, _N, _ld_out, _inc_out);
 
   // Work items & groups sizes
   index_t local_size = static_cast<index_t>(Tile_size * Tile_size);
