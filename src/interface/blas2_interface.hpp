@@ -554,9 +554,8 @@ typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
   auto vy = make_vector_view(_vy, _incy, vector_size);
 
   auto spmv =
-      make_xpmv<local_range_x, local_range_y, /*is_symmetric=*/true, is_upper,
-                /*is_transposed=*/false, /*is_unit=*/false>(_alpha, mA, vx,
-                                                            _beta, vy);
+      make_xpmv<local_range_x, local_range_y, true, is_upper, false, false>(
+          _alpha, mA, vx, _beta, vy);
 
   const index_t loc_mem_leading_dim = local_range_x + 1;
 
@@ -633,9 +632,8 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
 
   typename container_t0::scalar_t unused;
 
-  auto tpmv =
-      make_xpmv<local_range_x, local_range_y, /*is_symmetric=*/false, is_upper,
-                is_transposed, is_unit>(unused, mA, vx, unused, vres);
+  auto tpmv = make_xpmv<local_range_x, local_range_y, false, is_upper,
+                        is_transposed, is_unit>(unused, mA, vx, unused, vres);
 
   const index_t loc_mem_leading_dim = local_range_x + 1;
 
