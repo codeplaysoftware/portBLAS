@@ -285,23 +285,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
           orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
           boundary_check_m, boundary_check_n, boundary_check_c, reg_a, reg_b,
-          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
-#ifdef ARM_GPU
-          ,
-          id
-#endif
-      );
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc);
     } else {
       compute_gemm_no_shared_pannel<true, 1, 1>(
           orig_A, orig_B, orig_C, a_size, b_size, c_size, a_.get_size_col(), k,
           dim_m_a_start, dim_n_b_start, A_ptr_index, B_ptr_index,
           boundary_check_m, boundary_check_n, boundary_check_c, reg_a, reg_b,
-          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc
-#ifdef ARM_GPU
-          ,
-          id
-#endif
-      );
+          out_of_range, batch_stride, wg_batch_id, batch_size_, lda, ldb, ldc);
     }
   }
   /** @brief If beta is not zero then this function will load in values from C,
@@ -360,12 +350,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       const check_boundary_c_t &boundary_check_c, element_t *reg_a,
       element_t *reg_b, const bool out_of_range, const index_t &batch_stride,
       const index_t &wg_batch_id, index_t batch_size, const index_t &lda,
-      const index_t &ldb, const index_t &ldc
-#ifdef ARM_GPU
-      ,
-      const cl::sycl::nd_item<1> &id
-#endif
-      ) noexcept {
+      const index_t &ldb, const index_t &ldc) noexcept {
     do {
       auto A = orig_A;
       auto B = orig_B;
@@ -383,9 +368,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
         load<item_rows, wg_rows * a_packet_size, need_check_boundary,
              a_packet_size>(A, reg_a, A_ptr_index, dim_m_a_start,
                             boundary_check_m, out_of_range);
-#ifdef ARM_GPU
-        id.barrier(cl::sycl::access::fence_space::local_space);
-#endif
 
         /*
          * Loading a corresponding block of matrix B into reg_b
