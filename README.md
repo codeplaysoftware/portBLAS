@@ -292,6 +292,29 @@ For all these operations:
 | `_gemm_strided_batched` | `sb_handle`, `transa`, `transb`, `M`, `N`, `K`, `alpha`, `A`, `lda`, `stridea`, `B`, `ldb`, `strideb`, `beta`, `C`, `ldc`, `stridec`, `batch_size` | Same as `_gemm` but the containers contain `batch_size` end-to-end matrices. GEMM operations are performed independently with matching matrices.
 | `_trsm` | `sb_handle`, `side`, `uplo`, `trans`, `diag`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb` | Triangular solve with Multiple Right-Hand Sides. |
 
+### EXTENSION
+
+The following table sums up the interface that cab be found in
+[extension_interface.h](include/interface/extension_interface.h).
+
+For all these operations:
+
+* `A`, `B` and `C` are containers for the column-major matrices A, B and C.
+* `lda`, `ldb` and `ldc` are the leading dimensions of the matrices A, B and C
+  (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
+  to its number of rows.
+* `transa` and `transb` are the transpose modes of the matrices A and B
+  (cf BLAS 2).
+* `M` and `N`are the dimensions of the matrices.
+* `alpha` and `beta` are scalars.
+* `batch_size` is an integer.
+* `inc_a` and `inc_b` are integers. The distance between element in the same column.
+
+| operation | arguments | description |
+|---|---|---|
+| `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
+| `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
+
 ### Experimental Joint Matrix Support
 
 SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
