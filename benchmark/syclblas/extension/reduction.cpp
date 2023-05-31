@@ -41,7 +41,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
          index_t cols, reduction_dim_t dim, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+      state, sb_handle_ptr->get_queue(),
+      blas_benchmark::utils::BackendType::SYCLBLAS);
 
   // The counters are double. We convert m, n and k to double to avoid integer
   // overflows for n_fl_ops and bytes_processed

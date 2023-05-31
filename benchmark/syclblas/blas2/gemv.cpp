@@ -38,7 +38,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, scalar_t beta, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+      state, sb_handle_ptr->get_queue(),
+      blas_benchmark::utils::BackendType::SYCLBLAS);
 
   // Standard test setup.
   std::string ts = blas_benchmark::utils::from_transpose_enum(

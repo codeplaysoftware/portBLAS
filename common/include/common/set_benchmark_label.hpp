@@ -128,6 +128,8 @@ inline void add_datatype_info<cl::sycl::half>(
 
 }  // namespace datatype_info
 
+enum class BackendType { SYCLBLAS, CUBLAS, ROCBLAS };
+
 inline void set_label(benchmark::State& state,
                       const std::map<std::string, std::string>& key_value_map) {
   std::string label;
@@ -143,7 +145,7 @@ inline void set_label(benchmark::State& state,
 
 template <typename scalar_t>
 inline void set_benchmark_label(benchmark::State& state,
-                                const cl::sycl::queue& q) {
+                                const cl::sycl::queue& q, BackendType backend) {
   std::map<std::string, std::string> key_value_map;
   auto dev = q.get_device();
   opencl_info::add_opencl_device_info(dev, key_value_map);
@@ -153,6 +155,19 @@ inline void set_benchmark_label(benchmark::State& state,
   key_value_map["@library"] = "SYCL-BLAS";
   key_value_map["git_hash"] = commit_hash;
   key_value_map["git_hash_date"] = commit_date;
+
+  const auto backend_label = "@backend";
+  switch (backend) {
+    case BackendType::SYCLBLAS:
+      key_value_map[backend_label] = "sycl-blas";
+      break;
+    case BackendType::CUBLAS:
+      key_value_map[backend_label] = "cublas";
+      break;
+    case BackendType::ROCBLAS:
+      key_value_map[backend_label] = "rocblas";
+      break;
+  }
   set_label(state, key_value_map);
 }
 

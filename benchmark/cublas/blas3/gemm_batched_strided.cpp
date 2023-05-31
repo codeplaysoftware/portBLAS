@@ -55,7 +55,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          index_t stride_c_mul, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+      state, sb_handle_ptr->get_queue(),
+      blas_benchmark::utils::BackendType::CUBLAS);
 
   // Standard test setup.
   std::string t1s = blas_benchmark::utils::from_transpose_enum(

@@ -52,7 +52,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
          scalar_t beta, index_t batch_size, int batch_type_i, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+      state, sb_handle_ptr->get_queue(),
+      blas_benchmark::utils::BackendType::ROCBLAS);
 
   // Standard setup
   std::string t_a = blas_benchmark::utils::from_transpose_enum(

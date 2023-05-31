@@ -48,7 +48,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
          bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+      state, sb_handle_ptr->get_queue(),
+      blas_benchmark::utils::BackendType::CUBLAS);
 
   // init Google-benchmark counters.
   blas_benchmark::utils::init_level_1_counters<
