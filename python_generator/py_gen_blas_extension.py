@@ -35,8 +35,6 @@ if __name__ == '__main__':
     from py_gen import *
     from string import Template
 
-    index_list = ['int64_t']
-
     input_template = sys.argv[2]
     blas_level_name = sys.argv[3]
     blas_function_name = sys.argv[4]

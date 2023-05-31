@@ -76,6 +76,16 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(isAlmostEqual);
 }
 
+#ifdef STRESS_TESTING
+template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
+                       ::testing::Values<index_t>(1024, 4050, 16380),  // m
+                       ::testing::Values<index_t>(1024, 4050, 16380),  // n
+                       ::testing::Values<scalar_t>(0, 1.05, 2.01),     // alpha
+                       ::testing::Values<index_t>(1, 3),   // ld_in_m
+                       ::testing::Values<index_t>(1, 3));  // ld_in_n
+#else
 template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values<char>('n', 't'),         // trans
@@ -84,6 +94,7 @@ const auto combi =
                        ::testing::Values<scalar_t>(0, 1, 2),      // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
                        ::testing::Values<index_t>(1, 2, 3));      // ld_in_n
+#endif
 
 template <class T>
 static std::string generate_name(
