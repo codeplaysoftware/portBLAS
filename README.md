@@ -406,13 +406,12 @@ Some of the supported options are:
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
 | `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
-| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU`, `ARM_GPU`, `RCAR` |
+| `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |
 | `BUILD_SHARED_LIBS` | `ON`/`OFF` | Build as shared library (`ON` by default) |
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
-| `BLAS_MODEL_OPTIMIZATION` | name | Pass a model name here to use optimized GEMM configurations for specific convolution models/sizes. Currently this only affects the `ARM_GPU` target. The supported models are: `RESNET_50`, `VGG_16` |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
 | `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable sycl-blas extensions (`ON` by default) |
 | `BLAS_DATA_TYPES` | `half;float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |

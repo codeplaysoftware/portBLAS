@@ -58,22 +58,22 @@ endfunction()
 
 function(set_target_compile_def in_target)
   #setting compiler flag for backend
-  message(STATUS "Adding ${TUNING_TARGET} backend to target ${in_target}")
   if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     target_compile_definitions(${in_target} PUBLIC INTEL_GPU=1)
   elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")
     target_compile_definitions(${in_target} PUBLIC AMD_GPU=1)
-  elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
-    target_compile_definitions(${in_target} PUBLIC ARM_GPU=1)
-  elseif(${TUNING_TARGET} STREQUAL "RCAR")
-    target_compile_definitions(${in_target} PUBLIC RCAR=1)
   elseif(${TUNING_TARGET} STREQUAL "POWER_VR")
     target_compile_definitions(${in_target} PUBLIC POWER_VR=1)
   elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     target_compile_definitions(${in_target} PUBLIC NVIDIA_GPU=1)
   else()
+    if(NOT ${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
+      message(STATUS "${TUNING_TARGET} not supported. Switching to DEFAULT_CPU instead.")
+      set(TUNING_TARGET "DEFAULT_CPU")
+    endif()
     target_compile_definitions(${in_target} PUBLIC DEFAULT_CPU=1)
   endif()
+  message(STATUS "Adding ${TUNING_TARGET} backend to target ${in_target}")
   #setting tall skinny support
   if(${GEMM_TALL_SKINNY_SUPPORT})
     message(STATUS "Tall and skinny Gemm support enabled for target ${in_target}")
@@ -83,12 +83,6 @@ function(set_target_compile_def in_target)
   if(${GEMM_VECTORIZATION_SUPPORT})
     message(STATUS "Gemm vectorization support enabled for target ${in_target}")
     target_compile_definitions(${in_target} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
-  endif()
-  #Set optimized model configs
-  if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
-    target_compile_definitions(${in_target} PUBLIC MODEL_RESNET_50=1)
-  elseif(${BLAS_MODEL_OPTIMIZATION} STREQUAL "VGG_16")
-    target_compile_definitions(${in_target} PUBLIC MODEL_VGG_16=1)
   endif()
 endfunction()
 
@@ -651,86 +645,6 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
-  endforeach()
-elseif(${TUNING_TARGET} STREQUAL "RCAR") # need investigation
-  set(supported_types
-    "float"
-  )
-  foreach(data ${supported_types})
-    add_gemm_configuration(
-      "${data}" 32 "false" "false" "false"
-      128 4 8 8 4 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 32 "false" "false" "false"
-      128 8 4 4 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
-  endforeach()
-elseif(${TUNING_TARGET} STREQUAL "ARM_GPU")
-  set(supported_types
-    "float"
-    "half"
-  )
-  foreach(data ${supported_types})
-    if(${BLAS_MODEL_OPTIMIZATION} STREQUAL "RESNET_50")
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "false" "false" "false"
-        64 4 8 8 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 2 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 2 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 2 "strided" "false")
-    elseif(${BLAS_MODEL_OPTIMIZATION} STREQUAL "VGG_16")
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 2 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 2 "strided" "false")
-    else()
-      add_gemm_configuration(
-        "${data}" 64 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 128 "false" "false" "false"
-        64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "false" "false" "false"
-        64 8 4 4 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-    endif()
-    add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 2 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
   set(supported_types
