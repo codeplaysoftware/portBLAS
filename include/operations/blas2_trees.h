@@ -313,6 +313,27 @@ Sbmv<lhs_t, matrix_t, vector_t, local_range, uplo> make_sbmv(
  * @struct Xpmv
  * @brief Tree node representing a symmetric/triangular packed matrix_ vector_
  * multiplication.
+ *
+ * If the matrix is triangular, it computes
+ *                          lhs_ = matrix_ * vector_
+ *
+ * If the matrix is symmetric, it computes
+ *                 lhs_ = alpha_ * matrix_ * vector_ + beta_ * lhs_
+ *
+ * The class is constructed using the make_xpmv function below.
+ *
+ * @tparam local_range_x  specifies the work group x-dimension
+ * @tparam local_range_y  specifies the work group y-dimension
+ * @tparam is_upper       specifies whether the triangular input matrix is upper
+ * @tparam is_transposed  specifies whether the input matrix should be
+ * transposed
+ * @tparam is_unit  specifies whether considering the input matrix
+ * main-diagonal filled with ones
+ * @param lhs_      the output vector
+ * @param matrix_a_ the input matrix A
+ * @param vector_x_ the input vector
+ * @param alpha_    factor used only if is_symmetric == true
+ * @param beta_     factor used only if is_symmetric == true
  */
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
@@ -323,7 +344,6 @@ struct Xpmv {
 
   lhs_t lhs_;
   matrix_t matrix_;
-  index_t k_;
   vector_t vector_;
   value_t alpha_, beta_;
 
@@ -337,7 +357,7 @@ struct Xpmv {
   void adjust_access_displacement();
 };
 /*!
- @brief Generator/factory for SPMV trees.
+ @brief Generator/factory for XPMV trees.
  */
 template <uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit, typename lhs_t,
