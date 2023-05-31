@@ -218,11 +218,11 @@ struct MatrixView<
   // Information related to the data
   container_t data_;
   // Information related to the operation
-  const index_t sizeR_;   // number of rows
-  const index_t sizeC_;   // number of columns
-  const index_t sizeL_;   // size of the leading dimension
-  const index_t inc_;     // internal increment between same row/column elements
-  const index_t disp_;    // displacementt od the first element
+  const index_t sizeR_;  // number of rows
+  const index_t sizeC_;  // number of columns
+  const index_t sizeL_;  // size of the leading dimension
+  const index_t inc_;    // internal increment between same row/column elements
+  const index_t disp_;   // displacementt od the first element
   cl::sycl::global_ptr<scalar_t>
       ptr_;  // global pointer access inside the kernel
 

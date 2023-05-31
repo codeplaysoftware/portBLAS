@@ -211,8 +211,9 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
   }
 
   if (trans == 't') {
-    return _matcopy_impl<false, true>(sb_handle, m, n, alpha, in_memory, ld_in,
-                                      inc_in, out_memory, ld_out, inc_out);
+    return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, in_memory,
+                                         ld_in, inc_in, out_memory, ld_out,
+                                         inc_out);
   } else {
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
                                           ld_in, inc_in, out_memory, ld_out,
