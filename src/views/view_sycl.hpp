@@ -273,32 +273,24 @@ struct MatrixView<
 
   /**** EVALUATING ***/
 
-  template <bool intern_inc = is_inc>
-  SYCL_BLAS_INLINE typename std::enable_if<intern_inc, scalar_t &>::type eval(
-      index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
-                                     : *(ptr_ + j * inc_ + sizeL_ * i));
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
+    if constexpr (is_inc) {
+      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
+                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    } else {
+      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                       : *(ptr_ + j + sizeL_ * i));
+    }
   }
 
-  template <bool intern_inc = is_inc>
-  SYCL_BLAS_INLINE typename std::enable_if<!intern_inc, scalar_t &>::type eval(
-      index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
-  }
-
-  template <bool intern_inc = is_inc>
-  SYCL_BLAS_INLINE typename std::enable_if<intern_inc, scalar_t &>::type eval(
-      index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
-                                     : *(ptr_ + j * inc_ + sizeL_ * i));
-  }
-
-  template <bool intern_inc = is_inc>
-  SYCL_BLAS_INLINE typename std::enable_if<!intern_inc, scalar_t &>::type eval(
-      index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) const noexcept {
+    if constexpr (is_inc) {
+      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
+                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    } else {
+      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                       : *(ptr_ + j + sizeL_ * i));
+    }
   }
 
   template <bool use_as_ptr = false>
