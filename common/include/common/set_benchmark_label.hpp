@@ -29,6 +29,11 @@
 #include <map>
 #include <string>
 
+#ifdef BUILD_CUBLAS_BENCHMARKS
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
+
 extern bool const computecpp_available;
 extern char const* const computecpp_version;
 extern char const* const computecpp_edition;
@@ -39,16 +44,15 @@ extern const char* commit_hash;
 namespace blas_benchmark {
 namespace utils {
 
-namespace opencl_info {
+namespace device_info {
 /**
  * Add device info from the provided SYCL device to the benchmark label.
  *
  * \param [in] device    SYCL device to query for info to add to the label.
  * \param [out] key_value_map The benchmark key value pair to hold the info.
  */
-inline void add_opencl_device_info(
-    cl::sycl::device const& device,
-    std::map<std::string, std::string>& key_value_map) {
+inline void add_device_info(cl::sycl::device const& device,
+                            std::map<std::string, std::string>& key_value_map) {
   // OpenCL is unclear whether strings returned from clGet*Info() should be
   // null terminated, and ComputeCpp currently copies embedded nulls.
   // On some OpenCL implementations this results in strings that behave
@@ -69,7 +73,35 @@ inline void add_opencl_device_info(
   key_value_map["driver_version"] = trim(driver_version);
 }
 
-}  // namespace opencl_info
+#ifdef BUILD_CUBLAS_BENCHMARKS
+#include <cuda.h>
+#include <cuda_runtime.h>
+/**
+ * Add device info for CUDA backend.
+ *
+ * \param [out] key_value_map The benchmark key value pair to hold the info.
+ */
+inline void add_device_info(std::map<std::string, std::string>& key_value_map) {
+  cudaDeviceProp prop;
+  int device = 0, driverVersion = 0;
+  cudaGetDevice(&device);
+  cudaGetDeviceProperties(&prop, device);
+  cudaDriverGetVersion(&driverVersion);
+  auto device_name = prop.name;
+  auto device_version =
+      "";  // device.get_info<cl::sycl::info::device::version>();
+  auto vendor_name = "NVIDIA Corporation";
+  auto driver_version = driverVersion;
+  // device.get_info<cl::sycl::info::device::driver_version>();
+
+  key_value_map["device_name"] = device_name;
+  key_value_map["device_version"] = device_version;
+  key_value_map["vendor_name"] = vendor_name;
+  key_value_map["driver_version"] = std::to_string(driver_version);
+}
+#endif
+
+}  // namespace device_info
 
 namespace computecpp_info {
 
@@ -148,7 +180,7 @@ inline void set_benchmark_label(benchmark::State& state,
                                 const cl::sycl::queue& q, BackendType backend) {
   std::map<std::string, std::string> key_value_map;
   auto dev = q.get_device();
-  opencl_info::add_opencl_device_info(dev, key_value_map);
+  device_info::add_device_info(dev, key_value_map);
   computecpp_info::add_computecpp_version(key_value_map);
   datatype_info::add_datatype_info<scalar_t>(key_value_map);
 
@@ -170,6 +202,25 @@ inline void set_benchmark_label(benchmark::State& state,
   }
   set_label(state, key_value_map);
 }
+
+#ifdef BUILD_CUBLAS_BENCHMARKS
+template <typename scalar_t>
+inline void set_benchmark_label(benchmark::State& state) {
+  std::map<std::string, std::string> key_value_map;
+
+  device_info::add_device_info(key_value_map);
+  computecpp_info::add_computecpp_version(key_value_map);
+  datatype_info::add_datatype_info<scalar_t>(key_value_map);
+
+  key_value_map["@library"] = "SYCL-BLAS";
+  key_value_map["git_hash"] = commit_hash;
+  key_value_map["git_hash_date"] = commit_date;
+
+  const auto backend_label = "@backend";
+  key_value_map[backend_label] = "cublas";
+  set_label(state, key_value_map);
+}
+#endif
 
 }  // namespace utils
 }  // namespace blas_benchmark
