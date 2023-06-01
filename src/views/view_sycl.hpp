@@ -27,6 +27,7 @@
 #define SYCL_BLAS_VIEW_SYCL_HPP
 
 #include <CL/sycl.hpp>
+#include <type_traits>
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
@@ -190,22 +191,22 @@ struct VectorView<
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout>
+          typename layout, bool is_inc>
 struct MatrixView<
     ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout>;
+    view_index_t, layout, is_inc>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout>
+          typename layout, bool is_inc>
 struct MatrixView<
     ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout> {
+    view_index_t, layout, is_inc> {
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
@@ -272,14 +273,32 @@ struct MatrixView<
 
   /**** EVALUATING ***/
 
-  SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
+  template <bool intern_inc = is_inc>
+  SYCL_BLAS_INLINE typename std::enable_if<intern_inc, scalar_t &>::type eval(
+      index_t i, index_t j) {
     return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
                                      : *(ptr_ + j * inc_ + sizeL_ * i));
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(index_t i, index_t j) const noexcept {
+  template <bool intern_inc = is_inc>
+  SYCL_BLAS_INLINE typename std::enable_if<!intern_inc, scalar_t &>::type eval(
+      index_t i, index_t j) {
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
+  }
+
+  template <bool intern_inc = is_inc>
+  SYCL_BLAS_INLINE typename std::enable_if<intern_inc, scalar_t &>::type eval(
+      index_t i, index_t j) const noexcept {
     return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
                                      : *(ptr_ + j * inc_ + sizeL_ * i));
+  }
+
+  template <bool intern_inc = is_inc>
+  SYCL_BLAS_INLINE typename std::enable_if<!intern_inc, scalar_t &>::type eval(
+      index_t i, index_t j) const noexcept {
+    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                     : *(ptr_ + j + sizeL_ * i));
   }
 
   template <bool use_as_ptr = false>
