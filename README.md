@@ -258,6 +258,8 @@ For all these operations:
 | `_syr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mA`, `lda` | Generalised vector squaring followed by a sum with a symmetric matrix: `A = alpha * x * xT + A` |
 | `_syr2` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `vy`, `incy`, `mA`, `lda` | Generalised vector products followed by a sum with a symmetric matrix: `A = alpha*x*yT + alpha*y*xT + A` |
 | `_spr` | `sb_handle`, `uplo`, `N`, `alpha`, `vx`, `incx`, `mPA` | Symmetric vector-vector product followed by a matrix sum: `mPA = alpha * x * xT + mPA` |
+| `_spmv` | `sb_handle`, `uplo`, `N`, `alpha`, `mA`, `vx`, `incx`, `beta`, `vy`, `incy` |  Symmetric packed matrix-vector product: `y = alpha * A * x + beta * y` |
+| `_tpmv` | `sb_handle`, `uplo`, `trans`, `diag`, `N`, `mA`, `vx`, `incx` | Triangular packed matrix-vector product: `x = A * x` |
 
 ### BLAS 3
 
