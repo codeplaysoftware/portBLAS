@@ -619,6 +619,8 @@ typename sb_handle_t::event_t _spmv_impl(
   static_assert(local_range_x % local_range_y == 0,
                 "Local y range needs to be a multiple of local x range.");
 
+  constexpr bool is_upper = (uplo == uplo_type::Upper);
+
   constexpr index_t one = 1;
 
   index_t vector_size = _N;
@@ -628,15 +630,17 @@ typename sb_handle_t::event_t _spmv_impl(
   auto vx = make_vector_view(_vx, _incx, vector_size);
   auto vy = make_vector_view(_vy, _incy, vector_size);
 
-  auto spmv = make_spmv<local_range_x, local_range_y, uplo == uplo_type::Upper>(
-      _alpha, mA, vx, _beta, vy);
+  auto spmv =
+      make_xpmv<local_range_x, local_range_y, true, is_upper, false, false>(
+          _alpha, mA, vx, _beta, vy);
+
+  const index_t loc_mem_leading_dim = local_range_x + 1;
 
   return sb_handle.execute(
       spmv, static_cast<index_t>(local_range_y * local_range_x),
       roundUp<index_t>(local_range_y * vector_size,
                        local_range_y * local_range_x),
-      static_cast<index_t>(local_range_x * (local_range_x + 1 + 2)),
-      _dependencies);
+      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)));
 }
 
 template <uint32_t local_range, uplo_type uplo, transpose_type trn,
@@ -684,6 +688,50 @@ typename sb_handle_t::event_t _tbmv_impl(
   ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_res});
 #endif
   return ret;
+}
+
+template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
+typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         container_t0 _mA, container_t1 _vx,
+                                         increment_t _incx) {
+  static_assert(local_range_x % local_range_y == 0,
+                "Local y range needs to be a multiple of local x range.");
+
+  constexpr bool is_upper = (uplo == uplo_type::Upper);
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
+  constexpr bool is_unit = (diag == diag_type::Unit);
+
+  constexpr index_t one = 1;
+
+  index_t vector_size = _N;
+  index_t matrix_size = ((_N + 1) * _N) / 2;
+
+  auto res_buffer =
+      blas::make_sycl_iterator_buffer<typename container_t0::scalar_t>(
+          vector_size);
+
+  auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
+  auto vx = make_vector_view(_vx, _incx, vector_size);
+  auto vres = make_vector_view(res_buffer, one, vector_size);
+
+  typename container_t0::scalar_t unused;
+
+  auto tpmv = make_xpmv<local_range_x, local_range_y, false, is_upper,
+                        is_transposed, is_unit>(unused, mA, vx, unused, vres);
+
+  const index_t loc_mem_leading_dim = local_range_x + 1;
+
+  auto tpmvEvent = sb_handle.execute(
+      tpmv, static_cast<index_t>(local_range_y * local_range_x),
+      roundUp<index_t>(local_range_y * vector_size,
+                       local_range_y * local_range_x),
+      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)));
+
+  auto assignOp = make_op<Assign>(vx, vres);
+  return concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp));
 }
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
@@ -1259,6 +1307,16 @@ typename sb_handle_t::event_t _tbsv(
     increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
   INST_UPLO_TRANS_DIAG(blas::tbsv::backend::_tbsv, sb_handle, _N, _K, _mA, _lda,
                        _vx, _incx, _dependencies)
+}
+
+template <typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_t0 _mA, container_t1 _vx,
+                                    increment_t _incx) {
+  INST_UPLO_TRANS_DIAG(blas::tpmv::backend::_tpmv, sb_handle, _N, _mA, _vx,
+                       _incx)
 }
 }  // namespace internal
 }  // namespace blas

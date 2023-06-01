@@ -49,7 +49,8 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas2/blas2_spr2_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
-  # # Blas 3 tests
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_tpmv_test.cpp
+  # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp

@@ -880,6 +880,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:spr2>
                 $<TARGET_OBJECTS:syr2>
                 $<TARGET_OBJECTS:tbmv>
+                $<TARGET_OBJECTS:tpmv>
                 $<TARGET_OBJECTS:tbsv>
                 $<TARGET_OBJECTS:trmv>
                 $<TARGET_OBJECTS:trsv>
