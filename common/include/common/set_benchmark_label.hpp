@@ -32,6 +32,8 @@
 #ifdef BUILD_CUBLAS_BENCHMARKS
 #include <cuda.h>
 #include <cuda_runtime.h>
+#elif BUILD_ROCBLAS_BENCHMARKS
+#include <hip/hip_runtime.h>
 #endif
 
 extern bool const computecpp_available;
@@ -74,8 +76,6 @@ inline void add_device_info(cl::sycl::device const& device,
 }
 
 #ifdef BUILD_CUBLAS_BENCHMARKS
-#include <cuda.h>
-#include <cuda_runtime.h>
 /**
  * Add device info for CUDA backend.
  *
@@ -88,11 +88,31 @@ inline void add_device_info(std::map<std::string, std::string>& key_value_map) {
   cudaGetDeviceProperties(&prop, device);
   cudaDriverGetVersion(&driverVersion);
   auto device_name = prop.name;
-  auto device_version =
-      "";  // device.get_info<cl::sycl::info::device::version>();
+  auto device_version = "";
   auto vendor_name = "NVIDIA Corporation";
   auto driver_version = driverVersion;
-  // device.get_info<cl::sycl::info::device::driver_version>();
+
+  key_value_map["device_name"] = device_name;
+  key_value_map["device_version"] = device_version;
+  key_value_map["vendor_name"] = vendor_name;
+  key_value_map["driver_version"] = std::to_string(driver_version);
+}
+#elif BUILD_ROCBLAS_BENCHMARKS
+/**
+ * Add device info for AMD backend.
+ *
+ * \param [out] key_value_map The benchmark key value pair to hold the info.
+ */
+inline void add_device_info(std::map<std::string, std::string>& key_value_map) {
+  hipDeviceProp_t prop;
+  int device = 0, driverVersion = 0;
+  hipGetDevice(&device);
+  hipGetDeviceProperties(&prop, device);
+  hipDriverGetVersion(&driverVersion);
+  auto device_name = prop.name;
+  auto device_version = "";
+  auto vendor_name = "Advanced Micro Devices, Inc.";
+  auto driver_version = driverVersion;
 
   key_value_map["device_name"] = device_name;
   key_value_map["device_version"] = device_version;
@@ -203,7 +223,7 @@ inline void set_benchmark_label(benchmark::State& state,
   set_label(state, key_value_map);
 }
 
-#ifdef BUILD_CUBLAS_BENCHMARKS
+#if defined BUILD_CUBLAS_BENCHMARKS || defined BUILD_ROCBLAS_BENCHMARKS
 template <typename scalar_t>
 inline void set_benchmark_label(benchmark::State& state) {
   std::map<std::string, std::string> key_value_map;
@@ -217,7 +237,12 @@ inline void set_benchmark_label(benchmark::State& state) {
   key_value_map["git_hash_date"] = commit_date;
 
   const auto backend_label = "@backend";
-  key_value_map[backend_label] = "cublas";
+  key_value_map[backend_label] =
+#ifdef BUILD_CUBLAS_BENCHMARKS
+      "cublas";
+#else
+      "rocblas";
+#endif
   set_label(state, key_value_map);
 }
 #endif

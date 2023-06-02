@@ -50,9 +50,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, char side,
          char uplo, index_t m, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
   // initialize the state label
-  blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue(),
-      blas_benchmark::utils::BackendType::ROCBLAS);
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // Standard test setup.
   index_t lda = (side == 'l') ? m : n;

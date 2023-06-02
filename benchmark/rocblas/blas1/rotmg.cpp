@@ -46,9 +46,7 @@ static inline void rocblas_rotmg_f(args_t&&... args) {
 template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, bool* success) {
   // initialize the state label
-  blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue(),
-      blas_benchmark::utils::BackendType::ROCBLAS);
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // Google-benchmark counters are double.
   blas_benchmark::utils::init_level_1_counters<
