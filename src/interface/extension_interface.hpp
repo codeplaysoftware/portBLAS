@@ -49,6 +49,10 @@ struct get_second_step_op<MeanOperator> {
   using type = AddOperator;
 };
 
+/**
+ * @brief Implementation of matrix copy operators for transpose cases with out
+ * of place memory copy.
+ */
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
@@ -95,6 +99,9 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   return ret;
 }
 
+/**
+ * @brief Implementation of matrix copy operators for non transpose cases.
+ */
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
