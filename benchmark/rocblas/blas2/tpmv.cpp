@@ -69,7 +69,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = n * n;  // Minimum required size
+  const int m_size = ((n + 1) * n) / 2;  // Minimum required size
   const int v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.

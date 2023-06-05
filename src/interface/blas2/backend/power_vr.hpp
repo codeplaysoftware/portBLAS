@@ -93,8 +93,8 @@ typename SB_Handle::event_t inline _spmv(SB_Handle& sb_handle, index_t _N,
                                          container_t1 _vx, increment_t _incx,
                                          element_t _beta, container_t2 _vy,
                                          increment_t _incy) {
-  return blas::internal::_spmv_impl<64, 16, uplo>(
-      sb_handle, _N, _alpha, _mA, _vx, _incx, _beta, _vy, _incy);
+  return blas::internal::_spmv_impl<32, 4, uplo>(sb_handle, _N, _alpha, _mA,
+                                                 _vx, _incx, _beta, _vy, _incy);
 }
 }  // namespace backend
 }  // namespace spmv
@@ -112,6 +112,20 @@ typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, index_t _N,
 }
 }  // namespace backend
 }  // namespace tbmv
+
+namespace tpmv {
+namespace backend {
+template <uplo_type uplo, transpose_type trn, diag_type diag,
+          typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, index_t _N,
+                                    container_t0 _mA, container_t1 _vx,
+                                    increment_t _incx) {
+  return blas::internal::_tpmv_impl<32, 4, uplo, trn, diag>(sb_handle, _N, _mA,
+                                                            _vx, _incx);
+}
+}  // namespace backend
+}  // namespace tpmv
 
 namespace trsv {
 namespace backend {

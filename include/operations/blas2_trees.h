@@ -310,23 +310,44 @@ Sbmv<lhs_t, matrix_t, vector_t, local_range, uplo> make_sbmv(
 }
 
 /**
- * @struct Spmv
- * @brief Tree node representing a symmetric band matrix_ vector_
+ * @struct Xpmv
+ * @brief Tree node representing a symmetric/triangular packed matrix_ vector_
  * multiplication.
+ *
+ * If the matrix is triangular, it computes
+ *                          lhs_ = matrix_ * vector_
+ *
+ * If the matrix is symmetric, it computes
+ *                 lhs_ = alpha_ * matrix_ * vector_ + beta_ * lhs_
+ *
+ * The class is constructed using the make_xpmv function below.
+ *
+ * @tparam local_range_x  specifies the work group x-dimension
+ * @tparam local_range_y  specifies the work group y-dimension
+ * @tparam is_upper       specifies whether the triangular input matrix is upper
+ * @tparam is_transposed  specifies whether the input matrix should be
+ * transposed
+ * @tparam is_unit  specifies whether considering the input matrix
+ * main-diagonal filled with ones
+ * @param lhs_      the output vector
+ * @param matrix_a_ the input matrix A
+ * @param vector_x_ the input vector
+ * @param alpha_    factor used only if is_symmetric == true
+ * @param beta_     factor used only if is_symmetric == true
  */
 template <typename lhs_t, typename matrix_t, typename vector_t,
-          uint32_t local_range_x, uint32_t local_range_y, bool uplo>
-struct Spmv {
+          uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
+          bool is_upper, bool is_transposed, bool is_unit>
+struct Xpmv {
   using value_t = typename vector_t::value_t;
   using index_t = typename vector_t::index_t;
 
   lhs_t lhs_;
   matrix_t matrix_;
-  index_t k_;
   vector_t vector_;
   value_t alpha_, beta_;
 
-  Spmv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, value_t _alpha,
+  Xpmv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector, value_t _alpha,
        value_t _beta);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
@@ -336,14 +357,17 @@ struct Spmv {
   void adjust_access_displacement();
 };
 /*!
- @brief Generator/factory for SPMV trees.
+ @brief Generator/factory for XPMV trees.
  */
-template <uint32_t local_range_x, uint32_t local_range_y, bool uplo,
-          typename lhs_t, typename matrix_t, typename vector_t>
-Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, uplo> make_spmv(
-    typename vector_t::value_t alpha_, matrix_t &matrix_, vector_t &vector_,
-    typename vector_t::value_t beta_, lhs_t &lhs_) {
-  return Spmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, uplo>(
+template <uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
+          bool is_upper, bool is_transposed, bool is_unit, typename lhs_t,
+          typename matrix_t, typename vector_t>
+Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
+     is_upper, is_transposed, is_unit>
+make_xpmv(typename vector_t::value_t alpha_, matrix_t &matrix_,
+          vector_t &vector_, typename vector_t::value_t beta_, lhs_t &lhs_) {
+  return Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
+              is_symmetric, is_upper, is_transposed, is_unit>(
       lhs_, matrix_, vector_, alpha_, beta_);
 }
 
