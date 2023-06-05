@@ -640,7 +640,8 @@ typename sb_handle_t::event_t _spmv_impl(
       spmv, static_cast<index_t>(local_range_y * local_range_x),
       roundUp<index_t>(local_range_y * vector_size,
                        local_range_y * local_range_x),
-      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)));
+      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)),
+      _dependencies);
 }
 
 template <uint32_t local_range, uplo_type uplo, transpose_type trn,
