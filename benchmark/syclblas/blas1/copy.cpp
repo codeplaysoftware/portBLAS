@@ -26,14 +26,15 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(int size, int incx, int incy) {
+std::string get_name(int size, int incx, int incy, std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Copy<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
       << size << "/" << incx << "/" << incy;
+  str << "/" << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          index_t incx, index_t incy, bool* success) {
   // initialize the state label
@@ -44,6 +45,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::copy, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   auto size_x = size * incx;
   auto size_y = size * incy;
@@ -52,8 +54,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   std::vector<scalar_t> y =
       blas_benchmark::utils::random_data<scalar_t>(size_y);
 
-  auto x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x, size_x);
-  auto y_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y, size_y);
+  auto x_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_x, q);
+  auto y_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_y, q);
+
+  auto copy_x =
+      blas::helper::copy_to_device<scalar_t>(q, x.data(), x_gpu, size_x);
+  auto copy_y =
+      blas::helper::copy_to_device<scalar_t>(q, y.data(), y_gpu, size_y);
+
+  sb_handle.wait({copy_x, copy_y});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -61,9 +70,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   reference_blas::copy(size, x.data(), incx, y_ref.data(), incy);
   std::vector<scalar_t> y_temp = y;
   {
-    auto y_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(y_temp, size_y);
-    auto event = _copy(sb_handle, size, x_gpu, incx, y_temp_gpu, incy);
-    sb_handle.wait(event);
+    auto y_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_y, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, y_temp.data(),
+                                                            y_temp_gpu, size_y);
+    sb_handle.wait(copy_temp);
+    auto copy_event = _copy(sb_handle, size, x_gpu, incx, y_temp_gpu, incy);
+    sb_handle.wait(copy_event);
+
+    auto copy_out = blas::helper::copy_to_host<scalar_t>(q, y_temp_gpu,
+                                                         y_temp.data(), size_y);
+    sb_handle.wait(copy_out);
+
+    blas::helper::deallocate<mem_alloc>(y_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -101,14 +119,16 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(x_gpu, q);
+  blas::helper::deallocate<mem_alloc>(y_gpu, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto copy_params = blas_benchmark::utils::get_copy_params<scalar_t>(args);
-
-  for (auto p : copy_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<copy_param_t<scalar_t>> params) {
+  for (auto p : params) {
     index_t size, incx, incy;
     scalar_t unused;  // Work around a dpcpp compiler bug
                       // (https://github.com/intel/llvm/issues/7075)
@@ -117,13 +137,26 @@ void register_benchmark(blas_benchmark::Args& args,
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, index_t incx, index_t incy,
                          bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, size, incx, incy, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, incx, incy, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(size, incx, incy).c_str(),
-                                 BM_lambda, sb_handle_ptr, size, incx, incy,
-                                 success)
+    benchmark::RegisterBenchmark(
+        get_name<scalar_t>(size, incx, incy, mem_type).c_str(), BM_lambda,
+        sb_handle_ptr, size, incx, incy, success)
         ->UseRealTime();
   }
+}
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto copy_params = blas_benchmark::utils::get_copy_params<scalar_t>(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, "buffer", copy_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, "usm", copy_params);
+#endif
 }
 
 namespace blas_benchmark {
