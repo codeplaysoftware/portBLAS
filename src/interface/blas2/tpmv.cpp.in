@@ -19,17 +19,17 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename backend.hpp
+ *  @filename tbmv.cpp.in
  *
  **************************************************************************/
-#if defined INTEL_GPU
-#include "interface/blas3/backend/intel_gpu.hpp"
-#elif defined AMD_GPU
-#include "interface/blas3/backend/amd_gpu.hpp"
-#elif defined POWER_VR
-#include "interface/blas3/backend/power_vr.hpp"
-#elif defined NVIDIA_GPU
-#include "interface/blas3/backend/nvidia_gpu.hpp"
-#else
-#include "interface/blas3/backend/default_cpu.hpp"
-#endif
+#include "interface/blas2_interface.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
+namespace blas {
+namespace internal {
+template typename SB_Handle::event_t _tpmv(
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${container_t0} _mA, ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
+
+}  // namespace internal
+}  // namespace blas

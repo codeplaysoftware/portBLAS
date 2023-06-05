@@ -77,10 +77,6 @@ if(DEFINED TARGET)
             "with -UTARGET argument.\n" )
 endif()
 
-# the BLAS_MODEL_OPTIMIZATION variable defines which model optimized configs should
-# be enabled for. Currently only affects ARM_GPU configs.
-SET(BLAS_MODEL_OPTIMIZATION "DEFAULT" CACHE STRING "Default Model 'DEFAULT'")
-
 if (WIN32)
   # On Win32, shared library symbols need to be explicitly exported.
   if (BUILD_SHARED_LIBS)
