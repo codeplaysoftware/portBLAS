@@ -180,8 +180,6 @@ inline void add_datatype_info<cl::sycl::half>(
 
 }  // namespace datatype_info
 
-enum class BackendType { SYCLBLAS, CUBLAS, ROCBLAS };
-
 inline void set_label(benchmark::State& state,
                       const std::map<std::string, std::string>& key_value_map) {
   std::string label;
@@ -195,31 +193,29 @@ inline void set_label(benchmark::State& state,
   state.SetLabel(label);
 }
 
+namespace internal {
 template <typename scalar_t>
-inline void set_benchmark_label(benchmark::State& state,
-                                const cl::sycl::queue& q, BackendType backend) {
-  std::map<std::string, std::string> key_value_map;
-  auto dev = q.get_device();
-  device_info::add_device_info(dev, key_value_map);
+inline void add_common_labels(
+    std::map<std::string, std::string>& key_value_map) {
   computecpp_info::add_computecpp_version(key_value_map);
   datatype_info::add_datatype_info<scalar_t>(key_value_map);
 
   key_value_map["@library"] = "SYCL-BLAS";
   key_value_map["git_hash"] = commit_hash;
   key_value_map["git_hash_date"] = commit_date;
+}
+}  // namespace internal
 
-  const auto backend_label = "@backend";
-  switch (backend) {
-    case BackendType::SYCLBLAS:
-      key_value_map[backend_label] = "sycl-blas";
-      break;
-    case BackendType::CUBLAS:
-      key_value_map[backend_label] = "cublas";
-      break;
-    case BackendType::ROCBLAS:
-      key_value_map[backend_label] = "rocblas";
-      break;
-  }
+template <typename scalar_t>
+inline void set_benchmark_label(benchmark::State& state,
+                                const cl::sycl::queue& q) {
+  std::map<std::string, std::string> key_value_map;
+  auto dev = q.get_device();
+  device_info::add_device_info(dev, key_value_map);
+  internal::add_common_labels<scalar_t>(key_value_map);
+
+  key_value_map["@backend"] = "sycl-blas";
+
   set_label(state, key_value_map);
 }
 
@@ -229,15 +225,9 @@ inline void set_benchmark_label(benchmark::State& state) {
   std::map<std::string, std::string> key_value_map;
 
   device_info::add_device_info(key_value_map);
-  computecpp_info::add_computecpp_version(key_value_map);
-  datatype_info::add_datatype_info<scalar_t>(key_value_map);
+  internal::add_common_labels<scalar_t>(key_value_map);
 
-  key_value_map["@library"] = "SYCL-BLAS";
-  key_value_map["git_hash"] = commit_hash;
-  key_value_map["git_hash_date"] = commit_date;
-
-  const auto backend_label = "@backend";
-  key_value_map[backend_label] =
+  key_value_map["@backend"] =
 #ifdef BUILD_CUBLAS_BENCHMARKS
       "cublas";
 #else

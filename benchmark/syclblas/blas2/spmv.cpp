@@ -39,8 +39,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue(),
-      blas_benchmark::utils::BackendType::SYCLBLAS);
+      state, sb_handle_ptr->get_queue());
 
   const char* uplo_str = uplo.c_str();
 
