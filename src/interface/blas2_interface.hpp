@@ -708,16 +708,15 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
 
   index_t vector_size = _N;
   index_t matrix_size = ((_N + 1) * _N) / 2;
+  using element_t = typename ValueType<container_t0>::type;
 
-  auto res_buffer =
-      blas::make_sycl_iterator_buffer<typename container_t0::scalar_t>(
-          vector_size);
+  auto res_buffer = blas::make_sycl_iterator_buffer<element_t>(vector_size);
 
   auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
   auto vx = make_vector_view(_vx, _incx, vector_size);
   auto vres = make_vector_view(res_buffer, one, vector_size);
 
-  typename container_t0::scalar_t unused;
+  element_t unused;
 
   auto tpmv = make_xpmv<local_range_x, local_range_y, false, is_upper,
                         is_transposed, is_unit>(unused, mA, vx, unused, vres);
