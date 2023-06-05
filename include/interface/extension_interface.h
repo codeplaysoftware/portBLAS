@@ -36,11 +36,36 @@ namespace extension {
 
 namespace internal {
 
+/**
+ * \brief COPY Matrix in to out with scaling factor of alpha
+ *
+ * Copy Matrix to out_memory, it can be out of place if out_memory is different
+ * from in_memory. The increment within the same column can be different from 1
+ * and specified by inc and inc_out argument.
+ *
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_t Buffer Iterator
+ * @tparam out_t Buffer Iterator
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not.
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param in_memory BufferIterator of input
+ * @param ld_in leading dimension of in_matrix
+ * @param inc_in internal increment for the in_matrix
+ * @param matrix_out BufferIterator of output
+ * @param ld_out leading dimention of out_matrix
+ * @param inc_out internal increment for the out_matrix
+ */
 template <bool in_place, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
-                                       in_t memory, index_t ld_in,
+                                       in_t in_memory, index_t ld_in,
                                        index_t inc_in, out_t out_memory,
                                        index_t ld_out, index_t inc_out);
 
@@ -54,6 +79,24 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
 
 }  // namespace internal
 
+/**
+ * \brief COPY in_matrix to out_matrix with scaling factor of alpha
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_t Buffer Iterator
+ * @tparam out_t Buffer Iterator
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not.
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param in_memory BufferIterator of input
+ * @param ld_in leading dimension of in_matrix
+ * @param matrix_out BufferIterator of output
+ * @param ld_out leading dimention of out_matrix
+ */
 template <typename sb_handle_t, typename element_t, typename index_t,
           typename in_t, typename out_t>
 typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
@@ -65,6 +108,30 @@ typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
                                    ld_out, static_cast<index_t>(1));
 }
 
+/**
+ * \brief Copy out of place of in_matrix to out_matrix with increment between cols
+ * element different from 1.
+ *
+ * The increment within the same column can be different from 1 and specified
+ * by inc_in and inc_out arguments.
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_t Buffer Iterator
+ * @tparam out_t Buffer Iterator
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not.
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param in_memory BufferIterator of input
+ * @param ld_in leading dimension of in_matrix
+ * @param inc_in internal increment for the in_matrix
+ * @param matrix_out BufferIterator of output
+ * @param ld_out leading dimention of out_matrix
+ * @param inc_out internal increment for the out_matrix
+ */
 template <typename sb_handle_t, typename element_t, typename index_t,
           typename in_t, typename out_t>
 typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
