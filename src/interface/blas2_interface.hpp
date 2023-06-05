@@ -695,9 +695,9 @@ template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         container_t0 _mA, container_t1 _vx,
-                                         increment_t _incx) {
+typename sb_handle_t::event_t _tpmv_impl(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies) {
   static_assert(local_range_x % local_range_y == 0,
                 "Local y range needs to be a multiple of local x range.");
 
@@ -710,8 +710,11 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
   index_t vector_size = _N;
   index_t matrix_size = ((_N + 1) * _N) / 2;
   using element_t = typename ValueType<container_t0>::type;
+  constexpr bool is_usm = std::is_pointer<container_t0>::value;
 
-  auto res_buffer = blas::make_sycl_iterator_buffer<element_t>(vector_size);
+  auto res_buffer = blas::helper::allocate < is_usm ? helper::AllocType::usm
+                                                    : helper::AllocType::buffer,
+       element_t > (vector_size, sb_handle.get_queue());
 
   auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
   auto vx = make_vector_view(_vx, _incx, vector_size);
@@ -728,10 +731,21 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
       tpmv, static_cast<index_t>(local_range_y * local_range_x),
       roundUp<index_t>(local_range_y * vector_size,
                        local_range_y * local_range_x),
-      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)));
+      static_cast<index_t>(local_range_x * (loc_mem_leading_dim + 2)),
+      _dependencies);
 
   auto assignOp = make_op<Assign>(vx, vres);
-  return concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp));
+  auto ret =
+      concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp, tpmvEvent));
+
+#ifdef DEFAULT_CPU
+  auto free_res = blas::helper::enqueue_deallocate < is_usm
+                      ? helper::AllocType::usm
+                      : helper::AllocType::buffer >
+                            (ret, res_buffer, sb_handle.get_queue());
+  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_res});
+#endif
+  return ret;
 }
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
@@ -1311,12 +1325,12 @@ typename sb_handle_t::event_t _tbsv(
 
 template <typename sb_handle_t, typename index_t, typename container_t0,
           typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_t0 _mA, container_t1 _vx,
-                                    increment_t _incx) {
+typename sb_handle_t::event_t _tpmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_t0 _mA, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies) {
   INST_UPLO_TRANS_DIAG(blas::tpmv::backend::_tpmv, sb_handle, _N, _mA, _vx,
-                       _incx)
+                       _incx, _dependencies)
 }
 }  // namespace internal
 }  // namespace blas

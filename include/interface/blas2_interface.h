@@ -513,21 +513,22 @@ typename sb_handle_t::event_t _tbmv_impl(
  *            matrix format
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx);
+typename sb_handle_t::event_t _tpmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         container_t0 _mA, container_t1 _vx,
-                                         increment_t _incx);
+typename sb_handle_t::event_t _tpmv_impl(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Linear system solver for triangular band matrices.
@@ -550,6 +551,7 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
@@ -1044,14 +1046,16 @@ typename sb_handle_t::event_t _tbmv(
  *            matrix format
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx) {
-  return internal::_tpmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx);
+typename sb_handle_t::event_t _tpmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
+  return internal::_tpmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx,
+                         _dependencies);
 }
 
 /**
@@ -1075,6 +1079,7 @@ typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
