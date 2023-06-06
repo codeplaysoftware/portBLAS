@@ -104,6 +104,44 @@ std::string get_operator_name() {
     throw std::runtime_error("Unknown BLAS 1 operator");
 }
 
+template <Level2Op op>
+std::string get_operator_name() {
+  if constexpr (op == Level2Op::gbmv)
+    return "Gbmv";
+  else if constexpr (op == Level2Op::gemv)
+    return "Gemv";
+  else if constexpr (op == Level2Op::ger)
+    return "Ger";
+  else if constexpr (op == Level2Op::sbmv)
+    return "Sbmv";
+  else if constexpr (op == Level2Op::spmv)
+    return "Spmv";
+  else if constexpr (op == Level2Op::spr)
+    return "Spr";
+  else if constexpr (op == Level2Op::spr2)
+    return "Spr2";
+  else if constexpr (op == Level2Op::symv)
+    return "Symv";
+  else if constexpr (op == Level2Op::syr)
+    return "Syr";
+  else if constexpr (op == Level2Op::syr2)
+    return "Syr2";
+  else if constexpr (op == Level2Op::tbmv)
+    return "Tbmv";
+  else if constexpr (op == Level2Op::tbsv)
+    return "Tbsv";
+  else if constexpr (op == Level2Op::tpmv)
+    return "Tpmv";
+  else if constexpr (op == Level2Op::tpsv)
+    return "Tpsv";
+  else if constexpr (op == Level2Op::trmv)
+    return "Trmv";
+  else if constexpr (op == Level2Op::trsv)
+    return "Trsv";
+  else
+    throw std::runtime_error("Unknown BLAS 2 operator");
+}
+
 }  // namespace utils
 }  // namespace blas_benchmark
 

@@ -95,6 +95,14 @@ get_name(index_t size, index_t incx, index_t incy, std::string mem_type) {
   return internal::get_name<op, scalar_t>(size, incx, incy, mem_type);
 }
 
+template <Level2Op op, typename scalar_t, typename... Args>
+inline std::string get_name(Args... args) {
+  std::ostringstream str{};
+  str << internal::get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
+  str << internal::get_parameters_as_string(args...);
+  return str.str();
+}
+
 }  // namespace utils
 }  // namespace blas_benchmark
 
