@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(char side, char uplo, char t, char diag, int m, int n) {
-  std::ostringstream str{};
-  str << "BM_Trmm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << side << "/" << uplo << "/" << t << "/" << diag << "/" << m << "/" << n;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::trmm;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_trmm_f(args_t&&... args) {
@@ -177,8 +172,10 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
       run<scalar_t>(st, rb_handle, side, uplo, t, diag, m, n, alpha, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(side, uplo, trans, diag, m, n).c_str(), BM_lambda,
-        rb_handle, side, uplo, trans, diag, m, n, alpha, success)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            side, uplo, trans, diag, m, n)
+            .c_str(),
+        BM_lambda, rb_handle, side, uplo, trans, diag, m, n, alpha, success)
         ->UseRealTime();
   }
 }

@@ -32,6 +32,7 @@ namespace utils {
 
 template <typename scalar_t>
 static inline std::string get_type_name();
+inline std::string batch_type_to_str(int batch_type);
 
 namespace internal {
 
@@ -70,6 +71,14 @@ inline std::string get_name(Args... args) {
 }
 
 template <Level2Op op, typename scalar_t, typename... Args>
+inline std::string get_name(Args... args) {
+  std::ostringstream str{};
+  str << get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
+  str << get_parameters_as_string(args...);
+  return str.str();
+}
+
+template <Level3Op op, typename scalar_t, typename... Args>
 inline std::string get_name(Args... args) {
   std::ostringstream str{};
   str << get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
@@ -230,6 +239,54 @@ inline typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
                                std::string>::type
 get_name(std::string uplo, std::string t, std::string diag, index_t n) {
   return internal::get_name<op, scalar_t>(uplo, t, diag, n);
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::gemm, std::string>::type
+get_name(std::string t1, std::string t2, index_t m, index_t k, index_t n) {
+  return internal::get_name<op, scalar_t>(t1, t2, m, k, n);
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::gemm_batched, std::string>::type
+get_name(std::string t1, std::string t2, index_t m, index_t k, index_t n,
+         index_t batch_size, int batch_type) {
+  return internal::get_name<op, scalar_t>(t1, t2, m, k, n, batch_size,
+                                          batch_type_to_str(batch_type));
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::gemm_batched_strided,
+                               std::string>::type
+get_name(std::string t1, std::string t2, index_t m, index_t k, index_t n,
+         index_t batch_size, index_t stride_a_mul, index_t stride_b_mul,
+         index_t stride_c_mul) {
+  return internal::get_name<op, scalar_t>(
+      t1, t2, m, k, n, batch_size, stride_a_mul, stride_b_mul, stride_c_mul);
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::symm || op == Level3Op::syr2k ||
+                                   op == Level3Op::syrk,
+                               std::string>::type
+get_name(std::string s1, std::string s2, index_t m, index_t n, scalar_t alpha,
+         scalar_t beta) {
+  return internal::get_name<op, scalar_t>(s1, s2, m, n, alpha, beta);
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::trsm || op == Level3Op::trmm,
+                               std::string>::type
+get_name(char side, char uplo, char trans, char diag, index_t m, index_t n) {
+  return internal::get_name<op, scalar_t>(side, uplo, trans, diag, m, n);
+}
+
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::trsm_batched, std::string>::type
+get_name(char side, char uplo, char trans, char diag, index_t m, index_t n,
+         index_t batch_size, index_t stride_a_mul, index_t stride_b_mul) {
+  return internal::get_name<op, scalar_t>(
+      side, uplo, trans, diag, m, n, batch_size, stride_a_mul, stride_b_mul);
 }
 
 }  // namespace utils

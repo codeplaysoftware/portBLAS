@@ -25,18 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, int m, int k, int n,
-                     int batch_size, int stride_a_mul, int stride_b_mul,
-                     int stride_c_mul) {
-  std::ostringstream str{};
-  str << "BM_GemmBatchedStrided<"
-      << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t1 << "/"
-      << t2 << "/" << m << "/" << k << "/" << n << "/" << batch_size << "/"
-      << stride_a_mul << "/" << stride_b_mul << "/" << stride_c_mul;
-
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::gemm_batched_strided;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_gemm_strided_batched(args_t&&... args) {
@@ -219,8 +209,9 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                     strd_a_mul, strd_b_mul, strd_c_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(t_a, t_b, m, k, n, batch_size, stride_a_mul,
-                           stride_b_mul, stride_c_mul)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            t_a, t_b, m, k, n, batch_size, stride_a_mul, stride_b_mul,
+            stride_c_mul)
             .c_str(),
         BM_lambda, rb_handle, t_a_i, t_b_i, m, k, n, alpha, beta, batch_size,
         stride_a_mul, stride_b_mul, stride_c_mul, success)

@@ -25,17 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(const char side, const char uplo, const char t,
-                     const char diag, int m, int n, int batch_size,
-                     int stride_a_mul, int stride_b_mul) {
-  std::ostringstream str{};
-  str << "BM_TrsmBatched<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << side << "/" << uplo << "/" << t << "/" << diag << "/" << m
-      << "/" << n << "/" << batch_size << "/" << stride_a_mul << "/"
-      << stride_b_mul << "/";
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::trsm_batched;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_trsm_batched_f(args_t&&... args) {
@@ -215,8 +206,9 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                     strd_a_mul, strd_b_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(s_side, s_uplo, s_t, s_diag, m, n, batch_size,
-                           stride_a_mul, stride_b_mul)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            s_side, s_uplo, s_t, s_diag, m, n, batch_size, stride_a_mul,
+            stride_b_mul)
             .c_str(),
         BM_lambda, rb_handle, s_side, s_uplo, s_t, s_diag, m, n, alpha,
         batch_size, stride_a_mul, stride_b_mul, success)

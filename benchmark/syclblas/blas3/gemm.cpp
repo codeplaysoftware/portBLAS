@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string t1, std::string t2, int m, int k, int n) {
-  std::ostringstream str{};
-  str << "BM_Gemm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << t1 << "/" << t2 << "/" << m << "/" << k << "/" << n;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::gemm;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1, int t2,
@@ -137,9 +132,11 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
                          scalar_t alpha, scalar_t beta, bool* success) {
       run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(t1s, t2s, m, k, n).c_str(),
-                                 BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta,
-                                 success)
+    benchmark::RegisterBenchmark(
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(t1s, t2s, m, k,
+                                                                n)
+            .c_str(),
+        BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, success)
         ->UseRealTime();
   }
 }
