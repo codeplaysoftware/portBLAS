@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(int size, int incx, int incy) {
-  std::ostringstream str{};
-  str << "BM_Copy<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << size << "/" << incx << "/" << incy;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level1Op benchmark_op =
+    blas_benchmark::utils::Level1Op::copy;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
@@ -119,9 +114,11 @@ void register_benchmark(blas_benchmark::Args& args,
                          bool* success) {
       run<scalar_t>(st, sb_handle_ptr, size, incx, incy, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(size, incx, incy).c_str(),
-                                 BM_lambda, sb_handle_ptr, size, incx, incy,
-                                 success)
+    benchmark::RegisterBenchmark(
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size, incx,
+                                                                incy)
+            .c_str(),
+        BM_lambda, sb_handle_ptr, size, incx, incy, success)
         ->UseRealTime();
   }
 }

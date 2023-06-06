@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(int size) {
-  std::ostringstream str{};
-  str << "BM_Asum<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
-  str << size;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level1Op benchmark_op =
+    blas_benchmark::utils::Level1Op::asum;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_asum_f(args_t&&... args) {
@@ -50,8 +45,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t size,
   blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // Google-benchmark counters are double.
-  blas_benchmark::utils::init_level_1_counters<
-      blas_benchmark::utils::Level1Op::asum, scalar_t>(state, size);
+  blas_benchmark::utils::init_level_1_counters<benchmark_op, scalar_t>(state,
+                                                                       size);
 
   using data_t = scalar_t;
 
@@ -140,8 +135,9 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                          index_t size, bool* success) {
       run<scalar_t>(st, rb_handle, size, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 rb_handle, size, success)
+    benchmark::RegisterBenchmark(
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size).c_str(),
+        BM_lambda, rb_handle, size, success)
         ->UseRealTime();
   }
 }

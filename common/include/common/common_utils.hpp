@@ -18,6 +18,8 @@
 
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
+#include "common/benchmark_identifier.hpp"
+#include <common/benchmark_names.hpp>
 #include <common/blas1_state_counters.hpp>
 #include <common/blas2_state_counters.hpp>
 #include <common/blas3_state_counters.hpp>
