@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename matcopy.cpp.in
+ *  @filename transpose.cpp.in
  *
  **************************************************************************/
 
@@ -31,13 +31,9 @@ namespace blas {
 namespace extension {
 namespace internal {
 
-// This function represents both imatcopy and omatcopy operators depending on 
-// template parameter for in_place / out_of_place
-template typename SB_Handle::event_t _matcopy<${IN_PLACE}>(
-    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} inc_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} inc_out);
+template typename SB_Handle::event_t _transpose<${IN_PLACE}>(SB_Handle& sb_handle, 
+    ${INDEX_TYPE} m, ${INDEX_TYPE} n, ${container_t} A, ${INDEX_TYPE} ld_a,
+    ${container_t} B, ${INDEX_TYPE} ld_b);
           
 }  // namespace internal
 }  // namespace extension

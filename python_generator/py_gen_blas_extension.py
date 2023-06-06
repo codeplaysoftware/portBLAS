@@ -42,7 +42,8 @@ if __name__ == '__main__':
     data = sys.argv[6]
     index = sys.argv[7]
     container0 = sys.argv[8]
-    file_name = sys.argv[9]
+    in_place = sys.argv[9]
+    file_name = sys.argv[10]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -67,6 +68,11 @@ if __name__ == '__main__':
         Iterable(
             key='container_t',
             vals=[container0],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='IN_PLACE',
+            vals=[in_place],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

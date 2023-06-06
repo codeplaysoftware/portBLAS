@@ -183,25 +183,28 @@ foreach(data ${data_list})
   set(container_list "BufferIterator<${cpp_data}>")
   foreach(index ${index_list})
     foreach(container0 ${container_list})
-      sanitize_file_name(file_name
-        "${func}_${data}_${index}_${container0}.cpp")
-      add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-        COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_extension.py
-          ${PROJECT_SOURCE_DIR}/external/
-          ${SYCLBLAS_SRC_GENERATOR}/gen
-          ${blas_level}
-          ${func}
-          ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-          ${cpp_data}
-          ${index}
-          ${container0}
-          ${file_name}
-        MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-        DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_extension.py
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-        VERBATIM
-      )
-      list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+      foreach(in_place ${boolean_list})
+        sanitize_file_name(file_name
+          "${func}_${data}_${in_place}_${index}_${container0}.cpp")
+        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+          COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_extension.py
+            ${PROJECT_SOURCE_DIR}/external/
+            ${SYCLBLAS_SRC_GENERATOR}/gen
+            ${blas_level}
+            ${func}
+            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+            ${cpp_data}
+            ${index}
+            ${container0}
+            ${in_place}
+            ${file_name}
+          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+          DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_extension.py
+          WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+          VERBATIM
+        )
+        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+      endforeach(in_place)
     endforeach(container0)
   endforeach(index)
 endforeach(data)
@@ -916,6 +919,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>
                 $<TARGET_OBJECTS:matcopy>
+                $<TARGET_OBJECTS:transpose>
                 $<TARGET_OBJECTS:transpose_launcher>)
 
   if (${ENABLE_EXTENSIONS})
