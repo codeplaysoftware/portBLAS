@@ -419,6 +419,9 @@ make_tbmv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
  * @brief Tree node representing a linear system solver for triangular matrices,
  * i.e., it computes lhs_  such that lhs_ = matrix_ * lhs_
  *
+ * This implementation is based on
+ *            Hogg, J. D. A fast triangular solve on GPUs. STFC, 2012.
+ *
  * The class is constructed using the make_txsv function below.
  *
  * @tparam matrix_format  specifies how the matrix is stored, full, packed, or
