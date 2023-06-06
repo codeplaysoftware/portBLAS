@@ -24,6 +24,7 @@
 # **************************************************************************/
 
 generate_blas_extension_objects(extension matcopy)
+generate_blas_extension_objects(extension transpose)
 generate_blas_transpose_objects(extension transpose_launcher)
 
 if(${BLAS_ENABLE_EXTENSIONS})

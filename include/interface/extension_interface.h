@@ -69,6 +69,12 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t inc_in, out_t out_memory,
                                        index_t ld_out, index_t inc_out);
 
+template <bool in_place, typename sb_handle_t, typename index_t, typename in_t,
+          typename out_t>
+typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
+                                         index_t n, in_t A, index_t ld_a,
+                                         out_t B, index_t ld_b);
+
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
@@ -109,8 +115,8 @@ typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
 }
 
 /**
- * \brief Copy out of place of in_matrix to out_matrix with increment between cols
- * element different from 1.
+ * \brief Copy out of place of in_matrix to out_matrix with increment between
+ * cols element different from 1.
  *
  * The increment within the same column can be different from 1 and specified
  * by inc_in and inc_out arguments.
@@ -141,6 +147,20 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                          index_t ld_out, index_t inc_out) {
   return internal::_matcopy<false>(sb_handle, trans, m, n, alpha, in_memory,
                                    ld_in, inc_in, out_memory, ld_out, inc_out);
+}
+
+template <typename sb_handle_t, typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
+                                         index_t n, in_t A, index_t ld_in,
+                                         index_t ld_out) {
+  return internal::_transpose<true>(sb_handle, m, n, A, ld_in, A, ld_out);
+}
+
+template <typename sb_handle_t, typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
+                                         index_t n, in_t A, index_t ld_a,
+                                         out_t B, index_t ld_b) {
+  return internal::_transpose<false>(sb_handle, m, n, A, ld_a, B, ld_b);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
