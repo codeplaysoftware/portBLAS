@@ -50,24 +50,49 @@ std::string get_parameters_as_string(T arg, Args... args) {
 }
 
 template <typename scalar_t>
-std::string get_benchmark_name(const std::string &operator_name) {
+inline std::string get_benchmark_name(const std::string &operator_name) {
   std::ostringstream str{};
   str << "BM_" << operator_name << "<" << get_type_name<scalar_t>() << ">";
   return str.str();
 }
-}  // namespace internal
 
-template <Level1Op op, typename scalar_t>
+template <Level1Op op, typename scalar_t, typename... Args>
 inline std::string get_name() {
-  return internal::get_benchmark_name<scalar_t>(get_operator_name<op>());
+  return get_benchmark_name<scalar_t>(get_operator_name<op>());
 }
 
 template <Level1Op op, typename scalar_t, typename... Args>
 inline std::string get_name(Args... args) {
   std::ostringstream str{};
   str << get_name<op, scalar_t>() << "/";
-  str << internal::get_parameters_as_string(args...);
+  str << get_parameters_as_string(args...);
   return str.str();
+}
+}  // namespace internal
+
+template <Level1Op op, typename scalar_t>
+inline typename std::enable_if<op == Level1Op::rotg || op == Level1Op::rotmg,
+                               std::string>::type
+get_name() {
+  return internal::get_name<op, scalar_t>();
+}
+
+template <Level1Op op, typename scalar_t, typename index_t>
+inline
+    typename std::enable_if<op == Level1Op::asum || op == Level1Op::axpy ||
+                                op == Level1Op::dot || op == Level1Op::iamax ||
+                                op == Level1Op::iamin || op == Level1Op::nrm2 ||
+                                op == Level1Op::rotm || op == Level1Op::scal ||
+                                op == Level1Op::sdsdot,
+                            std::string>::type
+    get_name(index_t size) {
+  return internal::get_name<op, scalar_t>(size);
+}
+
+template <Level1Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level1Op::copy, std::string>::type
+get_name(index_t size, index_t incx, index_t incy) {
+  return internal::get_name<op, scalar_t>(size, incx, incy);
 }
 
 }  // namespace utils
