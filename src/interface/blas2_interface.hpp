@@ -326,9 +326,8 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          container_t0 _mA, index_t _lda,
                                          container_t1 _vx, increment_t _incx) {
 #if SYCL_LANGUAGE_VERSION < 202000
-  throw std::runtime_error("tbsv requires SYCL 2020");
-#endif
-
+  throw std::runtime_error("trsv requires SYCL 2020");
+#else
   static_assert(subgroup_size % subgroups == 0,
                 "`subgroups` needs to be a multiple of `subgroup_size`.");
 
@@ -362,6 +361,7 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
       trsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+#endif
 }
 
 /*! _SYMV.
@@ -660,8 +660,7 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          increment_t _incx) {
 #if SYCL_LANGUAGE_VERSION < 202000
   throw std::runtime_error("tbsv requires SYCL 2020");
-#endif
-
+#else
   static_assert(subgroup_size % subgroups == 0,
                 "`subgroups` needs to be a multiple of `subgroup_size`.");
 
@@ -696,6 +695,7 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
       tbsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+#endif
 }
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
@@ -707,8 +707,7 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          increment_t _incx) {
 #if SYCL_LANGUAGE_VERSION < 202000
   throw std::runtime_error("tpsv requires SYCL 2020");
-#endif
-
+#else
   static_assert(subgroup_size % subgroups == 0,
                 "`subgroups` needs to be a multiple of `subgroup_size`.");
 
@@ -745,6 +744,7 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
       tpsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+#endif
 }
 
 /**** RANK 1 MODIFICATION ****/
