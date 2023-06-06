@@ -170,6 +170,14 @@ get_name(std::string uplo, std::string t, std::string diag, index_t n,
   return internal::get_name<op, scalar_t>(uplo, t, diag, n, mem_type);
 }
 
+template <Level2Op op, typename scalar_t, typename... Args>
+inline std::string get_name(Args... args) {
+  std::ostringstream str{};
+  str << internal::get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
+  str << internal::get_parameters_as_string(args...);
+  return str.str();
+}
+
 }  // namespace utils
 }  // namespace blas_benchmark
 
