@@ -31,14 +31,20 @@ namespace blas {
 namespace extension {
 namespace internal {
 
-// This function represents both imatcopy and omatcopy operators depending on 
-// template parameter for in_place / out_of_place
-template typename SB_Handle::event_t _matcopy<${IN_PLACE}>(
+// Out-of-place
+template typename SB_Handle::event_t _matcopy<false>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
     ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
     ${INDEX_TYPE} inc_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
     ${INDEX_TYPE} inc_out);
-          
+
+// In-place
+template typename SB_Handle::event_t _matcopy<true>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out);
+
 }  // namespace internal
 }  // namespace extension
 }  // namespace blas
