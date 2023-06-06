@@ -68,6 +68,15 @@ inline std::string get_name(Args... args) {
   str << get_parameters_as_string(args...);
   return str.str();
 }
+
+template <Level2Op op, typename scalar_t, typename... Args>
+inline std::string get_name(Args... args) {
+  std::ostringstream str{};
+  str << get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
+  str << get_parameters_as_string(args...);
+  return str.str();
+}
+
 }  // namespace internal
 
 template <Level1Op op, typename scalar_t>
@@ -95,12 +104,66 @@ get_name(index_t size, index_t incx, index_t incy, std::string mem_type) {
   return internal::get_name<op, scalar_t>(size, incx, incy, mem_type);
 }
 
-template <Level2Op op, typename scalar_t, typename... Args>
-inline std::string get_name(Args... args) {
-  std::ostringstream str{};
-  str << internal::get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
-  str << internal::get_parameters_as_string(args...);
-  return str.str();
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::gbmv, std::string>::type
+get_name(std::string t, index_t m, index_t n, index_t kl, index_t ku) {
+  return internal::get_name<op, scalar_t>(t, m, n, kl, ku);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::gemv || op == Level2Op::sbmv,
+                               std::string>::type
+get_name(std::string t, index_t m, index_t n) {
+  return internal::get_name<op, scalar_t>(t, m, n);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::ger, std::string>::type get_name(
+    index_t m, index_t n) {
+  return internal::get_name<op, scalar_t>(m, n);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::syr || op == Level2Op::syr2,
+                               std::string>::type
+get_name(std::string uplo, index_t n, scalar_t alpha) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::spr, std::string>::type get_name(
+    std::string uplo, index_t n, scalar_t alpha, index_t incx) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::spmv || op == Level2Op::symv,
+                               std::string>::type
+get_name(std::string uplo, index_t n, scalar_t alpha, scalar_t beta) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, beta);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::spr2, std::string>::type
+get_name(std::string uplo, index_t n, scalar_t alpha, index_t incx,
+         index_t incy) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx, incy);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::tbmv || op == Level2Op::tbsv,
+                               std::string>::type
+get_name(std::string uplo, std::string t, std::string diag, index_t n,
+         index_t k) {
+  return internal::get_name<op, scalar_t>(uplo, t, diag, n, k);
+}
+
+template <Level2Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
+                                   op == Level2Op::trsv,
+                               std::string>::type
+get_name(std::string uplo, std::string t, std::string diag, index_t n) {
+  return internal::get_name<op, scalar_t>(uplo, t, diag, n);
 }
 
 }  // namespace utils

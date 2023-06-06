@@ -128,8 +128,8 @@ void register_benchmark(blas_benchmark::Args& args,
           run<scalar_t>(st, sb_handle_ptr, uplo, size, alpha, incX, success);
         };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(uplo_c, n,
-                                                                alpha, incX)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(uplo, n, alpha,
+                                                                incX)
             .c_str(),
         BM_lambda_col, sb_handle_ptr, uplo_c, n, alpha, incX, success)
         ->UseRealTime();
