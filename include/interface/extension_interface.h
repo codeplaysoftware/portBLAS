@@ -69,8 +69,8 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t inc_in, out_t out_memory,
                                        index_t ld_out, index_t inc_out);
 
-template <bool in_place, typename sb_handle_t, typename index_t, typename in_t,
-          typename out_t>
+template <bool in_place, typename element_t, typename sb_handle_t,
+          typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b);
@@ -149,18 +149,59 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                    ld_in, inc_in, out_memory, ld_out, inc_out);
 }
 
-template <typename sb_handle_t, typename index_t, typename in_t, typename out_t>
+/**
+ * \brief Transpose a Matrix in-place
+ *
+ * Provided matrix A serves as input with leading dimension ld_in as well as
+ * output with leading dimension ld_out to which it's transposed.
+ *
+ * @tparam element_t Undelying element data type of the matrix container
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam index_t Index type
+ * @tparam in_t Input Container Type
+ * @tparam out_t Output Container Type
+ * @param sb_handle sb_handle
+ * @param m Rows of matrix (input)
+ * @param n Columns of matrix (input)
+ * @param A Input-Output matrix container
+ * @param ld_in leading dimension of A at input
+ * @param ld_out leading dimention of A at output
+ */
+template <typename element_t, typename sb_handle_t, typename index_t,
+          typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_in,
                                          index_t ld_out) {
-  return internal::_transpose<true>(sb_handle, m, n, A, ld_in, A, ld_out);
+  return internal::_transpose<true, element_t>(sb_handle, m, n, A, ld_in, A,
+                                               ld_out);
 }
 
-template <typename sb_handle_t, typename index_t, typename in_t, typename out_t>
+/**
+ * \brief Transpose a Matrix out-of-place
+ *
+ * Input matrix A with leading dimension ld_a gets transposed and written back
+ * to matrix B with leading dimension ld_b.
+ *
+ * @tparam element_t Undelying element data type of the matrix container
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam index_t Index type
+ * @tparam in_t Input Container Type
+ * @tparam out_t Output Container Type
+ * @param sb_handle sb_handle
+ * @param m Rows of matrix A
+ * @param n Columns of matrix A
+ * @param A Input matrix container
+ * @param ld_a leading dimension of A
+ * @param B Output matrix container
+ * @param ld_b leading dimention of B
+ */
+template <typename element_t, typename sb_handle_t, typename index_t,
+          typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b) {
-  return internal::_transpose<false>(sb_handle, m, n, A, ld_a, B, ld_b);
+  return internal::_transpose<false, element_t>(sb_handle, m, n, A, ld_a, B,
+                                                ld_b);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,

@@ -96,8 +96,8 @@ void run_test(const combination_t<scalar_t>& combi) {
     auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size_a);
     auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size_b);
 
-    blas::extension::_transpose(sb_handle, m, n, matrix_in, ld_in, matrix_out,
-                                ld_out);
+    blas::extension::_transpose<scalar_t>(sb_handle, m, n, matrix_in, ld_in,
+                                          matrix_out, ld_out);
 
     auto event = blas::helper::copy_to_host<scalar_t>(
         sb_handle.get_queue(), matrix_out, B.data(), size_b);
