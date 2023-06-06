@@ -228,8 +228,8 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
   }
 }
 
-template <bool in_place, typename sb_handle_t, typename index_t, typename in_t,
-          typename out_t>
+template <bool in_place, typename element_t, typename sb_handle_t,
+          typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b) {
@@ -240,9 +240,10 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
   }
 
   const index_t inc = index_t(1);
+  const element_t alpha = element_t(1);
 
-  return _matcopy_impl<in_place, true>(sb_handle, m, n, (float)1.0, A, ld_a,
-                                       inc, B, ld_b, inc);
+  return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a, inc, B,
+                                       ld_b, inc);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
