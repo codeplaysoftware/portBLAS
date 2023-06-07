@@ -69,8 +69,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = ((n + 1) * n) / 2;
-  const int v_size = 1 + (xlen - 1) * incX;
+  const index_t m_size = ((n + 1) * n) / 2;
+  const index_t v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =

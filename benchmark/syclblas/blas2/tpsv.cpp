@@ -64,8 +64,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
 
   // Populate the main diagonal with larger values.
   {
-    int d_idx = 0;
-    for (int i = 0; i < n; ++i) {
+    index_t d_idx = 0;
+    for (index_t i = 0; i < n; ++i) {
       m_a[d_idx] =
           blas_benchmark::utils::random_scalar(scalar_t{50}, scalar_t{100});
       d_idx += (*uplo_str == 'u') ? 2 + i : n - i;

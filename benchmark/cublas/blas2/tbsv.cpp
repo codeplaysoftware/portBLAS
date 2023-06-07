@@ -72,7 +72,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
 
   // Populate the main diagonal with larger values.
   // Populate the main diagonal with larger values.
-  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
+  const index_t main_diag = (uplo_str[0] == 'u') ? k : 0;
   for (index_t j = 0; j < n; ++j)
     for (index_t i = 0; i < lda; ++i)
       m_a[i + lda * j] =

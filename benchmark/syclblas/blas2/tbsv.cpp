@@ -62,7 +62,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
   // Populate the main diagonal with larger values.
-  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
+  const index_t main_diag = (uplo_str[0] == 'u') ? k : 0;
   for (index_t j = 0; j < n; ++j)
     for (index_t i = 0; i < lda; ++i)
       m_a[i + lda * j] =

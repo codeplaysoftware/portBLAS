@@ -71,8 +71,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
   // Data sizes
-  const int m_size = lda * n;
-  const int v_size = 1 + (xlen - 1) * incX;
+  const index_t m_size = lda * n;
+  const index_t v_size = 1 + (xlen - 1) * incX;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a(m_size);
@@ -80,7 +80,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, std::string uplo,
       blas_benchmark::utils::random_data<scalar_t>(v_size);
 
   // Populate the main diagonal with larger values.
-  const int main_diag = (uplo_str[0] == 'u') ? k : 0;
+  const index_t main_diag = (uplo_str[0] == 'u') ? k : 0;
   for (index_t j = 0; j < n; ++j)
     for (index_t i = 0; i < lda; ++i)
       m_a[i + lda * j] =
