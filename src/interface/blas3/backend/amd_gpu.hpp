@@ -56,8 +56,10 @@ typename sb_handle_t::event_t _gemm(
   }
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
-  if (batch_size == 1 && ((_K > 8192 && _M <= 1024 && _N <= 1024) ||
-                          (_K > 1024 && _M <= 256 && _N <= 256))) {
+  if (batch_size == 1 &&
+      ((_K > 8192 && _M <= 1024 && _N <= 1024) ||
+       (_K > 1024 && _M <= 256 && _N <= 256)) &&
+      (!s_a && !s_b)) {
     if (_M <= 16 && _N > 32) {
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 256, true, true, true,
