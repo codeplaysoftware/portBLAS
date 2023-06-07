@@ -80,40 +80,27 @@ template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
     container_t mem, cl::sycl::queue q) {}
 
-// Need to add this guard since the enqueue_deallocate
-// function requires a host_task which throws a runtime
-// exception when used with the enable_profiling{} queue
-// property. We need to create all intermediate memory
-// before launching the kernel to avoid running into this
-// issue.
-// Enabling this code only for DEFAULT_CPU backend to get the
-// CI to pass.
-#ifdef DEFAULT_CPU
-template <AllocType alloc, typename container_t>
-typename std::enable_if<alloc == AllocType::usm, cl::sycl::event>::type
+template <typename container_t>
+typename std::enable_if<std::is_same<
+    container_t, typename AllocHelper<typename ValueType<container_t>::type,
+                                      AllocType::usm>::type>::value>::type
 enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
                    cl::sycl::queue q) {
-  cl::sycl::event event;
 #ifdef SB_ENABLE_USM
-  event = q.submit([&](cl::sycl::handler &cgh) {
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
     cgh.depends_on(dependencies);
     cgh.host_task([=]() { cl::sycl::free(mem, q); });
   });
 #endif
-  return event;
+  return;
 }
 
-template <AllocType alloc, typename container_t>
-typename std::enable_if<alloc == AllocType::buffer, cl::sycl::event>::type
+template <typename container_t>
+typename std::enable_if<std::is_same<
+    container_t, typename AllocHelper<typename ValueType<container_t>::type,
+                                      AllocType::buffer>::type>::value>::type
 enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
-                   cl::sycl::queue q) {
-  cl::sycl::event event;
-#ifdef SB_ENABLE_USM
-  event = q.submit([&](cl::sycl::handler &cgh) { cgh.host_task([=]() {}); });
-#endif
-  return event;
-}
-#endif
+                   cl::sycl::queue q) {}
 
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()

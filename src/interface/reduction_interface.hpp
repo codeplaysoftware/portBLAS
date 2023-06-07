@@ -116,23 +116,9 @@ typename sb_handle_t::event_t launch_type_based_reduction(
                              params_t>(temp_, matrix_buffer_out);
     reduction_event = concatenate_vectors(
         reduction_event, sb_handle.execute(reduction_step_2, reduction_event));
-    // Need to add this guard since the enqueue_deallocate
-    // function requires a host_task which throws a runtime
-    // exception when used with the enable_profiling{} queue
-    // property. We need to create all intermediate memory
-    // before launching the kernel to avoid running into this
-    // issue.
-    // Enabling this code only for DEFAULT_CPU backend to get the
-    // CI to pass.
-#ifdef DEFAULT_CPU
-    auto event1 =
-        blas::helper::enqueue_deallocate < is_usm
-            ? helper::AllocType::usm
-            : helper::AllocType::buffer >
-                  (reduction_event, temp_buffer, sb_handle.get_queue());
-    reduction_event = concatenate_vectors(
-        reduction_event, typename sb_handle_t::event_t{event1});
-#endif
+
+    blas::helper::enqueue_deallocate(reduction_event, temp_buffer,
+                                     sb_handle.get_queue());
 
   } else {
     /* 1-step reduction */

@@ -134,15 +134,8 @@ typename sb_handle_t::event_t _gemv_impl(
           gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-#ifdef DEFAULT_CPU
-    auto free_dt_buffer =
-        blas::helper::enqueue_deallocate < is_usm
-            ? helper::AllocType::usm
-            : helper::AllocType::buffer >
-                  (ret, dot_products_buffer, sb_handle.get_queue());
-    ret =
-        concatenate_vectors(ret, typename sb_handle_t::event_t{free_dt_buffer});
-#endif
+    blas::helper::enqueue_deallocate(ret, dot_products_buffer,
+                                     sb_handle.get_queue());
   } else  // Local memory kernel
   {
     // Calculate number of work groups per each dimension based on the local
@@ -209,15 +202,9 @@ typename sb_handle_t::event_t _gemv_impl(
       ret = concatenate_vectors(
           gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
     }
-#ifdef DEFAULT_CPU
-    auto free_dt_buffer =
-        blas::helper::enqueue_deallocate < is_usm
-            ? helper::AllocType::usm
-            : helper::AllocType::buffer >
-                  (ret, dot_products_buffer, sb_handle.get_queue());
-    ret =
-        concatenate_vectors(ret, typename sb_handle_t::event_t{free_dt_buffer});
-#endif
+
+    blas::helper::enqueue_deallocate(ret, dot_products_buffer,
+                                     sb_handle.get_queue());
   }
   return ret;
 }
@@ -342,13 +329,9 @@ typename sb_handle_t::event_t _trmv_impl(
   auto addMOp = make_sum_matrix_columns(mat1);
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
-#ifdef DEFAULT_CPU
-  auto free_valt1 =
-      blas::helper::enqueue_deallocate < is_usm
-          ? helper::AllocType::usm
-          : helper::AllocType::buffer > (ret, valT1, sb_handle.get_queue());
-  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_valt1});
-#endif
+
+  blas::helper::enqueue_deallocate(ret, valT1, sb_handle.get_queue());
+
   return ret;
 }
 
@@ -407,12 +390,7 @@ typename sb_handle_t::event_t _trsv_impl(
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)), _dependencies);
 
-#ifdef DEFAULT_CPU
-  auto free_sync = blas::helper::enqueue_deallocate < is_usm
-                       ? helper::AllocType::usm
-                       : helper::AllocType::buffer > (ret, sync_buffer, queue);
-  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_sync});
-#endif
+  blas::helper::enqueue_deallocate(ret, sync_buffer, queue);
 
   return ret;
 }
@@ -525,18 +503,9 @@ typename sb_handle_t::event_t _symv_impl(
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
 
-#ifdef DEFAULT_CPU
-  auto free_valtr =
-      blas::helper::enqueue_deallocate < is_usm
-          ? helper::AllocType::usm
-          : helper::AllocType::buffer > (ret, valTR, sb_handle.get_queue());
-  auto free_valtc =
-      blas::helper::enqueue_deallocate < is_usm
-          ? helper::AllocType::usm
-          : helper::AllocType::buffer > (ret, valTC, sb_handle.get_queue());
-  ret = concatenate_vectors(
-      ret, typename sb_handle_t::event_t{free_valtr, free_valtc});
-#endif
+  blas::helper::enqueue_deallocate(ret, valTR, sb_handle.get_queue());
+  blas::helper::enqueue_deallocate(ret, valTC, sb_handle.get_queue());
+
   return ret;
 }
 
@@ -681,13 +650,9 @@ typename sb_handle_t::event_t _tbmv_impl(
   auto assignOp = make_op<Assign>(vx, vres);
   auto ret = concatenate_vectors(
       tbmvEvent, sb_handle.execute(assignOp, local_range, _dependencies));
-#ifdef DEFAULT_CPU
-  auto free_res = blas::helper::enqueue_deallocate < is_usm
-                      ? helper::AllocType::usm
-                      : helper::AllocType::buffer >
-                            (ret, res_buffer, sb_handle.get_queue());
-  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_res});
-#endif
+
+  blas::helper::enqueue_deallocate(ret, res_buffer, sb_handle.get_queue());
+
   return ret;
 }
 
@@ -738,13 +703,8 @@ typename sb_handle_t::event_t _tpmv_impl(
   auto ret =
       concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp, tpmvEvent));
 
-#ifdef DEFAULT_CPU
-  auto free_res = blas::helper::enqueue_deallocate < is_usm
-                      ? helper::AllocType::usm
-                      : helper::AllocType::buffer >
-                            (ret, res_buffer, sb_handle.get_queue());
-  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_res});
-#endif
+  blas::helper::enqueue_deallocate(ret, res_buffer, sb_handle.get_queue());
+
   return ret;
 }
 
@@ -802,12 +762,7 @@ typename sb_handle_t::event_t _tbsv_impl(
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)), _dependencies);
 
-#ifdef DEFAULT_CPU
-  auto free_sync = blas::helper::enqueue_deallocate < is_usm
-                       ? helper::AllocType::usm
-                       : helper::AllocType::buffer > (ret, sync_buffer, queue);
-  ret = concatenate_vectors(ret, typename sb_handle_t::event_t{free_sync});
-#endif
+  blas::helper::enqueue_deallocate(ret, sync_buffer, queue);
 
   return ret;
 }
