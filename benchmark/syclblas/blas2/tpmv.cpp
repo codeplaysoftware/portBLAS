@@ -44,8 +44,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * std::abs(incX);
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::tpmv, scalar_t>(state, "n", 0, 0, n);
