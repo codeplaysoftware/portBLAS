@@ -158,16 +158,37 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                    ld_in, inc_in, out_memory, ld_out, inc_out);
 }
 
+/**
+ * \brief Computes scaled addition of two matrices A & B with or without
+ * transpose and copying results back to an output matrix C.
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Undelying element data type of the matrix container
+ * @tparam index_t Index type
+ * @tparam container_t Inputs/Output Container Type
+ * @param trans_a Apply or not matrix transpose to A.
+ * @param trans_b Apply or not matrix transpose to B.
+ * @param m Number of rows in output matrix C
+ * @param n Number of columns in output matrix C
+ * @param alpha Scaling factor of matrix A
+ * @param A Container Input matrix A
+ * @param lda Matrix A leading dimension
+ * @param beta scaling factor of matrix B
+ * @param B Container Input matrix B
+ * @param ldb Matrix B leading dimension
+ * @param C Container Output matrix C
+ * @param ldc Matrix C leading dimension
+ */
 template <typename sb_handle_t, typename element_t, typename index_t,
           typename container_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t a,
+                                       element_t alpha, container_t A,
                                        index_t lda, element_t beta,
-                                       container_t b, index_t ldb,
-                                       container_t c, index_t ldc) {
-  return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, a, lda,
-                            beta, b, ldb, c, ldc);
+                                       container_t B, index_t ldb,
+                                       container_t C, index_t ldc) {
+  return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, A, lda,
+                            beta, B, ldb, C, ldc);
 }
 
 /**

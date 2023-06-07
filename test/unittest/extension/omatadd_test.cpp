@@ -28,12 +28,29 @@
 using index_t = int;
 namespace reference_blas {
 
-// blas-like extension omatAdd used as wrapper around omatcopy
+/**
+ * @brief Reference omat-add implementation using reference omatcopy.
+ *
+ * @param trans_a (char) 'n' or 't' corresponding to non-transposed or
+ * transposed matrix A respectively.
+ * @param trans_b (char) 'n' or 't' corresponding to non-transposed or
+ * transposed matrix B respectively.
+ * @param m Number of rows in output matrix C
+ * @param n Number of columns in output matrix C
+ * @param alpha Scaling factor of matrix A
+ * @param A (vector) Input matrix A
+ * @param lda_m Matrix A leading dimension multiplier. (lda = lda_m * A_rows)
+ * @param beta scaling factor of matrix B
+ * @param B (vector) Input matrix B
+ * @param ldb_m Matrix B leading dimension multiplier. (ldb = ldb_m * B_rows)
+ * @param C (vector) Output matrix C
+ * @param ldc_m Matrix C leading dimension multiplier. (ldc = ldc_m * C_rows)
+ */
 template <typename scalar_t>
 void omatadd(const char trans_a, const char trans_b, const index_t m,
-             const index_t n, const scalar_t alpha, std::vector<scalar_t> &a,
-             const index_t lda_m, const scalar_t beta, std::vector<scalar_t> &b,
-             const index_t ldb_m, std::vector<scalar_t> &c,
+             const index_t n, const scalar_t alpha, std::vector<scalar_t> &A,
+             const index_t lda_m, const scalar_t beta, std::vector<scalar_t> &B,
+             const index_t ldb_m, std::vector<scalar_t> &C,
              const index_t ldc_m) {
   const index_t a_rows = trans_a == 't' ? n : m;
   const index_t a_cols = trans_a == 't' ? m : n;
@@ -42,19 +59,19 @@ void omatadd(const char trans_a, const char trans_b, const index_t m,
 
   index_t ldc = ldc_m * m;
 
-  // Temp Matrix 1 for computing a -> alpha * op(A)
+  // Temp Matrix 1 for computing A -> alpha * op(A)
   std::vector<scalar_t> TempMatrix1(ldc * n, 0);
-  omatcopy(trans_a, a_rows, a_cols, alpha, a.data(), lda_m * a_rows,
+  omatcopy(trans_a, a_rows, a_cols, alpha, A.data(), lda_m * a_rows,
            TempMatrix1.data(), ldc);
-  // Temp Matrix 2 for computing b -> beta * op(B)
+  // Temp Matrix 2 for computing B -> beta * op(B)
   std::vector<scalar_t> TempMatrix2(ldc * n, 0);
-  omatcopy(trans_b, b_rows, b_cols, beta, b.data(), ldb_m * b_rows,
+  omatcopy(trans_b, b_rows, b_cols, beta, B.data(), ldb_m * b_rows,
            TempMatrix2.data(), ldc);
 
-  // Compute Sum of Temp matrices -> c
+  // Compute Sum of Temp matrices -> C
   for (index_t j = 0; j < n; j++) {
     for (index_t i = 0; i < m; i++) {
-      c.at(i + j * ldc) =
+      C.at(i + j * ldc) =
           TempMatrix1.at(i + j * ldc) + TempMatrix2.at(i + j * ldc);
     }
   }
@@ -62,7 +79,6 @@ void omatadd(const char trans_a, const char trans_b, const index_t m,
 
 }  // namespace reference_blas
 
-// Parameters : trans_a, trans_b, m, n, alpha, beta, lda_m, ldb_m, ldc_m
 template <typename scalar_t>
 using combination_t =
     std::tuple<char, char, int, int, scalar_t, scalar_t, int, int, int>;
@@ -118,15 +134,16 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values<char>('n', 't'),
-                                      ::testing::Values<char>('n', 't'),
-                                      ::testing::Values<index_t>(16, 33, 63),
-                                      ::testing::Values<index_t>(16, 33, 63),
-                                      ::testing::Values<scalar_t>(0, 1, 2),
-                                      ::testing::Values<scalar_t>(0, 1, 2),
-                                      ::testing::Values<index_t>(1, 2),
-                                      ::testing::Values<index_t>(1, 2),
-                                      ::testing::Values<index_t>(1, 2, 3));
+const auto combi =
+    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans_a
+                       ::testing::Values<char>('n', 't'),         // trans_b
+                       ::testing::Values<index_t>(64, 129, 255),  // m
+                       ::testing::Values<index_t>(64, 129, 255),  // n
+                       ::testing::Values<scalar_t>(0, 1, 2),      // alpha
+                       ::testing::Values<scalar_t>(0, 1, 2),      // beta
+                       ::testing::Values<index_t>(1, 2),          // lda_mul
+                       ::testing::Values<index_t>(1, 2),          // ldb_mul
+                       ::testing::Values<index_t>(1, 2, 3));      // ldc_mul
 
 template <class T>
 static std::string generate_name(
