@@ -86,6 +86,14 @@ inline std::string get_name(Args... args) {
   return str.str();
 }
 
+template <ExtensionOp op, typename scalar_t, typename... Args>
+inline std::string get_name(Args... args) {
+  std::ostringstream str{};
+  str << get_benchmark_name<scalar_t>(get_operator_name<op>()) << "/";
+  str << get_parameters_as_string(args...);
+  return str.str();
+}
+
 }  // namespace internal
 
 template <Level1Op op, typename scalar_t>
@@ -231,6 +239,12 @@ get_name(char side, char uplo, char trans, char diag, index_t m, index_t n,
   return internal::get_name<op, scalar_t>(side, uplo, trans, diag, m, n,
                                           batch_size, stride_a_mul,
                                           stride_b_mul, mem_type);
+}
+
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::reduction, std::string>::type
+get_name(index_t rows, index_t cols, std::string reduction_dim) {
+  return internal::get_name<op, scalar_t>(rows, cols, reduction_dim);
 }
 
 }  // namespace utils

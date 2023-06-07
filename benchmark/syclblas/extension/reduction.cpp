@@ -27,14 +27,8 @@
 
 using namespace blas;
 
-template <typename scalar_t>
-std::string get_name(int rows, int cols, reduction_dim_t reduction_dim) {
-  std::ostringstream str{};
-  str << "BM_Reduction<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << rows << "/" << cols << "/"
-      << (reduction_dim == reduction_dim_t::inner ? "inner" : "outer");
-  return str.str();
-}
+constexpr blas_benchmark::utils::ExtensionOp benchmark_op =
+    blas_benchmark::utils::ExtensionOp::reduction;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
@@ -147,10 +141,14 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
       run<scalar_t>(st, sb_handle_ptr, rows, cols, dim, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(rows, cols, reduction_dim_t::inner).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(rows, cols,
+                                                                "inner")
+            .c_str(),
         BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::inner, success);
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(rows, cols, reduction_dim_t::outer).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(rows, cols,
+                                                                "outer")
+            .c_str(),
         BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::outer, success);
   }
 }
