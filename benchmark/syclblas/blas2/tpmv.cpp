@@ -26,14 +26,16 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string uplo, std::string t, std::string diag, int n) {
+std::string get_name(std::string uplo, std::string t, std::string diag, int n,
+                     std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Tpmv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
       << uplo << "/" << t << "/" << diag << "/" << n;
+  str << "/" << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
          std::string uplo, std::string t, std::string diag, index_t n,
          bool* success) {
@@ -42,13 +44,14 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * std::abs(incX);
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::tpmv, scalar_t>(state, "n", 0, 0, n);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -56,8 +59,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   std::vector<scalar_t> v_x =
       blas_benchmark::utils::random_data<scalar_t>(xlen);
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, m_a.size());
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v_x, xlen);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m_a.size(), q);
+  auto v_x_gpu = blas::helper::allocate<mem_alloc, scalar_t>(xlen, q);
+
+  auto copy_m = blas::helper::copy_to_device<scalar_t>(q, m_a.data(), m_a_gpu,
+                                                       m_a.size());
+  auto copy_v =
+      blas::helper::copy_to_device<scalar_t>(q, v_x.data(), v_x_gpu, xlen);
+
+  sb_handle.wait({copy_m, copy_v});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -66,11 +76,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
                        incX);
   std::vector<scalar_t> v_x_temp = v_x;
   {
-    auto v_x_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(v_x_temp, xlen);
-    auto event = _tpmv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
-                       v_x_temp_gpu, incX);
-    sb_handle.wait();
+    auto v_x_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(xlen, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, v_x_temp.data(),
+                                                            v_x_temp_gpu, xlen);
+    sb_handle.wait(copy_temp);
+    auto tpmv_event = _tpmv(sb_handle, *uplo_str, *t_str, *diag_str, n, m_a_gpu,
+                            v_x_temp_gpu, incX);
+    sb_handle.wait(tpmv_event);
+
+    auto copy_out = blas::helper::copy_to_host<scalar_t>(q, v_x_temp_gpu,
+                                                         v_x_temp.data(), xlen);
+    sb_handle.wait(copy_out);
+
+    blas::helper::deallocate<mem_alloc>(v_x_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -109,15 +127,16 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(m_a_gpu, q);
+  blas::helper::deallocate<mem_alloc>(v_x_gpu, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        blas::SB_Handle* sb_handle_ptr, bool* success) {
-  // tpmv uses the same parameters as trsv
-  auto tpmv_params = blas_benchmark::utils::get_trsv_params(args);
-
-  for (auto p : tpmv_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<trsv_param_t> params) {
+  for (auto p : params) {
     std::string uplos;
     std::string ts;
     std::string diags;
@@ -127,13 +146,27 @@ void register_benchmark(blas_benchmark::Args& args,
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          std::string uplos, std::string ts, std::string diags,
                          index_t n, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, uplos, ts, diags, n, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, uplos, ts, diags, n, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda,
+        get_name<scalar_t>(uplos, ts, diags, n, mem_type).c_str(), BM_lambda,
         sb_handle_ptr, uplos, ts, diags, n, success)
         ->UseRealTime();
   }
+}
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  // tpmv uses the same parameters as trsv
+  auto tpmv_params = blas_benchmark::utils::get_trsv_params(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, "buffer", tpmv_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, "usm", tpmv_params);
+#endif
 }
 
 namespace blas_benchmark {
