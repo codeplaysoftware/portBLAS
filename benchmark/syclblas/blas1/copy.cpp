@@ -74,7 +74,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, y_temp.data(),
                                                             y_temp_gpu, size_y);
     sb_handle.wait(copy_temp);
-    auto copy_event = _copy(sb_handle, size, x_gpu, incx, y_temp_gpu, incy);
+    auto copy_event =
+        _copy<blas::SB_Handle, index_t, decltype(x_gpu), decltype(y_temp_gpu),
+              index_t>(sb_handle, size, x_gpu, incx, y_temp_gpu, incy);
     sb_handle.wait(copy_event);
 
     auto copy_out = blas::helper::copy_to_host<scalar_t>(q, y_temp_gpu,
@@ -93,7 +95,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _copy(sb_handle, size, x_gpu, incx, y_gpu, incy);
+    auto event =
+        _copy<blas::SB_Handle, index_t, decltype(x_gpu), decltype(y_gpu),
+              index_t>(sb_handle, size, x_gpu, incx, y_gpu, incy);
     sb_handle.wait(event);
     return event;
   };

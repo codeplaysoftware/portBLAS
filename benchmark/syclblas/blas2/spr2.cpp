@@ -26,8 +26,8 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(char uplo, int size, scalar_t alpha, int incX, int incY,
-                     std::string mem_type) {
+std::string get_name(char uplo, index_t size, scalar_t alpha, index_t incX,
+                     index_t incY, std::string mem_type) {
   std::ostringstream str{};
   str << "BM_Spr2<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
       << uplo << "/" << size << "/" << alpha << "/" << incX << "/" << incY;
@@ -37,7 +37,7 @@ std::string get_name(char uplo, int size, scalar_t alpha, int incX, int incY,
 
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
-         int n, scalar_t alpha, int incX, int incY, bool* success) {
+         index_t n, scalar_t alpha, index_t incX, index_t incY, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -48,9 +48,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char uplo,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
-  const int m_size = n * n;
-  const int vx_size = 1 + (n - 1) * std::abs(incX);
-  const int vy_size = 1 + (n - 1) * std::abs(incY);
+  const index_t m_size = n * n;
+  const index_t vx_size = 1 + (n - 1) * std::abs(incX);
+  const index_t vy_size = 1 + (n - 1) * std::abs(incY);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -145,7 +145,7 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
                         std::string mem_type,
                         std::vector<spr2_param_t<scalar_t>> params) {
   for (auto p : params) {
-    int n, incX, incY;
+    index_t n, incX, incY;
     std::string uplo;
     scalar_t alpha;
     std::tie(uplo, n, alpha, incX, incY) = p;
@@ -154,7 +154,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
 
     auto BM_lambda_col =
         [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr, char uplo,
-            int n, scalar_t alpha, int incX, int incY, bool* success) {
+            index_t n, scalar_t alpha, index_t incX, index_t incY,
+            bool* success) {
           run<scalar_t, mem_alloc>(st, sb_handle_ptr, uplo, n, alpha, incX,
                                    incY, success);
         };

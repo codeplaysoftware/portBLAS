@@ -372,8 +372,8 @@ typename sb_handle_t::event_t _trsv_impl(
   auto sync_buffer = blas::helper::allocate < is_usm
                          ? blas::helper::AllocType::usm
                          : blas::helper::AllocType::buffer,
-       index_t > (sync_vec.size(), queue);
-  auto copy_sync = blas::helper::copy_to_device<index_t>(
+       int32_t > (sync_vec.size(), queue);
+  auto copy_sync = blas::helper::copy_to_device<int32_t>(
       queue, sync_vec.data(), sync_buffer, sync_vec.size());
   sb_handle.wait(copy_sync);
 
@@ -745,8 +745,8 @@ typename sb_handle_t::event_t _tbsv_impl(
   auto sync_buffer = blas::helper::allocate < is_usm
                          ? blas::helper::AllocType::usm
                          : blas::helper::AllocType::buffer,
-       index_t > (sync_vec.size(), queue);
-  auto copy_sync = blas::helper::copy_to_device<index_t>(
+       int32_t > (sync_vec.size(), queue);
+  auto copy_sync = blas::helper::copy_to_device<int32_t>(
       queue, sync_vec.data(), sync_buffer, sync_vec.size());
   sb_handle.wait(copy_sync);
 
