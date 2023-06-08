@@ -48,16 +48,13 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, index_t size,
          bool* success) {
   // initialize the state label
-  blas_benchmark::utils::set_benchmark_label<scalar_t>(
-      state, sb_handle_ptr->get_queue());
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // init Google-benchmark counters.
   blas_benchmark::utils::init_level_1_counters<
       blas_benchmark::utils::Level1Op::iamax, scalar_t>(state, size);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
-
-  using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);

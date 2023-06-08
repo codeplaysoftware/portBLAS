@@ -87,6 +87,8 @@ foreach(rocblas_benchmark ${sources})
       SOURCES ${rocblas_benchmark}
   )
 
+  target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE BUILD_ROCBLAS_BENCHMARKS)
+
   if(BLAS_VERIFY_BENCHMARK)
     target_link_libraries(bench_rocblas_${rocblas_bench_exec} PRIVATE blas::blas)
     target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
