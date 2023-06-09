@@ -175,7 +175,12 @@ of multiple BLAS operations.
 
 ## API description
 
-This section references all the supported operations and their interface. The library follows the [oneAPI MKL BLAS specification](https://spec.oneapi.io/versions/latest/elements/oneMKL/source/domains/blas/blas.html) as reference for the api. We have support for both USM and Buffer api, however the group apis for USM are not supported. We don't support mixing USM and Buffer arguments together to compile the library, and instead stick to the aformentioned reference specification.
+This section references all the supported operations and their interface. The 
+library follows the [oneAPI MKL BLAS specification](https://spec.oneapi.io/versions/latest/elements/oneMKL/source/domains/blas/blas.html) 
+as reference for the api. We have support for both USM and Buffer api, however 
+the group apis for USM are not supported. We don't support mixing USM and Buffer 
+arguments together to compile the library, and instead stick to the aformentioned 
+reference specification.
 
 All operations take as their first argument a reference to the SB_Handle, a
 `blas::SB_Handle` created with a `sycl::queue`. The last argument for all operators
