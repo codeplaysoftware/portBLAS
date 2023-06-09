@@ -41,7 +41,7 @@ enum class Level3Op : int {
   trsm = 8
 };
 
-template <Level3Op op, typename scalar_t, typename index_t>
+template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::gemm_batched_strided ||
                                op == Level3Op::gemm_batched ||
                                op == Level3Op::gemm>::type
@@ -86,7 +86,7 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   return;
 }
 
-template <Level3Op op, typename scalar_t, typename index_t>
+template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::symm>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
@@ -116,7 +116,7 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   return;
 }
 
-template <Level3Op op, typename scalar_t, typename index_t>
+template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::syr2k>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
@@ -146,7 +146,7 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   return;
 }
 
-template <Level3Op op, typename scalar_t, typename index_t>
+template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::syrk>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
                       index_t n = 0, index_t k = 0, index_t batch_size = 1,
@@ -173,7 +173,7 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   return;
 }
 
-template <Level3Op op, typename scalar_t, typename index_t>
+template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::trmm || op == Level3Op::trsm ||
                                op == Level3Op::trsm_batched>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,

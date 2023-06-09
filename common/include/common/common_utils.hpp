@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+using index_t = BLAS_INDEX_T;
+
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
 #include <common/blas1_state_counters.hpp>
@@ -24,8 +26,6 @@
 #include <common/float_comparison.hpp>
 #include <common/set_benchmark_label.hpp>
 #include <common/system_reference_blas.hpp>
-
-using index_t = BLAS_INDEX_T;
 
 using blas1_param_t = index_t;
 
@@ -237,7 +237,7 @@ static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (index_t size = 4096; size <= 1048576; size *= 2) {
+    for (index_t size = 1048576; size <= 32 * 1048576; size *= 2) {
       blas1_default.push_back(size);
     }
     return blas1_default;

@@ -200,7 +200,9 @@ typename sb_handle_t::event_t _trsm(
                                      : helper::AllocType::buffer,
        element_t > (BSize, sb_handle.get_queue());
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1, trsmEvents));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(B), decltype(X), index_t>(
+          sb_handle, BSize, B, 1, X, 1, trsmEvents));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -366,7 +368,9 @@ typename sb_handle_t::event_t _trsm(
 
   // Copy bufferX to bufferB as the TRSM result
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1, trsmEvents));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(X), decltype(B), index_t>(
+          sb_handle, BSize, X, 1, B, 1, trsmEvents));
 
   helper::enqueue_deallocate(trsmEvents, invA, sb_handle.get_queue());
 
