@@ -27,6 +27,7 @@
 #define SYCL_BLAS_EXTENSION_INTERFACE_HPP
 
 #include "blas_meta.h"
+#include "interface/extension/backend/backend.hpp"
 #include "interface/transpose_launcher.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
@@ -59,33 +60,10 @@ typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
               index_t ld_out, index_t inc_out) {
-  typename sb_handle_t::event_t ret;
-
-  bool use_local_memory = sb_handle.has_local_memory();
-
-  if (use_local_memory) {
-    // Using local Memory
-    if (m > 1024 && n > 1024) {
-      ret = Transpose_Launcher<32, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-          inc_out);
-    } else if (m > 64 && n > 64) {
-      ret = Transpose_Launcher<16, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-          inc_out);
-    } else {
-      ret = Transpose_Launcher<8, true>::template _select_transpose_outplace(
-          sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-          inc_out);
-    }
-  } else {
-    // With no local Memory
-    ret = Transpose_Launcher<16, false>::template _select_transpose_outplace(
-        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-        inc_out);
-  }
-
-  return ret;
+  return blas::extension::backend::_transpose_outplace<sb_handle_t, in_t, out_t,
+                                                       element_t, index_t>(
+      sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+      inc_out);
 }
 
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
@@ -239,7 +217,7 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
     return ret;
   }
 
-  const index_t inc = index_t(1);
+  const index_t inc = 1;
   const element_t alpha = element_t(1);
 
   return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a, inc, B,

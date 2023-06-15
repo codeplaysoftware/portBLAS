@@ -42,14 +42,16 @@ namespace blas {
  * @tparam in_place Whether the transpose is in or out of place
  * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
  * used to compute work-group size in the non-local memory case.
+ * @tparam wg_size work group size
+ * @tparam cl_size cache line size
  * @tparam local_memory Whether to use local memory
  * @tparam in_t The input matrix type
  * @tparam out_t The output matrix type
  * @tparam element_t The scaling factor type
  *
  */
-template <bool in_place, int Tile_size, bool local_memory, typename in_t,
-          typename out_t, typename element_t>
+template <bool in_place, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename in_t, typename out_t, typename element_t>
 class Transpose {
  public:
   using index_t = typename in_t::index_t;
@@ -68,9 +70,23 @@ class Transpose {
   // Minimum number of tiles used to cover matrices rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
+  // Total number of tiles used to cover the matrix
+  index_t tile_count_total_;
+  // Inner WG Tiles
+  static constexpr const index_t inner_tile_size_ = wg_size / Tile_size;
+  static constexpr const index_t inner_tile_count_ =
+      Tile_size / inner_tile_size_;
   // Minimum number of Tile-mutliple rows & columns to cover the matrices
   index_t M_pad_;
   index_t N_pad_;
+  // The number of elements per cache line size depends on the element type
+  static constexpr index_t get_num_cache_line_elems() {
+    return cl_size / sizeof(element_t);
+  }
+  // The number of Tile-sides per cache line
+  static constexpr index_t get_num_tiles_per_cache_line() {
+    return get_num_cache_line_elems() / Tile_size;
+  }
 
   Transpose(in_t &A, index_t &inc_a, out_t &At, index_t &inc_at, value_t &alpha)
       : A_(A),
@@ -82,6 +98,7 @@ class Transpose {
         alpha_(alpha),
         tile_count_m_((M_ - 1) / Tile_size + 1),
         tile_count_n_((N_ - 1) / Tile_size + 1),
+        tile_count_total_(tile_count_m_ * tile_count_n_),
         inc_a_(inc_a),
         inc_at_(inc_at),
         M_pad_(tile_count_m_ * Tile_size),
@@ -97,20 +114,24 @@ class Transpose {
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
   void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx,
                    index_t &in_local_idx, index_t &out_idx,
-                   index_t &out_local_idx, bool &valid_index_in,
-                   bool &valid_index_out);
+                   index_t &out_local_idx, index_t &i_block_start,
+                   index_t &j_block_start, index_t &il, index_t &jl);
+  void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx, index_t &out_idx,
+                   index_t &il, index_t &jl);
 };
 
 /*!
  @brief Generator/factory for Transpose trees.
  */
-template <bool in_place, int Tile_size, bool local_memory, typename in_t,
-          typename out_t, typename element_t, typename index_t>
-Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>
+template <bool in_place, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename in_t, typename out_t, typename element_t,
+          typename index_t>
+Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
+          element_t>
 make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
                element_t &alpha) {
-  return Transpose<in_place, Tile_size, local_memory, in_t, out_t, element_t>(
-      A, inc_a, At, inc_a_t, alpha);
+  return Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t,
+                   out_t, element_t>(A, inc_a, At, inc_a_t, alpha);
 }
 
 }  // namespace blas
