@@ -19,35 +19,33 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename transpose_launcher.cpp.in
+ *  @filename default_cpu.hpp
  *
  **************************************************************************/
-
-#include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
-#include "interface/transpose_launcher.hpp"
-#include "operations/extension/transpose.hpp"
-#include "views/view_sycl.hpp"
+#ifndef SYCL_BLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
+#define SYCL_BLAS_TRANSPOSE_DEFAULT_CPU_BACKEND_HPP
+#include "interface/transpose_launcher.h"
 
 namespace blas {
 namespace extension {
-template class Transpose_Launcher<${TILE_SIZE}, ${WG_SIZE}, ${CL_SIZE}, ${LOCAL_MEM}>;
+namespace backend {
 
-template typename SB_Handle::event_t Transpose_Launcher<
-    ${TILE_SIZE}, ${WG_SIZE}, ${CL_SIZE}, ${LOCAL_MEM}>::
-    _select_transpose_outplace<SB_Handle,
-                 ${container_t},
-                 ${container_t},
-                 ${DATA_TYPE},
-                 ${INDEX_TYPE}>(
-        SB_Handle& sb_handle, 
-        ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-        ${DATA_TYPE} _alpha,
-        ${container_t} a_, 
-        ${INDEX_TYPE} _ld_in, ${INDEX_TYPE} _inc_in, 
-        ${container_t} b_,
-        ${INDEX_TYPE} _ld_out, ${INDEX_TYPE} _inc_out);
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _transpose_outplace(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
+    index_t _ld_out, index_t _inc_out) {
+  return Transpose_Launcher<
+      16, 64, 64, false>::template _select_transpose_outplace(sb_handle, _M, _N,
+                                                              _alpha, in_,
+                                                              _ld_in, _inc_in,
+                                                              out_, _ld_out,
+                                                              _inc_out);
+}
 
+}  // namespace backend
 }  // namespace extension
 }  // namespace blas
+
+#endif
