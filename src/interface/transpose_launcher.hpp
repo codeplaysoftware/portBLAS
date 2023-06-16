@@ -78,11 +78,12 @@ Transpose_Launcher<Tile_size, wg_size, cl_size, local_memory>::
  * @brief Wrapper around Transpose-Add. Creates the views, then makes and
  * launches Transpose Add kernel
  */
-template <bool both_trans, int Tile_size, bool local_memory>
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory>
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
 typename sb_handle_t::event_t
-TransposeAdd_Launcher<both_trans, Tile_size, local_memory>::
+TransposeAdd_Launcher<both_trans, Tile_size, wg_size, cl_size, local_memory>::
     _select_transpose_add(sb_handle_t& sb_handle, index_t _M, index_t _N,
                           element_t _alpha, container_0_t a_, index_t _lda,
                           index_t _nrows_a, index_t _ncols_a, element_t _beta,
@@ -103,7 +104,7 @@ TransposeAdd_Launcher<both_trans, Tile_size, local_memory>::
 
   // Transpose Add expression Tree
   auto trans_scale_tree =
-      make_transpose_add<both_trans, Tile_size, local_memory>(
+      make_transpose_add<both_trans, Tile_size, wg_size, cl_size, local_memory>(
           A_view, B_view, C_view, _alpha, _beta);
 
   if constexpr (local_memory) {

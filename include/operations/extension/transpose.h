@@ -142,17 +142,22 @@ make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
  * input matrices are transposed, with and without the use of local memory,
  * while remaining customizable Tiling-size wise.
  *
- * @tparam in_place Whether the transpose is in or out of place
+ * @tparam both_trans Whether both A & B matrices are transposed (or just the
+ * first one)
  * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
  * used to compute work-group size in the non-local memory case.
+ * @tparam wg_size work group size
+ * @tparam cl_size cache line size
  * @tparam local_memory Whether to use local memory
- * @tparam in_t The input matrix type
- * @tparam out_t The output matrix type
+ * @tparam in1_t The input matrix A type
+ * @tparam in2_t The input matrix B type
+ * @tparam out_t The output matrix C type
  * @tparam element_t The scaling factor type
  *
  */
-template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
-          typename in2_t, typename out_t, typename element_t>
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename in1_t, typename in2_t, typename out_t,
+          typename element_t>
 class TransposeAdd {
  public:
   using index_t = typename in1_t::index_t;
@@ -160,21 +165,32 @@ class TransposeAdd {
   in1_t A_;
   in2_t B_;
   out_t C_;
-
-  index_t lda_;
-  index_t ldb_;
-  index_t ldc_;
-
   index_t N_;
   index_t M_;
   value_t alpha_;
   value_t beta_;
+  // Leading dimensions
+  index_t lda_;
+  index_t ldb_;
+  index_t ldc_;
   // Minimum number of tiles used to cover output matrix rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
+  // Inner WG Tiles
+  static constexpr const index_t inner_tile_size_ = wg_size / Tile_size;
+  static constexpr const index_t inner_tile_count_ =
+      Tile_size / inner_tile_size_;
   // Minimum number of Tile-mutliple rows & columns to cover the output matrix
   index_t M_pad_;
   index_t N_pad_;
+  // The number of elements per cache line size depends on the element type
+  static constexpr index_t get_num_cache_line_elems() {
+    return cl_size / sizeof(element_t);
+  }
+  // The number of Tile-sides per cache line
+  static constexpr index_t get_num_tiles_per_cache_line() {
+    return get_num_cache_line_elems() / Tile_size;
+  }
 
   TransposeAdd(in1_t &A, in2_t &B, out_t &C, value_t &alpha, value_t &beta)
       : A_(A),
@@ -209,14 +225,15 @@ class TransposeAdd {
 /*!
  * @brief Generator/factory for Transpose-Add trees.
  */
-template <bool both_trans, int Tile_size, bool local_memory, typename in1_t,
-          typename in2_t, typename out_t, typename element_t>
-TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
-             element_t>
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename in1_t, typename in2_t, typename out_t,
+          typename element_t>
+TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
+             in2_t, out_t, element_t>
 make_transpose_add(in1_t &A, in2_t &B, out_t &C, element_t &alpha,
                    element_t &beta) {
-  return TransposeAdd<both_trans, Tile_size, local_memory, in1_t, in2_t, out_t,
-                      element_t>(A, B, C, alpha, beta);
+  return TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory,
+                      in1_t, in2_t, out_t, element_t>(A, B, C, alpha, beta);
 }
 
 }  // namespace blas

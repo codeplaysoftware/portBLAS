@@ -49,7 +49,8 @@ struct Transpose_Launcher {
  * @brief Wrapper around TransposeAdd. Creates the views, then makes and
  * launches Transpose Add.
  */
-template <bool both_trans, int Tile_size, bool local_memory>
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory>
 struct TransposeAdd_Launcher {
   template <typename sb_handle_t, typename container_0_t,
             typename container_1_t, typename container_2_t, typename element_t,

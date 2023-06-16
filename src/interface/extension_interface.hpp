@@ -133,48 +133,11 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 
   constexpr const bool both_trans = trans_a && trans_b;
 
-  bool use_local_memory = sb_handle.has_local_memory();
-
-  if (use_local_memory) {
-    // Using local Memory
-    if (m > 1024 && n > 1024) {
-      ret = TransposeAdd_Launcher<
-          both_trans, 32, true>::template _select_transpose_add(sb_handle, m, n,
-                                                                alpha, a, lda,
-                                                                a_rows, a_cols,
-                                                                beta, b, ldb,
-                                                                b_rows, b_cols,
-                                                                c, ldc);
-    } else if (m > 64 && n > 64) {
-      ret = TransposeAdd_Launcher<
-          both_trans, 16, true>::template _select_transpose_add(sb_handle, m, n,
-                                                                alpha, a, lda,
-                                                                a_rows, a_cols,
-                                                                beta, b, ldb,
-                                                                b_rows, b_cols,
-                                                                c, ldc);
-    } else {
-      ret = TransposeAdd_Launcher<
-          both_trans, 8, true>::template _select_transpose_add(sb_handle, m, n,
-                                                               alpha, a, lda,
-                                                               a_rows, a_cols,
-                                                               beta, b, ldb,
-                                                               b_rows, b_cols,
-                                                               c, ldc);
-    }
-  } else {
-    // With no local Memory
-    ret = TransposeAdd_Launcher<
-        both_trans, 16, false>::template _select_transpose_add(sb_handle, m, n,
-                                                               alpha, a, lda,
-                                                               a_rows, a_cols,
-                                                               beta, b, ldb,
-                                                               b_rows, b_cols,
-                                                               c, ldc);
-  }
-
-  return ret;
+  return blas::extension::backend::_transpose_add<both_trans>(
+      sb_handle, m, n, alpha, a, lda, a_rows, a_cols, beta, b, ldb, b_rows,
+      b_cols, c, ldc);
 }
+
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
           typename index_t, typename container_t>
 typename std::enable_if<!trans_a && !trans_b,
