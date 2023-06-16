@@ -218,8 +218,8 @@ class TransposeAdd {
   void eval(local_memory_t local_mem, cl::sycl::nd_item<1> id);
   void get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
                    index_t &in_b_idx, index_t &in_local_idx, index_t &out_idx,
-                   index_t &out_local_idx, bool &valid_index_in,
-                   bool &valid_index_out);
+                   index_t &out_local_idx, index_t &i_block_start,
+                   index_t &j_block_start, index_t &il, index_t &jl);
 };
 
 /*!

@@ -89,6 +89,9 @@ TransposeAdd_Launcher<both_trans, Tile_size, wg_size, cl_size, local_memory>::
                           index_t _nrows_a, index_t _ncols_a, element_t _beta,
                           container_1_t b_, index_t _ldb, index_t _nrows_b,
                           index_t _ncols_b, container_2_t c_, index_t _ldc) {
+  constexpr const index_t num_cache_line_elems = cl_size / sizeof(element_t);
+  constexpr const index_t num_tiles_per_cache_line =
+      num_cache_line_elems / Tile_size;
   // Matrix Views
   auto A_view =
       make_matrix_view<col_major>(a_, _nrows_a, _ncols_a, _lda, (index_t)1);
@@ -98,9 +101,8 @@ TransposeAdd_Launcher<both_trans, Tile_size, wg_size, cl_size, local_memory>::
   auto C_view = make_matrix_view<col_major>(c_, _M, _N, _ldc, (index_t)1);
 
   // Work items & groups sizes
-  index_t local_size = static_cast<index_t>(Tile_size * Tile_size);
   index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
-  index_t global_size = n_wg * local_size;
+  index_t global_size = n_wg * wg_size;
 
   // Transpose Add expression Tree
   auto trans_scale_tree =
@@ -108,12 +110,12 @@ TransposeAdd_Launcher<both_trans, Tile_size, wg_size, cl_size, local_memory>::
           A_view, B_view, C_view, _alpha, _beta);
 
   if constexpr (local_memory) {
-    index_t shared_mem = static_cast<index_t>((Tile_size + 1) * Tile_size) *
-                         ((index_t)local_memory);
-    return sb_handle.execute(trans_scale_tree, local_size, global_size,
-                             shared_mem);
+    index_t local_mem =
+        static_cast<index_t>((num_cache_line_elems + 1) * num_cache_line_elems /
+                             num_tiles_per_cache_line);
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
   } else {
-    return sb_handle.execute(trans_scale_tree, local_size, global_size);
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size);
   }
 }
 

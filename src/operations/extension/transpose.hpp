@@ -223,8 +223,8 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
 SYCL_BLAS_INLINE bool TransposeAdd<
     both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t, in2_t, out_t,
     element_t>::valid_thread(cl::sycl::nd_item<1> item) const {
-  // Valid threads are established by ::eval()
-  return true;
+  auto idx = item.get_global_linear_id();
+  return idx < get_size();
 }
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
@@ -267,42 +267,40 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::eval(cl::sycl::nd_item<1> id) {
   auto idx = id.get_global_linear_id();
 
-  if (idx < get_size()) {
-    auto A = A_.get_data().get_pointer();
-    auto B = B_.get_data().get_pointer();
-    auto C = C_.get_data().get_pointer();
+  auto A = A_.get_data().get_pointer();
+  auto B = B_.get_data().get_pointer();
+  auto C = C_.get_data().get_pointer();
 
-    if constexpr (both_trans) {
-      // Compute sum & then transpose
-      auto j = idx / N_pad_;
-      auto i = idx - j * N_pad_;
+  if constexpr (both_trans) {
+    // Compute A & B sum & then transpose
+    auto j = idx / N_pad_;
+    auto i = idx - j * N_pad_;
 
-      auto in_index_a = i + j * lda_;
-      auto in_index_b = i + j * ldb_;
+    auto in_index_a = i + j * lda_;
+    auto in_index_b = i + j * ldb_;
 
-      if (i < N_ && j < M_) {
-        auto temp_sum = alpha_ * A[in_index_a] + beta_ * B[in_index_b];
+    if (i < N_ && j < M_) {
+      auto temp_sum = alpha_ * A[in_index_a] + beta_ * B[in_index_b];
 
-        auto out_index_c = i * ldc_ + j;
+      auto out_index_c = i * ldc_ + j;
 
-        C[out_index_c] = temp_sum;
-      }
+      C[out_index_c] = temp_sum;
+    }
 
-    } else {
-      // Transpose A then compute sum (Applies to B as well)
-      auto j = idx / M_pad_;
-      auto i = idx - j * M_pad_;
+  } else {
+    // Transpose A then compute sum (Applies to B as well)
+    auto j = idx / M_pad_;
+    auto i = idx - j * M_pad_;
 
-      auto in_index_at = j + i * lda_;
-      auto in_index_b = i + j * ldb_;
+    auto in_index_at = j + i * lda_;
+    auto in_index_b = i + j * ldb_;
 
-      if (i < M_ && j < N_) {
-        auto temp_sum = alpha_ * A[in_index_at] + beta_ * B[in_index_b];
+    if (i < M_ && j < N_) {
+      auto temp_sum = alpha_ * A[in_index_at] + beta_ * B[in_index_b];
 
-        auto out_index_c = i + j * ldc_;
+      auto out_index_c = i + j * ldc_;
 
-        C[out_index_c] = temp_sum;
-      }
+      C[out_index_c] = temp_sum;
     }
   }
 }
@@ -317,10 +315,10 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
  * @param out_idx [output] the output global index
  * @param in_local_idx [output] the input local-memory index
  * @param out_local_idx [output] the output local-memory index
- * @param valid_index_in [output] whether current input global index is within
- *input range
- * @param valid_index_in [output] whether current output global index is within
- *outpu range
+ * @param i_block_start [output] the input global memory block row-index
+ * @param j_block_start [output] the input global memory block col-index
+ * @param il [output] the local row-index
+ * @param jl [output] the local col-index
  *
  */
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
@@ -331,10 +329,9 @@ SYCL_BLAS_INLINE void TransposeAdd<
     element_t>::get_indices(cl::sycl::nd_item<1> id, index_t &in_a_idx,
                             index_t &in_b_idx, index_t &in_local_idx,
                             index_t &out_idx, index_t &out_local_idx,
-                            bool &valid_index_in, bool &valid_index_out) {
-  index_t M = both_trans ? N_ : M_;
-  index_t N = both_trans ? M_ : N_;
-  index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
+                            index_t &i_block_start, index_t &j_block_start,
+                            index_t &il, index_t &jl) {
+  const index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
 
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
@@ -342,14 +339,14 @@ SYCL_BLAS_INLINE void TransposeAdd<
   const index_t jg = idg / m_tiles;
   const index_t ig = idg - jg * m_tiles;
 
-  const index_t jl = idc / Tile_size;
-  const index_t il = idc - jl * Tile_size;
+  jl = idc / Tile_size;
+  il = idc - jl * Tile_size;
 
-  const index_t i_block_start = ig * Tile_size;
-  const index_t j_block_start = jg * Tile_size;
+  i_block_start = ig * Tile_size;
+  j_block_start = jg * Tile_size;
 
-  valid_index_in = (i_block_start + il < M && j_block_start + jl < N);
-  valid_index_out = (i_block_start + jl < M && j_block_start + il < N);
+  index_t jl_cl = idc / get_num_cache_line_elems();
+  index_t il_cl = idc - jl_cl * get_num_cache_line_elems();
 
   if constexpr (both_trans) {
     in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_;
@@ -362,9 +359,9 @@ SYCL_BLAS_INLINE void TransposeAdd<
 
   in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
 
-  in_local_idx = jl * (Tile_size + 1) + il;
+  in_local_idx = jl_cl * (get_num_cache_line_elems() + 1) + il_cl;
 
-  out_local_idx = il * (Tile_size + 1) + jl;
+  out_local_idx = il * Tile_size + jl + il / get_num_tiles_per_cache_line();
 }
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
@@ -375,48 +372,73 @@ SYCL_BLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::eval(local_memory_t local_mem,
                                             cl::sycl::nd_item<1> id) {
-  auto idx = id.get_global_linear_id();
+  value_t *local = local_mem.localAcc.get_pointer();
 
-  if (idx < get_size()) {
-    value_t *local = local_mem.localAcc.get_pointer();
+  auto A = A_.get_data().get_pointer();
+  auto B = B_.get_data().get_pointer();
+  auto C = C_.get_data().get_pointer();
 
-    auto A = A_.get_data().get_pointer();
-    auto B = B_.get_data().get_pointer();
-    auto C = C_.get_data().get_pointer();
+  index_t in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id;
+  index_t i_block_start, j_block_start;
+  index_t il, jl;
 
-    index_t in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id;
-    bool valid_index_in, valid_index_out;
+  if constexpr (both_trans) {
+    get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
+                i_block_start, j_block_start, il, jl);
 
-    if constexpr (both_trans) {
-      get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
-                  valid_index_in, valid_index_out);
-
+    if (i_block_start + il < N_) {
       // Compute & Copy sum/scaled input to local memory (before transpose)
-      if (valid_index_in) {
-        local[in_local_id] = alpha_ * A[in_a_idx] + beta_ * B[in_b_idx];
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (j_block_start + jl + l * inner_tile_size_ < M_) {
+          // Compute & Copy sum/scaled input to local memory (before transpose)
+          local[in_local_id +
+                l * (get_num_cache_line_elems() + 1) *
+                    (inner_tile_size_ / get_num_tiles_per_cache_line())] =
+              alpha_ * A[in_a_idx + l * inner_tile_size_ * lda_] +
+              beta_ * B[in_b_idx + l * inner_tile_size_ * ldb_];
+        }
       }
+    }
 
-      id.barrier(cl::sycl::access::fence_space::local_space);
+    id.barrier(cl::sycl::access::fence_space::local_space);
 
-      // Copy transposed output from local memory
-      if (valid_index_out) {
-        C[out_idx] = local[out_local_id];
+    // Transposed copy of previous output from local memory
+    if (j_block_start + il < M_) {
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (i_block_start + jl + l * inner_tile_size_ < N_) {
+          C[out_idx + l * inner_tile_size_ * ldc_] =
+              local[out_local_id + l * inner_tile_size_];
+        }
       }
+    }
 
-    } else {
-      get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
-                  valid_index_in, valid_index_out);
+  } else {
+    get_indices(id, in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id,
+                i_block_start, j_block_start, il, jl);
 
-      // Compute transposed-scaled A & copy to local memory
-      if (valid_index_out) {
-        local[in_local_id] = alpha_ * A[in_a_idx];
+    if (j_block_start + il < N_) {
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (i_block_start + jl + l * inner_tile_size_ < M_) {
+          // Compute & Copy sum/scaled input to local memory (before transpose)
+          local[in_local_id +
+                l * (get_num_cache_line_elems() + 1) *
+                    (inner_tile_size_ / get_num_tiles_per_cache_line())] =
+              alpha_ * A[in_a_idx + l * inner_tile_size_ * lda_];
+        }
       }
+    }
 
-      id.barrier(cl::sycl::access::fence_space::local_space);
+    id.barrier(cl::sycl::access::fence_space::local_space);
 
-      // Compute & Copy output from local & global memory to global memory
-      if (valid_index_in) {
-        C[out_idx] = local[out_local_id] + beta_ * B[in_b_idx];
+    // Transposed copy of previous output from local memory and scaled addition
+    // with 2nd non transposed matrix B
+    if (i_block_start + il < M_) {
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (j_block_start + jl + l * inner_tile_size_ < N_) {
+          C[out_idx + l * inner_tile_size_ * ldc_] =
+              local[out_local_id + l * inner_tile_size_] +
+              beta_ * B[in_b_idx + l * inner_tile_size_ * ldb_];
+        }
       }
     }
   }
