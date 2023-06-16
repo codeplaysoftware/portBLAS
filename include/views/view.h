@@ -198,8 +198,11 @@ struct MatrixView {
 
   /*! adjust_access_displacement.
    * @brief set displacement from the origin.
-   * For USM case, this method is not going to do anything as the library
-   * doesn't allow pointer manipulation.
+   * This method allows to have a pointer arithmetic semantics for buffers
+   * in the host code. The end result of the pointer arithmetic is passed
+   * as an access displacement for the buffer.
+   * In the case of USM, this method does nothing since the pointer
+   * arithmetic is performed implicitly.
    */
   SYCL_BLAS_INLINE void adjust_access_displacement();
 

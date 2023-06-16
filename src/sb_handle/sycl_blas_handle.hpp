@@ -122,8 +122,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
                                                 : helper::AllocType::buffer,
        typename lhs_t::value_t > (sharedSize, q_);
 
-  auto opShMem1 = make_vector_view(shMem1, 1, sharedSize);
-  auto opShMem2 = make_vector_view(shMem2, 1, sharedSize);
+  auto opShMem1 =
+      make_vector_view(shMem1, typename rhs_t::index_t{1}, sharedSize);
+  auto opShMem2 =
+      make_vector_view(shMem2, typename rhs_t::index_t{1}, sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;
@@ -149,25 +151,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     even = !even;
   } while (_N > 1);
 
-  // Need to add this guard since the enqueue_deallocate
-  // function requires a host_task which throws a runtime
-  // exception when used with the enable_profiling{} queue
-  // property. We need to create all intermediate memory
-  // before launching the kernel to avoid running into this
-  // issue.
-  // Enabling this code only for DEFAULT_CPU backend to get the
-  // CI to pass.
-#ifdef DEFAULT_CPU
-  auto event1 = blas::helper::enqueue_deallocate < is_usm
-                    ? helper::AllocType::usm
-                    : helper::AllocType::buffer > (event, shMem1, q_);
+  blas::helper::enqueue_deallocate(event, shMem1, q_);
 
-  auto event2 = blas::helper::enqueue_deallocate < is_usm
-                    ? helper::AllocType::usm
-                    : helper::AllocType::buffer > (event, shMem2, q_);
-  event.push_back(event1);
-  event.push_back(event2);
-#endif
+  blas::helper::enqueue_deallocate(event, shMem2, q_);
+
   return event;
 }
 
@@ -348,30 +335,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
       events = concatenate_vectors(events, execute(assignOp, events));
     }
 
-#ifdef DEFAULT_CPU
-    auto free_temp_buffer =
-        helper::enqueue_deallocate < is_usm
-            ? helper::AllocType::usm
-            : helper::AllocType::buffer > (events, temp_buffer, q_);
-    events.push_back(free_temp_buffer);
-#endif
+    helper::enqueue_deallocate(events, temp_buffer, q_);
   }
 
-  // Need to add this guard since the enqueue_deallocate
-  // function requires a host_task which throws a runtime
-  // exception when used with the enable_profiling{} queue
-  // property. We need to create all intermediate memory
-  // before launching the kernel to avoid running into this
-  // issue.
-  // Enabling this code only for DEFAULT_CPU backend to get the
-  // CI to pass.
-#ifdef DEFAULT_CPU
-  auto free_cube_buffer =
-      helper::enqueue_deallocate < is_usm
-          ? helper::AllocType::usm
-          : helper::AllocType::buffer > (events, cube_buffer, q_);
-  events.push_back(free_cube_buffer);
-#endif
+  helper::enqueue_deallocate(events, cube_buffer, q_);
 
   return events;
 }

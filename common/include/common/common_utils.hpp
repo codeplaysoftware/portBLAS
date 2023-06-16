@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+using index_t = BLAS_INDEX_T;
+
 #include "benchmark_cli_args.hpp"
 #include "blas_meta.h"
 #include <common/blas1_state_counters.hpp>
@@ -24,8 +26,6 @@
 #include <common/float_comparison.hpp>
 #include <common/set_benchmark_label.hpp>
 #include <common/system_reference_blas.hpp>
-
-using index_t = BLAS_INDEX_T;
 
 using blas1_param_t = index_t;
 

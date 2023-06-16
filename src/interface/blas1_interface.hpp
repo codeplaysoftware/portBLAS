@@ -630,18 +630,19 @@ typename ValueType<container_0_t>::type _dot(
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   auto res = std::vector<element_t>(1);
-  auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                 : helper::AllocType::buffer,
+  auto gpu_res = helper::allocate < is_usm ? helper::AllocType::usm
+                                           : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  blas::internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res,
-                       _dependencies);
+  auto dot_event = internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
+                                  gpu_res, _dependencies);
+  sb_handle.wait(dot_event);
   auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
+      helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);
 
-  blas::helper::deallocate<is_usm ? helper::AllocType::usm
-                                  : helper::AllocType::buffer>(
-      gpu_res, sb_handle.get_queue());
+  helper::deallocate<is_usm ? helper::AllocType::usm
+                            : helper::AllocType::buffer>(gpu_res,
+                                                         sb_handle.get_queue());
   return res[0];
 }
 
@@ -709,12 +710,8 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        IndValTuple > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto copy_res = blas::helper::copy_to_device<IndValTuple>(
-      sb_handle.get_queue(), rsT.data(), gpu_res, 1);
-  typename sb_handle_t::event_t ret = concatenate_vectors(
-      _dependencies, typename sb_handle_t::event_t{copy_res});
   auto iamax_event =
-      blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res, ret);
+      blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(iamax_event);
   auto event = blas::helper::copy_to_host<IndValTuple>(sb_handle.get_queue(),
                                                        gpu_res, rsT.data(), 1);

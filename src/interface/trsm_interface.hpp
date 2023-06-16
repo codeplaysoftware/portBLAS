@@ -150,7 +150,7 @@ typename sb_handle_t::event_t _trsm(
   auto invA = helper::allocate < is_usm ? helper::AllocType::usm
                                         : helper::AllocType::buffer,
        element_t > (invASize, sb_handle.get_queue());
-  std::vector<cl::sycl::event> event = {blas::helper::fill(
+  typename sb_handle_t::event_t event = {blas::helper::fill(
       sb_handle.get_queue(), invA, element_t{0}, invASize, _dependencies)};
   trsmEvents = concatenate_vectors(trsmEvents, event);
 
@@ -200,7 +200,9 @@ typename sb_handle_t::event_t _trsm(
                                      : helper::AllocType::buffer,
        element_t > (BSize, sb_handle.get_queue());
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1, trsmEvents));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(B), decltype(X), index_t>(
+          sb_handle, BSize, B, 1, X, 1, trsmEvents));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -366,29 +368,13 @@ typename sb_handle_t::event_t _trsm(
 
   // Copy bufferX to bufferB as the TRSM result
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1, trsmEvents));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(X), decltype(B), index_t>(
+          sb_handle, BSize, X, 1, B, 1, trsmEvents));
 
-  // Need to add this guard since the enqueue_deallocate
-  // function requires a host_task which throws a runtime
-  // exception when used with the enable_profiling{} queue
-  // property. We need to create all intermediate memory
-  // before launching the kernel to avoid running into this
-  // issue.
-  // Enabling this code only for DEFAULT_CPU backend to get the
-  // CI to pass.
-#ifdef DEFAULT_CPU
-  auto event1 = helper::enqueue_deallocate < is_usm
-                    ? helper::AllocType::usm
-                    : helper::AllocType::buffer >
-                          (trsmEvents, invA, sb_handle.get_queue());
+  helper::enqueue_deallocate(trsmEvents, invA, sb_handle.get_queue());
 
-  auto event2 =
-      helper::enqueue_deallocate < is_usm
-          ? helper::AllocType::usm
-          : helper::AllocType::buffer > (trsmEvents, X, sb_handle.get_queue());
-  trsmEvents.push_back(event1);
-  trsmEvents.push_back(event2);
-#endif
+  helper::enqueue_deallocate(trsmEvents, X, sb_handle.get_queue());
 
   return trsmEvents;
 }
