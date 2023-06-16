@@ -259,6 +259,57 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
   C_.adjust_access_displacement();
 }
 
+/*!
+ *@brief get_indices. This function is used in the non-local memory kernel to
+ *compute global input & output indices.
+ *
+ * @param id [input] the cl::sycl::nd_item<1> of the current work_item
+ * @param in_a_idx [output] the input A global-memory index
+ * @param in_b_idx [output] the input B global-memory index
+ * @param out_idx [output] the output C global-memory index
+ * @param i [output] the global row-index (A & B when both_trans -> [0,N_], B &
+ *C otherwise -> [0,M_])
+ * @param j [output] the global col-index (A & B when both_trans -> [0,M_], B &
+ *C otherwise -> [0,N_])
+ */
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename in1_t, typename in2_t, typename out_t,
+          typename element_t>
+SYCL_BLAS_INLINE void
+TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
+             in2_t, out_t, element_t>::get_indices(cl::sycl::nd_item<1> id,
+                                                   index_t &in_a_idx,
+                                                   index_t &in_b_idx,
+                                                   index_t &out_idx, index_t &i,
+                                                   index_t &j) {
+  const index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
+
+  index_t idg = id.get_group(0);
+  index_t idc = id.get_local_id(0);
+
+  const index_t jg = idg / m_tiles;
+  const index_t ig = idg - jg * m_tiles;
+
+  const index_t jl = idc / Tile_size;
+  const index_t il = idc - jl * Tile_size;
+
+  const index_t i_block_start = ig * Tile_size;
+  const index_t j_block_start = jg * Tile_size;
+
+  i = i_block_start + il;
+  j = j_block_start + jl;
+
+  if constexpr (both_trans) {
+    in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_;
+    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
+    out_idx = i_block_start * ldc_ + j_block_start + jl + il * ldc_;
+  } else {
+    in_a_idx = i_block_start * lda_ + j_block_start + jl + il * lda_;
+    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
+    out_idx = i_block_start + j_block_start * ldc_ + il + jl * ldc_;
+  }
+}
+
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in1_t, typename in2_t, typename out_t,
           typename element_t>
@@ -270,37 +321,29 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
   auto A = A_.get_data().get_pointer();
   auto B = B_.get_data().get_pointer();
   auto C = C_.get_data().get_pointer();
+  index_t in_a_index, in_b_index, out_index, i_id, j_id;
+
+  get_indices(in_a_index, in_b_index, out_index, i_id, j_id);
 
   if constexpr (both_trans) {
-    // Compute A & B sum & then transpose
-    auto j = idx / N_pad_;
-    auto i = idx - j * N_pad_;
-
-    auto in_index_a = i + j * lda_;
-    auto in_index_b = i + j * ldb_;
-
-    if (i < N_ && j < M_) {
-      auto temp_sum = alpha_ * A[in_index_a] + beta_ * B[in_index_b];
-
-      auto out_index_c = i * ldc_ + j;
-
-      C[out_index_c] = temp_sum;
+    if (i_id < N_) {
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (j_id + l * inner_tile_size_ < M_) {
+          auto temp_sum = alpha_ * A[in_a_index + l * inner_tile_size_ * lda_] +
+                          beta_ * B[in_b_index + l * inner_tile_size_ * ldb_];
+          C[out_index + l * inner_tile_size_] = temp_sum;
+        }
+      }
     }
-
   } else {
-    // Transpose A then compute sum (Applies to B as well)
-    auto j = idx / M_pad_;
-    auto i = idx - j * M_pad_;
-
-    auto in_index_at = j + i * lda_;
-    auto in_index_b = i + j * ldb_;
-
-    if (i < M_ && j < N_) {
-      auto temp_sum = alpha_ * A[in_index_at] + beta_ * B[in_index_b];
-
-      auto out_index_c = i + j * ldc_;
-
-      C[out_index_c] = temp_sum;
+    if (i_id < M_) {
+      for (index_t l = 0; l < inner_tile_count_; l++) {
+        if (j_id + l * inner_tile_size_ < N_) {
+          auto temp_sum = alpha_ * A[in_a_index + l * inner_tile_size_] +
+                          beta_ * B[in_b_index + l * inner_tile_size_ * ldb_];
+          C[out_index + l * inner_tile_size_ * ldc_] = temp_sum;
+        }
+      }
     }
   }
 }
