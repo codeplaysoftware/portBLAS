@@ -127,7 +127,7 @@ SYCL_BLAS_INLINE
 
   // Global memory offsets
   const index_t g_idx = wg_id * x_range + _idx;
-  value_t *glo_A =
+  const value_t *glo_A =
       matrix_.get_pointer() +
       (is_transposed
            ? matrix_.getSizeL() * (wg_id * x_range + y_range * _idy) +
@@ -138,7 +138,7 @@ SYCL_BLAS_INLINE
   // Read first block
   {
     value_t *lA = sub_A;
-    value_t *gA = glo_A;
+    const value_t *gA = glo_A;
 
     for (index_t i = 0; i < y_range; ++i) {
       const bool read_it =
@@ -174,7 +174,7 @@ SYCL_BLAS_INLINE
 
     // Read next block
     {
-      value_t *gA = glo_A;
+      const value_t *gA = glo_A;
 #pragma unroll
       for (index_t i = 0; i < y_range; ++i) {
         const bool read_it =

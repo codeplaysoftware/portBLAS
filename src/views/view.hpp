@@ -46,7 +46,7 @@ SYCL_BLAS_INLINE VectorView<_value_t, _container_t, _IndexType,
                             _IncrementType>::VectorView(_container_t data,
                                                         _IncrementType strd,
                                                         _IndexType size)
-    : data_(data), size_(size), strd_(strd), ptr_(data) {}
+    : data_(data), size_(size), strd_(strd) {}
 
 /*!
  @brief Creates a view from an existing view.
@@ -57,15 +57,15 @@ SYCL_BLAS_INLINE
 VectorView<_value_t, _container_t, _IndexType, _IncrementType>::VectorView(
     VectorView<_value_t, _container_t, _IndexType, _IncrementType> opV,
     _IncrementType strd, _IndexType size)
-    : data_(opV.get_data()), size_(size), strd_(strd), ptr_(opV.get_data()) {}
+    : data_(opV.get_data()), size_(size), strd_(strd) {}
 
 /*!
  * @brief Returns a reference to the container
  */
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
-SYCL_BLAS_INLINE _container_t
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_data() {
+SYCL_BLAS_INLINE _container_t VectorView<_value_t, _container_t, _IndexType,
+                                         _IncrementType>::get_data() const {
   return data_;
 }
 
@@ -74,9 +74,9 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_data() {
  */
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
-SYCL_BLAS_INLINE _value_t*
-VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_pointer() {
-  return ptr_;
+SYCL_BLAS_INLINE _container_t VectorView<_value_t, _container_t, _IndexType,
+                                         _IncrementType>::get_pointer() const {
+  return data_;
 }
 
 /*! adjust_access_displacement
@@ -86,8 +86,8 @@ VectorView<_value_t, _container_t, _IndexType, _IncrementType>::get_pointer() {
 template <class _value_t, class _container_t, typename _IndexType,
           typename _IncrementType>
 SYCL_BLAS_INLINE void VectorView<_value_t, _container_t, _IndexType,
-                                 _IncrementType>::adjust_access_displacement() {
-}
+                                 _IncrementType>::adjust_access_displacement()
+    const {}
 
 /*!
  @brief Returns the size of the view
@@ -124,8 +124,7 @@ SYCL_BLAS_INLINE MatrixView<_value_t, _container_t, _IndexType,
     : data_(data),
       sizeR_(sizeR),
       sizeC_(sizeC),
-      sizeL_((layout::is_col_major()) ? sizeR_ : sizeC_),
-      ptr_(data) {}
+      sizeL_((layout::is_col_major()) ? sizeR_ : sizeC_) {}
 
 /*!
  * @brief Constructs a matrix view on the container.
@@ -140,7 +139,7 @@ template <class _value_t, class _container_t, typename _IndexType,
 SYCL_BLAS_INLINE
 MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     _container_t data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL)
-    : data_(data), sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), ptr_(data) {}
+    : data_(data), sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL) {}
 
 /*!
  *@brief Creates a matrix view from the given one but with different access
@@ -160,8 +159,7 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
     : data_(opM.get_data()),
       sizeR_(sizeR),
       sizeC_(sizeC),
-      sizeL_(sizeL),
-      ptr_(opM.get_data()) {}
+      sizeL_(sizeL) {}
 
 /*!
  * @brief Returns the container
@@ -169,7 +167,7 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::MatrixView(
 template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 SYCL_BLAS_INLINE _container_t
-MatrixView<_value_t, _container_t, _IndexType, layout>::get_data() {
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_data() const {
   return data_;
 }
 
@@ -188,9 +186,9 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::get_size() const {
  */
 template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
-SYCL_BLAS_INLINE _value_t*
-MatrixView<_value_t, _container_t, _IndexType, layout>::get_pointer() {
-  return ptr_;
+SYCL_BLAS_INLINE _container_t
+MatrixView<_value_t, _container_t, _IndexType, layout>::get_pointer() const {
+  return data_;
 }
 
 /*! get_size_row.
@@ -234,8 +232,7 @@ MatrixView<_value_t, _container_t, _IndexType, layout>::getSizeL() const {
 template <class _value_t, class _container_t, typename _IndexType,
           typename layout>
 SYCL_BLAS_INLINE void MatrixView<_value_t, _container_t, _IndexType,
-                                 layout>::adjust_access_displacement() {
-}
+                                 layout>::adjust_access_displacement() const {}
 
 }  // namespace blas
 

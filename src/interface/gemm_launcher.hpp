@@ -55,8 +55,10 @@ typename sb_handle_t::event_t Gemm_Launcher<
                                   index_t batch_size,
                                   const typename sb_handle_t::event_t&
                                       _dependencies) {
-  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
-  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
+  typename MatrixViewType<container_t1, element_t, index_t, col_major>::type
+      buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);
   auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc);
 
   auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,

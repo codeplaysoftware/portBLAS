@@ -57,9 +57,6 @@ struct VectorView {
   index_t size_;
   increment_t strd_;  // never size_t, because it could be negative
 
-  // global pointer access inside the kernel
-  cl::sycl::global_ptr<value_t> ptr_;
-
   VectorView(view_container_t data, view_increment_t strd, view_index_t size);
   VectorView(
       VectorView<view_value_t, view_container_t, view_index_t, view_increment_t>
@@ -69,12 +66,12 @@ struct VectorView {
   /*!
    * @brief Returns a reference to the container
    */
-  SYCL_BLAS_INLINE container_t get_data();
+  SYCL_BLAS_INLINE container_t get_data() const;
 
   /*!
    * @brief Returns a pointer containing the raw data of the container
    */
-  SYCL_BLAS_INLINE value_t *get_pointer();
+  SYCL_BLAS_INLINE container_t get_pointer() const;
 
   /*! adjust_access_displacement.
    * @brief this method adjust the position of the data access to point to the
@@ -84,7 +81,7 @@ struct VectorView {
    * For USM case, this method is not going to do anything as the library
    * doesn't allow pointer manipulation.
    */
-  SYCL_BLAS_INLINE void adjust_access_displacement();
+  SYCL_BLAS_INLINE void adjust_access_displacement() const;
 
   /*!
    @brief Returns the size of the view
@@ -96,39 +93,39 @@ struct VectorView {
   */
   SYCL_BLAS_INLINE increment_t get_stride();
 
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {}
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) const {}
 
   /**** EVALUATING ****/
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
       index_t i) {
-    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
+    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
       index_t i) const {
-    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
+    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
   }
 
   SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
     return eval(ndItem.get_global_id(0));
   }
 
-  SYCL_BLAS_INLINE const value_t eval(cl::sycl::nd_item<1> ndItem) const {
+  SYCL_BLAS_INLINE value_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
       index_t indx) {
-    return *(ptr_ + indx);
+    return *(data_ + indx);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
       index_t indx) const noexcept {
-    return *(ptr_ + indx);
+    return *(data_ + indx);
   }
 };
 
@@ -147,12 +144,9 @@ struct MatrixView {
   using index_t = view_index_t;
   using self_t = MatrixView<value_t, container_t, index_t, layout>;
   container_t data_;
-  index_t sizeR_;      // number of rows
-  index_t sizeC_;      // number of columns
-  index_t sizeL_;      // size of the leading dimension
-
-  // global pointer access inside the kernel
-  cl::sycl::global_ptr<value_t> ptr_;
+  index_t sizeR_;  // number of rows
+  index_t sizeC_;  // number of columns
+  index_t sizeL_;  // size of the leading dimension
 
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC);
@@ -165,12 +159,12 @@ struct MatrixView {
   /*!
    * @brief Returns the container
    */
-  SYCL_BLAS_INLINE container_t get_data();
+  SYCL_BLAS_INLINE container_t get_data() const;
 
   /*!
    * @brief Returns the container
    */
-  SYCL_BLAS_INLINE value_t *get_pointer();
+  SYCL_BLAS_INLINE container_t get_pointer() const;
 
   /*!
    * @brief Returns the size of the view.
@@ -204,21 +198,21 @@ struct MatrixView {
    * In the case of USM, this method does nothing since the pointer
    * arithmetic is performed implicitly.
    */
-  SYCL_BLAS_INLINE void adjust_access_displacement();
+  SYCL_BLAS_INLINE void adjust_access_displacement() const;
 
-  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) {}
+  SYCL_BLAS_INLINE void bind(cl::sycl::handler &h) const {}
 
   /*! eval.
    * @brief Evaluation for the pair of row/col.
    */
   SYCL_BLAS_INLINE value_t &eval(index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                     : *(data_ + j + sizeL_ * i));
   }
 
   SYCL_BLAS_INLINE value_t eval(index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+    return ((layout::is_col_major()) ? *(data_ + i + sizeL_ * j)
+                                     : *(data_ + j + sizeL_ * i));
   }
 
   template <bool use_as_ptr = false>
@@ -248,73 +242,132 @@ struct MatrixView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
       index_t indx) {
-    return *(ptr_ + indx);
+    return *(data_ + indx);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
       index_t indx) const noexcept {
-    return *(ptr_ + indx);
+    return *(data_ + indx);
   }
 };
 
-template <typename scalar_t, typename container_t, typename index_t,
+template <typename container_t, typename value_t, typename index_t,
           typename increment_t>
-struct VectorViewTypeFactory {
-  using output_t = VectorView<scalar_t, container_t, index_t, increment_t>;
-};
+struct VectorViewType;
 
-template <typename scalar_t, typename container_t, typename index_t,
-          typename access_mode_t>
-struct MatrixViewTypeFactory {
-  using output_t = MatrixView<scalar_t, container_t, index_t, access_mode_t>;
-};
-
-template <typename scalar_t, typename increment_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_vector_view(BufferIterator<scalar_t> buff,
-                                              increment_t inc, index_t sz) {
+template <typename value_t, typename index_t, typename increment_t>
+struct VectorViewType<BufferIterator<value_t>, value_t, index_t, increment_t> {
   static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
+      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
-  using leaf_node_t = typename VectorViewTypeFactory<
-      scalar_t,
-      typename BufferIterator<scalar_t>::template default_accessor_t<
-          access_mode_t>,
-      index_t, increment_t>::output_t;
+  using type =
+      VectorView<value_t,
+                 typename BufferIterator<value_t>::template default_accessor_t<
+                     access_mode_t>,
+                 index_t, increment_t>;
+};
+
+template <typename value_t, typename index_t, typename increment_t>
+struct VectorViewType<value_t *, value_t, index_t, increment_t> {
+  using type = VectorView<value_t, value_t *, index_t, increment_t>;
+};
+
+template <typename value_t, typename index_t, typename increment_t>
+struct VectorViewType<const value_t *, value_t, index_t, increment_t> {
+  using type = const VectorView<value_t, const value_t *, index_t, increment_t>;
+};
+
+template <typename container_t, typename value_t, typename index_t,
+          typename access_layout_t>
+struct MatrixViewType;
+
+template <typename value_t, typename index_t, typename access_layout_t>
+struct MatrixViewType<BufferIterator<value_t>, value_t, index_t,
+                      access_layout_t> {
+  static constexpr cl::sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
+             cl::sycl::access::mode::read,
+             cl::sycl::access::mode::read_write>::type;
+  using type =
+      MatrixView<value_t,
+                 typename BufferIterator<value_t>::template default_accessor_t<
+                     access_mode_t>,
+                 index_t, access_layout_t>;
+};
+
+template <typename value_t, typename index_t, typename access_layout_t>
+struct MatrixViewType<value_t *, value_t, index_t, access_layout_t> {
+  using type = MatrixView<value_t, value_t *, index_t, access_layout_t>;
+};
+
+template <typename value_t, typename index_t, typename access_layout_t>
+struct MatrixViewType<const value_t *, value_t, index_t, access_layout_t> {
+  using type =
+      const MatrixView<value_t, const value_t *, index_t, access_layout_t>;
+};
+
+template <typename value_t, typename increment_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_vector_view(BufferIterator<value_t> buff,
+                                              increment_t inc, index_t sz) {
+  static constexpr cl::sycl::access::mode access_mode_t =
+      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
+             cl::sycl::access::mode::read,
+             cl::sycl::access::mode::read_write>::type;
+  using leaf_node_t =
+      VectorView<value_t,
+                 typename BufferIterator<value_t>::template default_accessor_t<
+                     access_mode_t>,
+                 index_t, increment_t>;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(),
                      (index_t)buff.get_offset(), inc, sz};
 }
 
-template <typename access_layout_t, typename scalar_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<scalar_t> buff,
+template <typename access_layout_t, typename value_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
                                               index_t m, index_t n,
                                               index_t lda) {
   static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
+      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
-  using leaf_node_t = typename MatrixViewTypeFactory<
-      scalar_t,
-      typename BufferIterator<scalar_t>::template default_accessor_t<
-          access_mode_t>,
-      index_t, access_layout_t>::output_t;
+  using leaf_node_t =
+      MatrixView<value_t,
+                 typename BufferIterator<value_t>::template default_accessor_t<
+                     access_mode_t>,
+                 index_t, access_layout_t>;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
                      lda, (index_t)buff.get_offset()};
 }
 
-template <typename scalar_t, typename increment_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_vector_view(scalar_t *usm_ptr,
-                                              increment_t inc, index_t sz) {
-  using leaf_node_t = VectorView<scalar_t, scalar_t *, index_t, increment_t>;
+template <typename value_t, typename increment_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_vector_view(value_t *usm_ptr, increment_t inc,
+                                              index_t sz) {
+  using leaf_node_t = VectorView<value_t, value_t *, index_t, increment_t>;
   return leaf_node_t{usm_ptr, inc, sz};
 }
 
-template <typename access_layout_t, typename scalar_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_matrix_view(scalar_t *usm_ptr, index_t m,
+template <typename access_layout_t, typename value_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_matrix_view(value_t *usm_ptr, index_t m,
+                                              index_t n, index_t lda) {
+  using leaf_node_t = MatrixView<value_t, value_t *, index_t, access_layout_t>;
+  return leaf_node_t{usm_ptr, m, n, lda};
+}
+
+template <typename value_t, typename increment_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_vector_view(const value_t *usm_ptr,
+                                              increment_t inc, index_t sz) {
+  using leaf_node_t =
+      VectorView<value_t, const value_t *, index_t, increment_t>;
+  return leaf_node_t{usm_ptr, inc, sz};
+}
+
+template <typename access_layout_t, typename value_t, typename index_t>
+static SYCL_BLAS_INLINE auto make_matrix_view(const value_t *usm_ptr, index_t m,
                                               index_t n, index_t lda) {
   using leaf_node_t =
-      MatrixView<scalar_t, scalar_t *, index_t, access_layout_t>;
+      MatrixView<value_t, const value_t *, index_t, access_layout_t>;
   return leaf_node_t{usm_ptr, m, n, lda};
 }
 

@@ -95,8 +95,9 @@ Gbmv<lhs_t, matrix_t, vector_t, local_range, is_transposed>::eval(
     for (index_t s_idx = k_beg; s_idx < k_end; ++s_idx) {
       const index_t K = k_off + (is_transposed ? s_idx : -s_idx);
       const index_t J = is_transposed ? lhs_idx : s_idx;
+      const value_t xx = matrix_.eval(K, J);
       val = AddOperator::eval(
-          val, ProductOperator::eval(matrix_.eval(K, J), vector_.eval(s_idx)));
+          val, ProductOperator::eval(xx, vector_.eval(s_idx)));
     }
 
     lhs_.eval(lhs_idx) =

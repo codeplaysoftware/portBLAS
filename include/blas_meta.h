@@ -111,6 +111,19 @@ struct RebindType {
   using type = RemoveAll<element_t> *;
 };
 
+template <typename element_t, bool isConst>
+struct ReturnType;
+
+template <typename element_t>
+struct ReturnType <element_t, true> {
+  using type = const element_t;
+};
+
+template <typename element_t>
+struct ReturnType <element_t, false> {
+  using type = element_t;
+};
+
 template <typename index_t>
 inline bool is_power_of_2(index_t ind) {
   return ind > 0 && !(ind & (ind - 1));

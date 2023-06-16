@@ -116,9 +116,9 @@ struct SumMatrixColumns {
 
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
 
-  value_t eval(index_t i);
+  value_t eval(index_t i) const;
 
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(cl::sycl::nd_item<1> ndItem) const;
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };

@@ -79,8 +79,10 @@ typename sb_handle_t::event_t _gemv_impl(
   const auto x_vector_size = is_transposed ? _M : _N;
   const auto y_vector_size = is_transposed ? _N : _M;
 
-  auto mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
-  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, _M, _N, _lda);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, x_vector_size);
   auto vy = make_vector_view(_vy, _incy, y_vector_size);
 
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
@@ -236,7 +238,9 @@ typename sb_handle_t::event_t _trmv_impl(
       (data_layout_t::is_col_major()) ? (_Uplo == 'u') : (_Uplo == 'l');
   int unitDiag = (_Diag == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<data_layout_t>(_mA, N, N, _lda);
+  using element_t = typename ValueType<container_t0>::type;
+  typename MatrixViewType<container_t0, element_t, index_t, data_layout_t>::type
+      mA = make_matrix_view<data_layout_t>(_mA, N, N, _lda);
   auto vx = make_vector_view(_vx, _incx, N);
   const index_t interLoop = 1;
   const index_t localSize =
@@ -426,10 +430,13 @@ typename sb_handle_t::event_t _symv_impl(
   }
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
-  auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
-  auto vx = make_vector_view(_vx, _incx, N);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, N, N, _lda);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, N);
   auto vy = make_vector_view(_vy, _incy, N);
-  auto mAT = make_matrix_view<row_major>(_mA, N, N, _lda);
+  typename MatrixViewType<container_t0, element_t, index_t, row_major>::type
+      mAT = make_matrix_view<row_major>(_mA, N, N, _lda);
 
   const index_t interLoop = 1;
 
@@ -530,9 +537,10 @@ typename sb_handle_t::event_t _gbmv_impl(
   auto x_vector_size = is_transposed ? _M : _N;
   auto y_vector_size = is_transposed ? _N : _M;
 
-  auto mA =
-      make_matrix_view<col_major>(_mA, _KL + _KU + 1, x_vector_size, _lda);
-  auto vx = make_vector_view(_vx, _incx, x_vector_size);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, _KL + _KU + 1, x_vector_size, _lda);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, x_vector_size);
   auto vy = make_vector_view(_vy, _incy, y_vector_size);
 
   auto gbmv = make_gbmv<local_range, is_transposed>(_KL, _KU, _alpha, mA, vx,
@@ -561,8 +569,10 @@ typename sb_handle_t::event_t _sbmv_impl(
 
   auto vector_size = _N;
 
-  auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
-  auto vx = make_vector_view(_vx, _incx, vector_size);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, vector_size);
   auto vy = make_vector_view(_vy, _incy, vector_size);
 
   auto sbmv = make_sbmv<local_range, uplo == uplo_type::Upper>(_K, _alpha, mA,
@@ -595,8 +605,10 @@ typename sb_handle_t::event_t _spmv_impl(
   index_t vector_size = _N;
   index_t matrix_size = ((_N + 1) * _N) / 2;
 
-  auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
-  auto vx = make_vector_view(_vx, _incx, vector_size);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, vector_size);
   auto vy = make_vector_view(_vy, _incy, vector_size);
 
   auto spmv =
@@ -636,7 +648,8 @@ typename sb_handle_t::event_t _tbmv_impl(
                                                     : helper::AllocType::buffer,
        element_t > (x_vector_size, sb_handle.get_queue());
 
-  auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, x_vector_size);
   auto vres = make_vector_view(res_buffer, one::value(), x_vector_size);
 
@@ -681,7 +694,8 @@ typename sb_handle_t::event_t _tpmv_impl(
                                                     : helper::AllocType::buffer,
        element_t > (vector_size, sb_handle.get_queue());
 
-  auto mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
   auto vx = make_vector_view(_vx, _incx, vector_size);
   auto vres = make_vector_view(res_buffer, one, vector_size);
 
@@ -730,7 +744,9 @@ typename sb_handle_t::event_t _tbsv_impl(
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
 
-  auto mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
+  using element_t = typename ValueType<container_t0>::type;
+  typename MatrixViewType<container_t0, element_t, index_t, col_major>::type
+      mA = make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
   auto vx = make_vector_view(_vx, _incx, _N);
 
   std::vector<int32_t> sync_vec(2);
@@ -781,8 +797,10 @@ typename sb_handle_t::event_t _ger_impl(
   index_t M = _M;
   index_t N = _N;
   auto mA = make_matrix_view<col_major>(_mA, M, N, _lda);
-  auto vx = make_vector_view(_vx, _incx, M);
-  auto vy = make_vector_view(_vy, _incy, N);
+  typename VectorViewType<container_t0, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, M);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vy = make_vector_view(_vy, _incy, N);
 
   const index_t localSize =
       (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
@@ -829,7 +847,8 @@ typename sb_handle_t::event_t _syr_impl(
   int triangOpr = (_Uplo == 'u');
   index_t N = _N;
   auto mA = make_matrix_view<col_major>(_mA, N, N, _lda);
-  auto vx = make_vector_view(_vx, _incx, N);
+  typename VectorViewType<container_t0, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, N);
 
   const index_t localSize =
       (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;
@@ -890,7 +909,8 @@ typename sb_handle_t::event_t _spr_impl(
   _Uplo = tolower(_Uplo);
   const int Upper = _Uplo == 'u';
   auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t0, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, _N);
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
@@ -947,8 +967,10 @@ typename sb_handle_t::event_t _spr2_impl(
   _Uplo = tolower(_Uplo);
   const int Upper = _Uplo == 'u';
   auto mA = make_matrix_view<col_major>(_mPA, _N, (_N + 1) / 2, _N);
-  auto vx = make_vector_view(_vx, _incx, _N);
-  auto vy = make_vector_view(_vy, _incy, _N);
+  typename VectorViewType<container_t0, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vy = make_vector_view(_vy, _incy, _N);
 
   const index_t localSize = sb_handle.get_work_group_size();
   const index_t nColsWG = localSize;
@@ -995,8 +1017,10 @@ typename sb_handle_t::event_t _syr2_impl(
   index_t N = _N;
 
   auto mA = make_matrix_view<col_major>(_mA, _N, _N, _lda);
-  auto vx = make_vector_view(_vx, _incx, _N);
-  auto vy = make_vector_view(_vy, _incy, _N);
+  typename VectorViewType<container_t0, element_t, index_t, increment_t>::type
+      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t1, element_t, index_t, increment_t>::type
+      vy = make_vector_view(_vy, _incy, _N);
 
   const index_t localSize =
       (_localSize == 0) ? sb_handle.get_work_group_size() : _localSize;

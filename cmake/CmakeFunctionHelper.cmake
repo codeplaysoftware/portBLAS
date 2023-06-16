@@ -84,6 +84,10 @@ function(set_target_compile_def in_target)
     message(STATUS "Gemm vectorization support enabled for target ${in_target}")
     target_compile_definitions(${in_target} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
   endif()
+
+  if(BLAS_ENABLE_CONST_INPUT)
+    target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_CONST_INPUT=1)
+  endif()
 endfunction()
 
 
@@ -135,16 +139,31 @@ endfunction(generate_blas_unary_objects)
 # blas binary function for generating source code
 function(generate_blas_binary_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+string(FIND ${func} "_const" const_pos)
+if(const_pos)
+  string(REPLACE "_const" "" actualfunc ${func})
+endif()
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
-  set(container_list "BufferIterator<${cpp_data}>")
-  if(${SB_ENABLE_USM})
-    list(APPEND container_list "${cpp_data}*")
+  set(container_list_in)
+  set(container_list_out)
+  if(const_pos EQUAL -1)
+    list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_out "BufferIterator<${cpp_data}>")
+    if(${SB_ENABLE_USM})
+      list(APPEND container_list_in "${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
+    endif()
+  else()
+    if(${SB_ENABLE_USM})
+      list(APPEND container_list_in "const ${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
+    endif()
   endif()
   foreach(index ${index_list})
     set(idx 0)
-    foreach(container0 ${container_list})
-      list(GET container_list ${idx} container1)
+    foreach(container0 ${container_list_in})
+      list(GET container_list_out ${idx} container1)
       MATH(EXPR idx "${idx}+1")
       set(container_names "${container0}_${container1}")
       foreach(increment ${index_list})
@@ -156,14 +175,14 @@ foreach(data ${data_list})
             ${SYCLBLAS_SRC_GENERATOR}/gen
             ${blas_level}
             ${func}
-            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+            ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
             ${cpp_data}
             ${index}
             ${increment}
             ${container0}
             ${container1}
             ${file_name}
-          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
           DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
           WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
           VERBATIM
@@ -193,20 +212,19 @@ endif()
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
   set(container_list_in)
+  set(container_list_out)
   if(pos EQUAL -1)
     list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_out "BufferIterator<${cpp_data}>")
     if(${SB_ENABLE_USM})
       list(APPEND container_list_in "${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
   else()
-    list(APPEND container_list_in "BufferIterator<${cpp_data}> const")
     if(${SB_ENABLE_USM})
-      list(APPEND container_list_in "${cpp_data}* const")
+      list(APPEND container_list_in "const ${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
-  endif()
-  set(container_list_out "BufferIterator<${cpp_data}>")
-  if(${SB_ENABLE_USM})
-    list(APPEND container_list_out "${cpp_data}*")
   endif()
   foreach(index ${index_list})
     foreach(operator ${operator_list})
@@ -255,18 +273,30 @@ endfunction(generate_blas_reduction_objects)
 # blas special binary function for generating source code
 function(generate_blas_binary_special_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
+string(FIND ${func} "_const" pos)
+if(pos)
+  string(REPLACE "_const" "" actualfunc ${func})
+endif()
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
-  set(container_list_in "BufferIterator<${cpp_data}>")
-  if(${SB_ENABLE_USM})
-    list(APPEND container_list_in "${cpp_data}*")
-  endif()
+  set(container_list_in)
+  set(container_list_out)
   foreach(index ${index_list})
-    set(container_list_out
-    "BufferIterator<IndexValueTuple<${index},${cpp_data}>>")
-    if(${SB_ENABLE_USM})
+    if(pos EQUAL -1)
+      list(APPEND container_list_in "BufferIterator<${cpp_data}>")
       list(APPEND container_list_out
-        "IndexValueTuple<${index},${cpp_data}>*")
+      "BufferIterator<IndexValueTuple<${index},${cpp_data}>>")
+      if(${SB_ENABLE_USM})
+        list(APPEND container_list_in "${cpp_data}*")
+        list(APPEND container_list_out
+                  "IndexValueTuple<${index},${cpp_data}>*")
+      endif()
+    else()
+      if(${SB_ENABLE_USM})
+        list(APPEND container_list_in "const ${cpp_data}*")
+        list(APPEND container_list_out
+                  "IndexValueTuple<${index},${cpp_data}>*")
+      endif()
     endif()
     set(idx 0)
     foreach(container0 ${container_list_in})
@@ -282,14 +312,14 @@ foreach(data ${data_list})
             ${SYCLBLAS_SRC_GENERATOR}/gen
             ${blas_level}
             ${func}
-            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+            ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
             ${cpp_data}
             ${index}
             ${increment}
             ${container0}
             ${container1}
             ${file_name}
-          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+          MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
           DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
           WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
           VERBATIM
@@ -319,20 +349,19 @@ endif()
 foreach(data ${data_list})
   cpp_type(cpp_data ${data})
   set(container_list_in)
+  set(container_list_out)
   if(const_pos EQUAL -1)
     list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_out "BufferIterator<${cpp_data}>")
     if(${SB_ENABLE_USM})
       list(APPEND container_list_in "${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
   else()
-    list(APPEND container_list_in "BufferIterator<${cpp_data}> const")
     if(${SB_ENABLE_USM})
-      list(APPEND container_list_in "${cpp_data}* const")
+      list(APPEND container_list_in "const ${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
-  endif()
-  set(container_list_out "BufferIterator<${cpp_data}>")
-  if(${SB_ENABLE_USM})
-    list(APPEND container_list_out "${cpp_data}*")
   endif()
   foreach(index ${index_list})
     set(idx 0)
@@ -554,20 +583,19 @@ function(add_gemm_configuration
   endif()
   cpp_type(cpp_data ${data})
   set(container_list_in)
+  set(container_list_out)
   if(const_pos EQUAL -1)
     list(APPEND container_list_in "BufferIterator<${cpp_data}>")
+    list(APPEND container_list_out "BufferIterator<${cpp_data}>")
     if(${SB_ENABLE_USM})
       list(APPEND container_list_in "${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
   else()
-    list(APPEND container_list_in "BufferIterator<${cpp_data}> const")
     if(${SB_ENABLE_USM})
-      list(APPEND container_list_in "${cpp_data}* const")
+      list(APPEND container_list_in "const ${cpp_data}*")
+      list(APPEND container_list_out "${cpp_data}*")
     endif()
-  endif()
-  set(container_list_out "BufferIterator<${cpp_data}>")
-  if(${SB_ENABLE_USM})
-    list(APPEND container_list_out "${cpp_data}*")
   endif()
   set(idx 0)
   foreach (container0 ${container_list_in})
@@ -597,7 +625,7 @@ function(add_gemm_configuration
                     ${SYCLBLAS_SRC_GENERATOR}/gen
                     ${blas_level}
                     ${func}
-                    ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                    ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                     ${cpp_data}
                     ${index}
                     ${double_buffer}
@@ -635,7 +663,7 @@ function(add_gemm_configuration
                     ${container0}
                     ${container1}
                     ${container2}
-                  MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${actualfunc}.cpp.in
                   DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                   VERBATIM
@@ -889,19 +917,42 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>)
 
-  if (${ENABLE_EXTENSIONS})
-    list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
-  endif()
+  # if (${ENABLE_EXTENSIONS})
+  #   list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)
+  # endif()
 
   add_library(${LIB_NAME} ${LIB_SRCS})
 
-  if(BLAS_ENABLE_CONST_INPUT)
-    set(CONST_SRCS $<TARGET_OBJECTS:gemv_const>
-                   $<TARGET_OBJECTS:gemm_const>)
+  if(${SB_ENABLE_USM})
+    set(CONST_SRCS  $<TARGET_OBJECTS:axpy_const>
+                    $<TARGET_OBJECTS:asum_const>
+                    $<TARGET_OBJECTS:copy_const>
+                    $<TARGET_OBJECTS:nrm2_const>
+                    $<TARGET_OBJECTS:iamax_const> 
+                    $<TARGET_OBJECTS:iamin_const>
+                    $<TARGET_OBJECTS:gbmv_const>
+                    $<TARGET_OBJECTS:gemv_const>
+                    $<TARGET_OBJECTS:ger_const>
+                    $<TARGET_OBJECTS:sbmv_const>
+                    $<TARGET_OBJECTS:spmv_const>
+                    $<TARGET_OBJECTS:symv_const>
+                    $<TARGET_OBJECTS:syr_const>
+                    $<TARGET_OBJECTS:spr_const>
+                    $<TARGET_OBJECTS:spr2_const>
+                    $<TARGET_OBJECTS:syr2_const>
+                    $<TARGET_OBJECTS:tbmv_const>
+                    $<TARGET_OBJECTS:tpmv_const>
+                    $<TARGET_OBJECTS:tbsv_const>
+                    $<TARGET_OBJECTS:trmv_const>
+                    $<TARGET_OBJECTS:trsv_const>
+                    $<TARGET_OBJECTS:gemm_const>
+                    $<TARGET_OBJECTS:gemm_launcher_const>
+                    $<TARGET_OBJECTS:symm_const>
+                    $<TARGET_OBJECTS:trsm_const>)
 
-    if(${ENABLE_EXTENSIONS})
-      list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
-    endif()
+    # if(${ENABLE_EXTENSIONS})
+    #   list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
+    # endif()
 
     target_sources(${LIB_NAME} PRIVATE ${CONST_SRCS})
   endif()

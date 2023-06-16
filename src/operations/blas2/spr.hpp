@@ -57,7 +57,7 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
   const int64_t lhs_size = N_ * (N_ + 1) / 2;
 
   index_t row = 0, col = 0;
-  value_t out{0};
+  // value_t out{0};
 
   if (global_idx < lhs_size) {
     value_t lhs_val = lhs_.eval(global_idx);
@@ -70,14 +70,14 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     if constexpr (!Single) {
       value_t rhs_1_val_second = rhs_1_.eval(col);
       value_t rhs_2_val_second = rhs_2_.eval(row);
-      out = rhs_1_val * rhs_2_val * alpha_ +
+      lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ +
             rhs_1_val_second * rhs_2_val_second * alpha_ + lhs_val;
     } else
-      out = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
+      lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
 
-    lhs_.eval(global_idx) = out;
+    // lhs_.eval(global_idx) = out;
   }
-  return out;
+  return lhs_.eval(global_idx);
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>

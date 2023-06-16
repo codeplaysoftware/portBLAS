@@ -53,7 +53,7 @@ SYCL_BLAS_INLINE bool SumMatrixColumns<rhs_t>::valid_thread(
 
 template <typename rhs_t>
 SYCL_BLAS_INLINE typename SumMatrixColumns<rhs_t>::value_t
-SumMatrixColumns<rhs_t>::eval(typename SumMatrixColumns<rhs_t>::index_t i) {
+SumMatrixColumns<rhs_t>::eval(typename SumMatrixColumns<rhs_t>::index_t i) const {
   auto dimR = rhs_.get_size_row();
   auto dimC = rhs_.get_size_col();
 
@@ -68,7 +68,7 @@ SumMatrixColumns<rhs_t>::eval(typename SumMatrixColumns<rhs_t>::index_t i) {
 
 template <typename rhs_t>
 SYCL_BLAS_INLINE typename SumMatrixColumns<rhs_t>::value_t
-SumMatrixColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+SumMatrixColumns<rhs_t>::eval(cl::sycl::nd_item<1> ndItem) const {
   return eval(ndItem.get_global_id(0));
 }
 
