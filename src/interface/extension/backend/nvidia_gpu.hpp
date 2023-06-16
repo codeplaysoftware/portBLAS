@@ -35,24 +35,19 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _transpose_outplace(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
-    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
-    index_t _ld_out, index_t _inc_out) {
+    container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
+    container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
+    index_t _batch_size) {
   if (_M * _N > (1 << 18)) {
-    return Transpose_Launcher<
-        32, 512, 128, true>::template _select_transpose_outplace(sb_handle, _M,
-                                                                 _N, _alpha,
-                                                                 in_, _ld_in,
-                                                                 _inc_in, out_,
-                                                                 _ld_out,
-                                                                 _inc_out);
+    return Transpose_Launcher<32, 512, 128, true>::
+        template _select_transpose_outplace(
+            sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
+            _ld_out, _inc_out, _stride_out, _batch_size);
   } else {
-    return Transpose_Launcher<
-        32, 128, 128, true>::template _select_transpose_outplace(sb_handle, _M,
-                                                                 _N, _alpha,
-                                                                 in_, _ld_in,
-                                                                 _inc_in, out_,
-                                                                 _ld_out,
-                                                                 _inc_out);
+    return Transpose_Launcher<32, 128, 128, true>::
+        template _select_transpose_outplace(
+            sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
+            _ld_out, _inc_out, _stride_out, _batch_size);
   }
 }
 

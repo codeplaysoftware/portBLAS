@@ -54,8 +54,9 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
 SYCL_BLAS_INLINE typename in_t::index_t
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::get_size() const {
-  // Smallest TileSize square-multiple containing input/output matrices
-  return (M_pad_ * N_pad_);
+  // Smallest TileSize square-multiple containing input/output matrices times
+  // batch_size
+  return (size_pad_ * batch_size_);
 }
 
 template <bool in_place, int Tile_size, int wg_size, int cl_size,
@@ -86,8 +87,13 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
 
-  const index_t jg = idg / tile_count_m_;
-  const index_t ig = idg - jg * tile_count_m_;
+  const index_t ibatch =
+      (batch_size_ == index_t(1)) ? 0 : idg / tile_count_total_;
+
+  const index_t relative_idg = idg - ibatch * tile_count_total_;
+
+  const index_t jg = relative_idg / tile_count_m_;
+  const index_t ig = relative_idg - jg * tile_count_m_;
 
   const index_t jl = idc / Tile_size;
   const index_t il = idc - jl * Tile_size;
@@ -98,11 +104,11 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   i = (i_block_start + il) * inc_a_;
   j = (j_block_start + jl) * inc_at_;
 
-  in_idx =
-      i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ + jl * lda_;
+  in_idx = i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ +
+           jl * lda_ + ibatch * stride_a_;
 
   out_idx = i_block_start * ldat_ + j_block_start * inc_at_ + jl * inc_at_ +
-            il * ldat_;
+            il * ldat_ + ibatch * stride_at_;
 }
 
 template <bool in_place, int Tile_size, int wg_size, int cl_size,
@@ -111,6 +117,8 @@ SYCL_BLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::eval(cl::sycl::nd_item<1> id) {
   index_t idx = id.get_global_linear_id();
+
+  const index_t ibatch = (batch_size_ == index_t(1)) ? 0 : idx / size_pad_;
 
   index_t in_index, out_index, i_id, j_id;
 
@@ -121,8 +129,9 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
     auto At = At_.get_data().get_pointer();
     for (index_t l = 0; l < inner_tile_count_; l++) {
       if (j_id + l * inner_tile_size_ * inc_at_ < ((N_ - 1) * inc_at_ + 1)) {
-        At[out_index + l * inner_tile_size_ * inc_at_] =
-            alpha_ * A[in_index + l * inner_tile_size_ * lda_];
+        At[out_index + l * inner_tile_size_ * inc_at_ + ibatch * stride_a_] =
+            alpha_ *
+            A[in_index + l * inner_tile_size_ * lda_ + ibatch * stride_at_];
       }
     }
   }
@@ -156,8 +165,13 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
 
-  const index_t jg = idg / tile_count_m_;
-  const index_t ig = idg - jg * tile_count_m_;
+  const index_t ibatch =
+      (batch_size_ == index_t(1)) ? 0 : idg / tile_count_total_;
+
+  const index_t relative_idg = idg - ibatch * tile_count_total_;
+
+  const index_t jg = relative_idg / tile_count_m_;
+  const index_t ig = relative_idg - jg * tile_count_m_;
 
   jl = idc / Tile_size;
   il = idc - jl * Tile_size;
@@ -165,8 +179,8 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   i_block_start = ig * Tile_size;
   j_block_start = jg * Tile_size;
 
-  in_idx =
-      i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ + jl * lda_;
+  in_idx = i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ +
+           jl * lda_ + ibatch * stride_a_;
 
   index_t jl_cl = idc / get_num_cache_line_elems();
   index_t il_cl = idc - jl_cl * get_num_cache_line_elems();
@@ -174,7 +188,7 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   in_local_idx = jl_cl * (get_num_cache_line_elems() + 1) + il_cl;
 
   out_idx = i_block_start * ldat_ + j_block_start * inc_at_ + il * inc_at_ +
-            jl * ldat_;
+            jl * ldat_ + ibatch * stride_at_;
   out_local_idx = il * Tile_size + jl + il / get_num_tiles_per_cache_line();
 }
 

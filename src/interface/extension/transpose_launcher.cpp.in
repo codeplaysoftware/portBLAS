@@ -48,8 +48,11 @@ template typename SB_Handle::event_t Transpose_Launcher<
         ${DATA_TYPE} _alpha,
         ${container_t} a_, 
         ${INDEX_TYPE} _ld_in, ${INDEX_TYPE} _inc_in, 
+        ${INDEX_TYPE} _stride_in,
         ${container_t} b_,
-        ${INDEX_TYPE} _ld_out, ${INDEX_TYPE} _inc_out);
+        ${INDEX_TYPE} _ld_out, ${INDEX_TYPE} _inc_out,
+        ${INDEX_TYPE} _stride_out,
+        ${INDEX_TYPE} _batch_size);
 
 template typename SB_Handle::event_t TransposeAdd_Launcher<
     true, ${TILE_SIZE}, ${WG_SIZE}, ${CL_SIZE}, ${LOCAL_MEM}>::

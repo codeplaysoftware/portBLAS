@@ -84,12 +84,12 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b);
 
-template <typename sb_handle_t, typename element_t, typename index_t,
-          typename in_t, typename out_t>
+template <bool in_place, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _matcopy_batch(
     sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
-    in_t memory, index_t ld_in, index_t in_stride, out_t out_memory,
-    index_t ld_out, index_t out_stride, index_t batch_size);
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size);
 
 template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
           typename element_t, typename index_t, typename in_t, typename out_t>
@@ -261,6 +261,7 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
 }
 
 template <typename sb_handle_t, typename element_t, typename index_t,
+<<<<<<< HEAD
           typename in_out_t>
 typename sb_handle_t::event_t _imatcopy_batch(sb_handle_t& sb_handle,
                                               char trans, index_t m, index_t n,
@@ -281,6 +282,16 @@ typename sb_handle_t::event_t _omatcopy_batch(
   return internal::_matcopy_batch(sb_handle, trans, m, n, alpha, in_memory,
                                   ld_in, in_stride, out_memory, ld_out,
                                   out_stride, batch_size);
+=======
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _omatcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size) {
+  return internal::_matcopy_batch<false>(
+      sb_handle, trans, m, n, alpha, in_memory, ld_in, stride_in, out_memory,
+      ld_out, stride_out, batch_size);
+>>>>>>> 6b6727a... Added batched transpose
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,

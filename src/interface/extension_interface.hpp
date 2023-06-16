@@ -61,20 +61,22 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out) {
+              in_t in_memory, index_t ld_in, index_t inc_in, index_t stride_in,
+              out_t out_memory, index_t ld_out, index_t inc_out,
+              index_t stride_out, index_t batch_size) {
   return blas::extension::backend::_transpose_outplace<sb_handle_t, in_t, out_t,
                                                        element_t, index_t>(
-      sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-      inc_out);
+      sb_handle, m, n, alpha, in_memory, ld_in, inc_in, stride_in, out_memory,
+      ld_out, inc_out, stride_out, batch_size);
 }
 
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans && in_place, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out) {
+              in_t in_memory, index_t ld_in, index_t inc_in, index_t stride_in,
+              out_t out_memory, index_t ld_out, index_t inc_out,
+              index_t stride_out, index_t batch_size) {
   // TODO
   typename sb_handle_t::event_t ret;
   return ret;
@@ -87,8 +89,9 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out) {
+              in_t in_memory, index_t ld_in, index_t inc_in, index_t stride_in,
+              out_t out_memory, index_t ld_out, index_t inc_out,
+              index_t stride_out, index_t batch_size) {
   typename sb_handle_t::event_t ret;
   // if alpha=1 no need to multiply
   if (alpha == 1) {
@@ -273,14 +276,43 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
     return ret;
   }
 
+  const index_t stride = 1;
+  const index_t batch_size = 1;
+
   if (trans == 't') {
     return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, in_memory,
-                                         ld_in, inc_in, out_memory, ld_out,
-                                         inc_out);
+                                         ld_in, inc_in, stride, out_memory,
+                                         ld_out, inc_out, stride, 1);
   } else {
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
-                                          ld_in, inc_in, out_memory, ld_out,
-                                          inc_out);
+                                          ld_in, inc_in, stride, out_memory,
+                                          ld_out, inc_out, stride, batch_size);
+  }
+}
+
+template <bool in_place, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size) {
+  // bail out early if the leading dimensions / strides are not correct
+  if (ld_in < m || (ld_out < trans == 't' ? n : m) || (stride_in < ld_in * m) ||
+      (stride_out < ld_out * (trans == 't' ? m : n))) {
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
+
+  const index_t increment = 1;
+
+  if (trans == 't') {
+    return _matcopy_impl<in_place, true>(
+        sb_handle, m, n, alpha, in_memory, ld_in, increment, stride_in,
+        out_memory, ld_out, increment, stride_out, batch_size);
+  } else {
+    return _matcopy_impl<in_place, false>(
+        sb_handle, m, n, alpha, in_memory, ld_in, increment, stride_in,
+        out_memory, ld_out, increment, stride_out, batch_size);
   }
 }
 
@@ -324,10 +356,12 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
   }
 
   const index_t inc = 1;
-  const element_t alpha = element_t(1);
+  const index_t stride = 1;
+  const index_t batch_size = 1;
 
-  return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a, inc, B,
-                                       ld_b, inc);
+  return _matcopy_impl<in_place, true>(sb_handle, m, n, (float)1.0, A, ld_a,
+                                       inc, stride, B, ld_b, inc, stride,
+                                       batch_size);
 }
 
 template <typename sb_handle_t, typename element_t, typename index_t,

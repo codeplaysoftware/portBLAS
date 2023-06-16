@@ -43,6 +43,18 @@ template typename SB_Handle::event_t _transpose<true, ${DATA_TYPE}>
     ${container_t} A, ${INDEX_TYPE} ld_a,
     ${container_t} B, ${INDEX_TYPE} ld_b);
 
+template typename SB_Handle::event_t _matcopy_batch<false>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n, 
+    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in, 
+    ${INDEX_TYPE} stride_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out, 
+    ${INDEX_TYPE} stride_out, ${INDEX_TYPE} batch_size);
+
+template typename SB_Handle::event_t _matcopy_batch<true>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n, 
+    ${DATA_TYPE} alpha, ${container_t} in_memory, ${INDEX_TYPE} ld_in, 
+    ${INDEX_TYPE} stride_in, ${container_t} out_memory, ${INDEX_TYPE} ld_out, 
+    ${INDEX_TYPE} stride_out, ${INDEX_TYPE} batch_size);
+
 }  // namespace internal
 }  // namespace extension
 }  // namespace blas

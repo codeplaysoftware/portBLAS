@@ -44,8 +44,9 @@ Transpose_Launcher<Tile_size, wg_size, cl_size, local_memory>::
     _select_transpose_outplace(sb_handle_t& sb_handle, index_t _M, index_t _N,
                                element_t _alpha, container_0_t in_,
                                index_t _ld_in, index_t _inc_in,
-                               container_1_t out_, index_t _ld_out,
-                               index_t _inc_out) {
+                               index_t _stride_in, container_1_t out_,
+                               index_t _ld_out, index_t _inc_out,
+                               index_t _stride_out, index_t _batch_size) {
   constexpr const index_t num_cache_line_elems = cl_size / sizeof(element_t);
   constexpr const index_t num_tiles_per_cache_line =
       num_cache_line_elems / Tile_size;
@@ -57,12 +58,13 @@ Transpose_Launcher<Tile_size, wg_size, cl_size, local_memory>::
 
   // Work items & groups sizes
   index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
-  index_t global_size = n_wg * wg_size;
+  index_t global_size = n_wg * wg_size * _batch_size;
 
   // Transpose expression Tree
   auto trans_scale_tree =
       make_transpose<false, Tile_size, wg_size, cl_size, local_memory>(
-          in_view, _inc_in, out_view, _inc_out, _alpha);
+          in_view, _inc_in, _stride_in, out_view, _inc_out, _stride_out, _alpha,
+          _batch_size);
 
   if constexpr (local_memory) {
     index_t local_mem =
