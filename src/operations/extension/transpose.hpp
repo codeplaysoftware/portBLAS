@@ -129,9 +129,8 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
     auto At = At_.get_data().get_pointer();
     for (index_t l = 0; l < inner_tile_count_; l++) {
       if (j_id + l * inner_tile_size_ * inc_at_ < ((N_ - 1) * inc_at_ + 1)) {
-        At[out_index + l * inner_tile_size_ * inc_at_ + ibatch * stride_a_] =
-            alpha_ *
-            A[in_index + l * inner_tile_size_ * lda_ + ibatch * stride_at_];
+        At[out_index + l * inner_tile_size_ * inc_at_] =
+            alpha_ * A[in_index + l * inner_tile_size_ * lda_];
       }
     }
   }
