@@ -85,7 +85,7 @@ const auto combi =
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
                        ::testing::Values<scalar_t>(0, 1.05, 2.01),     // alpha
                        ::testing::Values<index_t>(1, 3),   // ld_in_m
-                       ::testing::Values<index_t>(1, 3));  // ld_in_n
+                       ::testing::Values<index_t>(1, 3));  // ld_out_m
 #else
 template <typename scalar_t>
 const auto combi =
@@ -94,7 +94,7 @@ const auto combi =
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 1, 2),      // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
-                       ::testing::Values<index_t>(1, 2, 3));      // ld_in_n
+                       ::testing::Values<index_t>(1, 2, 3));      // ld_out_m
 #endif
 
 template <class T>

@@ -297,8 +297,9 @@ typename sb_handle_t::event_t _matcopy_batch(
     in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
     index_t ld_out, index_t stride_out, index_t batch_size) {
   // bail out early if the leading dimensions / strides are not correct
-  if (ld_in < m || (ld_out < trans == 't' ? n : m) || (stride_in < ld_in * m) ||
-      (stride_out < ld_out * (trans == 't' ? m : n))) {
+  if (ld_in < m || (ld_out < (trans == 't' ? n : m)) ||
+      (stride_in < ld_in * n) ||
+      (stride_out < (ld_out * (trans == 't' ? m : n)))) {
     typename sb_handle_t::event_t ret;
     return ret;
   }

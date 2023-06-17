@@ -61,6 +61,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/transpose_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/omatcopy_batch_test.cpp
+  ${SYCLBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
 )
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
