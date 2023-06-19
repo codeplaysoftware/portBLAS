@@ -161,7 +161,8 @@ void register_benchmark(blas_benchmark::Args& args,
       run<scalar_t>(st, cuda_handle_ptr, uplo, n, alpha, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(uplo, n, alpha)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            uplo, n, alpha, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, cuda_handle_ptr, uplo, n, alpha, success)
         ->UseRealTime();

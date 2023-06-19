@@ -106,64 +106,68 @@ get_name(index_t size, index_t incx, index_t incy, std::string mem_type) {
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gbmv, std::string>::type
-get_name(std::string t, index_t m, index_t n, index_t kl, index_t ku) {
-  return internal::get_name<op, scalar_t>(t, m, n, kl, ku);
+get_name(std::string t, index_t m, index_t n, index_t kl, index_t ku,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(t, m, n, kl, ku, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gemv || op == Level2Op::sbmv,
                                std::string>::type
-get_name(std::string t, index_t m, index_t n) {
-  return internal::get_name<op, scalar_t>(t, m, n);
+get_name(std::string t, index_t m, index_t n, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(t, m, n, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::ger, std::string>::type get_name(
-    index_t m, index_t n) {
-  return internal::get_name<op, scalar_t>(m, n);
+    index_t m, index_t n, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(m, n, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::syr || op == Level2Op::syr2,
                                std::string>::type
-get_name(std::string uplo, index_t n, scalar_t alpha) {
-  return internal::get_name<op, scalar_t>(uplo, n, alpha);
+get_name(std::string uplo, index_t n, scalar_t alpha, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::spr, std::string>::type get_name(
-    std::string uplo, index_t n, scalar_t alpha, index_t incx) {
-  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx);
+    std::string uplo, index_t n, scalar_t alpha, index_t incx,
+    std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::spmv || op == Level2Op::symv,
                                std::string>::type
-get_name(std::string uplo, index_t n, scalar_t alpha, scalar_t beta) {
-  return internal::get_name<op, scalar_t>(uplo, n, alpha, beta);
+get_name(std::string uplo, index_t n, scalar_t alpha, scalar_t beta,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, beta, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::spr2, std::string>::type
 get_name(std::string uplo, index_t n, scalar_t alpha, index_t incx,
-         index_t incy) {
-  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx, incy);
+         index_t incy, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, n, alpha, incx, incy, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::tbmv || op == Level2Op::tbsv,
                                std::string>::type
 get_name(std::string uplo, std::string t, std::string diag, index_t n,
-         index_t k) {
-  return internal::get_name<op, scalar_t>(uplo, t, diag, n, k);
+         index_t k, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, t, diag, n, k, mem_type);
 }
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
                                    op == Level2Op::trsv,
                                std::string>::type
-get_name(std::string uplo, std::string t, std::string diag, index_t n) {
-  return internal::get_name<op, scalar_t>(uplo, t, diag, n);
+get_name(std::string uplo, std::string t, std::string diag, index_t n,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(uplo, t, diag, n, mem_type);
 }
 
 }  // namespace utils
