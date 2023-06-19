@@ -711,12 +711,11 @@ static inline std::vector<gbmv_param_t<scalar_t>> get_gbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<gbmv_param_t<scalar_t>> gbmv_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
-    constexpr index_t kmin = 2048;
+    constexpr index_t dmin = 4096, dmax = 16384;
     scalar_t alpha = 1;
     scalar_t beta = 0;
     for (index_t m = dmin; m <= dmax; m *= 2) {
-      for (index_t kl = kmin; kl <= m / 4; kl *= 2) {
+      for (index_t kl = m / 32; kl <= m / 4; kl *= 2) {
         gbmv_default.push_back(std::make_tuple("n", m, m, kl, kl, alpha, beta));
       }
     }
@@ -751,12 +750,11 @@ static inline std::vector<sbmv_param_t<scalar_t>> get_sbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<sbmv_param_t<scalar_t>> sbmv_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
-    constexpr index_t kmin = 1024;
+    constexpr index_t dmin = 4096, dmax = 16384;
     scalar_t alpha = 1;
     scalar_t beta = 1;
     for (index_t n = dmin; n <= dmax; n *= 2) {
-      for (index_t k = kmin; k <= n / 4; k *= 2) {
+      for (index_t k = n / 32; k <= n / 4; k *= 2) {
         sbmv_default.push_back(std::make_tuple("u", n, k, alpha, beta));
       }
     }
@@ -894,10 +892,9 @@ static inline std::vector<tbmv_param_t> get_tbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<tbmv_param_t> tbmv_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
-    constexpr index_t kmin = 1024;
+    constexpr index_t dmin = 4096, dmax = 16384;
     for (index_t n = dmin; n <= dmax; n *= 2) {
-      for (index_t k = kmin; k <= n / 4; k *= 2) {
+      for (index_t k = n / 32; k <= n / 4; k *= 2) {
         tbmv_default.push_back(std::make_tuple("u", "n", "n", n, k));
       }
     }
@@ -931,7 +928,6 @@ static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
     warning_no_csv();
     std::vector<trsv_param_t> trsv_default;
     constexpr index_t dmin = 1024, dmax = 16384;
-    constexpr index_t kmin = 1024;
     for (index_t n = dmin; n <= dmax; n *= 2) {
       trsv_default.push_back(std::make_tuple("u", "n", "n", n));
     }
