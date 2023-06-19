@@ -104,8 +104,8 @@ namespace blas_benchmark {
 
 namespace utils {
 
-constexpr std::string MEM_TYPE_BUFFER = "buffer";
-constexpr std::string MEM_TYPE_USM = "buffer";
+inline constexpr char MEM_TYPE_BUFFER[] = "buffer";
+inline constexpr char MEM_TYPE_USM[] = "usm";
 
 /**
  * @brief Print the explanatory string of an exception.
