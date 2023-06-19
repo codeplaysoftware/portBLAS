@@ -243,8 +243,9 @@ get_name(char side, char uplo, char trans, char diag, index_t m, index_t n,
 
 template <ExtensionOp op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == ExtensionOp::reduction, std::string>::type
-get_name(index_t rows, index_t cols, std::string reduction_dim) {
-  return internal::get_name<op, scalar_t>(rows, cols, reduction_dim);
+get_name(index_t rows, index_t cols, std::string reduction_dim,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(rows, cols, reduction_dim, mem_type);
 }
 
 }  // namespace utils

@@ -141,13 +141,13 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
       run<scalar_t>(st, sb_handle_ptr, rows, cols, dim, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(rows, cols,
-                                                                "inner")
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            rows, cols, "inner", blas_benchmark::utils::MEM_TYPE_BUFFER)
             .c_str(),
         BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::inner, success);
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(rows, cols,
-                                                                "outer")
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            rows, cols, "outer", blas_benchmark::utils::MEM_TYPE_BUFFER)
             .c_str(),
         BM_lambda, sb_handle_ptr, rows, cols, reduction_dim_t::outer, success);
   }
