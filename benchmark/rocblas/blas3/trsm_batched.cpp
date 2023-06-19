@@ -208,7 +208,7 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
             s_side, s_uplo, s_t, s_diag, m, n, batch_size, stride_a_mul,
-            stride_b_mul)
+            stride_b_mul, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, rb_handle, s_side, s_uplo, s_t, s_diag, m, n, alpha,
         batch_size, stride_a_mul, stride_b_mul, success)

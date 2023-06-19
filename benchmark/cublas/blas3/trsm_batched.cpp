@@ -210,7 +210,7 @@ void register_benchmark(blas_benchmark::Args& args,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
             s_side, s_uplo, s_t, s_diag, m, n, batch_count, stride_a_mul,
-            stride_b_mul)
+            stride_b_mul, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, cuda_handle_ptr, s_side, s_uplo, s_t, s_diag, m, n, alpha,
         batch_count, stride_a_mul, stride_b_mul, success)

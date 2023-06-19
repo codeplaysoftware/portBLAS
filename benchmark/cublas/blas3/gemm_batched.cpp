@@ -200,7 +200,8 @@ void register_benchmark(blas_benchmark::Args& args,
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            t1s, t2s, m, k, n, batch_count, batch_type)
+            t1s, t2s, m, k, n, batch_count, batch_type,
+            blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, cuda_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_count,
         batch_type, success)

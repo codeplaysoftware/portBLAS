@@ -175,8 +175,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
       run<scalar_t>(st, rb_handle, t1i, t2i, m, k, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(t_a, t_b, m, k,
-                                                                n)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            t_a, t_b, m, k, n, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, rb_handle, t_a_i, t_b_i, m, k, n, alpha, beta, success)
         ->UseRealTime();
