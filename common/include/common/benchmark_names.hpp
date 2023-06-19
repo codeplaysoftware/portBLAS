@@ -73,8 +73,8 @@ inline std::string get_name(Args... args) {
 template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::rotg || op == Level1Op::rotmg,
                                std::string>::type
-get_name() {
-  return internal::get_name<op, scalar_t>();
+get_name(std::string mem_type) {
+  return internal::get_name<op, scalar_t>(mem_type);
 }
 
 template <Level1Op op, typename scalar_t, typename index_t>
@@ -85,14 +85,14 @@ inline
                                 op == Level1Op::rotm || op == Level1Op::scal ||
                                 op == Level1Op::sdsdot,
                             std::string>::type
-    get_name(index_t size) {
-  return internal::get_name<op, scalar_t>(size);
+    get_name(index_t size, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(size, mem_type);
 }
 
 template <Level1Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level1Op::copy, std::string>::type
-get_name(index_t size, index_t incx, index_t incy) {
-  return internal::get_name<op, scalar_t>(size, incx, incy);
+get_name(index_t size, index_t incx, index_t incy, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(size, incx, incy, mem_type);
 }
 
 }  // namespace utils
