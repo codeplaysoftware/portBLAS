@@ -27,7 +27,6 @@
 #define SYCL_BLAS_VIEW_H
 
 #include "blas_meta.h"
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -120,9 +119,10 @@ struct VectorView {
 @brief Represents a Matrix on the given Container.
 @tparam value_t Value type of the container.
 @tparam container_t Type of the container.
+@tparam has_inc bool for col/row internal increment different from 1.
  */
 template <typename view_value_t, typename view_container_t,
-          typename view_index_t, typename layout, bool is_inc = false>
+          typename view_index_t, typename layout, bool has_inc = false>
 struct MatrixView {
   // Information related to the data
   using access_layout_t = layout;
@@ -212,10 +212,10 @@ struct VectorViewTypeFactory {
 };
 
 template <typename scalar_t, typename container_t, typename index_t,
-          typename access_mode_t, bool is_inc = false>
+          typename access_mode_t, bool has_inc = false>
 struct MatrixViewTypeFactory {
   using output_t =
-      MatrixView<scalar_t, container_t, index_t, access_mode_t, is_inc>;
+      MatrixView<scalar_t, container_t, index_t, access_mode_t, has_inc>;
 };
 
 template <typename scalar_t, typename increment_t, typename index_t>
@@ -234,8 +234,7 @@ static inline auto make_vector_view(BufferIterator<scalar_t> buff,
                      (index_t)buff.get_offset(), inc, sz};
 }
 
-template <typename access_layout_t, typename scalar_t, typename index_t,
-          bool is_inc = false>
+template <typename access_layout_t, typename scalar_t, typename index_t>
 static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
                                     index_t n, index_t lda) {
   static constexpr cl::sycl::access::mode access_mode_t =
@@ -252,7 +251,6 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
       m,
       n,
       lda,
-      1,  // set to use list initialization but never used in this case
       (index_t)buff.get_offset()};
 }
 

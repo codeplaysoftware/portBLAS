@@ -94,7 +94,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B_ref = B;
 
   // Reference implementation
-  // TODO: There isn't a reference implemantion from any library. So we compare
+  // TODO: There isn't a reference implementation from any library. So we compare
   // the results with a basic host implementation above. Working on a better
   // comparison.
   reference_blas::omatcopy2<true>(trans, m, n, alpha, A_ref, ld_in, inc_in,
