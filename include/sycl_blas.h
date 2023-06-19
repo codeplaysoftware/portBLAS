@@ -53,6 +53,8 @@
 
 #include "operations/extension/reduction.h"
 
+#include "operations/extension/matcopy_batch.h"
+
 #include "operations/blas_constants.h"
 
 #include "operations/blas_operators.h"

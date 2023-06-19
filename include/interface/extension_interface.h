@@ -84,6 +84,20 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b);
 
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t memory, index_t ld_in, index_t in_stride, out_t out_memory,
+    index_t ld_out, index_t out_stride, index_t batch_size);
+
+template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
+          typename element_t, typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch_impl(
+    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha, in_t memory,
+    index_t ld_in, index_t in_stride, out_t out_memory, index_t ld_out,
+    index_t out_stride, index_t batch_size);
+
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
@@ -244,6 +258,29 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          out_t B, index_t ld_b) {
   return internal::_transpose<false, element_t>(sb_handle, m, n, A, ld_a, B,
                                                 ld_b);
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_out_t>
+typename sb_handle_t::event_t _imatcopy_batch(sb_handle_t& sb_handle,
+                                              char trans, index_t m, index_t n,
+                                              element_t alpha, in_out_t memory,
+                                              index_t ld_in, index_t ld_out,
+                                              index_t stride,
+                                              index_t batch_size) {
+  return internal::_matcopy_batch(sb_handle, trans, m, n, alpha, memory, ld_in,
+                                  stride, memory, ld_out, stride, batch_size);
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _omatcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t in_stride, out_t out_memory,
+    index_t ld_out, index_t out_stride, index_t batch_size) {
+  return internal::_matcopy_batch(sb_handle, trans, m, n, alpha, in_memory,
+                                  ld_in, in_stride, out_memory, ld_out,
+                                  out_stride, batch_size);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
