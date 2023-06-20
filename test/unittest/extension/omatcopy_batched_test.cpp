@@ -101,7 +101,7 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('t'),              // trans
+    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 2),         // alpha

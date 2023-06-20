@@ -28,11 +28,10 @@
 
 #include "blas_meta.h"
 #include "interface/extension/backend/backend.hpp"
+#include "interface/extension_interface.h"
 #include "interface/transpose_launcher.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
-#include "interface/extension_interface.h"
-#include "interface/extension/backend/backend.hpp"
 #include "operations/extension/matcopy_batch.h"
 #include "operations/extension/reduction.h"
 #include "sb_handle/sycl_blas_handle.h"
@@ -311,9 +310,9 @@ typename sb_handle_t::event_t _matcopy_batch(
         sb_handle, m, n, alpha, in_memory, ld_in, increment, stride_in,
         out_memory, ld_out, increment, stride_out, batch_size);
   } else {
-    return _matcopy_impl<in_place, false>(
-        sb_handle, m, n, alpha, in_memory, ld_in, increment, stride_in,
-        out_memory, ld_out, increment, stride_out, batch_size);
+    return blas::matcopy_batch::backend::_matcopy_batch<false>(
+        sb_handle, m, n, alpha, in_memory, ld_in, stride_in, out_memory, ld_out,
+        stride_out, batch_size);
   }
 }
 
@@ -365,34 +364,6 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                        batch_size);
 }
 
-template <typename sb_handle_t, typename element_t, typename index_t,
-          typename in_t, typename out_t>
-typename sb_handle_t::event_t _matcopy_batch(
-    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
-    in_t in_memory, index_t ld_in, index_t in_stride, out_t out_memory,
-    index_t ld_out, index_t out_stride, index_t batch_size) {
-  if (trans == 't') {
-    typename sb_handle_t::event_t ret;
-    return ret;
-  } else {
-    return blas::omatcopy_batch::backend::_omatcopy_batch<false>(
-        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-        out_stride, batch_size);
-  }
-  /*
-    return blas::omatcopy_batch::backend::_omatcopy_batch<false>(
-        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory,
-        ld_out, out_stride, batch_size);
-  if (trans == 't') {
-    typename sb_handle_t::event_t ret;
-    return ret;
-  } else {
-    return _matcopy_batch_impl<false>(sb_handle, m, n, alpha, in_memory, ld_in,
-                                      in_stride, out_memory, ld_out, out_stride,
-                                      batch_size);
-  }
-  */
-}
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,

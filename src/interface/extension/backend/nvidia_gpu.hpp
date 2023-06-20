@@ -74,12 +74,12 @@ typename sb_handle_t::event_t _transpose_add(
 
 }  // namespace backend
 }  // namespace extension
-namespace omatcopy_batch {
+namespace matcopy_batch {
 namespace backend {
 template <bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
-_omatcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+_matcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
                 in_t in_memory, index_t ld_in, index_t in_stride,
                 out_t out_memory, index_t ld_out, index_t out_stride,
                 index_t batch_size) {

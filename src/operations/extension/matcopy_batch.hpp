@@ -74,14 +74,6 @@ Matcopy_batch<op, TileSize, TilePerWG, lhs_t, rhs_t>::eval(
   const index_t wg_batch_id =
       (ndItem.get_group(0)) / ((required_tile - 1) / TilePerWG + 1);
 
-  // This will disable all workgroups that dont have any batch to work on
-  if (wg_batch_id >= batch_size_) {
-    return 0;
-  }
-
-  const index_t batch_stride =
-      (ndItem.get_group_range(0) * TilePerWG) / (required_tile);
-
   const index_t l_size = m_ * lhs_ld_;
   const index_t r_size = m_ * rhs_1_ld_;
 
@@ -122,46 +114,32 @@ Matcopy_batch<op, TileSize, TilePerWG, lhs_t, rhs_t>::eval(
   if (!valid_index) return 0;
 
   if (is_internal_block) {
-    do {
-      auto A = orig_rhs;
-      auto B = orig_lhs;
+    auto A = orig_rhs;
+    auto B = orig_lhs;
 
 #pragma unroll
-      for (int i = 0; i < TileSize; ++i) {
-        reg_rhs[i] = A[i * rhs_1_ld_];
-      }
+    for (int i = 0; i < TileSize; ++i) {
+      reg_rhs[i] = A[i * rhs_1_ld_];
+    }
 #pragma unroll
-      for (int i = 0; i < TileSize; ++i) {
-        B[i * lhs_ld_] = alpha * reg_rhs[i];
-      }
+    for (int i = 0; i < TileSize; ++i) {
+      B[i * lhs_ld_] = alpha * reg_rhs[i];
+    }
 
-      orig_lhs += (lhs_stride_ * batch_stride);
-      orig_rhs += (rhs_1_stride_ * batch_stride);
-
-      batch_size_ -= batch_stride;
-    } while (batch_size_ > wg_batch_id);
   } else {
     const auto limit_m = m - wg_row;
     const auto limit_n = n - wg_col;
-    do {
-      auto A = orig_rhs;
-      auto B = orig_lhs;
+    auto A = orig_rhs;
+    auto B = orig_lhs;
 
-      for (int i = 0; i < TileSize; ++i) {
-        if (i >= limit_n) break;
-        reg_rhs[i] = A[i * rhs_1_ld_];
-      }
-      for (int i = 0; i < TileSize; ++i) {
-        if (i >= limit_n) break;
-        // B[i * lhs_ld_] = wg_id;
-        B[i * lhs_ld_] = alpha * reg_rhs[i];
-      }
-
-      orig_lhs += (lhs_stride_ * batch_stride);
-      orig_rhs += (rhs_1_stride_ * batch_stride);
-
-      batch_size_ -= batch_stride;
-    } while (batch_size_ > wg_batch_id);
+    for (int i = 0; i < TileSize; ++i) {
+      if (i >= limit_n) break;
+      reg_rhs[i] = A[i * rhs_1_ld_];
+    }
+    for (int i = 0; i < TileSize; ++i) {
+      if (i >= limit_n) break;
+      B[i * lhs_ld_] = alpha * reg_rhs[i];
+    }
   }
 
   return 0;
