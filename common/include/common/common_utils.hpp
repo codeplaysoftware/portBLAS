@@ -237,7 +237,7 @@ static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (index_t size = 1048576; size <= 134217728; size *= 2) {
+    for (index_t size = 1L << 20; size <= 1L << 27; size *= 2) {
       blas1_default.push_back(size);
     }
     return blas1_default;
@@ -305,7 +305,7 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<copy_param_t<scalar_t>> default_values;
-    for (index_t size = 1048576; size <= 134217728; size *= 2) {
+    for (index_t size = 1L << 20; size <= 1L << 27; size *= 2) {
       default_values.push_back(std::make_tuple(size, 1, 1, scalar_t(0)));
     }
     return default_values;
