@@ -51,7 +51,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti_a,
          int ti_b, index_t m, index_t n, index_t lda_mul, index_t ldb_mul,
          index_t ldc_mul, scalar_t alpha, scalar_t beta, bool* success) {
   // initialize the state label
-  // blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
+  blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // Standard test setup.
   std::string ts_a = blas_benchmark::utils::from_transpose_enum(
