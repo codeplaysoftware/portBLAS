@@ -98,6 +98,10 @@ using trsm_batched_param_t =
     std::tuple<char, char, char, char, index_t, index_t, scalar_t, index_t,
                index_t, index_t>;
 
+template <typename scalar_t>
+using matcopy_param_t =
+    std::tuple<char, index_t, index_t, scalar_t, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -1067,6 +1071,51 @@ static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
           try {
             return std::make_tuple(v[0].c_str(), v[1].c_str(), v[2].c_str(),
                                    str_to_int<index_t>(v[3]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_matcopy_params
+ * @brief Returns a vector containing the matcopy benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<matcopy_param_t<scalar_t>> matcopy_default;
+    constexpr index_t dmin = 64, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    for (char trans : {'n', 't'}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+              matcopy_default.push_back(
+                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul));
+            }
+          }
+        }
+      }
+    }
+    return matcopy_default;
+  } else {
+    return parse_csv_file<matcopy_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 6) {
+            throw std::runtime_error(
+                "invalid number of parameters (6 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
+                str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
