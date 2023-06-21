@@ -63,6 +63,8 @@ set(sources
   blas3/gemm_batched_strided.cpp
   blas3/trsm.cpp
   blas3/symm.cpp
+  # blas Extension
+  extension/omatcopy.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
