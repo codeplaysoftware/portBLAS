@@ -70,7 +70,8 @@ set(sources
   blas3/trsm_batched.cpp
   blas3/gemm_batched.cpp
   blas3/gemm_batched_strided.cpp
-
+  # blas Extension
+  extension/omatadd.cpp
 )
 
 # Add individual benchmarks for each method

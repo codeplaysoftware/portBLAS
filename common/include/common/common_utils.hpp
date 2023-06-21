@@ -103,6 +103,10 @@ template <typename scalar_t>
 using matcopy_param_t =
     std::tuple<char, index_t, index_t, scalar_t, index_t, index_t>;
 
+template <typename scalar_t>
+using omatadd_param_t = std::tuple<char, char, index_t, index_t, scalar_t,
+                                   scalar_t, index_t, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -1117,6 +1121,58 @@ static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
                 v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
                 str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
                 str_to_int<index_t>(v[5]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_omatadd_params
+ * @brief Returns a vector containing the omatadd benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<omatadd_param_t<scalar_t>> omatadd_default;
+    constexpr index_t dmin = 64, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    constexpr scalar_t beta{2};
+    for (char trans_a : {'n', 't'}) {
+      for (char trans_b : {'n', 't'}) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
+                  omatadd_default.push_back(
+                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
+                                      lda_mul, ldb_mul, ldc_mul));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return omatadd_default;
+  } else {
+    return parse_csv_file<omatadd_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (6 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
