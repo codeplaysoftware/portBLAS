@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename omatcopy.cpp
+ *  @filename omatcopy_batched.cpp
  *
  **************************************************************************/
 
@@ -30,9 +30,9 @@ template <typename scalar_t>
 std::string get_name(std::string t, int m, int n, scalar_t alpha,
                      index_t lda_mul, index_t ldb_mul) {
   std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
+  str << "BM_omatcopy_batched<"
+      << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t << "/"
+      << m << "/" << n << "/" << alpha << "/" << lda_mul << "/" << ldb_mul;
   return str.str();
 }
 
@@ -40,7 +40,6 @@ template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
          bool* success) {
-
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -56,9 +55,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   const auto size_a = lda * n;
   const auto size_b = ldb * ((*t_str == 't') ? m : n);
 
-  blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
-      state, t_str, m, n, lda_mul, ldb_mul);
+  blas_benchmark::utils::init_level_1_counters<
+      blas_benchmark::utils::Level1Op::copy, scalar_t>(state, 2 * m * n);
+
+  state.counters["n_fl_ops"] = static_cast<double>(m * n);
+  state.counters["lda_m"] = (double)lda_mul;
+  state.counters["ldb_m"] = (double)ldb_mul;
+  state.counters["trans"] = (double)((*t_str == 't') ? 1 : 0);
+  state.counters["m"] = (double)m;
+  state.counters["n"] = (double)n;
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -75,7 +80,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a.data(), lda, m_b_ref.data(), ldb);
+  reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a.data(), lda,
+                               m_b_ref.data(), ldb);
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
@@ -97,8 +103,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = blas::extension::_omatcopy(sb_handle, *t_str, m, n, alpha,
-                                            m_a_gpu, lda, m_b_gpu, ldb);
+    auto event = blas::extension::_omatcopy_batch(sb_handle, *t_str, m, n,
+                                                  alpha, m_a_gpu, lda, lda * n,
+                                                  m_b_gpu, ldb, ldb * n, 1);
     sb_handle.wait(event);
     return event;
   };

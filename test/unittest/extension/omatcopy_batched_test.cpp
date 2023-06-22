@@ -24,6 +24,7 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+#include "extension_reference.hpp"
 
 using index_t = int;
 
@@ -64,8 +65,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Reference implementation
   for (auto b = 0; b < batch_size; b++) {
-    reference_blas::omatcopy(trans, m, n, alpha, A_ref.data() + b * stride_in,
-                             ld_in, B_ref.data() + b * stride_out, ld_out);
+    reference_blas::omatcopy_ref(trans, m, n, alpha,
+                                 A_ref.data() + b * stride_in, ld_in,
+                                 B_ref.data() + b * stride_out, ld_out);
   }
 
   auto matrix_in =
@@ -101,7 +103,7 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
+    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 2),         // alpha
