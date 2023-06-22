@@ -23,6 +23,7 @@
  *
  **************************************************************************/
 
+#include "../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
 template <typename scalar_t>
@@ -86,10 +87,30 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
   auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_c, size_c);
 
 #ifdef BLAS_VERIFY_BENCHMARK
-  // This operator is not present in any BLAS library, so there is no way to
-  // verify the result before running the benchmark. Nonetheless the operator
-  // has its test, but that method is not replicated here not to load the
-  // benchmark.
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> m_c_ref = m_c;
+
+  reference_blas::omatadd_ref(*t_str_a, *t_str_b, m, n, alpha, m_a, lda, beta,
+                              m_b, ldb, m_c_ref, ldc);
+
+  std::vector<scalar_t> m_c_temp = m_c;
+  {
+    auto m_c_temp_gpu =
+        blas::make_sycl_iterator_buffer<scalar_t>(m_c_temp, size_c);
+
+    auto event = blas::extension::_omatadd(sb_handle, *t_str_a, *t_str_b, m, n,
+                                           alpha, m_a_gpu, lda, beta, m_b_gpu,
+                                           ldb, m_c_temp_gpu, ldc);
+
+    sb_handle.wait();
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors(m_c_temp, m_c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {

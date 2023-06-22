@@ -23,6 +23,7 @@
  *
  **************************************************************************/
 
+#include "../../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
 template <typename scalar_t>
@@ -99,10 +100,28 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti_a, int ti_b,
       t_str_b[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
 #ifdef BLAS_VERIFY_BENCHMARK
-  // This operator is not present in any BLAS library, so there is no way to
-  // verify the result before running the benchmark. Nonetheless the operator
-  // has its test, but that method is not replicated here not to load the
-  // benchmark.
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> m_c_ref = m_c;
+
+  reference_blas::omatadd_ref(*t_str_a, *t_str_b, m, n, alpha, m_a, lda, beta,
+                              m_b, ldb, m_c_ref, ldc);
+
+  std::vector<scalar_t> m_c_temp = m_c;
+  {
+    blas_benchmark::utils::HIPVector<scalar_t, true> m_c_temp_gpu(
+        size_c, m_c_temp.data());
+
+    rocblas_geam_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, &alpha,
+                             m_a_gpu, lda, &beta, m_b_gpu, ldb, m_c_temp_gpu,
+                             ldc);
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors(m_c_temp, m_c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
 #endif
   auto blas_warmup = [&]() -> void {
     rocblas_geam_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha,

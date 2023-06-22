@@ -1,4 +1,4 @@
-/**************************************************************************
+/* *************************************************************************
  *
  *  @license
  *  Copyright (C) Codeplay Software Limited
@@ -23,6 +23,7 @@
  *
  **************************************************************************/
 
+#include "../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
 template <typename scalar_t>
@@ -61,13 +62,13 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti_a,
       static_cast<blas_benchmark::utils::Transposition>(ti_b));
   const char* t_str_b = ts_b.c_str();
 
-const auto lda = (*t_str_b == 't') ? lda_mul * n : lda_mul * m;
-const auto ldb = (*t_str_b == 't') ? ldb_mul * n : ldb_mul * m;
-const auto ldc = ldc_mul * n;
+  const auto lda = (*t_str_b == 't') ? lda_mul * n : lda_mul * m;
+  const auto ldb = (*t_str_b == 't') ? ldb_mul * n : ldb_mul * m;
+  const auto ldc = ldc_mul * m;
 
-const auto size_a = lda * ((*t_str_a == 't') ? m : n);
-const auto size_b = ldb * ((*t_str_b == 't') ? m : n);
-const auto size_c = ldc * n;
+  const auto size_a = lda * ((*t_str_a == 't') ? m : n);
+  const auto size_b = ldb * ((*t_str_b == 't') ? m : n);
+  const auto size_c = ldc * n;
 
   blas_benchmark::utils::init_level_1_counters<
       blas_benchmark::utils::Level1Op::copy, scalar_t>(state, 3 * m * n);
@@ -98,10 +99,27 @@ const auto size_c = ldc * n;
   cublasOperation_t c_t_b = (*t_str_b == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
 
 #ifdef BLAS_VERIFY_BENCHMARK
-  // This operator is not present in any BLAS library, so there is no way to
-  // verify the result before running the benchmark. Nonetheless the operator
-  // has its test, but that method is not replicated here not to load the
-  // benchmark.
+  // Run a first time with a verification of the results
+  std::vector<scalar_t> m_c_ref = m_c;
+
+  reference_blas::omatadd_ref(*t_str_a, *t_str_b, m, n, alpha, m_a, lda, beta,
+                              m_b, ldb, m_c_ref, ldc);
+
+  std::vector<scalar_t> m_c_temp = m_c;
+  {
+    blas_benchmark::utils::CUDAVector<scalar_t, true> m_c_temp_gpu(
+        size_c, m_c_temp.data());
+
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, &alpha, m_a_gpu,
+                             lda, &beta, m_b_gpu, ldb, m_c_temp_gpu, ldc);
+  }
+
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors(m_c_temp, m_c_ref, err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
 #endif
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, &alpha, m_a_gpu,
