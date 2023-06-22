@@ -422,14 +422,6 @@ void syr2k(const char *uplo, const char *trans, int n, int k, scalar_t alpha,
        ldb, beta, c, ldc);
 }
 
-// blas-like extensions
-template <typename scalar_t>
-void omatcopy(char trans, int m, int n, scalar_t alpha, scalar_t *a, int lda,
-              scalar_t *b, int ldb) {
-  auto func =
-      blas_system_function<scalar_t>(&cblas_somatcopy, &cblas_domatcopy);
-  func(CblasColMajor, c_trans(trans), m, n, alpha, a, lda, b, ldb);
-}
 }  // namespace reference_blas
 
 #endif /* end of include guard: SYSTEM_REFERENCE_BLAS_HPP */
