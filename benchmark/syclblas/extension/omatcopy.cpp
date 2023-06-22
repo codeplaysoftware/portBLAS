@@ -23,6 +23,7 @@
  *
  **************************************************************************/
 
+#include "../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
 template <typename scalar_t>
@@ -74,8 +75,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
-  reference_blas::omatcopy(*t_str, m, n, alpha, m_a.data(), lda, m_b_ref.data(),
-                           ldb);
+
+  reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a, lda, m_b_ref, ldb);
+
   std::vector<scalar_t> m_b_temp = m_b;
   {
     auto m_b_temp_gpu =

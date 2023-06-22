@@ -24,6 +24,7 @@
  **************************************************************************/
 
 #include "blas_test.hpp"
+#include "extension_reference.hpp"
 
 using index_t = int;
 
@@ -58,8 +59,8 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B_ref = B;
 
   // Reference implementation
-  reference_blas::omatcopy(trans, m, n, alpha, A_ref.data(), ld_in,
-                           B_ref.data(), ld_out);
+  reference_blas::omatcopy_ref(trans, m, n, alpha, A_ref, ld_in,
+                               B_ref, ld_out);
 
   auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size_a);
   auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size_b);
