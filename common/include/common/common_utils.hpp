@@ -23,6 +23,7 @@
 #include <common/blas1_state_counters.hpp>
 #include <common/blas2_state_counters.hpp>
 #include <common/blas3_state_counters.hpp>
+#include <common/blas_extension_state_counters.hpp>
 #include <common/float_comparison.hpp>
 #include <common/set_benchmark_label.hpp>
 #include <common/system_reference_blas.hpp>
