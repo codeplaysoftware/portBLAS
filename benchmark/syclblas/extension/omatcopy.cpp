@@ -51,15 +51,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   const auto size_a = lda * n;
   const auto size_b = ldb * ((*t_str == 't') ? m : n);
 
-  blas_benchmark::utils::init_level_1_counters<
-      blas_benchmark::utils::Level1Op::copy, scalar_t>(state, 2 * m * n);
-
-  state.counters["n_fl_ops"] = static_cast<double>(m * n);
-  state.counters["lda_m"] = (double)lda_mul;
-  state.counters["ldb_m"] = (double)ldb_mul;
-  state.counters["trans"] = (double)((*t_str == 't') ? 1 : 0);
-  state.counters["m"] = (double)m;
-  state.counters["n"] = (double)n;
+  blas_benchmark::utils::init_extension_counters<
+      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
+      state, t_str, m, n, lda_mul, ldb_mul);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
