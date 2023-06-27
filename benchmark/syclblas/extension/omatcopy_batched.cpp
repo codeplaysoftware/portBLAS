@@ -81,16 +81,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a.data(), lda,
-                               m_b_ref.data(), ldb);
+  for (int i = 0; i < batch_size; ++i) {
+    reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a.data() + i * stride_a,
+                                 lda, m_b_ref.data() + i * stride_b, ldb);
+  }
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
     auto m_b_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(m_b_temp, size_b);
 
-    auto event = blas::extension::_omatcopy(sb_handle, *t_str, m, n, alpha,
-                                            m_a_gpu, lda, m_b_temp_gpu, ldb);
+    auto event = blas::extension::_omatcopy_batch(sb_handle, *t_str, m, n, alpha,
+                                            m_a_gpu, lda,stride_a, m_b_temp_gpu, ldb, stride_b, batch_size);
 
     sb_handle.wait();
   }

@@ -74,9 +74,6 @@ Matcopy_batch<op, TileSize, TilePerWG, lhs_t, rhs_t>::eval(
   const index_t wg_batch_id =
       (ndItem.get_group(0)) / ((required_tile - 1) / TilePerWG + 1);
 
-  const index_t l_size = m_ * lhs_ld_;
-  const index_t r_size = m_ * rhs_1_ld_;
-
   const index_t l_lhs_stride = lhs_stride_;
   const index_t l_rhs_stride = rhs_1_stride_;
 
