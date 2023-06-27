@@ -260,6 +260,28 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                                 ld_b);
 }
 
+/**
+ * \brief COPY batch of matrices from in_matrix to out_matrix with scaling
+ * factor of alpha
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_t Buffer Iterator
+ * @tparam out_t Buffer Iterator
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not.
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param in_memory BufferIterator of input
+ * @param ld_in leading dimension of in_matrices
+ * @param stride_in stride distance between matrices inside batch
+ * @param matrix_out BufferIterator of output
+ * @param ld_out leading dimention of out_matrix
+ * @param stride_out stride distance between matrices inside batch
+ * @param batch_size number of matrices to compute
+ */
 template <typename sb_handle_t, typename element_t, typename index_t,
           typename in_t, typename out_t>
 typename sb_handle_t::event_t _omatcopy_batch(

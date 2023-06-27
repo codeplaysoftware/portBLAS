@@ -110,13 +110,15 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   return ret;
 }
 
+/**
+ * @brief Implementation of matrix copy batch operators for non transpose cases.
+ */
 template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
           typename element_t, typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _matcopy_batch_impl(
     sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
     in_t in_memory, index_t ld_in, index_t in_stride, out_t out_memory,
     index_t ld_out, index_t out_stride, index_t batch_size) {
-  // typename sb_handle_t::event_t ret;
   auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, in_stride);
   auto out_view =
       make_matrix_view<col_major>(out_memory, m, n, ld_out, out_stride);
@@ -124,7 +126,6 @@ typename sb_handle_t::event_t _matcopy_batch_impl(
       make_matcopy_batch<matcopy_op::outplace, TileSize, TilePerWG>(
           out_view, in_view, in_view, alpha, 0, m, n, ld_out, ld_in, 1,
           out_stride, in_stride, 1, batch_size);
-  // sb_handle.execute(copy_batch_event);
   constexpr index_t local_size = TileSize * TilePerWG;
   const index_t tile_per_matrix =
       (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
@@ -166,6 +167,9 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
       b_cols, c, ldc);
 }
 
+/*!
+ * @brief _omatadd_impl in case of non-trnaspose matrix
+ */
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
           typename index_t, typename container_t>
 typename std::enable_if<!trans_a && !trans_b,
