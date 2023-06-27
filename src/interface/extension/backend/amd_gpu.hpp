@@ -81,16 +81,28 @@ template <bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-                in_t in_memory, index_t ld_in, index_t in_stride,
-                out_t out_memory, index_t ld_out, index_t out_stride,
-                index_t batch_size) {
-  return blas::extension::internal::_matcopy_batch_impl<
-      64, false, sb_handle_t, element_t, index_t, in_t, out_t>(
-      sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-      out_stride, batch_size);
+               in_t in_memory, index_t ld_in, index_t in_stride,
+               out_t out_memory, index_t ld_out, index_t out_stride,
+               index_t batch_size) {
+  if ((m * n) > (1 << 20)) {
+    return blas::extension::internal::_matcopy_batch_impl<
+        32, 4, sb_handle_t, element_t, index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  } else if ((m * n) > (1 << 14)) {
+    return blas::extension::internal::_matcopy_batch_impl<
+        8, 16, sb_handle_t, element_t, index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  } else {
+    return blas::extension::internal::_matcopy_batch_impl<
+        4, 64, sb_handle_t, element_t, index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  }
 }
 }  // namespace backend
-}  // namespace omatcopy_batch
+}  // namespace matcopy_batch
 }  // namespace blas
 
 #endif

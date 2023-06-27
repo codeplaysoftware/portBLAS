@@ -74,6 +74,7 @@ typename sb_handle_t::event_t _transpose_add(
 
 }  // namespace backend
 }  // namespace extension
+
 namespace matcopy_batch {
 namespace backend {
 template <bool trans, typename sb_handle_t, typename element_t,
