@@ -309,7 +309,7 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
     std::vector<copy_param_t<scalar_t>> default_values;
     for (index_t incx = 1; incx <= 2; incx *= 2) {
       for (index_t incy = 1; incy <= 2; incy *= 2) {
-        for (index_t size = 1L << 24; size <= 1L << 27; size *= 2) {
+        for (index_t size = 1L << 20; size <= 1L << 24; size *= 16) {
           default_values.push_back(
               std::make_tuple(size, incx, incy, scalar_t(0)));
         }
@@ -558,7 +558,7 @@ get_trsm_batched_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 1024, dmax = 16384;
     // Stride Multipliers are set by default and correspond to default striding
     constexpr index_t stride_a_mul = 1;
     constexpr index_t stride_b_mul = 1;
@@ -641,7 +641,7 @@ static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
   if (args.csv_param.empty()) {
     utils::warning_no_csv();
     std::vector<symm_param_t<scalar_t>> symm_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 1024, dmax = 16384;
     constexpr scalar_t alpha{1};
     constexpr scalar_t beta{1};
     for (char side : {'l', 'r'}) {
@@ -721,7 +721,7 @@ static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsm_param_t<scalar_t>> trsm_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 1024, dmax = 16384;
     for (char side : {'l', 'r'}) {
       for (char uplo : {'u', 'l'}) {
         for (char trans : {'n', 't'}) {
@@ -993,7 +993,7 @@ static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsv_param_t> trsv_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 1024, dmax = 16384;
     for (std::string t : {"n", "t"}) {
       for (std::string ul : {"u", "l"}) {
         for (std::string diag : {"n", "u"}) {
