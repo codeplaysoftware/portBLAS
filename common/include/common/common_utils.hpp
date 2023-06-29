@@ -270,7 +270,7 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
     std::vector<blas2_param_t<scalar_t>> blas2_default;
     constexpr index_t dmin = 2048, dmax = 32768;
     scalar_t alpha = 1;
-    scalar_t beta = 0;
+    scalar_t beta = 1;
     for (std::string t : {"n", "t"}) {
       for (index_t n = dmin; n <= dmax; n *= 4) {
         blas2_default.push_back(std::make_tuple(t, n, n, alpha, beta));
@@ -684,10 +684,12 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
     std::vector<syrk_param_t<scalar_t>> syrk_default;
     constexpr index_t dmin = 2048, dmax = 32768;
     constexpr scalar_t alpha{1};
+    constexpr scalar_t beta{1};
     for (char uplo : {'u', 'l'}) {
       for (char trans : {'n', 't'}) {
         for (index_t n = dmin; n <= dmax; n *= 4) {
-          syrk_default.push_back(std::make_tuple(uplo, trans, n, n, alpha, 0));
+          syrk_default.push_back(
+              std::make_tuple(uplo, trans, n, n, alpha, beta));
         }
       }
     }
