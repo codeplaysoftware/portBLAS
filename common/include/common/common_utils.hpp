@@ -237,7 +237,7 @@ static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (index_t size = 1L << 20; size <= 1L << 27; size *= 2) {
+    for (index_t size = 1L << 10; size <= 1L << 22; size *= 2) {
       blas1_default.push_back(size);
     }
     return blas1_default;
@@ -268,7 +268,7 @@ static inline std::vector<blas2_param_t<scalar_t>> get_blas2_params(
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas2_param_t<scalar_t>> blas2_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     scalar_t alpha = 1;
     scalar_t beta = 1;
     for (std::string t : {"n", "t"}) {
@@ -309,7 +309,7 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
     std::vector<copy_param_t<scalar_t>> default_values;
     for (index_t incx = 1; incx <= 2; incx *= 2) {
       for (index_t incy = 1; incy <= 2; incy *= 2) {
-        for (index_t size = 1L << 20; size <= 1L << 24; size *= 16) {
+        for (index_t size = 1L << 12; size <= 1L << 20; size *= 16) {
           default_values.push_back(
               std::make_tuple(size, incx, incy, scalar_t(0)));
         }
@@ -344,10 +344,12 @@ static inline std::vector<spr_param_t<scalar_t>> get_spr_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<spr_param_t<scalar_t>> spr_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
+    const index_t incX = 1;
+    const scalar_t alpha = 1;
     for (std::string uplo : {"u", "l"}) {
       for (index_t m = dmin; m <= dmax; m *= 4) {
-        spr_default.push_back(std::make_tuple(uplo, m, 1.0, 1));
+        spr_default.push_back(std::make_tuple(uplo, m, alpha, incX));
       }
     }
     return spr_default;
@@ -379,7 +381,7 @@ static inline std::vector<spr2_param_t<scalar_t>> get_spr2_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<spr2_param_t<scalar_t>> spr2_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     const index_t incX = 1;
     const index_t incY = 1;
     const scalar_t alpha = 1;
@@ -419,15 +421,19 @@ static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas3_param_t<scalar_t>> blas3_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
     scalar_t beta = 0;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
-        for (index_t n = dmin; n <= dmax; n *= 4) {
-          blas3_default.push_back(
-              std::make_tuple(t1, t2, n, n, n, alpha, beta));
+        for (index_t m = dmin; m <= dmax; m *= 8) {
+          for (index_t k = dmin; k <= dmax; k *= 8) {
+            for (index_t n = dmin; n <= dmax; n *= 8) {
+              blas3_default.push_back(
+                  std::make_tuple(t1, t2, m, k, n, alpha, beta));
+            }
+          }
         }
       }
     }
@@ -463,7 +469,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<gemm_batched_param_t<scalar_t>> gemm_batched_default;
-    constexpr index_t dmin = 2048, dmax = 8192;
+    constexpr index_t dmin = 128, dmax = 8192;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
     scalar_t beta = 1;
@@ -471,7 +477,7 @@ inline std::vector<gemm_batched_param_t<scalar_t>> get_gemm_batched_params(
     int batch_type = 0;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
-        for (index_t n = dmin; n <= dmax; n *= 4) {
+        for (index_t n = dmin; n <= dmax; n *= 8) {
           gemm_batched_default.push_back(std::make_tuple(
               t1, t2, n, n, n, alpha, beta, batch_size, batch_type));
         }
@@ -511,14 +517,14 @@ get_gemm_batched_strided_params(Args& args) {
     warning_no_csv();
     std::vector<gemm_batched_strided_param_t<scalar_t>>
         gemm_batched_strided_default;
-    constexpr index_t dmin = 2048, dmax = 8192;
+    constexpr index_t dmin = 128, dmax = 8192;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
     scalar_t beta = 1;
     index_t batch_size = 8;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
-        for (index_t m = dmin; m <= dmax; m *= 4) {
+        for (index_t m = dmin; m <= dmax; m *= 8) {
           gemm_batched_strided_default.push_back(std::make_tuple(
               t1, t2, m, m, m, alpha, beta, batch_size, 2, 2, 2));
         }
@@ -558,7 +564,7 @@ get_trsm_batched_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsm_batched_param_t<scalar_t>> trsm_batched_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
+    constexpr index_t dmin = 512, dmax = 8192;
     // Stride Multipliers are set by default and correspond to default striding
     constexpr index_t stride_a_mul = 1;
     constexpr index_t stride_b_mul = 1;
@@ -607,8 +613,7 @@ static inline std::vector<reduction_param_t> get_reduction_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<reduction_param_t> reduction_default;
-    constexpr index_t dmin = 1024, dmax = 8192;
-
+    constexpr index_t dmin = 256, dmax = 8192;
     for (index_t rows = dmin; rows <= dmax; rows *= 2) {
       reduction_default.push_back(std::make_tuple(rows, rows));
     }
@@ -641,7 +646,7 @@ static inline std::vector<symm_param_t<scalar_t>> get_symm_params(Args& args) {
   if (args.csv_param.empty()) {
     utils::warning_no_csv();
     std::vector<symm_param_t<scalar_t>> symm_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
+    constexpr index_t dmin = 32, dmax = 8192;
     constexpr scalar_t alpha{1};
     constexpr scalar_t beta{1};
     for (char side : {'l', 'r'}) {
@@ -682,7 +687,7 @@ static inline std::vector<syrk_param_t<scalar_t>> get_syrk_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<syrk_param_t<scalar_t>> syrk_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 512, dmax = 8192;
     constexpr scalar_t alpha{1};
     constexpr scalar_t beta{1};
     for (char uplo : {'u', 'l'}) {
@@ -723,7 +728,7 @@ static inline std::vector<trsm_param_t<scalar_t>> get_trsm_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsm_param_t<scalar_t>> trsm_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
+    constexpr index_t dmin = 512, dmax = 8192;
     for (char side : {'l', 'r'}) {
       for (char uplo : {'u', 'l'}) {
         for (char trans : {'n', 't'}) {
@@ -765,7 +770,7 @@ static inline std::vector<gbmv_param_t<scalar_t>> get_gbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<gbmv_param_t<scalar_t>> gbmv_default;
-    constexpr index_t dmin = 4096, dmax = 16384;
+    constexpr index_t dmin = 512, dmax = 8192;
     scalar_t alpha = 1;
     scalar_t beta = 0;
     for (std::string t : {"n", "t"}) {
@@ -806,7 +811,7 @@ static inline std::vector<sbmv_param_t<scalar_t>> get_sbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<sbmv_param_t<scalar_t>> sbmv_default;
-    constexpr index_t dmin = 4096, dmax = 16384;
+    constexpr index_t dmin = 512, dmax = 8192;
     scalar_t alpha = 1;
     scalar_t beta = 1;
     for (std::string ul : {"u", "l"}) {
@@ -847,7 +852,7 @@ static inline std::vector<symv_param_t<scalar_t>> get_symv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<symv_param_t<scalar_t>> symv_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     scalar_t alpha = 1;
     scalar_t beta = 1;
     for (std::string uplo : {"u", "l"}) {
@@ -885,7 +890,7 @@ static inline std::vector<syr_param_t<scalar_t>> get_syr_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<syr_param_t<scalar_t>> syr_default;
-    constexpr index_t dmin = 2048, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     scalar_t alpha = 1;
     for (std::string uplo : {"u", "l"}) {
       for (index_t n = dmin; n <= dmax; n *= 4) {
@@ -920,7 +925,7 @@ static inline std::vector<ger_param_t<scalar_t>> get_ger_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<ger_param_t<scalar_t>> ger_default;
-    constexpr index_t dmin = 1024, dmax = 32768;
+    constexpr index_t dmin = 32, dmax = 8192;
     scalar_t alpha = 1;
     for (index_t m = dmin; m <= dmax; m *= 2) {
       ger_default.push_back(std::make_tuple(m, m, alpha));
@@ -954,11 +959,11 @@ static inline std::vector<tbmv_param_t> get_tbmv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<tbmv_param_t> tbmv_default;
-    constexpr index_t dmin = 4096, dmax = 16384;
+    constexpr index_t dmin = 128, dmax = 8192;
     for (std::string t : {"n", "t"}) {
       for (std::string ul : {"u", "l"}) {
         for (std::string diag : {"n", "u"}) {
-          for (index_t n = dmin; n <= dmax; n *= 4) {
+          for (index_t n = dmin; n <= dmax; n *= 8) {
             for (index_t k = n / 32; k <= n / 4; k *= 2) {
               tbmv_default.push_back(std::make_tuple(ul, t, diag, n, k));
             }
@@ -995,11 +1000,11 @@ static inline std::vector<trsv_param_t> get_trsv_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<trsv_param_t> trsv_default;
-    constexpr index_t dmin = 1024, dmax = 16384;
+    constexpr index_t dmin = 128, dmax = 8192;
     for (std::string t : {"n", "t"}) {
       for (std::string ul : {"u", "l"}) {
         for (std::string diag : {"n", "u"}) {
-          for (index_t n = dmin; n <= dmax; n *= 4) {
+          for (index_t n = dmin; n <= dmax; n *= 8) {
             trsv_default.push_back(std::make_tuple(ul, t, diag, n));
           }
         }
