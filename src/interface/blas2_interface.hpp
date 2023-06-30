@@ -360,7 +360,7 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
   return sb_handle.execute(
       trsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
-      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
 #endif
 }
 
@@ -694,7 +694,7 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
   return sb_handle.execute(
       tbsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
-      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
 #endif
 }
 
@@ -743,7 +743,7 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
   return sb_handle.execute(
       tpsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
-      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
 #endif
 }
 
