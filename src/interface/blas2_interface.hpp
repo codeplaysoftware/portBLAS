@@ -711,7 +711,8 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
   static_assert(subgroup_size % subgroups == 0,
                 "`subgroups` needs to be a multiple of `subgroup_size`.");
 
-  using one = constant<increment_t, const_val::one>;
+  using one_increment_t = constant<increment_t, const_val::one>;
+  using one_index_t = constant<index_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
   constexpr bool is_transposed = (trn != transpose_type::Normal);
   constexpr bool is_unit = (diag == diag_type::Unit);
@@ -721,8 +722,8 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
 
   index_t matrix_size = ((_N + 1) * _N) / 2;
 
-  auto mA =
-      make_matrix_view<col_major>(_mA, one::value(), matrix_size, matrix_size);
+  auto mA = make_matrix_view<col_major>(_mA, one_index_t::value(), matrix_size,
+                                        matrix_size);
   auto vx = make_vector_view(_vx, _incx, _N);
 
   std::vector<int32_t> sync_vec(2);
@@ -733,7 +734,8 @@ typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
 
   auto sync_buffer =
       blas::make_sycl_iterator_buffer<int32_t>(sync_vec, sync_vec.size());
-  auto sync = make_vector_view(sync_buffer, one::value(), sync_vec.size());
+  auto sync =
+      make_vector_view(sync_buffer, one_increment_t::value(), sync_vec.size());
 
   index_t unused;
   auto tpsv = make_txsv<matrix_format_t::packed, subgroup_size, subgroups,
