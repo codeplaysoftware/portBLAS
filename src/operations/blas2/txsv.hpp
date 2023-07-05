@@ -100,7 +100,7 @@ Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
      is_upper, is_transposed, is_unitdiag>::eval(local_memory_t local_mem,
                                                  cl::sycl::nd_item<1> ndItem) {
   value_t ret = 0;
-#if SYCL_LANGUAGE_VERSION >= 202000
+#if (SYCL_LANGUAGE_VERSION >= 202000) && !(defined __HIPSYCL__)
 
   constexpr bool is_forward =
       (is_upper && is_transposed) || (!is_upper && !is_transposed);
