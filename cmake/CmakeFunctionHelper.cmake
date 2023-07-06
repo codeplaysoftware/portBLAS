@@ -712,14 +712,16 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
       64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
   endforeach()
 elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
- set(supported_types
+  set(supported_types
     "float"
     "double"
-  )
-  string(FIND ${DPCPP_SYCL_ARCH} "_" start_idx)
-  if(start_idx)
-    MATH(EXPR start_idx "${start_idx} + 1")
-    string(SUBSTRING ${DPCPP_SYCL_ARCH} ${start_idx} "2" sm_val)
+    )
+  if(is_dpcpp AND DEFINED DPCPP_SYCL_ARCH)
+    string(FIND ${DPCPP_SYCL_ARCH} "_" start_idx)
+    if(start_idx)
+      MATH(EXPR start_idx "${start_idx} + 1")
+      string(SUBSTRING ${DPCPP_SYCL_ARCH} ${start_idx} "2" sm_val)
+    endif()
   endif()
   foreach(data ${supported_types})
     # Joint Matrix specific GEMM configurations (only for float)
