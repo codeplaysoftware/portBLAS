@@ -51,10 +51,10 @@ namespace utils {
 template <>
 inline double time_event<cl::sycl::event>(cl::sycl::event& e) {
   // get start and end times
-  cl_ulong start_time = e.template get_profiling_info<
+  auto start_time = e.template get_profiling_info<
       cl::sycl::info::event_profiling::command_start>();
 
-  cl_ulong end_time = e.template get_profiling_info<
+  auto end_time = e.template get_profiling_info<
       cl::sycl::info::event_profiling::command_end>();
 
   // return the delta
