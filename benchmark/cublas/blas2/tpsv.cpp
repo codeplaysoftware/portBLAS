@@ -55,15 +55,15 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   const char* t_str = t.c_str();
   const char* diag_str = diag.c_str();
 
-  index_t xlen = n;
   index_t incX = 1;
+  index_t xlen = 1 + (n - 1) * incX;
 
   blas_benchmark::utils::init_level_2_counters<
       blas_benchmark::utils::Level2Op::tpsv, scalar_t>(state, "n", 0, 0, n);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
 
-  const int m_size = static_cast<int>(n * n);
+  const index_t m_size = ((n + 1) * n) / 2;
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a(m_size, 0);
@@ -73,8 +73,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr,
   // Populate only the main diagonal with larger values. Otherwise the
   // verification of results fails.
   {
-    int d_idx = 0;
-    for (int i = 0; i < n; ++i) {
+    index_t d_idx = 0;
+    for (index_t i = 0; i < n; ++i) {
       m_a[d_idx] =
           blas_benchmark::utils::random_scalar(scalar_t{50}, scalar_t{100});
       d_idx += (*uplo_str == 'u') ? 2 + i : n - i;

@@ -562,6 +562,41 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          index_t _lda, container_t1 _vx,
                                          increment_t _incx);
 
+/**
+ * @brief Linear system solver for triangular packed matrices.
+ *
+ * Linear system solver for triangular packed matrices, i.e., computing x s.t.
+ *
+ * op(A)*x = b
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d0/d7c/stpsv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _mA Buffer containing the coefficient of A in the Packed Triangular
+ *            Matrix format
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx);
+
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
+typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         container_t0 _mA, container_t1 _vx,
+                                         increment_t _incx);
+
 }  // namespace internal
 
 /*!
@@ -1069,6 +1104,35 @@ typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
                                     container_1_t _vx, increment_t _incx) {
   return internal::_tbsv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
                          _vx, _incx);
+}
+
+/**
+ * @brief Linear system solver for triangular packed matrices.
+ *
+ * Linear system solver for triangular packed matrices, i.e., computing x s.t.
+ *
+ * op(A)*x = b
+ *
+ * See the netlib blas interface documentation for more details of the
+ * interface: https://netlib.org/lapack/explore-html/d0/d7c/stpsv_8f.html
+ *
+ * @param sb_handle SB_handle
+ * @param _Uplo Specifies if A is upper or lower triangular
+ * @param _trans Transposition operation applied to A ('n', 't', 'c')
+ * @param _Diag Specifies if A unit triangular or not
+ * @param _N Number of rows and columns of A
+ * @param _mA Buffer containing the coefficient of A in the Packed Triangular
+ *            Matrix format
+ * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
+ * @param _incx Increment for _vx (nonzero)
+ */
+template <typename sb_handle_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename increment_t>
+typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_0_t _mA, container_1_t _vx,
+                                    increment_t _incx) {
+  return internal::_tpsv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx);
 }
 }  // namespace blas
 

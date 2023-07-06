@@ -819,6 +819,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:tbmv>
                 $<TARGET_OBJECTS:tpmv>
                 $<TARGET_OBJECTS:tbsv>
+                $<TARGET_OBJECTS:tpsv>
                 $<TARGET_OBJECTS:trmv>
                 $<TARGET_OBJECTS:trsv>
                 $<TARGET_OBJECTS:gemm_launcher>

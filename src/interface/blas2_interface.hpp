@@ -325,9 +325,11 @@ template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
 typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          container_t0 _mA, index_t _lda,
                                          container_t1 _vx, increment_t _incx) {
-#ifdef __COMPUTECPP__
-  throw std::runtime_error("Unimplemented for ComputeCPP");
-#endif
+#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __HIPSYCL__)
+  throw std::runtime_error("trsv requires SYCL 2020");
+#else
+  static_assert(subgroup_size % subgroups == 0,
+                "`subgroups` needs to be a multiple of `subgroup_size`.");
 
   using one = constant<increment_t, const_val::one>;
   constexpr bool is_upper = (uplo == uplo_type::Upper);
@@ -352,13 +354,14 @@ typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
 
   auto trsv =
       make_trsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
-          vx, mA, vx, sync);
+          vx, mA, sync);
 
   const index_t sub_num = subgroups;
   return sb_handle.execute(
       trsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
-      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
+#endif
 }
 
 /*! _SYMV.
@@ -655,9 +658,11 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          index_t _K, container_t0 _mA,
                                          index_t _lda, container_t1 _vx,
                                          increment_t _incx) {
-#ifdef __COMPUTECPP__
-  throw std::runtime_error("Unimplemented for ComputeCPP");
-#endif
+#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __HIPSYCL__)
+  throw std::runtime_error("tbsv requires SYCL 2020");
+#else
+  static_assert(subgroup_size % subgroups == 0,
+                "`subgroups` needs to be a multiple of `subgroup_size`.");
 
   if (_K >= _N) throw std::invalid_argument("Erroneous parameter: _K >= _N");
 
@@ -690,7 +695,59 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
   return sb_handle.execute(
       tbsv, static_cast<index_t>(sub_num * subgroup_size),
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
-      static_cast<index_t>(subgroup_size * (subgroup_size + 1 + sub_num)));
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
+#endif
+}
+
+template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
+          transpose_type trn, diag_type diag, typename sb_handle_t,
+          typename index_t, typename container_t0, typename container_t1,
+          typename increment_t>
+typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
+                                         container_t0 _mA, container_t1 _vx,
+                                         increment_t _incx) {
+#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __HIPSYCL__)
+  throw std::runtime_error("tpsv requires SYCL 2020");
+#else
+  static_assert(subgroup_size % subgroups == 0,
+                "`subgroups` needs to be a multiple of `subgroup_size`.");
+
+  using one_increment_t = constant<increment_t, const_val::one>;
+  using one_index_t = constant<index_t, const_val::one>;
+  constexpr bool is_upper = (uplo == uplo_type::Upper);
+  constexpr bool is_transposed = (trn != transpose_type::Normal);
+  constexpr bool is_unit = (diag == diag_type::Unit);
+
+  constexpr bool is_forward =
+      (is_upper && is_transposed) || (!is_upper && !is_transposed);
+
+  index_t matrix_size = ((_N + 1) * _N) / 2;
+
+  auto mA = make_matrix_view<col_major>(_mA, one_index_t::value(), matrix_size,
+                                        matrix_size);
+  auto vx = make_vector_view(_vx, _incx, _N);
+
+  std::vector<int32_t> sync_vec(2);
+  sync_vec[0] =
+      is_forward ? 0
+                 : ((roundUp<index_t>(_N, subgroup_size) / subgroup_size) - 1);
+  sync_vec[1] = sync_vec[0];
+
+  auto sync_buffer =
+      blas::make_sycl_iterator_buffer<int32_t>(sync_vec, sync_vec.size());
+  auto sync =
+      make_vector_view(sync_buffer, one_increment_t::value(), sync_vec.size());
+
+  auto tpsv =
+      make_tpsv<subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
+          vx, mA, sync);
+
+  const index_t sub_num = subgroups;
+  return sb_handle.execute(
+      tpsv, static_cast<index_t>(sub_num * subgroup_size),
+      roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
+      static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)));
+#endif
 }
 
 /**** RANK 1 MODIFICATION ****/
@@ -1203,6 +1260,15 @@ typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
                                     container_t1 _vx, increment_t _incx) {
   INST_UPLO_TRANS_DIAG(blas::tbsv::backend::_tbsv, sb_handle, _N, _K, _mA, _lda,
                        _vx, _incx)
+}
+template <typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
+                                    char _trans, char _Diag, index_t _N,
+                                    container_t0 _mA, container_t1 _vx,
+                                    increment_t _incx) {
+  INST_UPLO_TRANS_DIAG(blas::tpsv::backend::_tpsv, sb_handle, _N, _mA, _vx,
+                       _incx)
 }
 }  // namespace internal
 }  // namespace blas

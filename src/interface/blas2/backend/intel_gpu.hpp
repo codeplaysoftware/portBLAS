@@ -135,8 +135,8 @@ template <uplo_type uplo, transpose_type trn, diag_type diag,
 typename sb_handle_t::event_t _trsv(sb_handle_t& sb_handle, index_t _N,
                                     container_t0 _mA, index_t _lda,
                                     container_t1 _vx, increment_t _incx) {
-  return blas::internal::_trsv_impl<16, 4, uplo, trn, diag>(sb_handle, _N, _mA,
-                                                            _lda, _vx, _incx);
+  return blas::internal::_trsv_impl<8, 4, uplo, trn, diag>(sb_handle, _N, _mA,
+                                                           _lda, _vx, _incx);
 }
 }  // namespace backend
 }  // namespace trsv
@@ -149,10 +149,24 @@ template <uplo_type uplo, transpose_type trn, diag_type diag,
 typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, index_t _N,
                                     index_t _K, container_t0 _mA, index_t _lda,
                                     container_t1 _vx, increment_t _incx) {
-  return blas::internal::_tbsv_impl<16, 4, uplo, trn, diag>(
+  return blas::internal::_tbsv_impl<8, 4, uplo, trn, diag>(
       sb_handle, _N, _K, _mA, _lda, _vx, _incx);
 }
 }  // namespace backend
 }  // namespace tbsv
+
+namespace tpsv {
+namespace backend {
+template <uplo_type uplo, transpose_type trn, diag_type diag,
+          typename sb_handle_t, typename index_t, typename container_t0,
+          typename container_t1, typename increment_t>
+typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, index_t _N,
+                                    container_t0 _mA, container_t1 _vx,
+                                    increment_t _incx) {
+  return blas::internal::_tpsv_impl<8, 4, uplo, trn, diag>(sb_handle, _N, _mA,
+                                                           _vx, _incx);
+}
+}  // namespace backend
+}  // namespace tpsv
 }  // namespace blas
 #endif

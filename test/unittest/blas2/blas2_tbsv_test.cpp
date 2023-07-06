@@ -26,7 +26,8 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<int, int, bool, bool, bool, int, int, T>;
+using combination_t =
+    std::tuple<index_t, index_t, bool, bool, bool, index_t, index_t, T>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -37,15 +38,16 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_unit;
   index_t incX;
   index_t lda_mul;
-  scalar_t wa;
-  std::tie(n, k, is_upper, trans, is_unit, incX, lda_mul, wa) = combi;
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
+  std::tie(n, k, is_upper, trans, is_unit, incX, lda_mul, unused) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
   const char* diag_str = is_unit ? "u" : "n";
 
-  int a_size = (k + 1) * n * lda_mul;
-  int x_size = 1 + (n - 1) * incX;
+  index_t a_size = (k + 1) * n * lda_mul;
+  index_t x_size = 1 + (n - 1) * incX;
 
   // Input matrix
   std::vector<scalar_t> a_m(a_size);
@@ -58,13 +60,12 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random_with_range(a_m, scalar_t(-0.05), scalar_t(0.05));
   if (!is_unit) {
     // Populate main diagonal with dominant elements
-    for (int i = 0; i < n; ++i)
+    for (index_t i = 0; i < n; ++i)
       a_m[i * (k + 1) * lda_mul + ((is_upper) ? k : 0)] =
           random_scalar(scalar_t(9), scalar_t(11));
   }
 
   fill_random(x_v);
-
   x_v_cpu = x_v;
 
   // SYSTEM TBSV
@@ -84,57 +85,48 @@ void run_test(const combination_t<scalar_t> combi) {
                                           x_v.data(), x_size);
   sb_handle.wait(event);
 
-#ifdef PRINTMAXERR
-  double maxerr = -1.0;
-  for (index_t i = 0; i < x_size; i += incX) {
-    maxerr = std::max(maxerr, std::fabs(double(x_v[i]) - double(x_v_cpu[i])));
-  }
-  std::cerr << std::endl
-            << " Maximum error compared to reference: " << maxerr << std::endl;
-#endif
-
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
 }
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Range(1000, 1200),                       // n
+                       ::testing::Values(1, 23, 32, 34, 38, 72, 89, 120),  // k
+                       ::testing::Values(true, false),  // is_upper
+                       ::testing::Values(true, false),  // trans
+                       ::testing::Values(true, false),  // is_unit
+                       ::testing::Values(1, 2),         // incX
+                       ::testing::Values(1, 2),         // lda_mul
+                       ::testing::Values(0)             // unused
+    );
+#else
+// For the purpose of travis and other slower platforms, we need a faster test
+// (the stress_test above takes about ~5 minutes)
+template <typename scalar_t>
 const auto combi = ::testing::Combine(
     ::testing::Values(121, 288, 448, 553, 600, 996, 1024, 1999, 5252),  // n
     ::testing::Values(1, 23, 32, 34, 38, 72, 89, 120),                  // k
-    ::testing::Values(14, 63, 257, 1010),                               // n
-    ::testing::Values(3, 4, 9, 13),                                     // k
     ::testing::Values(true, false),  // is_upper
     ::testing::Values(true, false),  // trans
     ::testing::Values(true, false),  // is_unit
     ::testing::Values(1, 2),         // incX
     ::testing::Values(1, 2),         // lda_mul
-    ::testing::Values(0));
-#else
-// For the purpose of travis and other slower platforms, we need a faster test
-// (the stress_test above takes about ~5 minutes)
-template <typename scalar_t>
-const auto combi =
-    ::testing::Combine(::testing::Values(14, 63, 257, 1010),  // n
-                       ::testing::Values(3, 4, 9, 13),        // k
-                       ::testing::Values(true, false),        // is_upper
-                       ::testing::Values(true, false),        // trans
-                       ::testing::Values(true, false),        // is_unit
-                       ::testing::Values(1, 2),               // incX
-                       ::testing::Values(1, 2),               // lda_mul
-                       ::testing::Values(0));
+    ::testing::Values(0)             // unused
+);
 #endif
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
-  int n, k, incX, ldaMul;
+  index_t n, k, incX, ldaMul;
   bool is_upper;
   bool trans;
   bool is_unit;
-  T wa;
+  T unused;
   BLAS_GENERATE_NAME(info.param, n, k, is_upper, trans, is_unit, incX, ldaMul,
-                     wa);
+                     unused);
 }
 
 BLAS_REGISTER_TEST_ALL(Tbsv, combination_t, combi, generate_name);
