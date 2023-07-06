@@ -424,7 +424,7 @@ static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(
     constexpr index_t dmin = 32, dmax = 8192;
     std::vector<std::string> dtranspose = {"n", "t"};
     scalar_t alpha = 1;
-    scalar_t beta = 0;
+    scalar_t beta = 1;
     for (std::string& t1 : dtranspose) {
       for (std::string& t2 : dtranspose) {
         for (index_t m = dmin; m <= dmax; m *= 8) {
