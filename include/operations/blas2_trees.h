@@ -422,7 +422,7 @@ make_tbmv(lhs_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
  * This implementation is based on
  *            Hogg, J. D. A fast triangular solve on GPUs. STFC, 2012.
  *
- * The class is constructed using the make_txsv function below.
+ * The class is constructed using the make_t*sv functions below.
  *
  * @tparam matrix_format  specifies how the matrix is stored, full, packed, or
  * banded
@@ -459,16 +459,46 @@ struct Txsv {
   value_t read_matrix(const index_t &row, const index_t &col) const;
 };
 /*!
- @brief Generator/factory for TXSV trees.
+ @brief Generator/factory for TBSV trees.
  */
-template <matrix_format_t matrix_format, uint32_t subgroup_size,
-          uint32_t subgroups, bool is_upper, bool is_transposed, bool is_unit,
-          typename vector_t, typename matrix_t, typename sync_t>
-Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size, subgroups,
-     is_upper, is_transposed, is_unit>
-make_txsv(vector_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
+          bool is_transposed, bool is_unit, typename vector_t,
+          typename matrix_t, typename sync_t>
+Txsv<vector_t, matrix_t, sync_t, matrix_format_t::banded, subgroup_size,
+     subgroups, is_upper, is_transposed, is_unit>
+make_tbsv(vector_t &lhs_, matrix_t &matrix_, typename vector_t::index_t k_,
           sync_t &sync_) {
-  return Txsv<vector_t, matrix_t, sync_t, matrix_format, subgroup_size,
+  return Txsv<vector_t, matrix_t, sync_t, matrix_format_t::banded,
+              subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
+      lhs_, matrix_, k_, sync_);
+}
+
+/*!
+ @brief Generator/factory for TPSV trees.
+ */
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
+          bool is_transposed, bool is_unit, typename vector_t,
+          typename matrix_t, typename sync_t>
+Txsv<vector_t, matrix_t, sync_t, matrix_format_t::packed, subgroup_size,
+     subgroups, is_upper, is_transposed, is_unit>
+make_tpsv(vector_t &lhs_, matrix_t &matrix_, sync_t &sync_) {
+  typename vector_t::index_t k_;
+  return Txsv<vector_t, matrix_t, sync_t, matrix_format_t::packed,
+              subgroup_size, subgroups, is_upper, is_transposed, is_unit>(
+      lhs_, matrix_, k_, sync_);
+}
+
+/*!
+ @brief Generator/factory for TRSV trees.
+ */
+template <uint32_t subgroup_size, uint32_t subgroups, bool is_upper,
+          bool is_transposed, bool is_unit, typename vector_t,
+          typename matrix_t, typename sync_t>
+Txsv<vector_t, matrix_t, sync_t, matrix_format_t::full, subgroup_size,
+     subgroups, is_upper, is_transposed, is_unit>
+make_trsv(vector_t &lhs_, matrix_t &matrix_, sync_t &sync_) {
+  typename vector_t::index_t k_;
+  return Txsv<vector_t, matrix_t, sync_t, matrix_format_t::full, subgroup_size,
               subgroups, is_upper, is_transposed, is_unit>(lhs_, matrix_, k_,
                                                            sync_);
 }
