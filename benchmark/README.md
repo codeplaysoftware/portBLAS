@@ -32,7 +32,7 @@ After the compilation, the binaries will be available:
 A verification of the results is enabled by default and can be disabled with the
 CMake option `BLAS_VERIFY_BENCHMARK` set to `OFF` or `0`. The verification will
 be run a small number of times (more than once because of the way the benchmark
-library works, but much less then the usual number of iterations of the
+library works, but much less than the usual number of iterations of the
 benchmarks). The verification requires that a reference implementation of BLAS
 like OpenBLAS is installed, which path can be given with the `CMAKE_PREFIX_PATH`
 CMake parameter.
@@ -77,7 +77,7 @@ displaying the results in the console and saving a json report:
 
 The benchmarks can be given a CSV file containing the parameters to run with
 (matrix/vector dimensions, transpose or not, etc), in the following format: one
-line corresponds to one set of parameters, i.e one name for the library (though
+line corresponds to one set of parameters, i.e. one name for the library (though
 it will be iterated many times for statistical accuracy).
 
 The formats for the different BLAS levels are:
@@ -183,9 +183,9 @@ The following ranges are a good starting point:
 ### Default parameters
 
 If no CSV file is provided, the default ranges will be used, as described below.
-These ranges only use powers of two, and run all the possible combinations of
-the values for all the parameters. This means that the BLAS 3 benchmark will be
-run for 500 different parameter tuples by default.
+These ranges only use powers of two and have been carefully fine-tuned to 
+ensure that the problem sizes are meaningful for modern GPGPUs, and that all 
+benchmarks complete within a reasonable time.
 
 If you need to use specific sizes or run less benchmarks, you can use the CSV
 parameter files as described above.
@@ -263,7 +263,7 @@ following keys:
 * `time_unit`: unit used for these times. Should be `ns`, if not please file an
     issue.
 * `avg_event_time`: the average of the CL/SYCL event times in nanoseconds. This
-    time depends of the events returned by the BLAS functions used and might not
+    time depends on the events returned by the BLAS functions used and might not
     be accurate in some cases
 * `best_event_time`: the best of the CL/SYCL event times in nanoseconds. See
     warning above.
