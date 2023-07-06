@@ -45,11 +45,22 @@ namespace internal {
  * @param _N data size
  */
 template typename SB_Handle::event_t _rot(SB_Handle &sb_handle,
-                                          ${INDEX_TYPE} _N, ${container_t0} _vx,
+                                          ${INDEX_TYPE} _N, BufferIterator<${container_t0}> _vx,
                                           ${INCREMENT_TYPE} _incx,
-                                          ${container_t1} _vy,
+                                          BufferIterator<${container_t1}> _vy,
                                           ${INCREMENT_TYPE} _incy,
                                           ${DATA_TYPE} _cos, ${DATA_TYPE} _sin,
                                           const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _rot(SB_Handle &sb_handle,
+                                          ${INDEX_TYPE} _N, ${container_t0}* _vx,
+                                          ${INCREMENT_TYPE} _incx,
+                                          ${container_t1}* _vy,
+                                          ${INCREMENT_TYPE} _incy,
+                                          ${DATA_TYPE} _cos, ${DATA_TYPE} _sin,
+                                          const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas

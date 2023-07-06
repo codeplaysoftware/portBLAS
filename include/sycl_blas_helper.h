@@ -173,6 +173,13 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
+template <typename element_t>
+inline cl::sycl::event copy_to_host(cl::sycl::queue q, const element_t *src,
+                                    element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+  return event;
+}
+
 #endif
 
 template <typename element_t>

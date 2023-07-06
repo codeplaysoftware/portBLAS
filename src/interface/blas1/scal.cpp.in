@@ -42,8 +42,18 @@ namespace internal {
 template typename SB_Handle::event_t _scal(SB_Handle &sb_handle,
                                            ${INDEX_TYPE} _N,
                                            ${DATA_TYPE} _alpha,
-                                           ${container_t0} _vx,
+                                           BufferIterator<${container_t0}> _vx,
                                            ${INCREMENT_TYPE} _incx,
                                            const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _scal(SB_Handle &sb_handle,
+                                           ${INDEX_TYPE} _N,
+                                           ${DATA_TYPE} _alpha,
+                                           ${container_t0}* _vx,
+                                           ${INCREMENT_TYPE} _incx,
+                                           const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas
