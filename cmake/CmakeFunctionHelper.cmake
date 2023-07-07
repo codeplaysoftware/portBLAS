@@ -1183,32 +1183,4 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
 
   add_library(${LIB_NAME} ${LIB_SRCS})
 
-  if(${SB_ENABLE_USM})
-    set(CONST_SRCS
-                    $<TARGET_OBJECTS:gbmv_const>
-                    $<TARGET_OBJECTS:gemv_const>
-                    $<TARGET_OBJECTS:ger_const>
-                    $<TARGET_OBJECTS:sbmv_const>
-                    $<TARGET_OBJECTS:spmv_const>
-                    $<TARGET_OBJECTS:symv_const>
-                    $<TARGET_OBJECTS:syr_const>
-                    $<TARGET_OBJECTS:spr_const>
-                    $<TARGET_OBJECTS:spr2_const>
-                    $<TARGET_OBJECTS:syr2_const>
-                    $<TARGET_OBJECTS:tbmv_const>
-                    $<TARGET_OBJECTS:tpmv_const>
-                    $<TARGET_OBJECTS:tbsv_const>
-                    $<TARGET_OBJECTS:trmv_const>
-                    $<TARGET_OBJECTS:trsv_const>
-                    $<TARGET_OBJECTS:gemm_const>
-                    $<TARGET_OBJECTS:gemm_launcher_const>
-                    $<TARGET_OBJECTS:symm_const>
-                    $<TARGET_OBJECTS:trsm_const>)
-
-    # if(${ENABLE_EXTENSIONS})
-    #   list(APPEND CONST_SRCS $<TARGET_OBJECTS:reduction_const>)
-    # endif()
-
-    target_sources(${LIB_NAME} PRIVATE ${CONST_SRCS})
-  endif()
 endfunction(build_library)
