@@ -302,7 +302,8 @@ For all these operations:
 * `A`, `B` and `C` are containers for the column-major matrices A, B and C.
 * `lda`, `ldb` and `ldc` are the leading dimensions of the matrices A, B and C
   (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
-  to its number of rows. In the case of in-place transpose, the same matrix `A` is used with two different leading dimensions for input & output.
+  to its number of rows. In the case of in-place transpose, the same matrix `A`
+  is used with two different leading dimensions for input & output.
 * `transa` and `transb` are the transpose modes of the matrices A and B
   (cf BLAS 2).
 * `M` and `N` are the dimensions of the matrices.
