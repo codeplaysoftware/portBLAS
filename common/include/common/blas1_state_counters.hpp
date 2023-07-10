@@ -26,22 +26,10 @@
 #ifndef COMMON_BLAS1_STATE_COUNTERS
 #define COMMON_BLAS1_STATE_COUNTERS
 
+#include "benchmark_identifier.hpp"
+
 namespace blas_benchmark {
 namespace utils {
-
-enum class Level1Op : int {
-  asum = 0,
-  axpy = 1,
-  dot = 2,
-  iamax = 3,
-  iamin = 4,
-  nrm2 = 5,
-  rotm = 6,
-  rotmg = 7,
-  scal = 8,
-  sdsdot = 9,
-  copy = 10
-};
 
 template <Level1Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level1Op::asum || op == Level1Op::iamax ||

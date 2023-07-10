@@ -26,27 +26,10 @@
 #ifndef COMMON_BLAS2_STATE_COUNTERS
 #define COMMON_BLAS2_STATE_COUNTERS
 
+#include "benchmark_identifier.hpp"
+
 namespace blas_benchmark {
 namespace utils {
-
-enum class Level2Op : int {
-  gbmv = 0,
-  gemv = 1,
-  ger = 2,
-  sbmv = 3,
-  spmv = 4,
-  spr = 5,
-  spr2 = 6,
-  symv = 7,
-  syr = 8,
-  syr2 = 9,
-  tbmv = 10,
-  tbsv = 11,
-  tpmv = 12,
-  tpsv = 13,
-  trmv = 14,
-  trsv = 15
-};
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::gbmv>::type
