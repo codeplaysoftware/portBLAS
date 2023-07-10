@@ -115,7 +115,7 @@ void register_benchmark(blas_benchmark::Args& args,
   auto spr_params = blas_benchmark::utils::get_spr_params<scalar_t>(args);
 
   for (auto p : spr_params) {
-    int n, incX;
+    index_t n, incX;
     std::string uplo;
     scalar_t alpha;
     std::tie(uplo, n, alpha, incX) = p;
