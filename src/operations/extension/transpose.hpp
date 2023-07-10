@@ -117,8 +117,8 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   get_indices(id, in_index, out_index, i_id, j_id);
 
   if (i_id < ((M_ - 1) * inc_a_ + 1)) {
-    auto A = A_.get_data().get_pointer();
-    auto At = At_.get_data().get_pointer();
+    auto A = A_.get_pointer();
+    auto At = At_.get_pointer();
     for (index_t l = 0; l < inner_tile_count_; l++) {
       if (j_id + l * inner_tile_size_ * inc_at_ < ((N_ - 1) * inc_at_ + 1)) {
         At[out_index + l * inner_tile_size_ * inc_at_] =
@@ -185,8 +185,8 @@ SYCL_BLAS_INLINE void
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::eval(local_memory_t local_mem, cl::sycl::nd_item<1> id) {
   value_t *local = local_mem.localAcc.get_pointer();
-  auto A = A_.get_data().get_pointer();
-  auto At = At_.get_data().get_pointer();
+  auto A = A_.get_pointer();
+  auto At = At_.get_pointer();
   index_t in_index, in_local_id, out_index, out_local_id, il, jl;
   index_t i_block_start, j_block_start;
   get_indices(id, in_index, in_local_id, out_index, out_local_id, i_block_start,
