@@ -154,13 +154,16 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {
-    char side, uplo;
+    std::string side, uplo;
     index_t m, n;
     scalar_t alpha, beta;
     std::tie(side, uplo, m, n, alpha, beta) = p;
 
+    char side_c = side[0];
+    char uplo_c = uplo[0];
+
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
-                         char side, char uplo, index_t m, index_t n,
+                         char side_c, char uplo_c, index_t m, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
       run<scalar_t>(st, rb_handle, side, uplo, m, n, alpha, beta, success);
     };
