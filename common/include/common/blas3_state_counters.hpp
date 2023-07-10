@@ -26,20 +26,10 @@
 #ifndef COMMON_BLAS3_STATE_COUNTERS
 #define COMMON_BLAS3_STATE_COUNTERS
 
+#include "benchmark_identifier.hpp"
+
 namespace blas_benchmark {
 namespace utils {
-
-enum class Level3Op : int {
-  gemm_batched_strided = 0,
-  gemm_batched = 1,
-  gemm = 2,
-  symm = 3,
-  syr2k = 4,
-  syrk = 5,
-  trmm = 6,
-  trsm_batched = 7,
-  trsm = 8
-};
 
 template <Level3Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level3Op::gemm_batched_strided ||

@@ -25,15 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(char side, char uplo, int m, int n, scalar_t alpha,
-                     scalar_t beta) {
-  std::ostringstream str{};
-  str << "BM_Symm<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << side << "/" << uplo << "/" << m << "/" << n << "/" << alpha << "/"
-      << beta;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::symm;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_symm_f(args_t&&... args) {
@@ -161,10 +154,13 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
   auto symm_params = blas_benchmark::utils::get_symm_params<scalar_t>(args);
 
   for (auto p : symm_params) {
-    char side, uplo;
+    std::string side, uplo;
     index_t m, n;
     scalar_t alpha, beta;
     std::tie(side, uplo, m, n, alpha, beta) = p;
+
+    char side_c = side[0];
+    char uplo_c = uplo[0];
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          char side, char uplo, index_t m, index_t n,
@@ -172,8 +168,10 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
       run<scalar_t>(st, rb_handle, side, uplo, m, n, alpha, beta, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(side, uplo, m, n, alpha, beta).c_str(), BM_lambda,
-        rb_handle, side, uplo, m, n, alpha, beta, success)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            side, uplo, m, n, alpha, beta, blas_benchmark::utils::MEM_TYPE_USM)
+            .c_str(),
+        BM_lambda, rb_handle, side_c, uplo_c, m, n, alpha, beta, success)
         ->UseRealTime();
   }
 }

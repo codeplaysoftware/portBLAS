@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(int size) {
-  std::ostringstream str{};
-  str << "BM_Asum<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/";
-  str << size;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level1Op benchmark_op =
+    blas_benchmark::utils::Level1Op::asum;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
@@ -41,8 +36,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       state, sb_handle_ptr->get_queue());
 
   // Google-benchmark counters are double.
-  blas_benchmark::utils::init_level_1_counters<
-      blas_benchmark::utils::Level1Op::asum, scalar_t>(state, size);
+  blas_benchmark::utils::init_level_1_counters<benchmark_op, scalar_t>(state,
+                                                                       size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -117,8 +112,11 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
                          index_t size, bool* success) {
       run<scalar_t>(st, sb_handle_ptr, size, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(size).c_str(), BM_lambda,
-                                 sb_handle_ptr, size, success)
+    benchmark::RegisterBenchmark(
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            size, blas_benchmark::utils::MEM_TYPE_BUFFER)
+            .c_str(),
+        BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
 }

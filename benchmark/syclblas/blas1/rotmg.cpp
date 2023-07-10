@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name() {
-  std::ostringstream str{};
-  str << "BM_Rotmg<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/";
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level1Op benchmark_op =
+    blas_benchmark::utils::Level1Op::rotmg;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
@@ -146,8 +141,11 @@ void register_benchmark(blas_benchmark::Args& args,
                        bool* success) {
     run<scalar_t>(st, sb_handle_ptr, success);
   };
-  benchmark::RegisterBenchmark(get_name<scalar_t>().c_str(), BM_lambda,
-                               sb_handle_ptr, success)
+  benchmark::RegisterBenchmark(
+      blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+          blas_benchmark::utils::MEM_TYPE_BUFFER)
+          .c_str(),
+      BM_lambda, sb_handle_ptr, success)
       ->UseRealTime();
 }
 

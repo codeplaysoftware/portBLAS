@@ -25,15 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(char uplo, char trans, int n, int k, scalar_t alpha,
-                     scalar_t beta) {
-  std::ostringstream str{};
-  str << "BM_Syrk<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << trans << "/" << n << "/" << k << "/" << alpha << "/"
-      << beta;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level3Op benchmark_op =
+    blas_benchmark::utils::Level3Op::syrk;
 
 template <typename scalar_t, typename... args_t>
 static inline void cublas_routine(args_t&&... args) {
@@ -147,10 +140,13 @@ void register_benchmark(blas_benchmark::Args& args,
   auto syrk_params = blas_benchmark::utils::get_syrk_params<scalar_t>(args);
 
   for (auto p : syrk_params) {
-    char s_uplo, s_trans;
+    std::string uplo, trans;
     index_t n, k;
     scalar_t alpha, beta;
-    std::tie(s_uplo, s_trans, n, k, alpha, beta) = p;
+    std::tie(uplo, trans, n, k, alpha, beta) = p;
+
+    char uplo_c = uplo[0];
+    char trans_c = trans[0];
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          char uplo, char trans, index_t n, index_t k,
@@ -159,8 +155,10 @@ void register_benchmark(blas_benchmark::Args& args,
                     success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(s_uplo, s_trans, n, k, alpha, beta).c_str(),
-        BM_lambda, cuda_handle_ptr, s_uplo, s_trans, n, k, alpha, beta, success)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            uplo, trans, n, k, alpha, beta, blas_benchmark::utils::MEM_TYPE_USM)
+            .c_str(),
+        BM_lambda, cuda_handle_ptr, uplo_c, trans_c, n, k, alpha, beta, success)
         ->UseRealTime();
   }
 }
