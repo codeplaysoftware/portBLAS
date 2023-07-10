@@ -154,7 +154,7 @@ void register_benchmark(blas_benchmark::Args& args,
     char uplo_c = uplo[0];
 
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
-                         char side_c, char uplo_c, index_t m, index_t n,
+                         char side, char uplo, index_t m, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
       run<scalar_t>(st, cuda_handle_ptr, side, uplo, m, n, alpha, beta,
                     success);
@@ -163,7 +163,7 @@ void register_benchmark(blas_benchmark::Args& args,
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
             side, uplo, m, n, alpha, beta, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
-        BM_lambda, cuda_handle_ptr, side, uplo, m, n, alpha, beta, success)
+        BM_lambda, cuda_handle_ptr, side_c, uplo_c, m, n, alpha, beta, success)
         ->UseRealTime();
   }
 }
