@@ -74,6 +74,8 @@ enum class Level3Op : int {
   trsm = 8
 };
 
+enum class ExtensionOp : int { reduction = 0 };
+
 template <Level1Op op>
 std::string get_operator_name() {
   if constexpr (op == Level1Op::asum)
@@ -164,6 +166,14 @@ std::string get_operator_name() {
     return "Trsm";
   else
     throw std::runtime_error("Unknown BLAS 3 operator");
+}
+
+template <ExtensionOp op>
+std::string get_operator_name() {
+  if constexpr (op == ExtensionOp::reduction)
+    return "Reduction";
+  else
+    throw std::runtime_error("Unknown BLAS extension operator");
 }
 
 }  // namespace utils
