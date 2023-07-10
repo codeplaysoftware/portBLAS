@@ -25,13 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string uplo, int n) {
-  std::ostringstream str{};
-  str << "BM_Syr<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << n;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level2Op benchmark_op =
+    blas_benchmark::utils::Level2Op::syr;
 
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_syr_f(args_t&&... args) {
@@ -169,8 +164,11 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                          bool* success) {
       run<scalar_t>(st, rb_handle, uplo, n, alpha, success);
     };
-    benchmark::RegisterBenchmark(get_name<scalar_t>(uplo, n).c_str(), BM_lambda,
-                                 rb_handle, uplo, n, alpha, success)
+    benchmark::RegisterBenchmark(
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            uplo, n, blas_benchmark::utils::MEM_TYPE_USM)
+            .c_str(),
+        BM_lambda, rb_handle, uplo, n, alpha, success)
         ->UseRealTime();
   }
 }

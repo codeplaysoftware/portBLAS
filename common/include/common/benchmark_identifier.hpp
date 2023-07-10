@@ -74,6 +74,8 @@ enum class Level3Op : int {
   trsm = 8
 };
 
+enum class ExtensionOp : int { reduction = 0 };
+
 template <Level1Op op>
 std::string get_operator_name() {
   if constexpr (op == Level1Op::asum)
@@ -102,6 +104,76 @@ std::string get_operator_name() {
     return "Rotg";
   else
     throw std::runtime_error("Unknown BLAS 1 operator");
+}
+
+template <Level2Op op>
+std::string get_operator_name() {
+  if constexpr (op == Level2Op::gbmv)
+    return "Gbmv";
+  else if constexpr (op == Level2Op::gemv)
+    return "Gemv";
+  else if constexpr (op == Level2Op::ger)
+    return "Ger";
+  else if constexpr (op == Level2Op::sbmv)
+    return "Sbmv";
+  else if constexpr (op == Level2Op::spmv)
+    return "Spmv";
+  else if constexpr (op == Level2Op::spr)
+    return "Spr";
+  else if constexpr (op == Level2Op::spr2)
+    return "Spr2";
+  else if constexpr (op == Level2Op::symv)
+    return "Symv";
+  else if constexpr (op == Level2Op::syr)
+    return "Syr";
+  else if constexpr (op == Level2Op::syr2)
+    return "Syr2";
+  else if constexpr (op == Level2Op::tbmv)
+    return "Tbmv";
+  else if constexpr (op == Level2Op::tbsv)
+    return "Tbsv";
+  else if constexpr (op == Level2Op::tpmv)
+    return "Tpmv";
+  else if constexpr (op == Level2Op::tpsv)
+    return "Tpsv";
+  else if constexpr (op == Level2Op::trmv)
+    return "Trmv";
+  else if constexpr (op == Level2Op::trsv)
+    return "Trsv";
+  else
+    throw std::runtime_error("Unknown BLAS 2 operator");
+}
+
+template <Level3Op op>
+std::string get_operator_name() {
+  if constexpr (op == Level3Op::gemm_batched_strided)
+    return "Gemm_batched_strided";
+  else if constexpr (op == Level3Op::gemm_batched)
+    return "Gemm_batched";
+  else if constexpr (op == Level3Op::gemm)
+    return "Gemm";
+  else if constexpr (op == Level3Op::symm)
+    return "Symm";
+  else if constexpr (op == Level3Op::syr2k)
+    return "Syr2k";
+  else if constexpr (op == Level3Op::syrk)
+    return "Syrk";
+  else if constexpr (op == Level3Op::trmm)
+    return "Trmm";
+  else if constexpr (op == Level3Op::trsm_batched)
+    return "Trsm_batched";
+  else if constexpr (op == Level3Op::trsm)
+    return "Trsm";
+  else
+    throw std::runtime_error("Unknown BLAS 3 operator");
+}
+
+template <ExtensionOp op>
+std::string get_operator_name() {
+  if constexpr (op == ExtensionOp::reduction)
+    return "Reduction";
+  else
+    throw std::runtime_error("Unknown BLAS extension operator");
 }
 
 }  // namespace utils
