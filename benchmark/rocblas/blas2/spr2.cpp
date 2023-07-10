@@ -169,7 +169,7 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            uplo_c, n, alpha, incX, incY, blas_benchmark::utils::MEM_TYPE_USM)
+            uplo, n, alpha, incX, incY, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, rb_handle, uplo_c, n, alpha, incX, incY, success)
         ->UseRealTime();
