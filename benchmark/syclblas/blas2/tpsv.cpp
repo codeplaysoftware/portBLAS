@@ -25,14 +25,8 @@
 
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string uplo, std::string t, std::string diag,
-                     const int n) {
-  std::ostringstream str{};
-  str << "BM_Tpsv<" << blas_benchmark::utils::get_type_name<scalar_t>() << ">/"
-      << uplo << "/" << t << "/" << diag << "/" << n;
-  return str.str();
-}
+constexpr blas_benchmark::utils::Level2Op benchmark_op =
+    blas_benchmark::utils::Level2Op::tpsv;
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
@@ -50,8 +44,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr,
   index_t incX = 1;
   index_t xlen = 1 + (n - 1) * incX;
 
-  blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::tpsv, scalar_t>(state, "n", 0, 0, n);
+  blas_benchmark::utils::init_level_2_counters<benchmark_op, scalar_t>(
+      state, "n", 0, 0, n);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -146,8 +140,10 @@ void register_benchmark(blas_benchmark::Args& args,
       run<scalar_t>(st, sb_handle_ptr, uplos, ts, diags, n, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(uplos, ts, diags, n).c_str(), BM_lambda,
-        sb_handle_ptr, uplos, ts, diags, n, success)
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
+            uplos, ts, diags, n, blas_benchmark::utils::MEM_TYPE_BUFFER)
+            .c_str(),
+        BM_lambda, sb_handle_ptr, uplos, ts, diags, n, success)
         ->UseRealTime();
   }
 }

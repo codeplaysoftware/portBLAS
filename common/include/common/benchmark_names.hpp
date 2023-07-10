@@ -180,7 +180,7 @@ get_name(std::string uplo, std::string t, std::string diag, index_t n,
 
 template <Level2Op op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
-                                   op == Level2Op::trsv,
+                                   op == Level2Op::trsv || op == Level2Op::tpsv,
                                std::string>::type
 get_name(std::string uplo, std::string t, std::string diag, index_t n,
          std::string mem_type) {
