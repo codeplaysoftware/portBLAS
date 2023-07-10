@@ -312,7 +312,7 @@ For all these operations:
 
 | operation | arguments | description |
 |---|---|---|
-| `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
+| `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Perform an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
 | `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place matrix transpose operation using a general dense matrix. |
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `ld_in`, `ld_out`  | Computes an in-place matrix transpose operation using a general dense matrix. |
