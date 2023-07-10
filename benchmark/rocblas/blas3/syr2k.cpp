@@ -151,10 +151,13 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
   auto syr2k_params = blas_benchmark::utils::get_syrk_params<scalar_t>(args);
 
   for (auto p : syr2k_params) {
-    char uplo, trans;
+    std::string uplo, trans;
     index_t n, k;
     scalar_t alpha, beta;
     std::tie(uplo, trans, n, k, alpha, beta) = p;
+
+    char uplo_c = uplo[0];
+    char trans_c = trans[0];
 
     auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
                          char uplo, char trans, index_t n, index_t k,
@@ -165,7 +168,7 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
             uplo, trans, n, k, alpha, beta, blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
-        BM_lambda, rb_handle, uplo, trans, n, k, alpha, beta, success)
+        BM_lambda, rb_handle, uplo_c, trans_c, n, k, alpha, beta, success)
         ->UseRealTime();
   }
 }

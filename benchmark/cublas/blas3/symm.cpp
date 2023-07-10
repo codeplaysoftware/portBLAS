@@ -156,7 +156,7 @@ void register_benchmark(blas_benchmark::Args& args,
     auto BM_lambda = [&](benchmark::State& st, cublasHandle_t* cuda_handle_ptr,
                          char side_c, char uplo_c, index_t m, index_t n,
                          scalar_t alpha, scalar_t beta, bool* success) {
-      run<scalar_t>(st, cuda_handle_ptr, side_c, uplo_c, m, n, alpha, beta,
+      run<scalar_t>(st, cuda_handle_ptr, side, uplo, m, n, alpha, beta,
                     success);
     };
     benchmark::RegisterBenchmark(
