@@ -70,7 +70,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::omatcopy_ref(*t_str, m, n, alpha, m_a, lda, m_b_ref, ldb);
+  reference_blas::ext_omatcopy(*t_str, m, n, alpha, m_a, lda, m_b_ref, ldb);
 
   std::vector<scalar_t> m_b_temp = m_b;
   {

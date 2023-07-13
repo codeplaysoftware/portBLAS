@@ -40,7 +40,7 @@ namespace reference_blas {
  * @param ldb leading dimension of output matrix
  */
 template <typename index_t, typename scalar_t>
-void omatcopy_ref(char trans, const index_t m, const index_t n,
+void ext_omatcopy(char trans, const index_t m, const index_t n,
                   const scalar_t alpha, std::vector<scalar_t>& A,
                   const index_t lda, std::vector<scalar_t>& B, index_t ldb) {
   if (trans != 't') {
@@ -62,7 +62,7 @@ void omatcopy_ref(char trans, const index_t m, const index_t n,
  * @brief Host-baseline implementation of omatcopy2 used as reference.
  */
 template <typename scalar_t, typename index_t>
-void omatcopy2_ref(const char& t, const index_t& m, const index_t& n,
+void ext_omatcopy2(const char& t, const index_t& m, const index_t& n,
                    const scalar_t& alpha, std::vector<scalar_t>& in_matrix,
                    const index_t& ld_in, const index_t& inc_in,
                    std::vector<scalar_t>& out_matrix, const index_t& ld_out,
@@ -88,6 +88,27 @@ void omatcopy2_ref(const char& t, const index_t& m, const index_t& n,
   }
   return;
 }
+/**
+ * @brief Reference out-of-place transpose host-implementation.
+ *
+ * @param in Input matrix pointer
+ * @param ld_in Input matrix leading dimension
+ * @param out Output matrix pointer
+ * @param ld_in Output matrix leading dimension
+ * @param M Number of rows in input matrix (Columns in output )
+ * @param N Number of columns in input matrix (Rows in out output)
+ */
+
+template <typename T, typename index_t>
+void Transpose(const T* in, const index_t& ld_in, T* out, const index_t& ld_out,
+               const index_t& M, const index_t& N) {
+  for (index_t i = 0; i < M; i++) {
+    for (index_t j = 0; j < N; j++) {
+      out[j + i * ld_out] = in[i + j * ld_in];
+    }
+  }
+}
+
 
 }  // namespace reference_blas
 

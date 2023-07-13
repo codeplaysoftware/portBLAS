@@ -63,9 +63,9 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Reference implementation
   // TODO: There isn't a reference implementation from any library. So we
-  // compare the results with a basic host implementation above. Working on a
+  // compare the results with a basic host implementation. Working on a
   // better comparison.
-  reference_blas::omatcopy2_ref(trans, m, n, alpha, A_ref, ld_in, inc_in, B_ref,
+  reference_blas::ext_omatcopy2(trans, m, n, alpha, A_ref, ld_in, inc_in, B_ref,
                                 ld_out, inc_out);
 
   auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, m_a_size);
