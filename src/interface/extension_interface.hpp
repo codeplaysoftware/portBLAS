@@ -28,10 +28,11 @@
 
 #include "blas_meta.h"
 #include "interface/extension/backend/backend.hpp"
-#include "interface/transpose_launcher.h"
+#include "interface/extension_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 #include "operations/extension/reduction.h"
+#include "operations/extension/transpose.h"
 #include "sb_handle/sycl_blas_handle.h"
 #include "sycl_blas_helper.h"
 #include "views/view.h"
@@ -51,30 +52,63 @@ struct get_second_step_op<MeanOperator> {
 };
 
 /**
- * @brief Implementation of matrix copy operators for transpose cases with out
- * of place memory copy.
+ * @brief Wrapping implementation of outplace transpose kernel.
+ */
+template <int Tile_size, int wg_size, int cl_size, bool local_memory,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _transpose_outplace_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
+    index_t _ld_out, index_t _inc_out) {
+  constexpr const index_t num_cache_line_elems = cl_size / sizeof(element_t);
+  constexpr const index_t num_tiles_per_cache_line =
+      num_cache_line_elems / Tile_size;
+
+  // Matrix Views
+  auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in, index_t(1));
+  auto out_view =
+      make_matrix_view<col_major>(out_, _M, _N, _ld_out, index_t(1));
+
+  // Work items & groups sizes
+  index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
+  index_t global_size = n_wg * wg_size;
+
+  // Transpose expression Tree
+  auto trans_scale_tree =
+      make_transpose<false, Tile_size, wg_size, cl_size, local_memory>(
+          in_view, _inc_in, out_view, _inc_out, _alpha);
+
+  if constexpr (local_memory) {
+    index_t local_mem =
+        static_cast<index_t>((num_cache_line_elems + 1) * num_cache_line_elems /
+                             num_tiles_per_cache_line);
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
+  } else {
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size);
+  }
+}
+
+/**
+ * @brief Implementation of matrix copy operators for transpose cases.
  */
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
-typename std::enable_if<trans && !in_place, typename sb_handle_t::event_t>::type
+typename std::enable_if<trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
               index_t ld_out, index_t inc_out) {
-  return blas::extension::backend::_transpose_outplace<sb_handle_t, in_t, out_t,
-                                                       element_t, index_t>(
-      sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-      inc_out);
-}
+  if constexpr (!in_place) {
+    return blas::extension::transpose::backend::_transpose_outplace<
+        sb_handle_t, in_t, out_t, element_t, index_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+        inc_out);
 
-template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
-          typename index_t, typename in_t, typename out_t>
-typename std::enable_if<trans && in_place, typename sb_handle_t::event_t>::type
-_matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out) {
-  // TODO
-  typename sb_handle_t::event_t ret;
-  return ret;
+  } else {
+    // TODO
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
 }
 
 /**

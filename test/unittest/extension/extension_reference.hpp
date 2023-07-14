@@ -109,7 +109,6 @@ void Transpose(const T* in, const index_t& ld_in, T* out, const index_t& ld_out,
   }
 }
 
-
 }  // namespace reference_blas
 
 #endif

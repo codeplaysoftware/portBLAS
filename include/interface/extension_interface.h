@@ -83,6 +83,14 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
                                          index_t cols,
                                          reduction_dim_t reduction_dim);
 
+template <int Tile_size, int wg_size, int cl_size, bool local_memory,
+          typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _transpose_outplace_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
+    index_t _ld_out, index_t _inc_out);
+
 }  // namespace internal
 
 /**
