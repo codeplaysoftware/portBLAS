@@ -24,7 +24,7 @@
  **************************************************************************/
 #ifndef SYCL_BLAS_TRANSPOSE_AMD_GPU_BACKEND_HPP
 #define SYCL_BLAS_TRANSPOSE_AMD_GPU_BACKEND_HPP
-#include "interface/transpose_launcher.h"
+#include "interface/extension_interface.h"
 
 namespace blas {
 namespace extension {
