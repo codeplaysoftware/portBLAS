@@ -28,6 +28,7 @@
 
 namespace blas {
 namespace extension {
+namespace transpose {
 namespace backend {
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -51,6 +52,7 @@ typename sb_handle_t::event_t _transpose_outplace(
 }
 
 }  // namespace backend
+}  // namespace transpose
 }  // namespace extension
 }  // namespace blas
 
