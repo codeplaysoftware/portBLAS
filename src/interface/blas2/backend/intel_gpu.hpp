@@ -38,10 +38,18 @@ typename SB_Handle::event_t _gemv(SB_Handle& sb_handle, index_t _M, index_t _N,
                                   increment_t _incx, element_t _beta,
                                   container_t2 _vy, increment_t _incy) {
   if (trn == transpose_type::Normal) {
-    return blas::internal::_gemv_impl<256, 32, gemv_memory_t::local, trn>(
-        sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+    if (_N < 8192) {
+      return blas::internal::_gemv_impl<128, 64, gemv_memory_t::local, trn>(
+          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+    } else if (_N < 16384) {
+      return blas::internal::_gemv_impl<256, 64, gemv_memory_t::local, trn>(
+          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+    } else {
+      return blas::internal::_gemv_impl<512, 64, gemv_memory_t::local, trn>(
+          sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
+    }
   } else {
-    return blas::internal::_gemv_impl<128, 32, gemv_memory_t::local, trn>(
+    return blas::internal::_gemv_impl<128, 64, gemv_memory_t::local, trn>(
         sb_handle, _M, _N, _alpha, _mA, _lda, _vx, _incx, _beta, _vy, _incy);
   }
 }
