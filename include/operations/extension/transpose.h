@@ -79,13 +79,15 @@ class Transpose {
   // Minimum number of Tile-mutliple rows & columns to cover the matrices
   index_t M_pad_;
   index_t N_pad_;
-  // The number of elements per cache line size depends on the element type
-  static constexpr index_t get_num_cache_line_elems() {
-    return cl_size / sizeof(element_t);
+  // Number of contiguous elements to be used in local memory to avoid bank
+  // conflicts
+  static constexpr index_t get_non_bank_conflict_line_size() {
+    return std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
   }
-  // The number of Tile-sides per cache line
-  static constexpr index_t get_num_tiles_per_cache_line() {
-    return get_num_cache_line_elems() / Tile_size;
+  // The number of Tiles in a contiguous local memory line (used to avoid bank
+  // conflicts)
+  static constexpr index_t get_num_tiles_per_line() {
+    return get_non_bank_conflict_line_size() / Tile_size;
   }
 
   Transpose(in_t &A, index_t &inc_a, out_t &At, index_t &inc_at, value_t &alpha)

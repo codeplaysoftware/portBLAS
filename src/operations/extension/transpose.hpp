@@ -168,14 +168,14 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
   in_idx =
       i_block_start * inc_a_ + j_block_start * lda_ + il * inc_a_ + jl * lda_;
 
-  index_t jl_cl = idc / get_num_cache_line_elems();
-  index_t il_cl = idc - jl_cl * get_num_cache_line_elems();
+  index_t jl_cl = idc / get_non_bank_conflict_line_size();
+  index_t il_cl = idc - jl_cl * get_non_bank_conflict_line_size();
 
-  in_local_idx = jl_cl * (get_num_cache_line_elems() + 1) + il_cl;
+  in_local_idx = jl_cl * (get_non_bank_conflict_line_size() + 1) + il_cl;
 
   out_idx = i_block_start * ldat_ + j_block_start * inc_at_ + il * inc_at_ +
             jl * ldat_;
-  out_local_idx = il * Tile_size + jl + il / get_num_tiles_per_cache_line();
+  out_local_idx = il * Tile_size + jl + il / get_num_tiles_per_line();
 }
 
 template <bool in_place, int Tile_size, int wg_size, int cl_size,
@@ -196,9 +196,8 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
     for (index_t l = 0; l < inner_tile_count_; l++) {
       // Copy input to local memory
       if (j_block_start + jl + l * inner_tile_size_ < N_) {
-        local[in_local_id +
-              l * (get_num_cache_line_elems() + 1) *
-                  (inner_tile_size_ / get_num_tiles_per_cache_line())] =
+        local[in_local_id + l * (get_non_bank_conflict_line_size() + 1) *
+                                (inner_tile_size_ / get_num_tiles_per_line())] =
             alpha_ * A[in_index + l * inner_tile_size_ * lda_];
       }
     }

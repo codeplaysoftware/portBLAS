@@ -61,9 +61,9 @@ typename sb_handle_t::event_t _transpose_outplace_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
     index_t _ld_out, index_t _inc_out) {
-  constexpr const index_t num_cache_line_elems = cl_size / sizeof(element_t);
-  constexpr const index_t num_tiles_per_cache_line =
-      num_cache_line_elems / Tile_size;
+  constexpr const index_t num_line_elems =
+      std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
+  constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
 
   // Matrix Views
   auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in, index_t(1));
@@ -80,9 +80,8 @@ typename sb_handle_t::event_t _transpose_outplace_impl(
           in_view, _inc_in, out_view, _inc_out, _alpha);
 
   if constexpr (local_memory) {
-    index_t local_mem =
-        static_cast<index_t>((num_cache_line_elems + 1) * num_cache_line_elems /
-                             num_tiles_per_cache_line);
+    index_t local_mem = static_cast<index_t>(
+        (num_line_elems + 1) * num_line_elems / num_tiles_per_line);
     return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
   } else {
     return sb_handle.execute(trans_scale_tree, wg_size, global_size);
