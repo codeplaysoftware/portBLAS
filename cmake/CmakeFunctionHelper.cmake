@@ -84,6 +84,10 @@ function(set_target_compile_def in_target)
     message(STATUS "Gemm vectorization support enabled for target ${in_target}")
     target_compile_definitions(${in_target} PUBLIC GEMM_VECTORIZATION_SUPPORT=1)
   endif()
+
+  if(BLAS_ENABLE_CONST_INPUT)
+    target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_CONST_INPUT=1)
+  endif()
 endfunction()
 
 # blas unary function for generating source code
