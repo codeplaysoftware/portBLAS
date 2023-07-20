@@ -43,7 +43,6 @@ template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               BufferIterator<${container_t0}> _vx, ${INCREMENT_TYPE} _incx,
                               const typename SB_Handle::event_t& dependencies);
 
-#ifdef SB_ENABLE_USM
 template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
                               const typename SB_Handle::event_t& dependencies);
@@ -51,7 +50,6 @@ template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
 template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
                               const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
                               const typename SB_Handle::event_t& dependencies);
-#endif
 
 }  // namespace internal
 }  // namespace blas

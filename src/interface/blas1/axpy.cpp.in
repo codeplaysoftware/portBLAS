@@ -50,7 +50,6 @@ template typename SB_Handle::event_t _axpy(
     BufferIterator<${container_t0}> _vx, ${INCREMENT_TYPE} _incx, BufferIterator<${container_t1}> _vy,
     ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
 
-#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _axpy(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, ${container_t1}* _vy,
@@ -60,7 +59,6 @@ template typename SB_Handle::event_t _axpy(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, ${container_t1}* _vy,
     ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
-#endif
 
 }  // namespace internal
 }  // end namespace blas

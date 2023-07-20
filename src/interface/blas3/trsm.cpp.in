@@ -33,8 +33,20 @@ namespace internal {
 
 template typename SB_Handle::event_t _trsm(
     SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
-    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, ${container_t0} A,
-    ${INDEX_TYPE} lda, ${container_t1} B, ${INDEX_TYPE} ldb,
+    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, BufferIterator<${container_t0}> A,
+    ${INDEX_TYPE} lda, BufferIterator<${container_t1}> B, ${INDEX_TYPE} ldb,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _trsm(
+    SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
+    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, ${container_t0}* A,
+    ${INDEX_TYPE} lda, ${container_t1}* B, ${INDEX_TYPE} ldb,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _trsm(
+    SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
+    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, const ${container_t0}* A,
+    ${INDEX_TYPE} lda, ${container_t1}* B, ${INDEX_TYPE} ldb,
     const typename SB_Handle::event_t& _dependencies);
 
 }  // namespace internal

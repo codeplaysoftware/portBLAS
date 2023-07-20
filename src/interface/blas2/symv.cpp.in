@@ -32,8 +32,20 @@ namespace internal {
 
 template typename SB_Handle::event_t _symv(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0} _mA, ${INDEX_TYPE} _lda, ${container_t1} _vx,
-    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta, ${container_t2} _vy,
+    BufferIterator<${container_t0}> _mA, ${INDEX_TYPE} _lda, BufferIterator<${container_t1}> _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta, BufferIterator<${container_t2}> _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _symv(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    ${container_t0}* _mA, ${INDEX_TYPE} _lda, ${container_t1}* _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta, ${container_t2}* _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _symv(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    const ${container_t0}* _mA, ${INDEX_TYPE} _lda, const ${container_t1}* _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta, ${container_t2}* _vy,
     ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& _dependencies);
 
 }  // namespace internal
