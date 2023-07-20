@@ -32,8 +32,6 @@
 
 namespace blas {
 
-namespace extension {
-
 namespace internal {
 
 /**
@@ -222,7 +220,6 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
   return internal::_reduction<operator_t, element_t>(
       sb_handle, buffer_in, ld, buffer_out, rows, cols, reduction_dim);
 }
-}  // namespace extension
 
 }  // namespace blas
 

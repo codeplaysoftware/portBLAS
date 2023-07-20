@@ -59,6 +59,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/extension/omatcopy_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/transpose_test.cpp
+  ${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp
 )
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
@@ -87,9 +88,6 @@ if(is_computecpp)
     ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
   )
 
-  if(${BLAS_ENABLE_EXTENSIONS})
-    list(APPEND SYCL_UNITTEST_SRCS "${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp")
-  endif()
 endif()
 
 # Contains tests that fail if compiled with -ffast-math

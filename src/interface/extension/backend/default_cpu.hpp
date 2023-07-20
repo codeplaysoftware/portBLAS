@@ -27,7 +27,6 @@
 #include "interface/extension_interface.h"
 
 namespace blas {
-namespace extension {
 namespace transpose {
 namespace backend {
 
@@ -37,13 +36,12 @@ typename sb_handle_t::event_t _transpose_outplace(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
     index_t _ld_out, index_t _inc_out) {
-  return blas::extension::internal::_transpose_outplace_impl<16, 64, 64, false>(
+  return blas::internal::_transpose_outplace_impl<16, 64, 64, false>(
       sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, out_, _ld_out, _inc_out);
 }
 
 }  // namespace backend
 }  // namespace transpose
-}  // namespace extension
 }  // namespace blas
 
 #endif

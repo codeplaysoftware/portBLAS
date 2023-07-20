@@ -38,7 +38,6 @@
 #include "views/view.h"
 
 namespace blas {
-namespace extension {
 namespace internal {
 
 template <typename operator_t>
@@ -82,9 +81,11 @@ typename sb_handle_t::event_t _transpose_outplace_impl(
   if constexpr (local_memory) {
     index_t local_mem = static_cast<index_t>(
         (num_line_elems + 1) * num_line_elems / num_tiles_per_line);
-    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
+    return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
+                             global_size, local_mem);
   } else {
-    return sb_handle.execute(trans_scale_tree, wg_size, global_size);
+    return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
+                             global_size);
   }
 }
 
@@ -98,7 +99,7 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
               index_t ld_out, index_t inc_out) {
   if constexpr (!in_place) {
-    return blas::extension::transpose::backend::_transpose_outplace<
+    return blas::transpose::backend::_transpose_outplace<
         sb_handle_t, in_t, out_t, element_t, index_t>(
         sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
         inc_out);
@@ -276,7 +277,6 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
 }
 
 }  // namespace internal
-}  // namespace extension
 }  // namespace blas
 
 #endif  // SYCL_BLAS_EXTENSION_INTERFACE_HPP
