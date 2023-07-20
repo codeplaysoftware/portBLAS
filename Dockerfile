@@ -68,7 +68,7 @@ CMD cd /sycl-blas && \
         export LD_LIBRARY_PATH="/tmp/dpcpp/lib" && mkdir -p build && cd build && \
         cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
         -DSYCL_COMPILER=dpcpp -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build \
-        -DBLAS_ENABLE_CONST_INPUT=OFF -DCMAKE_BUILD_TYPE=Release && \
+        -DCMAKE_BUILD_TYPE=Release && \
         make -j$(nproc) && cd test && ctest -VV --timeout 1200; \
       else \
         echo "Unknown SYCL implementation ${SYCL_IMPL}"; return 1; \
@@ -78,7 +78,7 @@ CMD cd /sycl-blas && \
       && cd tools/auto_tuner/build && \
       cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
       -DSYCL_COMPILER=dpcpp -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build \
-      -DBLAS_ENABLE_CONST_INPUT=OFF -DCMAKE_BUILD_TYPE=Release && \
+      -DCMAKE_BUILD_TYPE=Release && \
       make -j$(nproc); \
     else \
       echo "Unknown command ${COMMAND}"; return 1; \
