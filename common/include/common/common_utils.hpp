@@ -237,7 +237,7 @@ static inline std::vector<blas1_param_t> get_blas1_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<blas1_param_t> blas1_default;
-    for (index_t size = 1048576; size <= 32 * 1048576; size *= 2) {
+    for (index_t size = 4096; size <= 1048576; size *= 2) {
       blas1_default.push_back(size);
     }
     return blas1_default;
