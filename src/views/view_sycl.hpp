@@ -44,7 +44,6 @@ template <typename ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
           typename view_increment_t>
 struct VectorView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, view_increment_t> {
   using scalar_t = ViewScalarT;
@@ -54,7 +53,7 @@ struct VectorView<
   static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
   using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
                                          place_holder_t>;
-  using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
+  using self_t = VectorView<container_t, index_t, increment_t>;
 
   // Accessor to the data containing the vector values.
   container_t data_;
@@ -188,7 +187,6 @@ template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout>
 struct MatrixView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout>;
 /*!
@@ -199,7 +197,6 @@ template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
           typename layout>
 struct MatrixView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, layout> {
   using access_layout_t = layout;
@@ -208,7 +205,7 @@ struct MatrixView<
   static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
   using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
                                          place_holder_t>;
-  using self_t = MatrixView<scalar_t, container_t, index_t, layout>;
+  using self_t = MatrixView<container_t, index_t, layout>;
 
   using value_t = scalar_t;
   // Information related to the data

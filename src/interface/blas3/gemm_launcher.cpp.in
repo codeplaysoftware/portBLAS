@@ -36,7 +36,8 @@ namespace blas {
 
 // BufferIterator
 template class Gemm_Launcher<
-    BufferIterator<${container_t0}>, BufferIterator<${container_t1}>, BufferIterator<${container_t2}>, ${WG_SIZE},
+    BufferIterator<${container_t0}>, BufferIterator<${container_t1}>,
+    BufferIterator<${container_t2}>, ${WG_SIZE},
     ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB},
          ${TWB}, ${JM_M}, ${JM_N}, ${JM_K}, ${JM_IN_T}, ${JM_OUT_T}>,
@@ -48,7 +49,8 @@ template class Gemm_Launcher<
     static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}), ${USE_JOINT_MATRIX}>;
 
 template typename SB_Handle::event_t Gemm_Launcher<
-    BufferIterator<${container_t0}>, BufferIterator<${container_t1}>, BufferIterator<${container_t2}>, ${WG_SIZE},
+    BufferIterator<${container_t0}>, BufferIterator<${container_t1}>,
+    BufferIterator<${container_t2}>, ${WG_SIZE},
     ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
     Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB},
          ${TWB}, ${JM_M}, ${JM_N}, ${JM_K}, ${JM_IN_T}, ${JM_OUT_T}>,
@@ -66,6 +68,42 @@ template typename SB_Handle::event_t Gemm_Launcher<
     ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, BufferIterator<${container_t2}> _C,
     ${INDEX_TYPE} _ldc, ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size,
     const typename SB_Handle::event_t& _dependencies);
+
+#ifdef BLAS_ENABLE_CONST_INPUT
+template class Gemm_Launcher<
+    BufferIterator<${container_t0} const>, BufferIterator<${container_t1} const>,
+    BufferIterator<${container_t2}>, ${WG_SIZE},
+    ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
+    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB},
+         ${TWB}, ${JM_M}, ${JM_N}, ${JM_K}, ${JM_IN_T}, ${JM_OUT_T}>,
+    ${TRANS_A}, ${TRANS_B}, ${SYMM_A}, ${SYMM_B},
+    static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
+    static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
+    ${IS_BETA_ZERO}, ${VECTOR_SIZE},
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}), ${USE_JOINT_MATRIX}>;
+
+template typename SB_Handle::event_t Gemm_Launcher<
+    BufferIterator<${container_t0} const>, BufferIterator<${container_t1} const>,
+    BufferIterator<${container_t2}>, ${WG_SIZE},
+    ${DOUBLE_BUFFER}, ${CONFLICT_A}, ${CONFLICT_B}, ${CL_SIZE},
+    Tile<${TIR}, ${TIC}, ${TWR}, ${TWC}, ${TSR}, ${TSC}, ${TLR}, ${TLC}, ${TIB},
+         ${TWB}, ${JM_M}, ${JM_N}, ${JM_K}, ${JM_IN_T}, ${JM_OUT_T}>,
+    ${TRANS_A}, ${TRANS_B}, ${SYMM_A}, ${SYMM_B},
+    static_cast<int>(gemm_memory_t::${GEMM_MEMORY_TYPE}),
+    static_cast<int>(gemm_algorithm_t::${GEMM_SHAPE_TYPE}),
+    static_cast<int>(gemm_vectorization_t::${GEMM_VECTORIZE_TYPE}),
+    ${IS_BETA_ZERO}, ${VECTOR_SIZE},
+    static_cast<int>(gemm_batch_type_t::${BATCH_TYPE}),
+    ${USE_JOINT_MATRIX}>::_select_gemm<SB_Handle, ${DATA_TYPE},
+                                       ${INDEX_TYPE}>(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
+    ${DATA_TYPE} _alpha, BufferIterator<${container_t0} const> a_, ${INDEX_TYPE} _lda,
+    ${INDEX_TYPE} _stridea, BufferIterator<${container_t1} const> b_, ${INDEX_TYPE} _ldb,
+    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, BufferIterator<${container_t2}> _C,
+    ${INDEX_TYPE} _ldc, ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
 
 // pointer
 template class Gemm_Launcher<

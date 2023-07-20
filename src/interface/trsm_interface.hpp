@@ -155,8 +155,8 @@ typename sb_handle_t::event_t _trsm(
   trsmEvents = concatenate_vectors(trsmEvents, event);
 
   // Create the matrix views from the input buffers
-  typename MatrixViewType<container_0_t, element_t, index_t, col_major>::type
-      bufferA = make_matrix_view<col_major>(A, K, K, lda);
+  typename MatrixViewType<container_0_t, index_t, col_major>::type bufferA =
+      make_matrix_view<col_major>(A, K, K, lda);
   auto bufferInvA =
       make_matrix_view<col_major>(invA, blockSize, blockSize, lda);
 

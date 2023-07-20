@@ -45,23 +45,21 @@ expression.
 @tparam container_t Type of the container that is stored inside.
 */
 
-template <typename view_value_t, typename view_container_t,
-          typename view_index_t, typename view_increment_t>
+template <typename view_container_t, typename view_index_t,
+          typename view_increment_t>
 struct VectorView {
-  using value_t = view_value_t;
+  using value_t = typename ValueType<view_container_t>::type;
   using container_t = view_container_t;
   using index_t = view_index_t;
   using increment_t = view_increment_t;
-  using self_t = VectorView<value_t, container_t, index_t, increment_t>;
+  using self_t = VectorView<container_t, index_t, increment_t>;
   container_t data_;
   index_t size_;
   increment_t strd_;  // never size_t, because it could be negative
 
   VectorView(view_container_t data, view_increment_t strd, view_index_t size);
-  VectorView(
-      VectorView<view_value_t, view_container_t, view_index_t, view_increment_t>
-          opV,
-      view_increment_t strd, view_index_t size);
+  VectorView(VectorView<view_container_t, view_index_t, view_increment_t> opV,
+             view_increment_t strd, view_index_t size);
 
   /*!
    * @brief Returns a reference to the container
@@ -134,15 +132,14 @@ struct VectorView {
 @tparam value_t Value type of the container.
 @tparam container_t Type of the container.
  */
-template <typename view_value_t, typename view_container_t,
-          typename view_index_t, typename layout>
+template <typename view_container_t, typename view_index_t, typename layout>
 struct MatrixView {
   // Information related to the data
   using access_layout_t = layout;
-  using value_t = view_value_t;
+  using value_t = typename ValueType<view_container_t>::type;
   using container_t = view_container_t;
   using index_t = view_index_t;
-  using self_t = MatrixView<value_t, container_t, index_t, layout>;
+  using self_t = MatrixView<container_t, index_t, layout>;
   container_t data_;
   index_t sizeR_;  // number of rows
   index_t sizeC_;  // number of columns
@@ -152,9 +149,8 @@ struct MatrixView {
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC);
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC,
              view_index_t sizeL);
-  MatrixView(
-      MatrixView<view_value_t, view_container_t, view_index_t, layout> opM,
-      view_index_t sizeR, view_index_t sizeC, view_index_t sizeL);
+  MatrixView(MatrixView<view_container_t, view_index_t, layout> opM,
+             view_index_t sizeR, view_index_t sizeC, view_index_t sizeL);
 
   /*!
    * @brief Returns the container
@@ -252,60 +248,54 @@ struct MatrixView {
   }
 };
 
-template <typename container_t, typename value_t, typename index_t,
-          typename increment_t>
+template <typename container_t, typename index_t, typename increment_t>
 struct VectorViewType;
 
 template <typename value_t, typename index_t, typename increment_t>
-struct VectorViewType<BufferIterator<value_t>, value_t, index_t, increment_t> {
+struct VectorViewType<BufferIterator<value_t>, index_t, increment_t> {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
   using type =
-      VectorView<value_t,
-                 typename BufferIterator<value_t>::template default_accessor_t<
+      VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
                  index_t, increment_t>;
 };
 
 template <typename value_t, typename index_t, typename increment_t>
-struct VectorViewType<value_t *, value_t, index_t, increment_t> {
-  using type = VectorView<value_t, value_t *, index_t, increment_t>;
+struct VectorViewType<value_t *, index_t, increment_t> {
+  using type = VectorView<value_t *, index_t, increment_t>;
 };
 
 template <typename value_t, typename index_t, typename increment_t>
-struct VectorViewType<const value_t *, value_t, index_t, increment_t> {
-  using type = const VectorView<value_t, const value_t *, index_t, increment_t>;
+struct VectorViewType<const value_t *, index_t, increment_t> {
+  using type = const VectorView<const value_t *, index_t, increment_t>;
 };
 
-template <typename container_t, typename value_t, typename index_t,
-          typename access_layout_t>
+template <typename container_t, typename index_t, typename access_layout_t>
 struct MatrixViewType;
 
 template <typename value_t, typename index_t, typename access_layout_t>
-struct MatrixViewType<BufferIterator<value_t>, value_t, index_t,
-                      access_layout_t> {
+struct MatrixViewType<BufferIterator<value_t>, index_t, access_layout_t> {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
   using type =
-      MatrixView<value_t,
-                 typename BufferIterator<value_t>::template default_accessor_t<
+      MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
                  index_t, access_layout_t>;
 };
 
 template <typename value_t, typename index_t, typename access_layout_t>
-struct MatrixViewType<value_t *, value_t, index_t, access_layout_t> {
-  using type = MatrixView<value_t, value_t *, index_t, access_layout_t>;
+struct MatrixViewType<value_t *, index_t, access_layout_t> {
+  using type = MatrixView<value_t *, index_t, access_layout_t>;
 };
 
 template <typename value_t, typename index_t, typename access_layout_t>
-struct MatrixViewType<const value_t *, value_t, index_t, access_layout_t> {
-  using type =
-      const MatrixView<value_t, const value_t *, index_t, access_layout_t>;
+struct MatrixViewType<const value_t *, index_t, access_layout_t> {
+  using type = const MatrixView<const value_t *, index_t, access_layout_t>;
 };
 
 template <typename value_t, typename increment_t, typename index_t>
@@ -316,8 +306,7 @@ static SYCL_BLAS_INLINE auto make_vector_view(BufferIterator<value_t> buff,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
   using leaf_node_t =
-      VectorView<value_t,
-                 typename BufferIterator<value_t>::template default_accessor_t<
+      VectorView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
                  index_t, increment_t>;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(),
@@ -333,8 +322,7 @@ static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
              cl::sycl::access::mode::read,
              cl::sycl::access::mode::read_write>::type;
   using leaf_node_t =
-      MatrixView<value_t,
-                 typename BufferIterator<value_t>::template default_accessor_t<
+      MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
                  index_t, access_layout_t>;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
@@ -344,30 +332,28 @@ static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
 template <typename value_t, typename increment_t, typename index_t>
 static SYCL_BLAS_INLINE auto make_vector_view(value_t *usm_ptr, increment_t inc,
                                               index_t sz) {
-  using leaf_node_t = VectorView<value_t, value_t *, index_t, increment_t>;
+  using leaf_node_t = VectorView<value_t *, index_t, increment_t>;
   return leaf_node_t{usm_ptr, inc, sz};
 }
 
 template <typename access_layout_t, typename value_t, typename index_t>
 static SYCL_BLAS_INLINE auto make_matrix_view(value_t *usm_ptr, index_t m,
                                               index_t n, index_t lda) {
-  using leaf_node_t = MatrixView<value_t, value_t *, index_t, access_layout_t>;
+  using leaf_node_t = MatrixView<value_t *, index_t, access_layout_t>;
   return leaf_node_t{usm_ptr, m, n, lda};
 }
 
 template <typename value_t, typename increment_t, typename index_t>
 static SYCL_BLAS_INLINE auto make_vector_view(const value_t *usm_ptr,
                                               increment_t inc, index_t sz) {
-  using leaf_node_t =
-      VectorView<value_t, const value_t *, index_t, increment_t>;
+  using leaf_node_t = VectorView<const value_t *, index_t, increment_t>;
   return leaf_node_t{usm_ptr, inc, sz};
 }
 
 template <typename access_layout_t, typename value_t, typename index_t>
 static SYCL_BLAS_INLINE auto make_matrix_view(const value_t *usm_ptr, index_t m,
                                               index_t n, index_t lda) {
-  using leaf_node_t =
-      MatrixView<value_t, const value_t *, index_t, access_layout_t>;
+  using leaf_node_t = MatrixView<const value_t *, index_t, access_layout_t>;
   return leaf_node_t{usm_ptr, m, n, lda};
 }
 

@@ -60,8 +60,8 @@ typename sb_handle_t::event_t _axpy(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
-  typename VectorViewType<container_0_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
 
   auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
@@ -88,8 +88,8 @@ typename sb_handle_t::event_t _copy(
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
   using element_t = typename ValueType<container_0_t>::type;
-  typename VectorViewType<container_0_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
   auto ret = sb_handle.execute(assignOp2, _dependencies);
@@ -192,8 +192,8 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   using element_t = typename ValueType<container_0_t>::type;
-  typename VectorViewType<container_0_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
@@ -218,8 +218,8 @@ typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
   using element_t = typename ValueType<container_t>::type;
-  typename VectorViewType<container_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   const auto localSize = sb_handle.get_work_group_size();
@@ -244,8 +244,8 @@ typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
   using element_t = typename ValueType<container_t>::type;
-  typename VectorViewType<container_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
@@ -322,8 +322,8 @@ typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   using element_t = typename ValueType<container_0_t>::type;
-  typename VectorViewType<container_0_t, element_t, index_t, increment_t>::type
-      vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);

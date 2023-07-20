@@ -64,9 +64,9 @@ set(sources
   blas3/symm.cpp
 )
 
-# if(${BLAS_ENABLE_EXTENSIONS})
-#   list(APPEND sources "extension/reduction.cpp")
-# endif()
+if(${BLAS_ENABLE_EXTENSIONS})
+  list(APPEND sources "extension/reduction.cpp")
+endif()
 
 # Add individual benchmarks for each method
 foreach(syclblas_bench ${sources})

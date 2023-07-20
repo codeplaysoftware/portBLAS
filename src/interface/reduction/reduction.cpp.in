@@ -42,6 +42,14 @@ typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
     BufferIterator<${container_t1}> buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type,
     const typename SB_Handle::event_t& dependencies);
 
+#ifdef BLAS_ENABLE_CONST_INPUT
+template
+    typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
+        SB_Handle& sb_handle, BufferIterator<${container_t0} const> buffer_in, ${INDEX_TYPE} ld,
+        BufferIterator<${container_t1}> buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type,
+        const typename SB_Handle::event_t& dependencies);
+#endif
+
 template
 typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
     SB_Handle& sb_handle, ${container_t0}* buffer_in, ${INDEX_TYPE} ld,
