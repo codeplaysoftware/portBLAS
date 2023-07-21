@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
+project(auto_tuner VERSION 0.1.0 LANGUAGES CXX)
+
 set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
 
