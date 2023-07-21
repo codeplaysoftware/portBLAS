@@ -59,6 +59,7 @@ template typename SB_Handle::event_t _dot(SB_Handle &sb_handle,
                                           BufferIterator<${container_t2}> _rs,
                                           const typename SB_Handle::event_t& dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _dot(SB_Handle &sb_handle,
                                           ${INDEX_TYPE} _N, ${container_t0}* _vx,
                                           ${INCREMENT_TYPE} _incx,
@@ -66,6 +67,7 @@ template typename SB_Handle::event_t _dot(SB_Handle &sb_handle,
                                           ${INCREMENT_TYPE} _incy,
                                           ${container_t2}* _rs,
                                           const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

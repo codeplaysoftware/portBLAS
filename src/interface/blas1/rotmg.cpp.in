@@ -71,10 +71,12 @@ template typename SB_Handle::event_t _rotmg(
     BufferIterator<${container_t2}> _x1, BufferIterator<${container_t3}> _y1, BufferIterator<${container_t4}> _param,
     const typename SB_Handle::event_t& dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _rotmg(
     SB_Handle &sb_handle, ${container_t0}* _d1, ${container_t1}* _d2,
     ${container_t2}* _x1, ${container_t3}* _y1, ${container_t4}* _param,
     const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

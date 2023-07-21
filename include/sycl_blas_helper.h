@@ -50,12 +50,14 @@ struct AllocHelper<value_t, AllocType::buffer> {
   using type = blas::BufferIterator<value_t>;
 };
 
+#ifdef SB_ENABLE_USM
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::usm,
                         typename AllocHelper<value_t, alloc>::type>::type
 allocate(int size, cl::sycl::queue q) {
   return cl::sycl::malloc_device<value_t>(size, q);
 }
+#endif
 
 template <AllocType alloc, typename value_t>
 typename std::enable_if<alloc == AllocType::buffer,
@@ -64,6 +66,7 @@ allocate(int size, cl::sycl::queue q) {
   return make_sycl_iterator_buffer<value_t>(size);
 }
 
+#ifdef SB_ENABLE_USM
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::usm>::type deallocate(
     container_t mem, cl::sycl::queue q) {
@@ -71,6 +74,7 @@ typename std::enable_if<alloc == AllocType::usm>::type deallocate(
     cl::sycl::free(reinterpret_cast<void *>(mem), q);
   }
 }
+#endif
 
 template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(

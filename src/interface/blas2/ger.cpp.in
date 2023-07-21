@@ -36,6 +36,7 @@ template typename SB_Handle::event_t _ger(
     BufferIterator<${container_t1}> _vy, ${INCREMENT_TYPE} _incy, BufferIterator<${container_t2}> _mA,
     ${INDEX_TYPE} _lda, const typename SB_Handle::event_t& _dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _ger(
     SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
     ${DATA_TYPE} _alpha, ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
@@ -47,6 +48,7 @@ template typename SB_Handle::event_t _ger(
     ${DATA_TYPE} _alpha, const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
     const ${container_t1}* _vy, ${INCREMENT_TYPE} _incy, ${container_t2}* _mA,
     ${INDEX_TYPE} _lda, const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

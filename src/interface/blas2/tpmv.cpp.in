@@ -32,6 +32,7 @@ template typename SB_Handle::event_t _tpmv(
     BufferIterator<${container_t0}> _mA, BufferIterator<${container_t1}> _vx, ${INCREMENT_TYPE} _incx,
     const typename SB_Handle::event_t& _dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _tpmv(
     SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
     ${container_t0}* _mA, ${container_t1}* _vx, ${INCREMENT_TYPE} _incx,
@@ -41,6 +42,7 @@ template typename SB_Handle::event_t _tpmv(
     SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
     const ${container_t0}* _mA, ${container_t1}* _vx, ${INCREMENT_TYPE} _incx,
     const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

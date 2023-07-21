@@ -36,6 +36,7 @@ template typename SB_Handle::event_t _sbmv(
     BufferIterator<${container_t2}> _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& _dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _sbmv(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
     ${DATA_TYPE} _alpha, ${container_t0}* _mA, ${INDEX_TYPE} _lda,
@@ -49,6 +50,7 @@ template typename SB_Handle::event_t _sbmv(
     const ${container_t1}* _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
     ${container_t2}* _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

@@ -52,6 +52,7 @@ template typename SB_Handle::event_t _rot(SB_Handle &sb_handle,
                                           ${DATA_TYPE} _cos, ${DATA_TYPE} _sin,
                                           const typename SB_Handle::event_t& dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _rot(SB_Handle &sb_handle,
                                           ${INDEX_TYPE} _N, ${container_t0}* _vx,
                                           ${INCREMENT_TYPE} _incx,
@@ -59,6 +60,7 @@ template typename SB_Handle::event_t _rot(SB_Handle &sb_handle,
                                           ${INCREMENT_TYPE} _incy,
                                           ${DATA_TYPE} _cos, ${DATA_TYPE} _sin,
                                           const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

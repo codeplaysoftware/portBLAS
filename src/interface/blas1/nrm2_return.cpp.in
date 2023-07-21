@@ -44,6 +44,7 @@ template typename ValueType<BufferIterator<${container_t0}>>::type _nrm2(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, BufferIterator<${container_t0}> _vx,
     ${INCREMENT_TYPE} _incx, const typename SB_Handle::event_t& dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename ValueType<${container_t0}*>::type _nrm2(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0}* _vx,
     ${INCREMENT_TYPE} _incx, const typename SB_Handle::event_t& dependencies);
@@ -51,6 +52,7 @@ template typename ValueType<${container_t0}*>::type _nrm2(
 template typename ValueType<${container_t0}*>::type _nrm2(
     SB_Handle &sb_handle, ${INDEX_TYPE} _N, const ${container_t0}* _vx,
     ${INCREMENT_TYPE} _incx, const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

@@ -77,6 +77,7 @@ template typename SB_Handle::event_t _gemv(
     const typename SB_Handle::event_t& _dependencies);
 #endif
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _gemv(
     SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
     ${DATA_TYPE} _alpha, ${container_t0}* _mA, ${INDEX_TYPE} _lda,
@@ -90,6 +91,7 @@ template typename SB_Handle::event_t _gemv(
     const ${container_t1}* _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
     ${container_t2}* _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

@@ -35,6 +35,7 @@ template typename SB_Handle::event_t _spr2(
     ${INCREMENT_TYPE} _incy, BufferIterator<${container_t2}> _mPA,
     const typename SB_Handle::event_t& _dependencies);
 
+#ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _spr2(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
     ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, ${container_t1}* _vy,
@@ -46,6 +47,7 @@ template typename SB_Handle::event_t _spr2(
     const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, const ${container_t1}* _vy,
     ${INCREMENT_TYPE} _incy, ${container_t2}* _mPA,
     const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas
