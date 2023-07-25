@@ -39,7 +39,7 @@ namespace reference_blas {
  * @param B output matrix
  * @param ldb leading dimension of output matrix
  */
-template <typename index_t, typename scalar_t>
+template <bool onemkl_index = true, typename index_t, typename scalar_t>
 void ext_omatcopy(char trans, const index_t m, const index_t n,
                   const scalar_t alpha, std::vector<scalar_t>& A,
                   const index_t lda, std::vector<scalar_t>& B, index_t ldb) {
@@ -52,7 +52,14 @@ void ext_omatcopy(char trans, const index_t m, const index_t n,
   } else {
     for (index_t j = 0; j < n; j++) {
       for (index_t i = 0; i < m; i++) {
-        B[i * ldb + j] = alpha * A[j * lda + i];
+        // oneMKL and cuBLAS follow different convention on size and
+        // leading dimension. Choose the correct with template parameter,
+        // by default it follows oneMKL specifications.
+        if constexpr (onemkl_index) {
+          B[i * ldb + j] = alpha * A[j * lda + i];
+        } else {
+          B[j * ldb + i] = alpha * A[i * lda + j];
+        }
       }
     }
   }

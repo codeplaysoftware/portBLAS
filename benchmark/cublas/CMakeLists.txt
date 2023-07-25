@@ -69,6 +69,8 @@ set(sources
   blas3/trsm.cpp
   blas3/trsm_batched.cpp
   blas3/trmm.cpp
+  # extension
+  extension/omatcopy.cpp
 ) 
 
 #if(${BLAS_ENABLE_EXTENSIONS})
