@@ -100,7 +100,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
         cuda_size_b, m_b_temp.data());
 
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, &alpha, m_a_gpu,
-                             cuda_lda, nullptr, nullptr, cuda_ldb, m_b_temp_gpu,
+                             cuda_lda, &beta, nullptr, cuda_ldb, m_b_temp_gpu,
                              cuda_ldb);
   }
 
@@ -113,7 +113,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
 #endif
   auto blas_warmup = [&]() -> void {
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, &alpha, m_a_gpu,
-                             cuda_lda, nullptr, nullptr, cuda_ldb, m_b_gpu,
+                             cuda_lda, &beta, nullptr, cuda_ldb, m_b_gpu,
                              cuda_ldb);
     return;
   };
@@ -126,7 +126,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
   auto blas_method_def = [&]() -> std::vector<cudaEvent_t> {
     CUDA_CHECK(cudaEventRecord(start));
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, &alpha, m_a_gpu,
-                             cuda_lda, nullptr, nullptr, cuda_ldb, m_b_gpu,
+                             cuda_lda, &beta, nullptr, cuda_ldb, m_b_gpu,
                              cuda_ldb);
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));
