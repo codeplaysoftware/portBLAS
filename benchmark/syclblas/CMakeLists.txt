@@ -65,8 +65,11 @@ set(sources
   blas3/symm.cpp
   # blas Extension
   extension/omatcopy.cpp
-  extension/reduction.cpp
 )
+
+if(${BLAS_ENABLE_EXTENSIONS})
+  set(sources extension/reduction.cpp)
+endif()
 
 # Add individual benchmarks for each method
 foreach(syclblas_bench ${sources})

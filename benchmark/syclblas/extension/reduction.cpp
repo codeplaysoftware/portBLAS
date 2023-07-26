@@ -84,7 +84,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
     auto vec_temp_buffer = blas::make_sycl_iterator_buffer<scalar_t>(
         vec_temp.data(), vec_temp.size());
 
-    _reduction<AddOperator, scalar_t>(
+    extension::_reduction<AddOperator, scalar_t>(
         sb_handle, mat_buffer, rows, vec_temp_buffer, rows, cols, dim);
     auto event =
         blas::helper::copy_to_host(sb_handle.get_queue(), vec_temp_buffer,
@@ -101,7 +101,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
 #endif
 
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = _reduction<AddOperator, scalar_t>(
+    auto event = extension::_reduction<AddOperator, scalar_t>(
         sb_handle, mat_buffer, rows, vec_buffer, rows, cols, dim);
     sb_handle.wait(event);
     return event;

@@ -58,9 +58,13 @@ set(SYCL_UNITTEST_SRCS
   # Blas extension
   ${SYCLBLAS_UNITTEST}/extension/omatcopy_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/transpose_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp
 )
+
+if(${BLAS_ENABLE_EXTENSIONS})
+  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/extension/transpose_test.cpp
+                                 ${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp
+)
+endif()
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
 if(is_dpcpp)

@@ -185,27 +185,27 @@ void run_test(const combination_t<scalar_t> combi) {
   try {
     switch (op) {
       case operator_t::Add:
-        ev = _reduction<AddOperator, scalar_t>(
+        ev = extension::_reduction<AddOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Product:
-        ev = _reduction<ProductOperator, scalar_t>(
+        ev = extension::_reduction<ProductOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Max:
-        ev = _reduction<MaxOperator, scalar_t>(
+        ev = extension::_reduction<MaxOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Min:
-        ev = _reduction<MinOperator, scalar_t>(
+        ev = extension::_reduction<MinOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::AbsoluteAdd:
-        ev = _reduction<AbsoluteAddOperator, scalar_t>(
+        ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
       case operator_t::Mean:
-        ev = _reduction<MeanOperator, scalar_t>(
+        ev = extension::_reduction<MeanOperator, scalar_t>(
             sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
         break;
     }
