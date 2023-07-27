@@ -307,7 +307,14 @@ template <class T, class... Args>
 inline void generate_name_helper(std::ostream &ss, T arg, Args... args) {
   auto token = strtok(nullptr, ", ");
   ss << "__" << token << "_";
-  dump_arg(ss, arg);
+  if constexpr (std::is_arithmetic<T>::value) {
+    if (arg < 0) {
+      ss << "minus_";
+    }
+    dump_arg(ss, std::abs<T>(arg));
+  } else {
+    dump_arg(ss, arg);
+  }
   generate_name_helper(ss, args...);
 }
 
@@ -325,7 +332,14 @@ inline std::string generate_name_helper(char *str_args, T arg, Args... args) {
   std::stringstream ss;
   auto token = strtok(str_args, ", ");
   ss << token << "_";
-  dump_arg(ss, arg);
+  if constexpr (std::is_arithmetic<T>::value) {
+    if (arg < 0) {
+      ss << "minus_";
+    }
+    dump_arg(ss, std::abs<T>(arg));
+  } else {
+    dump_arg(ss, arg);
+  }
   generate_name_helper(ss, args...);
   return ss.str();
 }

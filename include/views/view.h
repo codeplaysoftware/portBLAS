@@ -97,13 +97,17 @@ struct VectorView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
       index_t i) {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1)  ? *(data_ + i)
+           : (strd_ > 0) ? *(data_ + i * strd_)
+                         : *(data_ + (size_ * -strd_) + ((i + 1) * strd_));
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
       index_t i) const {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1)  ? *(data_ + i)
+           : (strd_ > 0) ? *(data_ + i * strd_)
+                         : *(data_ + (size_ * -strd_) + ((i + 1) * strd_));
   }
 
   SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
