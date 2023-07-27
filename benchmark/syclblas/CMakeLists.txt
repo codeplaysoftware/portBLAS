@@ -69,7 +69,7 @@ set(sources
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
-  set(sources extension/reduction.cpp)
+  list(APPEND sources extension/reduction.cpp)
 endif()
 
 # Add individual benchmarks for each method
