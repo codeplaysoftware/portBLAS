@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename geam.cpp
+ *  @filename omatcopy.cpp
  *
  **************************************************************************/
 
