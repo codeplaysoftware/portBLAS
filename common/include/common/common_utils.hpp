@@ -105,6 +105,10 @@ template <typename scalar_t>
 using matcopy_param_t =
     std::tuple<char, index_t, index_t, scalar_t, index_t, index_t>;
 
+template <typename scalar_t>
+using omatcopy2_param_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
+                                     index_t, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -1076,6 +1080,56 @@ static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
                 v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
                 str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
                 str_to_int<index_t>(v[5]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_omatcopy2_params
+ * @brief Returns a vector containing the omatcopy2 benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<omatcopy2_param_t<scalar_t>> omatcopy2_default;
+    constexpr index_t dmin = 1024, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    for (char trans : {'n', 't'}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+            for (index_t inc_a = 1; inc_a < 3; ++inc_a) {
+              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+                for (index_t inc_b = 1; inc_b < 3; ++inc_b) {
+                  omatcopy2_default.push_back(std::make_tuple(
+                      trans, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return omatcopy2_default;
+  } else {
+    return parse_csv_file<omatcopy2_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 8) {
+            throw std::runtime_error(
+                "invalid number of parameters (8 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
+                str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }
