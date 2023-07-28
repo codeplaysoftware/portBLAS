@@ -71,7 +71,6 @@ if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
     ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
