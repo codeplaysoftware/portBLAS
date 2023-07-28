@@ -179,8 +179,8 @@ template <typename element_t, typename sb_handle_t, typename index_t,
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_in,
                                          index_t ld_out) {
-  return blas::internal::_transpose<true, element_t>(sb_handle, m, n, A, ld_in, A,
-                                               ld_out);
+  return blas::internal::_transpose<true, element_t>(sb_handle, m, n, A, ld_in,
+                                                     A, ld_out);
 }
 
 /**
@@ -207,8 +207,8 @@ template <typename element_t, typename sb_handle_t, typename index_t,
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b) {
-  return blas::internal::_transpose<false, element_t>(sb_handle, m, n, A, ld_a, B,
-                                                ld_b);
+  return blas::internal::_transpose<false, element_t>(sb_handle, m, n, A, ld_a,
+                                                      B, ld_b);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
@@ -222,7 +222,7 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
       sb_handle, buffer_in, ld, buffer_out, rows, cols, reduction_dim);
 }
 
-} // namespace extension
+}  // namespace extension
 
 }  // namespace blas
 
