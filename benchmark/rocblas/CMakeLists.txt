@@ -73,6 +73,7 @@ set(sources
 
   # Extension blas
   extension/omatcopy.cpp
+  extension/omatadd.cpp
 
 )
 

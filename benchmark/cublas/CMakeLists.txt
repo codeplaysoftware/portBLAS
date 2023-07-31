@@ -71,6 +71,7 @@ set(sources
   blas3/trmm.cpp
   # extension blas
   extension/omatcopy.cpp
+  extension/omatadd.cpp
 ) 
 
 # Add individual benchmarks for each method
