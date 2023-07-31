@@ -140,6 +140,101 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 }
 
 /*!
+ * @brief Wrapper around Transpose-Add. Creates the views, then makes and
+ * launches Transpose Add kernel
+ */
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename sb_handle_t, typename container_0_t,
+          typename container_1_t, typename container_2_t, typename element_t,
+          typename index_t>
+typename sb_handle_t::event_t _transpose_add_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
+    element_t _beta, container_1_t b_, index_t _ldb, index_t _nrows_b,
+    index_t _ncols_b, container_2_t c_, index_t _ldc) {
+  constexpr const index_t num_line_elems =
+      std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
+  constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
+  // Matrix Views
+  auto A_view =
+      make_matrix_view<col_major>(a_, _nrows_a, _ncols_a, _lda, (index_t)1);
+  auto B_view =
+      make_matrix_view<col_major>(b_, _nrows_b, _ncols_b, _ldb, (index_t)1);
+
+  auto C_view = make_matrix_view<col_major>(c_, _M, _N, _ldc, (index_t)1);
+
+  // Work items & groups sizes
+  index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
+  index_t global_size = n_wg * wg_size;
+
+  // Transpose Add expression Tree
+  auto trans_scale_tree =
+      make_transpose_add<both_trans, Tile_size, wg_size, cl_size, local_memory>(
+          A_view, B_view, C_view, _alpha, _beta);
+
+  if constexpr (local_memory) {
+    index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
+                                             num_tiles_per_line);
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
+  } else {
+    return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
+                             global_size);
+  }
+}
+
+/*!
+ * @brief _omatadd_impl in the (trans_a || trans_b) case : This specialization
+ * covers the following 3 cases :
+ *  - A transposed & B transposed
+ *  - A transposed & B not transposed
+ *  - A not transposed & B transposed
+ *
+ * For convenience purposes, these 3 cases can be brought down to 2 cases, where
+ * 1. either both matrices are transposed OR 2. only the 'first' matrix is
+ * transposed. Thus, this function assumes that if only one matrix is
+ * transposed, it should be the matrix a (trans_a == true).
+ *
+ */
+template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
+          typename index_t, typename container_t>
+typename std::enable_if<trans_a, typename sb_handle_t::event_t>::type
+_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              container_t a, index_t lda, element_t beta, container_t b,
+              index_t ldb, container_t c, index_t ldc) {
+  typename sb_handle_t::event_t ret;
+
+  const index_t a_rows = trans_a ? n : m;
+  const index_t a_cols = trans_a ? m : n;
+  const index_t b_rows = trans_b ? n : m;
+  const index_t b_cols = trans_b ? n : m;
+
+  constexpr const bool both_trans = trans_a && trans_b;
+
+  return blas::transpose::backend::_transpose_add<both_trans>(
+      sb_handle, m, n, alpha, a, lda, a_rows, a_cols, beta, b, ldb, b_rows,
+      b_cols, c, ldc);
+}
+
+template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
+          typename index_t, typename container_t>
+typename std::enable_if<!trans_a && !trans_b,
+                        typename sb_handle_t::event_t>::type
+_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              container_t a, index_t lda, element_t beta, container_t b,
+              index_t ldb, container_t c, index_t ldc) {
+  typename sb_handle_t::event_t ret;
+  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
+  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
+  auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
+  auto scal_a = make_op<ScalarOp, ProductOperator>(alpha, m_a_view);
+  auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
+  auto sum_op = make_op<BinaryOp, AddOperator>(scal_a, scal_b);
+  auto copy_op = make_op<Assign>(m_c_view, sum_op);
+  ret = sb_handle.execute(copy_op);
+  return ret;
+}
+
+/*!
  * @brief Wrapper around Reduction. Creates the views, then makes and launches
  * the Reduction kernel
  */
@@ -237,6 +332,34 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
     return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
                                           ld_in, inc_in, out_memory, ld_out,
                                           inc_out);
+  }
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_t>
+typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
+                                       char trans_b, index_t m, index_t n,
+                                       element_t alpha, container_t a,
+                                       index_t lda, element_t beta,
+                                       container_t b, index_t ldb,
+                                       container_t c, index_t ldc) {
+  if (trans_a == 't') {
+    if (trans_b == 't') {
+      return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                       ldb, c, ldc);
+    } else {
+      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                        ldb, c, ldc);
+    }
+  } else if (trans_b == 't') {
+    // In this case, (alpha,a) & (beta,b) parameters positions are swapped as
+    // the kernel implementation assumes the first input matrix is the
+    // transposed one for simplicity purposes.
+    return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, alpha, a,
+                                      lda, c, ldc);
+  } else {
+    return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, beta, b,
+                                       ldb, c, ldc);
   }
 }
 
