@@ -22,8 +22,12 @@
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-#reduction
-generate_blas_reduction_objects(reduction reduction)
+
+generate_blas_unary_objects(extension matcopy)
+generate_blas_unary_objects(extension transpose)
+generate_blas_reduction_objects(extension reduction)
+
 if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_reduction_objects(reduction reduction_const)
+    generate_blas_reduction_objects(extension reduction_const)
 endif()
+

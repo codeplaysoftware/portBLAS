@@ -19,39 +19,15 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename sycl_blas.hpp
+ *  @filename backend.hpp
  *
  **************************************************************************/
-#include "sycl_blas.h"
-
-#include "container/sycl_iterator.hpp"
-
-#include "sb_handle/sycl_blas_handle.hpp"
-
-#include "sb_handle/kernel_constructor.hpp"
-
-#include "interface/blas1_interface.hpp"
-
-#include "interface/blas2_interface.hpp"
-
-#include "interface/blas3_interface.hpp"
-
-#include "interface/gemm_launcher.hpp"
-
-#include "interface/extension_interface.hpp"
-
-#include "operations/blas1_trees.hpp"
-
-#include "operations/blas2_trees.hpp"
-
-#include "operations/blas3_trees.hpp"
-
-#include "operations/extension/reduction.hpp"
-
-#include "operations/extension/transpose.hpp"
-
-#include "operations/blas_constants.hpp"
-
-#include "operations/blas_operators.hpp"
-
-#include "views/view_sycl.hpp"
+#if defined INTEL_GPU
+#include "interface/extension/backend/intel_gpu.hpp"
+#elif defined AMD_GPU
+#include "interface/extension/backend/amd_gpu.hpp"
+#elif defined NVIDIA_GPU
+#include "interface/extension/backend/nvidia_gpu.hpp"
+#else
+#include "interface/extension/backend/default_cpu.hpp"
+#endif

@@ -27,6 +27,7 @@
 #define SYCL_BLAS_VIEW_SYCL_HPP
 
 #include <CL/sycl.hpp>
+#include <type_traits>
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
@@ -190,22 +191,22 @@ struct VectorView<
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout>
+          typename layout, bool is_inc>
 struct MatrixView<
     ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout>;
+    view_index_t, layout, is_inc>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout>
+          typename layout, bool is_inc>
 struct MatrixView<
     ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout> {
+    view_index_t, layout, is_inc> {
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
@@ -221,6 +222,7 @@ struct MatrixView<
   const index_t sizeR_;  // number of rows
   const index_t sizeC_;  // number of columns
   const index_t sizeL_;  // size of the leading dimension
+  const index_t inc_;    // internal increment between same row/column elements
   const index_t disp_;   // displacementt od the first element
   cl::sycl::global_ptr<scalar_t>
       ptr_;  // global pointer access inside the kernel
@@ -228,7 +230,12 @@ struct MatrixView<
   /**** CONSTRUCTORS ****/
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
-      : data_{data}, sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), disp_(disp) {}
+      : data_{data},
+        sizeR_(sizeR),
+        sizeC_(sizeC),
+        sizeL_(sizeL),
+        inc_(1),
+        disp_(disp) {}
 
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
       : MatrixView(data, sizeR, sizeC,
@@ -237,6 +244,15 @@ struct MatrixView<
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
       : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
+
+  SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
+                              index_t sizeL, index_t inc, index_t disp)
+      : data_{data},
+        sizeR_(sizeR),
+        sizeC_(sizeC),
+        sizeL_(sizeL),
+        inc_(inc),
+        disp_(disp) {}
 
   /**** RETRIEVING DATA ****/
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
@@ -258,13 +274,23 @@ struct MatrixView<
   /**** EVALUATING ***/
 
   SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+    if constexpr (is_inc) {
+      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
+                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    } else {
+      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                       : *(ptr_ + j + sizeL_ * i));
+    }
   }
 
-  SYCL_BLAS_INLINE scalar_t eval(index_t i, index_t j) const noexcept {
-    return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                     : *(ptr_ + j + sizeL_ * i));
+  SYCL_BLAS_INLINE scalar_t &eval(index_t i, index_t j) const noexcept {
+    if constexpr (is_inc) {
+      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
+                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    } else {
+      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
+                                       : *(ptr_ + j + sizeL_ * i));
+    }
   }
 
   template <bool use_as_ptr = false>

@@ -69,11 +69,9 @@ set(sources
   blas3/trsm.cpp
   blas3/trsm_batched.cpp
   blas3/trmm.cpp
+  # extension blas
+  extension/omatcopy.cpp
 ) 
-
-#if(${BLAS_ENABLE_EXTENSIONS})
-#  list(APPEND sources "extension/reduction.cpp")
-#endif()
 
 # Add individual benchmarks for each method
 foreach(cublas_bench ${sources})

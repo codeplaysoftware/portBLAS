@@ -28,12 +28,11 @@
 #include "sb_handle/sycl_blas_handle.hpp"
 #include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
-#include "interface/reduction_interface.hpp"
+#include "interface/extension_interface.hpp"
 #include "operations/blas_constants.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
-namespace extension {
 namespace internal {
 
 template 
@@ -42,5 +41,4 @@ typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
     ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type);
 
 }  // namespace internal
-}  // namespace extension
 }  // namespace blas

@@ -63,10 +63,13 @@ set(sources
   blas3/gemm_batched_strided.cpp
   blas3/trsm.cpp
   blas3/symm.cpp
+  # blas Extension
+  extension/omatcopy.cpp
+  extension/omatcopy2.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
-  list(APPEND sources "extension/reduction.cpp")
+  list(APPEND sources extension/reduction.cpp)
 endif()
 
 # Add individual benchmarks for each method

@@ -71,6 +71,9 @@ set(sources
   blas3/gemm_batched.cpp
   blas3/gemm_batched_strided.cpp
 
+  # Extension blas
+  extension/omatcopy.cpp
+
 )
 
 # Add individual benchmarks for each method

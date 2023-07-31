@@ -27,7 +27,6 @@
 #define SYCL_BLAS_VIEW_H
 
 #include "blas_meta.h"
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -120,9 +119,10 @@ struct VectorView {
 @brief Represents a Matrix on the given Container.
 @tparam value_t Value type of the container.
 @tparam container_t Type of the container.
+@tparam has_inc bool for col/row internal increment different from 1.
  */
 template <typename view_value_t, typename view_container_t,
-          typename view_index_t, typename layout>
+          typename view_index_t, typename layout, bool has_inc = false>
 struct MatrixView {
   // Information related to the data
   using access_layout_t = layout;
@@ -212,9 +212,10 @@ struct VectorViewTypeFactory {
 };
 
 template <typename scalar_t, typename container_t, typename index_t,
-          typename access_mode_t>
+          typename access_mode_t, bool has_inc = false>
 struct MatrixViewTypeFactory {
-  using output_t = MatrixView<scalar_t, container_t, index_t, access_mode_t>;
+  using output_t =
+      MatrixView<scalar_t, container_t, index_t, access_mode_t, has_inc>;
 };
 
 template <typename scalar_t, typename increment_t, typename index_t>
@@ -249,6 +250,25 @@ static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
                      lda, (index_t)buff.get_offset()};
 }
 
+template <typename access_layout_t, typename scalar_t, typename index_t>
+static inline auto make_matrix_view(BufferIterator<scalar_t> buff, index_t m,
+                                    index_t n, index_t lda, index_t inc) {
+  static constexpr cl::sycl::access::mode access_mode_t =
+      Choose<std::is_const<scalar_t>::value, cl::sycl::access::mode,
+             cl::sycl::access::mode::read,
+             cl::sycl::access::mode::read_write>::type;
+  using leaf_node_t = typename MatrixViewTypeFactory<
+      scalar_t,
+      typename BufferIterator<scalar_t>::template default_accessor_t<
+          access_mode_t>,
+      index_t, access_layout_t, true>::output_t;
+  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(),
+                     m,
+                     n,
+                     lda,
+                     inc,
+                     (index_t)buff.get_offset()};
+}
 }  // namespace blas
 
 #endif  // VIEW_H

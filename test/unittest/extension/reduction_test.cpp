@@ -39,8 +39,8 @@ enum operator_t : int {
 using index_t = int;
 
 template <typename scalar_t>
-using combination_t =
-    std::tuple<index_t, index_t, index_t, operator_t, reduction_dim_t>;
+using combination_t = std::tuple<index_t, index_t, index_t, operator_t,
+                                 reduction_dim_t, scalar_t>;
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
@@ -50,7 +50,8 @@ const auto combi = ::testing::Combine(
     ::testing::Values(operator_t::Add, operator_t::Max, operator_t::Min,
                       operator_t::AbsoluteAdd, operator_t::Mean,
                       operator_t::Product),
-    ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer));
+    ::testing::Values(reduction_dim_t::inner, reduction_dim_t::outer),
+    ::testing::Values(1.0));
 
 template <>
 inline void dump_arg<operator_t>(std::ostream& ss, operator_t op) {
@@ -69,7 +70,8 @@ static std::string generate_name(
   index_t rows, cols, ldMul;
   operator_t op;
   reduction_dim_t reductionDim;
-  BLAS_GENERATE_NAME(info.param, rows, cols, ldMul, op, reductionDim);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, rows, cols, ldMul, op, reductionDim, unused);
 }
 
 template <typename scalar_t>
@@ -77,7 +79,9 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t rows, cols, ld_mul;
   operator_t op;
   reduction_dim_t reduction_dim;
-  std::tie(rows, cols, ld_mul, op, reduction_dim) = combi;
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
+  std::tie(rows, cols, ld_mul, op, reduction_dim, unused) = combi;
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
