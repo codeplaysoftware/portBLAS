@@ -116,6 +116,65 @@ void Transpose(const T* in, const index_t& ld_in, T* out, const index_t& ld_out,
   }
 }
 
+/**
+ * @brief Reference omatadd implementation using reference omatcopy.
+ *
+ * @param trans_a (char) 'n' or 't' corresponding to non-transposed or
+ * transposed matrix A respectively.
+ * @param trans_b (char) 'n' or 't' corresponding to non-transposed or
+ * transposed matrix B respectively.
+ * @param m Number of rows in output matrix C
+ * @param n Number of columns in output matrix C
+ * @param alpha Scaling factor of matrix A
+ * @param A (vector) Input matrix A
+ * @param lda_m Matrix A leading dimension multiplier. (lda = lda_m * A_rows)
+ * @param beta scaling factor of matrix B
+ * @param B (vector) Input matrix B
+ * @param ldb_m Matrix B leading dimension multiplier. (ldb = ldb_m * B_rows)
+ * @param C (vector) Output matrix C
+ * @param ldc_m Matrix C leading dimension multiplier. (ldc = ldc_m * C_rows)
+ */
+template <typename index_t, typename scalar_t>
+void ext_omatadd(char transa, char transb, index_t m, index_t n, scalar_t alpha,
+                 std::vector<scalar_t>& A, index_t lda, scalar_t beta,
+                 std::vector<scalar_t>& B, index_t ldb,
+                 std::vector<scalar_t>& C, index_t ldc) {
+  for (index_t j = 0; j < n; j++) {
+    for (index_t i = 0; i < m; i++) {
+      C[j * ldc + i] = 0.0;
+    }
+  }
+  if (transa != 't') {
+    for (index_t j = 0; j < n; j++) {
+      for (index_t i = 0; i < m; i++) {
+        C[j * ldc + i] += alpha * A[j * lda + i];
+      }
+    }
+
+  } else {
+    for (index_t j = 0; j < n; j++) {
+      for (index_t i = 0; i < m; i++) {
+        C[j * ldc + i] += alpha * A[i * lda + j];
+      }
+    }
+  }
+
+  if (transb != 't') {
+    for (index_t j = 0; j < n; j++) {
+      for (index_t i = 0; i < m; i++) {
+        C[j * ldc + i] += beta * B[j * ldb + i];
+      }
+    }
+
+  } else {
+    for (index_t j = 0; j < n; j++) {
+      for (index_t i = 0; i < m; i++) {
+        C[j * ldc + i] += beta * B[i * ldb + j];
+      }
+    }
+  }
+}
+
 }  // namespace reference_blas
 
 #endif
