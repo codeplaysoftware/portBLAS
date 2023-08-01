@@ -781,7 +781,8 @@ typename ValueType<container_t>::type _asum(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  auto asum_event = blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  sb_handle.wait(asum_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);
