@@ -44,8 +44,7 @@ if __name__ == '__main__':
     data = sys.argv[6]
     index = sys.argv[7]
     increment = sys.argv[8]
-    container0 = sys.argv[9]
-    file_name = sys.argv[10]
+    file_name = sys.argv[9]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -70,11 +69,6 @@ if __name__ == '__main__':
         Iterable(
             key='INCREMENT_TYPE',
             vals=[increment],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='container_t0',
-            vals=[container0],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

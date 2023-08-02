@@ -32,21 +32,22 @@ namespace internal {
 
 template typename SB_Handle::event_t _ger(
     SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, BufferIterator<${container_t0}> _vx, ${INCREMENT_TYPE} _incx,
-    BufferIterator<${container_t1}> _vy, ${INCREMENT_TYPE} _incy, BufferIterator<${container_t2}> _mA,
+    ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, BufferIterator<${DATA_TYPE}> _vy,
+    ${INCREMENT_TYPE} _incy, BufferIterator<${DATA_TYPE}> _mA,
     ${INDEX_TYPE} _lda, const typename SB_Handle::event_t& _dependencies);
 
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _ger(
     SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
-    ${container_t1}* _vy, ${INCREMENT_TYPE} _incy, ${container_t2}* _mA,
+    ${DATA_TYPE} _alpha, ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy, ${DATA_TYPE} * _mA,
     ${INDEX_TYPE} _lda, const typename SB_Handle::event_t& _dependencies);
 
 template typename SB_Handle::event_t _ger(
     SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx,
-    const ${container_t1}* _vy, ${INCREMENT_TYPE} _incy, ${container_t2}* _mA,
+    ${DATA_TYPE} _alpha, const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    const ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy, ${DATA_TYPE} * _mA,
     ${INDEX_TYPE} _lda, const typename SB_Handle::event_t& _dependencies);
 #endif
 

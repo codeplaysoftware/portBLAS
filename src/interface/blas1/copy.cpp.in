@@ -43,19 +43,19 @@ namespace internal {
  * @param _incy Increment in Y axis
  */
 template typename SB_Handle::event_t _copy(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, BufferIterator<${container_t0}> _vx,
-    ${INCREMENT_TYPE} _incx, BufferIterator<${container_t1}> _vy, ${INCREMENT_TYPE} _incy,
-    const typename SB_Handle::event_t& dependencies);
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, BufferIterator<${DATA_TYPE}> _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
 
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _copy(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0}* _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1}* _vy, ${INCREMENT_TYPE} _incy,
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& dependencies);
 
 template typename SB_Handle::event_t _copy(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, const ${container_t0}* _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1}* _vy, ${INCREMENT_TYPE} _incy,
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, const ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& dependencies);
 #endif
 

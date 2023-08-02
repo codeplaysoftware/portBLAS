@@ -32,19 +32,20 @@ namespace internal {
 
 template typename SB_Handle::event_t _spr(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    BufferIterator<${container_t0}> _vx, ${INCREMENT_TYPE} _incx, BufferIterator<${container_t1}> _mPA,
+    BufferIterator<${DATA_TYPE}> _vx, ${INCREMENT_TYPE} _incx,
+    BufferIterator<${DATA_TYPE}> _mPA,
     const typename SB_Handle::event_t& _dependencies);
 
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _spr(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, ${container_t1}* _mPA,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _mPA,
     const typename SB_Handle::event_t& _dependencies);
 
 template typename SB_Handle::event_t _spr(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    const ${container_t0}* _vx, ${INCREMENT_TYPE} _incx, ${container_t1}* _mPA,
-    const typename SB_Handle::event_t& _dependencies);
+    const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    ${DATA_TYPE} * _mPA, const typename SB_Handle::event_t& _dependencies);
 #endif
 
 }  // namespace internal

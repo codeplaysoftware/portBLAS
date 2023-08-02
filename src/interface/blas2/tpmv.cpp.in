@@ -29,18 +29,18 @@ namespace blas {
 namespace internal {
 template typename SB_Handle::event_t _tpmv(
     SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
-    BufferIterator<${container_t0}> _mA, BufferIterator<${container_t1}> _vx, ${INCREMENT_TYPE} _incx,
-    const typename SB_Handle::event_t& _dependencies);
+    BufferIterator<${DATA_TYPE}> _mA, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, const typename SB_Handle::event_t& _dependencies);
 
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _tpmv(
     SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
-    ${container_t0}* _mA, ${container_t1}* _vx, ${INCREMENT_TYPE} _incx,
+    ${DATA_TYPE} * _mA, ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
     const typename SB_Handle::event_t& _dependencies);
 
 template typename SB_Handle::event_t _tpmv(
     SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
-    const ${container_t0}* _mA, ${container_t1}* _vx, ${INCREMENT_TYPE} _incx,
+    const ${DATA_TYPE} * _mA, ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
     const typename SB_Handle::event_t& _dependencies);
 #endif
 

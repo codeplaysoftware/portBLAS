@@ -109,7 +109,6 @@ function(generate_blas_unary_objects blas_level func)
                 ${cpp_data}
                 ${index}
                 ${increment}
-                ${cpp_data}
                 ${file_name}
                 MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                 DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
@@ -127,47 +126,6 @@ function(generate_blas_unary_objects blas_level func)
   message(STATUS "Adding SYCL to target ${func}")
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_unary_objects)
-
-# blas binary function for generating source code
-function(generate_blas_binary_objects blas_level func)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-  foreach(data ${data_list})
-    cpp_type(cpp_data ${data})
-    foreach(index ${index_list})
-      set(container_names "${data}_${data}")
-      foreach(increment ${index_list})
-        sanitize_file_name(file_name
-                "${func}_${data}_${index}_${container_names}_${increment}.cpp")
-        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${increment}
-                ${cpp_data}
-                ${cpp_data}
-                ${file_name}
-                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary.py
-                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                VERBATIM
-                )
-        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-      endforeach(increment)
-    endforeach(index)
-  endforeach(data)
-  add_library(${func} OBJECT ${FUNC_SRC})
-  set_target_compile_def(${func})
-  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
-  message(STATUS "Adding SYCL to target ${func}")
-  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_binary_objects)
-
 
 # blas binary function for generating source code
 function(generate_blas_reduction_objects blas_level func)
@@ -190,8 +148,6 @@ foreach(data ${data_list})
                 ${cpp_data}
                 ${index}
                 ${increment}
-                ${cpp_data}
-                ${cpp_data}
                 ${operator}
                 ${file_name}
                 MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
@@ -212,88 +168,6 @@ message(STATUS "Adding SYCL to target ${func}")
 add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_reduction_objects)
 
-# blas special binary function for generating source code
-function(generate_blas_binary_special_objects blas_level func)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-  foreach(data ${data_list})
-    cpp_type(cpp_data ${data})
-    foreach(index ${index_list})
-      set(container_names "${data}_${data}")
-      foreach(increment ${index_list})
-        sanitize_file_name(file_name
-                "${func}_${data}_${index}_${container_names}_${increment}.cpp")
-        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${increment}
-                ${cpp_data}
-                ${cpp_data}
-                ${file_name}
-                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_binary_special.py
-                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                VERBATIM
-                )
-        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-      endforeach(increment)
-    endforeach(index)
-  endforeach(data)
-  add_library(${func} OBJECT ${FUNC_SRC})
-  set_target_compile_def(${func})
-  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
-  message(STATUS "Adding SYCL to target ${func}")
-  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_binary_special_objects)
-
-# blas ternary function for generating source code
-function(generate_blas_ternary_objects blas_level func)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-  foreach(data ${data_list})
-    cpp_type(cpp_data ${data})
-    foreach(index ${index_list})
-      set(container_names
-              "${data}_${data}_${container2}")
-      foreach(increment ${index_list})
-        sanitize_file_name(file_name
-                "${func}_${data}_${index}_${container_names}_${increment}.cpp")
-        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${SYCLBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${increment}
-                ${cpp_data}
-                ${cpp_data}
-                ${cpp_data}
-                ${file_name}
-                MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ternary.py
-                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                VERBATIM
-                )
-        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-      endforeach(increment)
-    endforeach(index)
-  endforeach(data)
-  add_library(${func} OBJECT ${FUNC_SRC})
-  set_target_compile_def(${func})
-  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
-  message(STATUS "Adding SYCL to target ${func}")
-  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_ternary_objects)
-
 # blas function for generating source code for the rotg operator (asynchronous version with containers)
 function(generate_blas_rotg_objects blas_level func)
   set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
@@ -310,10 +184,6 @@ function(generate_blas_rotg_objects blas_level func)
             ${func}
             ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
             ${cpp_data}
-            ${cpp_data}
-            ${cpp_data}
-            ${cpp_data}
-            ${cpp_data}
             ${file_name}
             MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
             DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg.py
@@ -329,73 +199,6 @@ function(generate_blas_rotg_objects blas_level func)
   message(STATUS "Adding SYCL to target ${func}")
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_rotg_objects)
-
-# blas function for generating source code for the rotg operator (synchronous version)
-function(generate_blas_rotg_return_objects blas_level func)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-  foreach (data ${data_list})
-    cpp_type(cpp_data ${data})
-    sanitize_file_name(file_name
-            "${func}_${data}_${index}_${data}_${increment}.cpp")
-    add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg_return.py
-            ${PROJECT_SOURCE_DIR}/external/
-            ${SYCLBLAS_SRC_GENERATOR}/gen
-            ${blas_level}
-            ${func}
-            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            ${cpp_data}
-            ${file_name}
-            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotg_return.py
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-            VERBATIM
-            )
-    list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-  endforeach (data)
-  add_library(${func} OBJECT ${FUNC_SRC})
-  set_target_compile_def(${func})
-  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
-  message(STATUS "Adding SYCL to target ${func}")
-  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_rotg_return_objects)
-
-# blas function for generating source code for the rotg operator (asynchronous version with containers)
-function(generate_blas_rotmg_objects blas_level func)
-  set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
-  foreach (data ${data_list})
-    cpp_type(cpp_data ${data})
-    set(container_names "${data}_${data}_${data}_${data}_${data}")
-    sanitize_file_name(file_name "${func}_${data}_${container_names}.cpp")
-    add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-            COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
-            ${PROJECT_SOURCE_DIR}/external/
-            ${SYCLBLAS_SRC_GENERATOR}/gen
-            ${blas_level}
-            ${func}
-            ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            ${cpp_data}
-            ${data}
-            ${data}
-            ${data}
-            ${data}
-            ${data}
-            ${file_name}
-            MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-            DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_rotmg.py
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-            VERBATIM
-            )
-    list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-  endforeach (data)
-  add_library(${func} OBJECT ${FUNC_SRC})
-  set_target_compile_def(${func})
-  target_include_directories(${func} PRIVATE ${SYCLBLAS_SRC} ${SYCLBLAS_INCLUDE}
-          ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
-  message(STATUS "Adding SYCL to target ${func}")
-  add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_rotmg_objects)
 
 # blas gemm function for generating source code
 function(generate_blas_gemm_objects blas_level func)
@@ -498,9 +301,6 @@ function(add_gemm_configuration
                       ${use_joint_matrix}
                       ${symm_a}
                       ${symm_b}
-                      ${cpp_data}
-                      ${cpp_data}
-                      ${cpp_data}
                       MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
                       DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}

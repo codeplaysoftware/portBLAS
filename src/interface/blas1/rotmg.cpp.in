@@ -67,14 +67,15 @@ namespace internal {
  * @return Vector of events to wait for.
  */
 template typename SB_Handle::event_t _rotmg(
-    SB_Handle &sb_handle, BufferIterator<${container_t0}> _d1, BufferIterator<${container_t1}> _d2,
-    BufferIterator<${container_t2}> _x1, BufferIterator<${container_t3}> _y1, BufferIterator<${container_t4}> _param,
+    SB_Handle& sb_handle, BufferIterator<${DATA_TYPE}> _d1,
+    BufferIterator<${DATA_TYPE}> _d2, BufferIterator<${DATA_TYPE}> _x1,
+    BufferIterator<${DATA_TYPE}> _y1, BufferIterator<${DATA_TYPE}> _param,
     const typename SB_Handle::event_t& dependencies);
 
 #ifdef SB_ENABLE_USM
 template typename SB_Handle::event_t _rotmg(
-    SB_Handle &sb_handle, ${container_t0}* _d1, ${container_t1}* _d2,
-    ${container_t2}* _x1, ${container_t3}* _y1, ${container_t4}* _param,
+    SB_Handle& sb_handle, ${DATA_TYPE} * _d1, ${DATA_TYPE} * _d2,
+    ${DATA_TYPE} * _x1, ${DATA_TYPE} * _y1, ${DATA_TYPE} * _param,
     const typename SB_Handle::event_t& dependencies);
 #endif
 
