@@ -26,15 +26,14 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<int, int, int, scalar_t>;
+using combination_t = std::tuple<int, int, int>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
-  std::tie(size, incX, incY, unused) = combi;
+  std::tie(size, incX, incY) = combi;
 
   // Input vectors
   std::vector<scalar_t> a_v(size * incX);
@@ -90,15 +89,14 @@ template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 65, 1002,
                                                         1002400),  // size
                                       ::testing::Values(1, 4),     // incX
-                                      ::testing::Values(1, 3),     // incY
-                                      ::testing::Values(0)         // unused
+                                      ::testing::Values(1, 3)      // incY
 );
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(::testing::Values(11, 1002),  // size
                                       ::testing::Values(4),         // incX
-                                      ::testing::Values(3),         // incY
-                                      ::testing::Values(0)          // unused
+                                      ::testing::Values(3)          // incY
+
 );
 #endif
 
@@ -106,8 +104,7 @@ template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   int size, incX, incY;
-  T unused;
-  BLAS_GENERATE_NAME(info.param, size, incX, incY, unused);
+  BLAS_GENERATE_NAME(info.param, size, incX, incY);
 }
 
 BLAS_REGISTER_TEST_ALL(Rot, combination_t, combi, generate_name);

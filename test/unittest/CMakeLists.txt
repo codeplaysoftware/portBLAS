@@ -38,6 +38,12 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
   # Blas 2 tests
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
@@ -50,6 +56,8 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_tpmv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
   # Blas 3 tests
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
   ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
@@ -58,6 +66,8 @@ set(SYCL_UNITTEST_SRCS
   # Blas extension
   ${SYCLBLAS_UNITTEST}/extension/omatcopy_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
+  # Blas buffer tests
+  ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
@@ -73,25 +83,6 @@ if(is_dpcpp)
     ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
     ${SYCLBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
   )
-endif()
-
-# Temporary disabling the following tests fro Intel DPC++ as currently Intel compiler crashes while running the following tests
-if(is_computecpp)
-  set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    # Blas 1 tests
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
-    # Blas 2 tests
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
-    # Blas buffer tests
-    ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
-  )
-
 endif()
 
 # Contains tests that fail if compiled with -ffast-math

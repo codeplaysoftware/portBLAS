@@ -72,7 +72,7 @@ with the following contents:
 // generate several combinations of input values for the function to be tested.
 template <typename scalar_t>
 using combination_t = std::tuple<int, int, char, char, char, char, scalar_t,
-                                 scalar_t, scalar_t, scalar_t>;
+                                 scalar_t, scalar_t>;
 
 // Register the function that will run the test
 template <typename scalar_t>
@@ -86,9 +86,7 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t alpha;
   scalar_t ldaMul;
   scalar_t ldbMul;
-  scalar_t unusedValue;
-  std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, ldbMul,
-           unusedValue) = combi;
+  std::tie(m, n, transA, side, diag, triangle, alpha, ldaMul, ldbMul) = combi;
 
   //
   // Perform any initialization here
@@ -113,8 +111,7 @@ const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
                                       ::testing::Values('l', 'u'),  // triangle
                                       ::testing::Values(1.0, 2.0),  // alpha
                                       ::testing::Values(1.0, 2.0),  // lda_mul
-                                      ::testing::Values(1.0, 2.0),  // ldb_mul
-                                      ::testing::Values(0.0, NaN)   // unused
+                                      ::testing::Values(1.0, 2.0)   // ldb_mul
 );
 
 // Finaly register the new test

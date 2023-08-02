@@ -37,7 +37,7 @@ using blas2_param_t =
     std::tuple<std::string, index_t, index_t, scalar_t, scalar_t>;
 
 template <typename scalar_t>
-using copy_param_t = std::tuple<index_t, index_t, index_t, scalar_t>;
+using copy_param_t = std::tuple<index_t, index_t, index_t>;
 
 template <typename scalar_t>
 using blas3_param_t = std::tuple<std::string, std::string, index_t, index_t,
@@ -325,7 +325,7 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
       for (index_t incy = 1; incy <= 2; incy *= 2) {
         for (index_t size = 1L << 12; size <= 1L << 20; size *= 16) {
           default_values.push_back(
-              std::make_tuple(size, incx, incy, scalar_t(0)));
+              std::make_tuple(size, incx, incy));
         }
       }
     }
@@ -340,7 +340,7 @@ static inline std::vector<copy_param_t<scalar_t>> get_copy_params(Args& args) {
           try {
             return std::make_tuple(str_to_int<index_t>(v[0]),
                                    str_to_int<index_t>(v[1]),
-                                   str_to_int<index_t>(v[2]), scalar_t(0));
+                                   str_to_int<index_t>(v[2]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

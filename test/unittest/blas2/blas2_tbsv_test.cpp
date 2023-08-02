@@ -27,7 +27,7 @@
 
 template <typename T>
 using combination_t =
-    std::tuple<index_t, index_t, bool, bool, bool, index_t, index_t, T>;
+    std::tuple<index_t, index_t, bool, bool, bool, index_t, index_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -38,9 +38,7 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_unit;
   index_t incX;
   index_t lda_mul;
-  scalar_t unused; /* Work around dpcpp compiler bug
-                      (https://github.com/intel/llvm/issues/7075) */
-  std::tie(n, k, is_upper, trans, is_unit, incX, lda_mul, unused) = combi;
+  std::tie(n, k, is_upper, trans, is_unit, incX, lda_mul) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
@@ -98,8 +96,7 @@ const auto combi =
                        ::testing::Values(true, false),  // trans
                        ::testing::Values(true, false),  // is_unit
                        ::testing::Values(1, 2),         // incX
-                       ::testing::Values(1, 2),         // lda_mul
-                       ::testing::Values(0)             // unused
+                       ::testing::Values(1, 2)          // lda_mul
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
@@ -112,8 +109,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values(true, false),  // trans
     ::testing::Values(true, false),  // is_unit
     ::testing::Values(1, 2),         // incX
-    ::testing::Values(1, 2),         // lda_mul
-    ::testing::Values(0)             // unused
+    ::testing::Values(1, 2)          // lda_mul
 );
 #endif
 
@@ -124,9 +120,7 @@ static std::string generate_name(
   bool is_upper;
   bool trans;
   bool is_unit;
-  T unused;
-  BLAS_GENERATE_NAME(info.param, n, k, is_upper, trans, is_unit, incX, ldaMul,
-                     unused);
+  BLAS_GENERATE_NAME(info.param, n, k, is_upper, trans, is_unit, incX, ldaMul);
 }
 
 BLAS_REGISTER_TEST_ALL(Tbsv, combination_t, combi, generate_name);

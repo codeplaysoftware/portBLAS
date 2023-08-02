@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<index_t, bool, bool, bool, index_t, T>;
+using combination_t = std::tuple<index_t, bool, bool, bool, index_t>;
 
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
@@ -35,9 +35,7 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_upper;
   bool is_unit;
   index_t incX;
-  scalar_t unused; /* Work around dpcpp compiler bug
-                      (https://github.com/intel/llvm/issues/7075) */
-  std::tie(n, is_upper, trans, is_unit, incX, unused) = combi;
+  std::tie(n, is_upper, trans, is_unit, incX) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
@@ -85,8 +83,7 @@ const auto combi =
                        ::testing::Values(true, false),  // is_upper
                        ::testing::Values(true, false),  // trans
                        ::testing::Values(true, false),  // is_unit
-                       ::testing::Values(1, 2, 3),      // incX
-                       ::testing::Values(0)             // unused
+                       ::testing::Values(1, 2, 3)       // incX
     );
 #else
 // For the purpose of travis and other slower platforms, we need a faster test
@@ -97,8 +94,7 @@ const auto combi =
                        ::testing::Values(true, false),              // is_upper
                        ::testing::Values(true, false),              // trans
                        ::testing::Values(true, false),              // is_unit
-                       ::testing::Values(3),                        // incX
-                       ::testing::Values(0)                         // unused
+                       ::testing::Values(3)                         // incX
     );
 #endif
 
@@ -109,8 +105,7 @@ static std::string generate_name(
   bool is_upper;
   bool trans;
   bool is_unit;
-  T unused;
-  BLAS_GENERATE_NAME(info.param, n, is_upper, trans, is_unit, incX, unused);
+  BLAS_GENERATE_NAME(info.param, n, is_upper, trans, is_unit, incX);
 }
 
 BLAS_REGISTER_TEST_ALL(Tpmv, combination_t, combi, generate_name);
