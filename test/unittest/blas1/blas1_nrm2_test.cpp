@@ -83,8 +83,6 @@ void run_test(const combination_t<scalar_t> combi) {
     out_s = _nrm2(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
-  std::cout << "SYCL " << out_s << " vs ref " << out_cpu_s << std::endl;
-
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s, out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
