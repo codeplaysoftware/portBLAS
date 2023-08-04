@@ -50,6 +50,8 @@
 
 #include "operations/extension/transpose.hpp"
 
+#include "operations/extension/matcopy_batch.hpp"
+
 #include "operations/blas_constants.hpp"
 
 #include "operations/blas_operators.hpp"
