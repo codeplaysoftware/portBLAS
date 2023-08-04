@@ -27,8 +27,7 @@
 
 namespace blas {
 
-template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
-          typename rhs_t>
+template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
 struct Matcopy_batch {
  public:
   using value_t = typename lhs_t::value_t;
@@ -55,16 +54,15 @@ struct Matcopy_batch {
   void adjust_access_displacement();
 };
 
-template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
-          typename rhs_t>
-Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t> make_matcopy_batch(
+template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
+Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t> make_matcopy_batch(
     lhs_t lhs, rhs_t rhs_1, rhs_t rhs_2, typename rhs_t::value_t alpha,
     typename rhs_t::value_t beta, typename rhs_t::index_t m,
     typename rhs_t::index_t n, typename rhs_t::index_t lhs_ld,
     typename rhs_t::index_t rhs_ld, typename rhs_t::index_t rhs_2_ld,
     typename rhs_t::index_t lhs_stride, typename rhs_t::index_t rhs_stride,
     typename rhs_t::index_t rhs_2_stride, typename rhs_t::index_t batch_size) {
-  return Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t>(
+  return Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t>(
       lhs, rhs_1, rhs_2, alpha, beta, m, n, lhs_ld, rhs_ld, rhs_2_ld,
       lhs_stride, rhs_stride, rhs_2_stride, batch_size);
 }
