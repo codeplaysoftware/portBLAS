@@ -41,8 +41,8 @@ namespace reference_blas {
  */
 template <bool onemkl_index = true, typename index_t, typename scalar_t>
 void ext_omatcopy(char trans, const index_t m, const index_t n,
-                  const scalar_t alpha, std::vector<scalar_t>& A,
-                  const index_t lda, std::vector<scalar_t>& B, index_t ldb) {
+                  const scalar_t alpha, const scalar_t* A, const index_t lda,
+                  scalar_t* B, index_t ldb) {
   if (trans != 't') {
     for (index_t j = 0; j < n; j++) {
       for (index_t i = 0; i < m; i++) {
@@ -70,9 +70,9 @@ void ext_omatcopy(char trans, const index_t m, const index_t n,
  */
 template <typename scalar_t, typename index_t>
 void ext_omatcopy2(const char& t, const index_t& m, const index_t& n,
-                   const scalar_t& alpha, std::vector<scalar_t>& in_matrix,
+                   const scalar_t& alpha, const scalar_t* in_matrix,
                    const index_t& ld_in, const index_t& inc_in,
-                   std::vector<scalar_t>& out_matrix, const index_t& ld_out,
+                   scalar_t* out_matrix, const index_t& ld_out,
                    const index_t inc_out) {
   if (t == 't') {
     for (int i = 0; i < m; ++i) {
