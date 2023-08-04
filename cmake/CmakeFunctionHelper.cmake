@@ -470,6 +470,7 @@ function(generate_blas_rotmg_objects blas_level func)
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
 endfunction(generate_blas_rotmg_objects)
 
+
 # blas gemm function for generating source code
 function(generate_blas_gemm_objects blas_level func)
 set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
@@ -827,6 +828,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:symm>
                 $<TARGET_OBJECTS:trsm>
                 $<TARGET_OBJECTS:matcopy>
+                $<TARGET_OBJECTS:matcopy_batch>
                 $<TARGET_OBJECTS:transpose>)
 
   if (${ENABLE_EXTENSIONS})

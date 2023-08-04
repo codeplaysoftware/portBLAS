@@ -109,6 +109,11 @@ template <typename scalar_t>
 using omatcopy2_param_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
                                      index_t, index_t, index_t>;
 
+template <typename scalar_t>
+using matcopy_batch_param_t =
+    std::tuple<char, index_t, index_t, scalar_t, index_t, index_t, index_t,
+               index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -1138,10 +1143,61 @@ static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
 }
 
 /**
+ * @fn get_matcopy_batch_params
+ * @brief Returns a vector containing the matcopy_batch benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<matcopy_batch_param_t<scalar_t>>
+get_matcopy_batch_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
+    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    constexpr index_t batch_size{5};
+    constexpr index_t stride_a_mul{1};
+    constexpr index_t stride_b_mul{1};
+    for (char trans : {'n', 't'}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+              matcopy_batch_default.push_back(
+                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
+                                  stride_a_mul, stride_b_mul, batch_size));
+            }
+          }
+        }
+      }
+    }
+    return matcopy_batch_default;
+  } else {
+    return parse_csv_file<matcopy_batch_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (9 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
+                str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
  * @fn get_type_name
- * @brief Returns a string with the given type. The C++ specification doesn't
- * guarantee that typeid(T).name is human readable so we specify the template
- * for float and double.
+ * @brief Returns a string with the given type. The C++ specification
+ * doesn't guarantee that typeid(T).name is human readable so we specify the
+ * template for float and double.
  */
 template <typename scalar_t>
 static inline std::string get_type_name() {
@@ -1325,7 +1381,8 @@ static inline double time_events(event_t first_event,
 /**
  * @fn timef
  * @brief Calculates the time spent executing the function func
- * (both overall and event time, returned in nanoseconds in a tuple of double)
+ * (both overall and event time, returned in nanoseconds in a tuple of
+ * double)
  */
 template <typename function_t, typename... args_t>
 static inline std::tuple<double, double> timef(function_t func,

@@ -67,18 +67,26 @@ class Transpose {
   // Increment value (denoted stride in oneMKL specification)
   index_t inc_a_;
   index_t inc_at_;
+  // Stride values (denoted stride in oneMKL specification for batched
+  // operations)
+  index_t stride_a_;
+  index_t stride_at_;
   // Minimum number of tiles used to cover matrices rows & columns
   index_t tile_count_m_;
   index_t tile_count_n_;
   // Total number of tiles used to cover the matrix
   index_t tile_count_total_;
-  // Inner WG Tiles
+  // Number of Inner WG Tiles
   static constexpr const index_t inner_tile_size_ = wg_size / Tile_size;
   static constexpr const index_t inner_tile_count_ =
       Tile_size / inner_tile_size_;
   // Minimum number of Tile-mutliple rows & columns to cover the matrices
   index_t M_pad_;
   index_t N_pad_;
+  // Total size of Tile-mutliple covering matrix
+  index_t size_pad_;
+  // Batch size when using batched transpose
+  index_t batch_size_;
   // Number of contiguous elements to be used in local memory to avoid bank
   // conflicts
   static constexpr index_t get_non_bank_conflict_line_size() {
@@ -90,7 +98,9 @@ class Transpose {
     return get_non_bank_conflict_line_size() / Tile_size;
   }
 
-  Transpose(in_t &A, index_t &inc_a, out_t &At, index_t &inc_at, value_t &alpha)
+  Transpose(in_t &A, index_t &inc_a, index_t &stride_a, out_t &At,
+            index_t &inc_at, index_t &stride_at, value_t &alpha,
+            index_t &batch_size)
       : A_(A),
         At_(At),
         lda_(A_.getSizeL()),
@@ -102,9 +112,13 @@ class Transpose {
         tile_count_n_((N_ - 1) / Tile_size + 1),
         tile_count_total_(tile_count_m_ * tile_count_n_),
         inc_a_(inc_a),
+        stride_a_(stride_a),
+        stride_at_(stride_at),
         inc_at_(inc_at),
         M_pad_(tile_count_m_ * Tile_size),
-        N_pad_(tile_count_n_ * Tile_size) {}
+        N_pad_(tile_count_n_ * Tile_size),
+        size_pad_(M_pad_ * N_pad_),
+        batch_size_(batch_size) {}
 
   index_t get_size() const;
 
@@ -119,7 +133,7 @@ class Transpose {
                    index_t &out_local_idx, index_t &i_block_start,
                    index_t &j_block_start, index_t &il, index_t &jl);
   void get_indices(cl::sycl::nd_item<1> id, index_t &in_idx, index_t &out_idx,
-                   index_t &il, index_t &jl);
+                   index_t &i, index_t &j);
 };
 
 /*!
@@ -130,10 +144,12 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
           typename index_t>
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>
-make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
-               element_t &alpha) {
+make_transpose(in_t &A, index_t inc_a, index_t &stride_a, out_t &At,
+               index_t inc_a_t, index_t &stride_at, element_t &alpha,
+               index_t &batch_size) {
   return Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t,
-                   out_t, element_t>(A, inc_a, At, inc_a_t, alpha);
+                   out_t, element_t>(A, inc_a, stride_a, At, inc_a_t, stride_at,
+                                     alpha, batch_size);
 }
 
 }  // namespace blas

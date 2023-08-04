@@ -294,7 +294,7 @@ For all these operations:
 
 ### EXTENSION
 
-The following table sums up the interface that cab be found in
+The following table sums up the interface that can be found in
 [extension_interface.h](include/interface/extension_interface.h).
 
 For all these operations:
@@ -304,17 +304,22 @@ For all these operations:
   (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
   to its number of rows. In the case of in-place transpose, the same matrix `A`
   is used with two different leading dimensions for input & output.
+* `stride_a`, `stride_b` and `stride_c` are the striding size between consecutive 
+matrices in a batched entry for inputs/outputs A, B and C. 
+* `inc_a` and `inc_b` are the distance between consecutive elements in A & B matrices.
 * `transa` and `transb` are the transpose modes of the matrices A and B
   (cf BLAS 2).
 * `M` and `N` are the dimensions of the matrices.
-* `alpha` and `beta` are scalars.
-* `batch_size` is an integer.
-* `inc_a` and `inc_b` are integers. The distance between element in the same column.
+* `alpha` and `beta` are scaling scalars.
+* `batch_size` is the number of batch matrices.
 
 | operation | arguments | description |
 |---|---|---|
 | `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Perform an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
 | `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
+| `_omatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `stride_in`, `B`, `ldb`, `stride_out`, `batch_size` | Perform an out-of-place scaled batched-strided matrix transpose or copy operation using a general dense matrix. |
+
+Other non-official extension operators : 
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place matrix transpose operation using a general dense matrix. |
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `ld_in`, `ld_out`  | Computes an in-place matrix transpose operation using a general dense matrix. |
 ### Experimental Joint Matrix Support
