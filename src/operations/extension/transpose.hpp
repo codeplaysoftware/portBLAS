@@ -315,9 +315,9 @@ template <bool both_trans, int Tile_size, int wg_size, int cl_size,
 SYCL_BLAS_INLINE void
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::eval(cl::sycl::nd_item<1> id) {
-  auto A = A_.get_data().get_pointer();
-  auto B = B_.get_data().get_pointer();
-  auto C = C_.get_data().get_pointer();
+  auto A = A_.get_pointer();
+  auto B = B_.get_pointer();
+  auto C = C_.get_pointer();
   index_t in_a_index, in_b_index, out_index, i_id, j_id;
 
   get_indices(id, in_a_index, in_b_index, out_index, i_id, j_id);
