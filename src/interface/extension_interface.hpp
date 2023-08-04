@@ -175,7 +175,7 @@ typename sb_handle_t::event_t _transpose_add_impl(
   if constexpr (local_memory) {
     index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
                                              num_tiles_per_line);
-    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
+    return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size), global_size, local_mem);
   } else {
     return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
                              global_size);
