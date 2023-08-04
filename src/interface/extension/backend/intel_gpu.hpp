@@ -34,17 +34,18 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _transpose_outplace(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
-    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
-    index_t _ld_out, index_t _inc_out) {
+    container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
+    container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
+    index_t _batch_size) {
   if (_M * _N > (1 << 18)) {
     return blas::internal::_transpose_outplace_impl<32, 256, 128, true>(
-        sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, out_, _ld_out,
-        _inc_out);
+        sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
+        _ld_out, _inc_out, _stride_out, _batch_size);
 
   } else {
     return blas::internal::_transpose_outplace_impl<16, 64, 64, true>(
-        sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, out_, _ld_out,
-        _inc_out);
+        sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
+        _ld_out, _inc_out, _stride_out, _batch_size);
   }
 }
 
@@ -69,6 +70,35 @@ typename sb_handle_t::event_t _transpose_add(
 
 }  // namespace backend
 }  // namespace transpose
+
+namespace matcopy_batch {
+namespace backend {
+template <bool trans, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
+typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
+_matcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+               in_t in_memory, index_t ld_in, index_t in_stride,
+               out_t out_memory, index_t ld_out, index_t out_stride,
+               index_t batch_size) {
+  if ((m * n) >= (1 << 18)) {
+    return blas::internal::_matcopy_batch_impl<16, 4, sb_handle_t, element_t,
+                                               index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  } else if ((m * n) >= (1 << 14)) {
+    return blas::internal::_matcopy_batch_impl<4, 16, sb_handle_t, element_t,
+                                               index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  } else {
+    return blas::internal::_matcopy_batch_impl<1, 256, sb_handle_t, element_t,
+                                               index_t, in_t, out_t>(
+        sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
+        out_stride, batch_size);
+  }
+}
+}  // namespace backend
+}  // namespace matcopy_batch
 }  // namespace blas
 
 #endif

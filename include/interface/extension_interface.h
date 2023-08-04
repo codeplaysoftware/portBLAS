@@ -82,6 +82,20 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
                                          out_t B, index_t ld_b);
 
+template <bool in_place, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size);
+
+template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
+          typename element_t, typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch_impl(
+    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha, in_t memory,
+    index_t ld_in, index_t in_stride, out_t out_memory, index_t ld_out,
+    index_t out_stride, index_t batch_size);
+
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
 typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
@@ -95,8 +109,9 @@ template <int Tile_size, int wg_size, int cl_size, bool local_memory,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _transpose_outplace_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
-    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
-    index_t _ld_out, index_t _inc_out);
+    container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
+    container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
+    index_t _batch_size);
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename sb_handle_t, typename container_0_t,
@@ -205,6 +220,69 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        container_t C, index_t ldc) {
   return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, A, lda,
                             beta, B, ldb, C, ldc);
+}
+/**
+ * \brief COPY batch of matrices inplace with scaling factor of alpha
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_out_t input/output type
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param memory container of input & output matrices
+ * @param ld_in leading dimension at input
+ * @param ld_out leading dimention at output
+ * @param stride stride distance between matrices inside batch
+ * @param batch_size number of matrices to compute
+ */
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_out_t>
+typename sb_handle_t::event_t _imatcopy_batch(sb_handle_t& sb_handle,
+                                              char trans, index_t m, index_t n,
+                                              element_t alpha, in_out_t memory,
+                                              index_t ld_in, index_t ld_out,
+                                              index_t stride,
+                                              index_t batch_size) {
+  return internal::_matcopy_batch<true>(sb_handle, trans, m, n, alpha, memory,
+                                        ld_in, stride, memory, ld_out, stride,
+                                        batch_size);
+}
+
+/**
+ * \brief COPY batch of matrices outplace from in_memory to out_memory with
+ * scaling factor of alpha
+ *
+ * @tparam sb_handle_t SB_Handle type
+ * @tparam element_t Scaling factor type
+ * @tparam index_t Index type
+ * @tparam in_t container input type
+ * @tparam out_t container output type
+ * @param sb_handle SB_Handle
+ * @param trans compute matrix transpose or not
+ * @param m rows of matrix
+ * @param n cols of matrix
+ * @param alpha Scaling factor
+ * @param in_memory input matrix container
+ * @param ld_in leading dimension of input
+ * @param stride_in stride distance between matrices inside batch
+ * @param out_memory output matrix container
+ * @param ld_out leading dimention of output
+ * @param stride_out stride distance between matrices inside batch
+ * @param batch_size number of matrices to compute
+ */
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename in_t, typename out_t>
+typename sb_handle_t::event_t _omatcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size) {
+  return internal::_matcopy_batch<false>(
+      sb_handle, trans, m, n, alpha, in_memory, ld_in, stride_in, out_memory,
+      ld_out, stride_out, batch_size);
 }
 
 namespace extension {
