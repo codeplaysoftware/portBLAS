@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename omatcopy.cpp
+ *  @filename omatcopy_batched.cpp
  *
  **************************************************************************/
 
@@ -28,17 +28,20 @@
 
 template <typename scalar_t>
 std::string get_name(std::string t, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul) {
+                     index_t lda_mul, index_t ldb_mul, index_t stride_a_mul,
+                     index_t stride_b_mul, index_t batch_size) {
   std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
+  str << "BM_omatcopy_batched<"
+      << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t << "/"
+      << m << "/" << n << "/" << alpha << "/" << lda_mul << "/" << ldb_mul
+      << "/" << stride_a_mul << "/" << stride_b_mul << "/" << batch_size;
   return str.str();
 }
 
 template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
+         index_t stride_a_mul, index_t stride_b_mul, index_t batch_size,
          bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
@@ -52,12 +55,16 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   const auto lda = lda_mul * m;
   const auto ldb = (*t_str == 't') ? ldb_mul * n : ldb_mul * m;
 
-  const auto size_a = lda * n;
-  const auto size_b = ldb * ((*t_str == 't') ? m : n);
+  const auto stride_a = lda * n * stride_a_mul;
+  const auto stride_b = ((*t_str == 't') ? ldb * m : ldb * n) * stride_b_mul;
+
+  const auto size_a = stride_a * batch_size;
+  const auto size_b = stride_b * batch_size;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
-      state, t_str, m, n, lda_mul, ldb_mul);
+      blas_benchmark::utils::ExtensionOP::omatcopy_batch, scalar_t>(
+      state, t_str, m, n, lda_mul, ldb_mul, stride_a_mul, stride_b_mul,
+      batch_size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
 
@@ -74,16 +81,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::ext_omatcopy(*t_str, m, n, alpha, m_a.data(), lda,
-                               m_b_ref.data(), ldb);
+  for (int i = 0; i < batch_size; ++i) {
+    reference_blas::ext_omatcopy(*t_str, m, n, alpha, m_a.data() + i * stride_a,
+                                 lda, m_b_ref.data() + i * stride_b, ldb);
+  }
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
     auto m_b_temp_gpu =
         blas::make_sycl_iterator_buffer<scalar_t>(m_b_temp, size_b);
 
-    auto event = blas::_omatcopy(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
-                                 m_b_temp_gpu, ldb);
+    auto event = blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu,
+                                       lda, stride_a, m_b_temp_gpu, ldb,
+                                       stride_b, batch_size);
 
     sb_handle.wait();
   }
@@ -96,15 +106,23 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   };
 #endif
 
+  auto blas_warmup_method_def = [&]() -> void {
+    auto event =
+        blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
+                              stride_a, m_b_gpu, ldb, stride_b, batch_size);
+    return;
+  };
+
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = blas::_omatcopy(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
-                                 m_b_gpu, ldb);
+    auto event =
+        blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
+                              stride_a, m_b_gpu, ldb, stride_b, batch_size);
     sb_handle.wait(event);
     return event;
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_warmup_method_def);
   sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -129,25 +147,31 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto omatcopy_params =
-      blas_benchmark::utils::get_matcopy_params<scalar_t>(args);
+  auto omatcopy_batch_params =
+      blas_benchmark::utils::get_matcopy_batch_params<scalar_t>(args);
 
-  for (auto p : omatcopy_params) {
+  for (auto p : omatcopy_batch_params) {
     std::string ts;
-    index_t m, n, lda_mul, ldb_mul;
+    index_t m, n, lda_mul, ldb_mul, stride_a_mul, stride_b_mul, batch_size;
     scalar_t alpha;
-    std::tie(ts, m, n, alpha, lda_mul, ldb_mul) = p;
+    std::tie(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul, stride_b_mul,
+             batch_size) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          int t, index_t m, index_t n, scalar_t alpha,
-                         index_t lda_mul, index_t ldb_mul, bool* success) {
+                         index_t lda_mul, index_t ldb_mul, index_t stride_a_mul,
+                         index_t stride_b_mul, index_t batch_size,
+                         bool* success) {
       run<scalar_t>(st, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul,
-                    success);
+                    stride_a_mul, stride_b_mul, batch_size, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul).c_str(),
-        BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul, success)
+        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul,
+                           stride_b_mul, batch_size)
+            .c_str(),
+        BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul,
+        stride_a_mul, stride_b_mul, batch_size, success)
         ->UseRealTime();
   }
 }

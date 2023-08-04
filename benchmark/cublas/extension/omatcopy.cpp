@@ -89,10 +89,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> m_b_ref = m_b;  // m_b;
+  std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a, cuda_lda,
-                                      m_b_ref, cuda_ldb);
+  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a.data(), cuda_lda,
+                                      m_b_ref.data(), cuda_ldb);
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
