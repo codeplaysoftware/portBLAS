@@ -31,10 +31,11 @@
 #include "interface/extension_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
+#include "operations/extension/matcopy_batch.h"
 #include "operations/extension/reduction.h"
 #include "operations/extension/transpose.h"
-#include "sb_handle/portblas_handle.h"
 #include "portblas_helper.h"
+#include "sb_handle/portblas_handle.h"
 #include "views/view.h"
 
 namespace blas {
@@ -58,25 +59,26 @@ template <int Tile_size, int wg_size, int cl_size, bool local_memory,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _transpose_outplace_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
-    container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
-    index_t _ld_out, index_t _inc_out, const typename sb_handle_t::event_t& _dependencies) {
+    container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
+    container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
+    index_t _batch_size, const typename sb_handle_t::event_t& _dependencies) {
   constexpr const index_t num_line_elems =
       std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
   constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
 
   // Matrix Views
   auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in);
-  auto out_view =
-      make_matrix_view<col_major>(out_, _M, _N, _ld_out);
+  auto out_view = make_matrix_view<col_major>(out_, _M, _N, _ld_out);
 
   // Work items & groups sizes
   index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
-  index_t global_size = n_wg * wg_size;
+  index_t global_size = n_wg * wg_size * _batch_size;
 
   // Transpose expression Tree
   auto trans_scale_tree =
       make_transpose<false, Tile_size, wg_size, cl_size, local_memory>(
-          in_view, _inc_in, out_view, _inc_out, _alpha);
+          in_view, _inc_in, _stride_in, out_view, _inc_out, _stride_out, _alpha,
+          _batch_size);
 
   if constexpr (local_memory) {
     index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
@@ -96,13 +98,15 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out, const typename sb_handle_t::event_t& _dependencies) {
+              in_t in_memory, index_t ld_in, index_t inc_in, index_t stride_in,
+              out_t out_memory, index_t ld_out, index_t inc_out,
+              index_t stride_out, index_t batch_size,
+              const typename sb_handle_t::event_t& _dependencies) {
   if constexpr (!in_place) {
     return blas::transpose::backend::_transpose_outplace<
         sb_handle_t, in_t, out_t, element_t, index_t>(
-        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
-        inc_out, _dependencies);
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, stride_in, out_memory,
+        ld_out, inc_out, stride_out, batch_size, _dependencies);
 
   } else {
     // TODO
@@ -121,12 +125,15 @@ template <bool in_place, bool trans, bool in_has_inc, bool out_has_inc,
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out, const typename sb_handle_t::event_t& _dependencies) {
+              index_t ld_out, index_t inc_out,
+              const typename sb_handle_t::event_t& _dependencies) {
   typename sb_handle_t::event_t ret;
   typename MatrixViewType<in_t, index_t, col_major, in_has_inc>::type in_view =
-      make_matrix_view<col_major, element_t, index_t, in_has_inc>(in_memory, m, n, ld_in, inc_in);
-  typename MatrixViewType<out_t, index_t, col_major, out_has_inc>::type out_view =
-      make_matrix_view<col_major, element_t, index_t, out_has_inc>(out_memory, m, n, ld_out, inc_out);
+      make_matrix_view<col_major, element_t, index_t, in_has_inc>(
+          in_memory, m, n, ld_in, inc_in);
+  typename MatrixViewType<out_t, index_t, col_major, out_has_inc>::type
+      out_view = make_matrix_view<col_major, element_t, index_t, out_has_inc>(
+          out_memory, m, n, ld_out, inc_out);
   // if alpha=1 no need to multiply
   if (alpha == 1) {
     auto copy_op = make_op<Assign>(out_view, in_view);
@@ -143,29 +150,45 @@ template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
-              index_t ld_out, index_t inc_out, const typename sb_handle_t::event_t& _dependencies) {
-  if (inc_in == 1 && inc_out == 1) {
-    return _matcopy_impl<in_place, trans, false, false>(sb_handle, m, n, alpha,
-                                                 in_memory, ld_in, inc_in,
-                                                 out_memory, ld_out, inc_out,
-                                                 _dependencies);
-  } else if (inc_in == 1) {
-    return _matcopy_impl<in_place, trans, false, true>(sb_handle, m, n, alpha,
-                                                        in_memory, ld_in, inc_in,
-                                                        out_memory, ld_out, inc_out,
-                                                        _dependencies);
-  } else if (inc_out == 1) {
-    return _matcopy_impl<in_place, trans, true, false>(sb_handle, m, n, alpha,
-                                                       in_memory, ld_in, inc_in,
-                                                       out_memory, ld_out, inc_out,
-                                                       _dependencies);
+              in_t in_memory, index_t ld_in, index_t inc_in, index_t stride_in,
+              out_t out_memory, index_t ld_out, index_t inc_out,
+              index_t stride_out, index_t batch_size,
+              const typename sb_handle_t::event_t& _dependencies) {
+  typename sb_handle_t::event_t ret;
+  // if alpha=1 no need to multiply
+  if (alpha == 1) {
+    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
+    auto out_view =
+        make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
+    auto copy_op = make_op<Assign>(out_view, in_view);
+    ret = sb_handle.execute(copy_op);
   } else {
-    return _matcopy_impl<in_place, trans, true, true>(sb_handle, m, n, alpha,
-                                                       in_memory, ld_in, inc_in,
-                                                       out_memory, ld_out, inc_out,
-                                                       _dependencies);
+    return _matcopy_impl<in_place, trans, true, true>(
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, out_memory, ld_out,
+        inc_out, _dependencies);
   }
+}
+
+/**
+ * @brief Implementation of matrix copy batch operators for non transpose cases.
+ */
+template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
+          typename element_t, typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch_impl(
+    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t in_stride, out_t out_memory,
+    index_t ld_out, index_t out_stride, index_t batch_size) {
+  auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in);
+  auto out_view = make_matrix_view<col_major>(out_memory, m, n, ld_out);
+  auto copy_batch_tree = make_matcopy_batch<false, TileSize, TilePerWG>(
+      out_view, in_view, in_view, alpha, 0, m, n, ld_out, ld_in, 1, out_stride,
+      in_stride, 1, batch_size);
+  constexpr index_t local_size = TileSize * TilePerWG;
+  const index_t tile_per_matrix =
+      (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
+  const index_t wg_size = (tile_per_matrix - 1) / TilePerWG + 1;
+  const index_t global_size = (wg_size)*local_size * batch_size;
+  return sb_handle.execute(copy_batch_tree, local_size, global_size);
 }
 
 /*!
@@ -280,7 +303,8 @@ template <typename operator_t, reduction_dim_t reduction_dim,
           typename output_t, typename index_t>
 typename sb_handle_t::event_t launch_type_based_reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
-    index_t rows, index_t cols, const typename SB_Handle::event_t& dependencies) {
+    index_t rows, index_t cols,
+    const typename SB_Handle::event_t& dependencies) {
 #ifdef POWER_VR
   constexpr int ClSize = 32;
   constexpr int WgSize = 64;
@@ -327,21 +351,21 @@ typename sb_handle_t::event_t launch_type_based_reduction(
     /* 1st step */
     auto reduction =
         blas::make_reduction<operator_t, params_t>(matrix_buffer_in, temp_);
-    reduction_event =
-        concatenate_vectors(reduction_event, sb_handle.execute(reduction, dependencies));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction, dependencies));
 
     /* 2nd step */
     auto reduction_step_2 =
         blas::make_reduction<typename get_second_step_op<operator_t>::type,
                              params_t>(temp_, matrix_buffer_out);
-    reduction_event = concatenate_vectors(reduction_event,
-                                          sb_handle.execute(reduction_step_2, reduction_event));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction_step_2, reduction_event));
   } else {
     /* 1-step reduction */
     auto reduction = blas::make_reduction<operator_t, params_t>(
         matrix_buffer_in, matrix_buffer_out);
-    reduction_event =
-        concatenate_vectors(reduction_event, sb_handle.execute(reduction, dependencies));
+    reduction_event = concatenate_vectors(
+        reduction_event, sb_handle.execute(reduction, dependencies));
   }
 
   return reduction_event;
@@ -349,12 +373,11 @@ typename sb_handle_t::event_t launch_type_based_reduction(
 
 template <bool in_place, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
-typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
-                                       index_t m, index_t n, element_t alpha,
-                                       in_t in_memory, index_t ld_in,
-                                       index_t inc_in, out_t out_memory,
-                                       index_t ld_out, index_t inc_out,
-                                       const typename sb_handle_t::event_t& _dependencies) {
+typename sb_handle_t::event_t _matcopy(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
+    index_t ld_out, index_t inc_out,
+    const typename sb_handle_t::event_t& _dependencies) {
   // bail out early if the leading dimensions are not correct
   if (ld_in < (inc_in * (m - 1) + 1) ||
       (ld_out - 1) < (trans == 't' ? inc_out * (n - 1) : inc_out * (m - 1))) {
@@ -362,26 +385,56 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
     return ret;
   }
 
+  const index_t stride = 1;
+  const index_t batch_size = 1;
+
   if (trans == 't') {
-    return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, in_memory,
-                                         ld_in, inc_in, out_memory, ld_out,
-                                         inc_out, _dependencies);
+    return _matcopy_impl<in_place, true>(
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, stride, out_memory,
+        ld_out, inc_out, stride, 1, _dependencies);
   } else {
-    return _matcopy_impl<in_place, false>(sb_handle, m, n, alpha, in_memory,
-                                          ld_in, inc_in, out_memory, ld_out,
-                                          inc_out, _dependencies);
+    return _matcopy_impl<in_place, false>(
+        sb_handle, m, n, alpha, in_memory, ld_in, inc_in, stride, out_memory,
+        ld_out, inc_out, stride, batch_size, _dependencies);
+  }
+}
+
+template <bool in_place, typename sb_handle_t, typename element_t,
+          typename index_t, typename in_t, typename out_t>
+typename sb_handle_t::event_t _matcopy_batch(
+    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
+    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
+    index_t ld_out, index_t stride_out, index_t batch_size) {
+  // bail out early if the leading dimensions / strides are not correct
+  if (ld_in < m || (ld_out < (trans == 't' ? n : m)) ||
+      (stride_in < ld_in * n) ||
+      (stride_out < (ld_out * (trans == 't' ? m : n)))) {
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
+
+  const index_t increment = 1;
+
+  if (trans == 't') {
+    return _matcopy_impl<in_place, true>(
+        sb_handle, m, n, alpha, in_memory, ld_in, increment, stride_in,
+        out_memory, ld_out, increment, stride_out, batch_size);
+  } else {
+    return blas::matcopy_batch::backend::_matcopy_batch<false>(
+        sb_handle, m, n, alpha, in_memory, ld_in, stride_in, out_memory, ld_out,
+        stride_out, batch_size);
+>>>>>>> 3f0b66c (Added omatcopy batched operation)
   }
 }
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_0_t, typename container_1_t, typename container_2_t>
-typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
-                                       char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_0_t a,
-                                       index_t lda, element_t beta,
-                                       container_1_t b, index_t ldb,
-                                       container_2_t c, index_t ldc,
-                                       const typename sb_handle_t::event_t& _dependencies) {
+          typename container_0_t, typename container_1_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _omatadd(
+    sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
+    element_t alpha, container_0_t a, index_t lda, element_t beta,
+    container_1_t b, index_t ldb, container_2_t c, index_t ldc,
+    const typename sb_handle_t::event_t& _dependencies) {
   if (trans_a == 't') {
     if (trans_b == 't') {
       return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, beta, b,
@@ -405,10 +458,9 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
 
 template <bool in_place, typename element_t, typename sb_handle_t,
           typename index_t, typename in_t, typename out_t>
-typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
-                                         index_t n, in_t A, index_t ld_a,
-                                         out_t B, index_t ld_b,
-                                         const typename sb_handle_t::event_t& _dependencies) {
+typename sb_handle_t::event_t _transpose(
+    sb_handle_t& sb_handle, index_t m, index_t n, in_t A, index_t ld_a, out_t B,
+    index_t ld_b, const typename sb_handle_t::event_t& _dependencies) {
   // bail out early if the leading dimensions are not correct
   if (ld_a < m || ld_b < n) {
     typename sb_handle_t::event_t ret;
@@ -416,30 +468,28 @@ typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
   }
 
   const index_t inc = 1;
-  const element_t alpha = element_t(1);
+  const index_t stride = 1;
+  const index_t batch_size = 1;
 
-  return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a, inc, B,
-                                       ld_b, inc, _dependencies);
+  return _matcopy_impl<in_place, true>(sb_handle, m, n, (float)1.0, A, ld_a,
+                                       inc, stride, B, ld_b, inc, stride,
+                                       batch_size, _dependencies);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
-typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
-                                         input_t buffer_in, index_t ld,
-                                         output_t buffer_out, index_t rows,
-                                         index_t cols,
-                                         reduction_dim_t reduction_dim,
-                                         const typename sb_handle_t::event_t& dependencies) {
+typename sb_handle_t::event_t _reduction(
+    sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
+    index_t rows, index_t cols, reduction_dim_t reduction_dim,
+    const typename sb_handle_t::event_t& dependencies) {
   if (reduction_dim == reduction_dim_t::inner) {
     return launch_type_based_reduction<operator_t, reduction_dim_t::inner,
-                                       element_t>(sb_handle, buffer_in, ld,
-                                                  buffer_out, rows, cols,
-                                                  dependencies);
+                                       element_t>(
+        sb_handle, buffer_in, ld, buffer_out, rows, cols, dependencies);
   } else {  // reduction_dim_t::outer
     return launch_type_based_reduction<operator_t, reduction_dim_t::outer,
-                                       element_t>(sb_handle, buffer_in, ld,
-                                                  buffer_out, rows, cols,
-                                                  dependencies);
+                                       element_t>(
+        sb_handle, buffer_in, ld, buffer_out, rows, cols, dependencies);
   }
 }
 
