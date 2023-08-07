@@ -139,12 +139,12 @@ void ext_omatadd(char transa, char transb, index_t m, index_t n, scalar_t alpha,
                  std::vector<scalar_t>& A, index_t lda, scalar_t beta,
                  std::vector<scalar_t>& B, index_t ldb,
                  std::vector<scalar_t>& C, index_t ldc) {
-   for (index_t j = 0; j < n; j++) {
-     for (index_t i = 0; i < m; i++) {
-       C[j * ldc + i] = alpha * A[(transa != 't') ? j * lda + i : i * lda + j] +
-                        beta * B[(transb != 't') ? j * ldb + i : i * ldb + j];
-     }
-   }
+  for (index_t j = 0; j < n; j++) {
+    for (index_t i = 0; i < m; i++) {
+      C[j * ldc + i] = alpha * A[(transa != 't') ? j * lda + i : i * lda + j] +
+                       beta * B[(transb != 't') ? j * ldb + i : i * ldb + j];
+    }
+  }
 }
 
 }  // namespace reference_blas

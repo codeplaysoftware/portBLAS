@@ -320,8 +320,10 @@ matrices in a batched entry for inputs/outputs A, B and C.
 | `_omatadd`| `sb_handle`, `transa`, `transb`, `M`, `N`, `alpha`, `A`, `lda`, `beta`, `B`, `ldb`, `C`,`ldc`  | Computes scaled general dense matrix addition with possibly transposed arguments. |
 
 Other non-official extension operators : 
+| operation | arguments | description |
+|---|---|---|
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place matrix transpose operation using a general dense matrix. |
-| `_transpose` | `sb_handle`, `M`, `N`, `A`, `lda`, `ldb`  | Computes an in-place matrix transpose operation using a general dense matrix. |
+| `_transpose*` | `sb_handle`, `M`, `N`, `A`, `lda`, `ldb`  | Computes an in-place matrix transpose operation using a general dense matrix, lda & ldb being input and output leading dimensions of A respectively _(*Not implemented)_. |
 ### Experimental Joint Matrix Support
 
 SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
