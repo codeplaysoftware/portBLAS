@@ -39,23 +39,23 @@ RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential               \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
 
-RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /sycl-blas
+RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /portBLAS
 
 #OpenBLAS
-RUN bash /sycl-blas/.scripts/build_OpenBLAS.sh
+RUN bash /portBLAS/.scripts/build_OpenBLAS.sh
 # Intel OpenCL Runtime
-RUN bash /sycl-blas/.scripts/install_intel_opencl.sh
+RUN bash /portBLAS/.scripts/install_intel_opencl.sh
 
 # SYCL
-RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_computecpp.sh; fi
-RUN if [ "${impl}" = 'DPCPP' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_dpcpp.sh; fi
+RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /portBLAS && bash /portBLAS/.scripts/build_computecpp.sh; fi
+RUN if [ "${impl}" = 'DPCPP' ]; then cd /portBLAS && bash /portBLAS/.scripts/build_dpcpp.sh; fi
 
 ENV COMMAND=${command}
 ENV CC=${c_compiler}
 ENV CXX=${cxx_compiler}
 ENV SYCL_IMPL=${impl}
 
-CMD cd /sycl-blas && \
+CMD cd /portBLAS && \
     if [ "${COMMAND}" = 'build-test' ]; then \
       if [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
         /tmp/ComputeCpp-latest/bin/computecpp_info && \

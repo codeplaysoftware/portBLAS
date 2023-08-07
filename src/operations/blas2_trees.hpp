@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas2_trees.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS2_TREES_HPP
-#define SYCL_BLAS_BLAS2_TREES_HPP
+#ifndef PORTBLAS_BLAS2_TREES_HPP
+#define PORTBLAS_BLAS2_TREES_HPP
 
 #include "blas2/gbmv.hpp"
 #include "blas2/gemv.hpp"

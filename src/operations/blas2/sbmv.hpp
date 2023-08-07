@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename sbmv.hpp
  *
@@ -39,7 +39,7 @@ namespace blas {
  */
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::Sbmv(
+PORTBLAS_INLINE Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::Sbmv(
     lhs_t &_l, matrix_t &_matrix,
     typename Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::index_t
         &_k,
@@ -57,14 +57,14 @@ SYCL_BLAS_INLINE Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::Sbmv(
 
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE
+PORTBLAS_INLINE
     typename Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::index_t
     Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::get_size() const {
   return matrix_.get_size();
 }
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE bool
+PORTBLAS_INLINE bool
 Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   // Valid threads are established by ::eval.
@@ -73,7 +73,7 @@ Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::valid_thread(
 
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE
+PORTBLAS_INLINE
     typename Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::value_t
     Sbmv<lhs_t, matrix_t, vector_t, local_range, is_upper>::eval(
         cl::sycl::nd_item<1> ndItem) {
@@ -108,7 +108,7 @@ SYCL_BLAS_INLINE
 
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
+PORTBLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
                            is_upper>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   matrix_.bind(h);
@@ -116,7 +116,7 @@ SYCL_BLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
 }
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper>
-SYCL_BLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
+PORTBLAS_INLINE void Sbmv<lhs_t, matrix_t, vector_t, local_range,
                            is_upper>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   matrix_.adjust_access_displacement();

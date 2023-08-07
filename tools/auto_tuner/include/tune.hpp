@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename tune.hpp
  *
  **************************************************************************/
 
-#ifndef SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_
-#define SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_
+#ifndef PORTBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_
+#define PORTBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_
 
 #include "tuner_types.hpp"
 
@@ -32,4 +32,4 @@ template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
           bool Nbcb, typename Config, typename T>
 TestResultEntry tune(int r, GemmArgs<T> a);
 
-#endif  // SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_
+#endif  // PORTBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_

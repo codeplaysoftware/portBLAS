@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas_test.hpp
  *
@@ -38,7 +38,7 @@
 
 #include <gtest/gtest.h>
 
-#include <sycl_blas.h>
+#include <portblas.h>
 
 #include <common/cli_device_selector.hpp>
 #include <common/float_comparison.hpp>
@@ -55,7 +55,7 @@ extern Args args;
 
 using namespace blas;
 
-// The sycl blas handle type used in tests
+// The portBLAS handle type used in tests
 
 using index_t = BLAS_INDEX_T;
 

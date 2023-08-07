@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
 #include "views/view_sycl.hpp"

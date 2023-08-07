@@ -3,7 +3,7 @@ Benchmarks
 
 ## General information
 
-The SYCL-BLAS benchmarks are intended to measure the evolution of the
+The portBLAS benchmarks are intended to measure the evolution of the
 performance of this BLAS implementation and how it compares with other tuned
 implementations, such as [CLBLAST](https://github.com/CNugteren/CLBlast)
 (a very performant OpenCL BLAS library).
@@ -24,10 +24,10 @@ To install CLBlast, see:
 https://github.com/CNugteren/CLBlast/blob/master/doc/installation.md))
 
 After the compilation, the binaries will be available:
-* in the build folder, in `benchmark/syclblas/` and `benchmark/clblast/`
+* in the build folder, in `benchmark/portblas/` and `benchmark/clblast/`
 * if you provide an installation directory with the CMake variable
     `CMAKE_INSTALL_PREFIX`, and run the installation command, e.g
-    `ninja install`, in your installation folder, in `sycl_blas/bin/`
+    `ninja install`, in your installation folder, in `portblas/bin/`
 
 A verification of the results is enabled by default and can be disabled with the
 CMake option `BLAS_VERIFY_BENCHMARK` set to `OFF` or `0`. The verification will
@@ -40,7 +40,7 @@ CMake parameter.
 ## How to run the benchmarks
 
 The benchmarks take two kinds of command-line options: those for the benchmark
-library and those specific to the SYCL-BLAS projects.
+library and those specific to the portBLAS projects.
 
 Essentially, the benchmarks can take a CSV configuration file (or will use
 defaults), and if your machine has more than one OpenCL device, you can specify

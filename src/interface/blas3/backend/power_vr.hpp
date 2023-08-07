@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename power_vr.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_GEMM_POWERVR_BACKEND_HPP
-#define SYCL_BLAS_GEMM_POWERVR_BACKEND_HPP
+#ifndef PORTBLAS_GEMM_POWERVR_BACKEND_HPP
+#define PORTBLAS_GEMM_POWERVR_BACKEND_HPP
 #include "interface/gemm_launcher.h"
 
 #ifdef IMGDNN_LIBRARY

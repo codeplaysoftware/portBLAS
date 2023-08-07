@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename utils.hpp 
 # *
@@ -30,7 +30,7 @@
 #include <tuple>
 
 #include "benchmark/benchmark.h"
-#include "sycl_blas.h"
+#include "portblas.h"
 #include <common/common_utils.hpp>
 
 #include <cublas_v2.h>

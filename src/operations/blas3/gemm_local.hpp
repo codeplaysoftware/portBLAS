@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_local.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
-#define SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
+#ifndef PORTBLAS_BLAS3_LOCAL_GEMM_HPP
+#define PORTBLAS_BLAS3_LOCAL_GEMM_HPP
 
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
@@ -165,7 +165,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   index_t strideb_;
   index_t stridec_;
 
-  SYCL_BLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
+  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
                         element_t beta, index_t batch_size, index_t stride_a,
                         index_t stride_b, index_t stride_c)
       : a_(A),
@@ -181,7 +181,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   /*!
    * @brief Get the type of this GemmFactory as a human readable string.
    */
-  static SYCL_BLAS_INLINE std::string get_type_string() noexcept {
+  static PORTBLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
     str << "Gemm <" << double_buffer << ", " << nbc_a << ", " << nbc_b << ", "
         << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
@@ -197,7 +197,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *number of work_group required to execute each GEMM.
    *
    */
-  SYCL_BLAS_INLINE index_t get_workgroup_cluster() const noexcept {
+  PORTBLAS_INLINE index_t get_workgroup_cluster() const noexcept {
     return (((a_.get_size_row() - 1) / big_tile_rows + 1) *
             ((b_.get_size_col() - 1) / big_tile_cols + 1) * tl_rows * tl_cols);
   }
@@ -208,7 +208,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    *research.
    *
    */
-  SYCL_BLAS_INLINE index_t
+  PORTBLAS_INLINE index_t
   get_num_workgroup_cluster(index_t compute_units) const noexcept {
     return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
   }
@@ -225,7 +225,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * group to multiple work groups with size as expected by GemmFactory::run().
    * (This is done by manipulating wg_id and item_id parameters.)
    */
-  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
       index_t compute_units) const noexcept {
     const cl::sycl::range<1> nwg(get_workgroup_cluster() *
                                  get_num_workgroup_cluster(compute_units));
@@ -240,7 +240,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     return cl::sycl::nd_range<1>(nwg * wgs, wgs);
   }
 
-  SYCL_BLAS_INLINE index_t get_size() const {
+  PORTBLAS_INLINE index_t get_size() const {
     return a_.get_size_row() * b_.get_size_col();
   }
 
@@ -251,7 +251,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param scratch local memory
    */
   template <typename local_memory_t>
-  SYCL_BLAS_INLINE void eval(local_memory_t scratch_acc,
+  PORTBLAS_INLINE void eval(local_memory_t scratch_acc,
                              const cl::sycl::nd_item<1> &id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
@@ -358,7 +358,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     b_.adjust_access_displacement();
     c_.adjust_access_displacement();
   }
-  SYCL_BLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
+  PORTBLAS_INLINE bool valid_thread(const cl::sycl::nd_item<1> &ndItem) const {
     return true;
   }
 
@@ -368,7 +368,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   beta is zero then this function does nothing. */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  SYCL_BLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
+  PORTBLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType C, const index_t &mc,
       const index_t &nc, const index_t &ldc, const bool out_of_range) {
     if (out_of_range) {
@@ -397,7 +397,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
-  SYCL_BLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
+  PORTBLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
       const index_t &, const bool) {
 #pragma unroll
@@ -422,7 +422,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool double_buffer, bool check_m_limit, bool check_n_limit,
             typename InputPointerType, typename OutputPointerType,
             typename ScratchPointerType>
-  SYCL_BLAS_INLINE void compute_panel_gemm(
+  PORTBLAS_INLINE void compute_panel_gemm(
       const cl::sycl::nd_item<1> &id, const index_t &item_id,
       const index_t &row_a, const index_t &col_a, const index_t &row_b,
       const index_t &col_b, const index_t &m, const index_t &n,
@@ -517,14 +517,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool internal, index_t p_size = packetize_t::packet_size,
             typename OutputPointerType>
-  SYCL_BLAS_INLINE typename std::enable_if<!internal>::type store_packet(
+  PORTBLAS_INLINE typename std::enable_if<!internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
     *out_ptr = alpha_ * (*reg);
   }
 
   template <bool internal, index_t p_size = packetize_t::packet_size,
             typename OutputPointerType>
-  SYCL_BLAS_INLINE typename std::enable_if<internal>::type store_packet(
+  PORTBLAS_INLINE typename std::enable_if<internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
     vector_t out_vec{};
 
@@ -554,7 +554,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
-  SYCL_BLAS_INLINE void store_output_block(index_t, index_t mc, index_t nc,
+  PORTBLAS_INLINE void store_output_block(index_t, index_t mc, index_t nc,
                                            OutputPointerType C, index_t ldc,
                                            element_t *reg_res,
                                            const bool out_of_range) noexcept {
@@ -589,7 +589,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             bool symm_a, bool symm_b, typename InputPointerType,
             typename ScratchPointerType>
-  SYCL_BLAS_INLINE void extract_input_blocks(
+  PORTBLAS_INLINE void extract_input_blocks(
       index_t item_id, index_t m, index_t n, index_t k, index_t row_a,
       index_t col_a, index_t row_b, index_t col_b, InputPointerType A,
       index_t lda, InputPointerType B, index_t ldb, ScratchPointerType sB,
@@ -602,16 +602,16 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                   check_k_limit, trans_a, symm_a, true, block_rows, cl_elems,
                   ldsa>(
         item_id, row_a, col_a, A, lda, sA,
-        [&](index_t, index_t cr) SYCL_BLAS_ALWAYS_INLINE { return cr < m; },
+        [&](index_t, index_t cr) PORTBLAS_ALWAYS_INLINE { return cr < m; },
         [&](index_t ic, index_t cc)
-            SYCL_BLAS_ALWAYS_INLINE { return cc < k - ic; });
+            PORTBLAS_ALWAYS_INLINE { return cc < k - ic; });
     extract_block<!check_m_limit && !check_n_limit, check_k_limit,
                   check_n_limit, trans_b, symm_b, false, cl_elems, block_cols,
                   ldsb>(
         item_id, row_b, col_b, B, ldb, sB,
         [&](index_t ir, index_t cr)
-            SYCL_BLAS_ALWAYS_INLINE { return cr < k - ir; },
-        [&](index_t, index_t cc) SYCL_BLAS_ALWAYS_INLINE { return cc < n; });
+            PORTBLAS_ALWAYS_INLINE { return cr < k - ir; },
+        [&](index_t, index_t cc) PORTBLAS_ALWAYS_INLINE { return cc < n; });
   }
 
   /*!
@@ -652,7 +652,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             bool trans, bool symm, bool left_side, index_t rows, index_t cols,
             index_t lds, typename InputPointerType, typename ScratchPointerType,
             typename RowPredicate, typename ColPredicate>
-  SYCL_BLAS_INLINE typename std::enable_if<!trans>::type extract_block(
+  PORTBLAS_INLINE typename std::enable_if<!trans>::type extract_block(
       index_t item_id, index_t row, index_t col, InputPointerType ptr,
       index_t ld, ScratchPointerType scratch, RowPredicate in_row,
       ColPredicate in_col) {
@@ -689,7 +689,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             bool trans, bool symm, bool left_side, index_t rows, index_t cols,
             index_t lds, typename InputPointerType, typename ScratchPointerType,
             typename RowPredicate, typename ColPredicate>
-  SYCL_BLAS_INLINE typename std::enable_if<trans>::type extract_block(
+  PORTBLAS_INLINE typename std::enable_if<trans>::type extract_block(
       index_t item_id, index_t row, index_t col, InputPointerType ptr,
       index_t ld, ScratchPointerType scratch, RowPredicate in_row,
       ColPredicate in_col) {
@@ -706,7 +706,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                             do_check<check_col_limit>(in_col(
                                 (item_id * multiplier) % cols, multiplier - 1));
 
-      auto edge_in_range = [&](const index_t &ofs) SYCL_BLAS_ALWAYS_INLINE {
+      auto edge_in_range = [&](const index_t &ofs) PORTBLAS_ALWAYS_INLINE {
         return in_col((item_id * multiplier) % cols, ofs) &&
                in_row((item_id * multiplier) / cols, row_ofs);
       };
@@ -736,7 +736,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param reg_res  2D register array used to store the result C
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
-  SYCL_BLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
+  PORTBLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
                                            InputPointerType A, element_t *reg_a,
                                            element_t &reg_b,
                                            element_t *reg_res) noexcept {
@@ -787,7 +787,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @param ss  pointers to other memory blocks
    */
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
-  static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
+  static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
       const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
       Ps &... ss) noexcept {
     s += ofs_sign * o;
@@ -795,13 +795,13 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
   template <bool db>
-  static SYCL_BLAS_INLINE typename std::enable_if<db>::type sync_smem(
+  static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
       const cl::sycl::nd_item<1> &, index_t &ofs_sign) noexcept {
     ofs_sign = -ofs_sign;
   }
 
   template <bool db, index_t..., typename... Ps>
-  static SYCL_BLAS_INLINE typename std::enable_if<!db>::type sync_smem(
+  static PORTBLAS_INLINE typename std::enable_if<!db>::type sync_smem(
       const cl::sycl::nd_item<1> &id, index_t &, Ps &...) noexcept {
     id.barrier(cl::sycl::access::fence_space::local_space);
   }
@@ -812,7 +812,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool trans, bool left_side, bool internal, index_t lds,
             typename SrcPointerType, typename DestPointerType,
             typename EdgePredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load_symm(
+  static PORTBLAS_INLINE typename std::enable_if<internal>::type load_symm(
       index_t row, index_t col, index_t col_ofs, index_t ld,
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
@@ -841,7 +841,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool trans, bool left_side, bool internal, index_t lds,
             typename SrcPointerType, typename DestPointerType,
             typename EdgePredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load_symm(
+  static PORTBLAS_INLINE typename std::enable_if<!internal>::type load_symm(
       index_t row, index_t col, index_t col_ofs, index_t ld,
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
@@ -855,7 +855,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
   template <bool trans, bool left_side>
-  static SYCL_BLAS_INLINE bool in_triangle(index_t row, index_t col) {
+  static PORTBLAS_INLINE bool in_triangle(index_t row, index_t col) {
     // If the matrix is symmetric, the valid values are expected on the lower
     // triangle unless it is transposed, in which case valid values will
     // be on the upper side.
@@ -875,4 +875,4 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_LOCAL_GEMM_HPP
+#endif  // PORTBLAS_BLAS3_LOCAL_GEMM_HPP

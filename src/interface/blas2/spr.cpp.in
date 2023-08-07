@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename spr.cpp.in
  *
@@ -26,7 +26,7 @@
 #include "interface/blas2_interface.hpp"
 #include "operations/blas2_trees.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {

@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_gemm_common.hpp
  *
@@ -142,7 +142,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
                                buffer_size_c);
 
-  // SYCL BLAS GEMM implementation
+  // portBLAS GEMM implementation
   if (batch == 1) {
     _gemm(sb_handle, transa, transb, m, n, k, alpha, m_a_gpu + offset, lda,
           m_b_gpu + offset, ldb, beta, m_c_gpu + offset, ldc);
@@ -255,7 +255,7 @@ inline void verify_gemm(
   blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
                                buffer_size_c);
 
-  // SYCL BLAS GEMM STRIDED BATCHED implementation
+  // portBLAS GEMM STRIDED BATCHED implementation
   _gemm_strided_batched(sb_handle, transa, transb, m, n, k, alpha,
                         m_a_gpu + offset, lda, stride_a, m_b_gpu + offset, ldb,
                         stride_b, beta, m_c_gpu + offset, ldc, stride_c, batch);

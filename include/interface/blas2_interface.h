@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas2_interface.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS2_INTERFACE_H
-#define SYCL_BLAS_BLAS2_INTERFACE_H
+#ifndef PORTBLAS_BLAS2_INTERFACE_H
+#define PORTBLAS_BLAS2_INTERFACE_H
 
 #include "operations/blas2_trees.h"
 namespace blas {
@@ -1136,4 +1136,4 @@ typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
 }
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS2_INTERFACE
+#endif  // PORTBLAS_BLAS2_INTERFACE

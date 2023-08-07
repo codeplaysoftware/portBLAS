@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_interface.h
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_BLAS1_INTERFACE_H
-#define SYCL_BLAS_BLAS1_INTERFACE_H
+#ifndef PORTBLAS_BLAS1_INTERFACE_H
+#define PORTBLAS_BLAS1_INTERFACE_H
 #include "blas_meta.h"
 
 namespace blas {
@@ -851,4 +851,4 @@ typename ValueType<container_t>::type _nrm2(sb_handle_t &sb_handle, index_t _N,
 }
 
 }  // end namespace blas
-#endif  // SYCL_BLAS_BLAS1_INTERFACE
+#endif  // PORTBLAS_BLAS1_INTERFACE

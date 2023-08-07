@@ -4,7 +4,7 @@ find_package(Clara REQUIRED)
 include(ExternalProject)
 find_package(SystemBLAS REQUIRED)
 
-set(SYCLBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
+set(PORTBLAS_TEST ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-shorten-64-to-32 -Wno-cast-align") 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy -Wno-unused-variable")
 
@@ -36,7 +36,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
                  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
                  EXCLUDE_FROM_ALL)
 
-# Set SYCL-BLAS options
+# Set portBLAS options
 if(CMAKE_CROSSCOMPILING)
     set(cmake_toolchain
       "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"

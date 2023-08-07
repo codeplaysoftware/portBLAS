@@ -17,18 +17,18 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_interface.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_INTERFACE_HPP
-#define SYCL_BLAS_BLAS3_INTERFACE_HPP
+#ifndef PORTBLAS_BLAS3_INTERFACE_HPP
+#define PORTBLAS_BLAS3_INTERFACE_HPP
 
 #include "interface/gemm_interface.hpp"
 #include "interface/gemm_launcher.hpp"
 #include "interface/symm_interface.hpp"
 #include "interface/trsm_interface.hpp"
 
-#endif  // SYCL_BLAS_BLAS3_INTERFACE_HPP
+#endif  // PORTBLAS_BLAS3_INTERFACE_HPP

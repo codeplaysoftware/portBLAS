@@ -1,12 +1,12 @@
-set(SyclBLAS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-set(SyclBLAS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+set(PORTBLAS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(PORTBLAS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-include(ConfigureSYCLBLAS)
+include(ConfigurePORTBLAS)
 include(SYCL)
-find_package(SyclBLAS REQUIRED)
+find_package(PORTBLAS REQUIRED)
 
 set(SAMPLES_LIST
   gemv.cpp
@@ -30,10 +30,10 @@ foreach(src_file ${SAMPLES_LIST})
     TARGET ${sample_exec}
     SOURCES ${src_file}
   )
-  target_link_libraries(${sample_exec} PRIVATE SyclBLAS::SyclBLAS)
+  target_link_libraries(${sample_exec} PRIVATE PORTBLAS::PORTBLAS)
   if(IMGDNN_DIR)
     target_link_libraries(${sample_exec} PRIVATE IMGDNN::IMGDNN)
   endif()
   install(TARGETS ${sample_exec} RUNTIME DESTINATION bin)
 endforeach()
-include_directories(${SYCLBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${THIRD_PARTIES_INCLUDE})
+include_directories(${PORTBLAS_INCLUDE} ${SYCL_INCLUDE_DIRS} ${THIRD_PARTIES_INCLUDE})

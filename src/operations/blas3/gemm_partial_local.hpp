@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_partial_local.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_PARTIAL_GEMM_HPP
-#define SYCL_BLAS_BLAS3_PARTIAL_GEMM_HPP
+#ifndef PORTBLAS_BLAS3_PARTIAL_GEMM_HPP
+#define PORTBLAS_BLAS3_PARTIAL_GEMM_HPP
 
 #include "gemm_common.hpp"
 
@@ -154,7 +154,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   /* The number of tiles to be processed */
   const index_t num_tiles;
 
-  SYCL_BLAS_INLINE
+  PORTBLAS_INLINE
   GemmPartial(input_t A, input_t B, output_t cube_buffer, element_t alpha,
               element_t beta, index_t wg_count_k)
       : a_(A),
@@ -188,7 +188,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief This function returns the depth of the cube buffer that should give
    * the best performance.
    */
-  static SYCL_BLAS_INLINE index_t get_ideal_cube_depth(index_t compute_units,
+  static PORTBLAS_INLINE index_t get_ideal_cube_depth(index_t compute_units,
                                                        index_t m, index_t n,
                                                        index_t k) noexcept {
     const index_t group_count_mn =
@@ -202,7 +202,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief This function is used to find the optimum number of work groups
    * required to execute each partial GEMM.
    */
-  SYCL_BLAS_INLINE index_t
+  PORTBLAS_INLINE index_t
   get_workgroup_cluster(index_t compute_units) noexcept {
     return ((m_ - 1) / tile_size_dim_m + 1) * ((n_ - 1) / tile_size_dim_n + 1) *
            group_count_k;
@@ -212,7 +212,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
    * @brief Get the nd_range value which has to be used for kernels that
    * intend to call GemmPartial::run().
    */
-  SYCL_BLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
+  PORTBLAS_INLINE cl::sycl::nd_range<1> get_nd_range(
       index_t compute_units) noexcept {
     const cl::sycl::range<1> nwg(get_workgroup_cluster(compute_units));
     const cl::sycl::range<1> wgs(local_thread_size);
@@ -220,7 +220,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   }
 
   template <typename local_memory_t>
-  SYCL_BLAS_INLINE void eval(local_memory_t scratch,
+  PORTBLAS_INLINE void eval(local_memory_t scratch,
                              cl::sycl::nd_item<1> id) noexcept {
     /* Pointers to the scratch memory (lhs and rhs) */
     value_t* scratch_ptr = scratch.localAcc.get_pointer();
@@ -356,7 +356,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
   }
 
   template <typename local_ptr_t>
-  SYCL_BLAS_INLINE void extract_input_blocks(
+  PORTBLAS_INLINE void extract_input_blocks(
       const index_t& lhs_row, const index_t& lhs_col, const index_t& rhs_row,
       const index_t& rhs_col, const index_t& tile_idx, local_ptr_t scratch_ptr,
       local_ptr_t rhs_scratch_ptr, const index_t& global_m_offset,
@@ -378,7 +378,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   template <bool check_m_limit, bool check_n_limit, bool check_k_limit,
             typename local_ptr_t>
-  SYCL_BLAS_INLINE void load_blocks(
+  PORTBLAS_INLINE void load_blocks(
       const index_t& lhs_row, const index_t& lhs_col, const index_t& rhs_row,
       const index_t& rhs_col, const index_t& tile_idx, local_ptr_t scratch_ptr,
       local_ptr_t rhs_scratch_ptr, const index_t& global_m_offset,
@@ -404,7 +404,7 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
   template <typename BlockPropertiesType, bool check_row_limit,
             bool check_col_limit, typename local_ptr_t>
-  static SYCL_BLAS_INLINE void load_block(
+  static PORTBLAS_INLINE void load_block(
       const index_t& local_row, const index_t& local_col,
       const index_t& tile_idx, const input_t& in_view,
       const index_t& leading_dim, local_ptr_t local_ptr,
@@ -458,4 +458,4 @@ class GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_PARTIAL_GEMM_HPP
+#endif  // PORTBLAS_BLAS3_PARTIAL_GEMM_HPP

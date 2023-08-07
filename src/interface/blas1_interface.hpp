@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_interface.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS1_INTERFACE_HPP
-#define SYCL_BLAS_BLAS1_INTERFACE_HPP
+#ifndef PORTBLAS_BLAS1_INTERFACE_HPP
+#define PORTBLAS_BLAS1_INTERFACE_HPP
 
 #include <cmath>
 #include <iostream>
@@ -37,7 +37,7 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.hpp"
-#include "sb_handle/sycl_blas_handle.h"
+#include "sb_handle/portblas_handle.h"
 
 namespace blas {
 namespace internal {

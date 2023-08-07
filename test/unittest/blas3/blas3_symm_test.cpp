@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_symm_test.cpp
  *
@@ -85,7 +85,7 @@ inline void verify_symm(const symm_arguments_t<scalar_t> arguments) {
   blas::helper::copy_to_device(sb_handle.get_queue(), c_m_gpu.data(), m_c_gpu,
                                size_c);
 
-  // SYCL BLAS SYMM implementation
+  // portBLAS SYMM implementation
   _symm(sb_handle, side, uplo, m, n, alpha, m_a_gpu, lda, m_b_gpu, ldb, beta,
         m_c_gpu, ldc);
 
