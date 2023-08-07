@@ -317,11 +317,13 @@ matrices in a batched entry for inputs/outputs A, B and C.
 |---|---|---|
 | `_omatcopy` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `B`, `ldb`  | Perform an out-of-place scaled matrix transpose or copy operation using a general dense matrix. |
 | `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
-| `_omatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `stride_in`, `B`, `ldb`, `stride_out`, `batch_size` | Perform an out-of-place scaled batched-strided matrix transpose or copy operation using a general dense matrix. |
+| `_omatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `stride_a`, `B`, `ldb`, `stride_b`, `batch_size` | Perform an out-of-place scaled batched-strided matrix transpose or copy operation using a general dense matrix. |
 
 Other non-official extension operators : 
+| operation | arguments | description |
+|---|---|---|
 | `_transpose` | `sb_handle`, `M`, `N`, `A`, `lda`, `B`, `ldb`  | Computes an out-of-place matrix transpose operation using a general dense matrix. |
-| `_transpose` | `sb_handle`, `M`, `N`, `A`, `ld_in`, `ld_out`  | Computes an in-place matrix transpose operation using a general dense matrix. |
+| `_transpose*` | `sb_handle`, `M`, `N`, `A`, `lda`, `ldb`  | Computes an in-place matrix transpose operation using a general dense matrix, lda & ldb being input and output leading dimensions of A respectively _(*Not implemented)_. |
 ### Experimental Joint Matrix Support
 
 SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
