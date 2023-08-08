@@ -414,9 +414,9 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
                                             cl::sycl::nd_item<1> id) {
   value_t *local = local_mem.localAcc.get_pointer();
 
-  auto A = A_.get_data().get_pointer();
-  auto B = B_.get_data().get_pointer();
-  auto C = C_.get_data().get_pointer();
+  auto A = A_.get_pointer();
+  auto B = B_.get_pointer();
+  auto C = C_.get_pointer();
 
   index_t in_a_idx, in_b_idx, in_local_id, out_idx, out_local_id;
   index_t i_block_start, j_block_start;
