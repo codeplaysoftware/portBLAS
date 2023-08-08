@@ -118,8 +118,6 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::eval(cl::sycl::nd_item<1> id) {
   index_t idx = id.get_global_linear_id();
 
-  const index_t ibatch = (batch_size_ == index_t(1)) ? 0 : idx / size_pad_;
-
   index_t in_index, out_index, i_id, j_id;
 
   get_indices(id, in_index, out_index, i_id, j_id);
