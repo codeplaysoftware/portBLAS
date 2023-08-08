@@ -354,9 +354,10 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                         ldb, c, ldc);
     }
   } else if (trans_b == 't') {
-    // In this case, (alpha,a) & (beta,b) parameters positions are swapped as
-    // the kernel implementation assumes the first input matrix is the
-    // transposed one for simplicity purposes.
+    // In this case, (alpha,a) & (beta,b) operands are swapped as the
+    // kernel implementation assumes the first input matrix is the
+    // transposed one for code simplification purposes (Refer to transose.h
+    // for more details about this).
     return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, alpha, a,
                                       lda, c, ldc);
   } else {

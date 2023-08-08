@@ -145,7 +145,11 @@ make_transpose(in_t &A, index_t inc_a, out_t &At, index_t inc_a_t,
  * while remaining customizable Tiling-size wise.
  *
  * @tparam both_trans Whether both A & B matrices are transposed (or just the
- * first one)
+ * first one A). In fact, this kernel is implemented in such a way that if
+ * only one matrix is transposed in the OmatAdd operator, it should be placed
+ * as the first operand to this kernel (A & alpha). This reduces the original 4
+ * possible combinations of A and B transpose cases into only two cases depicted
+ * by the template parameter both_trans.
  * @tparam Tile_size Tiling size used explicitly in the local memory kernel, and
  * used to compute work-group size in the non-local memory case.
  * @tparam wg_size work group size
