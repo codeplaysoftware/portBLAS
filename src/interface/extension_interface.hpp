@@ -110,6 +110,7 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 
   } else {
     // TODO
+    // In-place transpose not implemented
     typename sb_handle_t::event_t ret;
     return ret;
   }
@@ -155,9 +156,133 @@ typename sb_handle_t::event_t _matcopy_batch_impl(
     index_t ld_out, index_t out_stride, index_t batch_size) {
   auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in);
   auto out_view = make_matrix_view<col_major>(out_memory, m, n, ld_out);
-  auto copy_batch_tree = make_matcopy_batch<TileSize, TilePerWG>(
+  auto copy_batch_tree = make_matcopy_batch<false, TileSize, TilePerWG>(
       out_view, in_view, in_view, alpha, 0, m, n, ld_out, ld_in, 1, out_stride,
       in_stride, 1, batch_size);
+  constexpr index_t local_size = TileSize * TilePerWG;
+  const index_t tile_per_matrix =
+      (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
+  const index_t wg_size = (tile_per_matrix - 1) / TilePerWG + 1;
+  const index_t global_size = (wg_size)*local_size * batch_size;
+  return sb_handle.execute(copy_batch_tree, local_size, global_size);
+}
+
+/*!
+ * @brief Wrapper around Transpose-Add. Creates the views, then makes and
+ * launches Transpose Add kernel
+ */
+template <bool both_trans, int Tile_size, int wg_size, int cl_size,
+          bool local_memory, typename sb_handle_t, typename container_0_t,
+          typename container_1_t, typename container_2_t, typename element_t,
+          typename index_t>
+typename sb_handle_t::event_t _transpose_add_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
+    index_t _stride_a, element_t _beta, container_1_t b_, index_t _ldb,
+    index_t _nrows_b, index_t _ncols_b, index_t _stride_b, container_2_t c_,
+    index_t _ldc, index_t _stride_c, index_t _batch_size) {
+  constexpr const index_t num_line_elems =
+      std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
+  constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
+  // Matrix Views
+  auto A_view =
+      make_matrix_view<col_major>(a_, _nrows_a, _ncols_a, _lda, (index_t)1);
+  auto B_view =
+      make_matrix_view<col_major>(b_, _nrows_b, _ncols_b, _ldb, (index_t)1);
+
+  auto C_view = make_matrix_view<col_major>(c_, _M, _N, _ldc, (index_t)1);
+
+  // Work items & groups sizes
+  index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
+  index_t global_size = n_wg * wg_size * _batch_size;
+
+  // Transpose Add expression Tree
+  auto trans_scale_tree =
+      make_transpose_add<both_trans, Tile_size, wg_size, cl_size, local_memory>(
+          A_view, _stride_a, B_view, _stride_b, C_view, _stride_c, _alpha,
+          _beta, _batch_size);
+
+  if constexpr (local_memory) {
+    index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
+                                             num_tiles_per_line);
+    return sb_handle.execute(trans_scale_tree, wg_size, global_size, local_mem);
+  } else {
+    return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
+                             global_size);
+  }
+}
+
+/*!
+ * @brief _omatadd_impl in the (trans_a || trans_b) case : This specialization
+ * covers the following 3 cases :
+ *  - A transposed & B transposed
+ *  - A transposed & B not transposed
+ *  - A not transposed & B transposed
+ *
+ * For convenience purposes, these 3 cases can be brought down to 2 cases, where
+ * 1. either both matrices are transposed OR 2. only the 'first' matrix is
+ * transposed. Thus, this function assumes that if only one matrix is
+ * transposed, it should be the matrix a (trans_a == true).
+ *
+ */
+template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
+          typename index_t, typename container_t>
+typename std::enable_if<trans_a, typename sb_handle_t::event_t>::type
+_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              container_t a, index_t lda, index_t stride_a, element_t beta,
+              container_t b, index_t ldb, index_t stride_b, container_t c,
+              index_t ldc, index_t stride_c, index_t batch_size) {
+  const index_t a_rows = trans_a ? n : m;
+  const index_t a_cols = trans_a ? m : n;
+  const index_t b_rows = trans_b ? n : m;
+  const index_t b_cols = trans_b ? n : m;
+
+  constexpr const bool both_trans = trans_a && trans_b;
+
+  return blas::transpose::backend::_transpose_add<both_trans>(
+      sb_handle, m, n, alpha, a, lda, a_rows, a_cols, stride_a, beta, b, ldb,
+      b_rows, b_cols, stride_b, c, ldc, stride_c, batch_size);
+}
+
+/*!
+ * @brief _omatadd_impl in case of non-transpose matrix
+ */
+template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
+          typename index_t, typename container_t>
+typename std::enable_if<!trans_a && !trans_b,
+                        typename sb_handle_t::event_t>::type
+_omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              container_t a, index_t lda, index_t stride_a, element_t beta,
+              container_t b, index_t ldb, index_t stride_b, container_t c,
+              index_t ldc, index_t stride_c, index_t batch_size) {
+  // This implementation of omatadd must be used only for non batched version
+  // of the operator. For this reason is not needed to check for batch size.
+  // The batched implementation is completely different.
+  typename sb_handle_t::event_t ret;
+  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
+  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
+  auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
+  auto scal_a = make_op<ScalarOp, ProductOperator>(alpha, m_a_view);
+  auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
+  auto sum_op = make_op<BinaryOp, AddOperator>(scal_a, scal_b);
+  auto copy_op = make_op<Assign>(m_c_view, sum_op);
+  ret = sb_handle.execute(copy_op);
+  return ret;
+}
+
+template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
+          typename element_t, typename index_t, typename container_t>
+typename sb_handle_t::event_t _omatadd_batch_impl(
+    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+    container_t a, index_t lda, index_t stride_a, element_t beta, container_t b,
+    index_t ldb, index_t stride_b, container_t c, index_t ldc, index_t stride_c,
+    index_t batch_size) {
+  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
+  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
+  auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
+  auto copy_batch_tree = make_matcopy_batch<true, TileSize, TilePerWG>(
+      m_c_view, m_a_view, m_b_view, alpha, beta, m, n, ldc, lda, ldb, stride_c,
+      stride_a, stride_b, batch_size);
   constexpr index_t local_size = TileSize * TilePerWG;
   const index_t tile_per_matrix =
       (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
@@ -294,6 +419,88 @@ typename sb_handle_t::event_t _matcopy_batch(
     return blas::matcopy_batch::backend::_matcopy_batch<false>(
         sb_handle, m, n, alpha, in_memory, ld_in, stride_in, out_memory, ld_out,
         stride_out, batch_size);
+  }
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_t>
+typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
+                                       char trans_b, index_t m, index_t n,
+                                       element_t alpha, container_t a,
+                                       index_t lda, element_t beta,
+                                       container_t b, index_t ldb,
+                                       container_t c, index_t ldc) {
+  // bail out early if the leading dimensions are not correct
+  if (ldc < m || lda < (trans_a == 't' ? n : m) ||
+      ldb < (trans_b == 't' ? n : m)) {
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
+  // Stride = 0 as a dummy value as it is not used when batch_size == 1
+  const index_t stride_a = 0;
+  const index_t stride_b = 0;
+  const index_t stride_c = 0;
+  const index_t batch_size = 1;
+
+  if (trans_a == 't') {
+    if (trans_b == 't') {
+      return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, stride_a,
+                                       beta, b, ldb, stride_b, c, ldc, stride_c,
+                                       batch_size);
+    } else {
+      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda,
+                                        stride_a, beta, b, ldb, stride_b, c,
+                                        ldc, stride_c, batch_size);
+    }
+  } else if (trans_b == 't') {
+    // In this case, (alpha,a) & (beta,b) parameters positions are swapped as
+    // the kernel implementation assumes the first input matrix is the
+    // transposed one for simplicity purposes.
+    return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, stride_b,
+                                      alpha, a, lda, stride_a, c, ldc, stride_c,
+                                      batch_size);
+  } else {
+    return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, stride_a,
+                                       beta, b, ldb, stride_b, c, ldc, stride_c,
+                                       static_cast<index_t>(1));
+  }
+}
+
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_t>
+typename sb_handle_t::event_t _omatadd_batch(
+    sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
+    element_t alpha, container_t a, index_t lda, index_t stride_a,
+    element_t beta, container_t b, index_t ldb, index_t stride_b, container_t c,
+    index_t ldc, index_t stride_c, index_t batch_size) {
+  // bail out early if the leading dimensions are not correct
+  if (ldc < m || lda < (trans_a == 't' ? n : m) ||
+      ldb < (trans_b == 't' ? n : m)) {
+    typename sb_handle_t::event_t ret;
+    return ret;
+  }
+
+  if (trans_a == 't') {
+    if (trans_b == 't') {
+      return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, stride_a,
+                                       beta, b, ldb, stride_b, c, ldc, stride_c,
+                                       batch_size);
+    } else {
+      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda,
+                                        stride_a, beta, b, ldb, stride_b, c,
+                                        ldc, stride_c, batch_size);
+    }
+  } else if (trans_b == 't') {
+    // In this case, (alpha,a) & (beta,b) parameters positions are swapped as
+    // the kernel implementation assumes the first input matrix is the
+    // transposed one for simplicity purposes.
+    return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, stride_b,
+                                      alpha, a, lda, stride_a, c, ldc, stride_c,
+                                      batch_size);
+  } else {
+    return blas::omatadd_batch::backend::_omatadd_batch(
+        sb_handle, m, n, alpha, a, lda, stride_a, beta, b, ldb, stride_b, c,
+        ldc, stride_c, batch_size);
   }
 }
 

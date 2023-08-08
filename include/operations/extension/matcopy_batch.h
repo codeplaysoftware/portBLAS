@@ -27,7 +27,8 @@
 
 namespace blas {
 
-template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
+template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
+          typename rhs_t, typename rhs_2_t>
 struct Matcopy_batch {
  public:
   using value_t = typename lhs_t::value_t;
@@ -35,12 +36,12 @@ struct Matcopy_batch {
 
   lhs_t lhs_;
   rhs_t rhs_1_;
-  rhs_t rhs_2_;
+  rhs_2_t rhs_2_;
   value_t alpha_, beta_;
   index_t m_, n_, lhs_ld_, rhs_1_ld_, rhs_2_ld_, lhs_stride_, rhs_1_stride_,
       rhs_2_stride_, batch_size_;
 
-  Matcopy_batch(lhs_t lhs, rhs_t rhs_1, rhs_t rhs_2, value_t alpha,
+  Matcopy_batch(lhs_t lhs, rhs_t rhs_1, rhs_2_t rhs_2, value_t alpha,
                 value_t beta, index_t m, index_t n, index_t lhs_ld,
                 index_t rhs_ld, index_t rhs_2_ld, index_t lhs_stride,
                 index_t rhs_stride, index_t rhs_2_stride, index_t batch_size);
@@ -52,17 +53,23 @@ struct Matcopy_batch {
   value_t eval(sharedT shMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
+  void compute_matcopy_batch(const index_t wg_batch_id, const index_t wg_row,
+                             const index_t wg_col, const index_t item_id);
+  void compute_omatadd_batch(const index_t wg_batch_id, const index_t wg_row,
+                             const index_t wg_col, const index_t item_id);
 };
 
-template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
-Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t> make_matcopy_batch(
-    lhs_t lhs, rhs_t rhs_1, rhs_t rhs_2, typename rhs_t::value_t alpha,
+template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
+          typename rhs_t, typename rhs_2_t>
+Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>
+make_matcopy_batch(
+    lhs_t lhs, rhs_t rhs_1, rhs_2_t rhs_2, typename rhs_t::value_t alpha,
     typename rhs_t::value_t beta, typename rhs_t::index_t m,
     typename rhs_t::index_t n, typename rhs_t::index_t lhs_ld,
     typename rhs_t::index_t rhs_ld, typename rhs_t::index_t rhs_2_ld,
     typename rhs_t::index_t lhs_stride, typename rhs_t::index_t rhs_stride,
     typename rhs_t::index_t rhs_2_stride, typename rhs_t::index_t batch_size) {
-  return Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t>(
+  return Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>(
       lhs, rhs_1, rhs_2, alpha, beta, m, n, lhs_ld, rhs_ld, rhs_2_ld,
       lhs_stride, rhs_stride, rhs_2_stride, batch_size);
 }
