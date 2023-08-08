@@ -19,7 +19,7 @@
  *
  *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename omatcopy.cpp
+ *  @filename omatadd.cpp
  *
  **************************************************************************/
 
@@ -27,12 +27,13 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul) {
+std::string get_name(std::string ts_a, std::string ts_b, int m, int n,
+                     scalar_t alpha, scalar_t beta, index_t lda_mul,
+                     index_t ldb_mul, index_t ldc_mul) {
   std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
+  str << "BM_omatadd<" << blas_benchmark::utils::get_type_name<scalar_t>()
+      << ">/" << ts_a << "/" << ts_b << "/" << m << "/" << n << "/" << alpha
+      << "/" << beta << "/" << lda_mul << "/" << ldb_mul << "/" << ldc_mul;
   return str.str();
 }
 
@@ -47,73 +48,77 @@ static inline void rocblas_geam_f(args_t&&... args) {
 }
 
 template <typename scalar_t>
-void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
-         index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
-         bool* success) {
+void run(benchmark::State& state, rocblas_handle& rb_handle, int ti_a, int ti_b,
+         index_t m, index_t n, scalar_t alpha, scalar_t beta, index_t lda_mul,
+         index_t ldb_mul, index_t ldc_mul, bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(state);
 
   // Standard test setup.
-  std::string ts = blas_benchmark::utils::from_transpose_enum(
-      static_cast<blas_benchmark::utils::Transposition>(ti));
-  const char* t_str = ts.c_str();
+  std::string ts_a = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(ti_a));
+  const char* t_str_a = ts_a.c_str();
+  std::string ts_b = blas_benchmark::utils::from_transpose_enum(
+      static_cast<blas_benchmark::utils::Transposition>(ti_b));
+  const char* t_str_b = ts_b.c_str();
 
-  const auto lda = (*t_str == 't') ? lda_mul * n : lda_mul * m;
-  const auto ldb = ldb_mul * m;
+  const auto lda = (*t_str_a == 't') ? lda_mul * n : lda_mul * m;
+  const auto ldb = (*t_str_b == 't') ? ldb_mul * n : ldb_mul * m;
+  const auto ldc = ldc_mul * m;
 
-  const auto size_a = lda * ((*t_str == 't') ? m : n);
-  const auto size_b = ldb * n;
+  const auto size_a = lda * ((*t_str_a == 't') ? m : n);
+  const auto size_b = ldb * ((*t_str_b == 't') ? m : n);
+  const auto size_c = ldc * n;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
-      state, t_str, m, n, lda_mul, ldb_mul);
+      blas_benchmark::utils::ExtensionOP::omatadd, scalar_t>(
+      state, t_str_a, t_str_b, m, n, lda_mul, ldb_mul, ldc_mul);
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
       blas_benchmark::utils::random_data<scalar_t>(size_a);
   std::vector<scalar_t> m_b =
       blas_benchmark::utils::random_data<scalar_t>(size_b);
+  std::vector<scalar_t> m_c =
+      blas_benchmark::utils::random_data<scalar_t>(size_c);
 
   blas_benchmark::utils::HIPVector<scalar_t> m_a_gpu(size_a, m_a.data());
   blas_benchmark::utils::HIPVector<scalar_t> m_b_gpu(size_b, m_b.data());
+  blas_benchmark::utils::HIPVector<scalar_t> m_c_gpu(size_c, m_c.data());
 
   // Matrix options (rocBLAS)
-  const rocblas_operation trans_rb =
-      t_str[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
-
-  // Dummy Variables set to only compute C:=alpha*op(A) in rocBLAS geam
-  const scalar_t beta_null = 0;
-  const index_t ld_null = m;
-  const rocblas_operation trans_null_rb = rocblas_operation_none;
+  const rocblas_operation trans_a_rb =
+      t_str_a[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
+  const rocblas_operation trans_b_rb =
+      t_str_b[0] == 'n' ? rocblas_operation_none : rocblas_operation_transpose;
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> m_b_ref = m_b;
+  std::vector<scalar_t> m_c_ref = m_c;
 
-  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a.data(), lda,
-                                      m_b_ref.data(), ldb);
+  reference_blas::ext_omatadd(*t_str_a, *t_str_b, m, n, alpha, m_a.data(), lda,
+                              beta, m_b.data(), ldb, m_c_ref.data(), ldc);
 
-  std::vector<scalar_t> m_b_temp = m_b;
+  std::vector<scalar_t> m_c_temp = m_c;
   {
-    blas_benchmark::utils::HIPVector<scalar_t, true> m_b_temp_gpu(
-        size_b, m_b_temp.data());
+    blas_benchmark::utils::HIPVector<scalar_t, true> m_c_temp_gpu(
+        size_c, m_c_temp.data());
 
-    rocblas_geam_f<scalar_t>(rb_handle, trans_rb, trans_null_rb, m, n, &alpha,
-                             m_a_gpu, lda, &beta_null, nullptr, ld_null,
-                             m_b_temp_gpu, ldb);
+    rocblas_geam_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, &alpha,
+                             m_a_gpu, lda, &beta, m_b_gpu, ldb, m_c_temp_gpu,
+                             ldc);
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(m_b_temp, m_b_ref, err_stream, "")) {
+  if (!utils::compare_vectors(m_c_temp, m_c_ref, err_stream, "")) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
   };
 #endif
   auto blas_warmup = [&]() -> void {
-    rocblas_geam_f<scalar_t>(rb_handle, trans_rb, trans_null_rb, m, n, &alpha,
-                             m_a_gpu, lda, &beta_null, nullptr, ld_null,
-                             m_b_gpu, ldb);
+    rocblas_geam_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, &alpha,
+                             m_a_gpu, lda, &beta, m_b_gpu, ldb, m_c_gpu, ldc);
     return;
   };
 
@@ -123,9 +128,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
 
   auto blas_method_def = [&]() -> std::vector<hipEvent_t> {
     CHECK_HIP_ERROR(hipEventRecord(start, NULL));
-    rocblas_geam_f<scalar_t>(rb_handle, trans_rb, trans_null_rb, m, n, &alpha,
-                             m_a_gpu, lda, &beta_null, nullptr, ld_null,
-                             m_b_gpu, ldb);
+    rocblas_geam_f<scalar_t>(rb_handle, trans_a_rb, trans_b_rb, m, n, &alpha,
+                             m_a_gpu, lda, &beta, m_b_gpu, ldb, m_c_gpu, ldc);
     CHECK_HIP_ERROR(hipEventRecord(stop, NULL));
     CHECK_HIP_ERROR(hipEventSynchronize(stop));
     return std::vector{start, stop};
@@ -160,24 +164,30 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                         bool* success) {
-  auto omatcopy_params =
-      blas_benchmark::utils::get_matcopy_params<scalar_t>(args);
+  auto omatadd_params =
+      blas_benchmark::utils::get_omatadd_params<scalar_t>(args);
 
-  for (auto p : omatcopy_params) {
-    std::string ts;
-    index_t m, n, lda_mul, ldb_mul;
-    scalar_t alpha;
-    std::tie(ts, m, n, alpha, lda_mul, ldb_mul) = p;
-    int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
+  for (auto p : omatadd_params) {
+    std::string ts_a, ts_b;
+    index_t m, n, lda_mul, ldb_mul, ldc_mul;
+    scalar_t alpha, beta;
+    std::tie(ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul) = p;
+    int t_a = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts_a));
+    int t_b = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts_b));
 
-    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle_, int t,
-                         index_t m, index_t n, scalar_t alpha, index_t lda_mul,
-                         index_t ldb_mul, bool* success) {
-      run<scalar_t>(st, rb_handle_, t, m, n, alpha, lda_mul, ldb_mul, success);
+    auto BM_lambda = [&](benchmark::State& st, rocblas_handle rb_handle,
+                         int t_a, int t_b, index_t m, index_t n, scalar_t alpha,
+                         scalar_t beta, index_t lda_mul, index_t ldb_mul,
+                         index_t ldc_mul, bool* success) {
+      run<scalar_t>(st, rb_handle, t_a, t_b, m, n, alpha, beta, lda_mul,
+                    ldb_mul, ldc_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul).c_str(),
-        BM_lambda, rb_handle, t, m, n, alpha, lda_mul, ldb_mul, success)
+        get_name<scalar_t>(ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul,
+                           ldc_mul)
+            .c_str(),
+        BM_lambda, rb_handle, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
+        ldc_mul, success)
         ->UseRealTime();
   }
 }

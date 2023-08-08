@@ -127,8 +127,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t rows,
 };
 
 template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto red_params = blas_benchmark::utils::get_reduction_params<scalar_t>(args);
 
   for (auto p : red_params) {
@@ -154,8 +154,8 @@ void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_p
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

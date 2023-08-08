@@ -73,10 +73,13 @@ init_extension_counters(benchmark::State& state, const char* trans, index_t m,
 }
 
 template <ExtensionOP op, typename scalar_t, typename index_t>
-inline typename std::enable_if<op == ExtensionOP::omatadd>::type
+inline typename std::enable_if<op == ExtensionOP::omatadd ||
+                               op == ExtensionOP::omatadd_batch>::type
 init_extension_counters(benchmark::State& state, const char* t_a,
                         const char* t_b, index_t m, index_t n, index_t lda_mul,
-                        index_t ldb_mul, index_t ldc_mul) {
+                        index_t ldb_mul, index_t ldc_mul,
+                        index_t stride_a_mul = 1, index_t stride_b_mul = 1,
+                        index_t stride_c_mul = 1, index_t batch_size = 1) {
   // Google-benchmark counters are double.
   double size_d = static_cast<double>(m * n);
   state.counters["m"] = static_cast<double>(m);
@@ -88,6 +91,12 @@ init_extension_counters(benchmark::State& state, const char* t_a,
   state.counters["trans_a"] = static_cast<double>((*t_a == 't') ? 1 : 0);
   state.counters["trans_b"] = static_cast<double>((*t_b == 't') ? 1 : 0);
   state.counters["bytes_processed"] = (3 * size_d + 1) * sizeof(scalar_t);
+  if constexpr (op == ExtensionOP::omatadd_batch) {
+    state.counters["stride_a_mul"] = static_cast<double>(stride_a_mul);
+    state.counters["stride_b_mul"] = static_cast<double>(stride_b_mul);
+    state.counters["stride_c_mul"] = static_cast<double>(stride_c_mul);
+    state.counters["batch_size"] = static_cast<double>(batch_size);
+  }
   return;
 }
 }  // namespace utils
