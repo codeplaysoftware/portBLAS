@@ -562,7 +562,7 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:trsm>
                 $<TARGET_OBJECTS:matcopy>
                 $<TARGET_OBJECTS:transpose>
-                $<TARGET_OBJECTS:omatadd>)
+                $<TARGET_OBJECTS:omatadd>
                 $<TARGET_OBJECTS:matcopy_batch>)
 
    if (${ENABLE_EXTENSIONS})
