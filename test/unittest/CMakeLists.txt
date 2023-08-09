@@ -58,6 +58,7 @@ set(SYCL_UNITTEST_SRCS
   # Blas extension
   ${SYCLBLAS_UNITTEST}/extension/omatcopy_test.cpp
   ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
+  ${SYCLBLAS_UNITTEST}/extension/omatadd_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})

@@ -66,6 +66,7 @@ set(sources
   # blas Extension
   extension/omatcopy.cpp
   extension/omatcopy2.cpp
+  extension/omatadd.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
