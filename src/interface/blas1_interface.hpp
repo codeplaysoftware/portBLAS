@@ -327,10 +327,10 @@ typename sb_handle_t::event_t _nrm2(
   const auto nWG = 2 * localSize;
   auto assignOp =
       make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret0 = sb_handle.execute(assignOp);
+  auto ret0 = sb_handle.execute(assignOp, _dependencies);
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
-  auto ret1 = sb_handle.execute(assignOpFinal, _dependencies);
+  auto ret1 = sb_handle.execute(assignOpFinal, ret0);
   return blas::concatenate_vectors(ret0, ret1);
 }
 
@@ -776,7 +776,8 @@ typename ValueType<container_t>::type _asum(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  auto asum_event = blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  sb_handle.wait(asum_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);

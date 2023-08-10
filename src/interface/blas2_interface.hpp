@@ -662,8 +662,8 @@ typename sb_handle_t::event_t _tbmv_impl(
                                      global_size, _dependencies);
 
   auto assignOp = make_op<Assign>(vx, vres);
-  auto ret = concatenate_vectors(
-      tbmvEvent, sb_handle.execute(assignOp, local_range, _dependencies));
+  auto assignEvent = sb_handle.execute(assignOp, local_range, tbmvEvent);
+  auto ret = concatenate_vectors(tbmvEvent, assignEvent);
 
   blas::helper::enqueue_deallocate(ret, res_buffer, sb_handle.get_queue());
 

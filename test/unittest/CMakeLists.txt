@@ -30,6 +30,7 @@ include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 # compiling tests
 set(SYCL_UNITTEST_SRCS
   # Blas 1 tests
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
@@ -38,6 +39,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
   # # Blas 2 tests
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
@@ -81,9 +83,7 @@ if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
     ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests

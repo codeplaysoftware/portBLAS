@@ -45,7 +45,7 @@ SYCL_BLAS_INLINE VectorView<_container_t, _IndexType,
                             _IncrementType>::VectorView(_container_t data,
                                                         _IncrementType strd,
                                                         _IndexType size)
-    : data_(data), size_(size), strd_(strd) {}
+    : data_(data), size_(size), strd_(strd), ptr_(strd > 0 ? data_ : data_ + (size_ - 1) * (-strd_)) {}
 
 /*!
  @brief Creates a view from an existing view.
@@ -55,7 +55,7 @@ SYCL_BLAS_INLINE
 VectorView<_container_t, _IndexType, _IncrementType>::VectorView(
     VectorView<_container_t, _IndexType, _IncrementType> opV,
     _IncrementType strd, _IndexType size)
-    : data_(opV.get_data()), size_(size), strd_(strd) {}
+    : data_(opV.get_data()), size_(size), strd_(strd), ptr_(strd > 0 ? data_ : data_ + (size_ - 1) * (-strd_)) {}
 
 /*!
  * @brief Returns a reference to the container

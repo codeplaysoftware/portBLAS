@@ -56,6 +56,10 @@ struct VectorView {
   index_t size_;
   increment_t strd_;  // never size_t, because it could be negative
 
+  // Start of the vector.
+  // If stride is negative, start at the end of the vector and move backward.
+  container_t ptr_;
+
   VectorView(view_container_t data, view_increment_t strd, view_index_t size);
   VectorView(VectorView<view_container_t, view_index_t, view_increment_t> opV,
              view_increment_t strd, view_index_t size);
@@ -96,13 +100,13 @@ struct VectorView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t &>::type eval(
       index_t i) {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<!use_as_ptr, value_t>::type eval(
       index_t i) const {
-    return (strd_ == 1) ? *(data_ + i) : *(data_ + i * strd_);
+    return (strd_ == 1) ? *(ptr_ + i) : *(ptr_ + i * strd_);
   }
 
   SYCL_BLAS_INLINE value_t &eval(cl::sycl::nd_item<1> ndItem) {
@@ -116,13 +120,13 @@ struct VectorView {
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t &>::type eval(
       index_t indx) {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 
   template <bool use_as_ptr = false>
   SYCL_BLAS_INLINE typename std::enable_if<use_as_ptr, value_t>::type eval(
       index_t indx) const noexcept {
-    return *(data_ + indx);
+    return *(ptr_ + indx);
   }
 };
 

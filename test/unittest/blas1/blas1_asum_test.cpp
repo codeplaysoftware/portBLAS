@@ -26,7 +26,7 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<std::string, api_type, int, int>;
+using combination_t = std::tuple<std::string, api_type, int, int, scalar_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -34,10 +34,13 @@ void run_test(const combination_t<scalar_t> combi) {
   api_type api;
   index_t size;
   index_t incX;
-  std::tie(alloc, api, size, incX) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, unused) = combi;
+
+  auto vector_size = size * std::abs(incX);
 
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(vector_size);
   fill_random<scalar_t>(x_v);
 
   // We need to guarantee that cl::sycl::half can hold the sum
@@ -47,18 +50,28 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Output scalar
   scalar_t out_s = 0;
+  scalar_t out_cpu_s;
 
   // Reference implementation
-  scalar_t out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
+  if (incX < 0) {
+    // Some reference implementations of BLAS do not support negative
+    // increments for asum. To simulate what is specified in the
+    // oneAPI spec, invert the vector and use a positive increment.
+    std::vector<scalar_t> x_v_inv(vector_size);
+    std::reverse_copy(x_v.begin(), x_v.end() + (incX + 1), x_v_inv.begin());
+    out_cpu_s = reference_blas::asum(size, x_v_inv.data(), -incX);
+  } else {
+    out_cpu_s = reference_blas::asum(size, x_v.data(), incX);
+  }
 
   // SYCL implementation
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(vector_size, q);
   auto copy_x =
-      helper::copy_to_device<scalar_t>(q, x_v.data(), gpu_x_v, size * incX);
+      helper::copy_to_device<scalar_t>(q, x_v.data(), gpu_x_v, vector_size);
 
   if (api == api_type::async) {
     auto gpu_out_s = helper::allocate<mem_alloc, scalar_t>(1, q);
@@ -87,7 +100,8 @@ static void run_test(const combination_t<scalar_t> combi) {
   api_type api;
   index_t size;
   index_t incX;
-  std::tie(alloc, api, size, incX) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, unused) = combi;
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
@@ -102,12 +116,13 @@ static void run_test(const combination_t<scalar_t> combi) {
 
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+    ::testing::Combine(::testing::Values("usm", "buf"),    // allocation type
                        ::testing::Values(api_type::async,
                                          api_type::sync),  // Api
                        ::testing::Values(11, 65, 10000,
-                                         1002400),  // size
-                       ::testing::Values(1, 4)      // incX
+                                         1002400),         // size
+                       ::testing::Values(1, 4, -1, -3),    // incX
+                       ::testing::Values(0)                // unused
     );
 
 template <class T>
@@ -116,7 +131,8 @@ static std::string generate_name(
   std::string alloc;
   api_type api;
   int size, incX;
-  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX, unused);
 }
 
 BLAS_REGISTER_TEST_ALL(Asum, combination_t, combi, generate_name);
