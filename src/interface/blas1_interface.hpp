@@ -332,10 +332,10 @@ typename sb_handle_t::event_t _nrm2(
   const auto nWG = 2 * localSize;
   auto assignOp =
       make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret0 = sb_handle.execute(assignOp);
+  auto ret0 = sb_handle.execute(assignOp, _dependencies);
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
-  auto ret1 = sb_handle.execute(assignOpFinal, _dependencies);
+  auto ret1 = sb_handle.execute(assignOpFinal, ret0);
   return blas::concatenate_vectors(ret0, ret1);
 }
 

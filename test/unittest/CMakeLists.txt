@@ -39,6 +39,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+  ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
   # # Blas 2 tests
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
@@ -72,7 +73,6 @@ if(is_computecpp)
     # Blas 1 tests
     ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
     ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
