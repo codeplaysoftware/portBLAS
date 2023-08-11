@@ -22,16 +22,17 @@
  *  @filename trsv.cpp.in
  *
  **************************************************************************/
-#include "sb_handle/portblas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
+#include "container/sycl_iterator.hpp"
 #include "interface/blas2_interface.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 namespace blas {
 namespace internal {
 
 template typename SB_Handle::event_t _trsv(
-    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag,
-    ${INDEX_TYPE} _N, ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${container_t0} _mA, ${INDEX_TYPE} _lda, ${container_t1} _vx,
+    ${INCREMENT_TYPE} _incx, const typename SB_Handle::event_t& _dependencies);
 }  // namespace internal
 }  // end namespace blas

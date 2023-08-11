@@ -72,6 +72,9 @@ if __name__ == '__main__':
     use_joint_matrix = sys.argv[37]
     symm_a = sys.argv[38]
     symm_b = sys.argv[39]
+    container0 = sys.argv[40]
+    container1 = sys.argv[41]
+    container2 = sys.argv[42]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
     try:
         os.makedirs(source)
@@ -245,6 +248,21 @@ if __name__ == '__main__':
         Iterable(
             key='SYMM_B',
             vals=[symm_b],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='container_t0',
+            vals=[container0],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='container_t1',
+            vals=[container1],
+            itermode=Itermode.combinations,
+            iter_modifier=1),
+        Iterable(
+            key='container_t2',
+            vals=[container2],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

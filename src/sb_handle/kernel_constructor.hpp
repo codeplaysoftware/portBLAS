@@ -223,11 +223,9 @@ struct ExpressionTreeFunctor {
 };
 
 template <int using_local_memory, typename queue_t, typename expression_tree_t>
-static PORTBLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
-                                                     expression_tree_t t,
-                                                     size_t _localSize,
-                                                     size_t _globalSize,
-                                                     size_t _shMem) {
+static PORTBLAS_INLINE cl::sycl::event execute_tree(
+    queue_t q_, expression_tree_t t, size_t _localSize, size_t _globalSize,
+    size_t _shMem, std::vector<cl::sycl::event> dependencies) {
   using value_t =
       typename LocalMemoryType<using_local_memory, expression_tree_t>::type;
 
@@ -237,6 +235,11 @@ static PORTBLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
   cl::sycl::event ev;
   try {
     auto cg1 = [=](cl::sycl::handler &h) mutable {
+#if SYCL_LANGUAGE_VERSION < 202000
+      cl::sycl::event::wait(dependencies);
+#else
+      h.depends_on(dependencies);
+#endif
       t.bind(h);
       auto scratch = LocalMemory<value_t, using_local_memory>(shMem, h);
 

@@ -28,15 +28,16 @@
 
 template <typename scalar_t>
 using combination_t =
-    std::tuple<char, index_t, index_t, index_t, index_t, scalar_t>;
+    std::tuple<std::string, char, index_t, index_t, index_t, index_t, scalar_t>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t>& combi) {
+  std::string alloc;
   char place;
   index_t m, n, ld_in_m, ld_out_m;
   scalar_t unused; /* Work around dpcpp compiler bug
                       (https://github.com/intel/llvm/issues/7075) */
-  std::tie(place, m, n, ld_in_m, ld_out_m, unused) = combi;
+  std::tie(alloc, place, m, n, ld_in_m, ld_out_m, unused) = combi;
 
   // Compute leading dimensions using ld multipliers
   index_t ld_in = ld_in_m * m;
@@ -61,11 +62,18 @@ void run_test(const combination_t<scalar_t>& combi) {
                                       n);
 
   if (place == 'o') {
-    auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size_a);
-    auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size_b);
+    auto matrix_in = helper::allocate<mem_alloc, scalar_t>(size_a, q);
+    auto matrix_out = helper::allocate<mem_alloc, scalar_t>(size_b, q);
 
-    blas::extension::_transpose<scalar_t>(sb_handle, m, n, matrix_in, ld_in,
-                                          matrix_out, ld_out);
+    auto copy_in =
+        helper::copy_to_device<scalar_t>(q, A.data(), matrix_in, size_a);
+    auto copy_out =
+        helper::copy_to_device<scalar_t>(q, B.data(), matrix_out, size_b);
+
+    auto trans_event = blas::extension::_transpose<scalar_t>(sb_handle, m, n, matrix_in, ld_in,
+                                          matrix_out, ld_out, {copy_in, copy_out});
+
+    sb_handle.wait(trans_event);
 
     auto event = blas::helper::copy_to_host<scalar_t>(
         sb_handle.get_queue(), matrix_out, B.data(), size_b);
@@ -75,14 +83,38 @@ void run_test(const combination_t<scalar_t>& combi) {
     const bool isAlmostEqual = utils::compare_vectors(B, B_ref);
     ASSERT_TRUE(isAlmostEqual);
 
+    helper::deallocate<mem_alloc>(matrix_in, q);
+    helper::deallocate<mem_alloc>(matrix_out, q);
+
   } else {
     // Inplace Transpose: TODO
   }
 }
 
 template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  char place;
+  index_t m, n, ld_in_m, ld_out_m;
+  scalar_t unused; /* Work around dpcpp compiler bug
+                      (https://github.com/intel/llvm/issues/7075) */
+  std::tie(alloc, place, m, n, ld_in_m, ld_out_m, unused) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
+
+template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values('i', 'o'),  // Inplace | Outplace
+    ::testing::Combine(::testing::Values("usm", "buf"),      // allocation type
+                       ::testing::Values('i', 'o'),  // Inplace | Outplace
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
@@ -92,10 +124,11 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   index_t m, n, ld_in_m, ld_out_m;
   T unused;
   char place;
-  BLAS_GENERATE_NAME(info.param, place, m, n, ld_in_m, ld_out_m, unused);
+  BLAS_GENERATE_NAME(info.param, alloc, place, m, n, ld_in_m, ld_out_m, unused);
 }
 
 BLAS_REGISTER_TEST_ALL(TransposeTest, combination_t, combi, generate_name);

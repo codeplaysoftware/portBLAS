@@ -62,7 +62,8 @@ typename sb_handle_t::event_t _gemv(
                         // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
+    increment_t _incy,  // The increment for elements in y (nonzero).
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /*!
@@ -70,15 +71,14 @@ typename sb_handle_t::event_t _gemv(
  * documentation in the blas2_interface.hpp file for details.
  */
 template <uint32_t local_range, uint32_t cache_line_size,
-          gemv_memory_t memory_type, transpose_type trn, typename SB_Handle,
+          gemv_memory_t memory_type, transpose_type trn, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename SB_Handle::event_t _gemv_impl(SB_Handle& sb_handle, index_t _M,
-                                       index_t _N, element_t _alpha,
-                                       container_t0 _mA, index_t _lda,
-                                       container_t1 _vx, increment_t _incx,
-                                       element_t _beta, container_t2 _vy,
-                                       increment_t _incy);
+typename sb_handle_t::event_t _gemv_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /*!
  @brief Generalised matrix vector product with a triangular symmetric matrix.
@@ -103,7 +103,8 @@ typename sb_handle_t::event_t _trmv(
     container_0_t _mA,       // (_lda, _N) The input matrix
     index_t _lda,            // >max(1, _N) The first dimension of _mA
     container_1_t _vx,       // (1 + (_N-1)*abs(_incx)), output vector X
-    increment_t _incx        // !=0 The increment for the elements of X
+    increment_t _incx,       // !=0 The increment for the elements of X
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /**
@@ -125,21 +126,23 @@ typename sb_handle_t::event_t _trmv(
  * @param _lda Leading dimension _mA at least _N
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _trsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx);
+typename sb_handle_t::event_t _trsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, index_t _lda, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {});
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _trsv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         container_t0 _mA, index_t _lda,
-                                         container_t1 _vx, increment_t _incx);
+typename sb_handle_t::event_t _trsv_impl(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, index_t _lda,
+    container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /*!
  @brief Generalised matrix vector product with a square symmetric matrix,
@@ -168,7 +171,8 @@ typename sb_handle_t::event_t _symv(
     increment_t _incx,       // !=0 The increment for the elements of X
     element_t _beta,         // Scalar parameter beta
     container_2_t _vy,       // (1 + (_N-1)*abs(_incy)), output vector Y
-    increment_t _incy        // !=0 The increment for the elements of Y
+    increment_t _incy,       // !=0 The increment for the elements of Y
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /*!
@@ -197,7 +201,8 @@ typename sb_handle_t::event_t _ger(
     container_1_t _vy,       // >(1 + (_N-1)*abs(_incy)), input vector Y
     increment_t _incy,       // Increment for vector Y
     container_2_t _mA,       // (_lda, n) array containing A, the output
-    index_t _lda             // >max(1, m), Leading dimension of A
+    index_t _lda,            // >max(1, m), Leading dimension of A
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /*!
@@ -222,7 +227,8 @@ typename sb_handle_t::event_t _syr(
     container_0_t _vx,       // (1 + (_N-1)*abs(_incx)), input vector X
     increment_t _incx,       // !=0 The increment for the elements of X
     container_1_t _mA,       // (_lda, _N) The output matrix
-    index_t _lda             // >max(1, _N) The first dimension of _mA
+    index_t _lda,            // >max(1, _N) The first dimension of _mA
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /**
@@ -245,13 +251,14 @@ typename sb_handle_t::event_t _syr(
  * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
  * @param _incx !=0 The increment for the elements of X
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename sb_handle_t::event_t _spr(sb_handle_t& sb_handle, char _Uplo,
-                                   index_t _N, element_t _alpha,
-                                   container_0_t _vx, increment_t _incx,
-                                   container_1_t _mPA);
+typename sb_handle_t::event_t _spr(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _vx, increment_t _incx, container_1_t _mPA,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Generalised two vectors squaring followed by a sum with a packed
@@ -275,15 +282,15 @@ typename sb_handle_t::event_t _spr(sb_handle_t& sb_handle, char _Uplo,
  * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
  * @param _incy !=0 The increment for the elements of Y
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t _spr2(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_t0 _vx, increment_t _incx,
-                                    container_t1 _vy, increment_t _incy,
-                                    container_t2 _mPA);
+typename sb_handle_t::event_t _spr2(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA, const typename sb_handle_t::event_t& _dependencies);
 
 /*!
  @brief Generalised vector products followed by a sum with a symmetric matrix.
@@ -310,7 +317,8 @@ typename sb_handle_t::event_t _syr2(
     container_1_t _vy,       // (1 + (_N-1)*abs(_incx)), input vector Y
     increment_t _incy,       // !=0 The increment for the elements of Y
     container_2_t _mA,       // (_lda, _N) The output matrix
-    index_t _lda             // >max(1, _N) The first dimension of _mA
+    index_t _lda,            // >max(1, _N) The first dimension of _mA
+    const typename sb_handle_t::event_t& _dependencies  // Vector of events
 );
 
 /**
@@ -341,27 +349,25 @@ typename sb_handle_t::event_t _syr2(
  * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
  *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
  * @param _incy Increment for _vy
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _gbmv(sb_handle_t& sb_handle, char _trans,
-                                    index_t _M, index_t _N, index_t _KL,
-                                    index_t _KU, element_t _alpha,
-                                    container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx,
-                                    element_t _beta, container_2_t _vy,
-                                    increment_t _incy);
+typename sb_handle_t::event_t _gbmv(
+    sb_handle_t& sb_handle, char _trans, index_t _M, index_t _N, index_t _KL,
+    index_t _KU, element_t _alpha, container_0_t _mA, index_t _lda,
+    container_1_t _vx, increment_t _incx, element_t _beta, container_2_t _vy,
+    increment_t _incy, const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range, transpose_type trn, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, index_t _M,
-                                         index_t _N, index_t _KL, index_t _KU,
-                                         element_t _alpha, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx, element_t _beta,
-                                         container_t2 _vy, increment_t _incy);
+typename sb_handle_t::event_t _gbmv_impl(
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _KL, index_t _KU,
+    element_t _alpha, container_t0 _mA, index_t _lda, container_t1 _vx,
+    increment_t _incx, element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Matrix vector product with symmetric band matrices.
@@ -387,26 +393,25 @@ typename sb_handle_t::event_t _gbmv_impl(sb_handle_t& sb_handle, index_t _M,
  * @param _beta Scalar parameter beta
  * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
  * @param _incy Increment for _vy
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, index_t _K, element_t _alpha,
-                                    container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx,
-                                    element_t _beta, container_2_t _vy,
-                                    increment_t _incy);
+typename sb_handle_t::event_t _sbmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, index_t _K,
+    element_t _alpha, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx, element_t _beta, container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range, uplo_type uplo, typename sb_handle_t,
           typename index_t, typename element_t, typename container_t0,
           typename container_t1, typename increment_t, typename container_t2>
-typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         index_t _K, element_t _alpha,
-                                         container_t0 _mA, index_t _lda,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy);
+typename sb_handle_t::event_t _sbmv_impl(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, element_t _alpha,
+    container_t0 _mA, index_t _lda, container_t1 _vx, increment_t _incx,
+    element_t _beta, container_t2 _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Matrix vector product with symmetric packed matrices.
@@ -434,21 +439,20 @@ typename sb_handle_t::event_t _sbmv_impl(sb_handle_t& sb_handle, index_t _N,
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx, element_t _beta,
-                                    container_2_t _vy, increment_t _incy);
+typename sb_handle_t::event_t _spmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _mA, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename container_t1, typename increment_t,
           typename container_t2>
-typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         element_t _alpha, container_t0 _mA,
-                                         container_t1 _vx, increment_t _incx,
-                                         element_t _beta, container_t2 _vy,
-                                         increment_t _incy);
+typename sb_handle_t::event_t _spmv_impl(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_t0 _mA,
+    container_t1 _vx, increment_t _incx, element_t _beta, container_t2 _vy,
+    increment_t _incy, const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Matrix vector product with triangular band matrices.
@@ -472,21 +476,22 @@ typename sb_handle_t::event_t _spmv_impl(sb_handle_t& sb_handle, index_t _N,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx);
+typename sb_handle_t::event_t _tbmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range, uplo_type uplo, transpose_type trn,
           diag_type diag, typename sb_handle_t, typename index_t,
           typename container_t0, typename container_t1, typename increment_t>
-typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         index_t _K, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx);
+typename sb_handle_t::event_t _tbmv_impl(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Matrix vector product with triangular packed matrices.
@@ -508,21 +513,22 @@ typename sb_handle_t::event_t _tbmv_impl(sb_handle_t& sb_handle, index_t _N,
  *            matrix format
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx);
+typename sb_handle_t::event_t _tpmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t local_range_x, uint32_t local_range_y, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         container_t0 _mA, container_t1 _vx,
-                                         increment_t _incx);
+typename sb_handle_t::event_t _tpmv_impl(
+    sb_handle_t& sb_handle, index_t _N, container_t0 _mA, container_t1 _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Linear system solver for triangular band matrices.
@@ -545,22 +551,23 @@ typename sb_handle_t::event_t _tpmv_impl(sb_handle_t& sb_handle, index_t _N,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx);
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx, const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
           typename index_t, typename container_t0, typename container_t1,
           typename increment_t>
-typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
-                                         index_t _K, container_t0 _mA,
-                                         index_t _lda, container_t1 _vx,
-                                         increment_t _incx);
+typename sb_handle_t::event_t _tbsv_impl(
+    sb_handle_t& sb_handle, index_t _N, index_t _K, container_t0 _mA,
+    index_t _lda, container_t1 _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies);
 
 /**
  * @brief Linear system solver for triangular packed matrices.
@@ -581,13 +588,15 @@ typename sb_handle_t::event_t _tbsv_impl(sb_handle_t& sb_handle, index_t _N,
  *            Matrix format
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+* @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
 typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
                                     char _trans, char _Diag, index_t _N,
                                     container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx);
+                                    increment_t _incx,
+                                    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           transpose_type trn, diag_type diag, typename sb_handle_t,
@@ -595,7 +604,8 @@ template <uint32_t subgroup_size, uint32_t subgroups, uplo_type uplo,
           typename increment_t>
 typename sb_handle_t::event_t _tpsv_impl(sb_handle_t& sb_handle, index_t _N,
                                          container_t0 _mA, container_t1 _vx,
-                                         increment_t _incx);
+                                         increment_t _incx,
+                                         const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
@@ -632,10 +642,11 @@ typename sb_handle_t::event_t inline _gemv(
                         // when trans = "n" and (1+(n-1)*abs(incy) otherwise,
     // containing the vector "y" (if beta is nonzero). When
     // finished, y is overwritten with the updated vector.
-    increment_t _incy  // The increment for elements in y (nonzero).
+    increment_t _incy,  // The increment for elements in y (nonzero).
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
   return internal::_gemv(sb_handle, _trans, _M, _N, _alpha, _mA, _lda, _vx,
-                         _incx, _beta, _vy, _incy);
+                         _incx, _beta, _vy, _incy, _dependencies);
 }
 
 /*!
@@ -661,10 +672,11 @@ typename sb_handle_t::event_t inline _trmv(
     container_0_t _mA,       // (_lda, _N) The input matrix
     index_t _lda,            // >max(1, _N) The first dimension of _mA
     container_1_t _vx,       // (1 + (_N-1)*abs(_incx)), output vector X
-    increment_t _incx        // !=0 The increment for the elements of X
+    increment_t _incx,       // !=0 The increment for the elements of X
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
   return internal::_trmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _lda, _vx,
-                         _incx);
+                         _incx, _dependencies);
 }
 
 /**
@@ -686,16 +698,16 @@ typename sb_handle_t::event_t inline _trmv(
  * @param _lda Leading dimension _mA at least _N
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t inline _trsv(sb_handle_t& sb_handle, char _Uplo,
-                                           char _trans, char _Diag, index_t _N,
-                                           container_0_t _mA, index_t _lda,
-                                           container_1_t _vx,
-                                           increment_t _incx) {
+typename sb_handle_t::event_t inline _trsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, index_t _lda, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_trsv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _lda, _vx,
-                         _incx);
+                         _incx, _dependencies);
 }
 
 /*!
@@ -726,10 +738,11 @@ typename sb_handle_t::event_t inline _symv(
     increment_t _incx,       // !=0 The increment for the elements of X
     element_t _beta,         // Scalar parameter beta
     container_2_t _vy,       // (1 + (_N-1)*abs(_incy)), output vector Y
-    increment_t _incy        // !=0 The increment for the elements of Y
+    increment_t _incy,       // !=0 The increment for the elements of Y
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
   return internal::_symv(sb_handle, _Uplo, _N, _alpha, _mA, _lda, _vx, _incx,
-                         _beta, _vy, _incy);
+                         _beta, _vy, _incy, _dependencies);
 }
 
 /*!
@@ -759,10 +772,11 @@ typename sb_handle_t::event_t inline _ger(
     container_1_t _vy,       // >(1 + (_N-1)*abs(_incy)), input vector Y
     increment_t _incy,       // Increment for vector Y
     container_2_t _mA,       // (_lda, n) array containing A, the output
-    index_t _lda             // >max(1, m), Leading dimension of A
+    index_t _lda,            // >max(1, m), Leading dimension of A
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
   return internal::_ger(sb_handle, _M, _N, _alpha, _vx, _incx, _vy, _incy, _mA,
-                        _lda);
+                        _lda, _dependencies);
 }
 
 /*!
@@ -788,9 +802,11 @@ typename sb_handle_t::event_t inline _syr(
     container_0_t _vx,       // (1 + (_N-1)*abs(_incx)), input vector X
     increment_t _incx,       // !=0 The increment for the elements of X
     container_1_t _mA,       // (_lda, _N) The output matrix
-    index_t _lda             // >max(1, _N) The first dimension of _mA
+    index_t _lda,            // >max(1, _N) The first dimension of _mA
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
-  return internal::_syr(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda);
+  return internal::_syr(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mA, _lda,
+                        _dependencies);
 }
 
 /**
@@ -813,16 +829,16 @@ typename sb_handle_t::event_t inline _syr(
  * @param _vx (1 + (_N-1)*abs(_incx)), input vector X
  * @param _incx !=0 The increment for the elements of X
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename increment_t, typename container_1_t>
-typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
-                                          index_t _N, element_t _alpha,
-                                          container_0_t _vx, increment_t _incx,
-                                          container_1_t _mPA) {
-  return internal::_spr<sb_handle_t, index_t, element_t, container_0_t,
-                        increment_t, container_1_t>(sb_handle, _Uplo, _N,
-                                                    _alpha, _vx, _incx, _mPA);
+typename sb_handle_t::event_t inline _spr(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _vx, increment_t _incx, container_1_t _mPA,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
+  return internal::_spr(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _mPA,
+                        _dependencies);
 }
 
 /**
@@ -847,17 +863,18 @@ typename sb_handle_t::event_t inline _spr(sb_handle_t& sb_handle, char _Uplo,
  * @param _vy (1 + (_N-1)*abs(_incy)), input vector Y
  * @param _incy !=0 The increment for the elements of Y
  * @param _mPA (_lda, _N) The output matrix in packed format
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_t0, typename increment_t, typename container_t1,
           typename container_t2>
-typename sb_handle_t::event_t inline _spr2(sb_handle_t& sb_handle, char _Uplo,
-                                           index_t _N, element_t _alpha,
-                                           container_t0 _vx, increment_t _incx,
-                                           container_t1 _vy, increment_t _incy,
-                                           container_t2 _mPA) {
+typename sb_handle_t::event_t inline _spr2(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_t0 _vx, increment_t _incx, container_t1 _vy, increment_t _incy,
+    container_t2 _mPA,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_spr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
-                         _mPA);
+                         _mPA, _dependencies);
 }
 
 /*!
@@ -887,10 +904,11 @@ typename sb_handle_t::event_t inline _syr2(
     container_1_t _vy,       // (1 + (_N-1)*abs(_incx)), input vector Y
     increment_t _incy,       // !=0 The increment for the elements of Y
     container_2_t _mA,       // (_lda, _N) The output matrix
-    index_t _lda             // >max(1, _N) The first dimension of _mA
+    index_t _lda,            // >max(1, _N) The first dimension of _mA
+    const typename sb_handle_t::event_t& _dependencies = {}  // Vector of events
 ) {
   return internal::_syr2(sb_handle, _Uplo, _N, _alpha, _vx, _incx, _vy, _incy,
-                         _mA, _lda);
+                         _mA, _lda, _dependencies);
 }
 
 /**
@@ -921,19 +939,19 @@ typename sb_handle_t::event_t inline _syr2(
  * @param _vy Buffer containing y of at least (1+(_M-1)*abs(_incy)) elements
  *            when trans = 'n' and (1+(_N-1)*abs(_incy) otherwise
  * @param _incy Increment for _vy
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
-                                           index_t _M, index_t _N, index_t _KL,
-                                           index_t _KU, element_t _alpha,
-                                           container_0_t _mA, index_t _lda,
-                                           container_1_t _vx, increment_t _incx,
-                                           element_t _beta, container_2_t _vy,
-                                           increment_t _incy) {
+typename sb_handle_t::event_t inline _gbmv(
+    sb_handle_t& sb_handle, char _trans, index_t _M, index_t _N, index_t _KL,
+    index_t _KU, element_t _alpha, container_0_t _mA, index_t _lda,
+    container_1_t _vx, increment_t _incx, element_t _beta, container_2_t _vy,
+    increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_gbmv(sb_handle, _trans, _M, _N, _KL, _KU, _alpha, _mA, _lda,
-                         _vx, _incx, _beta, _vy, _incy);
+                         _vx, _incx, _beta, _vy, _incy, _dependencies);
 }
 
 /**
@@ -960,18 +978,18 @@ typename sb_handle_t::event_t inline _gbmv(sb_handle_t& sb_handle, char _trans,
  * @param _beta Scalar parameter beta
  * @param _vy Buffer containing y of at least (1+(_N-1)*abs(_incy)) elements
  * @param _incy Increment for _vy
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, index_t _K, element_t _alpha,
-                                    container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx,
-                                    element_t _beta, container_2_t _vy,
-                                    increment_t _incy) {
+typename sb_handle_t::event_t _sbmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, index_t _K,
+    element_t _alpha, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx, element_t _beta, container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_sbmv(sb_handle, _Uplo, _N, _K, _alpha, _mA, _lda, _vx,
-                         _incx, _beta, _vy, _incy);
+                         _incx, _beta, _vy, _incy, _dependencies);
 }
 
 /**
@@ -1002,13 +1020,13 @@ typename sb_handle_t::event_t _sbmv(sb_handle_t& sb_handle, char _Uplo,
 template <typename sb_handle_t, typename index_t, typename element_t,
           typename container_0_t, typename container_1_t, typename increment_t,
           typename container_2_t>
-typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
-                                    index_t _N, element_t _alpha,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx, element_t _beta,
-                                    container_2_t _vy, increment_t _incy) {
+typename sb_handle_t::event_t _spmv(
+    sb_handle_t& sb_handle, char _Uplo, index_t _N, element_t _alpha,
+    container_0_t _mA, container_1_t _vx, increment_t _incx, element_t _beta,
+    container_2_t _vy, increment_t _incy,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_spmv(sb_handle, _Uplo, _N, _alpha, _mA, _vx, _incx, _beta,
-                         _vy, _incy);
+                         _vy, _incy, _dependencies);
 }
 
 /**
@@ -1033,15 +1051,17 @@ typename sb_handle_t::event_t _spmv(sb_handle_t& sb_handle, char _Uplo,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx) {
+typename sb_handle_t::event_t _tbmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_tbmv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
-                         _vx, _incx);
+                         _vx, _incx, _dependencies);
 }
 
 /**
@@ -1064,14 +1084,16 @@ typename sb_handle_t::event_t _tbmv(sb_handle_t& sb_handle, char _Uplo,
  *            matrix format
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx) {
-  return internal::_tpmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx);
+typename sb_handle_t::event_t _tpmv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    container_0_t _mA, container_1_t _vx, increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
+  return internal::_tpmv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx,
+                         _dependencies);
 }
 
 /**
@@ -1095,18 +1117,20 @@ typename sb_handle_t::event_t _tpmv(sb_handle_t& sb_handle, char _Uplo,
  * @param _lda Leading dimension _mA at least (_K + 1)
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
-typename sb_handle_t::event_t _tbsv(sb_handle_t& sb_handle, char _Uplo,
-                                    char _trans, char _Diag, index_t _N,
-                                    index_t _K, container_0_t _mA, index_t _lda,
-                                    container_1_t _vx, increment_t _incx) {
+typename sb_handle_t::event_t _tbsv(
+    sb_handle_t& sb_handle, char _Uplo, char _trans, char _Diag, index_t _N,
+    index_t _K, container_0_t _mA, index_t _lda, container_1_t _vx,
+    increment_t _incx,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_tbsv(sb_handle, _Uplo, _trans, _Diag, _N, _K, _mA, _lda,
-                         _vx, _incx);
+                         _vx, _incx, _dependencies);
 }
 
-/**
+/**`
  * @brief Linear system solver for triangular packed matrices.
  *
  * Linear system solver for triangular packed matrices, i.e., computing x s.t.
@@ -1131,8 +1155,9 @@ template <typename sb_handle_t, typename index_t, typename container_0_t,
 typename sb_handle_t::event_t _tpsv(sb_handle_t& sb_handle, char _Uplo,
                                     char _trans, char _Diag, index_t _N,
                                     container_0_t _mA, container_1_t _vx,
-                                    increment_t _incx) {
-  return internal::_tpsv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx);
+                                    increment_t _incx,
+                                    const typename sb_handle_t::event_t& _dependencies = {}) {
+  return internal::_tpsv(sb_handle, _Uplo, _trans, _Diag, _N, _mA, _vx, _incx, _dependencies);
 }
 }  // namespace blas
 

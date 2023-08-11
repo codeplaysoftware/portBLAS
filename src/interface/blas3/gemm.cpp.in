@@ -23,9 +23,8 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/portblas_handle.hpp"
 #include "interface/gemm_interface.hpp"
-#include "operations/blas_constants.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -35,14 +34,16 @@ template typename SB_Handle::event_t _gemm(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
+    const typename SB_Handle::event_t& _dependencies);
 // batched gemm
 template typename SB_Handle::event_t _gemm_batched(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
     ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
     ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
     ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
-    ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
+    ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type,
+    const typename SB_Handle::event_t& _dependencies);
 // strided batched gemm
 template typename SB_Handle::event_t _gemm_strided_batched(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
@@ -50,6 +51,7 @@ template typename SB_Handle::event_t _gemm_strided_batched(
     ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_,
     ${INDEX_TYPE} _ldb, ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta,
     ${container_t2} _C, ${INDEX_TYPE} _ldc, ${INDEX_TYPE} _stridec,
-    ${INDEX_TYPE} batch_size);
+    ${INDEX_TYPE} batch_size, const typename SB_Handle::event_t& _dependencies);
+
 }  // namespace internal
 }  // namespace blas

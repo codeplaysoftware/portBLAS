@@ -28,7 +28,7 @@
 constexpr blas_benchmark::utils::Level1Op benchmark_op =
     blas_benchmark::utils::Level1Op::scal;
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
   // initialize the state label
@@ -40,12 +40,16 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
       blas_benchmark::utils::Level1Op::scal, scalar_t>(state, size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
-  auto in = blas::make_sycl_iterator_buffer<scalar_t>(v1, size);
+  auto in = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
+  auto copy_in = blas::helper::copy_to_device<scalar_t>(q, v1.data(), in, size);
+
+  sb_handle.wait({copy_in});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -53,10 +57,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   reference_blas::scal(size, alpha, v1_ref.data(), 1);
   std::vector<scalar_t> v1_temp = v1;
   {
-    auto v1_temp_gpu = blas::make_sycl_iterator_buffer<scalar_t>(v1_temp, size);
-    auto event =
+    auto v1_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, v1_temp.data(),
+                                                            v1_temp_gpu, size);
+    sb_handle.wait({copy_temp});
+    auto scal_event =
         _scal(sb_handle, size, alpha, v1_temp_gpu, static_cast<index_t>(1));
-    sb_handle.wait(event);
+    sb_handle.wait(scal_event);
+    auto copy_output =
+        blas::helper::copy_to_host(q, v1_temp_gpu, v1_temp.data(), size);
+    sb_handle.wait(copy_output);
+
+    blas::helper::deallocate<mem_alloc>(v1_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -94,30 +106,43 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(in, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                        bool* success) {
-  auto scal_params = blas_benchmark::utils::get_blas1_params(args);
-
-  for (auto size : scal_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<blas1_param_t> params) {
+  for (auto size : params) {
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          index_t size, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, size, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            size, blas_benchmark::utils::MEM_TYPE_BUFFER)
-            .c_str(),
+            size, mem_type).c_str(),
         BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
 }
 
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto scal_params = blas_benchmark::utils::get_blas1_params(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, scal_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, scal_params);
+#endif
+}
+
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

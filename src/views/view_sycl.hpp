@@ -142,11 +142,6 @@ struct VectorView<
   /*!
    * @brief See VectorView.
    */
-  PORTBLAS_INLINE index_t get_access_displacement() const { return disp_; }
-
-  /*!
-   * @brief See VectorView.
-   */
   PORTBLAS_INLINE increment_t get_stride() const { return stride_; }
 
   /**** EVALUATING ****/
@@ -266,8 +261,6 @@ struct MatrixView<
   PORTBLAS_INLINE const index_t get_size_row() const { return sizeR_; }
 
   PORTBLAS_INLINE const index_t get_size_col() const { return sizeC_; }
-
-  PORTBLAS_INLINE index_t get_access_displacement() const { return disp_; }
 
   PORTBLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 

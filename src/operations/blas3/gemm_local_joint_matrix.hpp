@@ -289,12 +289,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t b_size = trans_b ? ldb * k : n * ldb;
     const index_t c_size = ldc * n;
 
-    auto ptr_A = a_.get_data().get_pointer() + a_.get_access_displacement() +
-                 (wg_batch_id * stridea_);
-    auto ptr_B = b_.get_data().get_pointer() + b_.get_access_displacement() +
-                 (wg_batch_id * strideb_);
-    auto ptr_C = c_.get_data().get_pointer() + c_.get_access_displacement() +
-                 (wg_batch_id * stridec_);
+    using address_t = cl::sycl::access::address_space;
+    using multi_ptr_ = cl::sycl::multi_ptr<element_t, address_t::global_space>;
+    auto ptr_A = multi_ptr_(a_.get_pointer()) + (wg_batch_id * stridea_);
+    auto ptr_B = multi_ptr_(b_.get_pointer()) + (wg_batch_id * strideb_);
+    auto ptr_C = multi_ptr_(c_.get_pointer()) + (wg_batch_id * stridec_);
 
     auto sg = id.get_sub_group();
     const index_t sg_id = sg.get_group_linear_id();
@@ -373,7 +372,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             batch_stride, wg_batch_id, batch_size_);
       }
     } else {
-      using address_t = cl::sycl::access::address_space;
       auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<
           typename tile_type::jmInpType, address_t::local_space> *>(&scratch);
 

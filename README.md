@@ -175,14 +175,23 @@ of multiple BLAS operations.
 
 ## API description
 
-This section references all the supported operations and their interface.
+This section references all the supported operations and their interface. The 
+library follows the [oneAPI MKL BLAS specification](https://spec.oneapi.io/versions/latest/elements/oneMKL/source/domains/blas/blas.html) 
+as reference for the api. We have support for both USM and Buffer api, however 
+the group apis for USM are not supported. We don't support mixing USM and Buffer 
+arguments together to compile the library, and instead stick to the aformentioned 
+reference specification.
 
 All operations take as their first argument a reference to the SB_Handle, a
-`blas::SB_Handle` created with a `sycl::queue`. The return value is usually an
-array of SYCL events (except for some operations that can return a scalar or
+`blas::SB_Handle` created with a `sycl::queue`. The last argument for all operators
+is a vector of dependencies of type `cl::sycl::event` (empty by default). The return value 
+is usually an array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
-the BLAS operations) are iterator buffers that can be created with
-`make_sycl_iterator_buffer`.
+the BLAS operations) can either be `raw usm pointers` or `iterator buffers` that can be 
+created with a call to `cl::sycl::malloc_device` or `make_sycl_iterator_buffer` respectively.
+
+The USM support in SYCL-BLAS is limited to `device allocated` memory only and we don't support
+`shared` or `host` allocations with USM. 
 
 We recommend checking the [samples](samples) to get started with portBLAS. It
 is better to be familiar with BLAS:

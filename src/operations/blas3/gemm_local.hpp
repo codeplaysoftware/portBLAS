@@ -278,12 +278,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t b_size = trans_b ? ldb * k : n * ldb;
     const index_t c_size = ldc * n;
 
-    auto ptr_A = a_.get_data().get_pointer() + a_.get_access_displacement() +
-                 (wg_batch_id * stridea_);
-    auto ptr_B = b_.get_data().get_pointer() + b_.get_access_displacement() +
-                 (wg_batch_id * strideb_);
-    auto ptr_C = c_.get_data().get_pointer() + c_.get_access_displacement() +
-                 (wg_batch_id * stridec_);
+    auto ptr_A = a_.get_pointer() + (wg_batch_id * stridea_);
+    auto ptr_B = b_.get_pointer() + (wg_batch_id * strideb_);
+    auto ptr_C = c_.get_pointer() + (wg_batch_id * stridec_);
 
     const index_t item_id = id.get_local_id(0);
     const index_t tile_id = wg_id / tile_size;
