@@ -115,31 +115,57 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 /**
  * @brief Implementation of matrix copy operators for non transpose cases.
  */
+template <bool in_place, bool trans, bool in_has_inc, bool out_has_inc,
+          typename sb_handle_t, typename element_t, typename index_t,
+          typename in_t, typename out_t>
+typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
+_matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+              in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
+              index_t ld_out, index_t inc_out, const typename sb_handle_t::event_t& _dependencies) {
+  typename sb_handle_t::event_t ret;
+  typename MatrixViewType<in_t, index_t, col_major, in_has_inc>::type in_view =
+      make_matrix_view<col_major, element_t, index_t, in_has_inc>(in_memory, m, n, ld_in, inc_in);
+  typename MatrixViewType<out_t, index_t, col_major, out_has_inc>::type out_view =
+      make_matrix_view<col_major, element_t, index_t, out_has_inc>(out_memory, m, n, ld_out, inc_out);
+  // if alpha=1 no need to multiply
+  if (alpha == 1) {
+    auto copy_op = make_op<Assign>(out_view, in_view);
+    ret = sb_handle.execute(copy_op, _dependencies);
+  } else {
+    auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
+    auto copy_op = make_op<Assign>(out_view, scal_op);
+    ret = sb_handle.execute(copy_op, _dependencies);
+  }
+  return ret;
+}
+
 template <bool in_place, bool trans, typename sb_handle_t, typename element_t,
           typename index_t, typename in_t, typename out_t>
 typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               in_t in_memory, index_t ld_in, index_t inc_in, out_t out_memory,
               index_t ld_out, index_t inc_out, const typename sb_handle_t::event_t& _dependencies) {
-  typename sb_handle_t::event_t ret;
-  // if alpha=1 no need to multiply
-  if (alpha == 1) {
-    typename MatrixViewType<in_t, index_t, col_major, true>::type in_view =
-        make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
-    typename MatrixViewType<out_t, index_t, col_major, true>::type out_view =
-        make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
-    auto copy_op = make_op<Assign>(out_view, in_view);
-    ret = sb_handle.execute(copy_op, _dependencies);
+  if (inc_in == 1 && inc_out == 1) {
+    return _matcopy_impl<in_place, trans, false, false>(sb_handle, m, n, alpha,
+                                                 in_memory, ld_in, inc_in,
+                                                 out_memory, ld_out, inc_out,
+                                                 _dependencies);
+  } else if (inc_in == 1) {
+    return _matcopy_impl<in_place, trans, false, true>(sb_handle, m, n, alpha,
+                                                        in_memory, ld_in, inc_in,
+                                                        out_memory, ld_out, inc_out,
+                                                        _dependencies);
+  } else if (inc_out == 1) {
+    return _matcopy_impl<in_place, trans, true, false>(sb_handle, m, n, alpha,
+                                                       in_memory, ld_in, inc_in,
+                                                       out_memory, ld_out, inc_out,
+                                                       _dependencies);
   } else {
-    typename MatrixViewType<in_t, index_t, col_major, true>::type in_view =
-        make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
-    typename MatrixViewType<out_t, index_t, col_major, true>::type out_view =
-        make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
-    auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
-    auto copy_op = make_op<Assign>(out_view, scal_op);
-    ret = sb_handle.execute(copy_op, _dependencies);
+    return _matcopy_impl<in_place, trans, true, true>(sb_handle, m, n, alpha,
+                                                       in_memory, ld_in, inc_in,
+                                                       out_memory, ld_out, inc_out,
+                                                       _dependencies);
   }
-  return ret;
 }
 
 /*!
@@ -252,8 +278,13 @@ template <typename operator_t, reduction_dim_t reduction_dim,
 typename sb_handle_t::event_t launch_type_based_reduction(
     sb_handle_t& sb_handle, input_t buffer_in, index_t ld, output_t buffer_out,
     index_t rows, index_t cols, const typename SB_Handle::event_t& dependencies) {
+#ifdef POWER_VR
+  constexpr int ClSize = 32;
+  constexpr int WgSize = 64;
+#else
   constexpr int ClSize = 64;
   constexpr int WgSize = 256;
+#endif
   constexpr index_t reductions_per_thread = 64;
 
   using params_t = blas::ReductionParams<index_t, element_t, ClSize, WgSize,

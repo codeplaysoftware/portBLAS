@@ -151,7 +151,6 @@ struct MatrixView {
   index_t sizeL_;  // size of the leading dimension
   const index_t inc_;    // internal increment between same row/column elements
 
-
   // UPLO, BAND(KU,KL), PACKED, SIDE ARE ONLY REQUIRED
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC);
   MatrixView(view_container_t data, view_index_t sizeR, view_index_t sizeC,
@@ -344,10 +343,11 @@ static SYCL_BLAS_INLINE auto make_vector_view(BufferIterator<value_t> buff,
                      (index_t)buff.get_offset(), inc, sz};
 }
 
-template <typename access_layout_t, typename value_t, typename index_t>
+template <typename access_layout_t, typename value_t, typename index_t,
+          bool has_inc = false>
 static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
                                               index_t m, index_t n,
-                                              index_t lda) {
+                                              index_t lda, index_t inc = 1) {
   static constexpr cl::sycl::access::mode access_mode_t =
       Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
              cl::sycl::access::mode::read,
@@ -355,24 +355,7 @@ static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
   using leaf_node_t =
       MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
                      access_mode_t>,
-                 index_t, access_layout_t, false>;
-  return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
-                     lda, (index_t)buff.get_offset()};
-}
-
-template <typename access_layout_t, typename value_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_matrix_view(BufferIterator<value_t> buff,
-                                              index_t m, index_t n,
-                                              index_t lda, index_t inc) {
-  assert(inc != 1);
-  static constexpr cl::sycl::access::mode access_mode_t =
-      Choose<std::is_const<value_t>::value, cl::sycl::access::mode,
-             cl::sycl::access::mode::read,
-             cl::sycl::access::mode::read_write>::type;
-  using leaf_node_t =
-      MatrixView<typename BufferIterator<value_t>::template default_accessor_t<
-                     access_mode_t>,
-                 index_t, access_layout_t, true>;
+                 index_t, access_layout_t, has_inc>;
   return leaf_node_t{buff.template get_range_accessor<access_mode_t>(), m, n,
                      lda, inc, (index_t)buff.get_offset()};
 }
@@ -384,19 +367,12 @@ static SYCL_BLAS_INLINE auto make_vector_view(value_t *usm_ptr, increment_t inc,
   return leaf_node_t{usm_ptr, inc, sz};
 }
 
-template <typename access_layout_t, typename value_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_matrix_view(value_t *usm_ptr, index_t m,
-                                              index_t n, index_t lda) {
-  using leaf_node_t = MatrixView<value_t *, index_t, access_layout_t, false>;
-  return leaf_node_t{usm_ptr, m, n, lda};
-}
-
-template <typename access_layout_t, typename value_t, typename index_t>
+template <typename access_layout_t, typename value_t, typename index_t,
+          bool has_inc = false>
 static SYCL_BLAS_INLINE auto make_matrix_view(value_t *usm_ptr, index_t m,
                                               index_t n, index_t lda,
-                                              index_t inc) {
-  assert(inc != 1);
-  using leaf_node_t = MatrixView<value_t *, index_t, access_layout_t, true>;
+                                              index_t inc = 1) {
+  using leaf_node_t = MatrixView<value_t *, index_t, access_layout_t, has_inc>;
   return leaf_node_t{usm_ptr, m, n, lda, inc};
 }
 
@@ -407,19 +383,13 @@ static SYCL_BLAS_INLINE auto make_vector_view(const value_t *usm_ptr,
   return leaf_node_t{usm_ptr, inc, sz};
 }
 
-template <typename access_layout_t, typename value_t, typename index_t>
-static SYCL_BLAS_INLINE auto make_matrix_view(const value_t *usm_ptr, index_t m,
-                                              index_t n, index_t lda) {
-  using leaf_node_t = MatrixView<const value_t *, index_t, access_layout_t, false>;
-  return leaf_node_t{usm_ptr, m, n, lda};
-}
 
-template <typename access_layout_t, typename value_t, typename index_t>
+template <typename access_layout_t, typename value_t, typename index_t,
+          bool has_inc = false>
 static SYCL_BLAS_INLINE auto make_matrix_view(const value_t *usm_ptr, index_t m,
                                               index_t n, index_t lda,
-                                              index_t inc) {
-  assert(inc != 1);
-  using leaf_node_t = MatrixView<const value_t *, index_t, access_layout_t, true>;
+                                              index_t inc = 1) {
+  using leaf_node_t = MatrixView<const value_t *, index_t, access_layout_t, has_inc>;
   return leaf_node_t{usm_ptr, m, n, lda, inc};
 }
 

@@ -115,7 +115,9 @@ SYCL_BLAS_INLINE MatrixView<_container_t, _IndexType, layout, has_inc>::MatrixVi
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_((layout::is_col_major()) ? sizeR_ : sizeC_),
-      inc_(index_t{1}) {}
+      inc_(index_t{1}) {
+  static_assert(has_inc);
+}
 
 /*!
  * @brief Constructs a matrix view on the container.
@@ -128,7 +130,9 @@ SYCL_BLAS_INLINE MatrixView<_container_t, _IndexType, layout, has_inc>::MatrixVi
 template <class _container_t, typename _IndexType, typename layout, bool has_inc>
 SYCL_BLAS_INLINE MatrixView<_container_t, _IndexType, layout, has_inc>::MatrixView(
     _container_t data, _IndexType sizeR, _IndexType sizeC, _IndexType sizeL)
-    : data_(data), sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), inc_(index_t{1}) {}
+    : data_(data), sizeR_(sizeR), sizeC_(sizeC), sizeL_(sizeL), inc_(index_t{1}) {
+  static_assert(has_inc);
+}
 
 template <class _container_t, typename _IndexType, typename layout, bool has_inc>
 SYCL_BLAS_INLINE MatrixView<_container_t, _IndexType, layout, has_inc>::MatrixView(
@@ -137,7 +141,9 @@ SYCL_BLAS_INLINE MatrixView<_container_t, _IndexType, layout, has_inc>::MatrixVi
       sizeR_(sizeR),
       sizeC_(sizeC),
       sizeL_(sizeL),
-      inc_(inc) {}
+      inc_(inc) {
+  assert((has_inc && inc != 1) || (!has_inc && inc == 1));
+}
 
 /*!
  *@brief Creates a matrix view from the given one but with different access

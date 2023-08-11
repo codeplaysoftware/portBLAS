@@ -228,15 +228,21 @@ struct MatrixView<
         sizeC_(sizeC),
         sizeL_(sizeL),
         inc_(1),
-        disp_(disp) {}
+        disp_(disp) {
+    static_assert(has_inc);
+  }
 
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
       : MatrixView(data, sizeR, sizeC,
-                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {}
+                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {
+    static_assert(has_inc);
+  }
 
   SYCL_BLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
-      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
+      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {
+    static_assert(has_inc);
+  }
 
   SYCL_BLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t inc, index_t disp)
@@ -245,7 +251,9 @@ struct MatrixView<
         sizeC_(sizeC),
         sizeL_(sizeL),
         inc_(inc),
-        disp_(disp) {}
+        disp_(disp) {
+    assert((has_inc && inc != 1) || (!has_inc && inc == 1));
+  }
 
   /**** RETRIEVING DATA ****/
   SYCL_BLAS_INLINE container_t &get_data() { return data_; }
