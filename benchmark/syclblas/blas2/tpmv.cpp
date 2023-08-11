@@ -143,8 +143,7 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            uplos, ts, diags, n, blas_benchmark::utils::MEM_TYPE_BUFFER)
-            .c_str(),
+            uplos, ts, diags, n, mem_type).c_str(),
         BM_lambda, sb_handle_ptr, uplos, ts, diags, n, success)
         ->UseRealTime();
   }
@@ -157,10 +156,10 @@ void register_benchmark(blas_benchmark::Args& args,
   auto tpmv_params = blas_benchmark::utils::get_trsv_params(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, "buffer", tpmv_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, tpmv_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
-      sb_handle_ptr, success, "usm", tpmv_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, tpmv_params);
 #endif
 }
 

@@ -113,8 +113,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
-  constexpr bool is_usm = std::is_same<typename lhs_t::container_t,
-                                       typename lhs_t::value_t*>::value;
+  constexpr bool is_usm = std::is_pointer<typename lhs_t::container_t>::value;
   auto shMem1 = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                 : helper::AllocType::buffer,
        typename lhs_t::value_t > (sharedSize, q_);
@@ -270,8 +269,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     return events;
   }
   /* Else use the tall and skinny algorithm */
-  constexpr bool is_usm =
-      std::is_same<typename input_t::container_t, element_t*>::value;
+  constexpr bool is_usm = std::is_pointer<typename input_t::container_t>::value;
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */

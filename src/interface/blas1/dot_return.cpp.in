@@ -51,9 +51,17 @@ namespace internal {
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template typename ValueType<${container_t0}>::type _dot(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy,
+template typename ValueType<BufferIterator<${DATA_TYPE}>>::type _dot(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, BufferIterator<${DATA_TYPE}> _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename ValueType<${DATA_TYPE}>::type _dot(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
     const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas

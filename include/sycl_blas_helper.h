@@ -80,6 +80,16 @@ template <AllocType alloc, typename container_t>
 typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
     container_t mem, cl::sycl::queue q) {}
 
+template <typename container_t,
+          AllocType alloc = std::is_pointer<container_t>::value
+                                ? AllocType::usm
+                                : AllocType::buffer>
+using add_const = typename std::conditional<
+    alloc == AllocType::usm,
+    typename std::add_pointer<typename std::add_const<
+        typename std::remove_pointer<container_t>::type>::type>::type,
+    container_t>::type;
+
 template <typename container_t>
 typename std::enable_if<std::is_same<
     container_t, typename AllocHelper<typename ValueType<container_t>::type,
@@ -173,6 +183,13 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
   auto event = q.memcpy(dst, src, size * sizeof(element_t));
   return event;
 }
+template <typename element_t>
+inline cl::sycl::event copy_to_host(cl::sycl::queue q, const element_t *src,
+                                    element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+  return event;
+}
+
 #endif
 
 template <typename element_t>

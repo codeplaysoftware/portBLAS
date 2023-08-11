@@ -39,9 +39,21 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template ${INDEX_TYPE} _iamin(SB_Handle &sb_handle, ${INDEX_TYPE} _N,
-                              ${container_t0} _vx, ${INCREMENT_TYPE} _incx,
+template ${INDEX_TYPE} _iamin(SB_Handle& sb_handle, ${INDEX_TYPE} _N,
+                              BufferIterator<${DATA_TYPE}> _vx,
+                              ${INCREMENT_TYPE} _incx,
                               const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template ${INDEX_TYPE} _iamin(SB_Handle& sb_handle, ${INDEX_TYPE} _N,
+                              ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+                              const typename SB_Handle::event_t& dependencies);
+
+template ${INDEX_TYPE} _iamin(SB_Handle& sb_handle, ${INDEX_TYPE} _N,
+                              const ${DATA_TYPE} * _vx,
+                              ${INCREMENT_TYPE} _incx,
+                              const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

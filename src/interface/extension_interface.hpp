@@ -65,9 +65,9 @@ typename sb_handle_t::event_t _transpose_outplace_impl(
   constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
 
   // Matrix Views
-  auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in, index_t(1));
+  auto in_view = make_matrix_view<col_major>(in_, _M, _N, _ld_in);
   auto out_view =
-      make_matrix_view<col_major>(out_, _M, _N, _ld_out, index_t(1));
+      make_matrix_view<col_major>(out_, _M, _N, _ld_out);
 
   // Work items & groups sizes
   index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
@@ -124,14 +124,16 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   typename sb_handle_t::event_t ret;
   // if alpha=1 no need to multiply
   if (alpha == 1) {
-    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
-    auto out_view =
+    typename MatrixViewType<in_t, index_t, col_major, true>::type in_view =
+        make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
+    typename MatrixViewType<out_t, index_t, col_major, true>::type out_view =
         make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
     auto copy_op = make_op<Assign>(out_view, in_view);
     ret = sb_handle.execute(copy_op, _dependencies);
   } else {
-    auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
-    auto out_view =
+    typename MatrixViewType<in_t, index_t, col_major, true>::type in_view =
+        make_matrix_view<col_major>(in_memory, m, n, ld_in, inc_in);
+    typename MatrixViewType<out_t, index_t, col_major, true>::type out_view =
         make_matrix_view<col_major>(out_memory, m, n, ld_out, inc_out);
     auto scal_op = make_op<ScalarOp, ProductOperator>(alpha, in_view);
     auto copy_op = make_op<Assign>(out_view, scal_op);
@@ -157,12 +159,12 @@ typename sb_handle_t::event_t _transpose_add_impl(
       std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
   constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
   // Matrix Views
-  auto A_view =
-      make_matrix_view<col_major>(a_, _nrows_a, _ncols_a, _lda, (index_t)1);
-  auto B_view =
-      make_matrix_view<col_major>(b_, _nrows_b, _ncols_b, _ldb, (index_t)1);
+  typename MatrixViewType<container_0_t, index_t, col_major>::type A_view =
+      make_matrix_view<col_major>(a_, _nrows_a, _ncols_a, _lda);
+  typename MatrixViewType<container_1_t, index_t, col_major>::type B_view =
+      make_matrix_view<col_major>(b_, _nrows_b, _ncols_b, _ldb);
 
-  auto C_view = make_matrix_view<col_major>(c_, _M, _N, _ldc, (index_t)1);
+  auto C_view = make_matrix_view<col_major>(c_, _M, _N, _ldc);
 
   // Work items & groups sizes
   index_t n_wg = ((_M - 1) / Tile_size + 1) * ((_N - 1) / Tile_size + 1);
@@ -198,11 +200,12 @@ typename sb_handle_t::event_t _transpose_add_impl(
  *
  */
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
-          typename index_t, typename container_t>
+          typename index_t, typename container_0_t, typename container_1_t,
+          typename container_2_t>
 typename std::enable_if<trans_a, typename sb_handle_t::event_t>::type
 _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              container_t a, index_t lda, element_t beta, container_t b,
-              index_t ldb, container_t c, index_t ldc) {
+              container_0_t a, index_t lda, element_t beta, container_1_t b,
+              index_t ldb, container_2_t c, index_t ldc) {
   typename sb_handle_t::event_t ret;
 
   const index_t a_rows = trans_a ? n : m;
@@ -218,15 +221,18 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 }
 
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
-          typename index_t, typename container_t>
+          typename index_t, typename container_0_t, typename container_1_t,
+          typename container_2_t>
 typename std::enable_if<!trans_a && !trans_b,
                         typename sb_handle_t::event_t>::type
 _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-              container_t a, index_t lda, element_t beta, container_t b,
-              index_t ldb, container_t c, index_t ldc) {
+              container_0_t a, index_t lda, element_t beta, container_1_t b,
+              index_t ldb, container_2_t c, index_t ldc) {
   typename sb_handle_t::event_t ret;
-  auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
-  auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
+  typename MatrixViewType<container_0_t, index_t, col_major>::type m_a_view =
+      make_matrix_view<col_major>(a, m, n, lda);
+  typename MatrixViewType<container_1_t, index_t, col_major>::type m_b_view =
+      make_matrix_view<col_major>(b, m, n, ldb);
   auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
   auto scal_a = make_op<ScalarOp, ProductOperator>(alpha, m_a_view);
   auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
@@ -334,13 +340,13 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
 }
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t a,
+                                       element_t alpha, container_0_t a,
                                        index_t lda, element_t beta,
-                                       container_t b, index_t ldb,
-                                       container_t c, index_t ldc,
+                                       container_1_t b, index_t ldb,
+                                       container_2_t c, index_t ldc,
                                        const typename sb_handle_t::event_t& _dependencies) {
   if (trans_a == 't') {
     if (trans_b == 't') {

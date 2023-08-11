@@ -39,7 +39,6 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_unit;
   index_t incX;
   index_t lda_mul;
-  scalar_t wa;
   scalar_t unused; /* Work around dpcpp compiler bug
                       (https://github.com/intel/llvm/issues/7075) */
   std::tie(alloc, n, k, is_upper, trans, is_unit, incX, lda_mul, unused) = combi;
@@ -160,7 +159,6 @@ static std::string generate_name(
   bool is_upper;
   bool trans;
   bool is_unit;
-  T wa;
   T unused;
   BLAS_GENERATE_NAME(info.param, alloc, n, k, is_upper, trans, is_unit, incX, ldaMul,
                      unused);

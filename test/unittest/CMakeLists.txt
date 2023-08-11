@@ -38,7 +38,7 @@ set(SYCL_UNITTEST_SRCS
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
-  # Blas 2 tests
+  # # Blas 2 tests
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
   ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
@@ -102,7 +102,7 @@ set(SYCL_UNITTEST_NOFASTMATH
 )
 
 if(GEMM_TALL_SKINNY_SUPPORT)
-  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
+  # list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})

@@ -69,13 +69,13 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        const typename sb_handle_t::event_t& _dependencies);
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t a,
+                                       element_t alpha, container_0_t a,
                                        index_t lda, element_t beta,
-                                       container_t b, index_t ldb,
-                                       container_t c, index_t ldc,
+                                       container_1_t b, index_t ldb,
+                                       container_2_t c, index_t ldc,
                                        const typename sb_handle_t::event_t& _dependencies);
 
 template <bool in_place, typename element_t, typename sb_handle_t,
@@ -204,13 +204,13 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
  * @param ldc Matrix C leading dimension
  */
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t A,
+                                       element_t alpha, container_0_t A,
                                        index_t lda, element_t beta,
-                                       container_t B, index_t ldb,
-                                       container_t C, index_t ldc,
+                                       container_1_t B, index_t ldb,
+                                       container_2_t C, index_t ldc,
                                        const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, A, lda,
                             beta, B, ldb, C, ldc, _dependencies);

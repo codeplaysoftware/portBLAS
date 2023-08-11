@@ -76,7 +76,7 @@ SYCL_BLAS_INLINE
     const index_t col_offset = is_upper ? ((col * (col + 1)) / 2)
                                         : (col * _N) - ((col * (col + 1)) / 2);
 
-    value_t *val = matrix_.get_pointer() + col_offset + row;
+    const value_t *val = matrix_.get_pointer() + col_offset + row;
     return read_it ? *val : value_t(0);
   } else if (matrix_format == matrix_format_t::banded) {
     // tbsv

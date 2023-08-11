@@ -552,6 +552,7 @@ typename sb_handle_t::event_t _tpmv_impl(
  * @param _vx Buffer containing x of at least (1+(_N-1)*abs(_incx)) elements
  * @param _incx Increment for _vx (nonzero)
  * @param _dependencies Vector of events
+ * @param _dependencies Vector of events
  */
 template <typename sb_handle_t, typename index_t, typename container_0_t,
           typename container_1_t, typename increment_t>
