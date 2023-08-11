@@ -23,21 +23,17 @@
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas2_interface.hpp"
-#include "operations/blas1_trees.hpp"
-#include "operations/blas2_trees.hpp"
-#include "operations/blas_constants.hpp"
-#include "views/view_sycl.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/sycl_blas_handle.hpp"
 
 namespace blas {
 namespace internal {
 template typename SB_Handle::event_t _tbmv(
-    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
-    ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${INDEX_TYPE} _K, ${container_t0} _mA, ${INDEX_TYPE} _lda,
+    ${container_t1} _vx, ${INCREMENT_TYPE} _incx,
+    const typename SB_Handle::event_t& _dependencies);
 
 }  // namespace internal
 }  // namespace blas

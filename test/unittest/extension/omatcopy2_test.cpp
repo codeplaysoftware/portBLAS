@@ -27,16 +27,17 @@
 #include "extension_reference.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
+using combination_t = std::tuple<std::string, char, index_t, index_t, scalar_t, index_t,
                                  index_t, index_t, index_t>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   char trans;
   index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
   scalar_t alpha;
 
-  std::tie(trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) = combi;
+  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) = combi;
 
   // Leading dimensions are computed as multiples of the minimum value specified
   // in the oneMKL documentation at :
@@ -68,11 +69,18 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::ext_omatcopy2(trans, m, n, alpha, A_ref, ld_in, inc_in, B_ref,
                                 ld_out, inc_out);
 
-  auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, m_a_size);
-  auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, m_b_size);
+  auto matrix_in = helper::allocate<mem_alloc, scalar_t>(m_a_size, q);
+  auto matrix_out = helper::allocate<mem_alloc, scalar_t>(m_b_size, q);
 
-  blas::_omatcopy2(sb_handle, trans, m, n, alpha, matrix_in, ld_in, inc_in,
-                   matrix_out, ld_out, inc_out);
+  auto copy_in =
+      helper::copy_to_device<scalar_t>(q, A.data(), matrix_in, m_a_size);
+  auto copy_out =
+      helper::copy_to_device<scalar_t>(q, B.data(), matrix_out, m_b_size);
+
+  auto omatcopy2_event = blas::_omatcopy2(sb_handle, trans, m, n, alpha, matrix_in, ld_in, inc_in,
+                   matrix_out, ld_out, inc_out, {copy_in, copy_out});
+
+  sb_handle.wait(omatcopy2_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), matrix_out, B.data(), m_b_size);
@@ -81,12 +89,36 @@ void run_test(const combination_t<scalar_t> combi) {
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(B, B_ref);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(matrix_in, q);
+  helper::deallocate<mem_alloc>(matrix_out, q);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  char trans;
+  index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
+  scalar_t alpha;
+
+  std::tie(alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out, ld_out_m) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
 }
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),
+                       ::testing::Values<char>('n', 't'),              // trans
                        ::testing::Values<index_t>(1024, 4050, 16380),  // m
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
                        ::testing::Values<scalar_t>(0, 2.5),            // alpha
@@ -97,7 +129,8 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
+                       ::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 2),         // alpha
@@ -110,10 +143,11 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   char trans;
   index_t m, n, inc_in, ld_in_m, inc_out, ld_out_m;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, inc_in, ld_in_m, inc_out,
+  BLAS_GENERATE_NAME(info.param, alloc, trans, m, n, alpha, inc_in, ld_in_m, inc_out,
                      ld_out_m);
 }
 

@@ -26,14 +26,15 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<api_type, int, int>;
+using combination_t = std::tuple<std::string, api_type, int, int>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   api_type api;
   index_t size;
   index_t incX;
-  std::tie(api, size, incX) = combi;
+  std::tie(alloc, api, size, incX) = combi;
 
   // Input vector
   std::vector<scalar_t> x_v(size * incX);
@@ -55,37 +56,67 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::make_sycl_iterator_buffer<scalar_t>(x_v, size * incX);
+  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto copy_x =
+      helper::copy_to_device<scalar_t>(q, x_v.data(), gpu_x_v, size * incX);
 
   if (api == api_type::async) {
-    auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
-    _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s);
-    auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                      gpu_out_s, &out_s, 1);
+    auto gpu_out_s = helper::allocate<mem_alloc, scalar_t>(1, q);
+    auto copy_out = helper::copy_to_device<scalar_t>(q, &out_s, gpu_out_s, 1);
+    auto asum_event =
+        _asum(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x, copy_out});
+    sb_handle.wait(asum_event);
+    auto event = helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
+    helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
-    out_s = _asum(sb_handle, size, gpu_x_v, incX);
+    out_s = _asum(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result
   const bool is_almost_equal = utils::almost_equal(out_s, out_cpu_s);
   ASSERT_TRUE(is_almost_equal);
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
 }
 
 template <typename scalar_t>
-const auto combi = ::testing::Combine(::testing::Values(api_type::async,
-                                                        api_type::sync),  // Api
-                                      ::testing::Values(11, 65, 10000,
-                                                        1002400),  // size
-                                      ::testing::Values(1, 4)      // incX
-);
+static void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  api_type api;
+  index_t size;
+  index_t incX;
+  std::tie(alloc, api, size, incX) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
+
+template <typename scalar_t>
+const auto combi =
+    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+                       ::testing::Values(api_type::async,
+                                         api_type::sync),  // Api
+                       ::testing::Values(11, 65, 10000,
+                                         1002400),  // size
+                       ::testing::Values(1, 4)      // incX
+    );
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   api_type api;
   int size, incX;
-  BLAS_GENERATE_NAME(info.param, api, size, incX);
+  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX);
 }
 
 BLAS_REGISTER_TEST_ALL(Asum, combination_t, combi, generate_name);

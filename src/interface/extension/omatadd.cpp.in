@@ -35,7 +35,8 @@ template typename SB_Handle::event_t _omatadd(
     SB_Handle& sb_handle, char transA, char transB, ${INDEX_TYPE} m,
     ${INDEX_TYPE} N, ${DATA_TYPE} alpha, ${container_t0} a,
     ${INDEX_TYPE} lda, ${DATA_TYPE} beta, ${container_t0} b,
-    ${INDEX_TYPE} ldb, ${container_t0} C, ${INDEX_TYPE} ldc);
+    ${INDEX_TYPE} ldb, ${container_t0} C, ${INDEX_TYPE} ldc,
+    const typename SB_Handle::event_t& _dependencies);
 
 }  // namespace internal
 }  // namespace blas

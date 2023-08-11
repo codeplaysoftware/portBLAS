@@ -39,11 +39,12 @@ enum operator_t : int {
 using index_t = int;
 
 template <typename scalar_t>
-using combination_t = std::tuple<index_t, index_t, index_t, operator_t,
-                                 reduction_dim_t, scalar_t>;
+using combination_t = std::tuple<std::string, index_t, index_t, index_t,
+                                 operator_t, reduction_dim_t, scalar_t>;
 
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values("usm", "buf"),             // allocation type
     ::testing::Values(1, 7, 513),                // rows
     ::testing::Values(1, 15, 1000, 1337, 8195),  // columns
     ::testing::Values(1, 2, 3),                  // ld_mul
@@ -67,21 +68,23 @@ inline void dump_arg<reduction_dim_t>(std::ostream& ss,
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   index_t rows, cols, ldMul;
   operator_t op;
   reduction_dim_t reductionDim;
   T unused;
-  BLAS_GENERATE_NAME(info.param, rows, cols, ldMul, op, reductionDim, unused);
+  BLAS_GENERATE_NAME(info.param, alloc, rows, cols, ldMul, op, reductionDim, unused);
 }
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   index_t rows, cols, ld_mul;
   operator_t op;
   reduction_dim_t reduction_dim;
   scalar_t unused; /* Work around dpcpp compiler bug
                       (https://github.com/intel/llvm/issues/7075) */
-  std::tie(rows, cols, ld_mul, op, reduction_dim, unused) = combi;
+  std::tie(alloc, rows, cols, ld_mul, op, reduction_dim, unused) = combi;
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
@@ -172,52 +175,85 @@ void run_test(const combination_t<scalar_t> combi) {
   if (op == operator_t::Mean) {
     const auto nelems = reduction_dim == reduction_dim_t::outer ? cols : rows;
     std::transform(out_v_cpu.begin(), out_v_cpu.end(), out_v_cpu.begin(),
-                   [=](scalar_t val) -> scalar_t {
-                     return val / static_cast<scalar_t>(nelems);
-                   });
+                    [=](scalar_t val) -> scalar_t {
+                      return val / static_cast<scalar_t>(nelems);
+                    });
   }
 
-  auto m_in_gpu = blas::make_sycl_iterator_buffer<scalar_t>(in_m, ld * cols);
+  auto m_in_gpu =
+      blas::helper::allocate<mem_alloc, scalar_t>(ld * cols, q);  // in_m,
   auto v_out_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(out_v_gpu, out_size);
+      blas::helper::allocate<mem_alloc, scalar_t>(out_size, q);  // out_v_gpu
+
+  auto copy_m = blas::helper::copy_to_device<scalar_t>(q, in_m.data(),
+                                                        m_in_gpu, ld * cols);
+  auto copy_v = blas::helper::copy_to_device<scalar_t>(q, out_v_gpu.data(),
+                                                        v_out_gpu, out_size);
 
   blas::SB_Handle::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
       case operator_t::Mean:
         ev = extension::_reduction<MeanOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim);
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
         break;
     }
   } catch (cl::sycl::exception& e) {
     std::cerr << "Exception occured:" << std::endl;
     std::cerr << e.what() << std::endl;
   }
+
+  sb_handle.wait(ev);
+
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), v_out_gpu, out_v_gpu.data(), out_size);
   sb_handle.wait(event);
 
   ASSERT_TRUE(utils::compare_vectors(out_v_gpu, out_v_cpu));
+
+  helper::deallocate<mem_alloc>(m_in_gpu, q);
+  helper::deallocate<mem_alloc>(v_out_gpu, q);
 }
 
-BLAS_REGISTER_TEST_ALL(ReductionPartial, combination_t, combi, generate_name);
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  index_t rows, cols, ld_mul;
+  operator_t op;
+  reduction_dim_t reduction_dim;
+  scalar_t unused;
+  std::tie(alloc, rows, cols, ld_mul, op, reduction_dim, unused) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
+
+BLAS_REGISTER_TEST_ALL(ReductionPartial, combination_t, combi,
+                               generate_name);

@@ -142,11 +142,6 @@ struct VectorView<
   /*!
    * @brief See VectorView.
    */
-  SYCL_BLAS_INLINE index_t get_access_displacement() const { return disp_; }
-
-  /*!
-   * @brief See VectorView.
-   */
   SYCL_BLAS_INLINE increment_t get_stride() const { return stride_; }
 
   /**** EVALUATING ****/
@@ -266,8 +261,6 @@ struct MatrixView<
   SYCL_BLAS_INLINE const index_t get_size_row() const { return sizeR_; }
 
   SYCL_BLAS_INLINE const index_t get_size_col() const { return sizeC_; }
-
-  SYCL_BLAS_INLINE index_t get_access_displacement() const { return disp_; }
 
   SYCL_BLAS_INLINE scalar_t *get_pointer() const { return ptr_; }
 

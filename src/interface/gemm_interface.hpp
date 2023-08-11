@@ -56,10 +56,11 @@ typename sb_handle_t::event_t _gemm_platform_specific(
     element_t _alpha, container_0_t a_, index_t _lda, index_t _stridea,
     container_1_t b_, index_t _ldb, index_t _strideb, element_t _beta,
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
-    gemm_batch_type_t batch_type) {
+    gemm_batch_type_t batch_type,
+    const typename sb_handle_t::event_t& _dependencies) {
   return blas::gemm::backend::_gemm<_t_a, _t_b, s_a, s_b, is_beta_zero>(
       sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
-      _beta, _C, _ldc, _stridec, batch_size, batch_type);
+      _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
 }
 
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, typename sb_handle_t,
@@ -70,15 +71,17 @@ typename sb_handle_t::event_t _gemm_is_beta_zero(
     element_t _alpha, container_0_t a_, index_t _lda, index_t _stridea,
     container_1_t b_, index_t _ldb, index_t _strideb, element_t _beta,
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
-    gemm_batch_type_t batch_type) {
+    gemm_batch_type_t batch_type,
+    const typename sb_handle_t::event_t& _dependencies) {
   return ((_beta == static_cast<element_t>(0))
               ? _gemm_platform_specific<_t_a, _t_b, s_a, s_b, true>(
                     sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
-                    _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type)
+                    _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type,
+                    _dependencies)
               : _gemm_platform_specific<_t_a, _t_b, s_a, s_b, false>(
                     sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
-                    _strideb, _beta, _C, _ldc, _stridec, batch_size,
-                    batch_type));
+                    _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type,
+                    _dependencies));
 }
 
 template <bool symm_A, bool symm_B, typename sb_handle_t,
@@ -89,20 +92,22 @@ typename sb_handle_t::event_t _gemm_backend(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
-    index_t batch_size, gemm_batch_type_t batch_type) {
+    index_t batch_size, gemm_batch_type_t batch_type,
+    const typename sb_handle_t::event_t& _dependencies) {
   if (_alpha == element_t{0}) {
     // When alpha = 0, GEMM is equivalent to C = beta * C.
     if (_ldc == _M) {
       // When LDC is M, we can scale the full matrix at once.
       const auto matrix_size = _N * _M * batch_size;
-      return ::blas::_scal(sb_handle, matrix_size, _beta, _C, index_t{1});
+      return ::blas::_scal(sb_handle, matrix_size, _beta, _C, index_t{1},
+                           _dependencies);
     } else {
       // When LDC is not M, we must scale each column of C separately.
       typename sb_handle_t::event_t events;
       const auto num_columns = batch_size * _N;
       for (index_t i = 0; i < num_columns; ++i) {
-        auto ev =
-            ::blas::_scal(sb_handle, _M, _beta, _C + i * _ldc, index_t{1});
+        auto ev = ::blas::_scal(sb_handle, _M, _beta, _C + i * _ldc, index_t{1},
+                                _dependencies);
         append_vector(events, ev);
       }
       return events;
@@ -139,35 +144,33 @@ typename sb_handle_t::event_t _gemm_backend(
   if (_TrA && _TrB) {
     return _gemm_is_beta_zero<true, true, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
-        _beta, _C, _ldc, _stridec, batch_size, batch_type);
+        _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
   } else if (!_TrA && _TrB) {
     return _gemm_is_beta_zero<false, true, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
-        _beta, _C, _ldc, _stridec, batch_size, batch_type);
+        _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
   } else if (_TrA && !_TrB) {
     return _gemm_is_beta_zero<true, false, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
-        _beta, _C, _ldc, _stridec, batch_size, batch_type);
+        _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
   } else {
     return _gemm_is_beta_zero<false, false, symm_A, symm_B>(
         sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb, _strideb,
-        _beta, _C, _ldc, _stridec, batch_size, batch_type);
+        _beta, _C, _ldc, _stridec, batch_size, batch_type, _dependencies);
   }
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
-                                    char _TransB, index_t _M, index_t _N,
-                                    index_t _K, element_t _alpha,
-                                    container_0_t a_, index_t _lda,
-                                    container_1_t b_, index_t _ldb,
-                                    element_t _beta, container_2_t _C,
-                                    index_t _ldc) {
-  return _gemm_backend<false, false>(sb_handle, _TransA, _TransB, _M, _N, _K,
-                                     _alpha, a_, _lda, index_t(0), b_, _ldb,
-                                     index_t(0), _beta, _C, _ldc, index_t(0),
-                                     index_t(1), gemm_batch_type_t::strided);
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, const typename sb_handle_t::event_t& _dependencies) {
+  return _gemm_backend<false, false>(
+      sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, index_t(0), b_,
+      _ldb, index_t(0), _beta, _C, _ldc, index_t(0), index_t(1),
+      gemm_batch_type_t::strided, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -176,7 +179,8 @@ typename sb_handle_t::event_t _gemm_batched(
     sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
-    index_t _ldc, index_t batch_size, gemm_batch_type_t batch_type) {
+    index_t _ldc, index_t batch_size, gemm_batch_type_t batch_type,
+    const typename sb_handle_t::event_t& _dependencies) {
   bool is_strided = batch_type == gemm_batch_type_t::strided;
   index_t _stridea = 0;
   index_t _strideb = 0;
@@ -191,9 +195,10 @@ typename sb_handle_t::event_t _gemm_batched(
   }
   // strides are not used otherwise (gemm_batch_type_t::interleaved)
 
-  return _gemm_backend<false, false>(
-      sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, _stridea, b_,
-      _ldb, _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type);
+  return _gemm_backend<false, false>(sb_handle, _TransA, _TransB, _M, _N, _K,
+                                     _alpha, a_, _lda, _stridea, b_, _ldb,
+                                     _strideb, _beta, _C, _ldc, _stridec,
+                                     batch_size, batch_type, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -203,11 +208,11 @@ typename sb_handle_t::event_t _gemm_strided_batched(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
-    index_t batch_size) {
-  return _gemm_backend<false, false>(sb_handle, _TransA, _TransB, _M, _N, _K,
-                                     _alpha, a_, _lda, _stridea, b_, _ldb,
-                                     _strideb, _beta, _C, _ldc, _stridec,
-                                     batch_size, gemm_batch_type_t::strided);
+    index_t batch_size, const typename sb_handle_t::event_t& _dependencies) {
+  return _gemm_backend<false, false>(
+      sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, _stridea, b_,
+      _ldb, _strideb, _beta, _C, _ldc, _stridec, batch_size,
+      gemm_batch_type_t::strided, _dependencies);
 }
 
 }  // namespace internal

@@ -32,6 +32,76 @@
 namespace blas {
 namespace helper {
 
+/**
+ * Allocation type for tests and benchmarks
+ */
+enum class AllocType : int { usm = 0, buffer = 1 };
+
+template <typename value_t, AllocType mem_alloc>
+struct AllocHelper;
+
+template <typename value_t>
+struct AllocHelper<value_t, AllocType::usm> {
+  using type = value_t *;
+};
+
+template <typename value_t>
+struct AllocHelper<value_t, AllocType::buffer> {
+  using type = blas::BufferIterator<value_t>;
+};
+
+#ifdef SB_ENABLE_USM
+template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::usm,
+                        typename AllocHelper<value_t, alloc>::type>::type
+allocate(int size, cl::sycl::queue q) {
+  return cl::sycl::malloc_device<value_t>(size, q);
+}
+#endif
+
+template <AllocType alloc, typename value_t>
+typename std::enable_if<alloc == AllocType::buffer,
+                        typename AllocHelper<value_t, alloc>::type>::type
+allocate(int size, cl::sycl::queue q) {
+  return make_sycl_iterator_buffer<value_t>(size);
+}
+
+#ifdef SB_ENABLE_USM
+template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::usm>::type deallocate(
+    container_t mem, cl::sycl::queue q) {
+  if (mem != NULL) {
+    cl::sycl::free(reinterpret_cast<void *>(mem), q);
+  }
+}
+#endif
+
+template <AllocType alloc, typename container_t>
+typename std::enable_if<alloc == AllocType::buffer>::type deallocate(
+    container_t mem, cl::sycl::queue q) {}
+
+template <typename container_t>
+typename std::enable_if<std::is_same<
+    container_t, typename AllocHelper<typename ValueType<container_t>::type,
+                                      AllocType::usm>::type>::value>::type
+enqueue_deallocate(std::vector<cl::sycl::event> dependencies, container_t mem,
+                   cl::sycl::queue q) {
+#ifdef SB_ENABLE_USM
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
+    cgh.depends_on(dependencies);
+    cgh.host_task([=]() { cl::sycl::free(mem, q); });
+  });
+#endif
+  return;
+}
+
+template <typename container_t>
+typename std::enable_if<std::is_same<
+    container_t, typename AllocHelper<typename ValueType<container_t>::type,
+                                      AllocType::buffer>::type>::value>::type
+enqueue_deallocate(std::vector<cl::sycl::event>, container_t mem,
+                   cl::sycl::queue q) {}
+
 inline bool has_local_memory(cl::sycl::queue &q) {
   return (q.get_device()
               .template get_info<cl::sycl::info::device::local_mem_type>() ==
@@ -69,6 +139,15 @@ inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
   return event;
 }
 
+#ifdef SB_ENABLE_USM
+template <typename element_t>
+inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
+                                      element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+  return event;
+}
+#endif
+
 /*  @brief Copying the data back to device
   @tparam element_t is the type of the data
   @param src is the BufferIterator we want to copy from.
@@ -87,9 +166,19 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q,
   return event;
 }
 
+#ifdef SB_ENABLE_USM
+template <typename element_t>
+inline cl::sycl::event copy_to_host(cl::sycl::queue q, element_t *src,
+                                    element_t *dst, size_t size) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+  return event;
+}
+#endif
+
 template <typename element_t>
 inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
-                            element_t value, size_t size) {
+                            element_t value, size_t size,
+                            const std::vector<cl::sycl::event> &) {
   auto event = q.submit([&](cl::sycl::handler &cgh) {
     auto acc = buff.template get_range_accessor<cl::sycl::access::mode::write>(
         cgh, size);
@@ -97,6 +186,20 @@ inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
   });
   return event;
 }
+
+#ifdef SB_ENABLE_USM
+template <typename element_t>
+inline cl::sycl::event fill(cl::sycl::queue q, element_t *buff, element_t value,
+                            size_t size,
+                            const std::vector<cl::sycl::event> &dependencies) {
+  auto event = q.submit([&](cl::sycl::handler &cgh) {
+    cgh.depends_on(dependencies);
+    cgh.fill(buff, value, size);
+  });
+  return event;
+}
+#endif
+
 }  // end namespace helper
 }  // end namespace blas
 #endif  // SYCL_BLAS_HELPER_H
