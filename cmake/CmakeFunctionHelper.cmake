@@ -91,7 +91,7 @@ function(set_target_compile_def in_target)
 endfunction()
 
 # blas unary function for generating source code
-function(generate_blas_unary_objects blas_level func)
+function(generate_blas_objects blas_level func)
   set(LOCATION "${SYCLBLAS_GENERATED_SRC}/${blas_level}/${func}/")
   foreach(data ${data_list})
     cpp_type(cpp_data ${data})
@@ -100,7 +100,7 @@ function(generate_blas_unary_objects blas_level func)
         sanitize_file_name(file_name
                 "${func}_${data}_${index}_${data}_${increment}.cpp")
         add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
+                COMMAND ${PYTHON_EXECUTABLE} ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
                 ${PROJECT_SOURCE_DIR}/external/
                 ${SYCLBLAS_SRC_GENERATOR}/gen
                 ${blas_level}
@@ -111,7 +111,7 @@ function(generate_blas_unary_objects blas_level func)
                 ${increment}
                 ${file_name}
                 MAIN_DEPENDENCY ${SYCLBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_unary.py
+                DEPENDS ${SYCLBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
                 WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                 VERBATIM
                 )
@@ -125,7 +125,7 @@ function(generate_blas_unary_objects blas_level func)
           ${SYCLBLAS_COMMON_INCLUDE_DIR} ${THIRD_PARTIES_INCLUDE})
   message(STATUS "Adding SYCL to target ${func}")
   add_sycl_to_target(TARGET ${func} SOURCES ${FUNC_SRC})
-endfunction(generate_blas_unary_objects)
+endfunction(generate_blas_objects)
 
 # blas binary function for generating source code
 function(generate_blas_reduction_objects blas_level func)

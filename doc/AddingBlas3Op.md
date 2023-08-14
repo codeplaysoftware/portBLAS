@@ -212,7 +212,7 @@ in order to generate instantiations of `_trsm`.
 The following entry must be added:
 
 ```cmake
-generate_blas_unary_objects(blas3 trsm)
+generate_blas_objects(blas3 trsm)
 ```
 
 

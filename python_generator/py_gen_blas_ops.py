@@ -19,7 +19,7 @@
 # *
 # *  SYCL-BLAS: BLAS implementation using SYCL
 # *
-# *  @filename py_gen_blas_unary.py
+# *  @filename py_gen_blas_ops.py
 # *
 # **************************************************************************/
 # py_gen import
