@@ -82,10 +82,10 @@ typename sb_handle_t::event_t _transpose_outplace_impl(
     index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
                                              num_tiles_per_line);
     return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
-                             global_size, local_mem);
+                             global_size, local_mem, _dependencies);
   } else {
     return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
-                             global_size);
+                             global_size, _dependencies);
   }
 }
 
@@ -180,7 +180,8 @@ typename sb_handle_t::event_t _transpose_add_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
     element_t _beta, container_1_t b_, index_t _ldb, index_t _nrows_b,
-    index_t _ncols_b, container_2_t c_, index_t _ldc) {
+    index_t _ncols_b, container_2_t c_, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies) {
   constexpr const index_t num_line_elems =
       std::max(Tile_size, static_cast<int>(cl_size / sizeof(element_t)));
   constexpr const index_t num_tiles_per_line = num_line_elems / Tile_size;
@@ -205,10 +206,10 @@ typename sb_handle_t::event_t _transpose_add_impl(
     index_t local_mem = static_cast<index_t>((num_line_elems + 1) * Tile_size /
                                              num_tiles_per_line);
     return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
-                             global_size, local_mem);
+                             global_size, local_mem, _dependencies);
   } else {
     return sb_handle.execute(trans_scale_tree, static_cast<index_t>(wg_size),
-                             global_size);
+                             global_size, _dependencies);
   }
 }
 
@@ -231,7 +232,8 @@ template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
 typename std::enable_if<trans_a, typename sb_handle_t::event_t>::type
 _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               container_0_t a, index_t lda, element_t beta, container_1_t b,
-              index_t ldb, container_2_t c, index_t ldc) {
+              index_t ldb, container_2_t c, index_t ldc,
+              const typename sb_handle_t::event_t& _dependencies) {
   typename sb_handle_t::event_t ret;
 
   const index_t a_rows = trans_a ? n : m;
@@ -243,7 +245,7 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 
   return blas::transpose::backend::_transpose_add<both_trans>(
       sb_handle, m, n, alpha, a, lda, a_rows, a_cols, beta, b, ldb, b_rows,
-      b_cols, c, ldc);
+      b_cols, c, ldc, _dependencies);
 }
 
 template <bool trans_a, bool trans_b, typename sb_handle_t, typename element_t,
@@ -253,7 +255,8 @@ typename std::enable_if<!trans_a && !trans_b,
                         typename sb_handle_t::event_t>::type
 _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
               container_0_t a, index_t lda, element_t beta, container_1_t b,
-              index_t ldb, container_2_t c, index_t ldc) {
+              index_t ldb, container_2_t c, index_t ldc,
+              const typename sb_handle_t::event_t& _dependencies) {
   typename sb_handle_t::event_t ret;
   typename MatrixViewType<container_0_t, index_t, col_major>::type m_a_view =
       make_matrix_view<col_major>(a, m, n, lda);
@@ -264,7 +267,7 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   auto scal_b = make_op<ScalarOp, ProductOperator>(beta, m_b_view);
   auto sum_op = make_op<BinaryOp, AddOperator>(scal_a, scal_b);
   auto copy_op = make_op<Assign>(m_c_view, sum_op);
-  ret = sb_handle.execute(copy_op);
+  ret = sb_handle.execute(copy_op, _dependencies);
   return ret;
 }
 
@@ -382,10 +385,10 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
   if (trans_a == 't') {
     if (trans_b == 't') {
       return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                       ldb, c, ldc);
+                                       ldb, c, ldc, _dependencies);
     } else {
       return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                        ldb, c, ldc);
+                                        ldb, c, ldc, _dependencies);
     }
   } else if (trans_b == 't') {
     // In this case, (alpha,a) & (beta,b) operands are swapped as the
@@ -393,10 +396,10 @@ typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
     // transposed one for code simplification purposes (Refer to transose.h
     // for more details about this).
     return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, alpha, a,
-                                      lda, c, ldc);
+                                      lda, c, ldc, _dependencies);
   } else {
     return _omatadd_impl<false, false>(sb_handle, m, n, alpha, a, lda, beta, b,
-                                       ldb, c, ldc);
+                                       ldb, c, ldc, _dependencies);
   }
 }
 

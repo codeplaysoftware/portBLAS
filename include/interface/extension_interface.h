@@ -110,7 +110,8 @@ typename sb_handle_t::event_t _transpose_add_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
     element_t _beta, container_1_t b_, index_t _ldb, index_t _nrows_b,
-    index_t _ncols_b, container_2_t c_, index_t _ldc);
+    index_t _ncols_b, container_2_t c_, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
