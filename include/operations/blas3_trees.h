@@ -267,8 +267,8 @@ inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
             GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
             BatchType, UseJointMatrix>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
-          element_t alpha, element_t beta, index_t batch_size,
-          element_t _stridea, element_t _strideb, element_t _stridec) {
+          element_t alpha, element_t beta, index_t batch_size, index_t _stridea,
+          index_t _strideb, index_t _stridec) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
               TileType, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
               GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
