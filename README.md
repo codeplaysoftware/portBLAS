@@ -311,7 +311,7 @@ For all these operations:
 * `A`, `B` and `C` are containers for the column-major matrices A, B and C.
 * `lda`, `ldb` and `ldc` are the leading dimensions of the matrices A, B and C
   (cf BLAS 2). The leading dimension of a matrix must be greater than or equal
-  to its number of rows. In the case of in-place transpose, the same matrix `A`
+  to its number of rows. In the case of in-place copy/transpose, the same matrix `A`
   is used with two different leading dimensions for input & output.
 * `stride_a`, `stride_b` and `stride_c` are the striding size between consecutive 
 matrices in a batched entry for inputs/outputs A, B and C. 
@@ -328,6 +328,7 @@ matrices in a batched entry for inputs/outputs A, B and C.
 | `_omatcopy2`| `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `inc_a`, `B`, `ldb`, `inc_b`  | Computes two-strided scaling and out-of-place transposition or copying of general dense matrices. |
 | `_omatadd`| `sb_handle`, `transa`, `transb`, `M`, `N`, `alpha`, `A`, `lda`, `beta`, `B`, `ldb`, `C`,`ldc`  | Computes scaled general dense matrix addition with possibly transposed arguments. |
 | `_omatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `stride_a`, `B`, `ldb`, `stride_b`, `batch_size` | Perform an out-of-place scaled batched-strided matrix transpose or copy operation using a general dense matrix. |
+| `_imatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `ldb`, `stride`, `batch_size` | Perform an in-place scaled batched-strided matrix transpose* or copy operation using a general dense matrix. (*: Currently the transpose case is not supported). |
 
 Other non-official extension operators : 
 | operation | arguments | description |

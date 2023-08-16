@@ -111,8 +111,7 @@ _matcopy_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
   } else {
     // TODO
     // In-place transpose not implemented.
-    typename sb_handle_t::event_t ret;
-    return ret;
+    throw std::runtime_error("In-place transpose not implemented.");
   }
 }
 
@@ -180,9 +179,12 @@ typename sb_handle_t::event_t _matcopy_batch_impl(
     index_t ld_out, index_t out_stride, index_t batch_size) {
   auto in_view = make_matrix_view<col_major>(in_memory, m, n, ld_in);
   auto out_view = make_matrix_view<col_major>(out_memory, m, n, ld_out);
+  const element_t beta = 0;
+  const index_t ld_b = 0;
+  const index_t stride_b = 0;
   auto copy_batch_tree = make_matcopy_batch<TileSize, TilePerWG>(
-      out_view, in_view, in_view, alpha, 0, m, n, ld_out, ld_in, 1, out_stride,
-      in_stride, 1, batch_size);
+      out_view, in_view, in_view, alpha, beta, m, n, ld_out, ld_in, ld_b,
+      out_stride, in_stride, stride_b, batch_size);
   constexpr index_t local_size = TileSize * TilePerWG;
   const index_t tile_per_matrix =
       (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
@@ -381,8 +383,7 @@ typename sb_handle_t::event_t _matcopy(
   // bail out early if the leading dimensions are not correct
   if (ld_in < (inc_in * (m - 1) + 1) ||
       (ld_out - 1) < (trans == 't' ? inc_out * (n - 1) : inc_out * (m - 1))) {
-    typename sb_handle_t::event_t ret;
-    return ret;
+    throw std::invalid_argument("invalid ld_in and/or ld_out, inc_out, inc_in");
   }
 
   const index_t stride = 1;
@@ -406,11 +407,12 @@ typename sb_handle_t::event_t _matcopy_batch(
     in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
     index_t ld_out, index_t stride_out, index_t batch_size) {
   // bail out early if the leading dimensions / strides are not correct
-  if (ld_in < m || (ld_out < (trans == 't' ? n : m)) ||
-      (stride_in < ld_in * n) ||
+  if (ld_in < m || (ld_out < (trans == 't' ? n : m))) {
+    throw std::invalid_argument("invalid ld_in and/or ld_out");
+  }
+  if ((stride_in < ld_in * n) ||
       (stride_out < (ld_out * (trans == 't' ? m : n)))) {
-    typename sb_handle_t::event_t ret;
-    return ret;
+    throw std::invalid_argument("invalid stride_in and/or stride_out");
   }
 
   const index_t increment = 1;
@@ -467,6 +469,7 @@ typename sb_handle_t::event_t _transpose(
     return ret;
   }
 
+  const element_t alpha = 1;
   const index_t inc = 1;
   const index_t stride = 1;
   const index_t batch_size = 1;
