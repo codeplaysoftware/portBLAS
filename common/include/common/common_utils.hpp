@@ -1199,10 +1199,11 @@ static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
 }
 
 /**
-*@fn get_matcopy_batch_params *@brief Returns a vector containing the
-    matcopy_batch benchmark parameters,
-    *either read from a file according to the command - line args,
-    or the default *ones.*/
+ * @fn get_matcopy_batch_params
+ * @brief Returns a vector containing the matcopy_batch benchmark parameters,
+ * either read from a file according to the command - line args, or the default
+ * ones.
+ */
 template <typename scalar_t>
 static inline std::vector<matcopy_batch_param_t<scalar_t>>
 get_matcopy_batch_params(Args& args) {

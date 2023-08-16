@@ -143,6 +143,7 @@ SYCL_BLAS_INLINE void Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t>::bind(
     cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
+  rhs_2_.bind(h);
 }
 
 template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
@@ -150,6 +151,7 @@ SYCL_BLAS_INLINE void
 Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
+  rhs_2_.adjust_access_displacement();
 }
 
 template <int TileSize, int TilePerWG, typename lhs_t, typename rhs_t>
