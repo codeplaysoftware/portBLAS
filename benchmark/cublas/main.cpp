@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
-  // Create a portBLAS sb_handle from the queue
   cublasHandle_t cublas_handle = NULL;
   CUBLAS_CHECK(cublasCreate(&cublas_handle));
 
