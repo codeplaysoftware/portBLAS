@@ -26,24 +26,16 @@
 #ifndef COMMON_BLAS_EXTENSION_STATE_COUNTERS
 #define COMMON_BLAS_EXTENSION_STATE_COUNTERS
 
+#include "benchmark_identifier.hpp"
+
 namespace blas_benchmark {
 namespace utils {
 
-enum class ExtensionOP : int {
-  omatcopy = 0,
-  imatcopy = 1,
-  omatadd = 2,
-  omatcopy_batch = 3,
-  imatcopy_batch = 4,
-  omatadd_batch = 5,
-  omatcopy2 = 6
-};
-
-template <ExtensionOP op, typename scalar_t, typename index_t>
+template <ExtensionOp op, typename scalar_t, typename index_t>
 inline typename std::enable_if<
-    op == ExtensionOP::omatcopy || op == ExtensionOP::imatcopy ||
-    op == ExtensionOP::omatcopy2 || op == ExtensionOP::omatcopy_batch ||
-    op == ExtensionOP::imatcopy_batch>::type
+    op == ExtensionOp::omatcopy || op == ExtensionOp::imatcopy ||
+    op == ExtensionOp::omatcopy2 || op == ExtensionOp::omatcopy_batch ||
+    op == ExtensionOp::imatcopy_batch>::type
 init_extension_counters(benchmark::State& state, const char* trans, index_t m,
                         index_t n, index_t lda_mul, index_t ldb_mul,
                         index_t inc_a = 1, index_t inc_b = 1,
@@ -59,21 +51,21 @@ init_extension_counters(benchmark::State& state, const char* trans, index_t m,
   state.counters["trans"] = static_cast<double>((*trans == 't') ? 1 : 0);
   state.counters["bytes_processed"] =
       (2 * size_d + 1) * sizeof(scalar_t) * batch_size;
-  if constexpr (op == ExtensionOP::omatcopy_batch ||
-                op == ExtensionOP::imatcopy_batch) {
+  if constexpr (op == ExtensionOp::omatcopy_batch ||
+                op == ExtensionOp::imatcopy_batch) {
     state.counters["stride_a_mul"] = static_cast<double>(stride_a_mul);
     state.counters["stride_b_mul"] = static_cast<double>(stride_b_mul);
     state.counters["batch_size"] = static_cast<double>(batch_size);
   }
-  if constexpr (op == ExtensionOP::omatcopy2) {
+  if constexpr (op == ExtensionOp::omatcopy2) {
     state.counters["inc_a"] = static_cast<double>(inc_a);
     state.counters["inc_b"] = static_cast<double>(inc_b);
   }
   return;
 }
 
-template <ExtensionOP op, typename scalar_t, typename index_t>
-inline typename std::enable_if<op == ExtensionOP::omatadd>::type
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::omatadd>::type
 init_extension_counters(benchmark::State& state, const char* t_a,
                         const char* t_b, index_t m, index_t n, index_t lda_mul,
                         index_t ldb_mul, index_t ldc_mul) {

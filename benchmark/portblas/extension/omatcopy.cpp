@@ -26,17 +26,6 @@
 #include "../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul, std::string mem_type) {
-  std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
-  str << "/" << mem_type;
-  return str.str();
-}
-
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
@@ -57,7 +46,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   const auto size_b = ldb * ((*t_str == 't') ? m : n);
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
       state, t_str, m, n, lda_mul, ldb_mul);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
@@ -164,7 +153,10 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
                                ldb_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul, mem_type).c_str(),
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
+            ts, m, n, alpha, lda_mul, ldb_mul, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul, success)
         ->UseRealTime();
   }
