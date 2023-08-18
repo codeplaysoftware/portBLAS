@@ -63,8 +63,7 @@ Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
                         GemmAlgorithm, GemmVectorization, is_beta_zero,
                         VectorSize, BatchType, UseJointMatrix>(
       buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
-      batch_size, element_t(_stridea), element_t(_strideb),
-      element_t(_stridec));
+      batch_size, index_t(_stridea), index_t(_strideb), index_t(_stridec));
   return sb_handle.execute(gemm);
 }
 

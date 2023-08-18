@@ -74,7 +74,16 @@ enum class Level3Op : int {
   trsm = 8
 };
 
-enum class ExtensionOp : int { reduction = 0 };
+enum class ExtensionOp : int {
+  omatcopy = 0,
+  imatcopy = 1,
+  omatadd = 2,
+  omatcopy_batch = 3,
+  imatcopy_batch = 4,
+  omatadd_batch = 5,
+  omatcopy2 = 6,
+  reduction = 7
+};
 
 template <Level1Op op>
 std::string get_operator_name() {
@@ -170,7 +179,21 @@ std::string get_operator_name() {
 
 template <ExtensionOp op>
 std::string get_operator_name() {
-  if constexpr (op == ExtensionOp::reduction)
+  if constexpr (op == ExtensionOp::omatcopy)
+    return "Omatcopy";
+  else if constexpr (op == ExtensionOp::imatcopy)
+    return "Imatcopy";
+  else if constexpr (op == ExtensionOp::omatadd)
+    return "Omatadd";
+  else if constexpr (op == ExtensionOp::omatcopy_batch)
+    return "Omatcopy_batch";
+  else if constexpr (op == ExtensionOp::imatcopy_batch)
+    return "Imatcopy_batch";
+  else if constexpr (op == ExtensionOp::omatadd_batch)
+    return "Omatadd_batch";
+  else if constexpr (op == ExtensionOp::omatcopy2)
+    return "Omatcopy2";
+  else if constexpr (op == ExtensionOp::reduction)
     return "Reduction";
   else
     throw std::runtime_error("Unknown BLAS extension operator");

@@ -191,34 +191,41 @@ namespace blas {
 /*!
  * @brief Wrapper around Gemm. Creates the views, then makes and launches Gemm
  */
-template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB, 
-          int ClSize, typename TileT, bool TransA, bool TransB,
-          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          bool is_beta_zero, int VectorSize, int BatchType>
+template <int WgSize, bool DoubleBuffer, bool ConflictA, bool ConflictB,
+          int ClSize, typename TileT, bool TransA, bool TransB, bool SymmA,
+          bool SymmB, int GemmMemoryType, int GemmAlgorithm,
+          int GemmVectorization, bool is_beta_zero, int VectorSize,
+          int BatchType, bool UseJointMatrix>
 
-template <typename SB_Handle, typename container_t0, typename container_t1, 
+template <typename sb_handle_t, typename container_t0, typename container_t1,
           typename container_t2, typename element_t, typename index_t>
 
-typename SB_Handle::event_t Gemm_Launcher<
-    WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA, TransB,
-    GemmMemoryType, GemmAlgorithm, GemmVectorization, is_beta_zero, VectorSize,
-    BatchType>::_select_gemm(SB_Handle& sb_handle, index_t _M, index_t _N, index_t _K,
-                             element_t _alpha, container_t0 a_, index_t _lda,
-                             container_t1 b_, index_t _ldb, element_t _beta,
-                             container_t2 _C, index_t _ldc,
-                             index_t batch_size) {
+typename sb_handle_t::event_t 
+Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
+              TransB, SymmA, SymmB, GemmMemoryType, GemmAlgorithm,
+              GemmVectorization, is_beta_zero, VectorSize, BatchType,
+              UseJointMatrix>::_select_gemm(sb_handle_t& sb_handle, index_t _M,
+                                            index_t _N, index_t _K,
+                                            element_t _alpha, container_t0 a_,
+                                            index_t _lda, index_t _stridea,
+                                            container_t1 b_, index_t _ldb,
+                                            index_t _strideb, element_t _beta,
+                                            container_t2 _C, index_t _ldc,
+                                            index_t _stridec,
+                                            index_t batch_size) {
 
   //Helper functions used to make matrix views
-  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda); 
-  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb); 
+  auto buffer_a = make_matrix_view<col_major>(a_, _M, _K, _lda);
+  auto buffer_b = make_matrix_view<col_major>(b_, _K, _N, _ldb);
   auto buffer_c = make_matrix_view<col_major>(_C, _M, _N, _ldc); 
 
   //Helper function to construct the Gemm object
-  auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, 
-                        TransA, TransB, GemmMemoryType, GemmAlgorithm,
-                        GemmVectorization, is_beta_zero, VectorSize, BatchType>(
+  auto gemm = make_gemm<DoubleBuffer, ConflictA, ConflictB, ClSize, TileT,
+                        TransA, TransB, SymmA, SymmB, GemmMemoryType,
+                        GemmAlgorithm, GemmVectorization, is_beta_zero,
+                        VectorSize, BatchType, UseJointMatrix>(
       buffer_a, buffer_b, buffer_c, element_t(_alpha), element_t(_beta),
-      batch_size);
+      batch_size, index_t(_stridea), index_t(_strideb), index_t(_stridec));
 
   //Execute the gemm and return the associated event
   return sb_handle.execute(gemm); 
@@ -259,6 +266,14 @@ template typename SB_Handle::event_t _gemm_batched(
     ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
     ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
     ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
+// strided batched gemm
+template typename SB_Handle::event_t _gemm_strided_batched(
+    SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
+    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_,
+    ${INDEX_TYPE} _ldb, ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta,
+    ${container_t2} _C, ${INDEX_TYPE} _ldc, ${INDEX_TYPE} _stridec,
+    ${INDEX_TYPE} batch_size);
 }  // namespace internal
 }  // namespace blas
 ```
@@ -300,9 +315,10 @@ template <bool _t_a, bool _t_b, bool is_beta_zero, typename sb_handle_t,
           typename container_2_t, typename element_t, typename index_t>
 
 typename sb_handle_t::event_t _gemm(
-    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K, element_t _alpha,
-    container_0_t _a, index_t _lda, container_1_t _b, index_t _ldb,
-    element_t _beta, container_2_t _c, index_t _ldc, index_t batch_size,
+    sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
+    element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
+    container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
+    container_2_t _c, index_t _ldc, index_t _stridec, index_t batch_size,
     gemm_batch_type_t batch_type) {
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<

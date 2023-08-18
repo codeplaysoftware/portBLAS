@@ -27,18 +27,6 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul, index_t stride_a_mul,
-                     index_t stride_b_mul, index_t batch_size) {
-  std::ostringstream str{};
-  str << "BM_omatcopy_batched<"
-      << blas_benchmark::utils::get_type_name<scalar_t>() << ">/" << t << "/"
-      << m << "/" << n << "/" << alpha << "/" << lda_mul << "/" << ldb_mul
-      << "/" << stride_a_mul << "/" << stride_b_mul << "/" << batch_size;
-  return str.str();
-}
-
-template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
          index_t stride_a_mul, index_t stride_b_mul, index_t batch_size,
@@ -62,7 +50,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   const auto size_b = stride_b * batch_size;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy_batch, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatcopy_batch, scalar_t>(
       state, t_str, m, n, lda_mul, ldb_mul, stride_a_mul, stride_b_mul,
       batch_size);
 
@@ -167,8 +155,10 @@ void register_benchmark(blas_benchmark::Args& args,
                     stride_a_mul, stride_b_mul, batch_size, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul,
-                           stride_b_mul, batch_size)
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatcopy_batch, scalar_t,
+            index_t>(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul,
+                     stride_b_mul, batch_size)
             .c_str(),
         BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul,
         stride_a_mul, stride_b_mul, batch_size, success)

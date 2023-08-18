@@ -27,21 +27,6 @@
 #include "../utils.hpp"
 
 template <typename scalar_t>
-std::string get_name(std::string ts_a, std::string ts_b, int m, int n,
-                     scalar_t alpha, scalar_t beta, index_t lda_mul,
-                     index_t ldb_mul, index_t ldc_mul, index_t stride_a_mul,
-                     index_t stride_b_mul, index_t stride_c_mul,
-                     index_t batch_size) {
-  std::ostringstream str{};
-  str << "BM_omatadd_batch<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << ts_a << "/" << ts_b << "/" << m << "/" << n << "/" << alpha
-      << "/" << beta << "/" << lda_mul << "/" << ldb_mul << "/" << ldc_mul
-      << "/" << stride_a_mul << "/" << stride_b_mul << "/" << stride_c_mul
-      << "/" << batch_size;
-  return str.str();
-}
-
-template <typename scalar_t>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
          int ti_b, index_t m, index_t n, scalar_t alpha, scalar_t beta,
          index_t lda_mul, index_t ldb_mul, index_t ldc_mul,
@@ -72,7 +57,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
   const auto size_c = stride_c * stride_c_mul * batch_size;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatadd_batch, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatadd_batch, scalar_t>(
       state, t_str_a, t_str_b, m, n, lda_mul, ldb_mul, ldc_mul, stride_a_mul,
       stride_b_mul, stride_c_mul, batch_size);
 
@@ -185,9 +170,10 @@ void register_benchmark(blas_benchmark::Args& args,
                     batch_size, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul,
-                           ldc_mul, stride_a_mul, stride_b_mul, stride_c_mul,
-                           batch_size)
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatadd_batch, scalar_t>(
+            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+            stride_a_mul, stride_b_mul, stride_c_mul, batch_size)
             .c_str(),
         BM_lambda, sb_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
         ldc_mul, stride_a_mul, stride_b_mul, stride_c_mul, batch_size, success)

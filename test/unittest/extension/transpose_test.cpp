@@ -108,7 +108,8 @@ void run_test(const combination_t<scalar_t>& combi) {
     ASSERT_TRUE(isAlmostEqual);
 
   } else {
-    // Inplace Transpose: TODO
+    // Inplace Transpose currently disabled (TODO)
+    GTEST_SKIP();
   }
 }
 

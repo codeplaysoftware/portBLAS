@@ -258,7 +258,7 @@ template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 SYCL_BLAS_INLINE typename rhs_t::index_t Matcopy_batch<
     is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::get_size() const {
-  return m_ * n_;
+  return m_ * n_ * batch_size_;
 }
 
 template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
