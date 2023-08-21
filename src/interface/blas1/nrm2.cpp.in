@@ -39,11 +39,22 @@ namespace internal {
  * @param _vx  VectorView
  * @param _incx Increment in X axis
  */
-template typename SB_Handle::event_t _nrm2(SB_Handle &sb_handle,
-                                           ${INDEX_TYPE} _N,
-                                           ${container_t0} _vx,
-                                           ${INCREMENT_TYPE} _incx,
-                                           ${container_t1} _rs,
-                                           const typename SB_Handle::event_t& dependencies);
+template typename SB_Handle::event_t _nrm2(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, BufferIterator<${DATA_TYPE}> _rs,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _nrm2(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _rs,
+    const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _nrm2(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, const ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _rs,
+    const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas

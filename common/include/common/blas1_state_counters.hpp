@@ -43,7 +43,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::axpy>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -54,7 +54,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::dot>::type init_level_1_counters(
     benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -65,7 +65,7 @@ inline typename std::enable_if<op == Level1Op::dot>::type init_level_1_counters(
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::nrm2>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -76,7 +76,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::rotm>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -87,7 +87,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::rotmg>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -98,7 +98,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::scal>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -109,7 +109,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::sdsdot>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.
@@ -120,7 +120,7 @@ init_level_1_counters(benchmark::State& state, index_t size) {
   return;
 }
 
-template <Level1Op op, typename scalar_t, typename index_t>
+template <Level1Op op, typename scalar_t>
 inline typename std::enable_if<op == Level1Op::copy>::type
 init_level_1_counters(benchmark::State& state, index_t size) {
   // Google-benchmark counters are double.

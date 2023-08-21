@@ -23,12 +23,7 @@
 # *
 # **************************************************************************/
 
-generate_blas_unary_objects(extension matcopy)
-generate_blas_unary_objects(extension transpose)
-generate_blas_unary_objects(extension omatadd)
+generate_blas_objects(extension matcopy)
+generate_blas_objects(extension transpose)
+generate_blas_objects(extension omatadd)
 generate_blas_reduction_objects(extension reduction)
-
-if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_reduction_objects(extension reduction_const)
-endif()
-

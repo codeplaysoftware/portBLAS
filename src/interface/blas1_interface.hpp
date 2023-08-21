@@ -60,7 +60,8 @@ typename sb_handle_t::event_t _axpy(
     sb_handle_t &sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
 
   auto scalOp = make_op<ScalarOp, ProductOperator>(_alpha, vx);
@@ -86,7 +87,8 @@ typename sb_handle_t::event_t _copy(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto assignOp2 = make_op<Assign>(vy, vx);
   auto ret = sb_handle.execute(assignOp2, _dependencies);
@@ -118,11 +120,13 @@ typename sb_handle_t::event_t _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  using element_t = typename blas::ValueType<container_0_t>::type;
-  auto vx = make_vector_view<element_t>(_vx, _incx, _N);
-  auto vy = make_vector_view<element_t>(_vy, _incy, _N);
-  auto rs = make_vector_view<element_t>(_rs, static_cast<increment_t>(1),
-                                        static_cast<index_t>(1));
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                             static_cast<index_t>(1));
+  // TODO: (Tanvir) avoid over-writing the input.
+  // Once this is fixed, we should be able to add
+  // const support for dot and sdsdot operators.
   auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
 
   auto localSize = sb_handle.get_work_group_size();
@@ -162,10 +166,8 @@ typename sb_handle_t::event_t _sdsdot(
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
   typename sb_handle_t::event_t dot_event{};
-
-  using element_t = typename blas::ValueType<container_2_t>::type;
-  auto rs = make_vector_view<element_t>(_rs, static_cast<increment_t>(1),
-                                        static_cast<index_t>(1));
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                             static_cast<index_t>(1));
 
   dot_event =
       internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs, _dependencies);
@@ -188,7 +190,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
@@ -212,7 +215,8 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   const auto localSize = sb_handle.get_work_group_size();
@@ -236,7 +240,8 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
@@ -312,7 +317,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
@@ -321,10 +327,10 @@ typename sb_handle_t::event_t _nrm2(
   const auto nWG = 2 * localSize;
   auto assignOp =
       make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret0 = sb_handle.execute(assignOp);
+  auto ret0 = sb_handle.execute(assignOp, _dependencies);
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
-  auto ret1 = sb_handle.execute(assignOpFinal, _dependencies);
+  auto ret1 = sb_handle.execute(assignOpFinal, ret0);
   return blas::concatenate_vectors(ret0, ret1);
 }
 
@@ -400,12 +406,11 @@ typename sb_handle_t::event_t _rotm(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _param,
     const typename sb_handle_t::event_t &_dependencies) {
-  using element_t = typename ValueType<container_0_t>::type;
-
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
 
   constexpr size_t param_size = 5;
+  using element_t = typename ValueType<container_0_t>::type;
   std::array<element_t, param_size> param_host;
 
   /* This implementation can be further optimized for small input vectors by
@@ -771,7 +776,8 @@ typename ValueType<container_t>::type _asum(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  auto asum_event = blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  sb_handle.wait(asum_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
   sb_handle.wait(event);

@@ -155,7 +155,8 @@ typename sb_handle_t::event_t _trsm(
   trsmEvents = concatenate_vectors(trsmEvents, event);
 
   // Create the matrix views from the input buffers
-  auto bufferA = make_matrix_view<col_major>(A, K, K, lda);
+  typename MatrixViewType<container_0_t, index_t, col_major>::type bufferA =
+      make_matrix_view<col_major>(A, K, K, lda);
   auto bufferInvA =
       make_matrix_view<col_major>(invA, blockSize, blockSize, lda);
 
@@ -237,9 +238,12 @@ typename sb_handle_t::event_t _trsm(
         const std::ptrdiff_t offsetA = !isTranspose
                                            ? ((i + blockSize) + (i * lda))
                                            : (i + (blockSize + i) * lda);
+
+        helper::add_const<container_0_t> a_ = A + offsetA;
+        helper::add_const<container_1_t> b_ = X + i;
         gemmEvent = internal::_gemm(
             sb_handle, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
-            blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
+            blockSize, element_t{-1}, a_, lda, b_, ldx,
             (i == 0) ? alpha : element_t{1}, B + i + blockSize, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
@@ -275,9 +279,12 @@ typename sb_handle_t::event_t _trsm(
           break;
         }
 
+        helper::add_const<container_0_t> a_ =
+            A + (!isTranspose ? (i * lda) : i);
+        helper::add_const<container_1_t> b_ = X + i;
         gemmEvent = internal::_gemm(
             sb_handle, isTranspose ? 't' : 'n', 'n', i, N, currentBlockSize,
-            element_t{-1}, A + (!isTranspose ? (i * lda) : i), lda, X + i, ldx,
+            element_t{-1}, a_, lda, b_, ldx,
             (i == iStart) ? alpha : element_t{1}, B, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
@@ -317,10 +324,13 @@ typename sb_handle_t::event_t _trsm(
           break;
         }
 
+        helper::add_const<container_1_t> a_ = X + i * ldx;
+        helper::add_const<container_0_t> b_ =
+            A + (!isTranspose ? i : (i * lda));
         gemmEvent = internal::_gemm(
             sb_handle, 'n', isTranspose ? 't' : 'n', M, i, currentBlockSize,
-            element_t{-1}, X + i * ldx, ldx, A + (!isTranspose ? i : (i * lda)),
-            lda, (i == iStart) ? alpha : element_t{1}, B, ldb, gemmEvent);
+            element_t{-1}, a_, ldx, b_, lda,
+            (i == iStart) ? alpha : element_t{1}, B, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
 
@@ -356,11 +366,14 @@ typename sb_handle_t::event_t _trsm(
         const std::ptrdiff_t offset = !isTranspose
                                           ? (i + (blockSize + i) * lda)
                                           : (i + blockSize) + (i * lda);
-        gemmEvent = internal::_gemm(sb_handle, 'n', isTranspose ? 't' : 'n', M,
-                                    N - i - blockSize, blockSize, element_t{-1},
-                                    X + i * ldx, ldx, A + offset, lda,
-                                    (i == 0) ? alpha : element_t{1},
-                                    B + (i + blockSize) * ldb, ldb, gemmEvent);
+
+        helper::add_const<container_1_t> a_ = X + i * ldx;
+        helper::add_const<container_0_t> b_ = A + offset;
+        gemmEvent =
+            internal::_gemm(sb_handle, 'n', isTranspose ? 't' : 'n', M,
+                            N - i - blockSize, blockSize, element_t{-1}, a_,
+                            ldx, b_, lda, (i == 0) ? alpha : element_t{1},
+                            B + (i + blockSize) * ldb, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     }

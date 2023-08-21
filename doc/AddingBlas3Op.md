@@ -197,28 +197,24 @@ namespace internal {
 template typename SB_Handle::event_t _trsm(
   SB_Handle sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
   ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
-  ${container_t0} A, ${INDEX_TYPE} lda,
-  ${container_t1} B, ${INDEX_TYPE} ldb);
+  BufferIterator<${DATA_TYPE}> A, ${INDEX_TYPE} lda,
+  BufferIterator<${DATA_TYPE}> B, ${INDEX_TYPE} ldb);
 
 
 } // namespace internal
 } // namespace blas
 ```
 
-Where `${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0}` and `${container_t1}` are going
+Where `${INDEX_TYPE} and ${DATA_TYPE} are going
 to be replaced by the appropriate types required to explicitly instantiate the new function
 Finally, the file `src/interface/blas3/CMakeLists.txt` must be changed
 in order to generate instantiations of `_trsm`.
 The following entry must be added:
 
 ```cmake
-generate_blas_binary_objects(blas3 trsm)
+generate_blas_objects(blas3 trsm)
 ```
 
-There are predefined functions to be used depending on the number of inputs the function expects.
-`_trsm` is a case of *binary* function, since only two buffers are required as input. `_gemm` is
-an example of ternary function, since it requires three buffers as input (in this case `${container_t2}`
-can be used in the `.cpp` file).
 
 After this, the new object file created must be added to the library and is done by adding a new
 entry to `cmake/CmakeFunctionHelper.cmake`. At the end of this file there is a list of all object

@@ -290,10 +290,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t c_size = ldc * n;
 
     using address_t = cl::sycl::access::address_space;
-    using multi_ptr_ = cl::sycl::multi_ptr<element_t, address_t::global_space>;
-    auto ptr_A = multi_ptr_(a_.get_pointer()) + (wg_batch_id * stridea_);
-    auto ptr_B = multi_ptr_(b_.get_pointer()) + (wg_batch_id * strideb_);
-    auto ptr_C = multi_ptr_(c_.get_pointer()) + (wg_batch_id * stridec_);
+    auto ptr_A = cl::sycl::multi_ptr<const element_t, address_t::global_space>
+        (a_.get_pointer()) + (wg_batch_id * stridea_);
+    auto ptr_B = cl::sycl::multi_ptr<const element_t, address_t::global_space>
+        (b_.get_pointer()) + (wg_batch_id * strideb_);
+    auto ptr_C = cl::sycl::multi_ptr<element_t, address_t::global_space>
+        (c_.get_pointer()) + (wg_batch_id * stridec_);
 
     auto sg = id.get_sub_group();
     const index_t sg_id = sg.get_group_linear_id();

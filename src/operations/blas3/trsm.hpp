@@ -30,37 +30,43 @@
 
 namespace blas {
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
-PORTBLAS_INLINE DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::
-    DiagonalBlocksInverter(matrix_t& A, matrix_t& invA)
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t,
+                       rhs_t>::DiagonalBlocksInverter(rhs_t A, lhs_t invA)
     : A_(A), invA_(invA), N_(A_.get_size_col()), lda_(A_.getSizeL()) {}
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
 PORTBLAS_INLINE bool
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::valid_thread(
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> id) const {
   return true;
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
 PORTBLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::bind(
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::bind(
     cl::sycl::handler& cgh) {
   A_.bind(cgh);
   invA_.bind(cgh);
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
 PORTBLAS_INLINE void DiagonalBlocksInverter<
-    UnitDiag, Upper, BlockSize, matrix_t>::adjust_access_displacement() {
+    UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::adjust_access_displacement() {
   A_.adjust_access_displacement();
   invA_.adjust_access_displacement();
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
 template <typename local_memory_t>
 PORTBLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
     local_memory_t localMem, cl::sycl::nd_item<1> item) noexcept {
   auto A = A_.get_pointer();
   auto invA = invA_.get_pointer();

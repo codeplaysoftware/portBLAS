@@ -37,13 +37,15 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t incY;
   std::tie(alloc, size, alpha, incX, incY) = combi;
 
+  auto x_size = size * std::abs(incX);
+  auto y_size = size * std::abs(incY);
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(x_size);
   fill_random(x_v);
 
   // Output vector
-  std::vector<scalar_t> y_v(size * incY, 10.0);
-  std::vector<scalar_t> y_cpu_v(size * incY, 10.0);
+  std::vector<scalar_t> y_v(y_size, 10.0);
+  std::vector<scalar_t> y_cpu_v(y_size, 10.0);
 
   // Reference implementation
   reference_blas::axpy(size, alpha, x_v.data(), incX, y_cpu_v.data(), incY);
@@ -53,17 +55,17 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
-  auto gpu_y_v = helper::allocate<mem_alloc, scalar_t>(size * incY, q);
+  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(x_size, q);
+  auto gpu_y_v = helper::allocate<mem_alloc, scalar_t>(y_size, q);
 
-  auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
-  auto copy_y = helper::copy_to_device(q, y_v.data(), gpu_y_v, size * incY);
+  auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, x_size);
+  auto copy_y = helper::copy_to_device(q, y_v.data(), gpu_y_v, y_size);
 
   auto axpy_event = _axpy(sb_handle, size, alpha, gpu_x_v, incX, gpu_y_v, incY,
                           {copy_x, copy_y});
   sb_handle.wait(axpy_event);
 
-  auto event = helper::copy_to_host(q, gpu_y_v, y_v.data(), size * incY);
+  auto event = helper::copy_to_host(q, gpu_y_v, y_v.data(), y_size);
   sb_handle.wait(event);
 
   // Validate the result
@@ -108,9 +110,9 @@ template <typename scalar_t>
 const auto combi =
     ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
                        ::testing::Values(11, 1002),      // size
-                       ::testing::Values<scalar_t>(0.0, 1.5),  // alpha
-                       ::testing::Values(1, 4),                // incX
-                       ::testing::Values(1, 3)                 // incY
+                       ::testing::Values<scalar_t>(0.0, 1.0),  // alpha
+                       ::testing::Values(1, 4, -1, -3),        // incX
+                       ::testing::Values(1, 3, -2)             // incY
     );
 #endif
 

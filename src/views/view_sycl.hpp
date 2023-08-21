@@ -45,7 +45,6 @@ template <typename ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
           typename view_increment_t>
 struct VectorView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
     view_index_t, view_increment_t> {
   using scalar_t = ViewScalarT;
@@ -55,7 +54,7 @@ struct VectorView<
   static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
   using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
                                          place_holder_t>;
-  using self_t = VectorView<scalar_t, container_t, index_t, increment_t>;
+  using self_t = VectorView<container_t, index_t, increment_t>;
 
   // Accessor to the data containing the vector values.
   container_t data_;
@@ -152,8 +151,9 @@ struct VectorView<
   }
 
   template <bool use_as_ptr = false>
-  PORTBLAS_INLINE typename std::enable_if<!use_as_ptr, scalar_t>::type eval(
-      index_t i) const {
+  PORTBLAS_INLINE typename std::enable_if<
+      !use_as_ptr, scalar_t&>::type
+  eval(index_t i) const {
     return (stride_ == 1) ? *(ptr_ + i) : *(ptr_ + i * stride_);
   }
 
@@ -161,7 +161,7 @@ struct VectorView<
     return eval(ndItem.get_global_id(0));
   }
 
-  PORTBLAS_INLINE const scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
+  PORTBLAS_INLINE scalar_t eval(cl::sycl::nd_item<1> ndItem) const {
     return eval(ndItem.get_global_id(0));
   }
 
@@ -186,29 +186,27 @@ struct VectorView<
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool is_inc>
+          typename layout, bool has_inc>
 struct MatrixView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout, is_inc>;
+    view_index_t, layout, has_inc>;
 /*!
  * @brief Specialization of an MatrixView with an accessor.
  */
 template <class ViewScalarT, int dim, cl::sycl::access::mode acc_mode_t,
           cl::sycl::access::target access_t,
           cl::sycl::access::placeholder place_holder_t, typename view_index_t,
-          typename layout, bool is_inc>
+          typename layout, bool has_inc>
 struct MatrixView<
-    ViewScalarT,
     cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t, place_holder_t>,
-    view_index_t, layout, is_inc> {
+    view_index_t, layout, has_inc> {
   using access_layout_t = layout;
   using scalar_t = ViewScalarT;
   using index_t = view_index_t;
   static constexpr cl::sycl::access::mode access_mode_t = acc_mode_t;
   using container_t = cl::sycl::accessor<ViewScalarT, dim, acc_mode_t, access_t,
                                          place_holder_t>;
-  using self_t = MatrixView<scalar_t, container_t, index_t, layout>;
+  using self_t = MatrixView<container_t, index_t, layout>;
 
   using value_t = scalar_t;
   // Information related to the data
@@ -230,15 +228,21 @@ struct MatrixView<
         sizeC_(sizeC),
         sizeL_(sizeL),
         inc_(1),
-        disp_(disp) {}
+        disp_(disp) {
+    static_assert(has_inc);
+  }
 
   PORTBLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC)
       : MatrixView(data, sizeR, sizeC,
-                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {}
+                   (layout::is_col_major() ? sizeR_ : sizeC_), 0) {
+    static_assert(has_inc);
+  }
 
   PORTBLAS_INLINE MatrixView(self_t opM, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t disp)
-      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {}
+      : MatrixView(opM.data_, sizeR, sizeC, sizeL, disp) {
+    static_assert(has_inc);
+  }
 
   PORTBLAS_INLINE MatrixView(container_t data, index_t sizeR, index_t sizeC,
                               index_t sizeL, index_t inc, index_t disp)
@@ -247,7 +251,9 @@ struct MatrixView<
         sizeC_(sizeC),
         sizeL_(sizeL),
         inc_(inc),
-        disp_(disp) {}
+        disp_(disp) {
+    assert((has_inc && inc != 1) || (!has_inc && inc == 1));
+  }
 
   /**** RETRIEVING DATA ****/
   PORTBLAS_INLINE container_t &get_data() { return data_; }
@@ -267,22 +273,34 @@ struct MatrixView<
   /**** EVALUATING ***/
 
   PORTBLAS_INLINE scalar_t &eval(index_t i, index_t j) {
-    if constexpr (is_inc) {
-      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
-                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    if constexpr (has_inc) {
+      if constexpr (layout::is_col_major()) {
+        return *(ptr_ + i * inc_ + sizeL_ * j);
+      } else {
+        return *(ptr_ + j * inc_ + sizeL_ * i);
+      }
     } else {
-      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                       : *(ptr_ + j + sizeL_ * i));
+      if constexpr (layout::is_col_major()) {
+        return *(ptr_ + i + sizeL_ * j);
+      } else {
+        return *(ptr_ + j + sizeL_ * i);
+      }
     }
   }
 
   PORTBLAS_INLINE scalar_t &eval(index_t i, index_t j) const noexcept {
-    if constexpr (is_inc) {
-      return ((layout::is_col_major()) ? *(ptr_ + i * inc_ + sizeL_ * j)
-                                       : *(ptr_ + j * inc_ + sizeL_ * i));
+    if constexpr (has_inc) {
+      if constexpr (layout::is_col_major()) {
+        return *(ptr_ + i * inc_ + sizeL_ * j);
+      } else {
+        return *(ptr_ + j * inc_ + sizeL_ * i);
+      }
     } else {
-      return ((layout::is_col_major()) ? *(ptr_ + i + sizeL_ * j)
-                                       : *(ptr_ + j + sizeL_ * i));
+      if constexpr (layout::is_col_major()) {
+        return *(ptr_ + i + sizeL_ * j);
+      } else {
+        return *(ptr_ + j + sizeL_ * i);
+      }
     }
   }
 
