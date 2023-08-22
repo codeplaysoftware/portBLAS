@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename view.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_VIEW_H
-#define SYCL_BLAS_VIEW_H
+#ifndef PORTBLAS_VIEW_H
+#define PORTBLAS_VIEW_H
 
 #include "blas_meta.h"
 #include <stdexcept>

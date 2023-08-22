@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename benchmark_names.hpp
  *
  */
 
-#ifndef SYCL_BLAS_BENCHMARK_NAMES_HPP
-#define SYCL_BLAS_BENCHMARK_NAMES_HPP
+#ifndef PORTBLAS_BENCHMARK_NAMES_HPP
+#define PORTBLAS_BENCHMARK_NAMES_HPP
 
 #include <common/common_utils.hpp>
 
@@ -251,4 +251,4 @@ get_name(index_t rows, index_t cols, std::string reduction_dim,
 }  // namespace utils
 }  // namespace blas_benchmark
 
-#endif  // SYCL_BLAS_BENCHMARK_NAMES_HPP
+#endif  // PORTBLAS_BENCHMARK_NAMES_HPP

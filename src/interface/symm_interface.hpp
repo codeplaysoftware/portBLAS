@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename symm_interface.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_SYMM_INTERFACE_HPP
-#define SYCL_BLAS_SYMM_INTERFACE_HPP
+#ifndef PORTBLAS_SYMM_INTERFACE_HPP
+#define PORTBLAS_SYMM_INTERFACE_HPP
 
 #include "interface/gemm_interface.hpp"
 
@@ -76,4 +76,4 @@ typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_SYMM_INTERFACE_HPP
+#endif  // PORTBLAS_SYMM_INTERFACE_HPP

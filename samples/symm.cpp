@@ -1,6 +1,6 @@
 
 
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 #include <CL/sycl.hpp>
 
 #include "util.hpp"
@@ -9,12 +9,12 @@ int main(int argc, char** argv) {
   /* Create a SYCL queue with the default device selector */
   cl::sycl::queue q = cl::sycl::queue(cl::sycl::default_selector());
 
-  /* Create a SYCL-BLAS sb_handle and get the policy handler */
+  /* Create a portBLAS sb_handle and get the policy handler */
   blas::SB_Handle sb_handle(q);
 
   /* Arguments of the SYMM operation.
    * Note: these matrix dimensions are too small to get a performance gain by
-   * using SYCL-BLAS, but they are convenient for this sample */
+   * using portBLAS, but they are convenient for this sample */
   const size_t m = 5;
   const size_t n = 7;
   const size_t lda = 32;

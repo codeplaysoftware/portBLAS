@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_rotmg_test.cpp
  *
@@ -52,13 +52,13 @@ struct RotmgTest {
   RotmgTest(scalar_t d1, scalar_t d2, scalar_t x1, scalar_t y1)
       : input{d1, d2, x1, y1} {}
 
-  void run_sycl_blas_rotmg();
+  void run_portblas_rotmg();
   void validate_with_reference();
   void validate_with_rotm();
 };
 
 template <typename scalar_t>
-void RotmgTest<scalar_t>::run_sycl_blas_rotmg() {
+void RotmgTest<scalar_t>::run_portblas_rotmg() {
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
@@ -202,7 +202,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(d1_input, d2_input, x1_input, y1_input, will_overflow) = combi;
 
   RotmgTest<scalar_t> test{d1_input, d2_input, x1_input, y1_input};
-  test.run_sycl_blas_rotmg();
+  test.run_portblas_rotmg();
 
   /* Do not test with things that might overflow or underflow. Results will not
    * make sense if that happens */

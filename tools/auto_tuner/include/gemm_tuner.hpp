@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_tuner.hpp
  *
@@ -28,7 +28,7 @@
 #include "utils.hpp"
 
 #include "reference_gemm.hpp"
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
 using namespace cl::sycl;
 using namespace blas;
@@ -67,11 +67,11 @@ inline std::vector<scalar_t> interleaved_to_strided(
 }
 
 template <typename T>
-static TestResultEntry tune_syclblas(int r, char transA, char transB,
+static TestResultEntry tune_portblas(int r, char transA, char transB,
                                      GemmArgs<T> a,
                                      ::blas::gemm_batch_type_t batch_type) {
-  TestResultEntry result("SYCL-BLAS gemm");
-  auto sb_handle = get_sycl_blas_handle();
+  TestResultEntry result("portBLAS gemm");
+  auto sb_handle = get_portblas_handle();
   {
     auto event = blas::helper::copy_to_device(
         sb_handle.get_queue(), a.init_c.data(), a.c, a.init_c.size());
@@ -157,7 +157,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
                           device_c, result_c, ldc, batch_size, expected_c};
 
   {
-    auto result = tune_syclblas(rep, *ta_str, *tb_str, args, batch_type);
+    auto result = tune_portblas(rep, *ta_str, *tb_str, args, batch_type);
     results.push_back(result);
   }
 
@@ -173,7 +173,7 @@ void run_tune_gemm(int seed, int m, int k, int n, int batch_size, int rep,
 
 #undef BENCH_PARAMS
   std::cout << "SIZE : " << results.size() << std::endl;
-  get_sycl_blas_handle().wait();
+  get_portblas_handle().wait();
   std::sort(results.begin(), results.end());
   results.print_all();
 }

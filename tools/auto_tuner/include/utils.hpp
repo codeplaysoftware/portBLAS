@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename utils.hpp
  *
  **************************************************************************/
 
-#ifndef SYCLBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_
-#define SYCLBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_
+#ifndef PORTBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_
+#define PORTBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_
 
 #include "tuner_types.hpp"
 
@@ -34,7 +34,7 @@
 #include <numeric>
 #include <random>
 
-inline sycl_blas_handle_t make_sycl_blas_handle() {
+inline portblas_handle_t make_portblas_handle() {
   cl::sycl::queue q([=](cl::sycl::exception_list ex_list) {
     try {
       for (auto &e_ptr : ex_list) {
@@ -48,12 +48,12 @@ inline sycl_blas_handle_t make_sycl_blas_handle() {
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-  sycl_blas_handle_t sb_handle(q);
+  portblas_handle_t sb_handle(q);
   return sb_handle;
 }
 
-inline sycl_blas_handle_t &get_sycl_blas_handle() {
-  static sycl_blas_handle_t sb_handle = make_sycl_blas_handle();
+inline portblas_handle_t &get_portblas_handle() {
+  static portblas_handle_t sb_handle = make_portblas_handle();
   return sb_handle;
 }
 
@@ -111,4 +111,4 @@ static void run_tune(int rep, double flop_cnt, TestResultEntry &result,
   result.gflops = gigaflop_count / seconds_per_iter.count();
 }
 
-#endif  // SYCLBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_
+#endif  // PORTBLAS_TOOLS_AUTO_TUNER_UTILS_HPP_

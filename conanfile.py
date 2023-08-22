@@ -3,12 +3,12 @@ from conans.errors import ConanInvalidConfiguration, ConanException
 import os
 
 
-class SyclblasConan(ConanFile):
-    name = "sycl-blas"
+class PortBlasConan(ConanFile):
+    name = "portBLAS"
     version = "1.0"
     settings = "os", "compiler", "build_type", "arch"
     description = "An implementation of BLAS using the SYCL open standard for acceleration on OpenCL devices"
-    url = "https://github.com/codeplaysoftware/sycl-blas"
+    url = "https://github.com/codeplaysoftware/portBLAS"
     license = "Apache-2.0"
     author = "Codeplay Software Ltd."
     topics = ('sycl', 'blas')

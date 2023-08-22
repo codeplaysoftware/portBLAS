@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename tbmv.hpp
  *
@@ -40,7 +40,7 @@ namespace blas {
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE
+PORTBLAS_INLINE
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::Tbmv(lhs_t &_l, matrix_t &_matrix,
                         typename Tbmv<lhs_t, matrix_t, vector_t, local_range,
@@ -52,7 +52,7 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
+PORTBLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
                                is_transposed, is_unitdiag>::index_t
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::get_size() const {
@@ -61,7 +61,7 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE bool
+PORTBLAS_INLINE bool
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::valid_thread(cl::sycl::nd_item<1> ndItem) const {
   // Valid threads are established by ::eval.
@@ -71,7 +71,7 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
+PORTBLAS_INLINE typename Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper,
                                is_transposed, is_unitdiag>::value_t
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::eval(cl::sycl::nd_item<1> ndItem) {
@@ -110,7 +110,7 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE void
+PORTBLAS_INLINE void
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
@@ -120,7 +120,7 @@ Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range, bool is_upper, bool is_transposed,
           bool is_unitdiag>
-SYCL_BLAS_INLINE void
+PORTBLAS_INLINE void
 Tbmv<lhs_t, matrix_t, vector_t, local_range, is_upper, is_transposed,
      is_unitdiag>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();

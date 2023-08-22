@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename benchmark_identifier.hpp
  *
  */
 
-#ifndef SYCL_BLAS_BENCHMARK_IDENTIFIER_HPP
-#define SYCL_BLAS_BENCHMARK_IDENTIFIER_HPP
+#ifndef PORTBLAS_BENCHMARK_IDENTIFIER_HPP
+#define PORTBLAS_BENCHMARK_IDENTIFIER_HPP
 
 namespace blas_benchmark {
 namespace utils {
@@ -179,4 +179,4 @@ std::string get_operator_name() {
 }  // namespace utils
 }  // namespace blas_benchmark
 
-#endif  // SYCL_BLAS_BENCHMARK_IDENTIFIER_HPP
+#endif  // PORTBLAS_BENCHMARK_IDENTIFIER_HPP

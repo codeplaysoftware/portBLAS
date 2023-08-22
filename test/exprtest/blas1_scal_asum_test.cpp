@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_scal_asum_test.cpp
  *
  *
  **************************************************************************/
 #include "blas_test.hpp"
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
 // inputs combination
 template <typename scalar_t>
@@ -53,7 +53,7 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::scal(size, alpha, v_cpu_x.data(), incX);
   cpu_y = reference_blas::asum(size, v_cpu_x.data(), incX);
 
-  // SYCL-BLAS implementation
+  // portBLAS implementation
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 

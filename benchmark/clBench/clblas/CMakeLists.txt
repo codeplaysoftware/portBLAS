@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
@@ -40,9 +40,9 @@ set(sources
 foreach(clblas_benchmark ${sources})
   get_filename_component(clblas_bench_exec ${clblas_benchmark} NAME_WE)
   add_executable(bench_clblas_${clblas_bench_exec} ${clblas_benchmark} "main.cpp")
-  target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE benchmark Clara::Clara sycl_blas)
+  target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE benchmark Clara::Clara portblas)
   target_compile_definitions(bench_clblas_${clblas_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
-  target_include_directories(bench_clblas_${clblas_bench_exec} PRIVATE ${CLBLAS_INCLUDE_DIRS} ${BLAS_BENCH} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+  target_include_directories(bench_clblas_${clblas_bench_exec} PRIVATE ${CLBLAS_INCLUDE_DIRS} ${BLAS_BENCH} ${PORTBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
   target_link_libraries(bench_clblas_${clblas_bench_exec} PRIVATE ${CLBLAS_LIBRARIES})
 
   if(BLAS_VERIFY_BENCHMARK)

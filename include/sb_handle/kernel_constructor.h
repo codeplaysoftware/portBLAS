@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename kernel_constructor.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_KERNEL_CONSTRUCTOR_H
-#define SYCL_BLAS_KERNEL_CONSTRUCTOR_H
+#ifndef PORTBLAS_KERNEL_CONSTRUCTOR_H
+#define PORTBLAS_KERNEL_CONSTRUCTOR_H
 
 #include <CL/sycl.hpp>
 
@@ -124,4 +124,4 @@ static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_KERNEL_CONSTRUCTOR_H
+#endif  // PORTBLAS_KERNEL_CONSTRUCTOR_H

@@ -17,12 +17,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename sycl_iterator.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_BUFFER_ITERATOR_HPP
-#define SYCL_BLAS_BUFFER_ITERATOR_HPP
+#ifndef PORTBLAS_BUFFER_ITERATOR_HPP
+#define PORTBLAS_BUFFER_ITERATOR_HPP
 #include "container/sycl_iterator.h"
 #endif  // BLAS_SYCL_ITERATOR_HPP

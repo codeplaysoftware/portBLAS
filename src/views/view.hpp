@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename view.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_VIEW_HPP
-#define SYCL_BLAS_VIEW_HPP
+#ifndef PORTBLAS_VIEW_HPP
+#define PORTBLAS_VIEW_HPP
 
 #include "views/view.h"
 #include <iostream>
@@ -412,4 +412,4 @@ _value_t &MatrixView<_value_t, _container_t, _IndexType, layout>::eval(
 
 }  // namespace blas
 
-#endif  // VIEW_HPP
+#endif  // PORTBLAS_VIEW_HPP

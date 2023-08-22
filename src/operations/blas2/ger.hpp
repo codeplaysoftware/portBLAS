@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename ger.hpp
  *
@@ -38,7 +38,7 @@ namespace blas {
 // template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                         rhs_2_t>::GerRow(lhs_t &_l, value_t _scl, rhs_1_t &_r1,
                                          rhs_2_t &_r2, index_t &_nWG_row,
                                          index_t &_nWG_col,
@@ -53,14 +53,14 @@ SYCL_BLAS_INLINE GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::index_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE bool
+PORTBLAS_INLINE bool
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
@@ -68,7 +68,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -85,7 +85,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
@@ -158,7 +158,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
-SYCL_BLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
@@ -259,7 +259,7 @@ GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                              rhs_2_t>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
@@ -267,7 +267,7 @@ SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                              rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
@@ -278,7 +278,7 @@ SYCL_BLAS_INLINE void GerRow<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
 // template <typename lhs_t,  typename rhs_1_t, typename  rhs_2_t>
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                         rhs_2_t>::GerCol(lhs_t &_l, value_t _scl, rhs_1_t &_r1,
                                          rhs_2_t &_r2, index_t &_nWG_row,
                                          index_t &_nWG_col,
@@ -293,21 +293,21 @@ SYCL_BLAS_INLINE GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::index_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE bool
+PORTBLAS_INLINE bool
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
@@ -324,7 +324,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
@@ -386,7 +386,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
 template <typename sharedT>
-SYCL_BLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE typename GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                                  rhs_2_t>::value_t
 GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     sharedT shrMem, cl::sycl::nd_item<1> ndItem) {
@@ -490,7 +490,7 @@ GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 }
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                              rhs_2_t>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
@@ -499,7 +499,7 @@ SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
 
 template <bool Single, bool Lower, bool Diag, bool Upper, typename lhs_t,
           typename rhs_1_t, typename rhs_2_t>
-SYCL_BLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
+PORTBLAS_INLINE void GerCol<Single, Lower, Diag, Upper, lhs_t, rhs_1_t,
                              rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();

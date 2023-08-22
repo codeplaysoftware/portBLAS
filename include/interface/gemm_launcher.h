@@ -17,17 +17,17 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_launcher.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
-#define SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
+#ifndef PORTBLAS_BLAS3_GEMM_LAUNCHER_H
+#define PORTBLAS_BLAS3_GEMM_LAUNCHER_H
 
 #include "operations/blas3_trees.h"
-#include "sb_handle/sycl_blas_handle.h"
+#include "sb_handle/portblas_handle.h"
 
 namespace blas {
 
@@ -53,4 +53,4 @@ struct Gemm_Launcher {
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_GEMM_LAUNCHER_H
+#endif  // PORTBLAS_BLAS3_GEMM_LAUNCHER_H

@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename kernel_constructor.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
-#define SYCL_BLAS_KERNEL_CONSTRUCTOR_HPP
+#ifndef PORTBLAS_KERNEL_CONSTRUCTOR_HPP
+#define PORTBLAS_KERNEL_CONSTRUCTOR_HPP
 #include "sb_handle/kernel_constructor.h"
 #include <CL/sycl.hpp>
 #include <iostream>
@@ -44,7 +44,7 @@ struct LocalMemory {
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
+  PORTBLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
       : localAcc(cl::sycl::range<1>(size), cgh) {}
 
   /*!
@@ -53,7 +53,7 @@ struct LocalMemory {
   @param id SYCL id.
   @return Reference to an element of the local accessor.
   */
-  SYCL_BLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
+  PORTBLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
     return localAcc[id];
   }
 
@@ -78,7 +78,7 @@ struct LocalMemory<value_t, using_local_memory::disabled> {
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  SYCL_BLAS_INLINE LocalMemory(size_t, cl::sycl::handler &) {}
+  PORTBLAS_INLINE LocalMemory(size_t, cl::sycl::handler &) {}
 };
 /*!
 @brief A struct for containing a local accessor if shared memory is enabled.
@@ -95,7 +95,7 @@ struct LocalMemory<value_t, using_local_memory::subgroup> {
   @param size Size in elements of the local accessor.
   @param cgh SYCL command group handler.
   */
-  SYCL_BLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
+  PORTBLAS_INLINE LocalMemory(size_t size, cl::sycl::handler &cgh)
       : subgroupAcc(cl::sycl::range<1>(size), cgh) {}
 
   /*!
@@ -104,7 +104,7 @@ struct LocalMemory<value_t, using_local_memory::subgroup> {
   @param id SYCL id.
   @return Reference to an element of the subgroup accessor.
   */
-  SYCL_BLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
+  PORTBLAS_INLINE value_t &operator[](cl::sycl::id<1> id) {
     return subgroupAcc[id];
   }
 
@@ -136,7 +136,7 @@ struct ExpressionTreeEvaluator {
   @param scratch Shared memory object.
   @param index SYCL nd_item.
   */
-  static SYCL_BLAS_INLINE void eval(
+  static PORTBLAS_INLINE void eval(
       expression_tree_t &tree,
       LocalMemory<local_memory_t, using_local_memory> scratch,
       cl::sycl::nd_item<1> index) {
@@ -161,7 +161,7 @@ struct ExpressionTreeEvaluator<using_local_memory::disabled, expression_tree_t,
   @param tree Tree object.
   @param index SYCL nd_item.
   */
-  static SYCL_BLAS_INLINE void eval(
+  static PORTBLAS_INLINE void eval(
       expression_tree_t &tree,
       LocalMemory<local_memory_t, using_local_memory::disabled>,
       cl::sycl::nd_item<1> index) {
@@ -189,7 +189,7 @@ index.
 @param scratch subgroup memory object.
 @param index SYCL nd_item.
 */
-  static SYCL_BLAS_INLINE void eval(
+  static PORTBLAS_INLINE void eval(
       expression_tree_t &tree,
       LocalMemory<subgroup_memory_t, using_local_memory::subgroup> scratch,
       cl::sycl::nd_item<1> index) {
@@ -211,10 +211,10 @@ template <int using_local_memory, typename expression_tree_t,
 struct ExpressionTreeFunctor {
   local_memory_t scratch_;
   expression_tree_t t_;
-  SYCL_BLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch,
+  PORTBLAS_INLINE ExpressionTreeFunctor(local_memory_t scratch,
                                          expression_tree_t t)
       : scratch_(scratch), t_(t) {}
-  SYCL_BLAS_INLINE void operator()(cl::sycl::nd_item<1> i) const {
+  PORTBLAS_INLINE void operator()(cl::sycl::nd_item<1> i) const {
     expression_tree_t &non_const_t = *const_cast<expression_tree_t *>(&t_);
     non_const_t.adjust_access_displacement();
     ExpressionTreeEvaluator<using_local_memory, expression_tree_t,
@@ -223,7 +223,7 @@ struct ExpressionTreeFunctor {
 };
 
 template <int using_local_memory, typename queue_t, typename expression_tree_t>
-static SYCL_BLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
+static PORTBLAS_INLINE cl::sycl::event execute_tree(queue_t q_,
                                                      expression_tree_t t,
                                                      size_t _localSize,
                                                      size_t _globalSize,

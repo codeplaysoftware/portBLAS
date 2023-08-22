@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename intel_gpu.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_GEMV_INTEL_GPU_BACKEND_HPP
-#define SYCL_BLAS_GEMV_INTEL_GPU_BACKEND_HPP
+#ifndef PORTBLAS_GEMV_INTEL_GPU_BACKEND_HPP
+#define PORTBLAS_GEMV_INTEL_GPU_BACKEND_HPP
 #include "interface/blas2_interface.h"
 
 namespace blas {

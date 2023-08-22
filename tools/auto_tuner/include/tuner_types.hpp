@@ -17,21 +17,21 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename tuner_types.hpp
  *
  **************************************************************************/
 
-#ifndef SYCLBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
-#define SYCLBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
+#ifndef PORTBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
+#define PORTBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
 
 #include <iostream>
 #include <vector>
 
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
-using sycl_blas_handle_t = ::blas::SB_Handle;
+using portblas_handle_t = ::blas::SB_Handle;
 
 template <typename DataType>
 using HostContainer = std::vector<DataType>;
@@ -118,4 +118,4 @@ struct GemmArgs {
   int stride_c;
 };
 
-#endif  // SYCLBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_
+#endif  // PORTBLAS_TOOLS_AUTO_TUNER_TUNER_TYPES_HPP_

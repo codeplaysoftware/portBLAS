@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_trees.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TREES_H
-#define SYCL_BLAS_BLAS3_TREES_H
+#ifndef PORTBLAS_BLAS3_TREES_H
+#define PORTBLAS_BLAS3_TREES_H
 
 #include <CL/sycl.hpp>
 
@@ -334,4 +334,4 @@ make_diag_blocks_inverter(matrix_t& A, matrix_t& invA) {
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_TREES_H
+#endif  // PORTBLAS_BLAS3_TREES_H

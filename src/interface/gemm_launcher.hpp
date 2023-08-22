@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_launcher.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_LAUNCHER_HPP
-#define SYCL_BLAS_BLAS3_LAUNCHER_HPP
+#ifndef PORTBLAS_BLAS3_LAUNCHER_HPP
+#define PORTBLAS_BLAS3_LAUNCHER_HPP
 
 #include "interface/gemm_launcher.h"
 #include "views/view.h"
@@ -69,4 +69,4 @@ Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_LAUNCHER_HPP
+#endif  // PORTBLAS_BLAS3_LAUNCHER_HPP

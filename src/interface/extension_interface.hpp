@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename reduction_interface.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_EXTENSION_INTERFACE_HPP
-#define SYCL_BLAS_EXTENSION_INTERFACE_HPP
+#ifndef PORTBLAS_EXTENSION_INTERFACE_HPP
+#define PORTBLAS_EXTENSION_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "interface/extension/backend/backend.hpp"
@@ -33,8 +33,8 @@
 #include "operations/blas_operators.hpp"
 #include "operations/extension/reduction.h"
 #include "operations/extension/transpose.h"
-#include "sb_handle/sycl_blas_handle.h"
-#include "sycl_blas_helper.h"
+#include "sb_handle/portblas_handle.h"
+#include "portblas_helper.h"
 #include "views/view.h"
 
 namespace blas {
@@ -405,4 +405,4 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_EXTENSION_INTERFACE_HPP
+#endif  // PORTBLAS_EXTENSION_INTERFACE_HPP
