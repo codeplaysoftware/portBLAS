@@ -1383,4 +1383,4 @@ const typename sb_handle_t::event_t& _dependencies) {
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS2_INTERFACE_HPP
+#endif  // PORTBLAS_BLAS2_INTERFACE_HPP

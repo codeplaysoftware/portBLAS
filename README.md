@@ -190,7 +190,7 @@ a tuple). The containers for the vectors and matrices (and scalars written by
 the BLAS operations) can either be `raw usm pointers` or `iterator buffers` that can be 
 created with a call to `cl::sycl::malloc_device` or `make_sycl_iterator_buffer` respectively.
 
-The USM support in SYCL-BLAS is limited to `device allocated` memory only and we don't support
+The USM support in portBLAS is limited to `device allocated` memory only and we don't support
 `shared` or `host` allocations with USM. 
 
 We recommend checking the [samples](samples) to get started with portBLAS. It

@@ -27,7 +27,7 @@
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/syclblas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
