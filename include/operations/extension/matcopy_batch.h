@@ -22,8 +22,8 @@
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_EXTENSION_MATCOPY_BATCH_H
-#define SYCL_BLAS_EXTENSION_MATCOPY_BATCH_H
+#ifndef PORTBLAS_EXTENSION_MATCOPY_BATCH_H
+#define PORTBLAS_EXTENSION_MATCOPY_BATCH_H
 
 namespace blas {
 
@@ -69,4 +69,4 @@ Matcopy_batch<TileSize, TilePerWG, lhs_t, rhs_t> make_matcopy_batch(
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_EXTENSION_MATCOPY_BATCH_H
+#endif  // PORTBLAS_EXTENSION_MATCOPY_BATCH_H

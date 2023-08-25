@@ -25,7 +25,7 @@
 
 #include "interface/extension_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "operations/extension/matcopy_batch.hpp"
 #include "operations/extension/transpose.hpp" 
 
