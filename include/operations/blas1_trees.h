@@ -182,6 +182,29 @@ struct AssignReduction {
   void adjust_access_displacement();
 };
 
+/*! .
+ * @brief Implements the ASUM operator providing different
+ * implementations of the ASUM kernel function.
+ *
+ * The class is constructed using the make_asum function below.
+ *
+ */
+template <typename lhs_t, typename rhs_t>
+struct Asum {
+  using value_t = typename lhs_t::value_t;
+  using index_t = typename rhs_t::index_t;
+  lhs_t lhs_;
+  rhs_t rhs_;
+  Asum(lhs_t &_l, rhs_t &_r);
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(cl::sycl::nd_item<1> ndItem);
+  template <typename sharedT>
+  value_t eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
 /*! Rotg.
  * @brief Implements the rotg (blas level 1 api)
  */
@@ -230,6 +253,11 @@ inline AssignReduction<operator_t, lhs_t, rhs_t> make_assign_reduction(
     index_t global_num_thread_) {
   return AssignReduction<operator_t, lhs_t, rhs_t>(
       lhs_, rhs_, local_num_thread_, global_num_thread_);
+}
+
+template <typename lhs_t, typename rhs_t>
+inline Asum<lhs_t, rhs_t> make_asum(lhs_t &lhs_, rhs_t &rhs_) {
+  return Asum<lhs_t, rhs_t>(lhs_, rhs_);
 }
 
 /*!

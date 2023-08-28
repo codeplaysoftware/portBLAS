@@ -131,6 +131,19 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies);
+
+
+/*!
+ * \brief Prototype for the internal implementation of the ASUM operation. See
+ * documentation in the blas1_interface.hpp file for details.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _asum_impl(sb_handle_t &sb_handle, index_t _N,
+                                         container_0_t _vx, increment_t _incx,
+                                         container_1_t _rs, int blocks);
+
 /**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator or USM pointer

@@ -29,6 +29,9 @@
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 #include "views/view.hpp"
+#if SYCL_LANGUAGE_VERSION >= 202000
+#include "blas1/asum.hpp"
+#endif
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
