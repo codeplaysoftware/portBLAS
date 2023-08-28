@@ -38,17 +38,17 @@ namespace internal {
  * accumulation and adds a scalar to the result (synchronous version that
  * returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM Pointer
+ * @tparam container_1_t Buffer Iterator or USM Pointer
+ * @tparam container_2_t Buffer Iterator or USM Pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes. If size 0, the result will be sb.
  * @param sb Scalar to add to the results of the inner product.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output buffer
  * @return Vector of events to wait for.

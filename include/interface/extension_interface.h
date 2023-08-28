@@ -45,17 +45,17 @@ namespace internal {
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
  * @param inc_in internal increment for the in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  * @param inc_out internal increment for the out_matrix
  */
@@ -121,16 +121,16 @@ typename sb_handle_t::event_t _transpose_add_impl(
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  */
 template <typename sb_handle_t, typename element_t, typename index_t,
@@ -156,17 +156,17 @@ typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
  * @param inc_in internal increment for the in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  * @param inc_out internal increment for the out_matrix
  */

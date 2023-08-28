@@ -478,12 +478,12 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param _d1[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d1[in,out] On entry, memory object holding the scaling factor for the
  * x-coordinate. On exit, the re-scaled _d1.
- * @param _d2[in,out] On entry, buffer holding the scaling factor for the
+ * @param _d2[in,out] On entry, memory object holding the scaling factor for the
  * y-coordinate. On exit, the re-scaled _d2.
- * @param _x1[in,out] On entry, buffer holding the x-coordinate. On exit, the
- * re-scaled _x1
+ * @param _x1[in,out] On entry, memory object holding the x-coordinate. On exit,
+ * the re-scaled _x1
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -523,10 +523,10 @@ typename sb_handle_t::event_t _rotmg(
  * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param a[in, out] On entry, buffer holding the x-coordinate of the point. On
- * exit, the scalar z.
- * @param b[in, out] On entry, buffer holding the y-coordinate of the point. On
- * exit, the scalar r.
+ * @param a[in, out] On entry, memory object holding the x-coordinate of the
+ * point. On exit, the scalar z.
+ * @param b[in, out] On entry, memory object holding the y-coordinate of the
+ * point. On exit, the scalar r.
  * @param c[out] Memory object holding the parameter c.
  * @param s[out] Memory object holding the parameter s.
  * @param _dependencies Vector of events

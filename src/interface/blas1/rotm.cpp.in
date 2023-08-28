@@ -50,16 +50,16 @@ namespace internal {
  *       [h21 h22]          [h21 1.0]          [-1.0 h22]           [0.0 1.0]
  *
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM Pointer
+ * @tparam container_1_t Buffer Iterator or USM Pointer
+ * @tparam container_2_t Buffer Iterator or USM Pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes (for vx and vy).
- * @param[in, out] _vx Buffer holding input vector x
+ * @param[in, out] _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param[in, out] _vy Buffer holding input vector y
+ * @param[in, out] _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param[in] _param Buffer with the following layout: [flag, h11, h21, h12,
  * h22].

@@ -50,8 +50,7 @@ template ${INDEX_TYPE} _iamin(SB_Handle& sb_handle, ${INDEX_TYPE} _N,
                               const typename SB_Handle::event_t& dependencies);
 
 template ${INDEX_TYPE} _iamin(SB_Handle& sb_handle, ${INDEX_TYPE} _N,
-                              const ${DATA_TYPE} * _vx,
-                              ${INCREMENT_TYPE} _incx,
+                              const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
                               const typename SB_Handle::event_t& dependencies);
 #endif
 
