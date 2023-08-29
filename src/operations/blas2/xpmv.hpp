@@ -113,7 +113,7 @@ PORTBLAS_INLINE
 
   if (is_symmetric || !is_transposed) {
     const index_t I_offset = gid * loc_x_dim;
-    value_t *const A_I_offset = matrix_.get_pointer() + I_offset + l_idx;
+    const value_t *const A_I_offset = matrix_.get_pointer() + I_offset + l_idx;
 
     value_t priv_A[priv_y_dim];
 
@@ -126,7 +126,7 @@ PORTBLAS_INLINE
       }
 
       const index_t J = b * loc_x_dim + l_y_offset;
-      value_t *A = A_I_offset + _mat_J_offset(J);
+      const value_t* A = A_I_offset + _mat_J_offset(J);
       index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
@@ -149,7 +149,7 @@ PORTBLAS_INLINE
   // ------------------------------------------------------------------------ //
 
   const index_t J = gid * loc_x_dim + l_y_offset;
-  value_t *const A_J_offset = matrix_.get_pointer() + _mat_J_offset(J) + l_idx;
+  const value_t *const A_J_offset = matrix_.get_pointer() + _mat_J_offset(J) + l_idx;
 
   // ------------------------------------------------------------------------ //
 
@@ -163,7 +163,7 @@ PORTBLAS_INLINE
     }
 
     const index_t I_offset = gid * loc_x_dim;
-    value_t *A = A_J_offset + I_offset;
+    const value_t* A = A_J_offset + I_offset;
     index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
@@ -204,7 +204,7 @@ PORTBLAS_INLINE
       }
 
       const index_t I_offset = b * loc_x_dim;
-      value_t *A = A_J_offset + I_offset;
+      const value_t* A = A_J_offset + I_offset;
       index_t stride = _mat_initial_stride(J);
 
 #pragma unroll

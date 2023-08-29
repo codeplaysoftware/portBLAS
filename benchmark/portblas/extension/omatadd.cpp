@@ -29,15 +29,16 @@
 template <typename scalar_t>
 std::string get_name(std::string ts_a, std::string ts_b, int m, int n,
                      scalar_t alpha, scalar_t beta, index_t lda_mul,
-                     index_t ldb_mul, index_t ldc_mul) {
+                     index_t ldb_mul, index_t ldc_mul, std::string mem_type) {
   std::ostringstream str{};
   str << "BM_omatadd<" << blas_benchmark::utils::get_type_name<scalar_t>()
       << ">/" << ts_a << "/" << ts_b << "/" << m << "/" << n << "/" << alpha
       << "/" << beta << "/" << lda_mul << "/" << ldb_mul << "/" << ldc_mul;
+  str << "/" << mem_type;
   return str.str();
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
          int ti_b, index_t m, index_t n, scalar_t alpha, scalar_t beta,
          index_t lda_mul, index_t ldb_mul, index_t ldc_mul, bool* success) {
@@ -66,6 +67,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
       state, t_str_a, t_str_b, m, n, lda_mul, ldb_mul, ldc_mul);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Input matrix/vector, output vector.
   std::vector<scalar_t> m_a =
@@ -75,9 +77,18 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
   std::vector<scalar_t> m_c =
       blas_benchmark::utils::random_data<scalar_t>(size_c);
 
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_a, size_a);
-  auto m_b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_b, size_b);
-  auto m_c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(m_c, size_c);
+  auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_a, q);
+  auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_b, q);
+  auto m_c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_c, q);
+
+  auto copy_a =
+      blas::helper::copy_to_device<scalar_t>(q, m_a.data(), m_a_gpu, size_a);
+  auto copy_b =
+      blas::helper::copy_to_device<scalar_t>(q, m_b.data(), m_b_gpu, size_b);
+  auto copy_c =
+      blas::helper::copy_to_device<scalar_t>(q, m_c.data(), m_c_gpu, size_c);
+
+  sb_handle.wait({copy_a, copy_b, copy_c});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
@@ -88,14 +99,22 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
 
   std::vector<scalar_t> m_c_temp = m_c;
   {
-    auto m_c_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(m_c_temp, size_c);
+    auto m_c_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_c, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(
+        q, m_c_temp.data(), m_c_temp_gpu, size_c);
+    sb_handle.wait(copy_temp);
 
     auto event =
         blas::_omatadd(sb_handle, *t_str_a, *t_str_b, m, n, alpha, m_a_gpu, lda,
                        beta, m_b_gpu, ldb, m_c_temp_gpu, ldc);
 
-    sb_handle.wait();
+    sb_handle.wait(event);
+
+    auto copy_out = blas::helper::copy_to_host<scalar_t>(
+        q, m_c_temp_gpu, m_c_temp.data(), size_c);
+    sb_handle.wait(copy_out);
+
+    blas::helper::deallocate<mem_alloc>(m_c_temp_gpu, q);
   }
 
   std::ostringstream err_stream;
@@ -134,15 +153,17 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(m_a_gpu, q);
+  blas::helper::deallocate<mem_alloc>(m_b_gpu, q);
+  blas::helper::deallocate<mem_alloc>(m_c_gpu, q);
 }
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto omatadd_params =
-      blas_benchmark::utils::get_omatadd_params<scalar_t>(args);
-
-  for (auto p : omatadd_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<omatadd_param_t<scalar_t>> params) {
+  for (auto p : params) {
     std::string ts_a, ts_b;
     index_t m, n, lda_mul, ldb_mul, ldc_mul;
     scalar_t alpha, beta;
@@ -154,17 +175,33 @@ void register_benchmark(blas_benchmark::Args& args,
                          int t_a, int t_b, index_t m, index_t n, scalar_t alpha,
                          scalar_t beta, index_t lda_mul, index_t ldb_mul,
                          index_t ldc_mul, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul,
-                    ldb_mul, ldc_mul, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, t_a, t_b, m, n, alpha, beta,
+                               lda_mul, ldb_mul, ldc_mul, success);
     };
     benchmark::RegisterBenchmark(
         get_name<scalar_t>(ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul,
-                           ldc_mul)
+                           ldc_mul, mem_type)
             .c_str(),
         BM_lambda, sb_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
         ldc_mul, success)
         ->UseRealTime();
   }
+}
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto omatadd_params =
+      blas_benchmark::utils::get_omatadd_params<scalar_t>(args);
+
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      omatadd_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM,
+      omatadd_params);
+#endif
 }
 
 namespace blas_benchmark {

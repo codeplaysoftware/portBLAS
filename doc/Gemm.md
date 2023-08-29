@@ -256,15 +256,15 @@ namespace internal {
 // gemm
 template typename SB_Handle::event_t _gemm(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> a_,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}> _C, ${INDEX_TYPE} _ldc);
 // batched gemm
 template typename SB_Handle::event_t _gemm_batched(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
-    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> a_,
+    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb, 
+    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}> _C, ${INDEX_TYPE} _ldc,
     ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
 // strided batched gemm
 template typename SB_Handle::event_t _gemm_strided_batched(

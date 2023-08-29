@@ -81,6 +81,11 @@ if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
   endif()
 endif()
 
+# add compiler directive to enable USM code
+add_definitions(-DSB_ENABLE_USM=1)
+set(SB_ENABLE_USM 1)
+list(APPEND DPCPP_FLAGS "-DSB_ENABLE_USM=1")
+
 function(add_sycl_to_target)
   set(options)
   set(one_value_args TARGET)

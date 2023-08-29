@@ -45,17 +45,17 @@ namespace internal {
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
  * @param inc_in internal increment for the in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  * @param inc_out internal increment for the out_matrix
  */
@@ -65,22 +65,25 @@ typename sb_handle_t::event_t _matcopy(sb_handle_t& sb_handle, char trans,
                                        index_t m, index_t n, element_t alpha,
                                        in_t in_memory, index_t ld_in,
                                        index_t inc_in, out_t out_memory,
-                                       index_t ld_out, index_t inc_out);
+                                       index_t ld_out, index_t inc_out,
+                                       const typename sb_handle_t::event_t& _dependencies);
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t a,
+                                       element_t alpha, container_0_t a,
                                        index_t lda, element_t beta,
-                                       container_t b, index_t ldb,
-                                       container_t c, index_t ldc);
+                                       container_1_t b, index_t ldb,
+                                       container_2_t c, index_t ldc,
+                                       const typename sb_handle_t::event_t& _dependencies);
 
 template <bool in_place, typename element_t, typename sb_handle_t,
           typename index_t, typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
-                                         out_t B, index_t ld_b);
+                                         out_t B, index_t ld_b,
+                                         const typename sb_handle_t::event_t& _dependencies);
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -88,7 +91,8 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
                                          input_t buffer_in, index_t ld,
                                          output_t buffer_out, index_t rows,
                                          index_t cols,
-                                         reduction_dim_t reduction_dim);
+                                         reduction_dim_t reduction_dim,
+                                         const typename sb_handle_t::event_t& _dependencies);
 
 template <int Tile_size, int wg_size, int cl_size, bool local_memory,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -96,7 +100,7 @@ template <int Tile_size, int wg_size, int cl_size, bool local_memory,
 typename sb_handle_t::event_t _transpose_outplace_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t in_, index_t _ld_in, index_t _inc_in, container_1_t out_,
-    index_t _ld_out, index_t _inc_out);
+    index_t _ld_out, index_t _inc_out, const typename sb_handle_t::event_t& _dependencies);
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename sb_handle_t, typename container_0_t,
@@ -106,7 +110,8 @@ typename sb_handle_t::event_t _transpose_add_impl(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t a_, index_t _lda, index_t _nrows_a, index_t _ncols_a,
     element_t _beta, container_1_t b_, index_t _ldb, index_t _nrows_b,
-    index_t _ncols_b, container_2_t c_, index_t _ldc);
+    index_t _ncols_b, container_2_t c_, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
@@ -116,16 +121,16 @@ typename sb_handle_t::event_t _transpose_add_impl(
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  */
 template <typename sb_handle_t, typename element_t, typename index_t,
@@ -133,10 +138,12 @@ template <typename sb_handle_t, typename element_t, typename index_t,
 typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
                                         index_t m, index_t n, element_t alpha,
                                         in_t in_memory, index_t ld_in,
-                                        out_t out_memory, index_t ld_out) {
+                                        out_t out_memory, index_t ld_out,
+                                        const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_matcopy<false>(sb_handle, trans, m, n, alpha, in_memory,
                                    ld_in, static_cast<index_t>(1), out_memory,
-                                   ld_out, static_cast<index_t>(1));
+                                   ld_out, static_cast<index_t>(1),
+                                   _dependencies);
 }
 
 /**
@@ -149,17 +156,17 @@ typename sb_handle_t::event_t _omatcopy(sb_handle_t& sb_handle, char trans,
  * @tparam sb_handle_t SB_Handle type
  * @tparam element_t Scaling factor type
  * @tparam index_t Index type
- * @tparam in_t Buffer Iterator
- * @tparam out_t Buffer Iterator
+ * @tparam in_t Buffer Iterator or USM Pointer
+ * @tparam out_t Buffer Iterator or USM Pointer
  * @param sb_handle SB_Handle
  * @param trans compute matrix transpose or not.
  * @param m rows of matrix
  * @param n cols of matrix
  * @param alpha Scaling factor
- * @param in_memory BufferIterator of input
+ * @param in_memory BufferIterator or USM Pointer of input
  * @param ld_in leading dimension of in_matrix
  * @param inc_in internal increment for the in_matrix
- * @param matrix_out BufferIterator of output
+ * @param matrix_out BufferIterator or USM Pointer of output
  * @param ld_out leading dimention of out_matrix
  * @param inc_out internal increment for the out_matrix
  */
@@ -169,9 +176,11 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
                                          index_t m, index_t n, element_t alpha,
                                          in_t in_memory, index_t ld_in,
                                          index_t inc_in, out_t out_memory,
-                                         index_t ld_out, index_t inc_out) {
+                                         index_t ld_out, index_t inc_out,
+                                         const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_matcopy<false>(sb_handle, trans, m, n, alpha, in_memory,
-                                   ld_in, inc_in, out_memory, ld_out, inc_out);
+                                   ld_in, inc_in, out_memory, ld_out, inc_out,
+                                   _dependencies);
 }
 
 /**
@@ -196,15 +205,16 @@ typename sb_handle_t::event_t _omatcopy2(sb_handle_t& sb_handle, char trans,
  * @param ldc Matrix C leading dimension
  */
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd(sb_handle_t& sb_handle, char trans_a,
                                        char trans_b, index_t m, index_t n,
-                                       element_t alpha, container_t A,
+                                       element_t alpha, container_0_t A,
                                        index_t lda, element_t beta,
-                                       container_t B, index_t ldb,
-                                       container_t C, index_t ldc) {
+                                       container_1_t B, index_t ldb,
+                                       container_2_t C, index_t ldc,
+                                       const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, A, lda,
-                            beta, B, ldb, C, ldc);
+                            beta, B, ldb, C, ldc, _dependencies);
 }
 
 namespace extension {
@@ -230,9 +240,10 @@ template <typename element_t, typename sb_handle_t, typename index_t,
           typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_in,
-                                         index_t ld_out) {
+                                         index_t ld_out,
+                                         const typename sb_handle_t::event_t& _dependencies = {}) {
   return blas::internal::_transpose<true, element_t>(sb_handle, m, n, A, ld_in,
-                                                     A, ld_out);
+                                                     A, ld_out, _dependencies);
 }
 
 /**
@@ -258,9 +269,10 @@ template <typename element_t, typename sb_handle_t, typename index_t,
           typename in_t, typename out_t>
 typename sb_handle_t::event_t _transpose(sb_handle_t& sb_handle, index_t m,
                                          index_t n, in_t A, index_t ld_a,
-                                         out_t B, index_t ld_b) {
+                                         out_t B, index_t ld_b,
+                                         const typename sb_handle_t::event_t& _dependencies = {}) {
   return blas::internal::_transpose<false, element_t>(sb_handle, m, n, A, ld_a,
-                                                      B, ld_b);
+                                                      B, ld_b, _dependencies);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
@@ -269,9 +281,10 @@ typename sb_handle_t::event_t _reduction(sb_handle_t& sb_handle,
                                          input_t buffer_in, index_t ld,
                                          output_t buffer_out, index_t rows,
                                          index_t cols,
-                                         reduction_dim_t reduction_dim) {
+                                         reduction_dim_t reduction_dim,
+                                         const typename sb_handle_t::event_t& _dependencies = {}) {
   return blas::internal::_reduction<operator_t, element_t>(
-      sb_handle, buffer_in, ld, buffer_out, rows, cols, reduction_dim);
+      sb_handle, buffer_in, ld, buffer_out, rows, cols, reduction_dim, _dependencies);
 }
 
 }  // namespace extension

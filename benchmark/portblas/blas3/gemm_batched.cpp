@@ -62,7 +62,7 @@ std::vector<scalar_t> interleaved_to_strided(const std::vector<scalar_t>& input,
   return output;
 }
 
-template <typename scalar_t>
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, int batch_type_i, bool* success) {
@@ -88,6 +88,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
       state, beta, m, n, k, batch_size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
+  auto q = sb_handle.get_queue();
 
   // Matrices
   std::vector<scalar_t> a =
@@ -120,19 +121,39 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   }
 #endif
 
-  auto a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a, m * k * batch_size);
-  auto b_gpu = blas::make_sycl_iterator_buffer<scalar_t>(b, k * n * batch_size);
-  auto c_gpu = blas::make_sycl_iterator_buffer<scalar_t>(c, m * n * batch_size);
+  auto a_gpu =
+      blas::helper::allocate<mem_alloc, scalar_t>(m * k * batch_size, q);
+  auto b_gpu =
+      blas::helper::allocate<mem_alloc, scalar_t>(k * n * batch_size, q);
+  auto c_gpu =
+      blas::helper::allocate<mem_alloc, scalar_t>(m * n * batch_size, q);
+
+  auto copy_a = blas::helper::copy_to_device<scalar_t>(q, a.data(), a_gpu,
+                                                       m * k * batch_size);
+  auto copy_b = blas::helper::copy_to_device<scalar_t>(q, b.data(), b_gpu,
+                                                       n * k * batch_size);
+  auto copy_c = blas::helper::copy_to_device<scalar_t>(q, c.data(), c_gpu,
+                                                       m * n * batch_size);
+
+  sb_handle.wait({copy_a, copy_b, copy_c});
 
 #ifdef BLAS_VERIFY_BENCHMARK
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu =
-        blas::make_sycl_iterator_buffer<scalar_t>(c_temp, m * n * batch_size);
-    auto event =
+        blas::helper::allocate<mem_alloc, scalar_t>(m * n * batch_size, q);
+    auto copy_temp = blas::helper::copy_to_device<scalar_t>(
+        q, c_temp.data(), c_temp_gpu, m * n * batch_size);
+    sb_handle.wait(copy_temp);
+    auto gemm_batched_event =
         _gemm_batched(sb_handle, *t_a, *t_b, m, n, k, alpha, a_gpu, lda, b_gpu,
                       ldb, beta, c_temp_gpu, ldc, batch_size, batch_type);
-    sb_handle.wait(event);
+    sb_handle.wait(gemm_batched_event);
+    auto copy_out = blas::helper::copy_to_host<scalar_t>(
+        q, c_temp_gpu, c_temp.data(), m * n * batch_size);
+    sb_handle.wait(copy_out);
+
+    blas::helper::deallocate<mem_alloc>(c_temp_gpu, q);
   }
   if (batch_type == blas::gemm_batch_type_t::interleaved) {
     constexpr int offset = 0;
@@ -176,15 +197,17 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
                           state.counters["bytes_processed"]);
 
   blas_benchmark::utils::calc_avg_counters(state);
+
+  blas::helper::deallocate<mem_alloc>(a_gpu, q);
+  blas::helper::deallocate<mem_alloc>(b_gpu, q);
+  blas::helper::deallocate<mem_alloc>(c_gpu, q);
 };
 
-template <typename scalar_t>
-void register_benchmark(blas_benchmark::Args& args,
-                        blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto gemm_params =
-      blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
-
-  for (auto p : gemm_params) {
+template <typename scalar_t, blas::helper::AllocType mem_alloc>
+void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
+                        std::string mem_type,
+                        std::vector<gemm_batched_param_t<scalar_t>> params) {
+  for (auto p : params) {
     std::string t1s, t2s;
     index_t m, n, k, batch_size;
     scalar_t alpha, beta;
@@ -197,18 +220,30 @@ void register_benchmark(blas_benchmark::Args& args,
                          int t1, int t2, index_t m, index_t k, index_t n,
                          scalar_t alpha, scalar_t beta, index_t batch_size,
                          int batch_type, bool* success) {
-      run<scalar_t>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
-                    batch_type, success);
+      run<scalar_t, mem_alloc>(st, sb_handle_ptr, t1, t2, m, k, n, alpha, beta,
+                               batch_size, batch_type, success);
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
             t1s, t2s, m, k, n, batch_size, batch_type,
-            blas_benchmark::utils::MEM_TYPE_BUFFER)
-            .c_str(),
+            mem_type).c_str(),
         BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, batch_size,
         batch_type, success)
         ->UseRealTime();
   }
+}
+
+template <typename scalar_t>
+void register_benchmark(blas_benchmark::Args& args,
+                        blas::SB_Handle* sb_handle_ptr, bool* success) {
+  auto gemm_batched_params =
+      blas_benchmark::utils::get_gemm_batched_params<scalar_t>(args);
+  register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, gemm_batched_params);
+#ifdef SB_ENABLE_USM
+  register_benchmark<scalar_t, blas::helper::AllocType::usm>(
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, gemm_batched_params);
+#endif
 }
 
 namespace blas_benchmark {

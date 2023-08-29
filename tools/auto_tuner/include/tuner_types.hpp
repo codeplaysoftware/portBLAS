@@ -40,13 +40,9 @@ template <typename DataType>
 using DeviceContainer = typename ::blas::BufferIterator<DataType>;
 
 template <typename DataType>
-using MatrixContainer = typename ::blas::MatrixViewTypeFactory<
-    DataType,
-    typename ::blas::BufferIterator<DataType>::template default_accessor_t<
-        ::blas::Choose<std::is_const<DataType>::value, cl::sycl::access::mode,
-                       cl::sycl::access::mode::read,
-                       cl::sycl::access::mode::read_write>::type>,
-    int, ::blas::col_major>::output_t;
+using MatrixContainer =
+    typename ::blas::MatrixViewType< ::blas::BufferIterator<DataType>, int,
+                                     ::blas::col_major>::type;
 
 struct TestResultEntry {
   std::string name;
