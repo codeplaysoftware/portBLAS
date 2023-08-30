@@ -122,9 +122,9 @@ inline typename SB_Handle::event_t SB_Handle::execute(
        typename lhs_t::value_t > (sharedSize, q_);
 
   auto opShMem1 =
-      make_vector_view(shMem1, typename rhs_t::index_t{1}, sharedSize);
+      make_vector_view(shMem1, typename lhs_t::increment_t(1), sharedSize);
   auto opShMem2 =
-      make_vector_view(shMem2, typename rhs_t::index_t{1}, sharedSize);
+      make_vector_view(shMem2, typename lhs_t::increment_t(1), sharedSize);
   typename SB_Handle::event_t event;
   bool frst = true;
   bool even = false;
