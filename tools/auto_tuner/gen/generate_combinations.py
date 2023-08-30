@@ -114,8 +114,7 @@ class LocalGemm(GemmParams):
         return (self.tile.group_rows % self.tile.item_cols == 0
                 and self.tile.group_cols % self.tile.item_rows == 0
                 and self.tile.group_rows * self.tile.group_cols %
-                (self.cache_size / 4) == 0 and 
-                self.tile.group_rows * self.tile.item_rows == self.tile.group_cols * self.tile.item_cols)
+                (self.cache_size / 4) == 0)
 
 
 class NonLocalGemmStrided(GemmParams):

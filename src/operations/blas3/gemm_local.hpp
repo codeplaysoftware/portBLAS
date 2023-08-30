@@ -136,10 +136,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "of the number of columns in a block\n"
                 " --- this is ensured iff: item_cols | wg_rows");
 
-  static_assert(big_tile_rows == big_tile_cols,
-                "Big tile level dimensions should be square, i.e. tl_rows * "
-                "block_rows == tl_cols * block_cols");
-
   static_assert(item_rows % packetize_t::packet_size == 0,
                 "Item rows must be a multiple of the vector packet size");
 
@@ -210,7 +206,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   PORTBLAS_INLINE index_t
   get_num_workgroup_cluster(index_t compute_units) const noexcept {
-    return ((4 * compute_units - 1) / get_workgroup_cluster() + 1);
+    return (batch_size_ > 1)
+               ? ((4 * compute_units - 1) / get_workgroup_cluster() + 1)
+               : 1;
   }
 
   /*!
@@ -289,7 +287,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t tile_row = (tile_id % tiles_per_col) * tl_rows;
     const index_t tile_col = (tile_id / tiles_per_col) * tl_cols;
     const index_t wg_row = (tile_row + tile_local_id % tl_rows) * block_rows;
-    const index_t wg_col = (tile_col + tile_local_id / tl_rows) * block_rows;
+    const index_t wg_col = (tile_col + tile_local_id / tl_rows) * block_cols;
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
     const index_t vector_offset = internal ? packetize_t::packet_size : 1;
@@ -373,15 +371,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
     constexpr index_t offset =
         (!check_m_limit && !check_n_limit) ? packetize_t::packet_size : 1;
-#pragma unroll
     for (index_t i = 0; i < item_cols; ++i) {
-#pragma unroll
       for (index_t j = 0; j < item_rows / offset; ++j) {
         const bool in_range =
             do_check<check_m_limit>(j * wg_rows * offset < mc) &&
             do_check<check_n_limit>(i < nc);
         if (in_range) {
-#pragma unroll
           for (index_t l = 0; l < offset; ++l) {
             reg_res[i * item_rows + j * offset + l] =
                 beta_ * *(C + j * (wg_rows * offset) + l);
@@ -397,7 +392,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   PORTBLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
       element_t *reg_res, InputPointerType, const index_t &, const index_t &,
       const index_t &, const bool) {
-#pragma unroll
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
     }
@@ -560,9 +554,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     }
     constexpr index_t offset =
         (!check_m_limit && !check_n_limit) ? packetize_t::packet_size : 1;
-#pragma unroll
     for (index_t i = 0; i < item_cols; ++i) {
-#pragma unroll
       for (index_t j = 0; j < item_rows / offset; j++) {
         const bool in_range =
             do_check<check_m_limit>(j * wg_rows * offset < mc) &&
@@ -744,6 +736,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     //       resulting from loop unrollment.
     constexpr index_t work_per_load =
         !check_m_limit && !check_n_limit ? packetize_t::packet_size : 1;
+#if defined NVIDIA_GPU
+#pragma unroll
+#endif
     for (index_t i = 0; i < cl_elems; ++i) {
 #pragma unroll
       for (index_t j = 0; j < item_rows / work_per_load; ++j) {
