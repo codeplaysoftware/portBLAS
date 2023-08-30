@@ -49,8 +49,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   index_t incY = 1;
 
   blas_benchmark::utils::init_level_2_counters<
-      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(state, t_str, beta, m, n,
-                                                       0, ku, kl);
+      blas_benchmark::utils::Level2Op::gbmv, scalar_t>(
+      state, t_str, beta, m, n, static_cast<index_t>(0), ku, kl);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
@@ -156,8 +156,9 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
                                success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            ts, m, n, kl, ku, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(ts, m, n, kl,
+                                                                ku, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, t, m, n, kl, ku, alpha, beta, success)
         ->UseRealTime();
   }
@@ -169,7 +170,8 @@ void register_benchmark(blas_benchmark::Args& args,
   auto gbmv_params = blas_benchmark::utils::get_gbmv_params<scalar_t>(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, gbmv_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      gbmv_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, gbmv_params);

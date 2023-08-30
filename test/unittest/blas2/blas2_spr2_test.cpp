@@ -32,10 +32,10 @@ using combination_t =
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
   std::string alloc;
-  int n;
+  index_t n;
   scalar_t alpha;
   char layout, uplo;
-  int incX, incY;
+  index_t incX, incY;
   std::tie(alloc, layout, uplo, n, alpha, incX, incY) = combi;
 
   const size_t x_size = 1 + (n - 1) * incX;
@@ -95,10 +95,10 @@ void run_test(const combination_t<scalar_t> combi) {
 template <typename scalar_t>
 void run_test(const combination_t<scalar_t> combi) {
   std::string alloc;
-  int n;
+  index_t n;
   scalar_t alpha;
   char layout, uplo;
-  int incX, incY;
+  index_t incX, incY;
   std::tie(alloc, layout, uplo, n, alpha, incX, incY) = combi;
 
   if (alloc == "usm") {
@@ -142,7 +142,7 @@ static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   std::string alloc;
   char layout, uplo;
-  int n, incX, incY;
+  index_t n, incX, incY;
   T alpha;
   BLAS_GENERATE_NAME(info.param, alloc, layout, uplo, n, alpha, incX, incY);
 }

@@ -66,7 +66,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, y_temp.data(),
                                                             y_temp_gpu, size);
     sb_handle.wait(copy_temp);
-    auto axpy_event = _axpy(sb_handle, size, alpha, inx, 1, y_temp_gpu, 1);
+    auto axpy_event =
+        _axpy(sb_handle, size, alpha, inx, static_cast<index_t>(1), y_temp_gpu,
+              static_cast<index_t>(1));
     sb_handle.wait(axpy_event);
     auto copy_output =
         blas::helper::copy_to_host(q, y_temp_gpu, y_temp.data(), size);
@@ -126,8 +128,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
       run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            size, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
@@ -139,7 +141,8 @@ void register_benchmark(blas_benchmark::Args& args,
   auto axpy_params = blas_benchmark::utils::get_blas1_params(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, axpy_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      axpy_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, axpy_params);
