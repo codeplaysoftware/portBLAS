@@ -35,15 +35,17 @@
 #include <random>
 
 inline portblas_handle_t make_portblas_handle() {
-  cl::sycl::queue q([=](cl::sycl::exception_list ex_list) {
-    try {
-      for (auto &e_ptr : ex_list) {
-        std::rethrow_exception(e_ptr);
-      }
-    } catch (cl::sycl::exception &e) {
-      throw std::runtime_error(e.what());
-    }
-  });
+  cl::sycl::queue q(
+      [=](cl::sycl::exception_list ex_list) {
+        try {
+          for (auto &e_ptr : ex_list) {
+            std::rethrow_exception(e_ptr);
+          }
+        } catch (cl::sycl::exception &e) {
+          throw std::runtime_error(e.what());
+        }
+      },
+      {cl::sycl::property::queue::in_order()});
   std::cout << "\nDevice: "
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
@@ -87,9 +89,11 @@ static void run_tune(int rep, double flop_cnt, TestResultEntry &result,
   using Seconds = std::chrono::duration<double>;
   using MilliSeconds = std::chrono::duration<double, std::milli>;
   Seconds runtime_secs;
-  // warmup
   try {
-    op();
+    // warmup
+    for (int i = 0; i < 10; ++i) {
+      op();
+    }
     auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < rep; ++i) {
       op();
