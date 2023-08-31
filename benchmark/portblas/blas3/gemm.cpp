@@ -49,7 +49,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   index_t ldc = m;
 
   blas_benchmark::utils::init_level_3_counters<
-      blas_benchmark::utils::Level3Op::gemm, scalar_t>(state, beta, m, n, k, 1);
+      blas_benchmark::utils::Level3Op::gemm, scalar_t>(state, beta, m, n, k,
+                                                       static_cast<index_t>(1));
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
@@ -155,8 +156,9 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
                                success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            t1s, t2s, m, k, n, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(t1s, t2s, m, k,
+                                                                n, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, t1, t2, m, k, n, alpha, beta, success)
         ->UseRealTime();
   }
@@ -167,7 +169,8 @@ void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
   auto gemm_params = blas_benchmark::utils::get_blas3_params<scalar_t>(args);
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, gemm_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      gemm_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, gemm_params);
@@ -175,8 +178,8 @@ void register_benchmark(blas_benchmark::Args& args,
 }
 
 namespace blas_benchmark {
-void create_benchmark(blas_benchmark::Args& args, blas::SB_Handle* sb_handle_ptr,
-                      bool* success) {
+void create_benchmark(blas_benchmark::Args& args,
+                      blas::SB_Handle* sb_handle_ptr, bool* success) {
   BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success);
 }
 }  // namespace blas_benchmark

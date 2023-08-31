@@ -36,8 +36,6 @@ enum operator_t : int {
   Mean = 5,
 };
 
-using index_t = int;
-
 template <typename scalar_t>
 using combination_t = std::tuple<std::string, index_t, index_t, index_t,
                                  operator_t, reduction_dim_t, scalar_t>;
