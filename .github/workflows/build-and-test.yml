@@ -39,14 +39,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - impl: "COMPUTECPP"
-            cxx_compiler: "g++-7"
-            cc_compiler: "gcc-7"
-            target: "opencl"
-          - impl: "COMPUTECPP"
-            cxx_compiler: "clang++-6.0"
-            cc_compiler: "clang-6.0"
-            target: "opencl"
           - impl: "DPCPP"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"

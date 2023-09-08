@@ -47,7 +47,6 @@ RUN bash /portBLAS/.scripts/build_OpenBLAS.sh
 RUN bash /portBLAS/.scripts/install_intel_opencl.sh
 
 # SYCL
-RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /portBLAS && bash /portBLAS/.scripts/build_computecpp.sh; fi
 RUN if [ "${impl}" = 'DPCPP' ]; then cd /portBLAS && bash /portBLAS/.scripts/build_dpcpp.sh; fi
 
 ENV COMMAND=${command}
@@ -57,14 +56,7 @@ ENV SYCL_IMPL=${impl}
 
 CMD cd /portBLAS && \
     if [ "${COMMAND}" = 'build-test' ]; then \
-      if [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
-        /tmp/ComputeCpp-latest/bin/computecpp_info && \
-        export COMPUTECPP_TARGET="intel:cpu" && mkdir -p build && cd build && \
-        cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
-        -DSYCL_COMPILER=computecpp -DComputeCpp_DIR=/tmp/ComputeCpp-latest \
-        -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build -DCMAKE_BUILD_TYPE=Release && \
-        make -j$(nproc) && cd test && ctest -VV --timeout 1200; \
-      elif [ "${SYCL_IMPL}" = 'DPCPP' ]; then \
+      if [ "${SYCL_IMPL}" = 'DPCPP' ]; then \
         export LD_LIBRARY_PATH="/tmp/dpcpp/lib" && mkdir -p build && cd build && \
         cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
         -DSYCL_COMPILER=dpcpp -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build \
