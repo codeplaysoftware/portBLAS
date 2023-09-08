@@ -31,19 +31,19 @@ namespace asum {
 namespace backend {
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
-                                    container_0_t _vx, increment_t _incx,
-                                    container_1_t _rs) {
+typename sb_handle_t::event_t _asum(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   if (_N < (1 << 18)) {
-    constexpr auto localSize = 1024ul;
-    const auto blocks = (_N + localSize - 1) / localSize;
-    return blas::internal::_asum_impl<localSize, 32>(sb_handle, _N, _vx, _incx,
-                                                     _rs, blocks);
+    constexpr index_t localSize = 1024;
+    const index_t number_WG = (_N + localSize - 1) / localSize;
+    return blas::internal::_asum_impl<static_cast<int>(localSize), 32>(
+        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
   } else {
-    constexpr auto localSize = 512ul;
-    constexpr auto blocks = 256ul;
-    return blas::internal::_asum_impl<localSize, 32>(sb_handle, _N, _vx, _incx,
-                                                     _rs, blocks);
+    constexpr int localSize = 512;
+    constexpr index_t number_WG = 256;
+    return blas::internal::_asum_impl<localSize, 32>(
+        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
   }
 }
 }  // namespace backend

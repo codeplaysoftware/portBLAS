@@ -31,13 +31,14 @@ namespace asum {
 namespace backend {
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename index_t, typename increment_t>
-typename sb_handle_t::event_t _asum(sb_handle_t &sb_handle, index_t _N,
-                                    container_0_t _vx, increment_t _incx,
-                                    container_1_t _rs) {
-  constexpr auto localSize = 128;
-  const auto blocks = std::min((_N + localSize - 1) / localSize, 512);
-  return blas::internal::_asum_impl<localSize,16>(sb_handle, _N, _vx,
-                                                           _incx, _rs, blocks);
+typename sb_handle_t::event_t _asum(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+  constexpr index_t localSize = 128;
+  const index_t number_WG =
+      std::min((_N + localSize - 1) / localSize, static_cast<index_t>(512));
+  return blas::internal::_asum_impl<static_cast<int>(localSize), 32>(
+      sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
 }
 }  // namespace backend
 }  // namespace asum

@@ -204,7 +204,8 @@ typename sb_handle_t::event_t _asum(
   auto ret = sb_handle.execute(assignOp, _dependencies);
   return ret;
 #else
-  return blas::asum::backend::_asum(sb_handle, _N, _vx, _incx, _rs);
+  return blas::asum::backend::_asum(sb_handle, _N, _vx, _incx, _rs,
+                                    _dependencies);
 #endif
 }
 
@@ -229,19 +230,25 @@ typename sb_handle_t::event_t _asum(
 template <int localSize, int localMemSize, typename sb_handle_t,
           typename container_0_t, typename container_1_t, typename index_t,
           typename increment_t>
-typename sb_handle_t::event_t _asum_impl(sb_handle_t &sb_handle, index_t _N,
-                                         container_0_t _vx, increment_t _incx,
-                                         container_1_t _rs, int blocks) {
-  auto vx = make_vector_view(_vx, _incx, _N);
+typename sb_handle_t::event_t _asum_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t number_WG,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
+  static const typename ValueType<container_1_t>::type init_res{0};
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   typename sb_handle_t::event_t ret;
-  auto asumOp = make_asum(rs, vx);
+  auto asumOp = make_wg_atomic_reduction<AbsoluteAddOperator>(rs, vx);
   if constexpr (localMemSize != 0) {
-    ret =
-        sb_handle.execute(asumOp, localSize, blocks * localSize, localMemSize);
+    ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
+                            static_cast<index_t>(number_WG * localSize),
+                            static_cast<index_t>(localMemSize), _dependencies);
   } else {
-    ret = sb_handle.execute(asumOp, localSize, blocks * localSize);
+    ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
+                            static_cast<index_t>(number_WG * localSize),
+                            _dependencies);
   }
   return ret;
 }
@@ -820,7 +827,12 @@ typename ValueType<container_t>::type _asum(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto asum_event = blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  const typename sb_handle_t::event_t init_res_event = {
+      blas::helper::copy_to_device(sb_handle.get_queue(), res.data(), gpu_res,
+                                   1)};
+  auto local_deps = concatenate_vectors(_dependencies, init_res_event);
+  auto asum_event =
+      blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, local_deps);
   sb_handle.wait(asum_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
@@ -850,7 +862,8 @@ typename ValueType<container_t>::type _nrm2(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto nrm2_event = blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  auto nrm2_event =
+      blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(nrm2_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);

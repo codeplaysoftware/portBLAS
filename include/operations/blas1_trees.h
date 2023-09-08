@@ -183,19 +183,20 @@ struct AssignReduction {
 };
 
 /*! .
- * @brief Implements the ASUM operator providing different
- * implementations of the ASUM kernel function.
+ * @brief Generic implementation for operators that require a
+ * reduction inside kernel code. (i.e. asum)
  *
- * The class is constructed using the make_asum function below.
+ * The class is constructed using the make_wg_atomic_reduction
+ * function below.
  *
  */
-template <typename lhs_t, typename rhs_t>
-struct Asum {
+template <typename operator_t, typename lhs_t, typename rhs_t>
+struct WGAtomicReduction {
   using value_t = typename lhs_t::value_t;
   using index_t = typename rhs_t::index_t;
   lhs_t lhs_;
   rhs_t rhs_;
-  Asum(lhs_t &_l, rhs_t &_r);
+  WGAtomicReduction(lhs_t &_l, rhs_t &_r);
   index_t get_size() const;
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(cl::sycl::nd_item<1> ndItem);
@@ -255,9 +256,10 @@ inline AssignReduction<operator_t, lhs_t, rhs_t> make_assign_reduction(
       lhs_, rhs_, local_num_thread_, global_num_thread_);
 }
 
-template <typename lhs_t, typename rhs_t>
-inline Asum<lhs_t, rhs_t> make_asum(lhs_t &lhs_, rhs_t &rhs_) {
-  return Asum<lhs_t, rhs_t>(lhs_, rhs_);
+template <typename operator_t, typename lhs_t, typename rhs_t>
+inline WGAtomicReduction<operator_t, lhs_t, rhs_t> make_wg_atomic_reduction(
+    lhs_t &lhs_, rhs_t &rhs_) {
+  return WGAtomicReduction<operator_t, lhs_t, rhs_t>(lhs_, rhs_);
 }
 
 /*!
