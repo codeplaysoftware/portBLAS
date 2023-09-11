@@ -25,16 +25,6 @@ RUN apt-get -yq update
 
 RUN pip install enum34
 
-# Clang 6.0
-RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-     clang-6.0 libomp-dev; fi
-
-# GCC 7
-RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-    g++-7 gcc-7; fi
-
 # OpenCL ICD Loader
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential               \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
