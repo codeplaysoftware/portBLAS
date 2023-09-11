@@ -447,11 +447,7 @@ elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)
     "float"
     "half"
   )
-  set(data_list_c ${supported_types})
-  if(BLAS_ENABLE_COMPLEX)
-    set_complex_list(data_list_c "${supported_types}" "false")
-  endif()
-  foreach(data ${data_list_c})
+  foreach(data ${supported_types})
     add_gemm_configuration(
       "${data}" 96 "true" "false" "false"
       16 4 6 12 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
