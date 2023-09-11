@@ -71,12 +71,12 @@ scalar_t abs(scalar_t value) noexcept {
 #ifdef BLAS_ENABLE_COMPLEX
 template <typename scalar_t>
 bool isnan(std::complex<scalar_t> value) noexcept {
-  return (isnan<scalar_t>(value.imag()) || isnan<scalar_t>(value.imag()));
+  return (isnan<scalar_t>(value.real()) || isnan<scalar_t>(value.imag()));
 }
 
 template <typename scalar_t>
 bool isinf(std::complex<scalar_t> value) noexcept {
-  return (isinf<scalar_t>(value.imag()) || isinf<scalar_t>(value.imag()));
+  return (isinf<scalar_t>(value.real()) || isinf<scalar_t>(value.imag()));
 }
 
 template <typename scalar_t>
