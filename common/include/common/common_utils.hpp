@@ -1372,6 +1372,37 @@ static inline std::vector<scalar_t> random_data(size_t size) {
   return v;
 }
 
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename scalar_t>
+static inline complex_std<scalar_t> random_scalar() {
+  scalar_t rl = 1e-3 * ((rand() % 2000) - 1000);
+  scalar_t im = 1e-3 * ((rand() % 2000) - 1000);
+  return complex_std<scalar_t>({rl, im});
+}
+
+template <typename scalar_t>
+static inline complex_std<scalar_t> random_scalar(scalar_t rangeMin,
+                                                  scalar_t rangeMax) {
+  static std::random_device rd;
+  static std::default_random_engine gen(rd());
+  std::uniform_real_distribution<scalar_t> disRl(rangeMin, rangeMax);
+  std::uniform_real_distribution<scalar_t> disIm(rangeMin, rangeMax);
+
+  return complex_std<scalar_t>({disRl(gen), disIm(gen)});
+}
+
+template <typename scalar_t>
+static inline std::vector<complex_std<scalar_t>> random_data(size_t size) {
+  std::vector<complex_std<scalar_t>> v =
+      std::vector<complex_std<scalar_t>>(size);
+
+  for (scalar_t& e : v) {
+    e = random_scalar(scalar_t{-2}, scalar_t{5});
+  }
+  return v;
+}
+#endif
+
 /**
  * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
  * @param A The matrix to fill. Size must be at least m * lda

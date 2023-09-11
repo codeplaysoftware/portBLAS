@@ -210,6 +210,16 @@ struct constant<std::complex<value_t>, Indicator> {
   }
 };
 
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename value_t, const_val Indicator>
+struct constant<complex_sycl<value_t>, Indicator> {
+  constexpr static PORTBLAS_INLINE complex_sycl<value_t> value() {
+    return complex_sycl<value_t>(constant<value_t, Indicator>::value(),
+                                 constant<value_t, Indicator>::value());
+  }
+};
+#endif
+
 #ifdef BLAS_DATA_TYPE_HALF
 template <>
 struct constant<cl::sycl::half, const_val::zero>

@@ -33,6 +33,28 @@
 
 namespace blas {
 
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename T>
+static PORTBLAS_INLINE T
+mul_add(T a, T b, T c,
+        typename std::enable_if<is_complex_sycl<T>::value>::type * = 0) {
+  return (a * b + c);
+}
+
+template <typename T>
+static PORTBLAS_INLINE T
+mul_add(T a, T b, T c,
+        typename std::enable_if<!is_complex_sycl<T>::value>::type * = 0) {
+  return (sycl::mad(a, b, c));
+}
+#else
+
+template <typename T>
+static PORTBLAS_INLINE T mul_add(T a, T b, T c) {
+  return (sycl::mad(a, b, c));
+}
+#endif
+
 template <typename T>
 struct type_string {
   static const char *get_value() { return "unknown"; }

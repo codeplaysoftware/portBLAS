@@ -108,6 +108,17 @@ struct DetectScalar<std::complex<double>> {
   static element_t get_scalar(element_t &scalar) { return scalar; }
 };
 
+#ifdef BLAS_ENABLE_COMPLEX
+/*! DetectScalar (for sycl::complex<value_t>)
+ * @brief See Detect Scalar.
+ */
+template <typename value_t>
+struct DetectScalar<complex_sycl<value_t>> {
+  using element_t = complex_sycl<value_t>;
+  static element_t get_scalar(element_t &scalar) { return scalar; }
+};
+#endif
+
 /*! get_scalar.
  * @brief Template autodecuction function for DetectScalar.
  */

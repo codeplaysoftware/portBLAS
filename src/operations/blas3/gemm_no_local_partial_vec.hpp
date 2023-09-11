@@ -69,6 +69,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using address_t = cl::sycl::access::address_space;
   using packetize_t = Packetize<VectorSize, value_t, index_t>;
+  using vector_t = typename packetize_t::PacketType;
   static constexpr int local_memory_size = 0;
   /*! @brief The number of rows processed by each work item */
   static constexpr index_t item_rows = tile_type::item_rows;
@@ -458,7 +459,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       bool in_range =
           do_check<check_block>(chk_boundary(index + (work_per_load - 1)));
 
-      cl::sycl::vec<element_t, work_per_load> in_vec{0};
+      using l_vector_t =
+          typename Packetize<work_per_load, element_t, index_t>::PacketType;
+      l_vector_t in_vec{0};
       if (in_range) {
         in_vec.template load<address_t::global_space>(
             0,
@@ -488,7 +491,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 #pragma unroll
       for (int j = 0; j < item_rows; j++) {
         reg_res[i * item_rows + j] =
-            cl::sycl::mad(reg_a[j], reg_b[i], reg_res[i * item_rows + j]);
+            mul_add<element_t>(reg_a[j], reg_b[i], reg_res[i * item_rows + j]);
       }
     }
   }
@@ -502,7 +505,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool internal, index_t work_per_load, typename OutputPointerType>
   PORTBLAS_INLINE typename std::enable_if<internal>::type store_packet(
       element_t *reg, OutputPointerType out_ptr) {
-    cl::sycl::vec<element_t, work_per_load> out_vec{0};
+    using l_vector_t =
+        typename Packetize<work_per_load, element_t, index_t>::PacketType;
+    l_vector_t out_vec{0};
 
     out_vec.template load<address_t::private_space>(
         0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
@@ -531,11 +536,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   template <bool check_block, index_t a_packet_size, index_t b_packet_size,
             typename PointerType, typename check_boundary>
   PORTBLAS_INLINE void store(PointerType C, element_t *reg_res,
-                              const index_t &dim_m_c_start,
-                              const index_t &dim_n_c_start,
-                              const check_boundary &chk_boundary,
-                              const bool out_of_range,
-                              const index_t &ldc) noexcept {
+                             const index_t &dim_m_c_start,
+                             const index_t &dim_n_c_start,
+                             const check_boundary &chk_boundary,
+                             const bool out_of_range,
+                             const index_t &ldc) noexcept {
     if (out_of_range) {
       return;
     }
@@ -545,7 +550,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       for (int j = 0; j < item_rows / a_packet_size; j++) {
         if (do_check<check_block>(chk_boundary(dim_m_c_start + j * wg_rows,
                                                dim_n_c_start + i * wg_cols))) {
-          cl::sycl::vec<element_t, a_packet_size> out_vec{0};
+          using l_vector_t =
+              typename Packetize<a_packet_size, element_t, index_t>::PacketType;
+          l_vector_t out_vec{0};
 
           out_vec.template load<address_t::private_space>(
               0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(
