@@ -149,6 +149,34 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
   fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
 }
 
+#ifdef BLAS_ENABLE_COMPLEX
+/**
+ * @brief Generates a random vector of std::complex<scalar> values, using a
+ * uniform distribution.
+ * @param vec Input vector to fill
+ * @param rangeMin Minimum value for the uniform distribution (real & imag)
+ * @param rangeMax Maximum value for the uniform distribution (real & imag)
+ */
+template <typename scalar_t>
+static inline void fill_random_with_range(
+    std::vector<std::complex<scalar_t>> &vec, scalar_t rangeMin,
+    scalar_t rangeMax) {
+  for (complex_std<scalar_t> &e : vec) {
+    e = complex_std<scalar_t>{random_scalar<scalar_t>(rangeMin, rangeMax),
+                              random_scalar<scalar_t>(rangeMin, rangeMax)};
+  }
+}
+
+/**
+ * @brief Generates a random vector of std::complex<scalar> values, using a
+ * uniform distribution.
+ */
+template <typename scalar_t>
+static inline void fill_random(std::vector<complex_std<scalar_t>> &vec) {
+  fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
+}
+#endif
+
 /**
  * @brief Fills a lower or upper triangular matrix suitable for TRSM testing
  * @param A The matrix to fill. Size must be at least m * lda
@@ -165,7 +193,7 @@ static inline void fill_random(std::vector<scalar_t> &vec) {
  * @param unused Value to put in the unused parts of the matrix
  */
 template <typename scalar_t>
-static inline void fill_trsm_matrix(std::vector<scalar_t>& A, size_t k,
+static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
                                     size_t lda, char uplo, char unit_diag,
                                     scalar_t diag = scalar_t{1},
                                     scalar_t unused = scalar_t{0}) {
@@ -261,6 +289,24 @@ struct dump_arg_helper<cl::sycl::half> {
     dump_arg_helper<float>{}(ss, f);
   }
 };
+
+#ifdef BLAS_ENABLE_COMPLEX
+/** Specialization of dump_arg_helper for std::complex types.
+ *  This is required to split the real & imag parts properly and avoid
+ *  by-default parentheses format.
+ **/
+template <class T>
+struct dump_arg_helper<
+    T, typename std::enable_if<is_complex_std<T>::value>::type> {
+  inline void operator()(std::ostream &ss, T f) {
+    using scalar_t = typename T::value_type;
+    dump_arg_helper<scalar_t>{}(ss, f.real());
+    ss << "r";
+    dump_arg_helper<scalar_t>{}(ss, f.imag());
+    ss << "i";
+  }
+};
+#endif
 
 /**
  * Type of the tested api

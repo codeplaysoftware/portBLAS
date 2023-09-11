@@ -28,6 +28,9 @@
 
 #include <cmath>
 #include <iostream>
+#ifdef BLAS_ENABLE_COMPLEX
+#include <complex>
+#endif
 
 #ifdef BLAS_DATA_TYPE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
@@ -64,6 +67,23 @@ template <typename scalar_t>
 scalar_t abs(scalar_t value) noexcept {
   return std::abs(value);
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename scalar_t>
+bool isnan(std::complex<scalar_t> value) noexcept {
+  return (isnan<scalar_t>(value.imag()) || isnan<scalar_t>(value.imag()));
+}
+
+template <typename scalar_t>
+bool isinf(std::complex<scalar_t> value) noexcept {
+  return (isinf<scalar_t>(value.imag()) || isinf<scalar_t>(value.imag()));
+}
+
+template <typename scalar_t>
+scalar_t abs(std::complex<scalar_t> value) noexcept {
+  return std::abs(value);
+}
+#endif
 
 #ifdef BLAS_DATA_TYPE_HALF
 template <>
@@ -172,7 +192,7 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
     return true;
   }
 
-  const scalar_t absolute_diff = utils::abs(scalar1 - scalar2);
+  const auto absolute_diff = utils::abs(scalar1 - scalar2);
 
   // Close to zero, the relative error doesn't work, use absolute error
   if (scalar1 == scalar_t{0} || scalar2 == scalar_t{0} ||
@@ -211,6 +231,37 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
   return true;
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+/**
+ * Compare two vectors of complex data and returns false if the difference is
+ * not acceptable. The second vector is considered the reference.
+ * @tparam scalar_t the type of complex underying data present in the input
+ * vectors
+ * @tparam epilon_t the type used as tolerance.
+ */
+template <typename scalar_t, typename epsilon_t = scalar_t>
+inline bool compare_vectors(std::vector<std::complex<scalar_t>> const& vec,
+                            std::vector<std::complex<scalar_t>> const& ref,
+                            std::ostream& err_stream = std::cerr,
+                            std::string end_line = "\n") {
+  if (vec.size() != ref.size()) {
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
+    return false;
+  }
+
+  for (int i = 0; i < vec.size(); ++i) {
+    if (!almost_equal<std::complex<scalar_t>, epsilon_t>(vec[i], ref[i])) {
+      err_stream << "Value mismatch at index " << i << ": (" << vec[i].real()
+                 << "," << vec[i].imag() << "); expected (" << ref[i].real()
+                 << "," << ref[i].imag() << ")" << end_line;
+      return false;
+    }
+  }
+  return true;
+}
+#endif
 
 /**
  * Compare two vectors at a given stride and window (unit_vec_size) and returns
@@ -252,6 +303,51 @@ inline bool compare_vectors_strided(std::vector<scalar_t> const& vec,
 
   return true;
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+/**
+ * Compare two vectors of complex data at a given stride and window and returns
+ * false if the difference is not acceptable. The second vector is considered
+ * the reference.
+ * @tparam scalar_t the type of the complex underying data present in the input
+ * vectors
+ * @tparam epsilon_t the type used as tolerance.
+ * @param stride is the stride between two consecutive 'windows'
+ * @param window is the size of a comparison window
+ */
+template <typename scalar_t, typename epsilon_t = scalar_t>
+inline bool compare_vectors_strided(
+    std::vector<std::complex<scalar_t>> const& vec,
+    std::vector<std::complex<scalar_t>> const& ref, int stride, int window,
+    std::ostream& err_stream = std::cerr, std::string end_line = "\n") {
+  if (vec.size() != ref.size()) {
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
+    return false;
+  }
+
+  int k = 0;
+
+  // Loop over windows
+  while (window + (k + 1) * stride < vec.size()) {
+    // Loop within a window
+    for (int i = 0; i < window; ++i) {
+      auto index = i + k * stride;
+      if (!almost_equal<std::complex<scalar_t>, epsilon_t>(vec[index],
+                                                           ref[index])) {
+        err_stream << "Value mismatch at index " << index << ": ("
+                   << vec[index].real() << "," << vec[index].imag()
+                   << "); expected (" << ref[index].real() << ","
+                   << ref[index].imag() << ")" << end_line;
+        return false;
+      }
+    }
+    k += 1;
+  }
+
+  return true;
+}
+#endif
 
 }  // namespace utils
 
