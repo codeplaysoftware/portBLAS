@@ -45,7 +45,7 @@ jobs:
             target: "opencl"
 
     steps:
-    - uses: actions/checkout@v3.5.3
+    - uses: actions/checkout@v4.0.0
     - name: Push Event Environment Vars
       if: github.event_name == 'push'
       run: |
@@ -85,7 +85,7 @@ jobs:
             cc_compiler: "/tmp/dpcpp/bin/clang"
 
     steps:
-    - uses: actions/checkout@v3.5.3
+    - uses: actions/checkout@v4.0.0
     - name: Push Event Environment Vars
       if: github.event_name == 'push'
       run: |
