@@ -69,17 +69,20 @@ void run_test(const combination_t<scalar_t> combi) {
                                  B_ref.data() + b * stride_out, ld_out);
   }
 
-  auto matrix_in = helper::allocate<mem_alloc, scalar_t>(stride_in*batch_size, q);
-  auto matrix_out = helper::allocate<mem_alloc, scalar_t>(stride_out*batch_size, q);
+  auto matrix_in =
+      helper::allocate<mem_alloc, scalar_t>(stride_in * batch_size, q);
+  auto matrix_out =
+      helper::allocate<mem_alloc, scalar_t>(stride_out * batch_size, q);
 
   auto copy_in = helper::copy_to_device<scalar_t>(q, A.data(), matrix_in,
                                                   stride_in * batch_size);
   auto copy_out = helper::copy_to_device<scalar_t>(q, B.data(), matrix_out,
                                                    stride_out * batch_size);
 
-  blas::_omatcopy_batch(sb_handle, trans, m, n, alpha, matrix_in, ld_in,
-                        stride_in, matrix_out, ld_out, stride_out, batch_size,
-                        {copy_in, copy_out});
+  auto operator_event = blas::_omatcopy_batch(
+      sb_handle, trans, m, n, alpha, matrix_in, ld_in, stride_in, matrix_out,
+      ld_out, stride_out, batch_size, {copy_in, copy_out});
+  sb_handle.wait(operator_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), matrix_out, B.data(), stride_out * batch_size);
