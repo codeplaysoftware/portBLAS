@@ -242,6 +242,41 @@ get_name(char side, char uplo, char trans, char diag, index_t m, index_t n,
 }
 
 template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::omatcopy, std::string>::type
+get_name(std::string trans, int m, int n, scalar_t alpha, index_t lda_mul,
+         index_t ldb_mul, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(trans, m, n, alpha, lda_mul, ldb_mul,
+                                          mem_type);
+}
+
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::omatcopy2, std::string>::type
+get_name(std::string trans, int m, int n, scalar_t alpha, index_t lda_mul,
+         index_t ldb_mul, index_t inc_a, index_t inc_b, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(trans, m, n, alpha, lda_mul, ldb_mul,
+                                          inc_a, inc_b, mem_type);
+}
+
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::omatadd, std::string>::type
+get_name(std::string trans_a, std::string trans_b, int m, int n, scalar_t alpha,
+         scalar_t beta, index_t lda_mul, index_t ldb_mul, index_t ldc_mul,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(trans_a, trans_b, m, n, alpha, beta,
+                                          lda_mul, ldb_mul, ldc_mul, mem_type);
+}
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::omatcopy_batch,
+                               std::string>::type
+get_name(std::string trans, int m, int n, scalar_t alpha, index_t lda_mul,
+         index_t ldb_mul, index_t stride_a_mul, index_t stride_b_mul,
+         index_t batch_size, std::string mem_type) {
+  return internal::get_name<op, scalar_t>(trans, m, n, alpha, lda_mul, ldb_mul,
+                                          stride_a_mul, stride_b_mul,
+                                          batch_size, mem_type);
+}
+
+template <ExtensionOp op, typename scalar_t, typename index_t>
 inline typename std::enable_if<op == ExtensionOp::reduction, std::string>::type
 get_name(index_t rows, index_t cols, std::string reduction_dim,
          std::string mem_type) {

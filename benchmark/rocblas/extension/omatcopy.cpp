@@ -26,16 +26,6 @@
 #include "../../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string t, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul) {
-  std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << t << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
-  return str.str();
-}
-
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_geam_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
@@ -65,7 +55,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
   const auto size_b = ldb * n;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
       state, t_str, m, n, lda_mul, ldb_mul);
 
   // Input matrix/vector, output vector.
@@ -90,8 +80,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti, index_t m,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a, lda, m_b_ref,
-                                      ldb);
+  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a.data(), lda,
+                                      m_b_ref.data(), ldb);
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
@@ -176,7 +166,10 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
       run<scalar_t>(st, rb_handle_, t, m, n, alpha, lda_mul, ldb_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts, m, n, alpha, lda_mul, ldb_mul).c_str(),
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
+            ts, m, n, alpha, lda_mul, ldb_mul)
+            .c_str(),
         BM_lambda, rb_handle, t, m, n, alpha, lda_mul, ldb_mul, success)
         ->UseRealTime();
   }

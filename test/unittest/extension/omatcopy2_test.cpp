@@ -66,8 +66,8 @@ void run_test(const combination_t<scalar_t> combi) {
   // TODO: There isn't a reference implementation from any library. So we
   // compare the results with a basic host implementation. Working on a
   // better comparison.
-  reference_blas::ext_omatcopy2(trans, m, n, alpha, A_ref, ld_in, inc_in, B_ref,
-                                ld_out, inc_out);
+  reference_blas::ext_omatcopy2(trans, m, n, alpha, A_ref.data(), ld_in, inc_in,
+                                B_ref.data(), ld_out, inc_out);
 
   auto matrix_in = helper::allocate<mem_alloc, scalar_t>(m_a_size, q);
   auto matrix_out = helper::allocate<mem_alloc, scalar_t>(m_b_size, q);

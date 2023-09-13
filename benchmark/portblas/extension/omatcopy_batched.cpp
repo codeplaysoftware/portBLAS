@@ -17,9 +17,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  portBLAS: BLAS implementation using SYCL
+ *  SYCL-BLAS: BLAS implementation using SYCL
  *
- *  @filename omatcopy2.cpp
+ *  @filename omatcopy_batched.cpp
  *
  **************************************************************************/
 
@@ -29,7 +29,8 @@
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
          index_t m, index_t n, scalar_t alpha, index_t lda_mul, index_t ldb_mul,
-         index_t inc_a, index_t inc_b, bool* success) {
+         index_t stride_a_mul, index_t stride_b_mul, index_t batch_size,
+         bool* success) {
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -39,16 +40,19 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
       static_cast<blas_benchmark::utils::Transposition>(ti));
   const char* t_str = ts.c_str();
 
-  const auto lda = lda_mul * (inc_a * (m - 1) + 1);
-  const auto ldb =
-      ((*t_str == 't') ? inc_b * (n - 1) + 1 : inc_b * (m - 1) + 1) * ldb_mul;
+  const auto lda = lda_mul * m;
+  const auto ldb = (*t_str == 't') ? ldb_mul * n : ldb_mul * m;
 
-  const auto size_a = lda * n;
-  const auto size_b = ldb * ((*t_str == 't') ? m : n);
+  const auto stride_a = lda * n * stride_a_mul;
+  const auto stride_b = ((*t_str == 't') ? ldb * m : ldb * n) * stride_b_mul;
+
+  const auto size_a = stride_a * batch_size;
+  const auto size_b = stride_b * batch_size;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOp::omatcopy2, scalar_t>(
-      state, t_str, m, n, lda_mul, ldb_mul, inc_a, inc_b);
+      blas_benchmark::utils::ExtensionOp::omatcopy_batch, scalar_t>(
+      state, t_str, m, n, lda_mul, ldb_mul, stride_a_mul, stride_b_mul,
+      batch_size);
 
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
@@ -62,10 +66,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_a, q);
   auto m_b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_b, q);
 
-  auto copy_a =
-      blas::helper::copy_to_device<scalar_t>(q, m_a.data(), m_a_gpu, size_a);
-  auto copy_b =
-      blas::helper::copy_to_device<scalar_t>(q, m_b.data(), m_b_gpu, size_b);
+  auto copy_a = blas::helper::copy_to_device(q, m_a.data(), m_a_gpu, size_a);
+  auto copy_b = blas::helper::copy_to_device(q, m_b.data(), m_b_gpu, size_b);
 
   sb_handle.wait({copy_a, copy_b});
 
@@ -73,25 +75,25 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::ext_omatcopy2(*t_str, m, n, alpha, m_a.data(), lda, inc_a,
-                                m_b_ref.data(), ldb, inc_b);
+  for (int i = 0; i < batch_size; ++i) {
+    reference_blas::ext_omatcopy(*t_str, m, n, alpha, m_a.data() + i * stride_a,
+                                 lda, m_b_ref.data() + i * stride_b, ldb);
+  }
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
     auto m_b_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size_b, q);
-    auto copy_temp = blas::helper::copy_to_device<scalar_t>(
+    auto copy_tmp = blas::helper::copy_to_device<scalar_t>(
         q, m_b_temp.data(), m_b_temp_gpu, size_b);
-    sb_handle.wait(copy_temp);
 
-    auto event = blas::_omatcopy2(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
-                                  inc_a, m_b_temp_gpu, ldb, inc_b);
-
-    sb_handle.wait();
-
-    auto copy_out = blas::helper::copy_to_host<scalar_t>(
+    auto event = blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu,
+                                       lda, stride_a, m_b_temp_gpu, ldb,
+                                       stride_b, batch_size, {copy_tmp});
+    sb_handle.wait(event);
+    auto copy_res = blas::helper::copy_to_host<scalar_t>(
         q, m_b_temp_gpu, m_b_temp.data(), size_b);
-    sb_handle.wait(copy_out);
 
+    sb_handle.wait(copy_res);
     blas::helper::deallocate<mem_alloc>(m_b_temp_gpu, q);
   }
 
@@ -103,15 +105,23 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   };
 #endif
 
+  auto blas_warmup_method_def = [&]() -> void {
+    auto event =
+        blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
+                              stride_a, m_b_gpu, ldb, stride_b, batch_size);
+    return;
+  };
+
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
-    auto event = blas::_omatcopy2(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
-                                  inc_a, m_b_gpu, ldb, inc_b);
+    auto event =
+        blas::_omatcopy_batch(sb_handle, *t_str, m, n, alpha, m_a_gpu, lda,
+                              stride_a, m_b_gpu, ldb, stride_b, batch_size);
     sb_handle.wait(event);
     return event;
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_def);
+  blas_benchmark::utils::warmup(blas_warmup_method_def);
   sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
@@ -136,31 +146,35 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti,
   blas::helper::deallocate<mem_alloc>(m_b_gpu, q);
 }
 
-template <typename scalar_t, blas::helper::AllocType mem_alloc>
+template <typename scalar_t, typename blas::helper::AllocType mem_alloc>
 void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
                         std::string mem_type,
-                        std::vector<omatcopy2_param_t<scalar_t>> params) {
+                        std::vector<matcopy_batch_param_t<scalar_t>> params) {
   for (auto p : params) {
     std::string ts;
-    index_t m, n, lda_mul, ldb_mul, inc_a, inc_b;
+    index_t m, n, lda_mul, ldb_mul, stride_a_mul, stride_b_mul, batch_size;
     scalar_t alpha;
-    std::tie(ts, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b) = p;
+    std::tie(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul, stride_b_mul,
+             batch_size) = p;
     int t = static_cast<int>(blas_benchmark::utils::to_transpose_enum(ts));
 
     auto BM_lambda = [&](benchmark::State& st, blas::SB_Handle* sb_handle_ptr,
                          int t, index_t m, index_t n, scalar_t alpha,
-                         index_t lda_mul, index_t ldb_mul, index_t inc_a,
-                         index_t inc_b, bool* success) {
+                         index_t lda_mul, index_t ldb_mul, index_t stride_a_mul,
+                         index_t stride_b_mul, index_t batch_size,
+                         bool* success) {
       run<scalar_t, mem_alloc>(st, sb_handle_ptr, t, m, n, alpha, lda_mul,
-                               ldb_mul, inc_a, inc_b, success);
+                               ldb_mul, stride_a_mul, stride_b_mul, batch_size,
+                               success);
     };
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<
-            blas_benchmark::utils::ExtensionOp::omatcopy2, scalar_t>(
-            ts, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b, mem_type)
+            blas_benchmark::utils::ExtensionOp::omatcopy_batch, scalar_t,
+            index_t>(ts, m, n, alpha, lda_mul, ldb_mul, stride_a_mul,
+                     stride_b_mul, batch_size, mem_type)
             .c_str(),
-        BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul, inc_a,
-        inc_b, success)
+        BM_lambda, sb_handle_ptr, t, m, n, alpha, lda_mul, ldb_mul,
+        stride_a_mul, stride_b_mul, batch_size, success)
         ->UseRealTime();
   }
 }
@@ -168,16 +182,15 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
 template <typename scalar_t>
 void register_benchmark(blas_benchmark::Args& args,
                         blas::SB_Handle* sb_handle_ptr, bool* success) {
-  auto omatcopy2_params =
-      blas_benchmark::utils::get_omatcopy2_params<scalar_t>(args);
-
+  auto omatcopy_batch_params =
+      blas_benchmark::utils::get_matcopy_batch_params<scalar_t>(args);
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
-      omatcopy2_params);
+      omatcopy_batch_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM,
-      omatcopy2_params);
+      omatcopy_batch_params);
 #endif
 }
 

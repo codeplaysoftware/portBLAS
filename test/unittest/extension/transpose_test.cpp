@@ -87,7 +87,8 @@ void run_test(const combination_t<scalar_t>& combi) {
     helper::deallocate<mem_alloc>(matrix_out, q);
 
   } else {
-    // Inplace Transpose: TODO
+    // Inplace Transpose currently disabled (TODO)
+    GTEST_SKIP();
   }
 }
 

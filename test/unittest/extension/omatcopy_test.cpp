@@ -58,7 +58,8 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> B_ref = B;
 
   // Reference implementation
-  reference_blas::ext_omatcopy(trans, m, n, alpha, A_ref, ld_in, B_ref, ld_out);
+  reference_blas::ext_omatcopy(trans, m, n, alpha, A_ref.data(), ld_in,
+                               B_ref.data(), ld_out);
 
   auto matrix_in = helper::allocate<mem_alloc, scalar_t>(size_a, q);
   auto matrix_out = helper::allocate<mem_alloc, scalar_t>(size_b, q);
@@ -115,7 +116,7 @@ const auto combi =
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
                        ::testing::Values<scalar_t>(0, 1.05, 2.01),     // alpha
                        ::testing::Values<index_t>(1, 3),   // ld_in_m
-                       ::testing::Values<index_t>(1, 3));  // ld_in_n
+                       ::testing::Values<index_t>(1, 3));  // ld_out_m
 #else
 template <typename scalar_t>
 const auto combi =
@@ -125,7 +126,7 @@ const auto combi =
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 1, 2),   // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
-                       ::testing::Values<index_t>(1, 2, 3));      // ld_in_n
+                       ::testing::Values<index_t>(1, 2, 3));      // ld_out_m
 #endif
 
 template <class T>

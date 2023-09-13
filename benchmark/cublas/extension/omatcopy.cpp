@@ -26,16 +26,6 @@
 #include "../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string ts_a, int m, int n, scalar_t alpha,
-                     index_t lda_mul, index_t ldb_mul) {
-  std::ostringstream str{};
-  str << "BM_omatcopy<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << ts_a << "/" << m << "/" << n << "/" << alpha << "/" << lda_mul
-      << "/" << ldb_mul;
-  return str.str();
-}
-
 template <typename scalar_t, typename... args_t>
 static inline void cublas_routine(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
@@ -66,7 +56,7 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
   const auto cuda_size_b = cuda_ldb * n;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatcopy, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
       state, t_str, m, n, lda_mul, ldb_mul);
 
   cublasHandle_t& cuda_handle = *cuda_handle_ptr;
@@ -89,10 +79,10 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> m_b_ref = m_b;  // m_b;
+  std::vector<scalar_t> m_b_ref = m_b;
 
-  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a, cuda_lda,
-                                      m_b_ref, cuda_ldb);
+  reference_blas::ext_omatcopy<false>(*t_str, m, n, alpha, m_a.data(), cuda_lda,
+                                      m_b_ref.data(), cuda_ldb);
 
   std::vector<scalar_t> m_b_temp = m_b;
   {
@@ -180,7 +170,10 @@ void register_benchmark(blas_benchmark::Args& args,
                     success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts_a, m, n, alpha, lda_mul, ldb_mul).c_str(),
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
+            ts_a, m, n, alpha, lda_mul, ldb_mul)
+            .c_str(),
         BM_lambda, cublas_handle_ptr, t_a, m, n, alpha, lda_mul, ldb_mul,
         success)
         ->UseRealTime();

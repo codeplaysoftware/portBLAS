@@ -26,17 +26,6 @@
 #include "../../../../test/unittest/extension/extension_reference.hpp"
 #include "../utils.hpp"
 
-template <typename scalar_t>
-std::string get_name(std::string ts_a, std::string ts_b, int m, int n,
-                     scalar_t alpha, scalar_t beta, index_t lda_mul,
-                     index_t ldb_mul, index_t ldc_mul) {
-  std::ostringstream str{};
-  str << "BM_omatadd<" << blas_benchmark::utils::get_type_name<scalar_t>()
-      << ">/" << ts_a << "/" << ts_b << "/" << m << "/" << n << "/" << alpha
-      << "/" << beta << "/" << lda_mul << "/" << ldb_mul << "/" << ldc_mul;
-  return str.str();
-}
-
 template <typename scalar_t, typename... args_t>
 static inline void rocblas_geam_f(args_t&&... args) {
   if constexpr (std::is_same_v<scalar_t, float>) {
@@ -71,7 +60,7 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti_a, int ti_b,
   const auto size_c = ldc * n;
 
   blas_benchmark::utils::init_extension_counters<
-      blas_benchmark::utils::ExtensionOP::omatadd, scalar_t>(
+      blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
       state, t_str_a, t_str_b, m, n, lda_mul, ldb_mul, ldc_mul);
 
   // Input matrix/vector, output vector.
@@ -183,8 +172,9 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
                     ldb_mul, ldc_mul, success);
     };
     benchmark::RegisterBenchmark(
-        get_name<scalar_t>(ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul,
-                           ldc_mul)
+        blas_benchmark::utils::get_name<
+            blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
+            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul)
             .c_str(),
         BM_lambda, rb_handle, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
         ldc_mul, success)
