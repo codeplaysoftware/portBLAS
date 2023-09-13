@@ -17,23 +17,23 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
-set(SYCLBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
+set(PORTBLAS_EXPRTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
 # compiling tests
 set(SYCL_EXPRTEST_SRCS
-  ${SYCLBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
-  ${SYCLBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
+  ${PORTBLAS_EXPRTEST}/blas1_scal_asum_test.cpp
+  ${PORTBLAS_EXPRTEST}/blas1_axpy_copy_test.cpp
 )
 
 # Temporary disabling the following tests for Intel DPC++ as currently Intel compiler crashes while running the following tests
 # https://github.com/intel/llvm/issues/7075
 if(is_computecpp)
-  list(APPEND SYCL_EXPRTEST_SRCS "${SYCLBLAS_EXPRTEST}/collapse_nested_tuple.cpp")
+  list(APPEND SYCL_EXPRTEST_SRCS "${PORTBLAS_EXPRTEST}/collapse_nested_tuple.cpp")
 endif()
 
 foreach(blas_test ${SYCL_EXPRTEST_SRCS})
@@ -42,10 +42,10 @@ foreach(blas_test ${SYCL_EXPRTEST_SRCS})
   if(is_computecpp)
     set_property(TARGET ${test_exec} PROPERTY CXX_STANDARD 14)
   endif()
-  # -DTUNING_TARGET is needed when using SYCL-BLAS in header only mode.
+  # -DTUNING_TARGET is needed when using portBLAS in header only mode.
   target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE} -D${TUNING_TARGET})
-  target_link_libraries(${test_exec} PRIVATE gtest_main blas::blas sycl_blas)
-  target_include_directories(${test_exec} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.." ${CBLAS_INCLUDE} ${SYCLBLAS_SRC} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+  target_link_libraries(${test_exec} PRIVATE gtest_main blas::blas portblas)
+  target_include_directories(${test_exec} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.." ${CBLAS_INCLUDE} ${PORTBLAS_SRC} ${PORTBLAS_COMMON_INCLUDE_DIR})
   add_sycl_to_target(
     TARGET ${test_exec}
     SOURCES ${blas_test}

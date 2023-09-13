@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename power_vr.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_GEMM_POWERVR_BACKEND_HPP
-#define SYCL_BLAS_GEMM_POWERVR_BACKEND_HPP
+#ifndef PORTBLAS_GEMM_POWERVR_BACKEND_HPP
+#define PORTBLAS_GEMM_POWERVR_BACKEND_HPP
 #include "interface/gemm_launcher.h"
 
 #ifdef IMGDNN_LIBRARY
@@ -51,7 +51,8 @@ struct Gemm_Launcher {
   static inline typename sb_handle_t::event_t _select_gemm(
       sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       value_t _alpha, container_0_t _A, container_1_t _B, value_t _beta,
-      container_2_t _C, index_t batch_size) {
+      container_2_t _C, index_t batch_size,
+      const typename sb_handle_t::event_t& _dependencies) {
     auto m = static_cast<size_t>(_M);
     auto n = static_cast<size_t>(_N);
     auto k = static_cast<size_t>(_K);
@@ -306,18 +307,19 @@ typename sb_handle_t::event_t _gemm(
   }
   return blas::gemm::backend::sycl_imagination_nn_api::Gemm_Launcher<
       _t_a, _t_b>::template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _b,
-                                         _beta, _c, batch_size);
+                                         _beta, _c, batch_size, _dependencies);
 #else
   if (batch_type == gemm_batch_type_t::interleaved) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a,
-        _t_b, s_a, s_b, static_cast<int>(gemm_memory_t::no_local),
+        container_0_t, container_1_t, container_2_t, 64, false, false, false,
+        64, Tile<4, 4, 4, 4, 1, 1, 1, 1, 4, 4>, _t_a, _t_b, s_a, s_b,
+        static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 4,
         static_cast<int>(gemm_batch_type_t::interleaved)>::
         template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
                               _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
-                              batch_size);
+                              batch_size, _dependencies);
   }
   // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
@@ -326,7 +328,8 @@ typename sb_handle_t::event_t _gemm(
       (_M == 273 && _K == 576 && _N == 100) ||
       (_M == 384 && _K == 64 && _N == 361)) {
     return blas::Gemm_Launcher<
-        96, true, false, false, 16, Tile<4, 6, 12, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 96, true, false, false, 16,
+        Tile<4, 6, 12, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -336,7 +339,8 @@ typename sb_handle_t::event_t _gemm(
                                                                 _a, _lda, _stridea, _b,
                                                                 _ldb, _strideb, _beta, _c,
                                                                 _ldc, _stridec,
-                                                                batch_size);
+                                                                batch_size,
+                                                                _dependencies);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
   // POWER_VR Rogue
@@ -347,38 +351,30 @@ typename sb_handle_t::event_t _gemm(
            (_M == 24 && _K == 256 && _N == 1) ||
            (_M == 128 && _K == 64 && _N == 1)) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 128, Tile<1, 1, 8, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 64, false, false, false,
+        128, Tile<1, 1, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                _a, _lda,
-                                                                _stridea, _b,
-                                                                _ldb, _strideb,
-                                                                _beta, _c, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size, _dependencies);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
   // POWER_VR Rogue
   else if ((_M == 546 && _K == 128 && _N == 1) ||
            (_M == 546 && _K == 256 && _N == 1)) {
     return blas::Gemm_Launcher<
-        64, false, false, false, 64, Tile<4, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 64, false, false, false,
+        64, Tile<4, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                _a, _lda,
-                                                                _stridea, _b,
-                                                                _ldb, _strideb,
-                                                                _beta, _c, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size, _dependencies);
   }  // The following _M, _N ,and _K is used for SSD + Mobilenet v2 (TF version)
   // We computed the best tile combination for each sizes -(4-March-2018)
   // POWER_VR Rogue
@@ -392,34 +388,26 @@ typename sb_handle_t::event_t _gemm(
            (_M > 64 && _K > 64 && _N > 64 && is_power_of_2(_M) &&
             is_power_of_2(_K) && is_power_of_2(_N))) {
     return blas::Gemm_Launcher<
-        128, false, false, false, 16, Tile<4, 8, 16, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 128, false, false, false,
+        16, Tile<4, 8, 16, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                _a, _lda,
-                                                                _stridea, _b,
-                                                                _ldb, _strideb,
-                                                                _beta, _c, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size, _dependencies);
   } else {
     return blas::Gemm_Launcher<
-        64, false, false, false, 32, Tile<4, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 64, false, false, false,
+        32, Tile<4, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-        static_cast<int>(
-            gemm_batch_type_t::strided)>::template _select_gemm(sb_handle, _M,
-                                                                _N, _K, _alpha,
-                                                                _a, _lda,
-                                                                _stridea, _b,
-                                                                _ldb, _strideb,
-                                                                _beta, _c, _ldc,
-                                                                _stridec,
-                                                                batch_size);
+        static_cast<int>(gemm_batch_type_t::strided)>::
+        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
+                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
+                              batch_size, _dependencies);
   }
 #endif
 }

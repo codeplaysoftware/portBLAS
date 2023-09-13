@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas_test.hpp
  *
@@ -38,7 +38,7 @@
 
 #include <gtest/gtest.h>
 
-#include <sycl_blas.h>
+#include <portblas.h>
 
 #include <common/cli_device_selector.hpp>
 #include <common/float_comparison.hpp>
@@ -55,7 +55,7 @@ extern Args args;
 
 using namespace blas;
 
-// The sycl blas handle type used in tests
+// The portBLAS handle type used in tests
 
 using index_t = BLAS_INDEX_T;
 
@@ -307,7 +307,14 @@ template <class T, class... Args>
 inline void generate_name_helper(std::ostream &ss, T arg, Args... args) {
   auto token = strtok(nullptr, ", ");
   ss << "__" << token << "_";
-  dump_arg(ss, arg);
+  if constexpr (std::is_arithmetic<T>::value) {
+    if (arg < 0) {
+      ss << "minus_";
+    }
+    dump_arg(ss, std::abs<T>(arg));
+  } else {
+    dump_arg(ss, arg);
+  }
   generate_name_helper(ss, args...);
 }
 
@@ -325,7 +332,14 @@ inline std::string generate_name_helper(char *str_args, T arg, Args... args) {
   std::stringstream ss;
   auto token = strtok(str_args, ", ");
   ss << token << "_";
-  dump_arg(ss, arg);
+  if constexpr (std::is_arithmetic<T>::value) {
+    if (arg < 0) {
+      ss << "minus_";
+    }
+    dump_arg(ss, std::abs<T>(arg));
+  } else {
+    dump_arg(ss, arg);
+  }
   generate_name_helper(ss, args...);
   return ss.str();
 }

@@ -17,34 +17,33 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeList.txt
 # *
 # **************************************************************************/
 #blas1 
-generate_blas_binary_objects(blas1 axpy)
-generate_blas_binary_objects(blas1 asum)
-generate_blas_binary_objects(blas1 copy)
-generate_blas_binary_objects(blas1 dot_return)
-generate_blas_binary_objects(blas1 sdsdot_return)
-generate_blas_binary_objects(blas1 nrm2)
-generate_blas_binary_objects(blas1 rot)
-generate_blas_binary_objects(blas1 nrm2_return)
-generate_blas_binary_objects(blas1 swap)
+generate_blas_objects(blas1 axpy)
+generate_blas_objects(blas1 asum)
+generate_blas_objects(blas1 copy)
+generate_blas_objects(blas1 dot_return)
+generate_blas_objects(blas1 sdsdot_return)
+generate_blas_objects(blas1 nrm2)
+generate_blas_objects(blas1 rot)
+generate_blas_objects(blas1 nrm2_return)
+generate_blas_objects(blas1 swap)
 
-generate_blas_unary_objects(blas1 asum_return)
-generate_blas_unary_objects(blas1 iamax_return)
-generate_blas_unary_objects(blas1 iamin_return)
-generate_blas_unary_objects(blas1 scal)
+generate_blas_objects(blas1 asum_return)
+generate_blas_objects(blas1 iamax_return)
+generate_blas_objects(blas1 iamin_return)
+generate_blas_objects(blas1 scal)
 
-generate_blas_ternary_objects(blas1 dot)
-generate_blas_ternary_objects(blas1 sdsdot)
-generate_blas_ternary_objects(blas1 rotm)
-generate_blas_binary_special_objects(blas1 iamax)
-generate_blas_binary_special_objects(blas1 iamin)
+generate_blas_objects(blas1 dot)
+generate_blas_objects(blas1 sdsdot)
+generate_blas_objects(blas1 rotm)
+generate_blas_objects(blas1 iamax)
+generate_blas_objects(blas1 iamin)
 
 generate_blas_rotg_objects(blas1 rotg)
-generate_blas_rotg_return_objects(blas1 rotg_return)
-
-generate_blas_rotmg_objects(blas1 rotmg)
+generate_blas_rotg_objects(blas1 rotg_return)
+generate_blas_rotg_objects(blas1 rotmg)

@@ -17,19 +17,19 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename tune_impl.hpp
  *
  **************************************************************************/
 
-#ifndef SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_
-#define SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_
+#ifndef PORTBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_
+#define PORTBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_
 
 #include "tuner_types.hpp"
 #include "utils.hpp"
 
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
 template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
           bool Nbcb, typename Config, typename T>
@@ -41,7 +41,7 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
       static_cast<int>(Config::ShapeMode), static_cast<int>(Config::VecType),
       VecSize, static_cast<int>(Config::BatchType)>;
   TestResultEntry result(Gemm::get_type_string());
-  auto sb_handle = get_sycl_blas_handle();
+  auto sb_handle = get_portblas_handle();
   {
     {
       auto event = blas::helper::copy_to_device(
@@ -74,4 +74,4 @@ TestResultEntry tune(int r, GemmArgs<T> a) {
   return result;
 }
 
-#endif  // SYCLBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_
+#endif  // PORTBLAS_TOOLS_AUTO_TUNER_TUNE_IMPL_HPP_

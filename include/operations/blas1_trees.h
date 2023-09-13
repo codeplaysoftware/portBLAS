@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_trees.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS1_TREES_H
-#define SYCL_BLAS_BLAS1_TREES_H
+#ifndef PORTBLAS_BLAS1_TREES_H
+#define PORTBLAS_BLAS1_TREES_H
 #include "operations/blas_constants.h"
 #include "operations/blas_operators.h"
 #include <CL/sycl.hpp>

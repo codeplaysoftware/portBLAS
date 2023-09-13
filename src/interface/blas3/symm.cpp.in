@@ -17,25 +17,41 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename symm.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "interface/gemm_interface.hpp"
 #include "interface/symm_interface.hpp"
-#include "operations/blas_constants.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 
 template typename SB_Handle::event_t _symm(
-    SB_Handle& sb_handle, char _side, char _uplo, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${container_t0} a_, ${INDEX_TYPE} _lda, ${container_t1} b_,
-    ${INDEX_TYPE} _ldb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+    SB_Handle& sb_handle, char _side, char _uplo, ${INDEX_TYPE} _M,
+    ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> a_,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}> _C, ${INDEX_TYPE} _ldc,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _symm(
+    SB_Handle& sb_handle, char _side, char _uplo, ${INDEX_TYPE} _M,
+    ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha, ${DATA_TYPE} * a_,
+    ${INDEX_TYPE} _lda, ${DATA_TYPE} * b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, ${DATA_TYPE} * _C, ${INDEX_TYPE} _ldc,
+    const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _symm(
+    SB_Handle& sb_handle, char _side, char _uplo, ${INDEX_TYPE} _M,
+    ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha, const ${DATA_TYPE} * a_,
+    ${INDEX_TYPE} _lda, const ${DATA_TYPE} * b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, ${DATA_TYPE} * _C, ${INDEX_TYPE} _ldc,
+    const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

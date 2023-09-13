@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename symm_interface.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_SYMM_INTERFACE_HPP
-#define SYCL_BLAS_SYMM_INTERFACE_HPP
+#ifndef PORTBLAS_SYMM_INTERFACE_HPP
+#define PORTBLAS_SYMM_INTERFACE_HPP
 
 #include "interface/gemm_interface.hpp"
 
@@ -33,12 +33,11 @@ namespace internal {
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
-                                    char _uplo, index_t _M, index_t _N,
-                                    element_t _alpha, container_0_t a_,
-                                    index_t _lda, container_1_t b_,
-                                    index_t _ldb, element_t _beta,
-                                    container_2_t _C, index_t _ldc) {
+typename sb_handle_t::event_t _symm(
+    sb_handle_t& sb_handle, char _side, char _uplo, index_t _M, index_t _N,
+    element_t _alpha, container_0_t a_, index_t _lda, container_1_t b_,
+    index_t _ldb, element_t _beta, container_2_t _C, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies) {
   const char TRANS_NO = 'n';
   const char TRANS_YES = 't';
   const char SIDE_RIGHT = 'r';
@@ -57,7 +56,7 @@ typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
     return _gemm_backend<true, false>(
         sb_handle, trans_symm, TRANS_NO, _M, _N, _M, _alpha, a_, _lda,
         index_t(0), b_, _ldb, index_t(0), _beta, _C, _ldc, index_t(0),
-        index_t(1), gemm_batch_type_t::strided);
+        index_t(1), gemm_batch_type_t::strided, _dependencies);
   } else if (_side == SIDE_RIGHT) {  // C <- alpha * B * A + beta * C
     // if the valid values are in the upper side, transpose the matrix
     // to make gemm to start reading rows on a valid value.
@@ -67,7 +66,7 @@ typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
     return _gemm_backend<false, true>(
         sb_handle, TRANS_NO, trans_symm, _M, _N, _N, _alpha, b_, _ldb,
         index_t(0), a_, _lda, index_t(0), _beta, _C, _ldc, index_t(0),
-        index_t(1), gemm_batch_type_t::strided);
+        index_t(1), gemm_batch_type_t::strided, _dependencies);
   } else {
     throw std::invalid_argument("invalid _side");
   }
@@ -76,4 +75,4 @@ typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_SYMM_INTERFACE_HPP
+#endif  // PORTBLAS_SYMM_INTERFACE_HPP

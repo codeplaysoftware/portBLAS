@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_gemm_test.cpp
  *
@@ -28,6 +28,7 @@
 
 template <typename scalar_t>
 const auto SmallBetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(11, 16, 32),                 // m
@@ -46,6 +47,7 @@ GENERATE_GEMM_TEST(Gemm, SmallBetaNonZeroLDMatch);
 
 template <typename scalar_t>
 const auto SmallBetaZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(11, 32),                     // m
@@ -64,6 +66,7 @@ GENERATE_GEMM_TEST(Gemm, SmallBetaZeroLDMatch);
 
 template <typename scalar_t>
 const auto SmallBetaZeroLDMultiplied = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(11, 32),                     // m
@@ -82,6 +85,7 @@ GENERATE_GEMM_TEST(Gemm, SmallBetaZeroLDMultiplied);
 
 template <typename scalar_t>
 const auto AlphaZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0, 10),                      // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(16),                         // m
@@ -100,6 +104,7 @@ GENERATE_GEMM_TEST(Gemm, AlphaZero);
 
 template <typename scalar_t>
 const auto OffsetNonZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(1, 10),                      // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(16, 63),                     // m
@@ -118,6 +123,7 @@ GENERATE_GEMM_TEST(Gemm, OffsetNonZero);
 
 template <typename scalar_t>
 const auto LargeBetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(253, 511),                   // m

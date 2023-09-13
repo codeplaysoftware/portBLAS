@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas2_trees.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS2_TREES_H
-#define SYCL_BLAS_BLAS2_TREES_H
+#ifndef PORTBLAS_BLAS2_TREES_H
+#define PORTBLAS_BLAS2_TREES_H
 namespace blas {
 
 /*!
@@ -123,7 +123,7 @@ struct SumMatrixColumns {
 
   value_t eval(index_t i);
 
-  value_t eval(cl::sycl::nd_item<1> ndItem);
+  value_t eval(cl::sycl::nd_item<1> ndItem) const;
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
@@ -614,7 +614,7 @@ struct Spr {
   void adjust_access_displacement();
   // Row-Col index calculation for Upper Packed Matrix
   template <bool Upper>
-  SYCL_BLAS_ALWAYS_INLINE static typename std::enable_if<Upper>::type
+  PORTBLAS_ALWAYS_INLINE static typename std::enable_if<Upper>::type
   compute_row_col(const int64_t id, const index_t size, index_t &row,
                   index_t &col) {
     int64_t internal = 1 + 8 * id;
@@ -638,7 +638,7 @@ struct Spr {
 
   // Row-Col index calculation for Lower Packed Matrix
   template <bool Upper>
-  SYCL_BLAS_ALWAYS_INLINE static typename std::enable_if<!Upper>::type
+  PORTBLAS_ALWAYS_INLINE static typename std::enable_if<!Upper>::type
   compute_row_col(const int64_t id, const index_t size, index_t &row,
                   index_t &col) {
     index_t temp = 2 * size + 1;

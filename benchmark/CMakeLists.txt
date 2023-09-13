@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
@@ -59,7 +59,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googlebench-src
                  ${CMAKE_CURRENT_BINARY_DIR}/googlebench-build
                  EXCLUDE_FROM_ALL)
 
-# Set SYCL-BLAS options
+# Set portBLAS options
 if(CMAKE_CROSSCOMPILING)
     set(cmake_toolchain
       "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
@@ -129,7 +129,7 @@ if(SYCL_DEVICE)
 endif(SYCL_DEVICE)
 
 include_directories(${BLAS_BENCH})
-add_subdirectory(${BLAS_BENCH}/syclblas)
+add_subdirectory(${BLAS_BENCH}/portblas)
 
 if (BUILD_CLBLAST_BENCHMARKS)
   add_subdirectory(${BLAS_BENCH}/clBench/clblast)

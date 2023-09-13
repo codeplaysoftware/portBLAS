@@ -17,17 +17,17 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename dot_return.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -37,22 +37,31 @@ namespace internal {
  * \brief Computes the inner product of two vectors with double precision
  * accumulation (synchronous version that returns the result directly)
  * @tparam sb_handle_t SB_Handle type
- * @tparam container_0_t Buffer Iterator
- * @tparam container_1_t Buffer Iterator
- * @tparam container_2_t Buffer Iterator
+ * @tparam container_0_t Buffer Iterator or USM Pointer
+ * @tparam container_1_t Buffer Iterator or USM Pointer
+ * @tparam container_2_t Buffer Iterator or USM Pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
  * @param _N Input buffer sizes.
- * @param _vx Buffer holding input vector x
+ * @param _vx Memory object holding input vector x
  * @param _incx Stride of vector x (i.e. measured in elements of _vx)
- * @param _vy Buffer holding input vector y
+ * @param _vy Memory object holding input vector y
  * @param _incy Stride of vector y (i.e. measured in elements of _vy)
  * @param _rs Output buffer
  * @return Vector of events to wait for.
  */
-template typename ValueType<${container_t0}>::type _dot(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${container_t0} _vx,
-    ${INCREMENT_TYPE} _incx, ${container_t1} _vy, ${INCREMENT_TYPE} _incy);
+template typename ValueType<BufferIterator<${DATA_TYPE}>>::type _dot(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, BufferIterator<${DATA_TYPE}> _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename ValueType<${DATA_TYPE}>::type _dot(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas

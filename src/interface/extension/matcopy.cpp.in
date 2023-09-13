@@ -17,15 +17,16 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename matcopy.cpp.in
  *
  **************************************************************************/
 
+#include "container/sycl_iterator.hpp"
 #include "interface/extension_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "operations/extension/transpose.hpp" 
 
 namespace blas {
@@ -34,16 +35,38 @@ namespace internal {
 // Out-of-place
 template typename SB_Handle::event_t _matcopy<false>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t0} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} inc_in, ${container_t0} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} inc_out);
+    ${DATA_TYPE} alpha, BufferIterator<${DATA_TYPE}> in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, BufferIterator<${DATA_TYPE}> out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out, const typename SB_Handle::event_t& _dependencies);
 
 // In-place
 template typename SB_Handle::event_t _matcopy<true>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t0} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} inc_in, ${container_t0} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} inc_out);
+    ${DATA_TYPE} alpha, BufferIterator<${DATA_TYPE}> in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, BufferIterator<${DATA_TYPE}> out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out, const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+// Out-of-place
+template typename SB_Handle::event_t _matcopy<false>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${DATA_TYPE}* in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out, const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _matcopy<false>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, const ${DATA_TYPE}* in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out, const typename SB_Handle::event_t& _dependencies);
+
+// In-place
+template typename SB_Handle::event_t _matcopy<true>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${DATA_TYPE}* in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} inc_in, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} inc_out, const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

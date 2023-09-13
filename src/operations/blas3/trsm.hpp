@@ -16,12 +16,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TRSM_HPP
-#define SYCL_BLAS_BLAS3_TRSM_HPP
+#ifndef PORTBLAS_BLAS3_TRSM_HPP
+#define PORTBLAS_BLAS3_TRSM_HPP
 
 #include "operations/blas3_trees.h"
 #include "views/view.h"
@@ -30,40 +30,46 @@
 
 namespace blas {
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
-SYCL_BLAS_INLINE DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::
-    DiagonalBlocksInverter(matrix_t& A, matrix_t& invA)
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t,
+                       rhs_t>::DiagonalBlocksInverter(rhs_t A, lhs_t invA)
     : A_(A), invA_(invA), N_(A_.get_size_col()), lda_(A_.getSizeL()) {}
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
-SYCL_BLAS_INLINE bool
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::valid_thread(
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE bool
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> id) const {
   return true;
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
-SYCL_BLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::bind(
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE void
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::bind(
     cl::sycl::handler& cgh) {
   A_.bind(cgh);
   invA_.bind(cgh);
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
-SYCL_BLAS_INLINE void DiagonalBlocksInverter<
-    UnitDiag, Upper, BlockSize, matrix_t>::adjust_access_displacement() {
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE void DiagonalBlocksInverter<
+    UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::adjust_access_displacement() {
   A_.adjust_access_displacement();
   invA_.adjust_access_displacement();
 }
 
-template <bool UnitDiag, bool Upper, int BlockSize, typename matrix_t>
+template <bool UnitDiag, bool Upper, int BlockSize, typename lhs_t,
+          typename rhs_t>
 template <typename local_memory_t>
-SYCL_BLAS_INLINE void
-DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
+PORTBLAS_INLINE void
+DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, lhs_t, rhs_t>::eval(
     local_memory_t localMem, cl::sycl::nd_item<1> item) noexcept {
-  auto A = A_.get_data().get_pointer() + A_.get_access_displacement();
-  auto invA = invA_.get_data().get_pointer() + invA_.get_access_displacement();
+  auto A = A_.get_pointer();
+  auto invA = invA_.get_pointer();
   value_t* local = localMem.localAcc.get_pointer();
 
   const index_t i = item.get_local_id(0);
@@ -150,4 +156,4 @@ DiagonalBlocksInverter<UnitDiag, Upper, BlockSize, matrix_t>::eval(
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_TRSM_HPP
+#endif  // PORTBLAS_BLAS3_TRSM_HPP

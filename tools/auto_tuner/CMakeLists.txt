@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
-set(SYCLBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-set(SYCLBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
+project(auto_tuner VERSION 0.1.0 LANGUAGES CXX)
+
+set(PORTBLAS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+set(PORTBLAS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
 
 list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
@@ -11,7 +13,7 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided
 
 # Setup datatypes, workgroup sizes and other options.
 # NB: This has to be included before CmakeFunctionHelper as it declares various options.
-include(ConfigureSYCLBLAS)
+include(ConfigurePORTBLAS)
 include(SYCL)
 find_package(PythonInterp 3 REQUIRED)
 find_package(SystemBLAS REQUIRED)
@@ -77,8 +79,8 @@ add_custom_target(tuner_generate_kernels DEPENDS ${tuner_kernel_srcs})
 
 add_library(tuner_kernel_lib ${tuner_kernel_srcs})
 target_include_directories(tuner_kernel_lib PRIVATE
-  ${SYCLBLAS_INCLUDE}
-  ${SYCLBLAS_SRC}
+  ${PORTBLAS_INCLUDE}
+  ${PORTBLAS_SRC}
   include/
   ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -106,8 +108,8 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
   add_executable(${tuner_exec} ${blas_tuner})
   target_link_libraries(${tuner_exec} PRIVATE blas::blas tuner_kernel_lib)
   target_include_directories(${tuner_exec} PRIVATE
-    ${SYCLBLAS_INCLUDE}
-    ${SYCLBLAS_SRC}
+    ${PORTBLAS_INCLUDE}
+    ${PORTBLAS_SRC}
     include/
     ${CMAKE_CURRENT_BINARY_DIR}
   )

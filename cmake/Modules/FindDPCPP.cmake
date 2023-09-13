@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename FindDPCPP.cmake
 # *
@@ -80,6 +80,11 @@ if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
     list(APPEND DPCPP_FLAGS "-DSB_ENABLE_JOINT_MATRIX=1")
   endif()
 endif()
+
+# add compiler directive to enable USM code
+add_definitions(-DSB_ENABLE_USM=1)
+set(SB_ENABLE_USM 1)
+list(APPEND DPCPP_FLAGS "-DSB_ENABLE_USM=1")
 
 function(add_sycl_to_target)
   set(options)

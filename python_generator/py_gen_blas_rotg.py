@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename py_gen_blas_rotg.py
 # *
@@ -42,11 +42,7 @@ if __name__ == '__main__':
     blas_function_name = sys.argv[4]
     blas_template_impl = sys.argv[5]
     data  = sys.argv[6]
-    container0 = sys.argv[7]
-    container1 = sys.argv[8]
-    container2 = sys.argv[9]
-    container3= sys.argv[10]
-    file_name = sys.argv[11]
+    file_name = sys.argv[7]
     source = 'generated_src/' + blas_level_name + '/' + blas_function_name + '/'
 
     try:
@@ -61,26 +57,6 @@ if __name__ == '__main__':
         Iterable(
             key='DATA_TYPE',
             vals=[data],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='container_t0',
-            vals=[container0],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='container_t1',
-            vals=[container1],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='container_t2',
-            vals=[container2],
-            itermode=Itermode.combinations,
-            iter_modifier=1),
-        Iterable(
-            key='container_t3',
-            vals=[container3],
             itermode=Itermode.combinations,
             iter_modifier=1)
     ]

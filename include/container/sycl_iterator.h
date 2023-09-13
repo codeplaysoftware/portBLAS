@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename sycl_iterator.h
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_BUFFER_ITERATOR_H
-#define SYCL_BLAS_BUFFER_ITERATOR_H
+#ifndef PORTBLAS_BUFFER_ITERATOR_H
+#define PORTBLAS_BUFFER_ITERATOR_H
 #include "blas_meta.h"
 #include <CL/sycl.hpp>
 namespace blas {
@@ -113,7 +113,7 @@ class BufferIterator {
   /*!
    * @brief Default construct a BufferIterator.
    * This can be used to provide a placeholder BufferIterator, but it is a user
-   * error if passed into any of the SYCL-BLAS functions.
+   * error if passed into any of the portBLAS functions.
    *
    * Should be removed once SYCL specifies that buffers are default
    * constructible. See:
@@ -377,4 +377,4 @@ struct RebindType<element_t, BufferIterator<U>> {
 
 }  // end namespace blas
 
-#endif  // SYCL_BLAS_BUFFER_ITERATOR_H
+#endif  // PORTBLAS_BUFFER_ITERATOR_H

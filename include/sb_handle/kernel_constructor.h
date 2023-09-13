@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename kernel_constructor.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_KERNEL_CONSTRUCTOR_H
-#define SYCL_BLAS_KERNEL_CONSTRUCTOR_H
+#ifndef PORTBLAS_KERNEL_CONSTRUCTOR_H
+#define PORTBLAS_KERNEL_CONSTRUCTOR_H
 
 #include <CL/sycl.hpp>
 
@@ -118,10 +118,10 @@ struct ExpressionTreeFunctor;
 using_local_memory == false).
 */
 template <int using_local_memory, typename queue_t, typename expression_tree_t>
-static cl::sycl::event execute_tree(queue_t q, expression_tree_t t,
-                                    size_t _localSize, size_t _globalSize,
-                                    size_t _shMem);
+static cl::sycl::event execute_tree(
+    queue_t q, expression_tree_t t, size_t _localSize, size_t _globalSize,
+    size_t _shMem, std::vector<cl::sycl::event> dependencies = {});
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_KERNEL_CONSTRUCTOR_H
+#endif  // PORTBLAS_KERNEL_CONSTRUCTOR_H

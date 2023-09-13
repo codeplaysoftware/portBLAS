@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename main.cpp 
 # *
@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
   // Initialize googlebench
   benchmark::Initialize(&argc, argv);
 
-  // Create a sycl blas sb_handle from the queue
   cublasHandle_t cublas_handle = NULL;
   CUBLAS_CHECK(cublasCreate(&cublas_handle));
 

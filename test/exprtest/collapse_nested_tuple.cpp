@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename collapse_nested_tuple.cpp
  *
  **************************************************************************/
 #include "blas_test.hpp"
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
 // inputs combination
 template <typename scalar_t>

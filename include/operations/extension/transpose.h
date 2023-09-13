@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename transpose.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_EXTENSION_TRANSPOSE_H
-#define SYCL_BLAS_EXTENSION_TRANSPOSE_H
+#ifndef PORTBLAS_EXTENSION_TRANSPOSE_H
+#define PORTBLAS_EXTENSION_TRANSPOSE_H
 
 #include <CL/sycl.hpp>
 
@@ -285,4 +285,4 @@ make_transpose_add(in1_t &A, index_t stride_a, in2_t &B, index_t stride_b,
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_EXTENSION_TRANSPOSE_H
+#endif  // PORTBLAS_EXTENSION_TRANSPOSE_H

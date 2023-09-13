@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename set_benchmark_label.hpp
  *
@@ -130,7 +130,7 @@ namespace computecpp_info {
  * version of compute++ is tied to the version of ComputeCpp, so the associated
  * meta-data of compute++ will be the same.
  *
- * SYCL-BLAS benchmarks will include these attributes only if ComputeCpp info is
+ * portBLAS benchmarks will include these attributes only if ComputeCpp info is
  * available. Benchmarks from other libraries such as cublas etc. will not
  * include them.
  *
@@ -200,7 +200,7 @@ inline void add_common_labels(
   computecpp_info::add_computecpp_version(key_value_map);
   datatype_info::add_datatype_info<scalar_t>(key_value_map);
 
-  key_value_map["@library"] = "SYCL-BLAS";
+  key_value_map["@library"] = "portBLAS";
   key_value_map["git_hash"] = commit_hash;
   key_value_map["git_hash_date"] = commit_date;
 }
@@ -214,7 +214,7 @@ inline void set_benchmark_label(benchmark::State& state,
   device_info::add_device_info(dev, key_value_map);
   internal::add_common_labels<scalar_t>(key_value_map);
 
-  key_value_map["@backend"] = "sycl-blas";
+  key_value_map["@backend"] = "portBLAS";
 
   set_label(state, key_value_map);
 }

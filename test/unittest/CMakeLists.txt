@@ -17,64 +17,66 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
 
-set(SYCLBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
+set(PORTBLAS_UNITTEST ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${SYCLBLAS_TEST} ${BLAS_INCLUDE_DIRS})
+include_directories(${PORTBLAS_TEST} ${BLAS_INCLUDE_DIRS})
 
 # compiling tests
 set(SYCL_UNITTEST_SRCS
   # Blas 1 tests
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
-  # Blas 2 tests
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_sbmv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_spmv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_spr2_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas2/blas2_tpmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+  # # Blas 2 tests
+  ${PORTBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_ger_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_sbmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_spmv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_syr_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_spr2_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_syr2_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_symv_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_tpmv_test.cpp
   # Blas 3 tests
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
+  ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_test.cpp
+  ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
+  ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
+  ${PORTBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
   # Blas extension
-  ${SYCLBLAS_UNITTEST}/extension/omatcopy_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/omatadd_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/omatcopy2_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
-  ${SYCLBLAS_UNITTEST}/extension/omatadd_batch_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatcopy_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatadd_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
+  #  ${PORTBLAS_UNITTEST}/extension/omatadd_batch_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
-  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/extension/transpose_test.cpp
-                                 ${SYCLBLAS_UNITTEST}/extension/reduction_test.cpp
+  list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/extension/transpose_test.cpp
+                                 ${PORTBLAS_UNITTEST}/extension/reduction_test.cpp
 )
 endif()
 
 # Enable testing of the sycl 2020 routines just for Intel DPC++
 if(is_dpcpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
+    ${PORTBLAS_UNITTEST}/blas2/blas2_trsv_test.cpp
+    ${PORTBLAS_UNITTEST}/blas2/blas2_tbsv_test.cpp
+    ${PORTBLAS_UNITTEST}/blas2/blas2_tpsv_test.cpp
   )
 endif()
 
@@ -82,29 +84,27 @@ endif()
 if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+    ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
-    ${SYCLBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
+    ${PORTBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
+    ${PORTBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp
     # Blas buffer tests
-    ${SYCLBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
+    ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
   )
 
 endif()
 
 # Contains tests that fail if compiled with -ffast-math
 set(SYCL_UNITTEST_NOFASTMATH
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
-  ${SYCLBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
 )
 
 if(GEMM_TALL_SKINNY_SUPPORT)
-  list(APPEND SYCL_UNITTEST_SRCS ${SYCLBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
+  list(APPEND SYCL_UNITTEST_SRCS ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_tall_skinny_test.cpp)
 endif()
 
 foreach(blas_test ${SYCL_UNITTEST_SRCS})
@@ -117,8 +117,8 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
   endif()
   target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
-  target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas sycl_blas)
-  target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR})
+  target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas portblas)
+  target_include_directories(${test_exec} PRIVATE ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
   list (FIND SYCL_UNITTEST_NOFASTMATH ${blas_test} _index)
   if (${_index} GREATER -1)

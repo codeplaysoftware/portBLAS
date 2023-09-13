@@ -27,17 +27,18 @@
 #include "extension_reference.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
-                                 index_t, index_t, index_t, index_t>;
+using combination_t = std::tuple<std::string, char, index_t, index_t, scalar_t,
+                                 index_t, index_t, index_t, index_t, index_t>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   char trans;
   index_t m, n, ld_in_m, ld_out_m, stride_in_m, stride_out_m, batch_size;
   scalar_t alpha;
 
-  std::tie(trans, m, n, alpha, ld_in_m, ld_out_m, stride_in_m, stride_out_m,
-           batch_size) = combi;
+  std::tie(alloc, trans, m, n, alpha, ld_in_m, ld_out_m, stride_in_m,
+           stride_out_m, batch_size) = combi;
 
   // Compute leading dimensions using second_dim-ld multipliers
   index_t ld_in = ld_in_m * m;
@@ -69,12 +70,19 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   auto matrix_in =
-      blas::make_sycl_iterator_buffer<scalar_t>(A, stride_in * batch_size);
+      helper::allocate<mem_alloc, scalar_t>(stride_in * batch_size, q);
   auto matrix_out =
-      blas::make_sycl_iterator_buffer<scalar_t>(B, stride_out * batch_size);
+      helper::allocate<mem_alloc, scalar_t>(stride_out * batch_size, q);
 
-  blas::_omatcopy_batch(sb_handle, trans, m, n, alpha, matrix_in, ld_in,
-                        stride_in, matrix_out, ld_out, stride_out, batch_size);
+  auto copy_in = helper::copy_to_device<scalar_t>(q, A.data(), matrix_in,
+                                                  stride_in * batch_size);
+  auto copy_out = helper::copy_to_device<scalar_t>(q, B.data(), matrix_out,
+                                                   stride_out * batch_size);
+
+  auto operator_event = blas::_omatcopy_batch(
+      sb_handle, trans, m, n, alpha, matrix_in, ld_in, stride_in, matrix_out,
+      ld_out, stride_out, batch_size, {copy_in, copy_out});
+  sb_handle.wait(operator_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), matrix_out, B.data(), stride_out * batch_size);
@@ -85,10 +93,32 @@ void run_test(const combination_t<scalar_t> combi) {
   ASSERT_TRUE(isAlmostEqual);
 }
 
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  char trans;
+  index_t m, n, ld_in_m, ld_out_m, stride_in_m, stride_out_m, batch_size;
+  scalar_t alpha;
+
+  std::tie(alloc, trans, m, n, alpha, ld_in_m, ld_out_m, stride_in_m,
+           stride_out_m, batch_size) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
+
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),
+                       ::testing::Values<char>('n', 't'),              // trans
                        ::testing::Values<index_t>(1024, 4050, 16380),  // m
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
                        ::testing::Values<scalar_t>(0, 1.05, -20.01),   // alpha
@@ -100,7 +130,8 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),
+                       ::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 2),         // alpha
@@ -114,10 +145,11 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   char trans;
   index_t m, n, ld_in_m, ld_out_m, stride_in_m, stride_out_m, batch_size;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, ld_in_m, ld_out_m,
+  BLAS_GENERATE_NAME(info.param, alloc, trans, m, n, alpha, ld_in_m, ld_out_m,
                      stride_in_m, stride_out_m, batch_size);
 }
 

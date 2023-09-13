@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename intel_gpu.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_TRANSPOSE_INTEL_GPU_BACKEND_HPP
-#define SYCL_BLAS_TRANSPOSE_INTEL_GPU_BACKEND_HPP
+#ifndef PORTBLAS_TRANSPOSE_INTEL_GPU_BACKEND_HPP
+#define PORTBLAS_TRANSPOSE_INTEL_GPU_BACKEND_HPP
 #include "interface/extension_interface.h"
 
 namespace blas {
@@ -36,16 +36,16 @@ typename sb_handle_t::event_t _transpose_outplace(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
     container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
-    index_t _batch_size) {
+    index_t _batch_size, const typename sb_handle_t::event_t& _dependencies) {
   if (_M * _N > (1 << 18)) {
     return blas::internal::_transpose_outplace_impl<32, 256, 128, true>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
-        _ld_out, _inc_out, _stride_out, _batch_size);
+        _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
 
   } else {
     return blas::internal::_transpose_outplace_impl<16, 64, 64, true>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
-        _ld_out, _inc_out, _stride_out, _batch_size);
+        _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
   }
 }
 
@@ -57,17 +57,18 @@ typename sb_handle_t::event_t _transpose_add(
     container_0_t a_, index_t _ld_a, index_t _a_rows, index_t _a_cols,
     index_t _stride_a, element_t _beta, container_1_t b_, index_t _ld_b,
     index_t _b_rows, index_t _b_cols, index_t _stride_b, container_2_t c_,
-    index_t _ld_c, index_t _stride_c, index_t _batch_size) {
+    index_t _ld_c, index_t _stride_c, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
   if (_M * _N > (1 << 18)) {
     return blas::internal::_transpose_add_impl<both_trans, 32, 256, 128, true>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
-        _batch_size);
+        _batch_size, _dependencies);
   } else {
     return blas::internal::_transpose_add_impl<both_trans, 16, 64, 64, true>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
-        _batch_size);
+        _batch_size, _dependencies);
   }
 }
 
@@ -82,22 +83,23 @@ typename std::enable_if<!trans, typename sb_handle_t::event_t>::type
 _matcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
                in_t in_memory, index_t ld_in, index_t in_stride,
                out_t out_memory, index_t ld_out, index_t out_stride,
-               index_t batch_size) {
+               index_t batch_size,
+               const typename sb_handle_t::event_t& _dependencies) {
   if ((m * n) >= (1 << 18)) {
     return blas::internal::_matcopy_batch_impl<16, 4, sb_handle_t, element_t,
                                                index_t, in_t, out_t>(
         sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-        out_stride, batch_size);
+        out_stride, batch_size, _dependencies);
   } else if ((m * n) >= (1 << 14)) {
     return blas::internal::_matcopy_batch_impl<4, 16, sb_handle_t, element_t,
                                                index_t, in_t, out_t>(
         sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-        out_stride, batch_size);
+        out_stride, batch_size, _dependencies);
   } else {
     return blas::internal::_matcopy_batch_impl<1, 256, sb_handle_t, element_t,
                                                index_t, in_t, out_t>(
         sb_handle, m, n, alpha, in_memory, ld_in, in_stride, out_memory, ld_out,
-        out_stride, batch_size);
+        out_stride, batch_size, _dependencies);
   }
 }
 }  // namespace backend

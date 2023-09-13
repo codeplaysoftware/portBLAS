@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename omatcopy_test.cpp
  *
@@ -28,15 +28,16 @@
 
 template <typename scalar_t>
 using combination_t =
-    std::tuple<char, index_t, index_t, scalar_t, index_t, index_t>;
+    std::tuple<std::string, char, index_t, index_t, scalar_t, index_t, index_t>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   char trans;
   index_t m, n, ld_in_m, ld_out_m;
   scalar_t alpha;
 
-  std::tie(trans, m, n, alpha, ld_in_m, ld_out_m) = combi;
+  std::tie(alloc, trans, m, n, alpha, ld_in_m, ld_out_m) = combi;
 
   // Compute leading dimensions using ld multipliers
   index_t ld_in = ld_in_m * m;
@@ -60,11 +61,18 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::ext_omatcopy(trans, m, n, alpha, A_ref.data(), ld_in,
                                B_ref.data(), ld_out);
 
-  auto matrix_in = blas::make_sycl_iterator_buffer<scalar_t>(A, size_a);
-  auto matrix_out = blas::make_sycl_iterator_buffer<scalar_t>(B, size_b);
+  auto matrix_in = helper::allocate<mem_alloc, scalar_t>(size_a, q);
+  auto matrix_out = helper::allocate<mem_alloc, scalar_t>(size_b, q);
 
-  blas::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in, matrix_out,
-                  ld_out);
+  auto copy_in =
+      helper::copy_to_device<scalar_t>(q, A.data(), matrix_in, size_a);
+  auto copy_out =
+      helper::copy_to_device<scalar_t>(q, B.data(), matrix_out, size_b);
+
+  auto omatcopy_event = blas::_omatcopy(sb_handle, trans, m, n, alpha, matrix_in, ld_in, matrix_out,
+                  ld_out, {copy_in, copy_out});
+
+  sb_handle.wait(omatcopy_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
       sb_handle.get_queue(), matrix_out, B.data(), size_b);
@@ -73,12 +81,37 @@ void run_test(const combination_t<scalar_t> combi) {
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(B, B_ref);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(matrix_in, q);
+  helper::deallocate<mem_alloc>(matrix_out, q);
 }
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  char trans;
+  index_t m, n, ld_in_m, ld_out_m;
+  scalar_t alpha;
+
+  std::tie(alloc, trans, m, n, alpha, ld_in_m, ld_out_m) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
+}
+
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),              // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),
+                       ::testing::Values<char>('n', 't'),              // trans
                        ::testing::Values<index_t>(1024, 4050, 16380),  // m
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
                        ::testing::Values<scalar_t>(0, 1.05, 2.01),     // alpha
@@ -87,10 +120,11 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans
+    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
+                       ::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(0, 1, 2),      // alpha
+                       ::testing::Values<scalar_t>(0, 1, 2),   // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
                        ::testing::Values<index_t>(1, 2, 3));      // ld_out_m
 #endif
@@ -98,10 +132,11 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   char trans;
   index_t m, n, ld_in_m, ld_out_m;
   T alpha;
-  BLAS_GENERATE_NAME(info.param, trans, m, n, alpha, ld_in_m, ld_out_m);
+  BLAS_GENERATE_NAME(info.param, alloc, trans, m, n, alpha, ld_in_m, ld_out_m);
 }
 
 BLAS_REGISTER_TEST_ALL(OmatCopy, combination_t, combi, generate_name);

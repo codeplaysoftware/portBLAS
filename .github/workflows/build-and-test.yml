@@ -39,14 +39,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - impl: "COMPUTECPP"
-            cxx_compiler: "g++-7"
-            cc_compiler: "gcc-7"
-            target: "opencl"
-          - impl: "COMPUTECPP"
-            cxx_compiler: "clang++-6.0"
-            cc_compiler: "clang-6.0"
-            target: "opencl"
           - impl: "DPCPP"
             cxx_compiler: "/tmp/dpcpp/bin/clang++"
             cc_compiler: "/tmp/dpcpp/bin/clang"
@@ -76,9 +68,9 @@ jobs:
                          --build-arg git_slug=${GIT_SLUG}
                          --build-arg impl=${IMPL}
                          --build-arg command=${COMMAND}
-                         -t sycl-blas .
+                         -t portblas .
     - name: Run the Docker image
-      run: docker run -t sycl-blas
+      run: docker run -t portblas
 # Builds the dockerfile in the repo and uses that to build auto-tuner.
   Build-Auto-Tuner:
     needs: skip-check
@@ -116,6 +108,6 @@ jobs:
                          --build-arg git_slug=${GIT_SLUG}
                          --build-arg impl=${IMPL}
                          --build-arg command=${COMMAND}
-                         -t sycl-blas .
+                         -t portblas .
     - name: Run the Docker image
-      run: docker run -t sycl-blas
+      run: docker run -t portblas

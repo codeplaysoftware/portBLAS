@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas2_state_counters.hpp
  *
@@ -69,7 +69,7 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline typename std::enable_if<op == Level2Op::gemv>::type
 init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
@@ -100,7 +100,7 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline typename std::enable_if<op == Level2Op::ger>::type init_level_2_counters(
     benchmark::State& state, const char* t_str, scalar_t beta = scalar_t{0},
     index_t m = 0, index_t n = 0, index_t k = 0, index_t ku = 0,
@@ -116,7 +116,7 @@ inline typename std::enable_if<op == Level2Op::ger>::type init_level_2_counters(
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline typename std::enable_if<op == Level2Op::sbmv>::type
 init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
@@ -148,7 +148,7 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline
     typename std::enable_if<op == Level2Op::spmv || op == Level2Op::symv>::type
     init_level_2_counters(benchmark::State& state, const char* t_str,
@@ -179,7 +179,7 @@ inline
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline typename std::enable_if<op == Level2Op::spr || op == Level2Op::syr>::type
 init_level_2_counters(benchmark::State& state, const char* t_str,
                       scalar_t beta = scalar_t{0}, index_t m = 0, index_t n = 0,
@@ -193,7 +193,7 @@ init_level_2_counters(benchmark::State& state, const char* t_str,
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline
     typename std::enable_if<op == Level2Op::spr2 || op == Level2Op::syr2>::type
     init_level_2_counters(benchmark::State& state, const char* t_str,
@@ -209,7 +209,7 @@ inline
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline
     typename std::enable_if<op == Level2Op::tbmv || op == Level2Op::tbsv>::type
     init_level_2_counters(benchmark::State& state, const char* t_str,
@@ -235,7 +235,7 @@ inline
   return;
 }
 
-template <Level2Op op, typename scalar_t, typename index_t>
+template <Level2Op op, typename scalar_t>
 inline
     typename std::enable_if<op == Level2Op::tpmv || op == Level2Op::trmv ||
                             op == Level2Op::trsv || op == Level2Op::tpsv>::type

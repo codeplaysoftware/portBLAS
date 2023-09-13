@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_trees.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TREES_HPP
-#define SYCL_BLAS_BLAS3_TREES_HPP
+#ifndef PORTBLAS_BLAS3_TREES_HPP
+#define PORTBLAS_BLAS3_TREES_HPP
 
 #include "blas3/gemm_interleaved.hpp"
 #include "blas3/gemm_local.hpp"
@@ -33,4 +33,4 @@
 #include "blas3/gemm_partial_local.hpp"
 #include "blas3/gemm_ref.hpp"
 #include "blas3/trsm.hpp"
-#endif  // SYCL_BLAS_BLAS3_TREES_HPP
+#endif  // PORTBLAS_BLAS3_TREES_HPP

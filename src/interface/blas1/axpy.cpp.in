@@ -17,17 +17,17 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename _axpy.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "operations/blas1_trees.hpp"
 #include "operations/blas_constants.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 #include "views/view_sycl.hpp"
 namespace blas {
@@ -39,15 +39,29 @@ namespace internal {
  * Implements AXPY \f$y = ax + y\f$
  *
  * @param SB_Handle
- * @param _vx  ${container_t0}
+ * @param _vx  ${DATA_TYPE}
  * @param _incx Increment in X axis
- * @param _vy  ${container_t1}
+ * @param _vy  ${DATA_TYPE}
  * @param _incy Increment in Y axis
  */
 
 template typename SB_Handle::event_t _axpy(
-    SB_Handle &sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
-    ${INCREMENT_TYPE} _incy);
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    BufferIterator<${DATA_TYPE}> _vx, ${INCREMENT_TYPE} _incx,
+    BufferIterator<${DATA_TYPE}> _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _axpy(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _axpy(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy,
+    ${INCREMENT_TYPE} _incy, const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // end namespace blas

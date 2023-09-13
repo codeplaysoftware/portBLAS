@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename reduction.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_EXTENSION_REDUCTION_H
-#define SYCL_BLAS_EXTENSION_REDUCTION_H
+#ifndef PORTBLAS_EXTENSION_REDUCTION_H
+#define PORTBLAS_EXTENSION_REDUCTION_H
 
 #include <CL/sycl.hpp>
 
@@ -202,4 +202,4 @@ inline Reduction<operator_t, params_t, input_t, output_t> make_reduction(
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_EXTENSION_REDUCTION_H
+#endif  // PORTBLAS_EXTENSION_REDUCTION_H

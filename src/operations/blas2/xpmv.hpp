@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename spmv.hpp
  *
@@ -38,7 +38,7 @@ namespace blas {
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-SYCL_BLAS_INLINE Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
+PORTBLAS_INLINE Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
                       is_symmetric, is_upper, is_transposed, is_unit>::
     Xpmv(lhs_t &_l, matrix_t &_matrix, vector_t &_vector,
          typename Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
@@ -56,7 +56,7 @@ SYCL_BLAS_INLINE Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-SYCL_BLAS_INLINE bool Xpmv<lhs_t, matrix_t, vector_t, local_range_x,
+PORTBLAS_INLINE bool Xpmv<lhs_t, matrix_t, vector_t, local_range_x,
                            local_range_y, is_symmetric, is_upper, is_transposed,
                            is_unit>::valid_thread(cl::sycl::nd_item<1> ndItem)
     const {
@@ -68,7 +68,7 @@ template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
 template <typename sharedT>
-SYCL_BLAS_INLINE
+PORTBLAS_INLINE
     typename Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y,
                   is_symmetric, is_upper, is_transposed, is_unit>::value_t
     Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
@@ -113,7 +113,7 @@ SYCL_BLAS_INLINE
 
   if (is_symmetric || !is_transposed) {
     const index_t I_offset = gid * loc_x_dim;
-    value_t *const A_I_offset = matrix_.get_pointer() + I_offset + l_idx;
+    const value_t *const A_I_offset = matrix_.get_pointer() + I_offset + l_idx;
 
     value_t priv_A[priv_y_dim];
 
@@ -126,7 +126,7 @@ SYCL_BLAS_INLINE
       }
 
       const index_t J = b * loc_x_dim + l_y_offset;
-      value_t *A = A_I_offset + _mat_J_offset(J);
+      const value_t* A = A_I_offset + _mat_J_offset(J);
       index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
@@ -149,7 +149,7 @@ SYCL_BLAS_INLINE
   // ------------------------------------------------------------------------ //
 
   const index_t J = gid * loc_x_dim + l_y_offset;
-  value_t *const A_J_offset = matrix_.get_pointer() + _mat_J_offset(J) + l_idx;
+  const value_t *const A_J_offset = matrix_.get_pointer() + _mat_J_offset(J) + l_idx;
 
   // ------------------------------------------------------------------------ //
 
@@ -163,7 +163,7 @@ SYCL_BLAS_INLINE
     }
 
     const index_t I_offset = gid * loc_x_dim;
-    value_t *A = A_J_offset + I_offset;
+    const value_t* A = A_J_offset + I_offset;
     index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
@@ -204,7 +204,7 @@ SYCL_BLAS_INLINE
       }
 
       const index_t I_offset = b * loc_x_dim;
-      value_t *A = A_J_offset + I_offset;
+      const value_t* A = A_J_offset + I_offset;
       index_t stride = _mat_initial_stride(J);
 
 #pragma unroll
@@ -266,7 +266,7 @@ SYCL_BLAS_INLINE
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-SYCL_BLAS_INLINE void
+PORTBLAS_INLINE void
 Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
      is_upper, is_transposed, is_unit>::bind(cl::sycl::handler &h) {
   lhs_.bind(h);
@@ -276,7 +276,7 @@ Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
 template <typename lhs_t, typename matrix_t, typename vector_t,
           uint32_t local_range_x, uint32_t local_range_y, bool is_symmetric,
           bool is_upper, bool is_transposed, bool is_unit>
-SYCL_BLAS_INLINE void
+PORTBLAS_INLINE void
 Xpmv<lhs_t, matrix_t, vector_t, local_range_x, local_range_y, is_symmetric,
      is_upper, is_transposed, is_unit>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();

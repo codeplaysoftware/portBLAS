@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename spr.hpp
  *
@@ -34,7 +34,7 @@ namespace blas {
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Spr(
+PORTBLAS_INLINE Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::Spr(
     lhs_t& _l, typename rhs_1_t::index_t _N, value_t _alpha, rhs_1_t& _r1,
     typename rhs_1_t::index_t _incX_1, rhs_2_t& _r2,
     typename rhs_1_t::index_t _incX_2)
@@ -57,7 +57,6 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
   const int64_t lhs_size = N_ * (N_ + 1) / 2;
 
   index_t row = 0, col = 0;
-  value_t out{0};
 
   if (global_idx < lhs_size) {
     value_t lhs_val = lhs_.eval(global_idx);
@@ -70,18 +69,16 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
     if constexpr (!Single) {
       value_t rhs_1_val_second = rhs_1_.eval(col);
       value_t rhs_2_val_second = rhs_2_.eval(row);
-      out = rhs_1_val * rhs_2_val * alpha_ +
+      lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ +
             rhs_1_val_second * rhs_2_val_second * alpha_ + lhs_val;
     } else
-      out = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
-
-    lhs_.eval(global_idx) = out;
+      lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
   }
-  return out;
+  return lhs_.eval(global_idx);
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE void Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
+PORTBLAS_INLINE void Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
     cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
@@ -90,7 +87,7 @@ SYCL_BLAS_INLINE void Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::bind(
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE void
+PORTBLAS_INLINE void
 Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
@@ -99,14 +96,14 @@ Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE
+PORTBLAS_INLINE
     typename Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
     Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-SYCL_BLAS_INLINE bool
+PORTBLAS_INLINE bool
 Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;

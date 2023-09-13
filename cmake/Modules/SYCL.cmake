@@ -17,13 +17,13 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
 include(CheckCXXCompilerFlag)
-include(ConfigureSYCLBLAS)
+include(ConfigurePORTBLAS)
 
 # find_package(hipSYCL) requires HIPSYCL_TARGETS to be set, so set it to a default value before find_package(hipSYCL)
 if(SYCL_COMPILER MATCHES "hipsycl" AND NOT HIPSYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})

@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename utils.hpp
  *
@@ -26,7 +26,7 @@
 #ifndef ROCBLAS_UTILS_HPP
 #define ROCBLAS_UTILS_HPP
 
-#include "sycl_blas.h"
+#include "portblas.h"
 #include <common/common_utils.hpp>
 
 #include <hip/hip_runtime.h>

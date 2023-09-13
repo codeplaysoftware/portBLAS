@@ -17,18 +17,18 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
-#define SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
+#ifndef PORTBLAS_BLAS3_TRSM_INTERFACE_HPP
+#define PORTBLAS_BLAS3_TRSM_INTERFACE_HPP
 
 #include "blas_meta.h"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas3_trees.h"
-#include "sb_handle/sycl_blas_handle.h"
-#include "sycl_blas_helper.h"
+#include "sb_handle/portblas_handle.h"
+#include "portblas_helper.h"
 #include "views/view.h"
 
 namespace blas {
@@ -46,9 +46,9 @@ namespace internal {
  * @param M The number of rows of matrix B, must be at least 1
  * @param N The number of columns of B, must be at least 1
  * @param alpha The scalar alpha that is applied to B
- * @param A Buffer that holds the input matrix A
+ * @param A Memory object that holds the input matrix A
  * @param lda Leading dimension of matrix A
- * @param B Buffer that holds the input/output matrix B
+ * @param B Memory object that holds the input/output matrix B
  * @param ldb Leading dimension of matrix B
  *
  * @note both matrices A and B are expected to be stored in column major order
@@ -105,10 +105,11 @@ namespace internal {
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
-                                    char uplo, char trans, char diag, index_t M,
-                                    index_t N, element_t alpha, container_0_t A,
-                                    index_t lda, container_1_t B, index_t ldb) {
+typename sb_handle_t::event_t _trsm(
+    sb_handle_t& sb_handle, char side, char uplo, char trans, char diag,
+    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
+    container_1_t B, index_t ldb,
+    const typename sb_handle_t::event_t& _dependencies) {
   // Makes sure all dimensions are larger than zero
   if ((M == 0) || (N == 0) || (lda == 0) || (ldb == 0)) {
     throw std::invalid_argument("invalid matrix size argument");
@@ -145,16 +146,19 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   // Temporary buffer for the inverse of the diagonal blocks of the matrix A
   // filled with zeroes
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
-  auto invA = make_sycl_iterator_buffer<element_t>(invASize);
-  std::vector<cl::sycl::event> event = {
-      blas::helper::fill(sb_handle.get_queue(), invA, element_t{0}, invASize)};
+  constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+  auto invA = helper::allocate < is_usm ? helper::AllocType::usm
+                                        : helper::AllocType::buffer,
+       element_t > (invASize, sb_handle.get_queue());
+  typename sb_handle_t::event_t event = {blas::helper::fill(
+      sb_handle.get_queue(), invA, element_t{0}, invASize, _dependencies)};
   trsmEvents = concatenate_vectors(trsmEvents, event);
 
   // Create the matrix views from the input buffers
-  auto bufferA = make_matrix_view<col_major>(A, K, K, lda);
+  typename MatrixViewType<container_0_t, index_t, col_major>::type bufferA =
+      make_matrix_view<col_major>(A, K, K, lda);
   auto bufferInvA =
       make_matrix_view<col_major>(invA, blockSize, blockSize, lda);
-  auto bufferB = make_matrix_view<col_major>(B, M, N, ldb);
 
   // Calculate the parameters for the diagonal blocks inversion
   const index_t numBlocks = roundUp<index_t>(K, blockSize) / blockSize;
@@ -169,23 +173,23 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   if (isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, true, blockSize>(bufferA, bufferInvA);
-    invertBlocksEvent =
-        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
+    invertBlocksEvent = sb_handle.execute(diagInverter, localSize, globalSize,
+                                          localMemSize, event);
   } else if (!isUnitDiag && isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<false, true, blockSize>(bufferA, bufferInvA);
-    invertBlocksEvent =
-        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
+    invertBlocksEvent = sb_handle.execute(diagInverter, localSize, globalSize,
+                                          localMemSize, event);
   } else if (isUnitDiag && !isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<true, false, blockSize>(bufferA, bufferInvA);
-    invertBlocksEvent =
-        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
+    invertBlocksEvent = sb_handle.execute(diagInverter, localSize, globalSize,
+                                          localMemSize, event);
   } else if (!isUnitDiag && !isUpper) {
     auto diagInverter =
         make_diag_blocks_inverter<false, false, blockSize>(bufferA, bufferInvA);
-    invertBlocksEvent =
-        sb_handle.execute(diagInverter, localSize, globalSize, localMemSize);
+    invertBlocksEvent = sb_handle.execute(diagInverter, localSize, globalSize,
+                                          localMemSize, event);
   }
   trsmEvents = concatenate_vectors(trsmEvents, invertBlocksEvent);
 
@@ -193,9 +197,13 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
   // output X will hold the TRSM result and will be copied to B at the end
   const index_t BSize = ldb * (N - 1) + M;
   const index_t ldx = ldb;
-  auto X = make_sycl_iterator_buffer<element_t>(BSize);
+  auto X = helper::allocate < is_usm ? helper::AllocType::usm
+                                     : helper::AllocType::buffer,
+       element_t > (BSize, sb_handle.get_queue());
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, B, 1, X, 1));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(B), decltype(X), index_t>(
+          sb_handle, BSize, B, 1, X, 1, trsmEvents));
 
   if (isLeft) {
     if ((isUpper && isTranspose) || (!isUpper && !isTranspose)) {
@@ -220,7 +228,7 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
             sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
             currentBlockSize, (i == 0) ? alpha : element_t{1},
             invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
-            ldx);
+            ldx, trsmEvents);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) >= M) {
@@ -230,10 +238,13 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
         const std::ptrdiff_t offsetA = !isTranspose
                                            ? ((i + blockSize) + (i * lda))
                                            : (i + (blockSize + i) * lda);
-        internal::_gemm(
+
+        helper::add_const<container_0_t> a_ = A + offsetA;
+        helper::add_const<container_1_t> b_ = X + i;
+        gemmEvent = internal::_gemm(
             sb_handle, isTranspose ? 't' : 'n', 'n', M - i - blockSize, N,
-            blockSize, element_t{-1}, A + offsetA, lda, X + i, ldx,
-            (i == 0) ? alpha : element_t{1}, B + i + blockSize, ldb);
+            blockSize, element_t{-1}, a_, lda, b_, ldx,
+            (i == 0) ? alpha : element_t{1}, B + i + blockSize, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     } else {
@@ -261,17 +272,20 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
             sb_handle, isTranspose ? 't' : 'n', 'n', currentBlockSize, N,
             currentBlockSize, (i == iStart) ? alpha : element_t{1},
             invA + i * blockSize, blockSize, B + i, ldb, element_t{0}, X + i,
-            ldx);
+            ldx, trsmEvents);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
           break;
         }
 
+        helper::add_const<container_0_t> a_ =
+            A + (!isTranspose ? (i * lda) : i);
+        helper::add_const<container_1_t> b_ = X + i;
         gemmEvent = internal::_gemm(
             sb_handle, isTranspose ? 't' : 'n', 'n', i, N, currentBlockSize,
-            element_t{-1}, A + (!isTranspose ? (i * lda) : i), lda, X + i, ldx,
-            (i == iStart) ? alpha : element_t{1}, B, ldb);
+            element_t{-1}, a_, lda, b_, ldx,
+            (i == iStart) ? alpha : element_t{1}, B, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     }
@@ -303,17 +317,20 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
             sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == iStart) ? alpha : element_t{1}, B + i * ldb,
             ldb, invA + i * blockSize, blockSize, element_t{0}, X + i * ldx,
-            ldx);
+            ldx, trsmEvents);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i - blockSize) < 0) {
           break;
         }
 
+        helper::add_const<container_1_t> a_ = X + i * ldx;
+        helper::add_const<container_0_t> b_ =
+            A + (!isTranspose ? i : (i * lda));
         gemmEvent = internal::_gemm(
             sb_handle, 'n', isTranspose ? 't' : 'n', M, i, currentBlockSize,
-            element_t{-1}, X + i * ldx, ldx, A + (!isTranspose ? i : (i * lda)),
-            lda, (i == iStart) ? alpha : element_t{1}, B, ldb);
+            element_t{-1}, a_, ldx, b_, lda,
+            (i == iStart) ? alpha : element_t{1}, B, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
 
@@ -338,7 +355,8 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
         auto gemmEvent = internal::_gemm(
             sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == 0) ? alpha : element_t{1}, B + i * ldb, ldb,
-            invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx);
+            invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx,
+            trsmEvents);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
 
         if ((i + blockSize) > N) {
@@ -348,10 +366,14 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
         const std::ptrdiff_t offset = !isTranspose
                                           ? (i + (blockSize + i) * lda)
                                           : (i + blockSize) + (i * lda);
-        gemmEvent = internal::_gemm(
-            sb_handle, 'n', isTranspose ? 't' : 'n', M, N - i - blockSize,
-            blockSize, element_t{-1}, X + i * ldx, ldx, A + offset, lda,
-            (i == 0) ? alpha : element_t{1}, B + (i + blockSize) * ldb, ldb);
+
+        helper::add_const<container_1_t> a_ = X + i * ldx;
+        helper::add_const<container_0_t> b_ = A + offset;
+        gemmEvent =
+            internal::_gemm(sb_handle, 'n', isTranspose ? 't' : 'n', M,
+                            N - i - blockSize, blockSize, element_t{-1}, a_,
+                            ldx, b_, lda, (i == 0) ? alpha : element_t{1},
+                            B + (i + blockSize) * ldb, ldb, gemmEvent);
         trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);
       }
     }
@@ -359,7 +381,13 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
 
   // Copy bufferX to bufferB as the TRSM result
   trsmEvents = concatenate_vectors(
-      trsmEvents, internal::_copy(sb_handle, BSize, X, 1, B, 1));
+      trsmEvents,
+      internal::_copy<sb_handle_t, index_t, decltype(X), decltype(B), index_t>(
+          sb_handle, BSize, X, 1, B, 1, trsmEvents));
+
+  helper::enqueue_deallocate(trsmEvents, invA, sb_handle.get_queue());
+
+  helper::enqueue_deallocate(trsmEvents, X, sb_handle.get_queue());
 
   return trsmEvents;
 }
@@ -367,4 +395,4 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
 }  // namespace internal
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_TRSM_INTERFACE_HPP
+#endif  // PORTBLAS_BLAS3_TRSM_INTERFACE_HPP

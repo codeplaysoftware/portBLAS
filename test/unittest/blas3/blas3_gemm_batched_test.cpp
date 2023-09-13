@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_gemm_batched_test.cpp
  *
@@ -28,6 +28,7 @@
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(5),                          // batch
     ::testing::Values(63, 128),                    // m
@@ -46,6 +47,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatch);
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMultiplied = ::testing::Combine(
+    ::testing::Values("usm", "buf"),   // allocation type
     ::testing::Values(0),              // offset
     ::testing::Values(1, 5),           // batch
     ::testing::Values(63, 128, 129),   // m
@@ -65,6 +67,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultiplied);
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMatchAlpha0 = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(5),                          // batch
     ::testing::Values(128),                        // m
@@ -83,6 +86,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatchAlpha0);
 
 template <typename scalar_t>
 const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
+    ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(5),                          // batch
     ::testing::Values(63),                         // m
@@ -102,7 +106,8 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);
 // GEMM STRIDED BATCHED tests
 template <typename scalar_t>
 const auto DefaultGemmAndGemmBatched =
-    ::testing::Combine(::testing::Values(0),              // offset
+    ::testing::Combine(::testing::Values("usm", "buf"),   // allocation type
+                       ::testing::Values(0),              // offset
                        ::testing::Values(1, 5),           // batch
                        ::testing::Values(63, 128),        // m
                        ::testing::Values(63, 128),        // n
@@ -122,7 +127,8 @@ GENERATE_GEMM_STRIDED_BATCHED_TEST(BatchStridedGemm, DefaultGemmAndGemmBatched);
 
 template <typename scalar_t>
 const auto AllStridedBatched =
-    ::testing::Combine(::testing::Values(0),              // offset
+    ::testing::Combine(::testing::Values("usm", "buf"),   // allocation type
+                       ::testing::Values(0),              // offset
                        ::testing::Values(5),              // batch
                        ::testing::Values(128),            // m
                        ::testing::Values(128),            // n

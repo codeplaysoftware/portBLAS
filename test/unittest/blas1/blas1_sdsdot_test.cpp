@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_sdsdot_test.cpp
  *
@@ -28,19 +28,18 @@
 #include <type_traits>
 
 template <typename scalar_t>
-using combination_t = std::tuple<api_type, int, scalar_t, int, int>;
+using combination_t =
+    std::tuple<std::string, api_type, int, scalar_t, int, int>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  /* sdsdot is only valid when using floats */
-  static_assert(std::is_same<scalar_t, float>::value);
-
+  std::string alloc;
   index_t N;
   float sb;
   index_t incX;
   index_t incY;
   api_type api;
-  std::tie(api, N, sb, incX, incY) = combi;
+  std::tie(alloc, api, N, sb, incX, incY) = combi;
 
   /* Sycl Buffers do not work with size = 0. So setting input vectors to size
    * one to test the edge case where if size equals 0 then sb should be
@@ -66,32 +65,66 @@ void run_test(const combination_t<scalar_t> combi) {
 
   // Iterators
   auto gpu_x_v =
-      blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incX));
-  blas::helper::copy_to_device(sb_handle.get_queue(), x_v.data(), gpu_x_v,
-                               vectorSize * incX);
+      helper::allocate<mem_alloc, scalar_t>(int(vectorSize * incX), q);
   auto gpu_y_v =
-      blas::make_sycl_iterator_buffer<scalar_t>(int(vectorSize * incY));
-  blas::helper::copy_to_device(sb_handle.get_queue(), y_v.data(), gpu_y_v,
-                               vectorSize * incY);
+      helper::allocate<mem_alloc, scalar_t>(int(vectorSize * incY), q);
+
+  auto copy_x =
+      helper::copy_to_device(q, x_v.data(), gpu_x_v, vectorSize * incX);
+  auto copy_y =
+      helper::copy_to_device(q, y_v.data(), gpu_y_v, vectorSize * incY);
 
   if (api == api_type::async) {
-    auto gpu_out_s = blas::make_sycl_iterator_buffer<scalar_t>(&out_s, 1);
-    _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY, gpu_out_s);
-    auto event = blas::helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
-                                                      gpu_out_s, &out_s, 1);
+    auto gpu_out_s = helper::allocate<mem_alloc, scalar_t>(1, q);
+    auto copy_out = helper::copy_to_device(q, &out_s, gpu_out_s, 1);
+    auto sdsdot_event = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY,
+                                gpu_out_s, {copy_x, copy_y, copy_out});
+    sb_handle.wait(sdsdot_event);
+    auto event = helper::copy_to_host<scalar_t>(sb_handle.get_queue(),
+                                                gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
+    helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
-    out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY);
+    out_s = _sdsdot(sb_handle, N, sb, gpu_x_v, incX, gpu_y_v, incY,
+                    {copy_x, copy_y});
   }
 
   // Validate the result
   const bool isAlmostEqual = utils::almost_equal(out_s, out_cpu_s);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(gpu_x_v, q);
+  helper::deallocate<mem_alloc>(gpu_y_v, q);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  /* sdsdot is only valid when using floats */
+  static_assert(std::is_same<scalar_t, float>::value);
+
+  std::string alloc;
+  index_t N;
+  float sb;
+  index_t incX;
+  index_t incY;
+  api_type api;
+  std::tie(alloc, api, N, sb, incX, incY) = combi;
+
+  if (alloc == "usm") {  // usm alloc
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {  // buffer alloc
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
 }
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1002, 1002400),            // N
     ::testing::Values<scalar_t>(9.5f, 0.5f),             // sb
@@ -101,6 +134,7 @@ const auto combi = ::testing::Combine(
 #else
 template <typename scalar_t>
 const auto combi = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 1002, 0),                      // N
     ::testing::Values<scalar_t>(9.5f, 0.5f, 0.0f),       // sb
@@ -113,10 +147,11 @@ const auto combi = ::testing::Combine(
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   int size, incX, incY;
   float sb;
   api_type api;
-  BLAS_GENERATE_NAME(info.param, api, size, sb, incX, incY);
+  BLAS_GENERATE_NAME(info.param, alloc, api, size, sb, incX, incY);
 }
 
 BLAS_REGISTER_TEST_FLOAT(Sdsdot, combination_t, combi, generate_name);

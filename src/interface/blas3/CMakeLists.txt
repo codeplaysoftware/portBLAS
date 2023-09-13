@@ -17,17 +17,13 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
 # **************************************************************************/
 #blas3
 generate_blas_gemm_objects(blas3 gemm_launcher)
-generate_blas_ternary_objects(blas3 gemm)
-generate_blas_ternary_objects(blas3 symm)
-generate_blas_binary_objects(blas3 trsm)
-
-if(BLAS_ENABLE_CONST_INPUT)
-    generate_blas_ternary_objects(blas3 gemm_const)
-endif()
+generate_blas_objects(blas3 gemm)
+generate_blas_objects(blas3 symm)
+generate_blas_objects(blas3 trsm)

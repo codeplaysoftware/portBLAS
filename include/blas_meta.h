@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas_meta.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_META_H
-#define SYCL_BLAS_META_H
+#ifndef PORTBLAS_META_H
+#define PORTBLAS_META_H
 
 #include <CL/sycl.hpp>
 #include <type_traits>
@@ -97,8 +97,8 @@ struct Choose<false, val_t, value_one_t, value_two_t> {
 /// \tparam element_t : the type we are interested in
 template <typename element_t>
 struct RemoveAll {
-  using Type = typename std::remove_reference<
-      typename std::remove_cv<element_t>::type>::type;
+  using Type = typename std::remove_reference<typename std::remove_cv<
+      typename std::remove_pointer<element_t>::type>::type>::type;
 };
 
 template <typename container_t>
@@ -135,16 +135,16 @@ static inline index_t get_power_of_two(index_t wGSize, bool rounUp) {
 }
 
 #ifdef __SYCL_DEVICE_ONLY__
-#define SYCL_BLAS_ALWAYS_INLINE \
+#define PORTBLAS_ALWAYS_INLINE \
   __attribute__((flatten)) __attribute__((always_inline))
 #else
-#define SYCL_BLAS_ALWAYS_INLINE
+#define PORTBLAS_ALWAYS_INLINE
 #endif
 
-#define SYCL_BLAS_INLINE SYCL_BLAS_ALWAYS_INLINE inline
+#define PORTBLAS_INLINE PORTBLAS_ALWAYS_INLINE inline
 
 template <typename index_t>
-static SYCL_BLAS_INLINE index_t roundUp(index_t x, index_t y) {
+static PORTBLAS_INLINE index_t roundUp(index_t x, index_t y) {
   return ((x + y - 1) / y) * y;
 }
 
@@ -183,6 +183,12 @@ struct is_sycl_scalar
 
 template <>
 struct is_sycl_scalar<cl::sycl::half> : std::true_type {};
+
+template <>
+struct is_sycl_scalar<float *> : std::false_type {};
+
+template <>
+struct is_sycl_scalar<double *> : std::false_type {};
 
 }  // namespace blas
 

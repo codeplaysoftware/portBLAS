@@ -17,7 +17,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # *
-# *  SYCL-BLAS: BLAS implementation using SYCL
+# *  portBLAS: BLAS implementation using SYCL
 # *
 # *  @filename CMakeLists.txt
 # *
@@ -78,13 +78,13 @@ set(sources
 foreach(cublas_bench ${sources})
   get_filename_component(bench_cublas_exec ${cublas_bench} NAME_WE)
   add_executable(bench_cublas_${bench_cublas_exec} ${cublas_bench} main.cpp)
-  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart sycl_blas Clara::Clara bench_info)
+  target_link_libraries(bench_cublas_${bench_cublas_exec} PRIVATE benchmark CUDA::toolkit CUDA::cublas CUDA::cudart portblas Clara::Clara bench_info)
   target_compile_definitions(bench_cublas_${bench_cublas_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   add_sycl_to_target(
     TARGET bench_cublas_${bench_cublas_exec}
     SOURCES ${cublas_bench}
   )
-target_include_directories(bench_cublas_${bench_cublas_exec} PRIVATE $ENV{CUBLAS_INCLUDE} ${SYCLBLAS_INCLUDE} ${SYCLBLAS_COMMON_INCLUDE_DIR} ${CBLAS_INCLUDE})
+target_include_directories(bench_cublas_${bench_cublas_exec} PRIVATE $ENV{CUBLAS_INCLUDE} ${PORTBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR} ${CBLAS_INCLUDE})
   add_compile_definitions(BUILD_CUBLAS_BENCHMARKS)
 
   if(BLAS_VERIFY_BENCHMARK)

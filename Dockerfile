@@ -25,46 +25,28 @@ RUN apt-get -yq update
 
 RUN pip install enum34
 
-# Clang 6.0
-RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-     clang-6.0 libomp-dev; fi
-
-# GCC 7
-RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-    g++-7 gcc-7; fi
-
 # OpenCL ICD Loader
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential               \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
 
-RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /sycl-blas
+RUN git clone https://github.com/${git_slug}.git --recursive -b ${git_branch} /portBLAS
 
 #OpenBLAS
-RUN bash /sycl-blas/.scripts/build_OpenBLAS.sh
+RUN bash /portBLAS/.scripts/build_OpenBLAS.sh
 # Intel OpenCL Runtime
-RUN bash /sycl-blas/.scripts/install_intel_opencl.sh
+RUN bash /portBLAS/.scripts/install_intel_opencl.sh
 
 # SYCL
-RUN if [ "${impl}" = 'COMPUTECPP' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_computecpp.sh; fi
-RUN if [ "${impl}" = 'DPCPP' ]; then cd /sycl-blas && bash /sycl-blas/.scripts/build_dpcpp.sh; fi
+RUN if [ "${impl}" = 'DPCPP' ]; then cd /portBLAS && bash /portBLAS/.scripts/build_dpcpp.sh; fi
 
 ENV COMMAND=${command}
 ENV CC=${c_compiler}
 ENV CXX=${cxx_compiler}
 ENV SYCL_IMPL=${impl}
 
-CMD cd /sycl-blas && \
+CMD cd /portBLAS && \
     if [ "${COMMAND}" = 'build-test' ]; then \
-      if [ "${SYCL_IMPL}" = 'COMPUTECPP' ]; then \
-        /tmp/ComputeCpp-latest/bin/computecpp_info && \
-        export COMPUTECPP_TARGET="intel:cpu" && mkdir -p build && cd build && \
-        cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
-        -DSYCL_COMPILER=computecpp -DComputeCpp_DIR=/tmp/ComputeCpp-latest \
-        -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build -DCMAKE_BUILD_TYPE=Release && \
-        make -j$(nproc) && cd test && ctest -VV --timeout 1200; \
-      elif [ "${SYCL_IMPL}" = 'DPCPP' ]; then \
+      if [ "${SYCL_IMPL}" = 'DPCPP' ]; then \
         export LD_LIBRARY_PATH="/tmp/dpcpp/lib" && mkdir -p build && cd build && \
         cmake .. -DBLAS_ENABLE_STATIC_LIBRARY=ON -DGEMM_TALL_SKINNY_SUPPORT=OFF \
         -DSYCL_COMPILER=dpcpp -DCMAKE_PREFIX_PATH=/tmp/OpenBLAS/build \

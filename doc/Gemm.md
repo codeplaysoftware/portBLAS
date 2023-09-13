@@ -1,6 +1,6 @@
-# SYCL-BLAS GEMM Developer Documentation
+# portBLAS GEMM Developer Documentation
 
-The following is documentation for the `GEMM` kernels and associated areas of code within `SYCL-BLAS`.
+The following is documentation for the `GEMM` kernels and associated areas of code within `portBLAS`.
 This should give you a good understanding of how everything works and where/how to do things such as:
 
 - Work on or create a new `GEMM` kernel
@@ -11,11 +11,11 @@ Please note that while this document primarily refers to `GEMM` and `Blas3` oper
 
 # Contents
 
-- [SYCL-BLAS GEMM Developer Documentation](#sycl-blas-gemm-developer-documentation)
+- [portBLAS GEMM Developer Documentation](#portBLAS-gemm-developer-documentation)
 - [Contents](#contents)
 - [GEMM](#gemm)
   - [What is GEMM?](#what-is-gemm)
-  - [SYCL-BLAS GEMM Kernels](#sycl-blas-gemm-kernels)
+  - [portBLAS GEMM Kernels](#portBLAS-gemm-kernels)
   - [Relevant CMake Variables](#relevant-cmake-variables)
   - [Kernel Structure](#kernel-structure)
   - [Vectorized Loading/Storing](#vectorized-loadingstoring)
@@ -42,9 +42,9 @@ C = alpha * A * B + beta * C
 where A, B and C are matrices and alpha and beta are scalars.
 ```
 
-## SYCL-BLAS GEMM Kernels
+## portBLAS GEMM Kernels
 
-`SYCL-BLAS` currently contains the following `GEMM` kernels in <src/operations/blas3/>:
+`portBLAS` currently contains the following `GEMM` kernels in <src/operations/blas3/>:
 
 - `gemm_ref.hpp` - A naive, reference implementation of `GEMM` with no optimizations.
 
@@ -59,7 +59,7 @@ where A, B and C are matrices and alpha and beta are scalars.
 - `gemm_no_local_full_vec.hpp` - Doesn't use local memory. Supports full vectorization.
 
 - `gemm_interleaved.hpp` - An alternative approach to batched `GEMM` calculations where the inputs are interleaved in contiguous memory. This means that the batch axis is the fastest moving dimension.
-Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `SYCL-BLAS` uses). Also, the interleaved batched gemm is not subject to custom striding as it beats its initial purpose.
+Uses no local memory and corresponds to HWN data layout (NWH in column major, which is what `portBLAS` uses). Also, the interleaved batched gemm is not subject to custom striding as it beats its initial purpose.
 
 ## Relevant CMake Variables
 
@@ -235,7 +235,7 @@ Gemm_Launcher<WgSize, DoubleBuffer, ConflictA, ConflictB, ClSize, TileT, TransA,
 
 ## Source Code Generation
 
-In order to correctly link a user's application to the SYCL-BLAS library the configurations for both `Gemm_Launcher` and `Gemm` must be instantiated explicitly in `.cpp` files to prevent linking errors. 
+In order to correctly link a user's application to the portBLAS library the configurations for both `Gemm_Launcher` and `Gemm` must be instantiated explicitly in `.cpp` files to prevent linking errors. 
 These instantiations are generated using a template file and several python scripts which replace variables in the template file with the appropriate types for different configurations. 
 This is driven by CMake and covered more extensively in [this section](#cmake-configurations).
 
@@ -245,10 +245,10 @@ The template for `Gemm` looks like this:
 
 ```c++
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "interface/gemm_interface.hpp"
 #include "operations/blas_constants.hpp"
-#include "sycl_blas_helper.h"
+#include "portblas_helper.h"
 #include "views/view_sycl.hpp"
 
 namespace blas {
@@ -256,15 +256,15 @@ namespace internal {
 // gemm
 template typename SB_Handle::event_t _gemm(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${container_t1} b_, ${INDEX_TYPE} _ldb,
-    ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc);
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> a_,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb,
+    ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}> _C, ${INDEX_TYPE} _ldc);
 // batched gemm
 template typename SB_Handle::event_t _gemm_batched(
     SB_Handle& sb_handle, char _TransA, char _TransB, ${INDEX_TYPE} _M,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, ${container_t0} a_,
-    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, ${container_t1} b_, ${INDEX_TYPE} _ldb, 
-    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, ${container_t2} _C, ${INDEX_TYPE} _ldc,
+    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K, ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> a_,
+    ${INDEX_TYPE} _lda, ${INDEX_TYPE} _stridea, BufferIterator<${DATA_TYPE}> b_, ${INDEX_TYPE} _ldb, 
+    ${INDEX_TYPE} _strideb, ${DATA_TYPE} _beta, BufferIterator<${DATA_TYPE}> _C, ${INDEX_TYPE} _ldc,
     ${INDEX_TYPE} _stridec, ${INDEX_TYPE} batch_size, gemm_batch_type_t batch_type);
 // strided batched gemm
 template typename SB_Handle::event_t _gemm_strided_batched(
@@ -489,7 +489,7 @@ See the section on [backend configurations](#backend-configurations) for an exam
 
 ## Adding a new kernel
 
-The following is a checklist of steps to add a new `GEMM` kernel to `SYCL-BLAS` .
+The following is a checklist of steps to add a new `GEMM` kernel to `portBLAS` .
 
 1. Create your kernel header file in `src/operations/blas3/` and give it a sensible name that follows the convention of the others. 
 For example, if your new kernel is very fast call it `gemm_very_fast.hpp`.

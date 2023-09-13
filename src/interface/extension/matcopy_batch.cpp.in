@@ -25,7 +25,7 @@
 
 #include "interface/extension_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "operations/extension/matcopy_batch.hpp"
 #include "operations/extension/transpose.hpp" 
 
@@ -35,16 +35,53 @@ namespace internal {
 // This function represents both imatcopy and omatcopy operators
 template typename SB_Handle::event_t _matcopy_batch<true>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t0} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t0} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size);
+    ${DATA_TYPE} alpha, BufferIterator<${DATA_TYPE}>  in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, BufferIterator<${DATA_TYPE}> out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
 
 // This function represents both imatcopy and omatcopy operators
 template typename SB_Handle::event_t _matcopy_batch<false>(
     SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
-    ${DATA_TYPE} alpha, ${container_t0} in_memory, ${INDEX_TYPE} ld_in,
-    ${INDEX_TYPE} in_stride, ${container_t0} out_memory, ${INDEX_TYPE} ld_out,
-    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size);
+    ${DATA_TYPE} alpha, BufferIterator<${DATA_TYPE}> in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, BufferIterator<${DATA_TYPE}> out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+// This function represents both imatcopy and omatcopy operators
+template typename SB_Handle::event_t _matcopy_batch<true>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, const ${DATA_TYPE}*  in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+// This function represents both imatcopy and omatcopy operators
+template typename SB_Handle::event_t _matcopy_batch<true>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${DATA_TYPE}*  in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+// This function represents both imatcopy and omatcopy operators
+template typename SB_Handle::event_t _matcopy_batch<false>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, const ${DATA_TYPE}* in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+// This function represents both imatcopy and omatcopy operators
+template typename SB_Handle::event_t _matcopy_batch<false>(
+    SB_Handle& sb_handle, char trans, ${INDEX_TYPE} m, ${INDEX_TYPE} n,
+    ${DATA_TYPE} alpha, ${DATA_TYPE}* in_memory, ${INDEX_TYPE} ld_in,
+    ${INDEX_TYPE} in_stride, ${DATA_TYPE}* out_memory, ${INDEX_TYPE} ld_out,
+    ${INDEX_TYPE} out_stride, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

@@ -17,22 +17,37 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename tbsv.cpp.in
  *
  **************************************************************************/
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
+#include "container/sycl_iterator.hpp"
 #include "interface/blas2_interface.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 namespace blas {
 namespace internal {
 template typename SB_Handle::event_t _tbsv(
-    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag,
-    ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
-    ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx);
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${INDEX_TYPE} _K, BufferIterator<${DATA_TYPE}> _mA, ${INDEX_TYPE} _lda,
+    BufferIterator<${DATA_TYPE}> _vx, ${INCREMENT_TYPE} _incx,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _tbsv(
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${INDEX_TYPE} _K, ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _tbsv(
+    SB_Handle& sb_handle, char _Uplo, char _trans, char _Diag, ${INDEX_TYPE} _N,
+    ${INDEX_TYPE} _K, const ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

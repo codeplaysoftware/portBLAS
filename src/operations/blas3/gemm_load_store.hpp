@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_load_store.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
-#define SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
+#ifndef PORTBLAS_BLAS3_GEMM_LOAD_STORE_HPP
+#define PORTBLAS_BLAS3_GEMM_LOAD_STORE_HPP
 
 namespace blas {
 
@@ -42,7 +42,7 @@ struct Packetize {
   using PacketType = cl::sycl::vec<value_t, vector_size>;
   static constexpr int packet_size = vector_size;
   template <index_t dimension>
-  SYCL_BLAS_INLINE static constexpr bool check_size() {
+  PORTBLAS_INLINE static constexpr bool check_size() {
     return packet_size == 1 || dimension == packet_size;
   }
 #else
@@ -50,7 +50,7 @@ struct Packetize {
   using PacketType = cl::sycl::vec<value_t, 1>;
   static constexpr int packet_size = 1;
   template <index_t dimension>
-  SYCL_BLAS_INLINE static constexpr bool check_size() {
+  PORTBLAS_INLINE static constexpr bool check_size() {
     return true;
   }
 #endif
@@ -65,7 +65,7 @@ struct Packetize {
 
   template <bool trans, bool internal, int ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<!internal>::type load(
+  static PORTBLAS_INLINE typename std::enable_if<!internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate) {
 #ifdef SB_ENABLE_JOINT_MATRIX
@@ -100,7 +100,7 @@ struct Packetize {
    * @tparam ld The leading dimension of the destination memory. */
   template <bool trans, bool internal, index_t ld, typename SrcPointerType,
             typename DestPointerType, typename EdgePredicate>
-  static SYCL_BLAS_INLINE typename std::enable_if<internal>::type load(
+  static PORTBLAS_INLINE typename std::enable_if<internal>::type load(
       const bool in_range, SrcPointerType src, DestPointerType dest,
       EdgePredicate edge_in_range) {
     PacketType packet{};
@@ -124,7 +124,7 @@ struct Packetize {
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
   template <bool trans, index_t ld, typename DestPointerType>
-  static SYCL_BLAS_INLINE typename std::enable_if<trans>::type store(
+  static PORTBLAS_INLINE typename std::enable_if<trans>::type store(
       PacketType &packet, DestPointerType dest) {
 #ifdef SB_ENABLE_JOINT_MATRIX
     using address_t = cl::sycl::access::address_space;
@@ -160,7 +160,7 @@ struct Packetize {
    * @tparam trans Whether the source matrix is transposed or not.
    * @tparam ld The leading dimension of the destination memory.*/
   template <bool trans, int ld, typename DestPointerType>
-  static SYCL_BLAS_INLINE typename std::enable_if<!trans>::type store(
+  static PORTBLAS_INLINE typename std::enable_if<!trans>::type store(
       PacketType &packet, DestPointerType dest) {
     using address_t = cl::sycl::access::address_space;
 #ifdef SB_ENABLE_JOINT_MATRIX
@@ -187,4 +187,4 @@ struct Packetize {
 };
 
 }  // namespace blas
-#endif  // SYCL_BLAS_BLAS3_GEMM_LOAD_STORE_HPP
+#endif  // PORTBLAS_BLAS3_GEMM_LOAD_STORE_HPP

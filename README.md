@@ -1,24 +1,24 @@
-SYCL-BLAS Implementation
+portBLAS Implementation
 ===
 
-[![Build and Test](https://github.com/codeplaysoftware/sycl-blas/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/sycl-blas/actions/workflows/build-and-test.yml)
+[![Build and Test](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml)
 
-SYCL-BLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL 1.2](
+portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL 1.2](
 https://www.khronos.org/registry/sycl/specs/sycl-1.2.pdf), the
 [Khronos](http://www.khronos.org) abstraction layer for [OpenCL](https://www.khronos.org/opencl/).
 
-SYCL-BLAS is a current work in progress research project from an ongoing
+portBLAS is a current work in progress research project from an ongoing
 collaboration with the *High Performance Computing & Architectures (HPCA) group*
 from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
-SYCL-BLAS is written using modern C++. The current implementation uses C++11
+portBLAS is written using modern C++. The current implementation uses C++11
 features.
 See [Roadmap](Roadmap.md) for details on the current status and plans for
 the project.
 
 ## Table of Contents
 
-- [SYCL-BLAS Implementation](#sycl-blas-implementation)
+- [portBLAS Implementation](#portBLAS-implementation)
   - [Table of Contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Basic Concepts](#basic-concepts)
@@ -36,7 +36,7 @@ the project.
     - [Compile with ComputeCpp](#compile-with-computecpp)
     - [Compile with DPC++](#compile-with-dpc)
     - [Compile with hipSYCL](#compile-with-hipsycl)
-    - [Instaling SYCL-BLAS](#instaling-sycl-blas)
+    - [Instaling portBLAS](#instaling-portBLAS)
     - [POWER\_VR support (ComputeCpp Only)](#power_vr-support-computecpp-only)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
@@ -74,7 +74,7 @@ of numerical libraries, such that
 a good BLAS implementation improves the performances of all the other
 libraries.  The development of numerical libraries on SYCL is one of the most
 important objectives, because it will improve the performance of other SYCL
-applications. Obviously, it makes sense SYCL-BLAS was the first step in this
+applications. Obviously, it makes sense portBLAS was the first step in this
 task.
 
 On GPUs, the data communication to/from the device and the grain of the kernels
@@ -92,11 +92,11 @@ expression tree on which all the single operation which are required to solve a
 problem appears. This structure could be analysed by the compiler to decide how
 to merge the different kernel and the best grid topology to execute the fused
 kernel.  The use of expression trees is one of most important features of
-SYCL-BLAS.
+portBLAS.
 
 ## Basic Concepts
 
-SYCL-BLAS uses C++ Expression Tree templates to generate SYCL Kernels via
+portBLAS uses C++ Expression Tree templates to generate SYCL Kernels via
 kernel composition.
 Expression Tree templates are a widely used technique to implement expressions
 on C++, that facilitate development and composition of operations.
@@ -105,20 +105,20 @@ In particular,
 been used in various projects to create efficient domain-specific embedded
 languages that enable users to easily fuse GPU kernels.
 
-SYCL-BLAS can be used
-- either as a header-only framework by including `sycl_blas.hpp` in
+portBLAS can be used
+- either as a header-only framework by including `portblas.hpp` in
 an application and passing the `src` folder in the list of include directories
-- or as a library by including `sycl_blas.h` in an application.
+- or as a library by including `portblas.h` in an application.
 
 All the relevant files can be found in
 the `include` directory.
 
-There are four components in SYCL-BLAS, the *View*, the *Operations*,
+There are four components in portBLAS, the *View*, the *Operations*,
 the *SB_Handle* and the *Interface* itself.
 
 ### Views
 
-The input data to all the operations in SYCL-BLAS is passed to the library
+The input data to all the operations in portBLAS is passed to the library
 using *Views*.
 A *View* represents data on top of a container, passed by reference.
 Views *do not store data*, they only map a visualization of the data on top
@@ -139,7 +139,7 @@ properties of the C++11 standard.
 Operations among elements of vectors (or matrices) are expressed in the
 set of Operation Classes.
 Operations are templated classes that take templated types as input.
-Operations form the nodes of the SYCL-BLAS expression tree.
+Operations form the nodes of the portBLAS expression tree.
 Refer to the documentation of each node type for details.
 
 Composing these is how the compile-time Expression tree is created:
@@ -162,7 +162,7 @@ The different headers on the interface directory implement the traditional
 BLAS interface.
 Files are organised per BLAS level (1, 2, 3).
 
-When the SYCL-BLAS BLAS interface is called, the Expression Tree for each
+When the portBLAS BLAS interface is called, the Expression Tree for each
 operation is constructed, and then executed.
 Some API calls may execute several kernels (e.g, when a reduction is required).
 The expression trees in the API allow to compile-time fuse operations.
@@ -175,16 +175,25 @@ of multiple BLAS operations.
 
 ## API description
 
-This section references all the supported operations and their interface.
+This section references all the supported operations and their interface. The 
+library follows the [oneAPI MKL BLAS specification](https://spec.oneapi.io/versions/latest/elements/oneMKL/source/domains/blas/blas.html) 
+as reference for the api. We have support for both USM and Buffer api, however 
+the group apis for USM are not supported. We don't support mixing USM and Buffer 
+arguments together to compile the library, and instead stick to the aformentioned 
+reference specification.
 
 All operations take as their first argument a reference to the SB_Handle, a
-`blas::SB_Handle` created with a `sycl::queue`. The return value is usually an
-array of SYCL events (except for some operations that can return a scalar or
+`blas::SB_Handle` created with a `sycl::queue`. The last argument for all operators
+is a vector of dependencies of type `cl::sycl::event` (empty by default). The return value 
+is usually an array of SYCL events (except for some operations that can return a scalar or
 a tuple). The containers for the vectors and matrices (and scalars written by
-the BLAS operations) are iterator buffers that can be created with
-`make_sycl_iterator_buffer`.
+the BLAS operations) can either be `raw usm pointers` or `iterator buffers` that can be 
+created with a call to `cl::sycl::malloc_device` or `make_sycl_iterator_buffer` respectively.
 
-We recommend checking the [samples](samples) to get started with SYCL-BLAS. It
+The USM support in portBLAS is limited to `device allocated` memory only and we don't support
+`shared` or `host` allocations with USM. 
+
+We recommend checking the [samples](samples) to get started with portBLAS. It
 is better to be familiar with BLAS:
 
 - [Wikipedia](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms)
@@ -331,7 +340,7 @@ Other non-official extension operators :
 | `_transpose*` | `sb_handle`, `M`, `N`, `A`, `lda`, `ldb`  | Computes an in-place matrix transpose operation using a general dense matrix, lda & ldb being input and output leading dimensions of A respectively _(*Not implemented)_. |
 ### Experimental Joint Matrix Support
 
-SYCL-BLAS now supports sub-group based collective GEMM operation using the experimental 
+portBLAS now supports sub-group based collective GEMM operation using the experimental 
 [`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_oneapi_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
 NVIDIA Ampere GPUs and beyond. The requirements for using this experimental support 
 are: 
@@ -347,7 +356,7 @@ The user should expect erroneous behaviour from the code if both of these requir
 
 ## Requirements
 
-SYCL-BLAS is designed to work with any SYCL 1.2.1 implementation.
+portBLAS is designed to work with any SYCL 1.2.1 implementation.
 We do not use any OpenCL interoperability, hence, the code is pure C++.
 The project is developed using [ComputeCpp CE Edition](http://www.computecpp.com)
 using Ubuntu 16.04 on Intel OpenCL CPU and Intel GPU.
@@ -364,7 +373,7 @@ which can cause random test failures. Any version of OpenBLAS `>= 0.3.0` will no
 from these issues.
 
 When using OpenBLAS or any other BLAS library the installation directory must be
-added to the `CMAKE_PREFIX_PATH` when building SYCL-BLAS (see
+added to the `CMAKE_PREFIX_PATH` when building portBLAS (see
 [below](###cmake-options)).
 
 ## Setup
@@ -375,7 +384,7 @@ been replaced by `TUNING_TARGET`, which accepts the same options.
 triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
 setting them.
 
-1. Clone the SYCL-BLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
+1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
 2. Create a build directory
 3. Run `CMake` from the build directory (see options in the section below):
 
@@ -412,8 +421,8 @@ ninja
 ```
 To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
 
-### Instaling SYCL-BLAS
-To install the SYCL-BLAS library (see `CMAKE_INSTALL_PREFIX` below)
+### Instaling portBLAS
+To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
 
 ```bash
 ninja install
@@ -452,14 +461,14 @@ Some of the supported options are:
 | `ENABLE_EXPRESSION_TESTS` | `ON`/`OFF` | Build additional tests that use the header-only framework (e.g to test expression trees); `OFF` by default |
 | `BLAS_VERIFY_BENCHMARK` | `ON`/`OFF` | Verify the results of the benchmarks instead of only measuring the performance. See the documentation of the benchmarks for more details. `ON` by default |
 | `BLAS_ENABLE_CONST_INPUT` | `ON`/`OFF` | Determines whether to enable kernel instantiation with const input buffer (`ON` by default) |
-| `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable sycl-blas extensions (`ON` by default) |
+| `BLAS_ENABLE_EXTENSIONS` | `ON`/`OFF` | Determines whether to enable portBLAS extensions (`ON` by default) |
 | `BLAS_DATA_TYPES` | `half;float;double` | Determines the floating-point types to instantiate BLAS operations for. Default is `float` |
 | `BLAS_INDEX_TYPES` | `int32_t;int64_t` | Determines the type(s) to use for `index_t` and `increment_t`. Default is `int` |
 
 
 ### Cross-Compile (ComputeCpp Only)
 
-To cross-compile SYCL-BLAS first the following environment variables must be
+To cross-compile portBLAS first the following environment variables must be
 set:
 
 ```bash
@@ -469,7 +478,7 @@ export COMPUTECPP_SYSROOT_DIR="$PATH TO SYSROOT_DIR"
 ```
 
 Clone the [ComputeCpp-SDK](https://github.com/codeplaysoftware/computecpp-sdk) to retrieve the toolchain file.
-The following CMake command can be used to cross-compile SYCL-BLAS:
+The following CMake command can be used to cross-compile portBLAS:
 
 ```bash
 cmake  -GNinja                                                                         \
@@ -479,7 +488,7 @@ cmake  -GNinja                                                                  
    -DComputeCpp_HOST_DIR="${COMPUTECPP_X86_PATH}"                                      \
    -DCMAKE_TOOLCHAIN_FILE="/path/to/computecpp-sdk/cmake/toolchains/gcc-generic.cmake" \
    -DCMAKE_BUILD_TYPE='Release'                                                        \
-   -DCMAKE_INSTALL_PREFIX=${CROSS_COMPILED_SYCLBLAS_INSTALL}                           \
+   -DCMAKE_INSTALL_PREFIX=${CROSS_COMPILED_PORTBLAS_INSTALL}                           \
    -DOpenCL_INCLUDE_DIR="${OpenCL_Headers_PATH}"                                       \
    -DOpenCL_LIBRARY="${OpenCL_LIBRARY}"                                                \
    -DCOMPUTECPP_BITCODE="${DEVICE_BITCODE}"                                            \
@@ -498,7 +507,7 @@ The tests and benchmarks have their own documentation:
 
 ## Contributing to the project
 
-SYCL-BLAS is an Open Source project maintained by the HPCA group and
+portBLAS is an Open Source project maintained by the HPCA group and
 Codeplay Software Ltd.
 Feel free to create an issue on the Github tracker to request features or
 report bugs.

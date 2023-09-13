@@ -17,23 +17,51 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemv.cpp.in
  *
  **************************************************************************/
 #include "interface/blas2_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 namespace blas {
 namespace internal {
 
 template typename SB_Handle::event_t _gemv(
     SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
-    ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
-    ${container_t2} _vy, ${INCREMENT_TYPE} _incy);
+    ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> _mA,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    BufferIterator<${DATA_TYPE}> _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef BLAS_ENABLE_CONST_INPUT
+template typename SB_Handle::event_t _gemv(
+    SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE} const> _mA,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE} const> _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    BufferIterator<${DATA_TYPE}> _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _gemv(
+    SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _gemv(
+    SB_Handle& sb_handle, char _trans, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, const ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas2_tbmv_test.cpp
  *
@@ -26,10 +26,12 @@
 #include "blas_test.hpp"
 
 template <typename T>
-using combination_t = std::tuple<int, int, bool, bool, bool, int, int>;
+using combination_t =
+    std::tuple<std::string, int, int, bool, bool, bool, int, int>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   index_t n;
   index_t k;
   bool trans;
@@ -37,7 +39,7 @@ void run_test(const combination_t<scalar_t> combi) {
   bool is_unit;
   index_t incX;
   index_t lda_mul;
-  std::tie(n, k, is_upper, trans, is_unit, incX, lda_mul) = combi;
+  std::tie(alloc, n, k, is_upper, trans, is_unit, incX, lda_mul) = combi;
 
   const char* t_str = trans ? "t" : "n";
   const char* uplo_str = is_upper ? "u" : "l";
@@ -64,25 +66,60 @@ void run_test(const combination_t<scalar_t> combi) {
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
-  auto m_a_gpu = blas::make_sycl_iterator_buffer<scalar_t>(a_m, a_size);
-  auto v_x_gpu = blas::make_sycl_iterator_buffer<scalar_t>(x_v, x_size);
+  auto m_a_gpu = helper::allocate<mem_alloc, scalar_t>(a_size, q);
+  auto v_x_gpu = helper::allocate<mem_alloc, scalar_t>(x_size, q);
+
+  auto copy_a =
+      helper::copy_to_device<scalar_t>(q, a_m.data(), m_a_gpu, a_size);
+  auto copy_x =
+      helper::copy_to_device<scalar_t>(q, x_v.data(), v_x_gpu, x_size);
+
+  sb_handle.wait({copy_a, copy_x});
 
   // SYCL TBMV
-  _tbmv(sb_handle, *uplo_str, *t_str, *diag_str, n, k, m_a_gpu,
-        (k + 1) * lda_mul, v_x_gpu, incX);
+  auto tbmv_event = _tbmv(sb_handle, *uplo_str, *t_str, *diag_str, n, k,
+                          m_a_gpu, (k + 1) * lda_mul, v_x_gpu, incX);
 
-  auto event = blas::helper::copy_to_host(sb_handle.get_queue(), v_x_gpu,
-                                          x_v.data(), x_size);
+  sb_handle.wait(tbmv_event);
+
+  auto event = blas::helper::copy_to_host(q, v_x_gpu, x_v.data(), x_size);
   sb_handle.wait(event);
 
   const bool isAlmostEqual = utils::compare_vectors(x_v, x_v_cpu);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(m_a_gpu, q);
+  helper::deallocate<mem_alloc>(v_x_gpu, q);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  index_t n;
+  index_t k;
+  bool trans;
+  bool is_upper;
+  bool is_unit;
+  index_t incX;
+  index_t lda_mul;
+  std::tie(alloc, n, k, is_upper, trans, is_unit, incX, lda_mul) = combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
 }
 
 #ifdef STRESS_TESTING
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(14, 63, 257, 1010),  // n
+    ::testing::Combine(::testing::Values("usm", "buf"),       // allocation type
+                       ::testing::Values(14, 63, 257, 1010),  // n
                        ::testing::Values(3, 4, 9),            // k
                        ::testing::Values(true, false),        // is_upper
                        ::testing::Values(true, false),        // trans
@@ -95,24 +132,27 @@ const auto combi =
 // (the stress_test above takes about ~5 minutes)
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values(14, 1010),     // n
-                       ::testing::Values(3, 4),         // k
-                       ::testing::Values(true, false),  // is_upper
-                       ::testing::Values(true, false),  // trans
-                       ::testing::Values(true, false),  // is_unit
-                       ::testing::Values(2),            // incX
-                       ::testing::Values(2)             // lda_mul
+    ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+                       ::testing::Values(14, 1010),      // n
+                       ::testing::Values(3, 4),          // k
+                       ::testing::Values(true, false),   // is_upper
+                       ::testing::Values(true, false),   // trans
+                       ::testing::Values(true, false),   // is_unit
+                       ::testing::Values(2),             // incX
+                       ::testing::Values(2)              // lda_mul
     );
 #endif
 
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
+  std::string alloc;
   int n, k, incX, ldaMul;
   bool is_upper;
   bool trans;
   bool is_unit;
-  BLAS_GENERATE_NAME(info.param, n, k, is_upper, trans, is_unit, incX, ldaMul);
+  BLAS_GENERATE_NAME(info.param, alloc, n, k, is_upper, trans, is_unit, incX,
+                     ldaMul);
 }
 
 BLAS_REGISTER_TEST_ALL(Tbmv, combination_t, combi, generate_name);

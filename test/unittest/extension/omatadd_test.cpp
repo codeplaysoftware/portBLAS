@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename omatadd_test.cpp
  *
@@ -27,16 +27,17 @@
 #include "extension_reference.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<char, char, index_t, index_t, scalar_t,
+using combination_t = std::tuple<std::string, char, char, index_t, index_t, scalar_t,
                                  scalar_t, index_t, index_t, index_t>;
 
-template <typename scalar_t>
+template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
   char trans_a, trans_b;
   index_t m, n, ld_a_mul, ld_b_mul, ld_c_mul;
   scalar_t alpha, beta;
 
-  std::tie(trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul, ld_c_mul) =
+  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul, ld_c_mul) =
       combi;
 
   auto q = make_queue();
@@ -61,23 +62,54 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::ext_omatadd(trans_a, trans_b, m, n, alpha, A.data(), lda,
                               beta, B.data(), ldb, C_ref.data(), ldc);
 
-  auto m_a_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(A, base_size * ld_a_mul);
-  auto m_b_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(B, base_size * ld_b_mul);
-  auto m_c_gpu =
-      blas::make_sycl_iterator_buffer<scalar_t>(C, base_size * ld_c_mul);
+  const auto size_m_a = base_size * ld_a_mul;
+  const auto size_m_b = base_size * ld_b_mul;
+  const auto size_m_c = base_size * ld_c_mul;
 
-  blas::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, m_a_gpu, lda, beta,
-                 m_b_gpu, ldb, m_c_gpu, ldc);
+  auto m_a_gpu = helper::allocate<mem_alloc, scalar_t>(size_m_a, q);
+  auto m_b_gpu = helper::allocate<mem_alloc, scalar_t>(size_m_b, q);
+  auto m_c_gpu = helper::allocate<mem_alloc, scalar_t>(size_m_c, q);
+
+  auto copy_m_a = helper::copy_to_device<scalar_t>(q, A.data(), m_a_gpu, size_m_a);
+  auto copy_m_b = helper::copy_to_device<scalar_t>(q, B.data(), m_b_gpu, size_m_b);
+  auto copy_m_c = helper::copy_to_device<scalar_t>(q, C.data(), m_c_gpu, size_m_c);
+
+  auto omatadd_event = blas::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, m_a_gpu, lda, beta,
+                 m_b_gpu, ldb, m_c_gpu, ldc, {copy_m_a, copy_m_b, copy_m_c});
+  sb_handle.wait(omatadd_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
-      sb_handle.get_queue(), m_c_gpu, C.data(), base_size * ld_c_mul);
+      sb_handle.get_queue(), m_c_gpu, C.data(), size_m_c);
   sb_handle.wait(event);
 
   // Validate the result
   const bool isAlmostEqual = utils::compare_vectors(C, C_ref);
   ASSERT_TRUE(isAlmostEqual);
+
+  helper::deallocate<mem_alloc>(m_a_gpu, q);
+  helper::deallocate<mem_alloc>(m_b_gpu, q);
+  helper::deallocate<mem_alloc>(m_c_gpu, q);
+}
+
+template <typename scalar_t>
+void run_test(const combination_t<scalar_t> combi) {
+  std::string alloc;
+  char trans_a, trans_b;
+  index_t m, n, ld_a_mul, ld_b_mul, ld_c_mul;
+  scalar_t alpha, beta;
+
+  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul, ld_c_mul) =
+      combi;
+
+  if (alloc == "usm") {
+#ifdef SB_ENABLE_USM
+    run_test<scalar_t, helper::AllocType::usm>(combi);
+#else
+    GTEST_SKIP();
+#endif
+  } else {
+    run_test<scalar_t, helper::AllocType::buffer>(combi);
+  }
 }
 
 #ifdef STRESS_TESTING
@@ -95,7 +127,8 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values<char>('n', 't'),         // trans_a
+    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
+                       ::testing::Values<char>('n', 't'),         // trans_a
                        ::testing::Values<char>('n', 't'),         // trans_b
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
@@ -109,10 +142,11 @@ const auto combi =
 template <class T>
 static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>> &info) {
+  std::string alloc;
   char trans_a, trans_b;
   index_t m, n, lda_mul, ldb_mul, ldc_mul;
   T alpha, beta;
-  BLAS_GENERATE_NAME(info.param, trans_a, trans_b, m, n, alpha, beta, lda_mul,
+  BLAS_GENERATE_NAME(info.param, alloc, trans_a, trans_b, m, n, alpha, beta, lda_mul,
                      ldb_mul, ldc_mul);
 }
 

@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename extension_reference.hpp
  *
  **************************************************************************/
-#ifndef SYCL_BLAS_EXTENSION_REFERENCE_IMPLEMENTATION_HPP
-#define SYCL_BLAS_EXTENSION_REFERENCE_IMPLEMENTATION_HPP
+#ifndef PORTBLAS_EXTENSION_REFERENCE_IMPLEMENTATION_HPP
+#define PORTBLAS_EXTENSION_REFERENCE_IMPLEMENTATION_HPP
 
 #include <vector>
 

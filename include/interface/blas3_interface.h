@@ -17,14 +17,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas3_interface.h
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_INTERFACE_H
-#define SYCL_BLAS_BLAS3_INTERFACE_H
+#ifndef PORTBLAS_BLAS3_INTERFACE_H
+#define PORTBLAS_BLAS3_INTERFACE_H
 
 #include "operations/blas3_trees.h"
 
@@ -40,13 +40,11 @@ namespace internal {
  */
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
-                                    char _TransB, index_t _M, index_t _N,
-                                    index_t _K, element_t _alpha,
-                                    container_0_t a_, index_t _lda,
-                                    container_1_t b_, index_t _ldb,
-                                    element_t _beta, container_2_t _C,
-                                    index_t _ldc);
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, const typename sb_handle_t::event_t& _dependencies);
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
@@ -55,7 +53,8 @@ typename sb_handle_t::event_t _gemm_batched(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
-    gemm_batch_type_t batch_type = gemm_batch_type_t::strided);
+    gemm_batch_type_t batch_type = gemm_batch_type_t::strided,
+    const typename sb_handle_t::event_t& _dependencies = {});
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
@@ -64,37 +63,35 @@ typename sb_handle_t::event_t _gemm_strided_batched(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
-    index_t batch_size);
+    index_t batch_size, const typename sb_handle_t::event_t& _dependencies);
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char side,
-                                    char uplo, char trans, char diag, index_t M,
-                                    index_t N, element_t alpha, container_0_t A,
-                                    index_t lda, container_1_t B, index_t ldb);
+typename sb_handle_t::event_t _trsm(
+    sb_handle_t& sb_handle, char side, char uplo, char trans, char diag,
+    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
+    container_1_t B, index_t ldb,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
-                                    char _uplo, index_t _M, index_t _N,
-                                    element_t _alpha, container_0_t a_,
-                                    index_t _lda, container_1_t b_,
-                                    index_t _ldb, element_t _beta,
-                                    container_2_t _C, index_t _ldc);
+typename sb_handle_t::event_t _symm(
+    sb_handle_t& sb_handle, char _side, char _uplo, index_t _M, index_t _N,
+    element_t _alpha, container_0_t a_, index_t _lda, container_1_t b_,
+    index_t _ldb, element_t _beta, container_2_t _C, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies);
 
 }  // namespace internal
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _gemm(sb_handle_t& sb_handle, char _TransA,
-                                    char _TransB, index_t _M, index_t _N,
-                                    index_t _K, element_t _alpha,
-                                    container_0_t a_, index_t _lda,
-                                    container_1_t b_, index_t _ldb,
-                                    element_t _beta, container_2_t _C,
-                                    index_t _ldc) {
+typename sb_handle_t::event_t _gemm(
+    sb_handle_t& sb_handle, char _TransA, char _TransB, index_t _M, index_t _N,
+    index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
+    container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
+    index_t _ldc, const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_gemm(sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_,
-                         _lda, b_, _ldb, _beta, _C, _ldc);
+                         _lda, b_, _ldb, _beta, _C, _ldc, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -104,10 +101,11 @@ typename sb_handle_t::event_t _gemm_batched(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     container_1_t b_, index_t _ldb, element_t _beta, container_2_t _C,
     index_t _ldc, index_t batch_size,
-    gemm_batch_type_t batch_type = gemm_batch_type_t::strided) {
+    gemm_batch_type_t batch_type = gemm_batch_type_t::strided,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_gemm_batched(sb_handle, _TransA, _TransB, _M, _N, _K,
                                  _alpha, a_, _lda, b_, _ldb, _beta, _C, _ldc,
-                                 batch_size, batch_type);
+                                 batch_size, batch_type, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -117,35 +115,34 @@ typename sb_handle_t::event_t _gemm_strided_batched(
     index_t _K, element_t _alpha, container_0_t a_, index_t _lda,
     index_t _stridea, container_1_t b_, index_t _ldb, index_t _strideb,
     element_t _beta, container_2_t _C, index_t _ldc, index_t _stridec,
-    index_t batch_size) {
+    index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_gemm_strided_batched(
       sb_handle, _TransA, _TransB, _M, _N, _K, _alpha, a_, _lda, _stridea, b_,
-      _ldb, _strideb, _beta, _C, _ldc, _stridec, batch_size);
+      _ldb, _strideb, _beta, _C, _ldc, _stridec, batch_size, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
-typename sb_handle_t::event_t inline _trsm(sb_handle_t& sb_handle, char side,
-                                           char uplo, char trans, char diag,
-                                           index_t M, index_t N,
-                                           element_t alpha, container_0_t A,
-                                           index_t lda, container_1_t B,
-                                           index_t ldb) {
+typename sb_handle_t::event_t inline _trsm(
+    sb_handle_t& sb_handle, char side, char uplo, char trans, char diag,
+    index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
+    container_1_t B, index_t ldb,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_trsm(sb_handle, side, uplo, trans, diag, M, N, alpha, A,
-                         lda, B, ldb);
+                         lda, B, ldb, _dependencies);
 }
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-typename sb_handle_t::event_t _symm(sb_handle_t& sb_handle, char _side,
-                                    char _uplo, index_t _M, index_t _N,
-                                    element_t _alpha, container_0_t a_,
-                                    index_t _lda, container_1_t b_,
-                                    index_t _ldb, element_t _beta,
-                                    container_2_t _C, index_t _ldc) {
+typename sb_handle_t::event_t _symm(
+    sb_handle_t& sb_handle, char _side, char _uplo, index_t _M, index_t _N,
+    element_t _alpha, container_0_t a_, index_t _lda, container_1_t b_,
+    index_t _ldb, element_t _beta, container_2_t _C, index_t _ldc,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_symm(sb_handle, _side, _uplo, _M, _N, _alpha, a_, _lda, b_,
-                         _ldb, _beta, _C, _ldc);
+                         _ldb, _beta, _C, _ldc, _dependencies);
 }
 
 }  // namespace blas
-#endif  // SYCL_BLAS_BLAS3_INTERFACE
+#endif  // PORTBLAS_BLAS3_INTERFACE

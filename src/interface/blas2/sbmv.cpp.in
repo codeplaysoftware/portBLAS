@@ -17,28 +17,41 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename sbmv.cpp.in
  *
  **************************************************************************/
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas2_interface.hpp"
-#include "operations/blas1_trees.hpp"
-#include "operations/blas2_trees.hpp"
-#include "operations/blas_constants.hpp"
-#include "views/view_sycl.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 namespace blas {
 namespace internal {
 template typename SB_Handle::event_t _sbmv(
-    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N,
-    ${INDEX_TYPE} _K,
-    ${DATA_TYPE} _alpha, ${container_t0} _mA, ${INDEX_TYPE} _lda,
-    ${container_t1} _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
-    ${container_t2} _vy, ${INCREMENT_TYPE} _incy);
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
+    ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> _mA,
+    ${INDEX_TYPE} _lda, BufferIterator<${DATA_TYPE}> _vx,
+    ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    BufferIterator<${DATA_TYPE}> _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _sbmv(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
+    ${DATA_TYPE} _alpha, ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _sbmv(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${INDEX_TYPE} _K,
+    ${DATA_TYPE} _alpha, const ${DATA_TYPE} * _mA, ${INDEX_TYPE} _lda,
+    const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} _beta,
+    ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

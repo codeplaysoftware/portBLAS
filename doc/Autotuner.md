@@ -1,4 +1,4 @@
-# SYCL-BLAS Autotuner Developer Documentation
+# portBLAS Autotuner Developer Documentation
 This documentation aims to cover the inner workings of the autotuner from a developer perspective.
 It should be useful if you need to work on or extend the autotuner in the future, or just want to better understand how it works.
 
@@ -26,7 +26,7 @@ The fifth binary (`tune_all`) runs all four combinations one after the other.
 
 The bulk of the work is done inside `gemm_tuner.hpp` in the `run_tune_gemm()` function. 
 This function is called by each `tune_` binary with different combinations of template parameters for transposition.
-Before testing the generated combinations the application first benchmarks the provided `system BLAS`, along with the current `SYCL-BLAS`. 
+Before testing the generated combinations the application first benchmarks the provided `system BLAS`, along with the current `portBLAS`. 
 The generated combinations are then run with the following macro:
 ```c++
 #define BENCH_PARAMS(MEM, ALG, BATCH, VEC, ...)                             \
@@ -45,9 +45,9 @@ The file `generated_combinations.def` contains calls to `BENCH_PARAMS` for each 
 and the stored results are sorted from worst to best before being printed.
 For more information on this file and how it is generated, see [this section](#generated_combinations.def).
 
-There are several wrapper functions which wrap the function `run_tune()`: `tune()` and `tune_syclblas()`. 
+There are several wrapper functions which wrap the function `run_tune()`: `tune()` and `tune_portblas()`. 
 The `run_tune()` function takes a function object, runs it and measures the execution time. 
-The `tune()` wrapper function is used in the above macro, and `tune_syclblas()` is used for testing the current SYCL-BLAS. 
+The `tune()` wrapper function is used in the above macro, and `tune_portblas()` is used for testing the current portBLAS. 
 
 Calling `run_tune()` happens directly in `run_tune_gemm()` for testing the system BLAS.
 

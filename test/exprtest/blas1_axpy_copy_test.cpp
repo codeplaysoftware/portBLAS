@@ -17,13 +17,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename blas1_axpy_copy_test.cpp
  *
  **************************************************************************/
 #include "blas_test.hpp"
-#include "sycl_blas.hpp"
+#include "portblas.hpp"
 
 // inputs combination
 template <typename scalar_t>
@@ -59,7 +59,7 @@ void run_test(const combination_t<scalar_t> combi) {
   reference_blas::copy(y_dim, v_y.data(), 1, v_cpu_y.data(), 1);
   reference_blas::axpy(size, alpha, v_xcopy.data(), incX, v_cpu_y.data(), incY);
 
-  // SYCL-BLAS implementation
+  // portBLAS implementation
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 

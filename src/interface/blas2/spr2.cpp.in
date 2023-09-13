@@ -17,24 +17,38 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename spr2.cpp.in
  *
  **************************************************************************/
 #include "interface/blas2_interface.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 
 namespace blas {
 namespace internal {
 
-template typename SB_Handle::event_t
-_spr2<SB_Handle, ${INDEX_TYPE}, ${DATA_TYPE}, ${container_t0},
-      ${INCREMENT_TYPE}, ${container_t1}, ${container_t2}>(
+template typename SB_Handle::event_t _spr2(
     SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
-    ${container_t0} _vx, ${INCREMENT_TYPE} _incx, ${container_t1} _vy,
-    ${INCREMENT_TYPE} _incy, ${container_t2} _mPA);
+    BufferIterator<${DATA_TYPE}> _vx, ${INCREMENT_TYPE} _incx,
+    BufferIterator<${DATA_TYPE}> _vy, ${INCREMENT_TYPE} _incy,
+    BufferIterator<${DATA_TYPE}> _mPA,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _spr2(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy,
+    ${INCREMENT_TYPE} _incy, ${DATA_TYPE} * _mPA,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _spr2(
+    SB_Handle& sb_handle, char _Uplo, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    const ${DATA_TYPE} * _vx, ${INCREMENT_TYPE} _incx,
+    const ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    ${DATA_TYPE} * _mPA, const typename SB_Handle::event_t& _dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas

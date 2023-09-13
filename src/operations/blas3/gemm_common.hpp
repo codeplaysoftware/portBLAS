@@ -16,14 +16,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename gemm_common.hpp
  *
  **************************************************************************/
 
-#ifndef SYCL_BLAS_BLAS3_GEMM_COMMON_HPP
-#define SYCL_BLAS_BLAS3_GEMM_COMMON_HPP
+#ifndef PORTBLAS_BLAS3_GEMM_COMMON_HPP
+#define PORTBLAS_BLAS3_GEMM_COMMON_HPP
 
 #include "operations/blas3_trees.h"
 #include "views/view.h"
@@ -60,7 +60,7 @@ ENABLE_TYPE_STRING(double)
 template <int ItemRows, int ItemCols, int WgRows, int WgCols, int SgRows,
           int SgCols, int TlRows, int TlCols, int ItemBatchs, int WgBatchs,
           int jm_M, int jm_N, int jm_K, typename inp_jmT, typename out_jmT>
-SYCL_BLAS_INLINE std::string
+PORTBLAS_INLINE std::string
 Tile<ItemRows, ItemCols, WgRows, WgCols, SgRows, SgCols, TlRows, TlCols,
      ItemBatchs, WgBatchs, jm_M, jm_N, jm_K, inp_jmT, out_jmT>::get_type_string() noexcept {
   std::ostringstream str{};
@@ -80,14 +80,14 @@ Tile<ItemRows, ItemCols, WgRows, WgCols, SgRows, SgCols, TlRows, TlCols,
  *       expression does not have to be evaluated in certain situations.
  */
 template <bool>
-SYCL_BLAS_INLINE bool do_check(bool cond) {
+PORTBLAS_INLINE bool do_check(bool cond) {
   return cond;
 }
 template <>
-SYCL_BLAS_INLINE bool do_check<false>(bool) {
+PORTBLAS_INLINE bool do_check<false>(bool) {
   return true;
 }
 
 }  // namespace blas
 
-#endif  // SYCL_BLAS_BLAS3_GEMM_COMMON_HPP
+#endif  // PORTBLAS_BLAS3_GEMM_COMMON_HPP

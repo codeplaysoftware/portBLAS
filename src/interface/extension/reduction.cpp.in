@@ -17,28 +17,45 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  SYCL-BLAS: BLAS implementation using SYCL
+ *  portBLAS: BLAS implementation using SYCL
  *
  *  @filename reduction.cpp.in
  *
  **************************************************************************/
 
-#include "operations/extension/reduction.hpp"
 #include "container/sycl_iterator.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
-#include "sb_handle/kernel_constructor.hpp"
 #include "interface/blas1_interface.hpp"
 #include "interface/extension_interface.hpp"
 #include "operations/blas_constants.hpp"
+#include "operations/extension/reduction.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "views/view_sycl.hpp"
 
 namespace blas {
 namespace internal {
 
-template 
-typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
-    SB_Handle& sb_handle, ${container_t0} buffer_in, ${INDEX_TYPE} ld,
-    ${container_t1} buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type);
+template typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
+    SB_Handle& sb_handle, BufferIterator<${DATA_TYPE}> buffer_in,
+    ${INDEX_TYPE} ld, BufferIterator<${DATA_TYPE}> buffer_out,
+    ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef BLAS_ENABLE_CONST_INPUT
+template typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
+    SB_Handle& sb_handle, BufferIterator<${DATA_TYPE} const> buffer_in,
+    ${INDEX_TYPE} ld, BufferIterator<${DATA_TYPE}> buffer_out,
+    ${INDEX_TYPE} rows, ${INDEX_TYPE} cols, reduction_dim_t reduction_type,
+    const typename SB_Handle::event_t& dependencies);
+#endif
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _reduction<${OPERATOR}, ${DATA_TYPE}>(
+    SB_Handle& sb_handle, ${DATA_TYPE} * buffer_in, ${INDEX_TYPE} ld,
+    ${DATA_TYPE} * buffer_out, ${INDEX_TYPE} rows, ${INDEX_TYPE} cols,
+    reduction_dim_t reduction_type,
+    const typename SB_Handle::event_t& dependencies);
+#endif
 
 }  // namespace internal
 }  // namespace blas
