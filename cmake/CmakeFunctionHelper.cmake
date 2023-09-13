@@ -515,7 +515,7 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
     foreach(data ${data_list_c})
       add_gemm_configuration(
         "${data}" 256 "true" "true" "true"
-        64 1 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 2 "strided" "false")
+        64 1 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
       add_gemm_configuration(
         "${data}" 256 "false" "false" "false"
         64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
