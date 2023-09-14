@@ -98,35 +98,25 @@ typename sb_handle_t::event_t _matcopy_batch_impl(
     index_t out_stride, index_t batch_size,
     const typename sb_handle_t::event_t& _dependencies);
 
-template <bool in_place, typename sb_handle_t, typename element_t,
-          typename index_t, typename in_t, typename out_t>
-typename sb_handle_t::event_t _matcopy_batch(
-    sb_handle_t& sb_handle, char trans, index_t m, index_t n, element_t alpha,
-    in_t in_memory, index_t ld_in, index_t stride_in, out_t out_memory,
-    index_t ld_out, index_t stride_out, index_t batch_size);
-
-template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
-          typename element_t, typename index_t, typename in_t, typename out_t>
-typename sb_handle_t::event_t _matcopy_batch_impl(
-    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha, in_t memory,
-    index_t ld_in, index_t in_stride, out_t out_memory, index_t ld_out,
-    index_t out_stride, index_t batch_size);
-
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t,
+          typename container_2_t>
 typename sb_handle_t::event_t _omatadd_batch(
     sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
-    element_t alpha, container_t a, index_t lda, index_t stride_a,
-    element_t beta, container_t b, index_t ldb, index_t stride_b, container_t c,
-    index_t ldc, index_t stride_c, index_t batch_size);
+    element_t alpha, container_0_t a, index_t lda, index_t stride_a,
+    element_t beta, container_1_t b, index_t ldb, index_t stride_b,
+    container_2_t c, index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
-          typename element_t, typename index_t, typename container_t>
+          typename element_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd_batch_impl(
     sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-    container_t A, index_t lda, index_t stride_a, element_t beta, container_t B,
-    index_t ldb, index_t stride_b, container_t C, index_t ldc, index_t stride_c,
-    index_t batch_size);
+    container_0_t A, index_t lda, index_t stride_a, element_t beta,
+    container_1_t B, index_t ldb, index_t stride_b, container_2_t C,
+    index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies);
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
           typename input_t, typename output_t, typename index_t>
@@ -351,10 +341,11 @@ typename sb_handle_t::event_t _omatadd_batch(
     sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
     element_t alpha, container_t a, index_t lda, index_t stride_a,
     element_t beta, container_t b, index_t ldb, index_t stride_b, container_t c,
-    index_t ldc, index_t stride_c, index_t batch_size) {
+    index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_omatadd_batch(sb_handle, trans_a, trans_b, m, n, alpha, a,
                                   lda, stride_a, beta, b, ldb, stride_b, c, ldc,
-                                  stride_c, batch_size);
+                                  stride_c, batch_size, _dependencies);
 }
 
 namespace extension {

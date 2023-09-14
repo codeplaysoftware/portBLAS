@@ -26,19 +26,42 @@
 #include "interface/extension_interface.hpp"
 #include "operations/extension/matcopy_batch.hpp"
 #include "sb_handle/kernel_constructor.hpp"
-#include "sb_handle/sycl_blas_handle.hpp"
+#include "sb_handle/portblas_handle.hpp"
 #include "operations/extension/transpose.hpp" 
 
 namespace blas {
 namespace internal {
 
 template typename SB_Handle::event_t
-_omatadd_batch<SB_Handle, ${DATA_TYPE}, ${INDEX_TYPE}, ${container_t0}>(
+_omatadd_batch(
     SB_Handle& sb_handle, char transA, char transB, ${INDEX_TYPE} m,
-    ${INDEX_TYPE} n, ${DATA_TYPE} alpha, ${container_t0} A, ${INDEX_TYPE} lda,
-    ${INDEX_TYPE} strideA, ${DATA_TYPE} beta, ${container_t0} B,
-    ${INDEX_TYPE} ldb, ${INDEX_TYPE} strideB, ${container_t0} C,
-    ${INDEX_TYPE} ldc, ${INDEX_TYPE} strideC, ${INDEX_TYPE} batch_size);
+    ${INDEX_TYPE} n, ${DATA_TYPE} alpha, BufferIterator<${DATA_TYPE}> A, ${INDEX_TYPE} lda,
+    ${INDEX_TYPE} strideA, ${DATA_TYPE} beta, BufferIterator<${DATA_TYPE}> B,
+    ${INDEX_TYPE} ldb, ${INDEX_TYPE} strideB, BufferIterator<${DATA_TYPE}> C,
+    ${INDEX_TYPE} ldc, ${INDEX_TYPE} strideC, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+#ifdef SB_ENABLE_USM
+
+template typename SB_Handle::event_t
+_omatadd_batch<SB_Handle, ${DATA_TYPE}, ${INDEX_TYPE}>(
+    SB_Handle& sb_handle, char transA, char transB, ${INDEX_TYPE} m,
+    ${INDEX_TYPE} n, ${DATA_TYPE} alpha, ${DATA_TYPE}* A, ${INDEX_TYPE} lda,
+    ${INDEX_TYPE} strideA, ${DATA_TYPE} beta, ${DATA_TYPE}* B,
+    ${INDEX_TYPE} ldb, ${INDEX_TYPE} strideB, ${DATA_TYPE}* C,
+    ${INDEX_TYPE} ldc, ${INDEX_TYPE} strideC, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t
+_omatadd_batch<SB_Handle, ${DATA_TYPE}, ${INDEX_TYPE}>(
+    SB_Handle& sb_handle, char transA, char transB, ${INDEX_TYPE} m,
+    ${INDEX_TYPE} n, ${DATA_TYPE} alpha, const  ${DATA_TYPE}* A, ${INDEX_TYPE} lda,
+    ${INDEX_TYPE} strideA, ${DATA_TYPE} beta, const ${DATA_TYPE}* B,
+    ${INDEX_TYPE} ldb, ${INDEX_TYPE} strideB, ${DATA_TYPE}* C,
+    ${INDEX_TYPE} ldc, ${INDEX_TYPE} strideC, ${INDEX_TYPE} batch_size,
+    const typename SB_Handle::event_t& _dependencies);
+
+#endif
 
 }  // namespace internal
 }  // namespace blas

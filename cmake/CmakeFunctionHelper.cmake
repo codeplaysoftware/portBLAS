@@ -563,8 +563,8 @@ function (build_library LIB_NAME ENABLE_EXTENSIONS)
                 $<TARGET_OBJECTS:matcopy>
                 $<TARGET_OBJECTS:matcopy_batch>
                 $<TARGET_OBJECTS:transpose>
-                $<TARGET_OBJECTS:omatadd>)
-              #$<TARGET_OBJECTS:omatadd_batch>)
+                $<TARGET_OBJECTS:omatadd>
+                $<TARGET_OBJECTS:omatadd_batch>)
 
    if (${ENABLE_EXTENSIONS})
      list(APPEND LIB_SRCS $<TARGET_OBJECTS:reduction>)

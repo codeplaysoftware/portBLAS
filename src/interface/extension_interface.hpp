@@ -313,12 +313,14 @@ _omatadd_impl(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 }
 
 template <uint32_t TileSize, int TilePerWG, typename sb_handle_t,
-          typename element_t, typename index_t, typename container_t>
+          typename element_t, typename index_t, typename container_0_t,
+          typename container_1_t, typename container_2_t>
 typename sb_handle_t::event_t _omatadd_batch_impl(
     sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
-    container_t a, index_t lda, index_t stride_a, element_t beta, container_t b,
-    index_t ldb, index_t stride_b, container_t c, index_t ldc, index_t stride_c,
-    index_t batch_size) {
+    container_0_t a, index_t lda, index_t stride_a, element_t beta,
+    container_1_t b, index_t ldb, index_t stride_b, container_2_t c,
+    index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
   auto m_a_view = make_matrix_view<col_major>(a, m, n, lda);
   auto m_b_view = make_matrix_view<col_major>(b, m, n, ldb);
   auto m_c_view = make_matrix_view<col_major>(c, m, n, ldc);
@@ -330,7 +332,8 @@ typename sb_handle_t::event_t _omatadd_batch_impl(
       (((m - 1) / TileSize) + 1) * (((n - 1) / TileSize) + 1);
   const index_t wg_size = (tile_per_matrix - 1) / TilePerWG + 1;
   const index_t global_size = (wg_size)*local_size * batch_size;
-  return sb_handle.execute(copy_batch_tree, local_size, global_size);
+  return sb_handle.execute(copy_batch_tree, local_size, global_size,
+                           _dependencies);
 }
 
 /*!
@@ -511,12 +514,14 @@ typename sb_handle_t::event_t _omatadd(
 }
 
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t,
+          typename container_2_t>
 typename sb_handle_t::event_t _omatadd_batch(
     sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
-    element_t alpha, container_t a, index_t lda, index_t stride_a,
-    element_t beta, container_t b, index_t ldb, index_t stride_b, container_t c,
-    index_t ldc, index_t stride_c, index_t batch_size) {
+    element_t alpha, container_0_t a, index_t lda, index_t stride_a,
+    element_t beta, container_1_t b, index_t ldb, index_t stride_b,
+    container_2_t c, index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
   // bail out early if the leading dimensions are not correct
   if (ldc < m || lda < (trans_a == 't' ? n : m) ||
       ldb < (trans_b == 't' ? n : m)) {
@@ -528,11 +533,11 @@ typename sb_handle_t::event_t _omatadd_batch(
     if (trans_b == 't') {
       return _omatadd_impl<true, true>(sb_handle, m, n, alpha, a, lda, stride_a,
                                        beta, b, ldb, stride_b, c, ldc, stride_c,
-                                       batch_size);
+                                       batch_size, _dependencies);
     } else {
-      return _omatadd_impl<true, false>(sb_handle, m, n, alpha, a, lda,
-                                        stride_a, beta, b, ldb, stride_b, c,
-                                        ldc, stride_c, batch_size);
+      return _omatadd_impl<true, false>(
+          sb_handle, m, n, alpha, a, lda, stride_a, beta, b, ldb, stride_b, c,
+          ldc, stride_c, batch_size, _dependencies);
     }
   } else if (trans_b == 't') {
     // In this case, (alpha,a) & (beta,b) parameters positions are swapped as
@@ -540,11 +545,11 @@ typename sb_handle_t::event_t _omatadd_batch(
     // transposed one for simplicity purposes.
     return _omatadd_impl<true, false>(sb_handle, m, n, beta, b, ldb, stride_b,
                                       alpha, a, lda, stride_a, c, ldc, stride_c,
-                                      batch_size);
+                                      batch_size, _dependencies);
   } else {
     return blas::omatadd_batch::backend::_omatadd_batch(
         sb_handle, m, n, alpha, a, lda, stride_a, beta, b, ldb, stride_b, c,
-        ldc, stride_c, batch_size);
+        ldc, stride_c, batch_size, _dependencies);
   }
 }
 
@@ -564,9 +569,9 @@ typename sb_handle_t::event_t _transpose(
   const index_t stride = 1;
   const index_t batch_size = 1;
 
-  return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a,
-                                       inc, stride, B, ld_b, inc, stride,
-                                       batch_size, _dependencies);
+  return _matcopy_impl<in_place, true>(sb_handle, m, n, alpha, A, ld_a, inc,
+                                       stride, B, ld_b, inc, stride, batch_size,
+                                       _dependencies);
 }
 
 template <typename operator_t, typename element_t, typename sb_handle_t,
