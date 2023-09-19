@@ -26,9 +26,6 @@
 #include "blas_test.hpp"
 #include "extension_reference.hpp"
 
-using index_t = int;
-enum trans_type : int { Inplace = 0, Outplace = 1 };
-
 template <typename scalar_t>
 using combination_t =
     std::tuple<std::string, char, index_t, index_t, index_t, index_t, scalar_t>;

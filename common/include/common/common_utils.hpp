@@ -110,11 +110,6 @@ using omatcopy2_param_t = std::tuple<char, index_t, index_t, scalar_t, index_t,
                                      index_t, index_t, index_t>;
 
 template <typename scalar_t>
-using matcopy_batch_param_t =
-    std::tuple<char, index_t, index_t, scalar_t, index_t, index_t, index_t,
-               index_t, index_t>;
-
-template <typename scalar_t>
 using omatadd_param_t = std::tuple<char, char, index_t, index_t, scalar_t,
                                    scalar_t, index_t, index_t, index_t>;
 

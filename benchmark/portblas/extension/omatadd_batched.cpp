@@ -117,13 +117,6 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
   };
 #endif
 
-  auto blas_method_warmup_def = [&]() -> void {
-    auto event = blas::_omatadd_batch(
-        sb_handle, *t_str_a, *t_str_b, m, n, alpha, m_a_gpu, lda, stride_a,
-        beta, m_b_gpu, ldb, stride_b, m_c_gpu, ldc, stride_c, batch_size);
-    return;
-  };
-
   auto blas_method_def = [&]() -> std::vector<cl::sycl::event> {
     auto event = blas::_omatadd_batch(
         sb_handle, *t_str_a, *t_str_b, m, n, alpha, m_a_gpu, lda, stride_a,
@@ -133,7 +126,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
   };
 
   // Warmup
-  blas_benchmark::utils::warmup(blas_method_warmup_def);
+  blas_benchmark::utils::warmup(blas_method_def);
   sb_handle.wait();
 
   blas_benchmark::utils::init_counters(state);
