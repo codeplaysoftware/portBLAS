@@ -437,9 +437,15 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
       add_gemm_configuration(
         "${data}" 64 "false" "false" "false"
         64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 32 "true" "true" "true"
-        64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
+      if (${data} STREQUAL "complex<double>")
+        add_gemm_configuration(
+          "${data}" 64 "true" "true" "true"
+          64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")      
+      else()
+        add_gemm_configuration(
+          "${data}" 64 "true" "true" "true"
+          64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
+      endif()
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
 elseif(${TUNING_TARGET} STREQUAL "POWER_VR" AND NOT IMGDNN_DIR)

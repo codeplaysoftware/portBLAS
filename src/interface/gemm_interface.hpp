@@ -50,15 +50,19 @@ namespace internal {
 
 // Check whether value is zero (complex & float/double)
 template <typename T>
-inline bool isZero(const T& value) {
-#ifdef BLAS_ENABLE_COMPLEX
-  if constexpr (is_complex_sycl<T>::value) {
-    using value_t = typename T::value_type;
-    return (value == T(value_t(0), value_t(0)));
-  }
-#endif
+inline typename std::enable_if<is_sycl_scalar<T>::value, bool>::type isZero(
+    const T& value) {
   return (value == static_cast<T>(0));
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename T>
+inline typename std::enable_if<is_complex_sycl<T>::value, bool>::type isZero(
+    const T& value) {
+  using value_t = typename T::value_type;
+  return (value == T(value_t(0), value_t(0)));
+}
+#endif
 
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,

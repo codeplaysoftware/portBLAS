@@ -32,12 +32,8 @@ namespace backend {
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
-#ifdef BLAS_ENABLE_COMPLEX
-typename std::enable_if<!is_complex_sycl<element_t>::value,
+typename std::enable_if<is_sycl_scalar<element_t>::value,
                         typename sb_handle_t::event_t>::type
-#else
-typename sb_handle_t::event_t
-#endif
 _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       element_t _alpha, container_0_t _a, index_t _lda, index_t _stridea,
       container_1_t _b, index_t _ldb, index_t _strideb, element_t _beta,
@@ -227,9 +223,10 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       const typename sb_handle_t::event_t& _dependencies) {
 #ifdef GEMM_TALL_SKINNY_SUPPORT
   if (!s_a && !s_b && batch_size == 1) {
+    constexpr int wg_size = sizeof(element_t) == 16 ? 4 : 8;
     return blas::Gemm_Launcher<
-        container_0_t, container_1_t, container_2_t, 32, true, true, true, 64,
-        Tile<2, 1, 8, 4>, _t_a, _t_b, s_a, s_b,
+        container_0_t, container_1_t, container_2_t, 64, true, true, true, 64,
+        Tile<4, 4, wg_size, wg_size>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::tall_skinny),
         static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
