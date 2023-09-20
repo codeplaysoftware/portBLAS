@@ -100,6 +100,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   static_assert(item_cols % packetize_t::packet_size == 0,
                 "Item cols must be a multiple of the vector packet size");
 
+#ifdef BLAS_ENABLE_COMPLEX
+  static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
+                    is_sycl_scalar<element_t>::value,
+                "Vector size should be equal to 1 for Complex Data types");
+#endif
+
   input_t a_;
   input_t b_;
   output_t c_;
@@ -111,8 +117,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
   index_t stridec_;
 
   PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size, index_t stride_a,
-                        index_t stride_b, index_t stride_c)
+                       element_t beta, index_t batch_size, index_t stride_a,
+                       index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
         c_(C),
@@ -446,8 +452,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
             index_t work_per_load, typename PointerType,
             typename check_boundary>
   PORTBLAS_INLINE void load(PointerType ptr, element_t *reg, const index_t &ld,
-                             index_t index, const check_boundary &chk_boundary,
-                             const bool out_of_range) noexcept {
+                            index_t index, const check_boundary &chk_boundary,
+                            const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }

@@ -146,6 +146,11 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   static_assert(item_batchs % VectorSize == 0,
                 "Item batch must be divisible by vector size");
 
+#ifdef BLAS_ENABLE_COMPLEX
+  static_assert(!is_complex_sycl<element_t>::value,
+                "Interleaved GEMM is not supported for Complex Data types");
+#endif
+
   input_t a_;
   input_t b_;
   output_t c_;
@@ -159,10 +164,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   const index_t ldc_;
   const index_t batch_size_;
   PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size,
-                        index_t /*unused stride_a*/,
-                        index_t /*unused stride_b*/,
-                        index_t /*unused stride_c*/)
+                       element_t beta, index_t batch_size,
+                       index_t /*unused stride_a*/, index_t /*unused stride_b*/,
+                       index_t /*unused stride_c*/)
       : a_(A),
         b_(B),
         c_(C),
@@ -280,9 +284,9 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
   template <bool need_check_boundary, typename check_t, typename in_ptr_t,
             typename out_ptr_t>
   PORTBLAS_INLINE void compute_panel(check_t boundary_check, index_t m_stride,
-                                      index_t n_stride, index_t mb_start,
-                                      index_t m_start, index_t n_start,
-                                      in_ptr_t A, in_ptr_t B, out_ptr_t C) {
+                                     index_t n_stride, index_t mb_start,
+                                     index_t m_start, index_t n_start,
+                                     in_ptr_t A, in_ptr_t B, out_ptr_t C) {
     packet_type reg_a[item_rows * item_batchs / VectorSize];
     packet_type reg_b[item_cols * item_batchs / VectorSize];
     packet_type reg_res[item_rows * item_cols * item_batchs / VectorSize];
@@ -482,7 +486,7 @@ class Gemm<input_t, output_t, /* DoubleBuffer = */ false, /* NbcA = */ false,
    * @param reg_res  2D register array used to store the result C
    */
   PORTBLAS_INLINE void compute_block(packet_type *reg_a, packet_type *reg_b,
-                                      packet_type *reg_res) noexcept {
+                                     packet_type *reg_res) noexcept {
 #pragma unroll
     for (int i = 0; i < item_cols; ++i) {
 #pragma unroll

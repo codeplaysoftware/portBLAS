@@ -104,6 +104,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
       packetize_t::template check_size<item_cols>(),
       "If vectorization is enabled item_cols must equal the packet_size");
 
+#ifdef BLAS_ENABLE_COMPLEX
+  static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
+                    is_sycl_scalar<element_t>::value,
+                "Vector size should be equal to 1 for Complex Data types");
+#endif
+
   input_t a_;
   input_t b_;
   output_t c_;
