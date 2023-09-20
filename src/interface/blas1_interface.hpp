@@ -236,7 +236,6 @@ typename sb_handle_t::event_t _asum_impl(
     const typename sb_handle_t::event_t &_dependencies) {
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
-  static const typename ValueType<container_1_t>::type init_res{0};
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   typename sb_handle_t::event_t ret;

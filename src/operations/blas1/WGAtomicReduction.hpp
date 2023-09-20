@@ -59,13 +59,14 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
                                      sycl::memory_scope::device,
                                      sycl::access::address_space::global_space>(
       lhs_.get_data()[0]);
-  const auto size = rhs_.get_size();
+  const auto size = get_size();
   int lid = ndItem.get_global_linear_id();
   value_t val = operator_t::template init<rhs_t>();
+  const auto loop_stride =
+      ndItem.get_local_range(0) * ndItem.get_group_range(0);
 
   // First loop for big arrays
-  for (int id = lid; id < size;
-       id += ndItem.get_local_range()[0] * ndItem.get_group_range()[0]) {
+  for (int id = lid; id < size; id += loop_stride) {
     val = operator_t::eval(val, rhs_.eval(id));
   }
 
@@ -86,10 +87,10 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
                                      sycl::memory_scope::device,
                                      sycl::access::address_space::global_space>(
       lhs_.get_data()[0]);
-  const auto size = rhs_.get_size();
+  const auto size = get_size();
   const int lid = static_cast<int>(ndItem.get_global_linear_id());
   const auto loop_stride =
-      ndItem.get_local_range()[0] * ndItem.get_group_range()[0];
+      ndItem.get_local_range(0) * ndItem.get_group_range(0);
   value_t val = operator_t::template init<rhs_t>();
 
   // First loop for big arrays
@@ -104,7 +105,7 @@ WGAtomicReduction<operator_t, lhs_t, rhs_t>::eval(sharedT scratch,
   }
   ndItem.barrier();
 
-  val = (ndItem.get_local_id() < (ndItem.get_local_range()[0] /
+  val = (ndItem.get_local_id() < (ndItem.get_local_range(0) /
                                   ndItem.get_sub_group().get_local_range()[0]))
             ? scratch[ndItem.get_sub_group().get_local_id()]
             : 0;
