@@ -119,29 +119,29 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     }
   } else
 #endif  // GEMM_TALL_SKINNY_SUPPORT
-      if (_M * _N <= 65536) {
-    return blas::Gemm_Launcher<
-        container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
-        static_cast<int>(gemm_memory_t::local),
-        static_cast<int>(gemm_algorithm_t::standard),
-        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-        static_cast<int>(gemm_batch_type_t::strided)>::
-        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
-                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
-                              batch_size, _dependencies);
-  } else {
-    return blas::Gemm_Launcher<
-        container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
-        static_cast<int>(gemm_memory_t::local),
-        static_cast<int>(gemm_algorithm_t::standard),
-        static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
-        static_cast<int>(gemm_batch_type_t::strided)>::
-        template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda, _stridea,
-                              _b, _ldb, _strideb, _beta, _c, _ldc, _stridec,
-                              batch_size, _dependencies);
-  }
+    if (_M * _N <= 65536) {
+      return blas::Gemm_Launcher<
+          container_0_t, container_1_t, container_2_t, 256, false, false, false,
+          ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::standard),
+          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size, _dependencies);
+    } else {
+      return blas::Gemm_Launcher<
+          container_0_t, container_1_t, container_2_t, 256, false, false, false,
+          ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
+          static_cast<int>(gemm_memory_t::local),
+          static_cast<int>(gemm_algorithm_t::standard),
+          static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 2,
+          static_cast<int>(gemm_batch_type_t::strided)>::
+          template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                _stridec, batch_size, _dependencies);
+    }
 }
 
 // Complex Configurations
@@ -158,12 +158,13 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       gemm_batch_type_t batch_type,
       const typename sb_handle_t::event_t& _dependencies) {
   static constexpr int ClSize = 64;
+  static constexpr int tileWgSize = ClSize / sizeof(element_t);
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
   if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8) && (!s_a && !s_b)) {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, true, true, true,
-        ClSize, Tile<1, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<1, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::tall_skinny),
         static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
@@ -176,7 +177,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   if (_M * _N <= 65536) {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<1, 1, 8, 8>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -187,7 +188,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   } else {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<4, 4, 8, 8>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,

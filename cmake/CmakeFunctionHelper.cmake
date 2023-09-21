@@ -519,15 +519,27 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
     set(data_list_c)
     set_complex_list(data_list_c "${supported_types}" "false")
     foreach(data ${data_list_c})
-      add_gemm_configuration(
-        "${data}" 256 "true" "true" "true"
-        64 1 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 256 "false" "false" "false"
-        64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 256 "false" "false" "false"
-        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+      if (${data} STREQUAL "complex<double>")
+        add_gemm_configuration(
+          "${data}" 256 "true" "true" "true"
+          64 1 4 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
+        add_gemm_configuration(
+          "${data}" 256 "false" "false" "false"
+          64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+        add_gemm_configuration(
+          "${data}" 256 "false" "false" "false"
+          64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+      else()
+        add_gemm_configuration(
+          "${data}" 256 "true" "true" "true"
+          64 1 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 1 "strided" "false")
+        add_gemm_configuration(
+          "${data}" 256 "false" "false" "false"
+          64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+        add_gemm_configuration(
+          "${data}" 256 "false" "false" "false"
+          64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+      endif()
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
 elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
