@@ -27,12 +27,12 @@
 #define PORTBLAS_BLAS1_INTERFACE_HPP
 
 #include <cmath>
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
 #include "blas_meta.h"
 #include "container/sycl_iterator.h"
+#include "interface/blas1/backend/backend.hpp"
 #include "interface/blas1_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_constants.h"
@@ -190,6 +190,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
+  // keep compatibility with older sycl versions
+#if SYCL_LANGUAGE_VERSION < 202000
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -201,7 +203,55 @@ typename sb_handle_t::event_t _asum(
                                                              localSize * nWG);
   auto ret = sb_handle.execute(assignOp, _dependencies);
   return ret;
+#else
+  return blas::asum::backend::_asum(sb_handle, _N, _vx, _incx, _rs,
+                                    _dependencies);
+#endif
 }
+
+#if SYCL_LANGUAGE_VERSION >= 202000
+/*! _asum_impl.
+ * @brief Internal implementation of the Absolute sum operator.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the asum operation.
+ *
+ * This function is called by blas::internal::backend::asum which, dependent on
+ * the platform being compiled for and other parameters, provides different
+ * template parameters to ensure the most optimal kernel is constructed.
+ *
+ * @tparam localSize  specifies the number of threads per work group used by
+ *                    the kernel
+ * @tparam localMemSize specifies the size of local shared memory to use, which
+ *                      is device and implementation dependent. If 0 the
+ *                      implementation use a kernel implementation which doesn't
+ *                      require local memory.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _asum_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t number_WG,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                             static_cast<index_t>(1));
+  typename sb_handle_t::event_t ret;
+  auto asumOp = make_wg_atomic_reduction<AbsoluteAddOperator>(rs, vx);
+  if constexpr (localMemSize != 0) {
+    ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
+                            static_cast<index_t>(number_WG * localSize),
+                            static_cast<index_t>(localMemSize), _dependencies);
+  } else {
+    ret = sb_handle.execute(asumOp, static_cast<index_t>(localSize),
+                            static_cast<index_t>(number_WG * localSize),
+                            _dependencies);
+  }
+  return ret;
+}
+#endif
 
 /**
  * \brief IAMAX finds the index of the first element having maximum
@@ -776,7 +826,12 @@ typename ValueType<container_t>::type _asum(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto asum_event = blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  const typename sb_handle_t::event_t init_res_event = {
+      blas::helper::copy_to_device(sb_handle.get_queue(), res.data(), gpu_res,
+                                   1)};
+  auto local_deps = concatenate_vectors(_dependencies, init_res_event);
+  auto asum_event =
+      blas::internal::_asum(sb_handle, _N, _vx, _incx, gpu_res, local_deps);
   sb_handle.wait(asum_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
@@ -806,7 +861,8 @@ typename ValueType<container_t>::type _nrm2(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto nrm2_event = blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+  auto nrm2_event =
+      blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(nrm2_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
