@@ -410,8 +410,8 @@ inline void verify_gemm(const gemm_cplx_arguments_t<scalar_t> arguments) {
   index_t k;
   char transa;
   char transb;
-  complex_std<scalar_t> alpha;
-  complex_std<scalar_t> beta;
+  std::complex<scalar_t> alpha;
+  std::complex<scalar_t> beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -437,14 +437,14 @@ inline void verify_gemm(const gemm_cplx_arguments_t<scalar_t> arguments) {
   const index_t buffer_size_b = batch * size_b + offset;
   const index_t buffer_size_c = batch * size_c + offset;
 
-  std::vector<complex_std<scalar_t>> a_m(buffer_size_a);
-  std::vector<complex_std<scalar_t>> b_m(buffer_size_b);
-  std::vector<complex_std<scalar_t>> c_m_gpu(buffer_size_c);
+  std::vector<std::complex<scalar_t>> a_m(buffer_size_a);
+  std::vector<std::complex<scalar_t>> b_m(buffer_size_b);
+  std::vector<std::complex<scalar_t>> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<complex_std<scalar_t>> c_m_cpu = c_m_gpu;
+  std::vector<std::complex<scalar_t>> c_m_cpu = c_m_gpu;
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
@@ -518,8 +518,8 @@ inline void verify_gemm(const gemm_cplx_arguments_t<scalar_t> arguments) {
   index_t k;
   char transa;
   char transb;
-  complex_std<scalar_t> alpha;
-  complex_std<scalar_t> beta;
+  std::complex<scalar_t> alpha;
+  std::complex<scalar_t> beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -544,7 +544,7 @@ static std::string generate_cplx_name(
   std::string alloc;
   int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul;
   char transa, transb;
-  complex_std<T> alpha, beta;
+  std::complex<T> alpha, beta;
   gemm_batch_type_t batchType;
   BLAS_GENERATE_NAME(info.param, alloc, offset, batch, m, n, k, transa, transb,
                      alpha, beta, ldaMul, ldbMul, ldcMul, batchType);
@@ -561,8 +561,8 @@ inline void verify_gemm(
   index_t k;
   char transa;
   char transb;
-  complex_std<scalar_t> alpha;
-  complex_std<scalar_t> beta;
+  std::complex<scalar_t> alpha;
+  std::complex<scalar_t> beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -595,14 +595,14 @@ inline void verify_gemm(
   const index_t buffer_size_b = size_b + (batch - 1) * stride_b + offset;
   const index_t buffer_size_c = size_c + (batch - 1) * stride_c + offset;
 
-  std::vector<complex_std<scalar_t>> a_m(buffer_size_a);
-  std::vector<complex_std<scalar_t>> b_m(buffer_size_b);
-  std::vector<complex_std<scalar_t>> c_m_gpu(buffer_size_c);
+  std::vector<std::complex<scalar_t>> a_m(buffer_size_a);
+  std::vector<std::complex<scalar_t>> b_m(buffer_size_b);
+  std::vector<std::complex<scalar_t>> c_m_gpu(buffer_size_c);
 
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<complex_std<scalar_t>> c_m_cpu = c_m_gpu;
+  std::vector<std::complex<scalar_t>> c_m_cpu = c_m_gpu;
 
   // Use system blas to create a reference output
   for (int i = 0; i < batch; ++i) {
@@ -668,8 +668,8 @@ inline void verify_gemm(
   index_t k;
   char transa;
   char transb;
-  complex_std<scalar_t> alpha;
-  complex_std<scalar_t> beta;
+  std::complex<scalar_t> alpha;
+  std::complex<scalar_t> beta;
   index_t lda_mul;
   index_t ldb_mul;
   index_t ldc_mul;
@@ -697,7 +697,7 @@ static std::string generate_cplx_batched_strided_name(
   int offset, batch, m, n, k, ldaMul, ldbMul, ldcMul, stride_a_mul,
       stride_b_mul, stride_c_mul;
   char transa, transb;
-  complex_std<T> alpha, beta;
+  std::complex<T> alpha, beta;
   BLAS_GENERATE_NAME(info.param, alloc, offset, batch, m, n, k, transa, transb,
                      alpha, beta, ldaMul, ldbMul, ldcMul, stride_a_mul,
                      stride_b_mul, stride_c_mul);

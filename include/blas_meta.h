@@ -167,7 +167,7 @@ int append_vector(vector_t &lhs_vector, vector_t const &rhs_vector) {
 
 template <typename first_vector_t, typename... other_vector_t>
 first_vector_t concatenate_vectors(first_vector_t first_vector,
-                                   other_vector_t &&... other_vectors) {
+                                   other_vector_t &&...other_vectors) {
   int first_Vector_size = static_cast<int>(first_vector.size());
   int s[] = {vec_total_size(first_Vector_size, other_vectors)..., 0};
   first_vector.reserve(first_Vector_size);
@@ -206,15 +206,11 @@ struct is_complex_sycl
                              std::is_same_v<type, complex_sycl<double>> ||
                                  std::is_same_v<type, complex_sycl<float>>> {};
 
-// STD Complex type alias
-template <typename T>
-using complex_std = typename std::complex<T>;
-
 template <class type>
 struct is_complex_std
     : std::integral_constant<bool,
-                             std::is_same_v<type, complex_std<double>> ||
-                                 std::is_same_v<type, complex_std<float>>> {};
+                             std::is_same_v<type, std::complex<double>> ||
+                                 std::is_same_v<type, std::complex<float>>> {};
 
 #endif
 

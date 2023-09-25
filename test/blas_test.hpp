@@ -161,9 +161,9 @@ template <typename scalar_t>
 static inline void fill_random_with_range(
     std::vector<std::complex<scalar_t>> &vec, scalar_t rangeMin,
     scalar_t rangeMax) {
-  for (complex_std<scalar_t> &e : vec) {
-    e = complex_std<scalar_t>{random_scalar<scalar_t>(rangeMin, rangeMax),
-                              random_scalar<scalar_t>(rangeMin, rangeMax)};
+  for (std::complex<scalar_t> &e : vec) {
+    e = std::complex<scalar_t>{random_scalar<scalar_t>(rangeMin, rangeMax),
+                               random_scalar<scalar_t>(rangeMin, rangeMax)};
   }
 }
 
@@ -172,7 +172,7 @@ static inline void fill_random_with_range(
  * uniform distribution.
  */
 template <typename scalar_t>
-static inline void fill_random(std::vector<complex_std<scalar_t>> &vec) {
+static inline void fill_random(std::vector<std::complex<scalar_t>> &vec) {
   fill_random_with_range(vec, scalar_t{-2}, scalar_t{5});
 }
 #endif
