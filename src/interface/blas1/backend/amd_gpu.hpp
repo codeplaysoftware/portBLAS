@@ -63,7 +63,7 @@ typename sb_handle_t::event_t _nrm2(
         sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
   } else {
     constexpr int localSize = 512;
-    constexpr index_t number_WG = 256;
+    constexpr index_t number_WG = 512;
     return blas::internal::_nrm2_impl<localSize, 32>(
         sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
   }

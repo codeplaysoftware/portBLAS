@@ -371,13 +371,22 @@ typename sb_handle_t::event_t _nrm2(
                                     _dependencies);
 }
 
-/**
- * \brief NRM2 Returns the euclidian norm of a vector
- * @param sb_handle_t sb_handle
- * @param _vx  BufferIterator or USM pointer
- * @param _incx Increment in X axis
- * @param _rs BufferIterator or USM pointer
- * @param _dependencies Vector of events
+/*! _nrm2_impl.
+ * @brief Internal implementation of the nrm2 operator.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the nrm2 operation.
+ *
+ * This function is called by blas::internal::backend::nrm2 which, dependent on
+ * the platform being compiled for and other parameters, provides different
+ * template parameters to ensure the most optimal kernel is constructed.
+ *
+ * @tparam localSize  specifies the number of threads per work group used by
+ *                    the kernel
+ * @tparam localMemSize specifies the size of local shared memory to use, which
+ *                      is device and implementation dependent. If 0 the
+ *                      implementation use a kernel implementation which doesn't
+ *                      require local memory.
  */
 template <int localSize, int localMemSize, typename sb_handle_t,
           typename container_0_t, typename container_1_t, typename index_t,
