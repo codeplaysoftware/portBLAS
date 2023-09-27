@@ -106,6 +106,7 @@ if(IMGDNN_DIR)
 endif()
 
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
+option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -115,6 +116,7 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 # * BLAS_DATA_TYPES
 # * BLAS_INDEX_TYPES
 # * NAIVE_GEMM
+# * BLAS_ENABLE_COMPLEX
 include(CmakeFunctionHelper)
 
 if (INSTALL_HEADER_ONLY)
@@ -220,7 +222,6 @@ option(BUILD_CUBLAS_BENCHMARKS "Whether to build cuBLAS benchmarks" OFF)
 option(BUILD_ROCBLAS_BENCHMARKS "Whether to build rocBLAS benchmarks" OFF)
 option(BUILD_ACL_BENCHMARKS "Whether to build ARM Compute Library benchmarks" OFF)
 option(BLAS_BUILD_SAMPLES "Whether to build portBLAS samples" ON)
-option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
 if (INSTALL_HEADER_ONLY AND BLAS_ENABLE_BENCHMARK)
   message(STATUS "Benchmarks are disabled when installing portBLAS in header only mode")
   set(BLAS_ENABLE_BENCHMARK OFF)
