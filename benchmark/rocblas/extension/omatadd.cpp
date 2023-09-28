@@ -174,7 +174,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<
             blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
-            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul)
+            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+            blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, rb_handle, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
         ldc_mul, success)

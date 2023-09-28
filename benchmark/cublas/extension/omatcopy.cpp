@@ -172,7 +172,8 @@ void register_benchmark(blas_benchmark::Args& args,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<
             blas_benchmark::utils::ExtensionOp::omatcopy, scalar_t>(
-            ts_a, m, n, alpha, lda_mul, ldb_mul)
+            ts_a, m, n, alpha, lda_mul, ldb_mul,
+            blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, cublas_handle_ptr, t_a, m, n, alpha, lda_mul, ldb_mul,
         success)
