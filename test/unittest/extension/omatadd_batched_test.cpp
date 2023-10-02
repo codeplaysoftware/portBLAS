@@ -42,10 +42,6 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul,
            ld_c_mul, stride_a_m, stride_b_m, stride_c_m, batch_size) = combi;
 
-  if ((trans_a == 'n') && (trans_b == 'n')) {
-    return;
-  }
-
   // Rows & Cols per matrix
   const index_t a_rows = (trans_a == 't') ? n : m;
   const index_t a_cols = (trans_a == 't') ? m : n;

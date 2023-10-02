@@ -477,12 +477,15 @@ typename sb_handle_t::event_t _omatadd(
     element_t alpha, container_0_t a, index_t lda, element_t beta,
     container_1_t b, index_t ldb, container_2_t c, index_t ldc,
     const typename sb_handle_t::event_t& _dependencies) {
-  // bail out early if the leading dimensions are not correct
-  if (ldc < m || lda < (trans_a == 't' ? n : m) ||
-      ldb < (trans_b == 't' ? n : m)) {
-    typename sb_handle_t::event_t ret;
-    return ret;
+  // Bail out early if the leading dimensions are not correct
+  if (ldc < m) {
+    throw std::invalid_argument("Invalid ldc");
+  } else if (lda < (trans_a == 't' ? n : m)) {
+    throw std::invalid_argument("Invalid lda");
+  } else if (ldb < (trans_b == 't' ? n : m)) {
+    throw std::invalid_argument("Invalid ldb");
   }
+
   // Stride = 0 as a dummy value as it is not used when batch_size == 1
   const index_t stride_a = 0;
   const index_t stride_b = 0;
@@ -522,11 +525,13 @@ typename sb_handle_t::event_t _omatadd_batch(
     element_t beta, container_1_t b, index_t ldb, index_t stride_b,
     container_2_t c, index_t ldc, index_t stride_c, index_t batch_size,
     const typename sb_handle_t::event_t& _dependencies) {
-  // bail out early if the leading dimensions are not correct
-  if (ldc < m || lda < (trans_a == 't' ? n : m) ||
-      ldb < (trans_b == 't' ? n : m)) {
-    typename sb_handle_t::event_t ret;
-    return ret;
+  // Bail out early if the leading dimensions are not correct
+  if (ldc < m) {
+    throw std::invalid_argument("Invalid ldc");
+  } else if (lda < (trans_a == 't' ? n : m)) {
+    throw std::invalid_argument("Invalid lda");
+  } else if (ldb < (trans_b == 't' ? n : m)) {
+    throw std::invalid_argument("Invalid ldb");
   }
 
   if (trans_a == 't') {
@@ -559,9 +564,10 @@ typename sb_handle_t::event_t _transpose(
     sb_handle_t& sb_handle, index_t m, index_t n, in_t A, index_t ld_a, out_t B,
     index_t ld_b, const typename sb_handle_t::event_t& _dependencies) {
   // bail out early if the leading dimensions are not correct
-  if (ld_a < m || ld_b < n) {
-    typename sb_handle_t::event_t ret;
-    return ret;
+  if (ld_a < m) {
+    throw std::invalid_argument("Invalid lda");
+  } else if (ld_b < n) {
+    throw std::invalid_argument("Invalid ldb");
   }
 
   const element_t alpha = 1;

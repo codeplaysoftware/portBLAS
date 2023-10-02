@@ -239,7 +239,7 @@ Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t, rhs_2_t>::eval(
 template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 PORTBLAS_INLINE void Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
-                                    rhs_2_t>::bind(cl::sycl::handler& h) {
+                                   rhs_2_t>::bind(cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_1_.bind(h);
   rhs_2_.bind(h);
@@ -248,7 +248,7 @@ PORTBLAS_INLINE void Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
 template <bool is_add, int TileSize, int TilePerWG, typename lhs_t,
           typename rhs_t, typename rhs_2_t>
 PORTBLAS_INLINE void Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
-                                    rhs_2_t>::adjust_access_displacement() {
+                                   rhs_2_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_1_.adjust_access_displacement();
   rhs_2_.adjust_access_displacement();

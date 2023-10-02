@@ -187,8 +187,8 @@ void register_benchmark(blas_benchmark::Args& args,
             ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
             blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
-        BM_lambda, cublas_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
-        ldc_mul, success)
+        BM_lambda, cublas_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul,
+        ldb_mul, ldc_mul, success)
         ->UseRealTime();
   }
 }
