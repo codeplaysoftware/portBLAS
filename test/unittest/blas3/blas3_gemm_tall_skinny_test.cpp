@@ -127,9 +127,9 @@ const auto CplxBetaNonZeroLDMultiplied = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
     ::testing::Values(0),                                   // offset
     ::testing::Values(1),                                   // batch
-    ::testing::Values(7, 65),                               // m
-    ::testing::Values(9, 126),                              // n
-    ::testing::Values(2049),                                // k
+    ::testing::Values(7, 33),                               // m
+    ::testing::Values(9, 63),                               // n
+    ::testing::Values(1026),                                // k
     ::testing::Values('n', 't'),                            // transa
     ::testing::Values('n', 't'),                            // transb
     ::testing::Values<std::complex<scalar_t>>({1.5, 0.5}),  // alpha

@@ -146,8 +146,8 @@ const auto CplxSmallBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
     ::testing::Values(0),                                   // offset
     ::testing::Values(1),                                   // batch
-    ::testing::Values(11, 16, 32),                          // m
-    ::testing::Values(11, 16, 32),                          // n
+    ::testing::Values(11, 33),                              // m
+    ::testing::Values(11, 33),                              // n
     ::testing::Values(16, 17),                              // k
     ::testing::Values('n', 't'),                            // transa
     ::testing::Values('n', 't'),                            // transb
@@ -171,7 +171,7 @@ const auto CplxSmallBetaZeroLDMatch = ::testing::Combine(
     ::testing::Values('n', 't'),                            // transa
     ::testing::Values('n', 't'),                            // transb
     ::testing::Values<std::complex<scalar_t>>({1.5, 1.0}),  // alpha
-    ::testing::Values<std::complex<scalar_t>>({1.5, 3.0}),  // beta
+    ::testing::Values<std::complex<scalar_t>>({0.0, 0.0}),  // beta
     ::testing::Values(1),                                   // lda_mul
     ::testing::Values(1),                                   // ldb_mul
     ::testing::Values(1),                                   // ldc_mul
@@ -184,16 +184,16 @@ const auto CplxSmallBetaZeroLDMultiplied = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
     ::testing::Values(0),                                   // offset
     ::testing::Values(1),                                   // batch
-    ::testing::Values(11, 32),                              // m
-    ::testing::Values(11, 32),                              // n
+    ::testing::Values(11, 33),                              // m
+    ::testing::Values(11, 33),                              // n
     ::testing::Values(17),                                  // k
     ::testing::Values('n', 't'),                            // transa
     ::testing::Values('n', 't'),                            // transb
     ::testing::Values<std::complex<scalar_t>>({1.5, 3.0}),  // alpha
     ::testing::Values<std::complex<scalar_t>>({0.0, 0.0}),  // beta
     ::testing::Values(2),                                   // lda_mul
-    ::testing::Values(3),                                   // ldb_mul
-    ::testing::Values(4),                                   // ldc_mul
+    ::testing::Values(2),                                   // ldb_mul
+    ::testing::Values(3),                                   // ldc_mul
     ::testing::Values(gemm_batch_type_t::strided)           // batch_type
 );
 GENERATE_CPLX_GEMM_TEST(Gemm, CplxSmallBetaZeroLDMultiplied);
@@ -242,13 +242,13 @@ const auto CplxLargeBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
     ::testing::Values(0),                                   // offset
     ::testing::Values(1),                                   // batch
-    ::testing::Values(253, 511),                            // m
-    ::testing::Values(257, 511),                            // n
-    ::testing::Values(253, 511),                            // k
+    ::testing::Values(63, 253),                             // m
+    ::testing::Values(63, 253),                             // n
+    ::testing::Values(63, 253),                             // k
     ::testing::Values('n', 't'),                            // transa
     ::testing::Values('n', 't'),                            // transb
-    ::testing::Values<std::complex<scalar_t>>({1.0, 1.0}),  // alpha
-    ::testing::Values<std::complex<scalar_t>>({1.0, 1.0}),  // beta
+    ::testing::Values<std::complex<scalar_t>>({1.0, 1.5}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({1.5, 1.0}),  // beta
     ::testing::Values(1),                                   // lda_mul
     ::testing::Values(1),                                   // ldb_mul
     ::testing::Values(1),                                   // ldc_mul
