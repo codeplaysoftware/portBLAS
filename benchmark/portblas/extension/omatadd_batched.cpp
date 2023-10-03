@@ -44,7 +44,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int ti_a,
       static_cast<blas_benchmark::utils::Transposition>(ti_b));
   const char* t_str_b = ts_b.c_str();
 
-  const auto lda = (*t_str_b == 't') ? lda_mul * n : lda_mul * m;
+  const auto lda = (*t_str_a == 't') ? lda_mul * n : lda_mul * m;
   const auto ldb = (*t_str_b == 't') ? ldb_mul * n : ldb_mul * m;
   const auto ldc = ldc_mul * m;
 

@@ -1165,7 +1165,7 @@ get_matcopy_batch_params(Args& args) {
     std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
     constexpr index_t dmin = 256, dmax = 8192;
     constexpr scalar_t alpha{2};
-    constexpr index_t batch_size{5};
+    constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
     for (char trans : {'n', 't'}) {
@@ -1269,7 +1269,7 @@ get_omatadd_batch_params(Args& args) {
     constexpr index_t dmin = 256, dmax = 8192;
     constexpr scalar_t alpha{2};
     constexpr scalar_t beta{2};
-    constexpr index_t batch_size{5};
+    constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
     constexpr index_t stride_c_mul{1};
