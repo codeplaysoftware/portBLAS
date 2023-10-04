@@ -629,13 +629,10 @@ else() # default cpu backend
     foreach(data ${data_list_c})
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
-        64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false" "false")
+        64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false" "false")
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
-        64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
-      add_gemm_configuration(
-        "${data}"  64 "false" "false" "false"
-        64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false" "false")
+        64 8 8 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
 endif()
