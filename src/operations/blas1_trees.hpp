@@ -90,24 +90,6 @@ struct DetectScalar<cl::sycl::half> {
 };
 #endif  // BLAS_DATA_TYPE_HALF
 
-/*! DetectScalar.
- * @brief See Detect Scalar.
- */
-template <>
-struct DetectScalar<std::complex<float>> {
-  using element_t = std::complex<float>;
-  static element_t get_scalar(element_t &scalar) { return scalar; }
-};
-
-/*! DetectScalar.
- * @brief See Detect Scalar.
- */
-template <>
-struct DetectScalar<std::complex<double>> {
-  using element_t = std::complex<double>;
-  static element_t get_scalar(element_t &scalar) { return scalar; }
-};
-
 #ifdef BLAS_ENABLE_COMPLEX
 /*! DetectScalar (for sycl::complex<value_t>)
  * @brief See Detect Scalar.
