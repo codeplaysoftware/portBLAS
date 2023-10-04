@@ -59,6 +59,17 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti_a,
   const auto size_b = ldb * ((*t_str_b == 't') ? m : n);
   const auto size_c = ldc * n;
 
+  // bail out early if the leading dimensions are not correct
+  // cuBLAS doesn't perform this check, but it let the application
+  // crashes. The benchmark needs to continue, this check output
+  // an error related to the sizes, but will continue to run.
+  if (ldc < m || lda < (*t_str_a == 't' ? n : m) ||
+      ldb < (*t_str_b == 't' ? n : m)) {
+    state.SkipWithError("Dimensions not viable for this routine");
+    *success = false;
+    return;
+  }
+
   blas_benchmark::utils::init_extension_counters<
       blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
       state, t_str_a, t_str_b, m, n, lda_mul, ldb_mul, ldc_mul);
@@ -84,8 +95,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int ti_a,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_c_ref = m_c;
 
-  reference_blas::ext_omatadd(*t_str_a, *t_str_b, m, n, alpha, m_a, lda, beta,
-                              m_b, ldb, m_c_ref, ldc);
+  reference_blas::ext_omatadd(*t_str_a, *t_str_b, m, n, alpha, m_a.data(), lda,
+                              beta, m_b.data(), ldb, m_c_ref.data(), ldc);
 
   std::vector<scalar_t> m_c_temp = m_c;
   {
@@ -173,10 +184,11 @@ void register_benchmark(blas_benchmark::Args& args,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<
             blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
-            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul)
+            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+            blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
-        BM_lambda, cublas_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
-        ldc_mul, success)
+        BM_lambda, cublas_handle_ptr, t_a, t_b, m, n, alpha, beta, lda_mul,
+        ldb_mul, ldc_mul, success)
         ->UseRealTime();
   }
 }

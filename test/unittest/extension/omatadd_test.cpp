@@ -59,8 +59,8 @@ void run_test(const combination_t<scalar_t> combi) {
   const index_t ldc = m * ld_c_mul;
 
   // Reference implementation
-  reference_blas::ext_omatadd(trans_a, trans_b, m, n, alpha, A, lda, beta, B,
-                              ldb, C_ref, ldc);
+  reference_blas::ext_omatadd(trans_a, trans_b, m, n, alpha, A.data(), lda,
+                              beta, B.data(), ldb, C_ref.data(), ldc);
 
   const auto size_m_a = base_size * ld_a_mul;
   const auto size_m_b = base_size * ld_b_mul;

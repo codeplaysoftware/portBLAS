@@ -59,9 +59,10 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
   # Blas extension
   ${PORTBLAS_UNITTEST}/extension/omatcopy_test.cpp
-  ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatadd_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatadd_batched_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})

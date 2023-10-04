@@ -118,6 +118,11 @@ using matcopy_batch_param_t =
     std::tuple<char, index_t, index_t, scalar_t, index_t, index_t, index_t,
                index_t, index_t>;
 
+template <typename scalar_t>
+using omatadd_batch_param_t =
+    std::tuple<char, char, index_t, index_t, scalar_t, scalar_t, index_t,
+               index_t, index_t, index_t, index_t, index_t, index_t>;
+
 namespace blas_benchmark {
 
 namespace utils {
@@ -1147,6 +1152,57 @@ static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
 }
 
 /**
+ * @fn get_matcopy_batch_params
+ * @brief Returns a vector containing the matcopy_batch benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<matcopy_batch_param_t<scalar_t>>
+get_matcopy_batch_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
+    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    constexpr index_t batch_size{3};
+    constexpr index_t stride_a_mul{1};
+    constexpr index_t stride_b_mul{1};
+    for (char trans : {'n', 't'}) {
+      for (index_t m = dmin; m <= dmax; m *= 2) {
+        for (index_t n = dmin; n <= dmax; n *= 2) {
+          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+              matcopy_batch_default.push_back(
+                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
+                                  stride_a_mul, stride_b_mul, batch_size));
+            }
+          }
+        }
+      }
+    }
+    return matcopy_batch_default;
+  } else {
+    return parse_csv_file<matcopy_batch_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (9 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
+                str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_int<index_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
  * @fn get_omatadd_params
  * @brief Returns a vector containing the omatadd benchmark parameters, either
  * read from a file according to the command-line args, or the default ones.
@@ -1183,7 +1239,7 @@ static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
         args.csv_param, [&](std::vector<std::string>& v) {
           if (v.size() != 9) {
             throw std::runtime_error(
-                "invalid number of parameters (6 expected)");
+                "invalid number of parameters (9 expected)");
           }
           try {
             return std::make_tuple(
@@ -1199,49 +1255,58 @@ static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
 }
 
 /**
- * @fn get_matcopy_batch_params
- * @brief Returns a vector containing the matcopy_batch benchmark parameters,
- * either read from a file according to the command - line args, or the default
+ * @fn get_omatadd_batch_params
+ * @brief Returns a vector containing the omatadd_batch benchmark parameters,
+ * either read from a file according to the command-line args, or the default
  * ones.
  */
 template <typename scalar_t>
-static inline std::vector<matcopy_batch_param_t<scalar_t>>
-get_matcopy_batch_params(Args& args) {
+static inline std::vector<omatadd_batch_param_t<scalar_t>>
+get_omatadd_batch_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
-    std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
+    std::vector<omatadd_batch_param_t<scalar_t>> omatadd_batch_default;
     constexpr index_t dmin = 256, dmax = 8192;
     constexpr scalar_t alpha{2};
-    constexpr index_t batch_size{5};
+    constexpr scalar_t beta{2};
+    constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
-    for (char trans : {'n', 't'}) {
-      for (index_t m = dmin; m <= dmax; m *= 2) {
-        for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-              matcopy_batch_default.push_back(
-                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
-                                  stride_a_mul, stride_b_mul, batch_size));
+    constexpr index_t stride_c_mul{1};
+    for (char trans_a : {'n', 't'}) {
+      for (char trans_b : {'n', 't'}) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
+                  omatadd_batch_default.push_back(
+                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
+                                      lda_mul, ldb_mul, ldc_mul, stride_a_mul,
+                                      stride_b_mul, stride_c_mul, batch_size));
+                }
+              }
             }
           }
         }
       }
     }
-    return matcopy_batch_default;
+    return omatadd_batch_default;
   } else {
-    return parse_csv_file<matcopy_batch_param_t<scalar_t>>(
+    return parse_csv_file<omatadd_batch_param_t<scalar_t>>(
         args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
+          if (v.size() != 13) {
             throw std::runtime_error(
-                "invalid number of parameters (9 expected)");
+                "invalid number of parameters (13 expected)");
           }
           try {
             return std::make_tuple(
-                v[0][0], str_to_int<index_t>(v[1]), str_to_int<index_t>(v[2]),
-                str_to_scalar<scalar_t>(v[3]), str_to_int<index_t>(v[4]),
-                str_to_int<index_t>(v[5]), str_to_int<index_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
+                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
+                str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
           } catch (...) {
             throw std::runtime_error("invalid parameter");
           }

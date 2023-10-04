@@ -126,19 +126,18 @@ void Transpose(const T* in, const index_t& ld_in, T* out, const index_t& ld_out,
  * @param m Number of rows in output matrix C
  * @param n Number of columns in output matrix C
  * @param alpha Scaling factor of matrix A
- * @param A (vector) Input matrix A
+ * @param A Input matrix A
  * @param lda_m Matrix A leading dimension multiplier. (lda = lda_m * A_rows)
  * @param beta scaling factor of matrix B
- * @param B (vector) Input matrix B
+ * @param B Input matrix B
  * @param ldb_m Matrix B leading dimension multiplier. (ldb = ldb_m * B_rows)
- * @param C (vector) Output matrix C
+ * @param C Output matrix C
  * @param ldc_m Matrix C leading dimension multiplier. (ldc = ldc_m * C_rows)
  */
 template <typename index_t, typename scalar_t>
 void ext_omatadd(char transa, char transb, index_t m, index_t n, scalar_t alpha,
-                 std::vector<scalar_t>& A, index_t lda, scalar_t beta,
-                 std::vector<scalar_t>& B, index_t ldb,
-                 std::vector<scalar_t>& C, index_t ldc) {
+                 const scalar_t* A, index_t lda, scalar_t beta,
+                 const scalar_t* B, index_t ldb, scalar_t* C, index_t ldc) {
   for (index_t j = 0; j < n; j++) {
     for (index_t i = 0; i < m; i++) {
       C[j * ldc + i] = alpha * A[(transa != 't') ? j * lda + i : i * lda + j] +

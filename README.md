@@ -321,6 +321,7 @@ matrices in a batched entry for inputs/outputs A, B and C.
 * `M` and `N` are the dimensions of the matrices.
 * `alpha` and `beta` are scaling scalars.
 * `batch_size` is the number of batch matrices.
+* `inc_a` and `inc_b` are integers. The distance between element in the same column.
 
 | operation | arguments | description |
 |---|---|---|
@@ -329,6 +330,7 @@ matrices in a batched entry for inputs/outputs A, B and C.
 | `_omatadd`| `sb_handle`, `transa`, `transb`, `M`, `N`, `alpha`, `A`, `lda`, `beta`, `B`, `ldb`, `C`,`ldc`  | Computes scaled general dense matrix addition with possibly transposed arguments. |
 | `_omatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `stride_a`, `B`, `ldb`, `stride_b`, `batch_size` | Perform an out-of-place scaled batched-strided matrix transpose or copy operation using a general dense matrix. |
 | `_imatcopy_batch` | `sb_handle`, `transa`, `M`, `N`, `alpha`, `A`, `lda`, `ldb`, `stride`, `batch_size` | Perform an in-place scaled batched-strided matrix transpose* or copy operation using a general dense matrix. (*: Currently the transpose case is not supported). |
+| `_omatadd_batch`| `sb_handle`, `transa`, `transb`, `M`, `N`, `alpha`, `A`, `lda`, `stride_a`, `beta`, `B`, `ldb`, `stride_b`, `C`,`ldc`, `stride_c`, `batch_size`  | Computes a batch of scaled general dense matrix addition with optionally transposed arguments. |
 
 Other non-official extension operators : 
 | operation | arguments | description |

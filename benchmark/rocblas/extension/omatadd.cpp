@@ -85,8 +85,8 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int ti_a, int ti_b,
   // Run a first time with a verification of the results
   std::vector<scalar_t> m_c_ref = m_c;
 
-  reference_blas::ext_omatadd(*t_str_a, *t_str_b, m, n, alpha, m_a, lda, beta,
-                              m_b, ldb, m_c_ref, ldc);
+  reference_blas::ext_omatadd(*t_str_a, *t_str_b, m, n, alpha, m_a.data(), lda,
+                              beta, m_b.data(), ldb, m_c_ref.data(), ldc);
 
   std::vector<scalar_t> m_c_temp = m_c;
   {
@@ -174,7 +174,8 @@ void register_benchmark(blas_benchmark::Args& args, rocblas_handle& rb_handle,
     benchmark::RegisterBenchmark(
         blas_benchmark::utils::get_name<
             blas_benchmark::utils::ExtensionOp::omatadd, scalar_t>(
-            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul)
+            ts_a, ts_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+            blas_benchmark::utils::MEM_TYPE_USM)
             .c_str(),
         BM_lambda, rb_handle, t_a, t_b, m, n, alpha, beta, lda_mul, ldb_mul,
         ldc_mul, success)

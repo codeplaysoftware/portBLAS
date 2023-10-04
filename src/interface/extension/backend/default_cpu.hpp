@@ -54,17 +54,20 @@ template <bool both_trans, typename sb_handle_t, typename container_0_t,
 typename sb_handle_t::event_t _transpose_add(
     sb_handle_t& sb_handle, index_t _M, index_t _N, element_t _alpha,
     container_0_t a_, index_t _ld_a, index_t _a_rows, index_t _a_cols,
-    element_t _beta, container_1_t b_, index_t _ld_b, index_t _b_rows,
-    index_t _b_cols, container_2_t c_, index_t _ld_c,
+    index_t _stride_a, element_t _beta, container_1_t b_, index_t _ld_b,
+    index_t _b_rows, index_t _b_cols, index_t _stride_b, container_2_t c_,
+    index_t _ld_c, index_t _stride_c, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies) {
   if (_M * _N < (1 << 20)) {
     return blas::internal::_transpose_add_impl<both_trans, 16, 64, 64, false>(
-        sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _beta, b_,
-        _ld_b, _b_rows, _b_cols, c_, _ld_c, _dependencies);
+        sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
+        _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
+        _batch_size, _dependencies);
   } else {
     return blas::internal::_transpose_add_impl<both_trans, 32, 128, 64, false>(
-        sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _beta, b_,
-        _ld_b, _b_rows, _b_cols, c_, _ld_c, _dependencies);
+        sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
+        _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
+        _batch_size, _dependencies);
   }
 }
 
@@ -88,6 +91,26 @@ _matcopy_batch(sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
 }
 }  // namespace backend
 }  // namespace matcopy_batch
+
+namespace omatadd_batch {
+namespace backend {
+template <typename sb_handle_t, typename element_t, typename index_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t>
+typename sb_handle_t::event_t _omatadd_batch(
+    sb_handle_t& sb_handle, index_t m, index_t n, element_t alpha,
+    container_0_t a, index_t lda, index_t stride_a, element_t beta,
+    container_1_t b, index_t ldb, index_t stride_b, container_2_t c,
+    index_t ldc, index_t stride_c, index_t batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
+  return blas::internal::_omatadd_batch_impl<4, 1, sb_handle_t, element_t,
+                                             index_t, container_0_t,
+                                             container_1_t, container_2_t>(
+      sb_handle, m, n, alpha, a, lda, stride_a, beta, b, ldb, stride_b, c, ldc,
+      stride_c, batch_size, _dependencies);
+}
+}  // namespace backend
+}  // namespace omatadd_batch
 }  // namespace blas
 
 #endif
