@@ -39,7 +39,6 @@ namespace internal {
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM Pointer
  * @tparam container_1_t Buffer Iterator or USM Pointer
- * @tparam container_2_t Buffer Iterator or USM Pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle

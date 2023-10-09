@@ -392,7 +392,6 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
@@ -419,7 +418,6 @@ typename ValueType<container_0_t>::type _dot(
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle

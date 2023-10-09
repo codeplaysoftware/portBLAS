@@ -737,7 +737,6 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
@@ -758,21 +757,27 @@ typename ValueType<container_0_t>::type _dot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  auto res = std::vector<element_t>(1);
+  element_t res = element_t(0);
   auto gpu_res = helper::allocate < is_usm ? helper::AllocType::usm
                                            : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto dot_event = internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
-                                  gpu_res, _dependencies);
+  auto copy_to_d =
+      blas::helper::copy_to_device(sb_handle.get_queue(), &res, gpu_res, 1);
+  typename sb_handle_t::event_t all_deps = concatenate_vectors(
+      _dependencies, typename sb_handle_t::event_t{copy_to_d});
+
+  auto dot_event =
+      internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res, all_deps);
+
   sb_handle.wait(dot_event);
-  auto event =
-      helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
-  sb_handle.wait(event);
+  auto copy_to_h =
+      helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
+  sb_handle.wait(copy_to_h);
 
   helper::deallocate<is_usm ? helper::AllocType::usm
                             : helper::AllocType::buffer>(gpu_res,
                                                          sb_handle.get_queue());
-  return res[0];
+  return res;
 }
 
 /**
@@ -782,7 +787,6 @@ typename ValueType<container_0_t>::type _dot(
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
