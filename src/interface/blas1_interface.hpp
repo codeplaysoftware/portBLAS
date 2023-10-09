@@ -120,22 +120,8 @@ typename sb_handle_t::event_t _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
-  auto vy = make_vector_view(_vy, _incy, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-  // TODO: (Tanvir) avoid over-writing the input.
-  // Once this is fixed, we should be able to add
-  // const support for dot and sdsdot operators.
-  auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
-
-  auto localSize = sb_handle.get_work_group_size();
-  auto nWG = 2 * localSize;
-
-  auto assignOp =
-      make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
+  return blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs,
+                                  _dependencies);
 }
 
 /**
@@ -169,8 +155,8 @@ typename sb_handle_t::event_t _sdsdot(
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
-  dot_event =
-      internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs, _dependencies);
+  dot_event = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
+                                       _rs, _dependencies);
   auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
   auto assignOp2 = make_op<Assign>(rs, addOp);
   auto ret2 = sb_handle.execute(assignOp2, dot_event);
@@ -329,7 +315,7 @@ typename sb_handle_t::event_t _swap(
 }
 
 /**
- * \brief SCALAR  operation on a vector
+ * \brief SCALAR operation on a vector
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
@@ -416,6 +402,60 @@ typename sb_handle_t::event_t _nrm2_impl(
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
   auto ret1 = sb_handle.execute(assignOpFinal, ret0);
   return blas::concatenate_vectors(ret0, ret1);
+}
+
+/**
+ * @brief _dot_impl Internal implementation of the dot operator.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the dot operation (also used in sdsdot).
+ *
+ * This function is called by blas::dot::backend::_dot which, depending on
+ * the TUNING_TARGET and other RT parameters (size for instance), selects
+ * different template parameters / configuration to ensure the adequate kernel
+ * is called.
+ *
+ * @tparam localSize  specifies the number of threads per work group used by
+ *                    the kernel
+ * @tparam localMemSize specifies the size of local shared memory to use, which
+ *                      is device and implementation dependent. If 0 the
+ *                      implementation use a kernel implementation which doesn't
+ *                      require local memory.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _dot_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs,
+    const index_t _number_wg,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename sb_handle_t::event_t ret_event;
+  // Skip if N==0, _rs is not overwritten
+  if (!_N) return ret_event;
+
+  // TODO: (Tanvir) avoid over-writing the input.
+  // Once this is fixed, we should be able to add
+  // const support for dot and sdsdot operators.
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                             static_cast<index_t>(1));
+
+  auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
+  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+
+  if constexpr (localMemSize) {
+    ret_event =
+        sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                          static_cast<index_t>(_number_wg * localSize),
+                          static_cast<index_t>(localMemSize), _dependencies);
+  } else {
+    ret_event = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                                  static_cast<index_t>(_number_wg * localSize),
+                                  _dependencies);
+  }
+  return ret_event;
 }
 
 /**

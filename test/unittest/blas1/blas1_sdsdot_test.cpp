@@ -35,7 +35,7 @@ template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
   std::string alloc;
   index_t N;
-  float sb;
+  scalar_t sb;
   index_t incX;
   index_t incY;
   api_type api;
@@ -53,7 +53,7 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(y_v);
 
   // Output scalar
-  scalar_t out_s = 10.0;
+  scalar_t out_s = 0.0;
 
   // Reference implementation
   auto out_cpu_s =
@@ -104,7 +104,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   std::string alloc;
   index_t N;
-  float sb;
+  scalar_t sb;
   index_t incX;
   index_t incY;
   api_type api;
@@ -149,7 +149,7 @@ static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   std::string alloc;
   int size, incX, incY;
-  float sb;
+  T sb;
   api_type api;
   BLAS_GENERATE_NAME(info.param, alloc, api, size, sb, incX, incY);
 }

@@ -225,6 +225,19 @@ typename sb_handle_t::event_t _nrm2_impl(
     container_1_t _rs, const index_t number_WG,
     const typename sb_handle_t::event_t &_dependencies);
 
+/*!
+ * \brief Prototype for the internal implementation of the Dot operator. See
+ * documentation in the blas1_interface.hpp file for details.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _dot_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs,
+    const index_t _number_wg,
+    const typename sb_handle_t::event_t &_dependencies);
+
 /**
  * @brief _rot constructor given plane rotation
  * @param sb_handle SB_Handle
@@ -306,12 +319,12 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param _d1[in,out] On entry, memory object holding the scaling factor for the
- * x-coordinate. On exit, the re-scaled _d1.
- * @param _d2[in,out] On entry, memory object holding the scaling factor for the
- * y-coordinate. On exit, the re-scaled _d2.
- * @param _x1[in,out] On entry, memory object holding the x-coordinate. On exit,
- * the re-scaled _x1
+ * @param _d1[in,out] On entry, memory object holding the scaling factor for
+ * the x-coordinate. On exit, the re-scaled _d1.
+ * @param _d2[in,out] On entry, memory object holding the scaling factor for
+ * the y-coordinate. On exit, the re-scaled _d2.
+ * @param _x1[in,out] On entry, memory object holding the x-coordinate. On
+ * exit, the re-scaled _x1
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -359,8 +372,10 @@ typename sb_handle_t::event_t _rotg(
  * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
  * @param sb_handle SB_Handle
- * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
- * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar
+ * z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar
+ * r.
  * @param c[out] scalar representing the output c.
  * @param s[out] scalar representing the output s.
  * @param _dependencies Vector of events
@@ -754,12 +769,12 @@ typename sb_handle_t::event_t _rotm(
  * @tparam container_3_t Buffer Iterator or USM pointer
  * @tparam container_4_t Buffer Iterator or USM pointer
  * @param sb_handle SB_Handle
- * @param _d1[in,out] On entry, memory object holding the scaling factor for the
- * x-coordinate. On exit, the re-scaled _d1.
- * @param _d2[in,out] On entry, memory object holding the scaling factor for the
- * y-coordinate. On exit, the re-scaled _d2.
- * @param _x1[in,out] On entry, memory object holding the x-coordinate. On exit,
- * the re-scaled _x1
+ * @param _d1[in,out] On entry, memory object holding the scaling factor for
+ * the x-coordinate. On exit, the re-scaled _d1.
+ * @param _d2[in,out] On entry, memory object holding the scaling factor for
+ * the y-coordinate. On exit, the re-scaled _d2.
+ * @param _x1[in,out] On entry, memory object holding the x-coordinate. On
+ * exit, the re-scaled _x1
  * @param _y1[in] Memory object holding the y-coordinate of the point.
  * @param _param[out] Buffer with the following layout: [flag, h11, h21, h12,
  * h22].
@@ -811,8 +826,10 @@ typename sb_handle_t::event_t _rotg(
  * @tparam sb_handle_t SB_Handle type
  * @tparam scalar_t Scalar type
  * @param sb_handle SB_Handle
- * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar z.
- * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar r.
+ * @param a[in, out] On entry, x-coordinate of the point. On exit, the scalar
+ * z.
+ * @param b[in, out] On entry, y-coordinate of the point. On exit, the scalar
+ * r.
  * @param c[out] scalar representing the output c.
  * @param s[out] scalar representing the output s.
  * @param _dependencies Vector of events
