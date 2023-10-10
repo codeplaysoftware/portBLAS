@@ -151,16 +151,22 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  typename sb_handle_t::event_t dot_event{};
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
-
-  dot_event = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
-                                       _rs, _dependencies);
-  auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
-  auto assignOp2 = make_op<Assign>(rs, addOp);
-  auto ret2 = sb_handle.execute(assignOp2, dot_event);
-  return blas::concatenate_vectors(dot_event, ret2);
+  if (!_N) {
+    auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
+    auto assignOp = make_op<Assign>(rs, addOp);
+    auto ret = sb_handle.execute(assignOp, _dependencies);
+    return ret;
+  } else {
+    typename sb_handle_t::event_t dotOp{};
+    dotOp = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs,
+                                     _dependencies);
+    auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
+    auto assignOp2 = make_op<Assign>(rs, addOp);
+    auto ret = sb_handle.execute(assignOp2, dotOp);
+    return blas::concatenate_vectors(dotOp, ret);
+  }
 }
 
 /**
@@ -761,18 +767,17 @@ typename ValueType<container_0_t>::type _dot(
   auto gpu_res = helper::allocate < is_usm ? helper::AllocType::usm
                                            : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto copy_to_d =
+  auto copyTodD =
       blas::helper::copy_to_device(sb_handle.get_queue(), &res, gpu_res, 1);
   typename sb_handle_t::event_t all_deps = concatenate_vectors(
-      _dependencies, typename sb_handle_t::event_t{copy_to_d});
+      _dependencies, typename sb_handle_t::event_t{copyTodD});
 
-  auto dot_event =
+  auto dotOp =
       internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res, all_deps);
 
-  sb_handle.wait(dot_event);
-  auto copy_to_h =
-      helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
-  sb_handle.wait(copy_to_h);
+  sb_handle.wait(dotOp);
+  auto copyToH = helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
+  sb_handle.wait(copyToH);
 
   helper::deallocate<is_usm ? helper::AllocType::usm
                             : helper::AllocType::buffer>(gpu_res,
@@ -808,16 +813,21 @@ typename ValueType<container_0_t>::type _sdsdot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  element_t res{};
+  element_t res = element_t(0);
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto event1 = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy,
-                                        _incy, gpu_res, _dependencies);
-  sb_handle.wait(event1);
-  auto event2 =
+  auto copyTodD =
+      blas::helper::copy_to_device(sb_handle.get_queue(), &res, gpu_res, 1);
+  typename sb_handle_t::event_t all_deps = concatenate_vectors(
+      _dependencies, typename sb_handle_t::event_t{copyTodD});
+
+  auto sdsdot_event = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx,
+                                              _vy, _incy, gpu_res, all_deps);
+  sb_handle.wait(sdsdot_event);
+  auto copyToH =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
-  sb_handle.wait(event2);
+  sb_handle.wait(copyToH);
 
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
