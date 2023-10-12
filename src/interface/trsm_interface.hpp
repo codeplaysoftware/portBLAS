@@ -147,9 +147,10 @@ typename sb_handle_t::event_t _trsm(
   // filled with zeroes
   const index_t invASize = roundUp<index_t>(K, blockSize) * blockSize;
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
-  auto invA = helper::allocate < is_usm ? helper::AllocType::usm
-                                        : helper::AllocType::buffer,
-       element_t > (invASize, sb_handle.get_queue());
+  auto invA = sb_handle.template acquire_temp_mem < is_usm
+                  ? helper::AllocType::usm
+                  : helper::AllocType::buffer,
+       element_t > (invASize);
   typename sb_handle_t::event_t event = {blas::helper::fill(
       sb_handle.get_queue(), invA, element_t{0}, invASize, _dependencies)};
   trsmEvents = concatenate_vectors(trsmEvents, event);
@@ -197,9 +198,10 @@ typename sb_handle_t::event_t _trsm(
   // output X will hold the TRSM result and will be copied to B at the end
   const index_t BSize = ldb * (N - 1) + M;
   const index_t ldx = ldb;
-  auto X = helper::allocate < is_usm ? helper::AllocType::usm
-                                     : helper::AllocType::buffer,
-       element_t > (BSize, sb_handle.get_queue());
+  auto X = sb_handle.template acquire_temp_mem < is_usm
+               ? helper::AllocType::usm
+               : helper::AllocType::buffer,
+       element_t > (BSize);
   trsmEvents = concatenate_vectors(
       trsmEvents,
       internal::_copy<sb_handle_t, index_t, decltype(B), decltype(X), index_t>(
@@ -385,9 +387,9 @@ typename sb_handle_t::event_t _trsm(
       internal::_copy<sb_handle_t, index_t, decltype(X), decltype(B), index_t>(
           sb_handle, BSize, X, 1, B, 1, trsmEvents));
 
-  helper::enqueue_deallocate(trsmEvents, invA, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(trsmEvents, invA);
 
-  helper::enqueue_deallocate(trsmEvents, X, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(trsmEvents, X);
 
   return trsmEvents;
 }

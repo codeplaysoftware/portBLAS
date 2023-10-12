@@ -93,10 +93,10 @@ typename sb_handle_t::event_t _gemv_impl(
     const auto ld = is_transposed ? _N : _M;
     constexpr index_t one = 1;
 
-    auto dot_products_buffer = blas::helper::allocate < is_usm
+    auto dot_products_buffer = sb_handle.template acquire_temp_mem < is_usm
                                    ? helper::AllocType::usm
                                    : helper::AllocType::buffer,
-         element_t > (ld, sb_handle.get_queue());
+         element_t > (ld);
     auto dot_products_matrix =
         make_matrix_view<col_major>(dot_products_buffer, ld, one, ld);
 
@@ -136,8 +136,8 @@ typename sb_handle_t::event_t _gemv_impl(
           gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    blas::helper::enqueue_deallocate(ret, dot_products_buffer,
-                                     sb_handle.get_queue());
+    sb_handle.template release_temp_mem(ret, dot_products_buffer);
+
   } else  // Local memory kernel
   {
     // Calculate number of work groups per each dimension based on the local
@@ -159,10 +159,10 @@ typename sb_handle_t::event_t _gemv_impl(
     const auto dot_products_buffer_size = ld * WGs_per_C;
 
     // Create the dot products buffer and matrix view
-    auto dot_products_buffer = blas::helper::allocate < is_usm
+    auto dot_products_buffer = sb_handle.template acquire_temp_mem < is_usm
                                    ? helper::AllocType::usm
                                    : helper::AllocType::buffer,
-         element_t > (dot_products_buffer_size, sb_handle.get_queue());
+         element_t > (dot_products_buffer_size);
     auto dot_products_matrix =
         make_matrix_view<col_major>(dot_products_buffer, ld, WGs_per_C, ld);
 
@@ -205,8 +205,7 @@ typename sb_handle_t::event_t _gemv_impl(
           gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    blas::helper::enqueue_deallocate(ret, dot_products_buffer,
-                                     sb_handle.get_queue());
+    sb_handle.template release_temp_mem(ret, dot_products_buffer);
   }
   return ret;
 }
@@ -263,9 +262,10 @@ typename sb_handle_t::event_t _trmv_impl(
 
   using element_t = typename ValueType<container_t0>::type;
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
-  auto valT1 = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                               : helper::AllocType::buffer,
-       element_t > (N * scratchSize, sb_handle.get_queue());
+  auto valT1 = sb_handle.template acquire_temp_mem < is_usm
+                   ? helper::AllocType::usm
+                   : helper::AllocType::buffer,
+       element_t > (N * scratchSize);
   auto mat1 = make_matrix_view<row_major>(valT1, N, scratchSize, scratchSize);
 
   if (data_layout_t::is_col_major()) {
@@ -333,7 +333,7 @@ typename sb_handle_t::event_t _trmv_impl(
   auto assignOp = make_op<Assign>(vx, addMOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
 
-  blas::helper::enqueue_deallocate(ret, valT1, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(ret, valT1);
 
   return ret;
 }
@@ -373,10 +373,10 @@ typename sb_handle_t::event_t _trsv_impl(
 
   auto queue = sb_handle.get_queue();
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
-  auto sync_buffer = blas::helper::allocate < is_usm
+  auto sync_buffer = sb_handle.template acquire_temp_mem < is_usm
                          ? blas::helper::AllocType::usm
                          : blas::helper::AllocType::buffer,
-       int32_t > (sync_vec.size(), queue);
+       int32_t > (sync_vec.size());
   auto copy_sync = blas::helper::copy_to_device<int32_t>(
       queue, sync_vec.data(), sync_buffer, sync_vec.size());
   sb_handle.wait(copy_sync);
@@ -395,7 +395,7 @@ typename sb_handle_t::event_t _trsv_impl(
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
 
-  blas::helper::enqueue_deallocate(ret, sync_buffer, queue);
+  sb_handle.template release_temp_mem(ret, sync_buffer);
 
   return ret;
 #endif
@@ -465,17 +465,19 @@ typename sb_handle_t::event_t _symv_impl(
       ((scratchPadSize == 0) ? std::min(N, localSize) : 1) * nWGPerCol_R;
 
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
-  auto valTR = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                               : helper::AllocType::buffer,
-       element_t > (N * scratchSize_R, sb_handle.get_queue());
+  auto valTR = sb_handle.template acquire_temp_mem < is_usm
+                   ? helper::AllocType::usm
+                   : helper::AllocType::buffer,
+       element_t > (N * scratchSize_R);
   auto matR =
       make_matrix_view<row_major>(valTR, N, scratchSize_R, scratchSize_R);
 
   const index_t scratchSize_C = nWGPerCol_C;
 
-  auto valTC = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                               : helper::AllocType::buffer,
-       element_t > (N * scratchSize_C, sb_handle.get_queue());
+  auto valTC = sb_handle.template acquire_temp_mem < is_usm
+                   ? helper::AllocType::usm
+                   : helper::AllocType::buffer,
+       element_t > (N * scratchSize_C);
   auto matC =
       make_matrix_view<row_major>(valTC, N, scratchSize_C, scratchSize_C);
 
@@ -512,8 +514,8 @@ typename sb_handle_t::event_t _symv_impl(
   auto assignOp = make_op<Assign>(vy, addOp);
   ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
 
-  blas::helper::enqueue_deallocate(ret, valTR, sb_handle.get_queue());
-  blas::helper::enqueue_deallocate(ret, valTC, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(ret, valTR);
+  sb_handle.template release_temp_mem(ret, valTC);
 
   return ret;
 }
@@ -646,9 +648,10 @@ typename sb_handle_t::event_t _tbmv_impl(
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
   using element_t = typename ValueType<container_t0>::type;
   auto x_vector_size = _N;
-  auto res_buffer = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                    : helper::AllocType::buffer,
-       element_t > (x_vector_size, sb_handle.get_queue());
+  auto res_buffer = sb_handle.template acquire_temp_mem < is_usm
+                        ? helper::AllocType::usm
+                        : helper::AllocType::buffer,
+       element_t > (x_vector_size);
 
   typename MatrixViewType<container_t0, index_t, col_major>::type mA =
       make_matrix_view<col_major>(_mA, _K + 1, _N, _lda);
@@ -666,7 +669,7 @@ typename sb_handle_t::event_t _tbmv_impl(
   auto assignEvent = sb_handle.execute(assignOp, local_range, tbmvEvent);
   auto ret = concatenate_vectors(tbmvEvent, assignEvent);
 
-  blas::helper::enqueue_deallocate(ret, res_buffer, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(ret, res_buffer);
 
   return ret;
 }
@@ -692,9 +695,10 @@ typename sb_handle_t::event_t _tpmv_impl(
   using element_t = typename ValueType<container_t0>::type;
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
 
-  auto res_buffer = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                    : helper::AllocType::buffer,
-       element_t > (vector_size, sb_handle.get_queue());
+  auto res_buffer = sb_handle.template acquire_temp_mem < is_usm
+                        ? helper::AllocType::usm
+                        : helper::AllocType::buffer,
+       element_t > (vector_size);
 
   typename MatrixViewType<container_t0, index_t, col_major>::type mA =
       make_matrix_view<col_major>(_mA, one, matrix_size, matrix_size);
@@ -719,7 +723,7 @@ typename sb_handle_t::event_t _tpmv_impl(
   auto ret =
       concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp, tpmvEvent));
 
-  blas::helper::enqueue_deallocate(ret, res_buffer, sb_handle.get_queue());
+  sb_handle.template release_temp_mem(ret, res_buffer);
 
   return ret;
 }
@@ -761,10 +765,10 @@ typename sb_handle_t::event_t _tbsv_impl(
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
   auto queue = sb_handle.get_queue();
 
-  auto sync_buffer = blas::helper::allocate < is_usm
+  auto sync_buffer = sb_handle.template acquire_temp_mem < is_usm
                          ? blas::helper::AllocType::usm
                          : blas::helper::AllocType::buffer,
-       int32_t > (sync_vec.size(), queue);
+       int32_t > (sync_vec.size());
   auto copy_sync = blas::helper::copy_to_device<int32_t>(
       queue, sync_vec.data(), sync_buffer, sync_vec.size());
   sb_handle.wait(copy_sync);
@@ -782,7 +786,7 @@ typename sb_handle_t::event_t _tbsv_impl(
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
 
-  blas::helper::enqueue_deallocate(ret, sync_buffer, queue);
+  sb_handle.template release_temp_mem(ret, sync_buffer);
 
   return ret;
 #endif
@@ -825,11 +829,10 @@ typename sb_handle_t::event_t _tpsv_impl(
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
   auto queue = sb_handle.get_queue();
 
-  auto sync_buffer = blas::helper::allocate < is_usm
+  auto sync_buffer = sb_handle.template acquire_temp_mem < is_usm
                          ? blas::helper::AllocType::usm
                          : blas::helper::AllocType::buffer,
-       int32_t > (sync_vec.size(), queue);
-
+       int32_t > (sync_vec.size());
   auto copy_sync = blas::helper::copy_to_device<int32_t>(
       queue, sync_vec.data(), sync_buffer, sync_vec.size());
   sb_handle.wait(copy_sync);
@@ -847,7 +850,9 @@ typename sb_handle_t::event_t _tpsv_impl(
       roundUp<index_t>(sub_num * _N, sub_num * subgroup_size),
       static_cast<index_t>(subgroup_size * (subgroup_size + 2 + sub_num)),
       _dependencies);
-  blas::helper::enqueue_deallocate(ret, sync_buffer, queue);
+
+  sb_handle.template release_temp_mem(ret, sync_buffer);
+
   return ret;
 #endif
 }
