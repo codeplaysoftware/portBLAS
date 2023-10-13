@@ -419,6 +419,11 @@ inline void verify_gemm(const gemm_cplx_arguments_t<scalar_t> arguments) {
   std::tie(alloc, offset, batch, m, n, k, transa, transb, alpha, beta, lda_mul,
            ldb_mul, ldc_mul, batch_type) = arguments;
 
+  if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
+    // Interleaved batched gemm unsupported with complex data types
+    GTEST_SKIP();
+  }
+
   const char ta_str[2] = {transa, '\0'};
   const char tb_str[2] = {transb, '\0'};
 
@@ -454,11 +459,6 @@ inline void verify_gemm(const gemm_cplx_arguments_t<scalar_t> arguments) {
         reinterpret_cast<const void*>(b_m.data() + i * size_b + offset), ldb,
         reinterpret_cast<const void*>(&beta),
         reinterpret_cast<void*>(c_m_cpu.data() + i * size_c + offset), ldc);
-  }
-
-  if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
-    // Interleaved batched gemm unsupported
-    GTEST_SKIP();
   }
 
   auto m_a_gpu = blas::helper::allocate<mem_alloc, complex_sycl<scalar_t>>(

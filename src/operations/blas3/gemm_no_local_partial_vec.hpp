@@ -27,6 +27,9 @@
 
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
+#ifdef BLAS_ENABLE_COMPLEX
+#include "gemm_load_store_complex.hpp"
+#endif
 
 namespace blas {
 
