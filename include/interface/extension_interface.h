@@ -336,12 +336,13 @@ typename sb_handle_t::event_t _omatcopy_batch(
  * @param batch_size number of matrices to compute in this batch
  */
 template <typename sb_handle_t, typename element_t, typename index_t,
-          typename container_t>
+          typename container_0_t, typename container_1_t,
+          typename container_2_t>
 typename sb_handle_t::event_t _omatadd_batch(
     sb_handle_t& sb_handle, char trans_a, char trans_b, index_t m, index_t n,
-    element_t alpha, container_t a, index_t lda, index_t stride_a,
-    element_t beta, container_t b, index_t ldb, index_t stride_b, container_t c,
-    index_t ldc, index_t stride_c, index_t batch_size,
+    element_t alpha, container_0_t a, index_t lda, index_t stride_a,
+    element_t beta, container_1_t b, index_t ldb, index_t stride_b,
+    container_2_t c, index_t ldc, index_t stride_c, index_t batch_size,
     const typename sb_handle_t::event_t& _dependencies = {}) {
   return internal::_omatadd_batch(sb_handle, trans_a, trans_b, m, n, alpha, a,
                                   lda, stride_a, beta, b, ldb, stride_b, c, ldc,
