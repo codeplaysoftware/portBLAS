@@ -291,6 +291,9 @@ function(add_gemm_configuration
   cpp_type(cpp_data ${data})
   foreach(symm_a ${boolean_list})
     foreach(symm_b ${boolean_list})
+      if ((${data} MATCHES "complex") AND (symm_a OR symm_b))
+        continue()
+      endif()
       foreach(trans_a ${boolean_list})
         foreach(trans_b ${boolean_list})
           foreach(is_beta_zero ${boolean_list})
@@ -591,8 +594,8 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
     set_complex_list(data_list_c "${supported_types}" "false")
     foreach(data ${data_list_c})
       add_gemm_configuration(
-        "${data}"  64 "false" "false" "true"
-          64 8 8 8 8 1 1 2 2 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+        "${data}"  256 "false" "false" "true"
+          64 2 2 16 16 1 1 2 2 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
 else() # default cpu backend

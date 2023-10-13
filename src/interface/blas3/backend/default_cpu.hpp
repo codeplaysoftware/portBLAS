@@ -119,7 +119,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   if (_M <= 256 && _N <= 256 && _K <= 256) {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 64, false, false, false,
-        64, Tile<2, 2, 4, 4>, _t_a, _t_b, s_a, s_b,
+        64, Tile<2, 2, 4, 4>, _t_a, _t_b, false, false,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -130,7 +130,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   } else {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 64, false, false, false,
-        64, Tile<8, 8, 4, 4>, _t_a, _t_b, s_a, s_b,
+        64, Tile<8, 8, 4, 4>, _t_a, _t_b, false, false,
         static_cast<int>(gemm_memory_t::no_local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::partial), is_beta_zero, 1,

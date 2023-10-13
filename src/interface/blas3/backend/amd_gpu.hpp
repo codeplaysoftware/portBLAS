@@ -161,10 +161,10 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   static constexpr int tileWgSize = ClSize / sizeof(element_t);
 /* Tall & Skinny matrices. */
 #ifdef GEMM_TALL_SKINNY_SUPPORT
-  if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8) && (!s_a && !s_b)) {
+  if (batch_size == 1 && (_M / _N > 8 || _N / _M > 8)) {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, true, true, true,
-        ClSize, Tile<1, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<1, 4, tileWgSize, tileWgSize>, _t_a, _t_b, false, false,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::tall_skinny),
         static_cast<int>(gemm_vectorization_t::none), is_beta_zero, 1,
@@ -177,7 +177,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   if (_M * _N <= 65536) {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<1, 1, tileWgSize, tileWgSize>, _t_a, _t_b, false, false,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
@@ -188,7 +188,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
   } else {
     return blas::Gemm_Launcher<
         container_0_t, container_1_t, container_2_t, 256, false, false, false,
-        ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, s_a, s_b,
+        ClSize, Tile<4, 4, tileWgSize, tileWgSize>, _t_a, _t_b, false, false,
         static_cast<int>(gemm_memory_t::local),
         static_cast<int>(gemm_algorithm_t::standard),
         static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
