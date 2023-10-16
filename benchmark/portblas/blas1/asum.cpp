@@ -65,7 +65,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     auto vr_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
     auto copy_temp =
         blas::helper::copy_to_device<scalar_t>(q, &vr_temp, vr_temp_gpu, 1);
-    auto asum_event = _asum(sb_handle, size, inx, static_cast<index_t>(1), vr_temp_gpu);
+    auto asum_event = _asum(sb_handle, size, inx, static_cast<index_t>(1),
+                            vr_temp_gpu, {copy_temp});
     sb_handle.wait(asum_event);
     auto copy_output = blas::helper::copy_to_host(q, vr_temp_gpu, &vr_temp, 1);
     sb_handle.wait(copy_output);

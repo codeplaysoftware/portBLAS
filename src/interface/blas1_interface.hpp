@@ -367,17 +367,51 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
+  return blas::nrm2::backend::_nrm2(sb_handle, _N, _vx, _incx, _rs,
+                                    _dependencies);
+}
+
+/*! _nrm2_impl.
+ * @brief Internal implementation of the nrm2 operator.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the nrm2 operation.
+ *
+ * This function is called by blas::internal::backend::nrm2 which, dependent on
+ * the platform being compiled for and other parameters, provides different
+ * template parameters to ensure the most optimal kernel is constructed.
+ *
+ * @tparam localSize  specifies the number of threads per work group used by
+ *                    the kernel
+ * @tparam localMemSize specifies the size of local shared memory to use, which
+ *                      is device and implementation dependent. If 0 the
+ *                      implementation use a kernel implementation which doesn't
+ *                      require local memory.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _nrm2_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t number_WG,
+    const typename sb_handle_t::event_t &_dependencies) {
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
   auto prdOp = make_op<UnaryOp, SquareOperator>(vx);
 
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
-  auto assignOp =
-      make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret0 = sb_handle.execute(assignOp, _dependencies);
+  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  typename sb_handle_t::event_t ret0;
+  if constexpr (localMemSize != 0) {
+    ret0 = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                             static_cast<index_t>(number_WG * localSize),
+                             static_cast<index_t>(localMemSize), _dependencies);
+  } else {
+    ret0 = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                             static_cast<index_t>(number_WG * localSize),
+                             _dependencies);
+  }
   auto sqrtOp = make_op<UnaryOp, SqrtOperator>(rs);
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
   auto ret1 = sb_handle.execute(assignOpFinal, ret0);
@@ -861,8 +895,12 @@ typename ValueType<container_t>::type _nrm2(
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
+  typename sb_handle_t::event_t copy_init_val = {blas::helper::copy_to_device(
+      sb_handle.get_queue(), res.data(), gpu_res, 1)};
+  const auto local_deps =
+      concatenate_vectors(_dependencies, copy_init_val);
   auto nrm2_event =
-      blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
+      blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, local_deps);
   sb_handle.wait(nrm2_event);
   auto event =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);

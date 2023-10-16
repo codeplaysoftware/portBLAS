@@ -42,6 +42,20 @@ typename sb_handle_t::event_t _asum(
 }  // namespace backend
 }  // namespace asum
 
+namespace nrm2 {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _nrm2(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+  constexpr int localSize = 8;
+  constexpr index_t number_WG = 16;
+  return blas::internal::_nrm2_impl<localSize, 0>(
+      sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+}
+}  // namespace backend
+}  // namespace nrm2
 }  // namespace blas
 
 #endif

@@ -39,7 +39,7 @@ typename sb_handle_t::event_t _asum(
     const index_t number_WG = (_N < (1 << 18))
                                   ? (_N + localSize - 1) / localSize
                                   : static_cast<index_t>(256);
-    return blas::internal::_asum_impl<static_cast<index_t>(localSize), 32>(
+    return blas::internal::_asum_impl<static_cast<int>(localSize), 32>(
         sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
   } else {
     constexpr int localSize = 512;
@@ -50,6 +50,30 @@ typename sb_handle_t::event_t _asum(
 }
 }  // namespace backend
 }  // namespace asum
+
+namespace nrm2 {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _nrm2(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+  if (_N < (1 << 23)) {
+    constexpr index_t localSize = 512;
+    const index_t number_WG = (_N < (1 << 18))
+                                  ? (_N + localSize - 1) / localSize
+                                  : static_cast<index_t>(256);
+    return blas::internal::_nrm2_impl<static_cast<int>(localSize), 32>(
+        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+  } else {
+    constexpr int localSize = 512;
+    constexpr index_t number_WG = 1024;
+    return blas::internal::_nrm2_impl<localSize, 32>(
+        sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+  }
+}
+}  // namespace backend
+}  // namespace nrm2
 
 }  // namespace blas
 

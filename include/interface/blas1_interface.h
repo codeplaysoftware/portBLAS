@@ -213,6 +213,18 @@ typename sb_handle_t::event_t _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies);
 
+/*!
+ * \brief Prototype for the internal implementation of the NRM2 operator. See
+ * documentation in the blas1_interface.hpp file for details.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _nrm2_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t number_WG,
+    const typename sb_handle_t::event_t &_dependencies);
+
 /**
  * @brief _rot constructor given plane rotation
  * @param sb_handle SB_Handle
@@ -463,6 +475,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies);
+
 }  // namespace internal
 
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
