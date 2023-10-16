@@ -126,7 +126,7 @@ const auto LargeBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values("usm", "buf"),               // allocation type
     ::testing::Values(0),                          // offset
     ::testing::Values(1),                          // batch
-    ::testing::Values(253, 511),                   // m
+    ::testing::Values(253, 511, 1024, 2048, 2200), // m
     ::testing::Values(257, 511),                   // n
     ::testing::Values(253, 511),                   // k
     ::testing::Values('n', 't'),                   // transa
