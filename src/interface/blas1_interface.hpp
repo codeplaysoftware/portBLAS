@@ -151,17 +151,19 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
   if (!_N) {
-    auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
-    auto assignOp = make_op<Assign>(rs, addOp);
-    auto ret = sb_handle.execute(assignOp, _dependencies);
+    sb_handle.wait(_dependencies);
+    auto copy_sb =
+        blas::helper::copy_to_device(sb_handle.get_queue(), &sb, _rs, 1);
+    sb_handle.wait(copy_sb);
+    auto ret = concatenate_vectors(_dependencies,
+                                   typename sb_handle_t::event_t{copy_sb});
     return ret;
   } else {
-    typename sb_handle_t::event_t dotOp{};
-    dotOp = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs,
-                                     _dependencies);
+    auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                               static_cast<index_t>(1));
+    auto dotOp = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
+                                          _rs, _dependencies);
     auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
     auto assignOp2 = make_op<Assign>(rs, addOp);
     auto ret = sb_handle.execute(assignOp2, dotOp);
@@ -763,7 +765,7 @@ typename ValueType<container_0_t>::type _dot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  element_t res = element_t(0);
+  element_t res{0};
   auto gpu_res = helper::allocate < is_usm ? helper::AllocType::usm
                                            : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
@@ -813,7 +815,7 @@ typename ValueType<container_0_t>::type _sdsdot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  element_t res = element_t(0);
+  element_t res{0};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
@@ -951,8 +953,7 @@ typename ValueType<container_t>::type _nrm2(
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
   typename sb_handle_t::event_t copy_init_val = {blas::helper::copy_to_device(
       sb_handle.get_queue(), res.data(), gpu_res, 1)};
-  const auto local_deps =
-      concatenate_vectors(_dependencies, copy_init_val);
+  const auto local_deps = concatenate_vectors(_dependencies, copy_init_val);
   auto nrm2_event =
       blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, local_deps);
   sb_handle.wait(nrm2_event);
