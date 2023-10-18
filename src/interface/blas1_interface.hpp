@@ -440,17 +440,14 @@ typename sb_handle_t::event_t _dot_impl(
     const typename sb_handle_t::event_t &_dependencies) {
   typename sb_handle_t::event_t ret_event;
   // Skip if N==0, _rs is not overwritten
-  if (!_N) return ret_event;
+  if (!_N) return {_dependencies};
 
-  // TODO: (Tanvir) avoid over-writing the input.
-  // Once this is fixed, we should be able to add
-  // const support for dot and sdsdot operators.
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
-  auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
+  auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
   auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
 
   if constexpr (localMemSize) {

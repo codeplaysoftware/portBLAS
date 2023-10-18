@@ -385,6 +385,50 @@ BinaryOp<operator_t, lhs_t, rhs_t>::adjust_access_displacement() {
   rhs_.adjust_access_displacement();
 }
 
+/*! BinaryOpConst.
+ * @brief Implements a const Binary Operation (x OP z) with x and z vectors.
+ */
+template <typename operator_t, typename lhs_t, typename rhs_t>
+BinaryOpConst<operator_t, lhs_t, rhs_t>::BinaryOpConst(lhs_t &_l, rhs_t &_r)
+    : lhs_(_l), rhs_(_r){};
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE typename BinaryOpConst<operator_t, lhs_t, rhs_t>::index_t
+BinaryOpConst<operator_t, lhs_t, rhs_t>::get_size() const {
+  return rhs_.get_size();
+}
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE bool BinaryOpConst<operator_t, lhs_t, rhs_t>::valid_thread(
+    cl::sycl::nd_item<1> ndItem) const {
+  return ((ndItem.get_global_id(0) < get_size()));
+}
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE typename BinaryOpConst<operator_t, lhs_t, rhs_t>::value_t
+BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
+    typename BinaryOpConst<operator_t, lhs_t, rhs_t>::index_t i) const {
+  return operator_t::eval(lhs_.eval(i), rhs_.eval(i));
+}
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE typename BinaryOpConst<operator_t, lhs_t, rhs_t>::value_t
+BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(
+    cl::sycl::nd_item<1> ndItem) const {
+  return BinaryOpConst<operator_t, lhs_t, rhs_t>::eval(ndItem.get_global_id(0));
+}
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE void BinaryOpConst<operator_t, lhs_t, rhs_t>::bind(
+    cl::sycl::handler &h) {
+  lhs_.bind(h);
+  rhs_.bind(h);
+}
+
+template <typename operator_t, typename lhs_t, typename rhs_t>
+PORTBLAS_INLINE void
+BinaryOpConst<operator_t, lhs_t, rhs_t>::adjust_access_displacement() {
+  lhs_.adjust_access_displacement();
+  rhs_.adjust_access_displacement();
+}
+
 /*! TupleOp.
  * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
  */
