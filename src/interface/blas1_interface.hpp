@@ -153,12 +153,8 @@ typename sb_handle_t::event_t _sdsdot(
     const typename sb_handle_t::event_t &_dependencies) {
   if (!_N) {
     sb_handle.wait(_dependencies);
-    auto copy_sb =
-        blas::helper::copy_to_device(sb_handle.get_queue(), &sb, _rs, 1);
-    sb_handle.wait(copy_sb);
-    auto ret = concatenate_vectors(_dependencies,
-                                   typename sb_handle_t::event_t{copy_sb});
-    return ret;
+    auto ret = blas::helper::copy_to_device(sb_handle.get_queue(), &sb, _rs, 1);
+    return {ret};
   } else {
     auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                                static_cast<index_t>(1));
