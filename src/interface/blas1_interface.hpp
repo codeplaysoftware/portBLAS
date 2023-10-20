@@ -154,6 +154,7 @@ typename sb_handle_t::event_t _sdsdot(
   if (!_N) {
     sb_handle.wait(_dependencies);
     auto ret = blas::helper::copy_to_device(sb_handle.get_queue(), &sb, _rs, 1);
+    sb_handle.wait(ret);
     return {ret};
   } else {
     auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
