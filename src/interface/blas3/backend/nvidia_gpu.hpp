@@ -55,7 +55,10 @@ typename sb_handle_t::event_t _gemm(
 
 #ifdef SB_ENABLE_JOINT_MATRIX
   const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
-  if (en_joint_matrix != NULL && *en_joint_matrix == '1') {
+  if (en_joint_matrix != NULL && *en_joint_matrix == '1' && !s_a && !s_b &&
+      std::is_same<typename ValueType<container_0_t>::type, float>::value &&
+      std::is_same<typename ValueType<container_1_t>::type, float>::value &&
+      std::is_same<typename ValueType<container_2_t>::type, float>::value) {
     if (_M > 1024 && _N > 1024) {
       return blas::Gemm_Launcher<
           container_0_t, container_1_t, container_2_t, 256, false, true, true,
