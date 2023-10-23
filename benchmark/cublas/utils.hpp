@@ -33,6 +33,7 @@
 #include "portblas.h"
 #include <common/common_utils.hpp>
 
+#include <cuComplex.h>
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -173,6 +174,15 @@ class CUDAVectorBatched : private CUDADeviceMemory<T> {
   CUDAVectorBatched(size_t matrix_size, size_t batch_count, std::vector<T>& h_v)
       : CUDAVectorBatched<T, CopyToHost>(matrix_size, batch_count) {
     if constexpr (CopyToHost) h_data = h_v.data();
+    for (int i = 0; i < batch_count; ++i) {
+      CUDA_CHECK(cudaMemcpy(d_data[i], &h_v[matrix_size * i],
+                            sizeof(T) * c_matrix_size, cudaMemcpyHostToDevice));
+    }
+  }
+
+  CUDAVectorBatched(size_t matrix_size, size_t batch_count, T* h_v)
+      : CUDAVectorBatched<T, CopyToHost>(matrix_size, batch_count) {
+    if constexpr (CopyToHost) h_data = h_v;
     for (int i = 0; i < batch_count; ++i) {
       CUDA_CHECK(cudaMemcpy(d_data[i], &h_v[matrix_size * i],
                             sizeof(T) * c_matrix_size, cudaMemcpyHostToDevice));
