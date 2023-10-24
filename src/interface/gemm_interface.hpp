@@ -48,6 +48,22 @@ namespace blas {
  */
 namespace internal {
 
+// Check whether value is zero (complex & float/double)
+template <typename T>
+inline typename std::enable_if<is_sycl_scalar<T>::value, bool>::type isZero(
+    const T& value) {
+  return (value == static_cast<T>(0));
+}
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename T>
+inline typename std::enable_if<is_complex_sycl<T>::value, bool>::type isZero(
+    const T& value) {
+  using value_t = typename T::value_type;
+  return (value == T(value_t(0), value_t(0)));
+}
+#endif
+
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
@@ -73,15 +89,14 @@ typename sb_handle_t::event_t _gemm_is_beta_zero(
     container_2_t _C, index_t _ldc, index_t _stridec, index_t batch_size,
     gemm_batch_type_t batch_type,
     const typename sb_handle_t::event_t& _dependencies) {
-  return ((_beta == static_cast<element_t>(0))
-              ? _gemm_platform_specific<_t_a, _t_b, s_a, s_b, true>(
-                    sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
-                    _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type,
-                    _dependencies)
-              : _gemm_platform_specific<_t_a, _t_b, s_a, s_b, false>(
-                    sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea, b_, _ldb,
-                    _strideb, _beta, _C, _ldc, _stridec, batch_size, batch_type,
-                    _dependencies));
+  return isZero(_beta) ? _gemm_platform_specific<_t_a, _t_b, s_a, s_b, true>(
+                             sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea,
+                             b_, _ldb, _strideb, _beta, _C, _ldc, _stridec,
+                             batch_size, batch_type, _dependencies)
+                       : _gemm_platform_specific<_t_a, _t_b, s_a, s_b, false>(
+                             sb_handle, _M, _N, _K, _alpha, a_, _lda, _stridea,
+                             b_, _ldb, _strideb, _beta, _C, _ldc, _stridec,
+                             batch_size, batch_type, _dependencies);
 }
 
 template <bool symm_A, bool symm_B, typename sb_handle_t,

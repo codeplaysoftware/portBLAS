@@ -27,6 +27,9 @@
 
 #include "gemm_common.hpp"
 #include "gemm_load_store.hpp"
+#ifdef BLAS_ENABLE_COMPLEX
+#include "gemm_load_store_complex.hpp"
+#endif
 
 namespace blas {
 
@@ -142,6 +145,12 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static_assert(cl_elems % packetize_t::packet_size == 0,
                 "Cache line size must be a multiple of packet_size");
 
+#ifdef BLAS_ENABLE_COMPLEX
+  static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
+                    is_sycl_scalar<element_t>::value,
+                "Vector size should be equal to 1 for Complex Data types");
+#endif
+
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa = block_rows + nbc_a;
   //! @brief leading dimension of block of B in local
@@ -162,8 +171,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   index_t stridec_;
 
   PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                        element_t beta, index_t batch_size, index_t stride_a,
-                        index_t stride_b, index_t stride_c)
+                       element_t beta, index_t batch_size, index_t stride_a,
+                       index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
         c_(C),
@@ -250,7 +259,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <typename local_memory_t>
   PORTBLAS_INLINE void eval(local_memory_t scratch_acc,
-                             const cl::sycl::nd_item<1> &id) noexcept {
+                            const cl::sycl::nd_item<1> &id) noexcept {
     index_t m = a_.get_size_row();
     index_t n = b_.get_size_col();
     const index_t k = a_.get_size_col();
@@ -546,9 +555,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
   PORTBLAS_INLINE void store_output_block(index_t, index_t mc, index_t nc,
-                                           OutputPointerType C, index_t ldc,
-                                           element_t *reg_res,
-                                           const bool out_of_range) noexcept {
+                                          OutputPointerType C, index_t ldc,
+                                          element_t *reg_res,
+                                          const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
     }
@@ -726,9 +735,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
   PORTBLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
-                                           InputPointerType A, element_t *reg_a,
-                                           element_t &reg_b,
-                                           element_t *reg_res) noexcept {
+                                          InputPointerType A, element_t *reg_a,
+                                          element_t &reg_b,
+                                          element_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9
     // Nano.
     //       Seems that the small reduction of arithmetic operations does
@@ -754,7 +763,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 #pragma unroll
         for (index_t l = 0; l < item_rows; ++l) {
           reg_res[j * item_rows + l] =
-              cl::sycl::mad(reg_a[l], reg_b, reg_res[j * item_rows + l]);
+              mul_add<element_t>(reg_a[l], reg_b, reg_res[j * item_rows + l]);
         }
       }
       A = A + ldsa;
@@ -781,7 +790,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool db, index_t o, index_t... os, typename P, typename... Ps>
   static PORTBLAS_INLINE typename std::enable_if<db>::type sync_smem(
       const cl::sycl::nd_item<1> &id, index_t &ofs_sign, P &s,
-      Ps &... ss) noexcept {
+      Ps &...ss) noexcept {
     s += ofs_sign * o;
     sync_smem<db, os...>(id, ofs_sign, ss...);
   }

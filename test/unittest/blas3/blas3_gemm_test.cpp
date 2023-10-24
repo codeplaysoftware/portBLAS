@@ -139,3 +139,121 @@ const auto LargeBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values(gemm_batch_type_t::strided)  // batch_type
 );
 GENERATE_GEMM_TEST(Gemm, LargeBetaNonZeroLDMatch);
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename scalar_t>
+const auto CplxSmallBetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(0),                                   // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(11, 33),                              // m
+    ::testing::Values(11, 33),                              // n
+    ::testing::Values(16, 17),                              // k
+    ::testing::Values('n', 't'),                            // transa
+    ::testing::Values('n', 't'),                            // transb
+    ::testing::Values<std::complex<scalar_t>>({1.5, 1.0}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({1.5, 3.0}),  // beta
+    ::testing::Values(1),                                   // lda_mul
+    ::testing::Values(1),                                   // ldb_mul
+    ::testing::Values(1),                                   // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)           // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxSmallBetaNonZeroLDMatch);
+
+template <typename scalar_t>
+const auto CplxSmallBetaZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(0),                                   // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(11, 32),                              // m
+    ::testing::Values(11, 32),                              // n
+    ::testing::Values(17),                                  // k
+    ::testing::Values('n', 't'),                            // transa
+    ::testing::Values('n', 't'),                            // transb
+    ::testing::Values<std::complex<scalar_t>>({1.5, 1.0}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({0.0, 0.0}),  // beta
+    ::testing::Values(1),                                   // lda_mul
+    ::testing::Values(1),                                   // ldb_mul
+    ::testing::Values(1),                                   // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)           // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxSmallBetaZeroLDMatch);
+
+template <typename scalar_t>
+const auto CplxSmallBetaZeroLDMultiplied = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(0),                                   // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(11, 33),                              // m
+    ::testing::Values(11, 33),                              // n
+    ::testing::Values(17),                                  // k
+    ::testing::Values('n', 't'),                            // transa
+    ::testing::Values('n', 't'),                            // transb
+    ::testing::Values<std::complex<scalar_t>>({1.5, 3.0}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({0.0, 0.0}),  // beta
+    ::testing::Values(2),                                   // lda_mul
+    ::testing::Values(2),                                   // ldb_mul
+    ::testing::Values(3),                                   // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)           // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxSmallBetaZeroLDMultiplied);
+
+template <typename scalar_t>
+const auto CplxAlphaZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(0, 10),                               // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(16),                                  // m
+    ::testing::Values(16),                                  // n
+    ::testing::Values(17),                                  // k
+    ::testing::Values('n'),                                 // transa
+    ::testing::Values('n'),                                 // transb
+    ::testing::Values<std::complex<scalar_t>>({0.0, 0.0}),  // alpha
+    ::testing::Values(std::complex<scalar_t>{0.0, 0.0},
+                      std::complex<scalar_t>{1.0, 0.0}),  // beta
+    ::testing::Values(1, 2),                              // lda_mul
+    ::testing::Values(1, 2),                              // ldb_mul
+    ::testing::Values(1, 2),                              // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)         // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxAlphaZero);
+
+template <typename scalar_t>
+const auto CplxOffsetNonZero = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(1, 10),                               // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(16, 63),                              // m
+    ::testing::Values(16, 63),                              // n
+    ::testing::Values(17, 63),                              // k
+    ::testing::Values('n'),                                 // transa
+    ::testing::Values('n'),                                 // transb
+    ::testing::Values<std::complex<scalar_t>>({1.0, 1.0}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({1.0, 1.0}),  // beta
+    ::testing::Values(1, 2),                                // lda_mul
+    ::testing::Values(1, 2),                                // ldb_mul
+    ::testing::Values(1, 2),                                // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)           // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxOffsetNonZero);
+
+template <typename scalar_t>
+const auto CplxLargeBetaNonZeroLDMatch = ::testing::Combine(
+    ::testing::Values("usm", "buf"),                        // allocation type
+    ::testing::Values(0),                                   // offset
+    ::testing::Values(1),                                   // batch
+    ::testing::Values(63, 253),                             // m
+    ::testing::Values(63, 253),                             // n
+    ::testing::Values(63, 253),                             // k
+    ::testing::Values('n', 't'),                            // transa
+    ::testing::Values('n', 't'),                            // transb
+    ::testing::Values<std::complex<scalar_t>>({1.0, 1.5}),  // alpha
+    ::testing::Values<std::complex<scalar_t>>({1.5, 1.0}),  // beta
+    ::testing::Values(1),                                   // lda_mul
+    ::testing::Values(1),                                   // ldb_mul
+    ::testing::Values(1),                                   // ldc_mul
+    ::testing::Values(gemm_batch_type_t::strided)           // batch_type
+);
+GENERATE_CPLX_GEMM_TEST(Gemm, CplxLargeBetaNonZeroLDMatch);
+
+#endif

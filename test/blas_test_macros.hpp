@@ -93,6 +93,36 @@
                                             combination, name_generator)
 #endif  // BLAS_DATA_TYPE_HALF
 
+#ifdef BLAS_ENABLE_COMPLEX
+#define BLAS_REGISTER_TEST_CPLX_S_CUSTOM_NAME(test_suite, class_name,        \
+                                              test_function, combination_t,  \
+                                              combination, name_generator)   \
+  class class_name##CplxFloat                                                \
+      : public ::testing::TestWithParam<combination_t<float>> {};            \
+  TEST_P(class_name##CplxFloat, test) { test_function<float>(GetParam()); }; \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##CplxFloat,                \
+                           combination<float>, name_generator<float>);
+#else
+#define BLAS_REGISTER_TEST_CPLX_S_CUSTOM_NAME(test_suite, class_name,       \
+                                              test_function, combination_t, \
+                                              combination, name_generator)
+#endif  // BLAS_ENABLE_COMPLEX
+
+#if defined(BLAS_DATA_TYPE_DOUBLE) & defined(BLAS_ENABLE_COMPLEX)
+#define BLAS_REGISTER_TEST_CPLX_D_CUSTOM_NAME(test_suite, class_name,          \
+                                              test_function, combination_t,    \
+                                              combination, name_generator)     \
+  class class_name##CplxDouble                                                 \
+      : public ::testing::TestWithParam<combination_t<double>> {};             \
+  TEST_P(class_name##CplxDouble, test) { test_function<double>(GetParam()); }; \
+  INSTANTIATE_TEST_SUITE_P(test_suite, class_name##CplxDouble,                 \
+                           combination<double>, name_generator<double>);
+#else
+#define BLAS_REGISTER_TEST_CPLX_D_CUSTOM_NAME(test_suite, class_name,       \
+                                              test_function, combination_t, \
+                                              combination, name_generator)
+#endif  // BLAS_ENABLE_COMPLEX & BLAS_ENABLE_COMPLEX
+
 /** Registers test for all supported data types
  * @param test_suite Name of the test suite
  * @param class_name Base name of the test class
@@ -114,6 +144,18 @@
   BLAS_REGISTER_TEST_HALF_CUSTOM_NAME(test_suite, class_name, test_function,   \
                                       combination_t, combination,              \
                                       name_generator);
+
+#ifdef BLAS_ENABLE_COMPLEX
+#define BLAS_REGISTER_CPLX_TEST_CUSTOM_NAME(test_suite, class_name,            \
+                                            test_function, combination_t,      \
+                                            combination, name_generator)       \
+  BLAS_REGISTER_TEST_CPLX_S_CUSTOM_NAME(test_suite, class_name, test_function, \
+                                        combination_t, combination,            \
+                                        name_generator);                       \
+  BLAS_REGISTER_TEST_CPLX_D_CUSTOM_NAME(test_suite, class_name, test_function, \
+                                        combination_t, combination,            \
+                                        name_generator);
+#endif  // BLAS_ENABLE_COMPLEX
 
 /** Registers test for all supported data types
  * @see BLAS_REGISTER_TEST_CUSTOM_NAME
