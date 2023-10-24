@@ -302,11 +302,6 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
         reinterpret_cast<void*>(c_ref.data() + _base(m, n, batch_idx)), ldc);
   }
 
-  if (batch_type == blas::gemm_batch_type_t::interleaved) {
-    state.SkipWithError("Interleaved unsupported with Complex data types.");
-    *success = false;
-  }
-
 #endif  // BLAS_VERIFY_BENCHMARK
 
   auto a_gpu = blas::helper::allocate<mem_alloc, blas::complex_sycl<scalar_t>>(
@@ -417,7 +412,7 @@ void register_cplx_benchmark(
              batch_type) = p;
     // Only batch_type == strided is supported with Complex data
     if (batch_type == 1) {
-      std::cerr << "interleaved memory for gemm_batched operator is not "
+      std::cerr << "Interleaved memory for gemm_batched operator is not "
                    "supported whith complex data type\n";
       continue;
     }
