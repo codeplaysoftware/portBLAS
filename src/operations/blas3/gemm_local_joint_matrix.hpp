@@ -25,6 +25,8 @@
 #ifndef PORTBLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
 #define PORTBLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
 
+#ifdef SB_ENABLE_JOINT_MATRIX
+
 #include "gemm_common.hpp"
 #include "gemm_load_store_joint_matrix.hpp"
 
@@ -66,7 +68,6 @@ namespace blas {
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  * joint_matrix or not
  */
-#ifdef SB_ENABLE_JOINT_MATRIX
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
           bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
@@ -870,8 +871,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
 };  // Gemm
 
-#endif
-
 }  // namespace blas
 
+#endif  // SB_ENABLE_JOINT_MATRIX
 #endif  // PORTBLAS_BLAS3_LOCAL_GEMM_JOINT_MATRIX_HPP
