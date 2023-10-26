@@ -75,12 +75,20 @@ if(${BLAS_ENABLE_EXTENSIONS})
   list(APPEND sources extension/reduction.cpp)
 endif()
 
+# Operators supporting COMPLEX types benchmarking
+set(CPLX_OPS "gemm" "gemm_batched" "gemm_batched_strided")
+
 # Add individual benchmarks for each method
 foreach(portblas_bench ${sources})
   get_filename_component(bench_exec ${portblas_bench} NAME_WE)
   add_executable(bench_${bench_exec} ${portblas_bench} main.cpp)
   target_link_libraries(bench_${bench_exec} PRIVATE benchmark Clara::Clara portblas bench_info)
   target_compile_definitions(bench_${bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
+  if(${BLAS_ENABLE_COMPLEX})
+    if("${bench_exec}" IN_LIST CPLX_OPS)
+      target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
+    endif()
+  endif()
   add_sycl_to_target(
     TARGET bench_${bench_exec}
     SOURCES ${portblas_bench}
