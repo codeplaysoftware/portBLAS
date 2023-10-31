@@ -160,8 +160,8 @@ const auto combi =
                        ::testing::Values<char>('n', 't'),  // trans_b
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(2),            // alpha
-                       ::testing::Values<scalar_t>(2),            // beta
+                       ::testing::Values<scalar_t>(2.5),            // alpha
+                       ::testing::Values<scalar_t>(3.5),            // beta
                        ::testing::Values<index_t>(1, 2),          // lda_mul
                        ::testing::Values<index_t>(1, 2),          // ldb_mul
                        ::testing::Values<index_t>(1, 2, 3),       // ldc_mul

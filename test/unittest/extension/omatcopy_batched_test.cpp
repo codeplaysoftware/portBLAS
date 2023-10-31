@@ -134,7 +134,7 @@ const auto combi =
                        ::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(0, 2),         // alpha
+                       ::testing::Values<scalar_t>(0, 2.5),         // alpha
                        ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
                        ::testing::Values<index_t>(1, 2, 3),       // ld_out_m
                        ::testing::Values<index_t>(1, 3),          // stride_in_m
