@@ -1,0 +1,76 @@
+/***************************************************************************
+ *
+ *  @license
+ *  Copyright (C) Codeplay Software Limited
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  For your convenience, a copy of the License has been included in this
+ *  repository.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  portBLAS: BLAS implementation using SYCL
+ *
+ *  @filename axpy_batch.cpp.in
+ *
+ **************************************************************************/
+
+#include "interface/extension_interface.hpp"
+#include "operations/extension/axpy_batch.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
+#include "sb_handle/kernel_constructor.hpp"
+#include "sb_handle/portblas_handle.hpp"
+
+namespace blas {
+namespace internal {
+
+/**
+ * \brief AXPY_BATCH constant times a vector plus a vector.
+ *
+ * Implements AXPY_BATCH \f$y = ax + y\f$
+ *
+ * @param SB_Handle
+ * @param _vx  ${DATA_TYPE}
+ * @param _incx Increment in X axis
+ * @param _stridex Stride distance of vector in X
+ * @param _vy  ${DATA_TYPE}
+ * @param _incy Increment in Y axis
+ * @param _stridey Stride distance of vector in Y
+ * @param _batch_size number of batches
+ */
+
+template typename SB_Handle::event_t _axpy_batch(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    BufferIterator<${DATA_TYPE}> _vx, ${INDEX_TYPE} _incx,
+    ${INDEX_TYPE} _stridex, BufferIterator<${DATA_TYPE}> _vy,
+    ${INDEX_TYPE} _incy, ${INDEX_TYPE} _stridey,
+    ${INDEX_TYPE} _batch_size,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _axpy_batch(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    ${DATA_TYPE} * _vx, ${INDEX_TYPE} _incx, ${INDEX_TYPE} _stridex,
+    ${DATA_TYPE} * _vy, ${INDEX_TYPE} _incy, ${INDEX_TYPE} _stridey,
+    ${INDEX_TYPE} _batch_size,
+    const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _axpy_batch(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, ${DATA_TYPE} _alpha,
+    const ${DATA_TYPE} * _vx, ${INDEX_TYPE} _incx,
+    ${INDEX_TYPE} _stridex, ${DATA_TYPE} * _vy, ${INDEX_TYPE} _incy,
+    ${INDEX_TYPE} _stridey, ${INDEX_TYPE} _batch_size,
+    const typename SB_Handle::event_t& dependencies);
+#endif
+
+}  // namespace internal
+}  // end namespace blas

@@ -146,6 +146,14 @@ typename sb_handle_t::event_t _transpose_add_impl(
     index_t _ldc, index_t _stride_c, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies);
 
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _axpy_batch(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies);
+
 }  // namespace internal
 
 /**
@@ -349,6 +357,34 @@ typename sb_handle_t::event_t _omatadd_batch(
                                   stride_c, batch_size, _dependencies);
 }
 
+/**
+ * \brief Compute a batch of AXPY operation all together
+ *
+ * Implements AXPY \f$y = ax + y\f$
+ *
+ * @param sb_handle SB_Handle
+ * @param _alpha scalar
+ * @param _vx BufferIterator or USM pointer
+ * @param _incx Increment for the vector X
+ * @param _stride_x Stride distance of two consecutive vectors in X
+ * @param _vy BufferIterator or USM pointer
+ * @param _incy Increment for the vector Y
+ * @param _stride_y Stride distance of two consecutive vectors in Y
+ * @param _batch_size number of axpy operations to compute
+ * @param _dependencies Vector of events
+ */
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _axpy_batch(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies = {}) {
+  return internal::_axpy_batch(sb_handle, _N, _alpha, _vx, _incx, _stride_x,
+                               _vy, _incy, _stride_y, _batch_size,
+                               _dependencies);
+}
+
 namespace extension {
 /**
  * \brief Transpose a Matrix in-place
@@ -417,7 +453,6 @@ typename sb_handle_t::event_t _reduction(
 }
 
 }  // namespace extension
-
 }  // namespace blas
 
 #endif  // PORTBLAS_EXTENSION_INTERFACE_H
