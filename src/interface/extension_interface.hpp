@@ -602,8 +602,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename element_t, typename index_t>
 typename sb_handle_t::event_t _axpy_batch(
     sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
-    index_t _incx, index_t _stride_x, container_1_t _vy,
-    index_t _incy, index_t _stride_y, index_t _batch_size,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies) {
   // if inc are of opposite sign the values are exchanged. It doesn't matter
   // which one is positive or negative, so to simplify index computation in
@@ -613,7 +613,8 @@ typename sb_handle_t::event_t _axpy_batch(
     _incy = -_incy;
   }
   typename VectorViewType<container_0_t, index_t, index_t>::type vx =
-      make_vector_view(_vx, static_cast<index_t>(_incx), static_cast<index_t>(_N * _batch_size));
+      make_vector_view(_vx, static_cast<index_t>(_incx),
+                       static_cast<index_t>(_N * _batch_size));
   auto vy = make_vector_view(_vy, _incy, _N * _batch_size);
   const auto local_size = sb_handle.get_work_group_size();
   const auto nWG = (_N + local_size - 1) / local_size;
