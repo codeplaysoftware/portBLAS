@@ -63,6 +63,7 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatadd_batched_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/axpy_batch_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
