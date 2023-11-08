@@ -30,6 +30,6 @@
 
 template <int VecSize, int Cls, typename Tile, bool DoubleBuffer, bool Nbca,
           bool Nbcb, typename Config, typename T>
-TestResultEntry tune(int r, GemmArgs<T> a);
+TestResultEntry tune(portblas_handle_t &sb_handle, int r, GemmArgs<T> a);
 
 #endif  // PORTBLAS_TOOLS_AUTO_TUNER_TUNE_HPP_

@@ -56,8 +56,11 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
-  run_tune_gemm<transA, transB, float>(seed, m, k, n, batch_size, rep,
-                                       batch_type);
+
+  portblas_handle_t sb_handle(make_sycl_queue());
+
+  run_tune_gemm<transA, transB, float>(sb_handle, seed, m, k, n, batch_size,
+                                       rep, batch_type);
 
   return 0;
 }
