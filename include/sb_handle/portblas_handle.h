@@ -54,6 +54,8 @@ class SB_Handle {
         localMemorySupport_(helper::has_local_memory(q)),
         computeUnits_(helper::get_num_compute_units(q)),
         tot_size_temp_mem_(0) {}
+  SB_Handle(SB_Handle&) = delete;
+  SB_Handle operator=(SB_Handle) = delete;
 
   ~SB_Handle() {
 #ifdef VERBOSE
@@ -62,7 +64,6 @@ class SB_Handle {
 #endif
 
 #ifdef SB_ENABLE_USM
-    // synchronize with the host on destruction
     q_.wait();
 
 #ifdef VERBOSE
