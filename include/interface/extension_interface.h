@@ -154,6 +154,15 @@ typename sb_handle_t::event_t _axpy_batch(
     index_t _stride_y, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies);
 
+template <int localSize, int maxBlockPerBatch, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename element_t,
+          typename index_t>
+typename sb_handle_t::event_t _axpy_batch_impl(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies, index_t global_size);
+
 }  // namespace internal
 
 /**

@@ -30,8 +30,9 @@
 
 namespace blas {
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-Axpy_batch<same_sign, lhs_t, rhs_t>::Axpy_batch(
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::Axpy_batch(
     lhs_t _lhs, rhs_t _rhs, typename lhs_t::value_t _alpha,
     typename rhs_t::index_t _N, typename rhs_t::index_t _inc_l,
     typename rhs_t::index_t _lhs_stride, typename rhs_t::index_t _inc_r,
@@ -46,69 +47,107 @@ Axpy_batch<same_sign, lhs_t, rhs_t>::Axpy_batch(
       rhs_stride_(_rhs_stride),
       batch_size_(_batch_size){};
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
 PORTBLAS_INLINE typename lhs_t::value_t
-Axpy_batch<same_sign, lhs_t, rhs_t>::eval(index_t i) {}
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
+    index_t i) {}
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
 PORTBLAS_INLINE typename lhs_t::value_t
-Axpy_batch<same_sign, lhs_t, rhs_t>::eval(cl::sycl::nd_item<1> ndItem) {
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
+    cl::sycl::nd_item<1> ndItem) {
   const index_t n{n_};
   const value_t alpha{alpha_};
+  const auto vx = rhs_.get_data();
+  const auto vy = lhs_.get_data();
+  const auto nbl = sycl::min((n + localSize - 1) / localSize,
+                             static_cast<index_t>(maxBlockPerBatch));
 
-  const index_t l_id = static_cast<index_t>(ndItem.get_global_linear_id() % n);
-  const index_t group_id =
-      static_cast<index_t>(ndItem.get_global_linear_id() / n);
+  const index_t block_id = ndItem.get_group(0) % nbl;
+  const index_t l_id =
+      static_cast<index_t>(ndItem.get_local_range(0)) * block_id +
+      ndItem.get_local_id(0);
+  // const index_t group_id =
+  // static_cast<index_t>(ndItem.get_global_linear_id() / n);
+  const index_t group_id = static_cast<index_t>(ndItem.get_group(0) / nbl);
 
-  if (group_id >= batch_size_) return {};
+  const index_t size_compute_rateo =
+      (n > nbl * localSize) ? n / (nbl * localSize) : batch_size_;
+  const index_t jump_value{sycl::min(batch_size_, size_compute_rateo)};
 
-  if constexpr (same_sign) {
-    const index_t x_index = group_id * rhs_stride_ + l_id * inc_r;
-    const index_t y_index = group_id * lhs_stride_ + l_id * inc_l;
+  if (group_id >= jump_value || l_id > n) return {};
 
-    const value_t ax = alpha * rhs_.get_data()[x_index];
-    lhs_.get_data()[y_index] += ax;
+  const index_t stride_x = ndItem.get_local_range(0) * nbl * inc_r;
+  const index_t stride_y = ndItem.get_local_range(0) * nbl * inc_l;
+  index_t x_index{};
+  index_t y_index{};
+  int j{0};
+
+  if constexpr (sameSign) {
+    for (auto out_loop = group_id; out_loop < batch_size_;
+         out_loop += jump_value) {
+      x_index = out_loop * rhs_stride_ + l_id * inc_r;
+      y_index = out_loop * lhs_stride_ + l_id * inc_l;
+      j = y_index;
+      for (auto i = x_index; i < (out_loop * rhs_stride_) + n * inc_r;
+           i += stride_x, j += stride_y) {
+        vy[j] += alpha * vx[i];
+      }
+    }
 
   } else {
-    const index_t x_index =
-        group_id * rhs_stride_ + inc_r + n * sycl::abs(inc_r) + l_id * inc_r;
-    const index_t y_index = group_id * lhs_stride_ + l_id * inc_l;
-
-    const value_t ax = alpha * rhs_.get_data()[x_index];
-    lhs_.get_data()[y_index] += ax;
+    for (auto out_loop = group_id; out_loop < batch_size_;
+         out_loop += jump_value) {
+      x_index =
+          out_loop * rhs_stride_ + inc_r + n * sycl::abs(inc_r) + l_id * inc_r;
+      y_index = out_loop * lhs_stride_ + l_id * inc_l;
+      j = y_index;
+      for (auto i = x_index; i >= (out_loop * rhs_stride_);
+           i += stride_x, j += stride_y) {
+        vy[j] += alpha * vx[i];
+      }
+    }
   }
 
   return {};
 }
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
 template <typename sharedT>
 PORTBLAS_INLINE typename lhs_t::value_t
-Axpy_batch<same_sign, lhs_t, rhs_t>::eval(sharedT shMem,
-                                          sycl::nd_item<1> ndItem){};
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
+    sharedT shMem, sycl::nd_item<1> ndItem){};
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void Axpy_batch<same_sign, lhs_t, rhs_t>::bind(
-    cl::sycl::handler& h) {
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE void Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t,
+                                rhs_t>::bind(cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_.bind(h);
 }
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void
-Axpy_batch<same_sign, lhs_t, rhs_t>::adjust_access_displacement() {
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE void Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t,
+                                rhs_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_.adjust_access_displacement();
 }
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE typename rhs_t::index_t
-Axpy_batch<same_sign, lhs_t, rhs_t>::get_size() const {
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE typename rhs_t::index_t Axpy_batch<
+    sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::get_size() const {
   return n_ * batch_size_;
 }
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE bool Axpy_batch<same_sign, lhs_t, rhs_t>::valid_thread(
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+PORTBLAS_INLINE bool
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }

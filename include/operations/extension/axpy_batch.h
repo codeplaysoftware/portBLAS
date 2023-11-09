@@ -27,7 +27,8 @@
 
 namespace blas {
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
 struct Axpy_batch {
   using value_t = typename lhs_t::value_t;
   using index_t = typename rhs_t::index_t;
@@ -50,15 +51,16 @@ struct Axpy_batch {
   void adjust_access_displacement();
 };
 
-template <bool same_sign, typename lhs_t, typename rhs_t>
-Axpy_batch<same_sign, lhs_t, rhs_t> make_axpy_batch(
+template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
+          typename rhs_t>
+Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t> make_axpy_batch(
     lhs_t _lhs, rhs_t _rhs_1, typename rhs_t::value_t _alpha,
     typename rhs_t::index_t _N, typename rhs_t::index_t _inc_l,
     typename rhs_t::index_t _lhs_stride, typename rhs_t::index_t _inc_r,
     typename rhs_t::index_t _rhs_stride, typename rhs_t::index_t _batch_size) {
-  return Axpy_batch<same_sign, lhs_t, rhs_t>(_lhs, _rhs_1, _alpha, _N, _inc_l,
-                                             _lhs_stride, _inc_r, _rhs_stride,
-                                             _batch_size);
+  return Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>(
+      _lhs, _rhs_1, _alpha, _N, _inc_l, _lhs_stride, _inc_r, _rhs_stride,
+      _batch_size);
 }
 
 }  // namespace blas
