@@ -146,11 +146,10 @@ typename sb_handle_t::event_t _axpy_batch(
   constexpr index_t local_size = static_cast<index_t>(256);
   const auto nWG = (_N + local_size - 1) / local_size;
   // the limit for _N*batch_size is taken empirically from test on intelGPU
-  const index_t global_size =
-      (_N * _batch_size >= 327680)
-          ? (_N > (1 << 19)) ? (local_size * nWG) / 4 : local_size * nWG
-          : local_size * nWG * _batch_size;
-  return blas::internal::_axpy_batch_impl<256, 32>(
+  const index_t global_size = (_N * _batch_size > 327680)
+                                  ? local_size * nWG
+                                  : local_size * nWG * _batch_size;
+  return blas::internal::_axpy_batch_impl<256, 128>(
       sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
       _batch_size, _dependencies, global_size);
 }

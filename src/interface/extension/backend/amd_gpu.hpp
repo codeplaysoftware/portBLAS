@@ -153,7 +153,7 @@ typename sb_handle_t::event_t _axpy_batch(
   const auto nWG = (_N + local_size - 1) / local_size;
   // the limit for _N*batch_size is taken empirically from test on AMDW6800
   const index_t global_size =
-      (_N * _batch_size >= 327680)
+      (_N * _batch_size >= 163840)
           ? (_N > (1 << 19)) ? (local_size * nWG) / 4 : local_size * nWG
           : local_size * nWG * _batch_size;
   return blas::internal::_axpy_batch_impl<256, 32>(
