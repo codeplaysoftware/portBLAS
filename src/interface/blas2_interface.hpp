@@ -87,6 +87,7 @@ typename sb_handle_t::event_t _gemv_impl(
 
   constexpr bool is_usm = std::is_pointer<container_t0>::value;
   typename sb_handle_t::event_t ret;
+  typename sb_handle_t::event_t lastEvent;
   // Non-local memory kernel
   if (memory_type != gemv_memory_t::local) {
     // Leading dimension for dot products matrix
@@ -126,17 +127,19 @@ typename sb_handle_t::event_t _gemv_impl(
 
       // exectutes the above expression tree to yield the final GEMV result
       ret = concatenate_vectors(
-          gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
+          gemvEvent,
+          lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
 
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, dot_products_matrix);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
       ret = concatenate_vectors(
-          gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
+          gemvEvent,
+          lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    sb_handle.template release_temp_mem(ret, dot_products_buffer);
+    sb_handle.template release_temp_mem(lastEvent, dot_products_buffer);
 
   } else  // Local memory kernel
   {
@@ -196,16 +199,18 @@ typename sb_handle_t::event_t _gemv_impl(
 
       // exectutes the above expression tree to yield the final GEMV result
       ret = concatenate_vectors(
-          gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
+          gemvEvent,
+          lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
     } else {
       auto alphaMulDotsOp =
           make_op<ScalarOp, ProductOperator>(_alpha, sumColsOp);
       auto assignOp = make_op<Assign>(vy, alphaMulDotsOp);
       ret = concatenate_vectors(
-          gemvEvent, sb_handle.execute(assignOp, local_range, gemvEvent));
+          gemvEvent,
+          lastEvent = sb_handle.execute(assignOp, local_range, gemvEvent));
     }
 
-    sb_handle.template release_temp_mem(ret, dot_products_buffer);
+    sb_handle.template release_temp_mem(lastEvent, dot_products_buffer);
   }
   return ret;
 }
@@ -330,10 +335,12 @@ typename sb_handle_t::event_t _trmv_impl(
     }
   }
   auto addMOp = make_sum_matrix_columns(mat1);
+  typename sb_handle_t::event_t lastEvent;
   auto assignOp = make_op<Assign>(vx, addMOp);
-  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
+  ret = concatenate_vectors(
+      ret, lastEvent = sb_handle.execute(assignOp, localSize, ret));
 
-  sb_handle.template release_temp_mem(ret, valT1);
+  sb_handle.template release_temp_mem(lastEvent, valT1);
 
   return ret;
 }
@@ -512,10 +519,13 @@ typename sb_handle_t::event_t _symv_impl(
   auto scalOp2 = make_op<ScalarOp, ProductOperator>(_alpha, addMOp);
   auto addOp = make_op<BinaryOp, AddOperator>(scalOp1, scalOp2);
   auto assignOp = make_op<Assign>(vy, addOp);
-  ret = concatenate_vectors(ret, sb_handle.execute(assignOp, localSize, ret));
 
-  sb_handle.template release_temp_mem(ret, valTR);
-  sb_handle.template release_temp_mem(ret, valTC);
+  typename sb_handle_t::event_t lastEvent;
+  ret = concatenate_vectors(
+      ret, lastEvent = sb_handle.execute(assignOp, localSize, ret));
+
+  sb_handle.template release_temp_mem(lastEvent, valTR);
+  sb_handle.template release_temp_mem(lastEvent, valTC);
 
   return ret;
 }
@@ -669,7 +679,7 @@ typename sb_handle_t::event_t _tbmv_impl(
   auto assignEvent = sb_handle.execute(assignOp, local_range, tbmvEvent);
   auto ret = concatenate_vectors(tbmvEvent, assignEvent);
 
-  sb_handle.template release_temp_mem(ret, res_buffer);
+  sb_handle.template release_temp_mem(assignEvent, res_buffer);
 
   return ret;
 }
@@ -720,10 +730,11 @@ typename sb_handle_t::event_t _tpmv_impl(
       _dependencies);
 
   auto assignOp = make_op<Assign>(vx, vres);
-  auto ret =
-      concatenate_vectors(tpmvEvent, sb_handle.execute(assignOp, tpmvEvent));
+  typename sb_handle_t::event_t lastEvent;
+  auto ret = concatenate_vectors(
+      tpmvEvent, lastEvent = sb_handle.execute(assignOp, tpmvEvent));
 
-  sb_handle.template release_temp_mem(ret, res_buffer);
+  sb_handle.template release_temp_mem(lastEvent, res_buffer);
 
   return ret;
 }

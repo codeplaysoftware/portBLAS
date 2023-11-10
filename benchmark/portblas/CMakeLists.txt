@@ -96,6 +96,10 @@ foreach(portblas_bench ${sources})
   )
   target_include_directories(bench_${bench_exec} PRIVATE ${PORTBLAS_INCLUDE} ${CBLAS_INCLUDE} ${PORTBLAS_COMMON_INCLUDE_DIR})
 
+  if(BLAS_MEMPOOL_BENCHMARK)
+    target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_MEMPOOL_BENCHMARK)
+  endif()
+
   if(BLAS_VERIFY_BENCHMARK)
     target_compile_definitions(bench_${bench_exec} PRIVATE BLAS_VERIFY_BENCHMARK)
     target_link_libraries(bench_${bench_exec} PRIVATE blas::blas)

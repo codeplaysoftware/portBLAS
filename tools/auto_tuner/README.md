@@ -21,6 +21,17 @@ $ ninja
 
 See the Setup section in this repository's main readme for more details.
 
+Make options
+------------
+
+CMake options are given using `-D` immediately followed by the option name, the
+symbol `=` and a value (`ON` and `OFF` can be used for boolean options and are
+equivalent to 1 and 0). Example: `-DBLAS_ENABLE_TESTING=OFF`
+
+| name | value | description |
+|---|---|---|
+| `BLAS_MEMPOOL_BENCHMARK` | `ON`/`OFF` | Enable the scratchpad memory pool, useful just in case of tall skinny matrices. `OFF` by default |
+
 Usage
 -----
 

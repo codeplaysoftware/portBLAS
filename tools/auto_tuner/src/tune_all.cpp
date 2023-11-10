@@ -54,7 +54,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+#ifdef BLAS_ENABLE_AUTO_TUNER_MEMPOOL
+  Temp_Mem_Pool mem_pool(make_sycl_queue());
+  portblas_handle_t sb_handle(&mem_pool);
+#else
   portblas_handle_t sb_handle(make_sycl_queue());
+#endif
 
   std::cout << "======= testing nn ======" << std::endl;
   run_tune_gemm<false, false, float>(sb_handle, seed, m, k, n, batch_size, rep,

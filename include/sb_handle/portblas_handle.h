@@ -22,6 +22,7 @@
  *  @filename portblas_handle.h
  *
  **************************************************************************/
+
 #ifndef PORTBLAS_HANDLE_H
 #define PORTBLAS_HANDLE_H
 #include "blas_meta.h"
@@ -30,8 +31,7 @@
 #include "operations/blas3_trees.h"
 #include "operations/extension/reduction.h"
 #include "portblas_helper.h"
-#include <map>
-#include <mutex>
+#include "temp_memory_pool.h"
 
 namespace blas {
 
@@ -49,40 +49,18 @@ class SB_Handle {
  public:
   using event_t = std::vector<cl::sycl::event>;
   inline SB_Handle(queue_t q)
-      : q_(q),
+      : tempMemPool_(NULL),
+        q_(q),
         workGroupSize_(helper::get_work_group_size(q)),
         localMemorySupport_(helper::has_local_memory(q)),
-        computeUnits_(helper::get_num_compute_units(q)),
-        tot_size_temp_mem_(0) {}
-  SB_Handle(SB_Handle&) = delete;
-  SB_Handle operator=(SB_Handle) = delete;
+        computeUnits_(helper::get_num_compute_units(q)) {}
 
-  ~SB_Handle() {
-#ifdef VERBOSE
-    std::cout << "Buffers destroyed on SB_Handle destruction: "
-              << temp_buffer_map_.size() << std::endl;
-#endif
-
-#ifdef SB_ENABLE_USM
-    q_.wait();
-
-#ifdef VERBOSE
-    std::cout << "USM allocations freed on SB_Handle destruction: "
-              << temp_usm_map_.size() << std::endl;
-#endif
-
-    for (const temp_usm_map_t::value_type& p : temp_usm_map_)
-      cl::sycl::free(p.second, q_);
-#endif
-  }
-
-#ifdef SB_ENABLE_USM
-  template <helper::AllocType alloc, typename value_t>
-  typename std::enable_if<
-      alloc == helper::AllocType::usm,
-      typename helper::AllocHelper<value_t, alloc>::type>::type
-  acquire_temp_mem(size_t size);
-#endif
+  inline SB_Handle(Temp_Mem_Pool* tmp)
+      : tempMemPool_(tmp),
+        q_(tmp->get_queue()),
+        workGroupSize_(helper::get_work_group_size(q_)),
+        localMemorySupport_(helper::has_local_memory(q_)),
+        computeUnits_(helper::get_num_compute_units(q_)) {}
 
   template <helper::AllocType alloc, typename value_t>
   typename std::enable_if<
@@ -90,24 +68,29 @@ class SB_Handle {
       typename helper::AllocHelper<value_t, alloc>::type>::type
   acquire_temp_mem(size_t size);
 
-#ifdef SB_ENABLE_USM
-  template <typename container_t>
-  typename std::enable_if<
-      std::is_same<container_t, typename helper::AllocHelper<
-                                    typename ValueType<container_t>::type,
-                                    helper::AllocType::usm>::type>::value,
-      cl::sycl::event>::type
-  release_temp_mem(std::vector<cl::sycl::event> dependencies,
-                   const container_t& mem);
-#endif
-
   template <typename container_t>
   typename std::enable_if<
       std::is_same<container_t, typename helper::AllocHelper<
                                     typename ValueType<container_t>::type,
                                     helper::AllocType::buffer>::type>::value,
-      cl::sycl::event>::type
-  release_temp_mem(std::vector<cl::sycl::event>, const container_t& mem);
+      typename SB_Handle::event_t>::type
+  release_temp_mem(const typename SB_Handle::event_t&, const container_t&);
+
+#ifdef SB_ENABLE_USM
+  template <helper::AllocType alloc, typename value_t>
+  typename std::enable_if<
+      alloc == helper::AllocType::usm,
+      typename helper::AllocHelper<value_t, alloc>::type>::type
+  acquire_temp_mem(size_t size);
+
+  template <typename container_t>
+  typename std::enable_if<
+      std::is_same<container_t, typename helper::AllocHelper<
+                                    typename ValueType<container_t>::type,
+                                    helper::AllocType::usm>::type>::value,
+      typename SB_Handle::event_t>::type
+  release_temp_mem(const typename SB_Handle::event_t&, const container_t&);
+#endif
 
   template <typename expression_tree_t>
   event_t execute(expression_tree_t tree, const event_t& dependencies = {});
@@ -204,27 +187,13 @@ class SB_Handle {
   }
 
  private:
-  using temp_usm_map_t = std::multimap<size_t, void*>;
-  using temp_usm_size_map_t = std::map<void*, size_t>;
-  using temp_buffer_map_t = std::multimap<size_t, cl::sycl::buffer<int8_t, 1>>;
-  static_assert(sizeof(temp_buffer_map_t::mapped_type::value_type) == 1);
-
   queue_t q_;
   const size_t workGroupSize_;
   const bool localMemorySupport_;
   const size_t computeUnits_;
-
-  size_t tot_size_temp_mem_;
-  static constexpr size_t max_size_temp_mem_ = 1e9;
-
-  std::mutex map_mutex_;
-#ifdef SB_ENABLE_USM
-  temp_usm_map_t temp_usm_map_;
-  temp_usm_size_map_t temp_usm_size_map_;
-#endif
-  temp_buffer_map_t temp_buffer_map_;
+  Temp_Mem_Pool* tempMemPool_;
 };
 
 }  // namespace blas
-#undef VERBOSE
+
 #endif  // PORTBLAS_HANDLE_H

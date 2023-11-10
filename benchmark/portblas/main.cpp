@@ -66,8 +66,14 @@ int main(int argc, char** argv) {
 
   utils::print_queue_information(q);
 
+#ifdef BLAS_MEMPOOL_BENCHMARK
+  blas::Temp_Mem_Pool mp(q);
+  // Create a portBLAS sb_handle from the memory pool
+  blas::SB_Handle sb_handle(&mp);
+#else
   // Create a portBLAS sb_handle from the queue
   blas::SB_Handle sb_handle(q);
+#endif
 
   // This will be set to false by a failing benchmark
   bool success = true;
