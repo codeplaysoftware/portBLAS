@@ -152,8 +152,10 @@ typename sb_handle_t::event_t _sdsdot(
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
   if (!_N) {
+    using element_t = typename ValueType<container_2_t>::type;
     sb_handle.wait(_dependencies);
-    auto ret = blas::helper::copy_to_device(sb_handle.get_queue(), &sb, _rs, 1);
+    auto ret = blas::helper::copy_to_device(
+        sb_handle.get_queue(), reinterpret_cast<element_t *>(&sb), _rs, 1);
     sb_handle.wait(ret);
     return {ret};
   } else {
