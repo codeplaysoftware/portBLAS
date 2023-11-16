@@ -35,7 +35,7 @@ template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
   std::string alloc;
   index_t N;
-  scalar_t sb;
+  float sb;
   index_t incX;
   index_t incY;
   api_type api;
@@ -104,7 +104,7 @@ void run_test(const combination_t<scalar_t> combi) {
 
   std::string alloc;
   index_t N;
-  scalar_t sb;
+  float sb;
   index_t incX;
   index_t incY;
   api_type api;
@@ -127,7 +127,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1002, 1002400),            // N
-    ::testing::Values<scalar_t>(9.5f, 0.5f),             // sb
+    ::testing::Values<float>(9.5f, 0.5f),                // sb
     ::testing::Values(1, 4),                             // incX
     ::testing::Values(1, 3)                              // incY
 );
@@ -137,7 +137,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 1002, 0),                      // N
-    ::testing::Values<scalar_t>(9.5f, 0.5f, 0.0f),       // sb
+    ::testing::Values<float>(9.5f, 0.5f, 0.0f),          // sb
     ::testing::Values(1, 4),                             // incX
     ::testing::Values(1, 3)                              // incY
 
@@ -149,7 +149,7 @@ static std::string generate_name(
     const ::testing::TestParamInfo<combination_t<T>>& info) {
   std::string alloc;
   int size, incX, incY;
-  T sb;
+  float sb;
   api_type api;
   BLAS_GENERATE_NAME(info.param, alloc, api, size, sb, incX, incY);
 }
