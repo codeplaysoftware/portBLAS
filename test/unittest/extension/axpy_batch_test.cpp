@@ -45,7 +45,7 @@ void run_test(const combination_t<scalar_t> combi) {
   const index_t stride_x{size * std::abs(incX) * stride_mul_x};
   const index_t stride_y{size * std::abs(incY) * stride_mul_y};
 
-  auto x_size = stride_x * batch_size;
+  auto x_size = (stride_x) ? stride_x * batch_size : size * std::abs(incX);
   auto y_size = stride_y * batch_size;
   // Input vector
   std::vector<scalar_t> x_v(x_size);
@@ -132,7 +132,7 @@ const auto combi =
                        ::testing::Values<scalar_t>(0.0, 1.3),   // alpha
                        ::testing::Values(1, -1, 2, -4),         // incX
                        ::testing::Values(1, -1, 3, -5),         // incY
-                       ::testing::Values(1, 2, 3),              // stride_mul_x
+                       ::testing::Values(0, 1, 2, 3),           // stride_mul_x
                        ::testing::Values(1, 2, 3),              // stride_mul_y
                        ::testing::Values(5)                     // batch_size
     );

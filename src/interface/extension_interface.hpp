@@ -624,10 +624,11 @@ typename sb_handle_t::event_t _axpy_batch_impl(
     _incx = -_incx;
     _incy = -_incy;
   }
+  // if _stride_x is zero use _N as vx size
+  const index_t overall_vx_size = (_stride_x) ? _stride_x * _batch_size : _N;
   typename VectorViewType<container_0_t, index_t, index_t>::type vx =
-      make_vector_view(_vx, static_cast<index_t>(_incx),
-                       static_cast<index_t>(_N * _batch_size));
-  auto vy = make_vector_view(_vy, _incy, _N * _batch_size);
+      make_vector_view(_vx, static_cast<index_t>(_incx), overall_vx_size);
+  auto vy = make_vector_view(_vy, _incy, _stride_y * _batch_size);
   // If both vectors are read from the same side it doesn't matter the sign of
   // the increment
   if (_incx * _incy > 0) {

@@ -45,7 +45,9 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::Axpy_batch(
       lhs_stride_(_lhs_stride),
       inc_r(_inc_r),
       rhs_stride_(_rhs_stride),
-      batch_size_(_batch_size){};
+      batch_size_(_batch_size),
+      n_block_per_loop(std::min((n_ + localSize - 1) / localSize,
+                                static_cast<index_t>(maxBlockPerBatch))){};
 
 template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
@@ -62,15 +64,12 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
   const value_t alpha{alpha_};
   const auto vx = rhs_.get_data();
   const auto vy = lhs_.get_data();
-  const auto nbl = sycl::min((n + localSize - 1) / localSize,
-                             static_cast<index_t>(maxBlockPerBatch));
+  const auto nbl{n_block_per_loop};
 
   const index_t block_id = ndItem.get_group(0) % nbl;
   const index_t l_id =
       static_cast<index_t>(ndItem.get_local_range(0)) * block_id +
       ndItem.get_local_id(0);
-  // const index_t group_id =
-  // static_cast<index_t>(ndItem.get_global_linear_id() / n);
   const index_t group_id = static_cast<index_t>(ndItem.get_group(0) / nbl);
 
   const index_t size_compute_rateo =
@@ -83,7 +82,7 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
   const index_t stride_y = ndItem.get_local_range(0) * nbl * inc_l;
   index_t x_index{};
   index_t y_index{};
-  int j{0};
+  int j{};
 
   if constexpr (sameSign) {
     for (auto out_loop = group_id; out_loop < batch_size_;
@@ -100,8 +99,7 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
   } else {
     for (auto out_loop = group_id; out_loop < batch_size_;
          out_loop += jump_value) {
-      x_index =
-          out_loop * rhs_stride_ + inc_r + n * sycl::abs(inc_r) + l_id * inc_r;
+      x_index = out_loop * rhs_stride_ + inc_r + n * (-inc_r) + l_id * inc_r;
       y_index = out_loop * lhs_stride_ + l_id * inc_l;
       j = y_index;
       for (auto i = x_index; i >= (out_loop * rhs_stride_);

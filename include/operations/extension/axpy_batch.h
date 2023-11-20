@@ -27,6 +27,30 @@
 
 namespace blas {
 
+/*!
+ * This class holds the kernel implementation to perform axpy_batch
+ * operator.
+ *
+ * It has three additional template parameters to keep the operation simple and
+ * to avoid some computation or code divergence inside the kernel code.
+ *
+ * If sameSign is false the kernel always assumes that inc_r is negative. This
+ * is true by construction. When the increases are of different sizes the result
+ * positions are swapped and indexes must be computed accordingly. Keeping
+ * always inc_r negative and inc_l positive reduces keep index
+ * computation consistent, obtaining the correct result.
+ *
+ * sameSign indicate if inc_r and inc_l are of the sameSign. The code
+ * implementation need to follow different index computation. This template
+ * allow the condition at compile time, avoiding code divergency.
+ *
+ * localSize local size of group, allow some device tailoring at compile
+ * time.
+ *
+ * maxBlockPerBatch set the number of device group to use for each
+ * batch. If possible multiple batches are computed concurrently.
+ */
+
 template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
 struct Axpy_batch {
@@ -36,7 +60,8 @@ struct Axpy_batch {
   lhs_t lhs_;
   rhs_t rhs_;
   value_t alpha_;
-  index_t n_, inc_r, inc_l, lhs_stride_, rhs_stride_, batch_size_;
+  index_t n_, inc_r, inc_l, lhs_stride_, rhs_stride_, batch_size_,
+      n_block_per_loop;
 
   Axpy_batch(lhs_t _lhs, rhs_t _rhs_1, value_t _alpha, index_t _N,
              index_t _inc_l, index_t _lhs_stride, index_t _inc_r,
