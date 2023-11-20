@@ -206,6 +206,31 @@ struct WGAtomicReduction {
   void adjust_access_displacement();
 };
 
+/*! .
+ * @brief Generic implementation for operators that require a
+ * reduction inside kernel code for computing index of max/min value within the
+ * input. (i.e. iamax and iamin)
+ *
+ * The class is constructed using the make_integer_max_min
+ * function below.
+ *
+ */
+template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
+struct IntegerMaxMin {
+  using value_t = typename rhs_t::value_t;
+  using index_t = typename rhs_t::index_t;
+  lhs_t lhs_;
+  rhs_t rhs_;
+  IntegerMaxMin(lhs_t &_l, rhs_t &_r);
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  void eval(cl::sycl::nd_item<1> ndItem);
+  template <typename sharedT>
+  void eval(sharedT scratch, cl::sycl::nd_item<1> ndItem);
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
 /*! Rotg.
  * @brief Implements the rotg (blas level 1 api)
  */
@@ -260,6 +285,12 @@ template <typename operator_t, typename lhs_t, typename rhs_t>
 inline WGAtomicReduction<operator_t, lhs_t, rhs_t> make_wg_atomic_reduction(
     lhs_t &lhs_, rhs_t &rhs_) {
   return WGAtomicReduction<operator_t, lhs_t, rhs_t>(lhs_, rhs_);
+}
+
+template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
+inline IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t> make_integer_max_min(
+    lhs_t &lhs_, rhs_t &rhs_) {
+  return IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>(lhs_, rhs_);
 }
 
 /*!

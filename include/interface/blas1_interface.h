@@ -144,6 +144,14 @@ typename sb_handle_t::event_t _asum_impl(
     container_1_t _rs, const index_t number_WG,
     const typename sb_handle_t::event_t &_dependencies);
 
+template <int localSize, int localMemSize, bool single, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _iamax_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t nWG,
+    const typename sb_handle_t::event_t &_dependencies);
+
 /**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx BufferIterator or USM pointer
@@ -156,6 +164,15 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies);
+
+template <int localSize, int localMemSize, bool single, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _iamin_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t nWG,
+    const typename sb_handle_t::event_t &_dependencies);
+
 /**
  * \brief IAMIN finds the index of the first element having minimum
  * @param _vx BufferIterator or USM pointer

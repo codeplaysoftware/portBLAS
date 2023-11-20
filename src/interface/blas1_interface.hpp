@@ -253,6 +253,68 @@ typename sb_handle_t::event_t _asum_impl(
 }
 #endif
 
+template <int localSize, int localMemSize, bool single, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _iamax_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t nWG,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
+      make_vector_view(_vx, _incx, _N);
+  auto rs = make_vector_view<index_t>(_rs, static_cast<increment_t>(1),
+                                      static_cast<index_t>(1));
+  auto tupOp = make_tuple_op(vx);
+  typename sb_handle_t::event_t ret;
+  if constexpr (single) {
+    auto iamax_op = make_integer_max_min<true, false>(rs, tupOp);
+    if constexpr (localMemSize == 0) {
+      auto q = sb_handle.get_queue();
+      const index_t sg_size = static_cast<index_t>(
+          q.get_device()
+              .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+      ret = sb_handle.execute(iamax_op, sg_size, sg_size, _dependencies);
+    } else {
+      ret = sb_handle.execute(iamax_op, localSize, nWG * localSize,
+                              localMemSize, _dependencies);
+    }
+  } else {
+    using scalar_t = typename ValueType<container_0_t>::type;
+    using tuple_t = IndexValueTuple<index_t, scalar_t>;
+    constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+    auto q = sb_handle.get_queue();
+    const index_t sg_size = static_cast<index_t>(
+        q.get_device()
+            .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+    const index_t memory_size =
+        localMemSize == 0 ? nWG * (localSize / sg_size) : nWG;
+    auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
+                                                   : helper::AllocType::buffer,
+         tuple_t > (memory_size, q);
+    auto gpu_res_vec =
+        make_vector_view(gpu_res, static_cast<increment_t>(1), memory_size);
+    auto iamax_step0 = make_integer_max_min<true, true>(gpu_res_vec, tupOp);
+    auto iamax_step1 = make_integer_max_min<true, false>(rs, gpu_res_vec);
+    if constexpr (localMemSize == 0) {
+      tuple_t init{(index_t)0, (scalar_t)0.f};
+      ret = typename sb_handle_t::event_t{
+          helper::fill(q, gpu_res, init, memory_size, _dependencies)};
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamax_step0, localSize, nWG * localSize, ret));
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamax_step1, sg_size, sg_size, ret));
+    } else {
+      ret = sb_handle.execute(iamax_step0, localSize, nWG * localSize,
+                              localMemSize, _dependencies);
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamax_step1, localSize, localSize,
+                                 localMemSize, ret));
+    }
+    blas::helper::enqueue_deallocate(ret, gpu_res, q);
+  }
+  return ret;
+}
+
 /**
  * \brief IAMAX finds the index of the first element having maximum
  * @param _vx  BufferIterator or USM pointer
@@ -265,16 +327,70 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  typename VectorViewType<container_t, index_t, increment_t>::type vx =
+  return blas::iamax::backend::_iamax(sb_handle, _N, _vx, _incx, _rs,
+                                      _dependencies);
+}
+
+template <int localSize, int localMemSize, bool single, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename index_t,
+          typename increment_t>
+typename sb_handle_t::event_t _iamin_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const index_t nWG,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
+  auto rs = make_vector_view<index_t>(_rs, static_cast<increment_t>(1),
+                                      static_cast<index_t>(1));
   auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_assign_reduction<IMaxOperator>(rs, tupOp, localSize,
-                                                      localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
+  typename sb_handle_t::event_t ret;
+  if constexpr (single) {
+    auto iamin_op = make_integer_max_min<false, false>(rs, tupOp);
+    if constexpr (localMemSize == 0) {
+      auto q = sb_handle.get_queue();
+      const index_t sg_size = static_cast<index_t>(
+          q.get_device()
+              .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+      ret = sb_handle.execute(iamin_op, sg_size, sg_size, _dependencies);
+    } else {
+      ret = sb_handle.execute(iamin_op, localSize, nWG * localSize,
+                              localMemSize, _dependencies);
+    }
+  } else {
+    using scalar_t = typename ValueType<container_0_t>::type;
+    using tuple_t = IndexValueTuple<index_t, scalar_t>;
+    constexpr bool is_usm = std::is_pointer<container_0_t>::value;
+    auto q = sb_handle.get_queue();
+    const index_t sg_size = static_cast<index_t>(
+        q.get_device()
+            .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+    const index_t memory_size =
+        localMemSize == 0 ? nWG * (localSize / sg_size) : nWG;
+    auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
+                                                   : helper::AllocType::buffer,
+         tuple_t > (memory_size, q);
+    auto gpu_res_vec =
+        make_vector_view(gpu_res, static_cast<increment_t>(1), memory_size);
+
+    auto iamin_step0 = make_integer_max_min<false, true>(gpu_res_vec, tupOp);
+    auto iamin_step1 = make_integer_max_min<false, false>(rs, gpu_res_vec);
+    if constexpr (localMemSize == 0) {
+      tuple_t init{(index_t)0, (scalar_t)0.f};
+      ret = typename sb_handle_t::event_t{
+          helper::fill(q, gpu_res, init, memory_size, _dependencies)};
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamin_step0, localSize, nWG * localSize, ret));
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamin_step1, sg_size, sg_size, ret));
+    } else {
+      ret = sb_handle.execute(iamin_step0, localSize, nWG * localSize,
+                              localMemSize, _dependencies);
+      ret = concatenate_vectors(
+          ret, sb_handle.execute(iamin_step1, localSize, localSize,
+                                 localMemSize, ret));
+    }
+    blas::helper::enqueue_deallocate(ret, gpu_res, q);
+  }
   return ret;
 }
 
@@ -290,18 +406,8 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  typename VectorViewType<container_t, index_t, increment_t>::type vx =
-      make_vector_view(_vx, _incx, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-
-  const auto localSize = sb_handle.get_work_group_size();
-  const auto nWG = 2 * localSize;
-  auto tupOp = make_tuple_op(vx);
-  auto assignOp = make_assign_reduction<IMinOperator>(rs, tupOp, localSize,
-                                                      localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
+  return blas::iamin::backend::_iamin(sb_handle, _N, _vx, _incx, _rs,
+                                      _dependencies);
 }
 
 /**
@@ -760,21 +866,20 @@ index_t _iamax(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = IndexValueTuple<index_t, element_t>;
-  std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
+  index_t rsT{-1};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-       IndValTuple > (static_cast<index_t>(1), sb_handle.get_queue());
+       index_t > (static_cast<index_t>(1), sb_handle.get_queue());
   auto iamax_event =
       blas::internal::_iamax(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(iamax_event);
-  auto event = blas::helper::copy_to_host<IndValTuple>(sb_handle.get_queue(),
-                                                       gpu_res, rsT.data(), 1);
+  auto event = blas::helper::copy_to_host<index_t>(sb_handle.get_queue(),
+                                                   gpu_res, &rsT, 1);
   sb_handle.wait(event);
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
-  return rsT[0].get_index();
+  return rsT;
 }
 
 /**
@@ -790,21 +895,20 @@ index_t _iamin(sb_handle_t &sb_handle, index_t _N, container_t _vx,
                const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
-  using IndValTuple = IndexValueTuple<index_t, element_t>;
-  std::vector<IndValTuple> rsT(1, IndValTuple(index_t(-1), element_t(-1)));
+  index_t rsT{-1};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-       IndValTuple > (static_cast<index_t>(1), sb_handle.get_queue());
+       index_t > (static_cast<index_t>(1), sb_handle.get_queue());
   auto iamin_event =
       blas::internal::_iamin(sb_handle, _N, _vx, _incx, gpu_res, _dependencies);
   sb_handle.wait(iamin_event);
   auto event =
-      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, rsT.data(), 1);
+      blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &rsT, 1);
   sb_handle.wait(event);
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
-  return rsT[0].get_index();
+  return rsT;
 }
 
 /**
