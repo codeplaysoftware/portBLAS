@@ -41,6 +41,8 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
   # # Blas 2 tests
   ${PORTBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${PORTBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
@@ -86,8 +88,6 @@ if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
     ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-    ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
     ${PORTBLAS_UNITTEST}/blas2/blas2_trmv_test.cpp
     ${PORTBLAS_UNITTEST}/blas2/blas2_tbmv_test.cpp

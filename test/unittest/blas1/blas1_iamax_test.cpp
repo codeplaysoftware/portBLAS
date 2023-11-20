@@ -4,14 +4,14 @@
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  using tuple_t = IndexValueTuple<int, scalar_t>;
 
   std::string alloc;
   api_type api;
   index_t size;
   index_t incX;
   generation_mode_t mode;
-  std::tie(alloc, api, size, incX, mode) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, mode, unused) = combi;
 
   // Input vector
   std::vector<scalar_t> x_v(size * incX);
@@ -23,7 +23,7 @@ void run_test(const combination_t<scalar_t> combi) {
       [](scalar_t v) { return utils::clamp_to_limits<scalar_t>(v); });
 
   // Output scalar
-  tuple_t out_s{0, 0.0};
+  index_t out_s{0};
 
   // Reference implementation
   int out_cpu_s = reference_blas::iamax(size, x_v.data(), incX);
@@ -38,21 +38,20 @@ void run_test(const combination_t<scalar_t> combi) {
   auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
 
   if (api == api_type::async) {
-    auto gpu_out_s = helper::allocate<mem_alloc, tuple_t>(1, q);
-    auto copy_out = helper::copy_to_device<tuple_t>(q, &out_s, gpu_out_s, 1);
+    auto gpu_out_s = helper::allocate<mem_alloc, index_t>(1, q);
     auto iamax_event =
-        _iamax(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x, copy_out});
+        _iamax(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x});
     sb_handle.wait(iamax_event);
-    auto event = helper::copy_to_host<tuple_t>(sb_handle.get_queue(), gpu_out_s,
+    auto event = helper::copy_to_host<index_t>(sb_handle.get_queue(), gpu_out_s,
                                                &out_s, 1);
     sb_handle.wait(event);
     helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
-    out_s.ind = _iamax(sb_handle, size, gpu_x_v, incX, {copy_x});
+    out_s = _iamax(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result
-  ASSERT_EQ(out_cpu_s, out_s.ind);
+  ASSERT_EQ(out_cpu_s, out_s);
 
   helper::deallocate<mem_alloc>(gpu_x_v, q);
 }
@@ -64,7 +63,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   generation_mode_t mode;
-  std::tie(alloc, api, size, incX, mode) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, mode, unused) = combi;
 
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
