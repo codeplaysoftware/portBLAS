@@ -202,13 +202,15 @@ struct constant<IndexValueTuple<index_t, value_t>, const_val::collapse> {
   }
 };
 
+#ifdef BLAS_ENABLE_COMPLEX
 template <typename value_t, const_val Indicator>
-struct constant<std::complex<value_t>, Indicator> {
-  constexpr static PORTBLAS_INLINE std::complex<value_t> value() {
-    return std::complex<value_t>(constant<value_t, Indicator>::value(),
+struct constant<complex_sycl<value_t>, Indicator> {
+  constexpr static PORTBLAS_INLINE complex_sycl<value_t> value() {
+    return complex_sycl<value_t>(constant<value_t, Indicator>::value(),
                                  constant<value_t, Indicator>::value());
   }
 };
+#endif
 
 #ifdef BLAS_DATA_TYPE_HALF
 template <>

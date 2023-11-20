@@ -37,6 +37,10 @@ endif()
 if(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
   set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/nvidia_gpu.json)
 endif()
+if(${TUNING_TARGET} STREQUAL "AMD_GPU")
+  set(GEN_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gen/amd_gpu.json)
+endif()
+
 
 
 

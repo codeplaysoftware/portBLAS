@@ -86,6 +86,38 @@ typename sb_handle_t::event_t _iamin(
 }
 }  // namespace backend
 }  // namespace iamin
+namespace nrm2 {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _nrm2(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
+  constexpr index_t localSize = 128;
+  const index_t number_WG =
+      std::min((_N + localSize - 1) / localSize, static_cast<index_t>(512));
+  return blas::internal::_nrm2_impl<static_cast<int>(localSize), 32>(
+      sb_handle, _N, _vx, _incx, _rs, number_WG, _dependencies);
+}
+}  // namespace backend
+}  // namespace nrm2
+
+namespace dot {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _dot(
+    sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs,
+    const typename sb_handle_t::event_t& _dependencies) {
+  constexpr index_t localSize = 128;
+  const index_t number_WG =
+      std::min((_N + localSize - 1) / localSize, static_cast<index_t>(512));
+  return blas::internal::_dot_impl<static_cast<int>(localSize), 32>(
+      sb_handle, _N, _vx, _incx, _vy, _incy, _rs, number_WG, _dependencies);
+}
+}  // namespace backend
+}  // namespace dot
 
 }  // namespace blas
 

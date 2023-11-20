@@ -53,6 +53,24 @@ using gemm_batched_strided_param_t =
     std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
                scalar_t, index_t, index_t, index_t, index_t>;
 
+#ifdef BLAS_ENABLE_COMPLEX
+template <typename scalar_t>
+using blas3_cplx_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
+               scalar_t, scalar_t, scalar_t>;
+
+template <typename scalar_t>
+using gemm_batched_strided_cplx_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
+               scalar_t, scalar_t, scalar_t, index_t, index_t, index_t,
+               index_t>;
+
+template <typename scalar_t>
+using gemm_batched_cplx_param_t =
+    std::tuple<std::string, std::string, index_t, index_t, index_t, scalar_t,
+               scalar_t, scalar_t, scalar_t, index_t, int>;
+#endif
+
 using reduction_param_t = std::tuple<index_t, index_t>;
 
 template <typename scalar_t>
@@ -117,6 +135,11 @@ template <typename scalar_t>
 using matcopy_batch_param_t =
     std::tuple<char, index_t, index_t, scalar_t, index_t, index_t, index_t,
                index_t, index_t>;
+
+template <typename scalar_t>
+using omatadd_batch_param_t =
+    std::tuple<char, char, index_t, index_t, scalar_t, scalar_t, index_t,
+               index_t, index_t, index_t, index_t, index_t, index_t>;
 
 namespace blas_benchmark {
 
@@ -479,6 +502,157 @@ static inline std::vector<blas3_param_t<scalar_t>> get_blas3_params(
         });
   }
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+/**
+ * @fn get_blas3_cplx_params for complex data type
+ * @brief Returns a vector containing the blas 3 benchmark cplx parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones. So far only used/supported for GEMM & its batched extensions.
+ */
+template <typename scalar_t>
+static inline std::vector<blas3_cplx_param_t<scalar_t>> get_blas3_cplx_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<blas3_cplx_param_t<scalar_t>> blas3_default;
+    constexpr index_t dmin = 32, dmax = 8192;
+    std::vector<std::string> dtranspose = {"n", "t"};
+    std::complex<scalar_t> alpha{1, 1};
+    std::complex<scalar_t> beta{1, 1};
+    for (std::string& t1 : dtranspose) {
+      for (std::string& t2 : dtranspose) {
+        for (index_t m = dmin; m <= dmax; m *= 8) {
+          for (index_t k = dmin; k <= dmax; k *= 8) {
+            for (index_t n = dmin; n <= dmax; n *= 8) {
+              blas3_default.push_back(
+                  std::make_tuple(t1, t2, m, k, n, alpha.real(), alpha.imag(),
+                                  beta.real(), beta.imag()));
+            }
+          }
+        }
+      }
+    }
+    return blas3_default;
+  } else {
+    return parse_csv_file<blas3_cplx_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (9 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_gemm_batched_strided_cplx_params for complex data type
+ * @brief Returns a vector containing the gemm_batched_strided cplx benchmark
+ * parameters, either read from a file according to the command-line args, or
+ * the default ones.
+ */
+template <typename scalar_t>
+inline std::vector<gemm_batched_strided_cplx_param_t<scalar_t>>
+get_gemm_batched_strided_cplx_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<gemm_batched_strided_cplx_param_t<scalar_t>>
+        gemm_batched_strided_default;
+    constexpr index_t dmin = 128, dmax = 8192;
+    std::vector<std::string> dtranspose = {"n", "t"};
+    std::complex<scalar_t> alpha{1, 1};
+    std::complex<scalar_t> beta{1, 1};
+    index_t batch_size = 8;
+    for (std::string& t1 : dtranspose) {
+      for (std::string& t2 : dtranspose) {
+        for (index_t m = dmin; m <= dmax; m *= 8) {
+          gemm_batched_strided_default.push_back(
+              std::make_tuple(t1, t2, m, m, m, alpha.real(), alpha.imag(),
+                              beta.real(), beta.imag(), batch_size, 2, 2, 2));
+        }
+      }
+    }
+    return gemm_batched_strided_default;
+  } else {
+    return parse_csv_file<gemm_batched_strided_cplx_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 13) {
+            throw std::runtime_error(
+                "invalid number of parameters (13 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
+                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
+                str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
+          } catch (...) {
+            std::throw_with_nested(std::runtime_error("invalid parameter"));
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_gemm_cplx_batched_params
+ * @brief Returns a vector containing the gemm_batched cplx benchmark
+ * parameters, either read from a file according to the command-line args, or
+ * the default ones.
+ */
+template <typename scalar_t>
+inline std::vector<gemm_batched_cplx_param_t<scalar_t>>
+get_gemm_cplx_batched_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<gemm_batched_cplx_param_t<scalar_t>> gemm_batched_default;
+    constexpr index_t dmin = 128, dmax = 8192;
+    std::vector<std::string> dtranspose = {"n", "t"};
+    std::complex<scalar_t> alpha{1, 1};
+    std::complex<scalar_t> beta{1, 1};
+    index_t batch_size = 8;
+    int batch_type = 0;
+    for (std::string& t1 : dtranspose) {
+      for (std::string& t2 : dtranspose) {
+        for (index_t n = dmin; n <= dmax; n *= 8) {
+          gemm_batched_default.push_back(std::make_tuple(
+              t1, t2, n, n, n, alpha.real(), alpha.imag(), beta.real(),
+              beta.imag(), batch_size, batch_type));
+        }
+      }
+    }
+    return gemm_batched_default;
+  } else {
+    return parse_csv_file<gemm_batched_cplx_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 11) {
+            throw std::runtime_error(
+                "invalid number of parameters (11 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0].c_str(), v[1].c_str(), str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_int<index_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_scalar<scalar_t>(v[6]),
+                str_to_scalar<scalar_t>(v[7]), str_to_scalar<scalar_t>(v[8]),
+                str_to_int<index_t>(v[9]), str_to_batch_type(v[10]));
+          } catch (...) {
+            std::throw_with_nested(std::runtime_error("invalid parameter"));
+          }
+        });
+  }
+}
+#endif
 
 /**
  * @fn get_gemm_batched_params
@@ -1147,61 +1321,9 @@ static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
 }
 
 /**
- * @fn get_omatadd_params
- * @brief Returns a vector containing the omatadd benchmark parameters, either
- * read from a file according to the command-line args, or the default ones.
- */
-template <typename scalar_t>
-static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
-    Args& args) {
-  if (args.csv_param.empty()) {
-    warning_no_csv();
-    std::vector<omatadd_param_t<scalar_t>> omatadd_default;
-    constexpr index_t dmin = 64, dmax = 8192;
-    constexpr scalar_t alpha{2};
-    constexpr scalar_t beta{2};
-    for (char trans_a : {'n', 't'}) {
-      for (char trans_b : {'n', 't'}) {
-        for (index_t m = dmin; m <= dmax; m *= 2) {
-          for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
-                  omatadd_default.push_back(
-                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
-                                      lda_mul, ldb_mul, ldc_mul));
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return omatadd_default;
-  } else {
-    return parse_csv_file<omatadd_param_t<scalar_t>>(
-        args.csv_param, [&](std::vector<std::string>& v) {
-          if (v.size() != 9) {
-            throw std::runtime_error(
-                "invalid number of parameters (6 expected)");
-          }
-          try {
-            return std::make_tuple(
-                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
-                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
-                str_to_scalar<scalar_t>(v[5]), str_to_int<index_t>(v[6]),
-                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
-          } catch (...) {
-            throw std::runtime_error("invalid parameter");
-          }
-        });
-  }
-}
-
-/**
  * @fn get_matcopy_batch_params
  * @brief Returns a vector containing the matcopy_batch benchmark parameters,
- * either read from a file according to the command - line args, or the default
+ * either read from a file according to the command-line args, or the default
  * ones.
  */
 template <typename scalar_t>
@@ -1212,7 +1334,7 @@ get_matcopy_batch_params(Args& args) {
     std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
     constexpr index_t dmin = 256, dmax = 8192;
     constexpr scalar_t alpha{2};
-    constexpr index_t batch_size{5};
+    constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
     for (char trans : {'n', 't'}) {
@@ -1250,6 +1372,118 @@ get_matcopy_batch_params(Args& args) {
 }
 
 /**
+ * @fn get_omatadd_params
+ * @brief Returns a vector containing the omatadd benchmark parameters, either
+ * read from a file according to the command-line args, or the default ones.
+ */
+template <typename scalar_t>
+static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
+    Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<omatadd_param_t<scalar_t>> omatadd_default;
+    constexpr index_t dmin = 64, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    constexpr scalar_t beta{2};
+    for (char trans_a : {'n', 't'}) {
+      for (char trans_b : {'n', 't'}) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
+                  omatadd_default.push_back(
+                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
+                                      lda_mul, ldb_mul, ldc_mul));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return omatadd_default;
+  } else {
+    return parse_csv_file<omatadd_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 9) {
+            throw std::runtime_error(
+                "invalid number of parameters (9 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
+ * @fn get_omatadd_batch_params
+ * @brief Returns a vector containing the omatadd_batch benchmark parameters,
+ * either read from a file according to the command-line args, or the default
+ * ones.
+ */
+template <typename scalar_t>
+static inline std::vector<omatadd_batch_param_t<scalar_t>>
+get_omatadd_batch_params(Args& args) {
+  if (args.csv_param.empty()) {
+    warning_no_csv();
+    std::vector<omatadd_batch_param_t<scalar_t>> omatadd_batch_default;
+    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr scalar_t alpha{2};
+    constexpr scalar_t beta{2};
+    constexpr index_t batch_size{3};
+    constexpr index_t stride_a_mul{1};
+    constexpr index_t stride_b_mul{1};
+    constexpr index_t stride_c_mul{1};
+    for (char trans_a : {'n', 't'}) {
+      for (char trans_b : {'n', 't'}) {
+        for (index_t m = dmin; m <= dmax; m *= 2) {
+          for (index_t n = dmin; n <= dmax; n *= 2) {
+            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
+              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
+                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
+                  omatadd_batch_default.push_back(
+                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
+                                      lda_mul, ldb_mul, ldc_mul, stride_a_mul,
+                                      stride_b_mul, stride_c_mul, batch_size));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return omatadd_batch_default;
+  } else {
+    return parse_csv_file<omatadd_batch_param_t<scalar_t>>(
+        args.csv_param, [&](std::vector<std::string>& v) {
+          if (v.size() != 13) {
+            throw std::runtime_error(
+                "invalid number of parameters (13 expected)");
+          }
+          try {
+            return std::make_tuple(
+                v[0][0], v[1][0], str_to_int<index_t>(v[2]),
+                str_to_int<index_t>(v[3]), str_to_scalar<scalar_t>(v[4]),
+                str_to_scalar<scalar_t>(v[5]), str_to_int<index_t>(v[6]),
+                str_to_int<index_t>(v[7]), str_to_int<index_t>(v[8]),
+                str_to_int<index_t>(v[9]), str_to_int<index_t>(v[10]),
+                str_to_int<index_t>(v[11]), str_to_int<index_t>(v[12]));
+          } catch (...) {
+            throw std::runtime_error("invalid parameter");
+          }
+        });
+  }
+}
+
+/**
  * @fn get_type_name
  * @brief Returns a string with the given type. The C++ specification
  * doesn't guarantee that typeid(T).name is human readable so we specify the
@@ -1268,6 +1502,17 @@ template <>
 inline std::string get_type_name<double>() {
   return "double";
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <>
+inline std::string get_type_name<std::complex<float>>() {
+  return "complex<float>";
+}
+template <>
+inline std::string get_type_name<std::complex<double>>() {
+  return "complex<double>";
+}
+#endif
 
 /**
  * @fn random_scalar
@@ -1306,6 +1551,67 @@ static inline std::vector<scalar_t> random_data(size_t size) {
   }
   return v;
 }
+
+#ifdef BLAS_ENABLE_COMPLEX
+/**
+ * @fn random_cplx_scalar
+ * @brief Generates a random complex value, using an arbitrary low quality
+ * algorithm.
+ */
+template <typename scalar_t>
+static inline std::complex<scalar_t> random_cplx_scalar() {
+  scalar_t rl = 1e-3 * ((rand() % 2000) - 1000);
+  scalar_t im = 1e-3 * ((rand() % 2000) - 1000);
+  return std::complex<scalar_t>(rl, im);
+}
+
+/**
+ * @brief Generates a random complex in the specified range of its underlying
+ * data elements (real & imag)
+ * @param rangeMin range minimum
+ * @param rangeMax range maximum
+ */
+template <typename scalar_t>
+static inline std::complex<scalar_t> random_cplx_scalar(scalar_t rangeMin,
+                                                        scalar_t rangeMax) {
+  static std::random_device rd;
+  static std::default_random_engine gen(rd());
+  std::uniform_real_distribution<scalar_t> disRl(rangeMin, rangeMax);
+  std::uniform_real_distribution<scalar_t> disIm(rangeMin, rangeMax);
+
+  return std::complex<scalar_t>(disRl(gen), disIm(gen));
+}
+
+/**
+ * @fn random_cplx_data
+ * @brief Generates a random vector of complex values, using a uniform
+ * distribution of the underlying data elements (real & imag).
+ */
+template <typename scalar_t>
+static inline std::vector<std::complex<scalar_t>> random_cplx_data(
+    size_t size) {
+  std::vector<std::complex<scalar_t>> v(size);
+
+  for (std::complex<scalar_t>& e : v) {
+    e = random_cplx_scalar<scalar_t>(scalar_t{-2}, scalar_t{5});
+  }
+  return v;
+}
+
+/**
+ * @fn const_cplx_data
+ * @brief Generates a vector of constant complex values, of a given length.
+ */
+template <typename scalar_t>
+static inline std::vector<std::complex<scalar_t>> const_cplx_data(
+    size_t size, scalar_t const_value = 0) {
+  std::vector<std::complex<scalar_t>> v(size);
+  std::complex<scalar_t> const_cplx_value{const_value, const_value};
+  std::fill(v.begin(), v.end(), const_cplx_value);
+  return v;
+}
+
+#endif  // BLAS_ENABLE_COMPLEX
 
 /**
  * @breif Fills a lower or upper triangular matrix suitable for TRSM testing
@@ -1510,17 +1816,39 @@ static inline void calc_avg_counters(benchmark::State& state) {
 #define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_HALF
 
+#ifdef BLAS_ENABLE_COMPLEX
+/** Registers benchmark for the float complex data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_CPLX_FLOAT(args, sb_handle_ptr, success) \
+  register_cplx_benchmark<float>(args, sb_handle_ptr, success)
+#else
+#define BLAS_REGISTER_BENCHMARK_CPLX_FLOAT(args, sb_handle_ptr, success)
+#endif
+
+#if defined(BLAS_ENABLE_COMPLEX) & defined(BLAS_DATA_TYPE_DOUBLE)
+/** Registers benchmark for the double complex data type
+ * @see BLAS_REGISTER_BENCHMARK
+ */
+#define BLAS_REGISTER_BENCHMARK_CPLX_DOUBLE(args, sb_handle_ptr, success) \
+  register_cplx_benchmark<double>(args, sb_handle_ptr, success)
+#else
+#define BLAS_REGISTER_BENCHMARK_CPLX_DOUBLE(args, sb_handle_ptr, success)
+#endif
+
 /** Registers benchmark for all supported data types.
  *  Expects register_benchmark<scalar_t> to exist.
  * @param args Reference to blas_benchmark::Args
  * @param sb_handle_ptr Pointer to blas::SB_Handle
  * @param[out] success Pointer to boolean indicating success
  */
-#define BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success)     \
-  do {                                                            \
-    BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);  \
-    BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success); \
-    BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success);   \
+#define BLAS_REGISTER_BENCHMARK(args, sb_handle_ptr, success)          \
+  do {                                                                 \
+    BLAS_REGISTER_BENCHMARK_FLOAT(args, sb_handle_ptr, success);       \
+    BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success);      \
+    BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success);        \
+    BLAS_REGISTER_BENCHMARK_CPLX_FLOAT(args, sb_handle_ptr, success);  \
+    BLAS_REGISTER_BENCHMARK_CPLX_DOUBLE(args, sb_handle_ptr, success); \
   } while (false)
 
 #endif

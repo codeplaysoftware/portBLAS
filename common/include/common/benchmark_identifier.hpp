@@ -179,7 +179,7 @@ std::string get_operator_name() {
 
 template <ExtensionOp op>
 std::string get_operator_name() {
-  if constexpr ( op == ExtensionOp::omatcopy)
+  if constexpr (op == ExtensionOp::omatcopy)
     return "Omatcopy";
   else if constexpr (op == ExtensionOp::imatcopy)
     return "Imatcopy";

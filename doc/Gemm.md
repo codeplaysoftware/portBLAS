@@ -100,7 +100,7 @@ The core of the `GEMM` computation is as follows:
 
 ## Vectorized Loading/Storing
 
-Many of the `GEMM` kernels support vectorized loads/stores using functions located in `gemm_load_store.hpp` in `src/operations/blas3/` . 
+Many of the `GEMM` kernels support vectorized loads/stores using functions located in `gemm_load_store.hpp` in `src/operations/blas3/`*(this feature is limited to non-complex data types)*. 
 These functions are pretty simple but there are some special considerations for how they are used, particularly around whether the matrices are transposed or not. 
 If a matrix is transposed this changes the data layout such that elements are no longer contiguous in memory.
 

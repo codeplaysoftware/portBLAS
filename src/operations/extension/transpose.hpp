@@ -35,7 +35,6 @@ template <bool in_place, int Tile_size, int wg_size, int cl_size,
 PORTBLAS_INLINE bool
 Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::valid_thread(cl::sycl::nd_item<1> item) const {
-  // Valid threads are established by ::eval()
   index_t idx = item.get_global_linear_id();
   return (idx < get_size());
 }
@@ -255,7 +254,7 @@ PORTBLAS_INLINE typename in1_t::index_t
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::get_size() const {
   // Smallest TileSize square-multiple containing input/output matrices
-  return (M_pad_ * N_pad_);
+  return (size_pad_ * batch_size_);
 }
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
@@ -292,13 +291,18 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
                                                    index_t &in_b_idx,
                                                    index_t &out_idx, index_t &i,
                                                    index_t &j) {
-  const index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
+  const index_t row_tiles = both_trans ? tile_count_n_ : tile_count_m_;
 
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
 
-  const index_t jg = idg / m_tiles;
-  const index_t ig = idg - jg * m_tiles;
+  const index_t ibatch =
+      (batch_size_ == index_t(1)) ? 0 : idg / tile_count_total_;
+
+  const index_t relative_idg = idg - ibatch * tile_count_total_;
+
+  const index_t jg = relative_idg / row_tiles;
+  const index_t ig = relative_idg - jg * row_tiles;
 
   const index_t jl = idc / Tile_size;
   const index_t il = idc - jl * Tile_size;
@@ -310,13 +314,19 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
   j = j_block_start + jl;
 
   if constexpr (both_trans) {
-    in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_;
-    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
-    out_idx = i_block_start * ldc_ + j_block_start + jl + il * ldc_;
+    in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_ +
+               ibatch * stride_a_;
+    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_ +
+               ibatch * stride_b_;
+    out_idx = i_block_start * ldc_ + j_block_start + jl + il * ldc_ +
+              ibatch * stride_c_;
   } else {
-    in_a_idx = i_block_start * lda_ + j_block_start + jl + il * lda_;
-    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
-    out_idx = i_block_start + j_block_start * ldc_ + il + jl * ldc_;
+    in_a_idx = i_block_start * lda_ + j_block_start + jl + il * lda_ +
+               ibatch * stride_a_;
+    in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_ +
+               ibatch * stride_b_;
+    out_idx = i_block_start + j_block_start * ldc_ + il + jl * ldc_ +
+              ibatch * stride_c_;
   }
 }
 
@@ -382,13 +392,18 @@ PORTBLAS_INLINE void TransposeAdd<
                             index_t &out_idx, index_t &out_local_idx,
                             index_t &i_block_start, index_t &j_block_start,
                             index_t &il, index_t &jl) {
-  const index_t m_tiles = both_trans ? tile_count_n_ : tile_count_m_;
+  const index_t row_tiles = both_trans ? tile_count_n_ : tile_count_m_;
 
   index_t idg = id.get_group(0);
   index_t idc = id.get_local_id(0);
 
-  const index_t jg = idg / m_tiles;
-  const index_t ig = idg - jg * m_tiles;
+  const index_t ibatch =
+      (batch_size_ == index_t(1)) ? 0 : idg / tile_count_total_;
+
+  const index_t relative_idg = idg - ibatch * tile_count_total_;
+
+  const index_t jg = relative_idg / row_tiles;
+  const index_t ig = relative_idg - jg * row_tiles;
 
   jl = idc / Tile_size;
   il = idc - jl * Tile_size;
@@ -400,15 +415,20 @@ PORTBLAS_INLINE void TransposeAdd<
   index_t il_cl = idc - jl_cl * get_non_bank_conflict_line_size();
 
   if constexpr (both_trans) {
-    in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_;
-    out_idx = i_block_start * ldc_ + j_block_start + il + jl * ldc_;
+    in_a_idx = i_block_start + j_block_start * lda_ + il + jl * lda_ +
+               ibatch * stride_a_;
+    out_idx = i_block_start * ldc_ + j_block_start + il + jl * ldc_ +
+              ibatch * stride_c_;
 
   } else {
-    in_a_idx = j_block_start + i_block_start * lda_ + il + jl * lda_;
-    out_idx = i_block_start + j_block_start * ldc_ + il + jl * ldc_;
+    in_a_idx = j_block_start + i_block_start * lda_ + il + jl * lda_ +
+               ibatch * stride_a_;
+    out_idx = i_block_start + j_block_start * ldc_ + il + jl * ldc_ +
+              ibatch * stride_c_;
   }
 
-  in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_;
+  in_b_idx = i_block_start + j_block_start * ldb_ + il + jl * ldb_ +
+             ibatch * stride_b_;
 
   in_local_idx = jl_cl * (get_non_bank_conflict_line_size() + 1) + il_cl;
 

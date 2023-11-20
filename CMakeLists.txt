@@ -106,6 +106,7 @@ if(IMGDNN_DIR)
 endif()
 
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
+option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.
 # These include:
@@ -115,6 +116,7 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 # * BLAS_DATA_TYPES
 # * BLAS_INDEX_TYPES
 # * NAIVE_GEMM
+# * BLAS_ENABLE_COMPLEX
 include(CmakeFunctionHelper)
 
 if (INSTALL_HEADER_ONLY)

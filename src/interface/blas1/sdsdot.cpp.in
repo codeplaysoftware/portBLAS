@@ -65,6 +65,11 @@ template typename SB_Handle::event_t _sdsdot(
     SB_Handle& sb_handle, ${INDEX_TYPE} _N, float sb, ${DATA_TYPE} * _vx,
     ${INCREMENT_TYPE} _incx, ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
     ${DATA_TYPE} * _rs, const typename SB_Handle::event_t& dependencies);
+
+template typename SB_Handle::event_t _sdsdot(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _N, float sb, const ${DATA_TYPE} * _vx,
+    ${INCREMENT_TYPE} _incx, const ${DATA_TYPE} * _vy, ${INCREMENT_TYPE} _incy,
+    ${DATA_TYPE} * _rs, const typename SB_Handle::event_t& dependencies);
 #endif
 
 }  // namespace internal

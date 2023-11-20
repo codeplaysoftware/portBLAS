@@ -40,6 +40,7 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
   # # Blas 2 tests
   ${PORTBLAS_UNITTEST}/blas2/blas2_gbmv_test.cpp
   ${PORTBLAS_UNITTEST}/blas2/blas2_gemv_test.cpp
@@ -59,9 +60,10 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas3/blas3_symm_test.cpp
   # Blas extension
   ${PORTBLAS_UNITTEST}/extension/omatcopy_test.cpp
-  ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatadd_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatcopy2_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
+  ${PORTBLAS_UNITTEST}/extension/omatadd_batched_test.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})
@@ -84,7 +86,6 @@ if(is_computecpp)
   set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
     # Blas 1 tests
     ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
     ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
     ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
     # Blas 2 tests
@@ -114,6 +115,11 @@ foreach(blas_test ${SYCL_UNITTEST_SRCS})
   endif()
   if(STRESS_TESTING)
     target_compile_definitions(${test_exec} PRIVATE STRESS_TESTING)
+  endif()
+  if(${BLAS_ENABLE_COMPLEX})
+    if(${test_exec} MATCHES "gemm")
+      target_compile_definitions(${test_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
+    endif()
   endif()
   target_compile_definitions(${test_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_TEST_INDEX_TYPE})
   target_link_libraries(${test_exec} PRIVATE gtest_main Clara::Clara blas::blas portblas)

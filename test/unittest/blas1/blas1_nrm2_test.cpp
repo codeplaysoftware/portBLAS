@@ -43,8 +43,8 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(x_v);
 
   // Output scalar
-  scalar_t out_s = 10.0;
-  scalar_t out_cpu_s = 20.0;
+  scalar_t out_s = 0.0;
+  scalar_t out_cpu_s = 0.0;
 
   // Reference implementation
   if (incX < 0) {
