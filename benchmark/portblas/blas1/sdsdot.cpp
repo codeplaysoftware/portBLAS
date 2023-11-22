@@ -63,9 +63,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   scalar_t vr_temp = 0;
   {
     auto vr_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(1, q);
+    auto copyToD =
+        blas::helper::copy_to_device<scalar_t>(q, &vr_temp, vr_temp_gpu, 1);
     auto sdsdot_event =
         _sdsdot(sb_handle, size, sb, inx, static_cast<index_t>(1), iny,
-                static_cast<index_t>(1), vr_temp_gpu);
+                static_cast<index_t>(1), vr_temp_gpu, {copyToD});
     sb_handle.wait(sdsdot_event);
     auto event = blas::helper::copy_to_host(q, vr_temp_gpu, &vr_temp, 1);
     sb_handle.wait(event);
@@ -126,8 +128,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
       run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            size, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
@@ -139,10 +141,12 @@ void register_benchmark(blas_benchmark::Args& args,
   auto sdsdot_params = blas_benchmark::utils::get_blas1_params(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, sdsdot_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      sdsdot_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, sdsdot_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM,
+      sdsdot_params);
 #endif
 }
 
