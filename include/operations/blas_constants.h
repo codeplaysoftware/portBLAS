@@ -265,16 +265,8 @@ struct constant_pair {
 
 }  // namespace blas
 
-#define PORTBLAS_DEVICE_COPY(T1, T2)                             \
-  template <>                                                    \
-  struct sycl::is_device_copyable<blas::IndexValueTuple<T1, T2>> \
-      : std::true_type {};
-
-PORTBLAS_DEVICE_COPY(int32_t, float)
-PORTBLAS_DEVICE_COPY(int32_t, double)
-PORTBLAS_DEVICE_COPY(int64_t, float)
-PORTBLAS_DEVICE_COPY(int64_t, double)
-
-#undef PORTBLAS_DEVICE_COPY
+template <typename ind_t, typename val_t>
+struct sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
+    : std::true_type {};
 
 #endif  // BLAS_CONSTANTS_H
