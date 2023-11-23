@@ -53,12 +53,6 @@ template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>
 PORTBLAS_INLINE typename lhs_t::value_t
 Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
-    index_t i) {}
-
-template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
-          typename rhs_t>
-PORTBLAS_INLINE typename lhs_t::value_t
-Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
   const index_t n{n_};
   const value_t alpha{alpha_};
@@ -111,13 +105,6 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
 
   return {};
 }
-
-template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
-          typename rhs_t>
-template <typename sharedT>
-PORTBLAS_INLINE typename lhs_t::value_t
-Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
-    sharedT shMem, sycl::nd_item<1> ndItem){};
 
 template <bool sameSign, int localSize, int maxBlockPerBatch, typename lhs_t,
           typename rhs_t>

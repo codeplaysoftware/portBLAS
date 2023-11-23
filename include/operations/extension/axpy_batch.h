@@ -70,8 +70,6 @@ struct Axpy_batch {
   bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
   value_t eval(index_t i);
   value_t eval(cl::sycl::nd_item<1> ndItem);
-  template <typename sharedT>
-  value_t eval(sharedT shMem, cl::sycl::nd_item<1> ndItem);
   void bind(cl::sycl::handler &h);
   void adjust_access_displacement();
 };
