@@ -31,6 +31,7 @@
 #include "interface/extension_interface.h"
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
+#include "operations/extension/axpy_batch.h"
 #include "operations/extension/matcopy_batch.h"
 #include "operations/extension/reduction.h"
 #include "operations/extension/transpose.h"
@@ -594,6 +595,55 @@ typename sb_handle_t::event_t _reduction(
     return launch_type_based_reduction<operator_t, reduction_dim_t::outer,
                                        element_t>(
         sb_handle, buffer_in, ld, buffer_out, rows, cols, dependencies);
+  }
+}
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _axpy_batch(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
+  return blas::axpy_batch::backend::_axpy_batch(
+      sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
+      _batch_size, _dependencies);
+}
+
+template <int localSize, int maxBlockPerBatch, typename sb_handle_t,
+          typename container_0_t, typename container_1_t, typename element_t,
+          typename index_t>
+typename sb_handle_t::event_t _axpy_batch_impl(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies, index_t global_size) {
+  // if inc are of opposite sign the values are exchanged. It doesn't matter
+  // which one is positive or negative, so to simplify index computation in
+  // kernel we always set incx to be negative and incy to be positive.
+  if (_incx > 0 && _incy < 0) {
+    _incx = -_incx;
+    _incy = -_incy;
+  }
+  // if _stride_x is zero use _N as vx size
+  const index_t overall_vx_size = (_stride_x) ? _stride_x * _batch_size : _N;
+  typename VectorViewType<container_0_t, index_t, index_t>::type vx =
+      make_vector_view(_vx, static_cast<index_t>(_incx), overall_vx_size);
+  auto vy = make_vector_view(_vy, _incy, _stride_y * _batch_size);
+  // If both vectors are read from the same side it doesn't matter the sign of
+  // the increment
+  if (_incx * _incy > 0) {
+    auto op = make_axpy_batch<true, localSize, maxBlockPerBatch>(
+        vy, vx, _alpha, _N, std::abs(_incy), _stride_y, std::abs(_incx),
+        _stride_x, _batch_size);
+    typename sb_handle_t::event_t ret = sb_handle.execute(
+        op, static_cast<index_t>(localSize), global_size, _dependencies);
+    return ret;
+  } else {
+    auto op = make_axpy_batch<false, localSize, maxBlockPerBatch>(
+        vy, vx, _alpha, _N, _incy, _stride_y, _incx, _stride_x, _batch_size);
+    typename sb_handle_t::event_t ret = sb_handle.execute(
+        op, static_cast<index_t>(localSize), global_size, _dependencies);
+    return ret;
   }
 }
 

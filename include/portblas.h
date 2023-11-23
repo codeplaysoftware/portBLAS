@@ -55,6 +55,8 @@
 
 #include "operations/extension/matcopy_batch.h"
 
+#include "operations/extension/axpy_batch.h"
+
 #include "operations/blas_constants.h"
 
 #include "operations/blas_operators.h"

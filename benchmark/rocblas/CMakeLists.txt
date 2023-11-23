@@ -74,7 +74,7 @@ set(sources
   # Extension blas
   extension/omatcopy.cpp
   extension/omatadd.cpp
-
+  extension/axpy_batch.cpp
 )
 
 # Operators supporting COMPLEX types benchmarking
