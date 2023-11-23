@@ -138,6 +138,39 @@ typename sb_handle_t::event_t _omatadd_batch(
 }
 }  // namespace backend
 }  // namespace omatadd_batch
+
+namespace axpy_batch {
+namespace backend {
+template <typename sb_handle_t, typename container_0_t, typename container_1_t,
+          typename element_t, typename index_t>
+typename sb_handle_t::event_t _axpy_batch(
+    sb_handle_t& sb_handle, index_t _N, element_t _alpha, container_0_t _vx,
+    index_t _incx, index_t _stride_x, container_1_t _vy, index_t _incy,
+    index_t _stride_y, index_t _batch_size,
+    const typename sb_handle_t::event_t& _dependencies) {
+  // local_size taken empirically
+  constexpr index_t local_size = static_cast<index_t>(256);
+  const auto nWG = (_N + local_size - 1) / local_size;
+  // the limit for _N*batch_size is taken empirically from test on A100
+  if (_N * _batch_size <= 81920 || _N <= 16384) {
+    const index_t global_size = local_size * nWG * _batch_size;
+    return blas::internal::_axpy_batch_impl<256, 32>(
+        sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
+        _batch_size, _dependencies, global_size);
+  } else if (_N <= (1 << 19)) {
+    const index_t global_size = local_size * nWG;
+    return blas::internal::_axpy_batch_impl<256, 64>(
+        sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
+        _batch_size, _dependencies, global_size);
+  } else {
+    const index_t global_size = (local_size * nWG);
+    return blas::internal::_axpy_batch_impl<256, 128>(
+        sb_handle, _N, _alpha, _vx, _incx, _stride_x, _vy, _incy, _stride_y,
+        _batch_size, _dependencies, global_size);
+  }
+}
+}  // namespace backend
+}  // namespace axpy_batch
 }  // namespace blas
 
 #endif
