@@ -26,7 +26,8 @@
 #include "blas_test.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<std::string, api_type, int, int, int>;
+using combination_t =
+    std::tuple<std::string, api_type, int, int, int, scalar_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -35,7 +36,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(alloc, api, size, incX, incY) = combi;
+  scalar_t unused; /* Necessary to work around dpcpp compiler bug */
+  std::tie(alloc, api, size, incX, incY, unused) = combi;
 
   // Input vectors
   std::vector<scalar_t> x_v(size * incX);
@@ -44,7 +46,7 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(y_v);
 
   // Output
-  scalar_t out_s = 0;
+  scalar_t out_s = 0.0;
 
   // Reference implementation
   auto out_cpu_s =
@@ -91,7 +93,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   index_t incY;
-  std::tie(alloc, api, size, incX, incY) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, incY, unused) = combi;
 
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
@@ -111,9 +114,10 @@ const auto combi =
                        ::testing::Values(api_type::async,
                                          api_type::sync),  // Api
                        ::testing::Values(11, 65, 1002,
-                                         1002400),  // size
-                       ::testing::Values(1, 4),     // incX
-                       ::testing::Values(1, 3)      // incY
+                                         1002400),     // size
+                       ::testing::Values(1, 4),        // incX
+                       ::testing::Values(1, 3),        // incY
+                       ::testing::Values<scalar_t>(0)  // unused
     );
 #else
 template <typename scalar_t>
@@ -123,7 +127,8 @@ const auto combi =
                                          api_type::sync),  // Api
                        ::testing::Values(11, 1002),        // size
                        ::testing::Values(1, 4),            // incX
-                       ::testing::Values(1, 3)             // incY
+                       ::testing::Values(1, 3),            // incY
+                       ::testing::Values<scalar_t>(0)      // unused
     );
 #endif
 
@@ -133,7 +138,8 @@ static std::string generate_name(
   std::string alloc;
   api_type api;
   int size, incX, incY;
-  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX, incY);
+  T unused;
+  BLAS_GENERATE_NAME(info.param, alloc, api, size, incX, incY, unused);
 }
 
 BLAS_REGISTER_TEST_ALL(Dot, combination_t, combi, generate_name);

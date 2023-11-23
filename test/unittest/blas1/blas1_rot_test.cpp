@@ -61,6 +61,7 @@ void run_test(const combination_t<scalar_t> combi) {
                       s_d);
   auto out_cpu_s =
       reference_blas::dot(size, a_cpu_v.data(), incX, b_cpu_v.data(), incY);
+  scalar_t init_out_gpu = 0;
 
   // SYCL implementation
   auto q = make_queue();
@@ -77,8 +78,10 @@ void run_test(const combination_t<scalar_t> combi) {
   auto c = static_cast<scalar_t>(c_d);
   auto s = static_cast<scalar_t>(s_d);
 
+  auto init_copy = helper::copy_to_device(q, &init_out_gpu, gpu_out_s, 1);
   auto rot_event = _rot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY, c, s,
                         {copy_a, copy_b});
+  sb_handle.wait(init_copy);
   auto dot_event = _dot(sb_handle, size, gpu_a_v, incX, gpu_b_v, incY,
                         gpu_out_s, {rot_event});
   sb_handle.wait(dot_event);

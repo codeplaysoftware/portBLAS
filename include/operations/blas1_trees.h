@@ -142,6 +142,24 @@ struct BinaryOp {
   void adjust_access_displacement();
 };
 
+/*! BinaryOpConst.
+ * @brief Implements a const Binary Operation (x OP z) with x and z vectors.
+ */
+template <typename operator_t, typename lhs_t, typename rhs_t>
+struct BinaryOpConst {
+  using index_t = typename rhs_t::index_t;
+  using value_t = typename ResolveReturnType<operator_t, rhs_t>::type::value_t;
+  lhs_t lhs_;
+  rhs_t rhs_;
+  BinaryOpConst(lhs_t &_l, rhs_t &_r);
+  index_t get_size() const;
+  bool valid_thread(cl::sycl::nd_item<1> ndItem) const;
+  value_t eval(index_t i) const;
+  value_t eval(cl::sycl::nd_item<1> ndItem) const;
+  void bind(cl::sycl::handler &h);
+  void adjust_access_displacement();
+};
+
 /*! TupleOp.
  * @brief Implements a Tuple Operation (map (\x -> [i, x]) vector).
  */

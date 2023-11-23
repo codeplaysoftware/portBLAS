@@ -86,7 +86,7 @@ Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
   orig_rhs = orig_rhs + wg_row + wg_col * rhs_1_ld_ + item_id;
 
   value_t reg_rhs[TileSize];
-  const index_t alpha = alpha_;
+  const value_t alpha = alpha_;
 
   const bool is_internal_block =
       (m - wg_row >= TileSize) && (n - wg_col >= TileSize);
@@ -151,8 +151,8 @@ Matcopy_batch<is_add, TileSize, TilePerWG, lhs_t, rhs_t,
 
   value_t reg_rhs[TileSize];
   value_t reg_rhs_2[TileSize];
-  const index_t alpha = alpha_;
-  const index_t beta = beta_;
+  const value_t alpha = alpha_;
+  const value_t beta = beta_;
 
   const bool is_internal_block =
       (m - wg_row >= TileSize) && (n - wg_col >= TileSize);

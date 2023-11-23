@@ -365,7 +365,7 @@ inline void BufferIterator<element_t>::set_offset(std::ptrdiff_t offset) {
  */
 template <typename element_t>
 struct ValueType<BufferIterator<element_t>> {
-  using type = element_t;
+  using type = typename std::remove_cv<element_t>::type;
 };
 /*
  * rebind the buffer iterator<U> with BufferIterator<element_t>

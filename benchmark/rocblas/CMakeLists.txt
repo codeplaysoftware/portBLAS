@@ -77,6 +77,9 @@ set(sources
 
 )
 
+# Operators supporting COMPLEX types benchmarking
+set(CPLX_OPS "gemm" "gemm_batched" "gemm_batched_strided")
+
 # Add individual benchmarks for each method
 foreach(rocblas_benchmark ${sources})
   get_filename_component(rocblas_bench_exec ${rocblas_benchmark} NAME_WE)
@@ -84,7 +87,11 @@ foreach(rocblas_benchmark ${sources})
   target_link_libraries(bench_rocblas_${rocblas_bench_exec} PRIVATE benchmark Clara::Clara roc::rocblas bench_info) 
   target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE -DBLAS_INDEX_T=${BLAS_BENCHMARK_INDEX_TYPE})
   target_include_directories(bench_rocblas_${rocblas_bench_exec} PRIVATE  ${PORTBLAS_INCLUDE} ${rocblas_INCLUDE_DIRS} ${CBLAS_INCLUDE} ${BLAS_BENCH} ${PORTBLAS_COMMON_INCLUDE_DIR})
-
+  if(${BLAS_ENABLE_COMPLEX})
+    if("${rocblas_bench_exec}" IN_LIST CPLX_OPS)
+      target_compile_definitions(bench_rocblas_${rocblas_bench_exec} PRIVATE BLAS_ENABLE_COMPLEX=1)
+    endif()
+  endif()
   # Even though rocblas does not use sycl, the common tools indirectly include sycl headers.
   add_sycl_to_target(
       TARGET bench_rocblas_${rocblas_bench_exec}

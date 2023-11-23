@@ -120,22 +120,8 @@ typename sb_handle_t::event_t _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  auto vx = make_vector_view(_vx, _incx, _N);
-  auto vy = make_vector_view(_vy, _incy, _N);
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-  // TODO: (Tanvir) avoid over-writing the input.
-  // Once this is fixed, we should be able to add
-  // const support for dot and sdsdot operators.
-  auto prdOp = make_op<BinaryOp, ProductOperator>(vx, vy);
-
-  auto localSize = sb_handle.get_work_group_size();
-  auto nWG = 2 * localSize;
-
-  auto assignOp =
-      make_assign_reduction<AddOperator>(rs, prdOp, localSize, localSize * nWG);
-  auto ret = sb_handle.execute(assignOp, _dependencies);
-  return ret;
+  return blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs,
+                                  _dependencies);
 }
 
 /**
@@ -165,16 +151,23 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-  typename sb_handle_t::event_t dot_event{};
-  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
-                             static_cast<index_t>(1));
-
-  dot_event =
-      internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, _rs, _dependencies);
-  auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
-  auto assignOp2 = make_op<Assign>(rs, addOp);
-  auto ret2 = sb_handle.execute(assignOp2, dot_event);
-  return blas::concatenate_vectors(dot_event, ret2);
+  if (!_N) {
+    using element_t = typename ValueType<container_2_t>::type;
+    sb_handle.wait(_dependencies);
+    auto ret = blas::helper::copy_to_device(
+        sb_handle.get_queue(), reinterpret_cast<element_t *>(&sb), _rs, 1);
+    sb_handle.wait(ret);
+    return {ret};
+  } else {
+    auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                               static_cast<index_t>(1));
+    auto dotOp = blas::dot::backend::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
+                                          _rs, _dependencies);
+    auto addOp = make_op<ScalarOp, AddOperator>(sb, rs);
+    auto assignOp2 = make_op<Assign>(rs, addOp);
+    auto ret = sb_handle.execute(assignOp2, dotOp);
+    return blas::concatenate_vectors(dotOp, ret);
+  }
 }
 
 /**
@@ -329,7 +322,7 @@ typename sb_handle_t::event_t _swap(
 }
 
 /**
- * \brief SCALAR  operation on a vector
+ * \brief SCALAR operation on a vector
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
  * @param _incx Increment in X axis
@@ -416,6 +409,57 @@ typename sb_handle_t::event_t _nrm2_impl(
   auto assignOpFinal = make_op<Assign>(rs, sqrtOp);
   auto ret1 = sb_handle.execute(assignOpFinal, ret0);
   return blas::concatenate_vectors(ret0, ret1);
+}
+
+/**
+ * @brief _dot_impl Internal implementation of the dot operator.
+ *
+ * This function contains the code that sets up and executes the kernels
+ * required to perform the dot operation (also used in sdsdot).
+ *
+ * This function is called by blas::dot::backend::_dot which, depending on
+ * the TUNING_TARGET and other RT parameters (size for instance), selects
+ * different template parameters / configuration to ensure the adequate kernel
+ * is called.
+ *
+ * @tparam localSize  specifies the number of threads per work group used by
+ *                    the kernel
+ * @tparam localMemSize specifies the size of local shared memory to use, which
+ *                      is device and implementation dependent. If 0 the
+ *                      implementation use a kernel implementation which doesn't
+ *                      require local memory.
+ */
+template <int localSize, int localMemSize, typename sb_handle_t,
+          typename container_0_t, typename container_1_t,
+          typename container_2_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _dot_impl(
+    sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
+    container_1_t _vy, increment_t _incy, container_2_t _rs,
+    const index_t _number_wg,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename sb_handle_t::event_t ret_event;
+  // Skip if N==0, _rs is not overwritten
+  if (!_N) return {_dependencies};
+
+  auto vx = make_vector_view(_vx, _incx, _N);
+  auto vy = make_vector_view(_vy, _incy, _N);
+  auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
+                             static_cast<index_t>(1));
+
+  auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
+  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+
+  if constexpr (localMemSize) {
+    ret_event =
+        sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                          static_cast<index_t>(_number_wg * localSize),
+                          static_cast<index_t>(localMemSize), _dependencies);
+  } else {
+    ret_event = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+                                  static_cast<index_t>(_number_wg * localSize),
+                                  _dependencies);
+  }
+  return ret_event;
 }
 
 /**
@@ -697,7 +741,6 @@ void _rotg(sb_handle_t &sb_handle, scalar_t &a, scalar_t &b, scalar_t &c,
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
@@ -718,21 +761,26 @@ typename ValueType<container_0_t>::type _dot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  auto res = std::vector<element_t>(1);
+  element_t res{0};
   auto gpu_res = helper::allocate < is_usm ? helper::AllocType::usm
                                            : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto dot_event = internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy,
-                                  gpu_res, _dependencies);
-  sb_handle.wait(dot_event);
-  auto event =
-      helper::copy_to_host(sb_handle.get_queue(), gpu_res, res.data(), 1);
-  sb_handle.wait(event);
+  auto copyTodD =
+      blas::helper::copy_to_device(sb_handle.get_queue(), &res, gpu_res, 1);
+  typename sb_handle_t::event_t all_deps = concatenate_vectors(
+      _dependencies, typename sb_handle_t::event_t{copyTodD});
+
+  auto dotOp =
+      internal::_dot(sb_handle, _N, _vx, _incx, _vy, _incy, gpu_res, all_deps);
+
+  sb_handle.wait(dotOp);
+  auto copyToH = helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
+  sb_handle.wait(copyToH);
 
   helper::deallocate<is_usm ? helper::AllocType::usm
                             : helper::AllocType::buffer>(gpu_res,
                                                          sb_handle.get_queue());
-  return res[0];
+  return res;
 }
 
 /**
@@ -742,7 +790,6 @@ typename ValueType<container_0_t>::type _dot(
  * @tparam sb_handle_t SB_Handle type
  * @tparam container_0_t Buffer Iterator or USM pointer
  * @tparam container_1_t Buffer Iterator or USM pointer
- * @tparam container_2_t Buffer Iterator or USM pointer
  * @tparam index_t Index type
  * @tparam increment_t Increment type
  * @param sb_handle SB_Handle
@@ -764,16 +811,21 @@ typename ValueType<container_0_t>::type _sdsdot(
     const typename sb_handle_t::event_t &_dependencies) {
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
-  element_t res{};
+  element_t res{0};
   auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
-  auto event1 = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx, _vy,
-                                        _incy, gpu_res, _dependencies);
-  sb_handle.wait(event1);
-  auto event2 =
+  auto copyTodD =
+      blas::helper::copy_to_device(sb_handle.get_queue(), &res, gpu_res, 1);
+  typename sb_handle_t::event_t all_deps = concatenate_vectors(
+      _dependencies, typename sb_handle_t::event_t{copyTodD});
+
+  auto sdsdot_event = blas::internal::_sdsdot(sb_handle, _N, sb, _vx, _incx,
+                                              _vy, _incy, gpu_res, all_deps);
+  sb_handle.wait(sdsdot_event);
+  auto copyToH =
       blas::helper::copy_to_host(sb_handle.get_queue(), gpu_res, &res, 1);
-  sb_handle.wait(event2);
+  sb_handle.wait(copyToH);
 
   blas::helper::deallocate<is_usm ? helper::AllocType::usm
                                   : helper::AllocType::buffer>(
@@ -897,8 +949,7 @@ typename ValueType<container_t>::type _nrm2(
        element_t > (static_cast<index_t>(1), sb_handle.get_queue());
   typename sb_handle_t::event_t copy_init_val = {blas::helper::copy_to_device(
       sb_handle.get_queue(), res.data(), gpu_res, 1)};
-  const auto local_deps =
-      concatenate_vectors(_dependencies, copy_init_val);
+  const auto local_deps = concatenate_vectors(_dependencies, copy_init_val);
   auto nrm2_event =
       blas::internal::_nrm2(sb_handle, _N, _vx, _incx, gpu_res, local_deps);
   sb_handle.wait(nrm2_event);

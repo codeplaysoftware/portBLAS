@@ -53,7 +53,7 @@ void run_test(const combination_t<scalar_t> combi) {
   fill_random(y_v);
 
   // Output scalar
-  scalar_t out_s = 10.0;
+  scalar_t out_s = 0.0;
 
   // Reference implementation
   auto out_cpu_s =
@@ -127,7 +127,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 65, 1002, 1002400),            // N
-    ::testing::Values<scalar_t>(9.5f, 0.5f),             // sb
+    ::testing::Values<float>(9.5f, 0.5f),                // sb
     ::testing::Values(1, 4),                             // incX
     ::testing::Values(1, 3)                              // incY
 );
@@ -137,7 +137,7 @@ const auto combi = ::testing::Combine(
     ::testing::Values("usm", "buf"),                     // allocation type
     ::testing::Values(api_type::async, api_type::sync),  // Api
     ::testing::Values(11, 1002, 0),                      // N
-    ::testing::Values<scalar_t>(9.5f, 0.5f, 0.0f),       // sb
+    ::testing::Values<float>(9.5f, 0.5f, 0.0f),          // sb
     ::testing::Values(1, 4),                             // incX
     ::testing::Values(1, 3)                              // incY
 

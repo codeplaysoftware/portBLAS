@@ -133,6 +133,12 @@ auto blas_system_function(floatfn_t ffn, doublefn_t dfn)
   return BlasSystemFunction<scalar_t>::get(ffn, dfn);
 }
 
+template <typename scalar_t, typename floatfn_t, typename doublefn_t>
+auto blas_cplx_system_function(floatfn_t ffn, doublefn_t dfn)
+    -> decltype(BlasSystemFunction<scalar_t>::get(ffn, dfn)) {
+  return BlasSystemFunction<scalar_t>::get(ffn, dfn);
+}
+
 // =======
 // Level 1
 // =======
@@ -374,6 +380,15 @@ void gemm(const char *transA, const char *transB, int m, int n, int k,
           scalar_t alpha, const scalar_t a[], int lda, const scalar_t b[],
           int ldb, scalar_t beta, scalar_t c[], int ldc) {
   auto func = blas_system_function<scalar_t>(&cblas_sgemm, &cblas_dgemm);
+  func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
+       lda, b, ldb, beta, c, ldc);
+}
+
+template <typename scalar_t>
+void cgemm(const char *transA, const char *transB, int m, int n, int k,
+           const void *alpha, const void *a, int lda, const void *b, int ldb,
+           const void *beta, void *c, int ldc) {
+  auto func = blas_cplx_system_function<scalar_t>(&cblas_cgemm, &cblas_zgemm);
   func(CblasColMajor, c_trans(*transA), c_trans(*transB), m, n, k, alpha, a,
        lda, b, ldb, beta, c, ldc);
 }

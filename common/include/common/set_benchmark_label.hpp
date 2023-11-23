@@ -28,6 +28,10 @@
 
 #include <map>
 #include <string>
+#ifdef BLAS_ENABLE_COMPLEX
+#define SYCL_EXT_ONEAPI_COMPLEX
+#include <complex>
+#endif
 
 #ifdef BUILD_CUBLAS_BENCHMARKS
 #include <cuda.h>
@@ -177,6 +181,20 @@ inline void add_datatype_info<cl::sycl::half>(
   key_value_map["@datatype"] = "half";
 }
 #endif  // BLAS_DATA_TYPE_HALF
+
+#ifdef BLAS_ENABLE_COMPLEX
+template <>
+inline void add_datatype_info<std::complex<float>>(
+    std::map<std::string, std::string>& key_value_map) {
+  key_value_map["@datatype"] = "complex<float>";
+}
+
+template <>
+inline void add_datatype_info<std::complex<double>>(
+    std::map<std::string, std::string>& key_value_map) {
+  key_value_map["@datatype"] = "complex<double>";
+}
+#endif  // BLAS_ENABLE_COMPLEX
 
 }  // namespace datatype_info
 

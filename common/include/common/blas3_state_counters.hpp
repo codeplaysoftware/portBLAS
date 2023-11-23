@@ -76,6 +76,66 @@ init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
   return;
 }
 
+#ifdef BLAS_ENABLE_COMPLEX
+template <Level3Op op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == Level3Op::gemm_batched_strided ||
+                               op == Level3Op::gemm_batched ||
+                               op == Level3Op::gemm>::type
+init_level_3_cplx_counters(
+    benchmark::State& state,
+    std::complex<scalar_t> beta = std::complex<scalar_t>(0, 0), index_t m = 0,
+    index_t n = 0, index_t k = 0, index_t batch_size = 1,
+    index_t stride_a_mul = 1, index_t stride_b_mul = 1,
+    index_t stride_c_mul = 1) {
+  // Google-benchmark counters are double.
+  double beta_real_d = static_cast<double>(beta.real());
+  double beta_imag_d = static_cast<double>(beta.imag());
+  double m_d = static_cast<double>(m);
+  double n_d = static_cast<double>(n);
+  double k_d = static_cast<double>(k);
+  double batch_size_d = static_cast<double>(batch_size);
+  state.counters["beta_real"] = beta_real_d;
+  state.counters["beta_imag"] = beta_real_d;
+  state.counters["m"] = m_d;
+  state.counters["n"] = n_d;
+  state.counters["k"] = k_d;
+  state.counters["batch_size"] = batch_size_d;
+  if constexpr (op == Level3Op::gemm_batched_strided) {
+    double stride_a_mul_d = static_cast<double>(stride_a_mul);
+    double stride_b_mul_d = static_cast<double>(stride_b_mul);
+    double stride_c_mul_d = static_cast<double>(stride_c_mul);
+
+    state.counters["stride_a_mul"] = stride_a_mul_d;
+    state.counters["stride_b_mul"] = stride_b_mul_d;
+    state.counters["stride_c_mul"] = stride_c_mul_d;
+  }
+
+  // Counters here should be reviewed as pure real/imaginary cases result in
+  // less flops
+
+  bool beta_zero = (beta.real() == scalar_t{0}) && (beta.imag() == scalar_t{0});
+
+  const double nflops_AtimesB =
+      k_d * m_d * n_d * 6 + k_d * m_d * n_d * 2;  // MulFlops + AddFlops
+  double nflops_timesAlpha = m_d * n_d * 6;
+  const double nflops_addBetaC =
+      beta_zero ? 0 : 6 * m_d * n_d + 2 * m_d * n_d;  // MulFlops + AddFlops
+  const double nflops_tot =
+      (nflops_AtimesB + nflops_timesAlpha + nflops_addBetaC) * batch_size_d;
+  state.counters["n_fl_ops"] = nflops_tot;
+
+  const double mem_readA = m_d * k_d;
+  const double mem_readB = k_d * n_d;
+  const double mem_writeC = m_d * n_d;
+  const double mem_readC = beta_zero ? 0 : m_d * n_d;
+  const double total_mem = (mem_readA + mem_readB + mem_readC + mem_writeC) *
+                           batch_size_d * sizeof(scalar_t) * 2;
+  state.counters["bytes_processed"] = total_mem;
+  return;
+}
+
+#endif
+
 template <Level3Op op, typename scalar_t>
 inline typename std::enable_if<op == Level3Op::symm>::type
 init_level_3_counters(benchmark::State& state, scalar_t beta = 0, index_t m = 0,
