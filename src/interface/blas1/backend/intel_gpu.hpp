@@ -50,7 +50,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
-  constexpr int localSize = 128;
+  constexpr int localSize = 256;
   if (_N < 8192) {
     return blas::internal::_iamax_iamin_impl<localSize, localSize, true, true>(
         sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
@@ -71,7 +71,7 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
-  constexpr int localSize = 128;
+  constexpr int localSize = 256;
   if (_N < 8192) {
     return blas::internal::_iamax_iamin_impl<localSize, localSize, false, true>(
         sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
