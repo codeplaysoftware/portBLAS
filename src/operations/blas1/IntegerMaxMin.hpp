@@ -30,6 +30,10 @@
 
 namespace blas {
 
+/**
+ * Temporary class to select the type of blas::Operator to use.
+ * @tparam max Indicate whether the desired operation is iamax or not.
+ */
 template <bool max>
 struct SelectOperator;
 
@@ -44,8 +48,9 @@ struct SelectOperator<false> {
 };
 
 /*! IntegerMaxMin.
- * @brief This class implement a device size reduction using all WG to compute
- * and atomics operation to combine the results.
+ * @brief Generic implementation for operators that require a
+ * reduction inside kernel code for computing index of max/min
+ * value within the input (i.e. iamax and iamin).
  * */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::IntegerMaxMin(lhs_t& _l,
@@ -65,6 +70,9 @@ IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
   return true;
 }
 
+/**
+ * eval() function without local memory.
+ */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
@@ -88,6 +96,7 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   using element_t =
       typename ResolveReturnType<op, rhs_t>::type::value_t::value_t;
 
+  // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
     if (sg_local_id < i) {
       element_t shfl_val = sg.shuffle_down(val.get_value(), i);
@@ -101,6 +110,9 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
       ndItem.get_group_linear_id() * (local_range / sg_local_range) +
       sg.get_group_linear_id();
 
+  // write IndexValueTuple to Global Memory iff reduction step0
+  // or write Index to Global Memory iff reduction step1.
+  // only 1 work item per sub_group performs this operation.
   if (sg_local_id == 0) {
     if constexpr (is_step0) {
       lhs_.eval(lhs_idx) = val;
@@ -112,6 +124,9 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   return;
 }
 
+/**
+ * eval() function with local memory.
+ */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 template <typename sharedT>
 PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
@@ -134,6 +149,7 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   ndItem.barrier(sycl::access::fence_space::local_space);
 
   value_t local_val = op::template init<rhs_t>();
+  // reduction within the work group
   for (index_t i = local_range >> 1; i > 0; i >>= 1) {
     if (local_id < i) {
       val = scratch[local_id];
@@ -143,6 +159,9 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     ndItem.barrier(sycl::access::fence_space::local_space);
   }
 
+  // write IndexValueTuple to Global Memory iff reduction step0
+  // or write Index to Global Memory iff reduction step1.
+  // only 1 work item per work group performs this operation.
   if (local_id == 0) {
     val = scratch[local_id];
     if constexpr (is_step0) {

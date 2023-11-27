@@ -60,13 +60,13 @@ typename sb_handle_t::event_t _iamax(
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   if (_N < 8192) {
     constexpr index_t localSize = 512;
-    return blas::internal::_iamax_impl<localSize, localSize, true>(
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, true, true>(
         sb_handle, _N, _vx, _incx, _rs, 1, _dependencies);
   } else {
     constexpr index_t localSize = 512;
     const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
                                  static_cast<index_t>(512));
-    return blas::internal::_iamax_impl<localSize, localSize, false>(
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, true, false>(
         sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
   }
 }
@@ -82,14 +82,15 @@ typename sb_handle_t::event_t _iamin(
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   if (_N < 8192) {
     constexpr index_t localSize = 512;
-    return blas::internal::_iamin_impl<localSize, localSize, true>(
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, false, true>(
         sb_handle, _N, _vx, _incx, _rs, 1, _dependencies);
   } else {
     constexpr index_t localSize = 512;
     const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
                                  static_cast<index_t>(512));
-    return blas::internal::_iamin_impl<localSize, localSize, false>(
-        sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, false,
+                                             false>(sb_handle, _N, _vx, _incx,
+                                                    _rs, nWG, _dependencies);
   }
 }
 }  // namespace backend

@@ -224,14 +224,19 @@ struct WGAtomicReduction {
   void adjust_access_displacement();
 };
 
-/*! .
+/**
  * @brief Generic implementation for operators that require a
  * reduction inside kernel code for computing index of max/min value within the
- * input. (i.e. iamax and iamin)
+ * input (i.e. iamax and iamin).
  *
  * The class is constructed using the make_integer_max_min
  * function below.
  *
+ * @tparam is_max Whether the operator is iamax or iamin
+ * @tparam is_step0 Decides whether to write IndexValueTuple to output or final
+ * index output
+ * @tparam lhs_t Buffer or USM memory object type for output memory
+ * @tparam rhs_t Buffer or USM memory object type for input memory
  */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 struct IntegerMaxMin {
