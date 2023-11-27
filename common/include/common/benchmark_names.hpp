@@ -296,6 +296,15 @@ get_name(index_t rows, index_t cols, std::string reduction_dim,
   return internal::get_name<op, scalar_t>(rows, cols, reduction_dim, mem_type);
 }
 
+template <ExtensionOp op, typename scalar_t, typename index_t>
+inline typename std::enable_if<op == ExtensionOp::axpy_batch, std::string>::type
+get_name(index_t n, scalar_t alpha, index_t inc_x, index_t inc_y,
+         index_t stride_x_mul, index_t stride_y_mul, index_t batch_size,
+         std::string mem_type) {
+  return internal::get_name<op, scalar_t>(n, alpha, inc_x, inc_y, stride_x_mul,
+                                          stride_y_mul, batch_size, mem_type);
+}
+
 }  // namespace utils
 }  // namespace blas_benchmark
 

@@ -69,6 +69,7 @@ set(sources
   extension/omatcopy_batched.cpp
   extension/omatadd.cpp
   extension/omatadd_batched.cpp
+  extension/axpy_batch.cpp
 )
 
 if(${BLAS_ENABLE_EXTENSIONS})

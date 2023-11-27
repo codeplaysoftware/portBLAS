@@ -52,6 +52,8 @@
 
 #include "operations/extension/matcopy_batch.hpp"
 
+#include "operations/extension/axpy_batch.hpp"
+
 #include "operations/blas_constants.hpp"
 
 #include "operations/blas_operators.hpp"
