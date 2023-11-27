@@ -298,8 +298,10 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
               .template get_info<sycl::info::device::sub_group_sizes>()[0]);
       ret = sb_handle.execute(op, sg_size, sg_size, _dependencies);
     } else {
-      ret = sb_handle.execute(op, localSize, _nWG * localSize, localMemSize,
-                              _dependencies);
+      ret =
+          sb_handle.execute(op, static_cast<index_t>(localSize),
+                            _nWG * static_cast<index_t>(localSize),
+                            static_cast<index_t>(localMemSize), _dependencies);
     }
   } else {
     using scalar_t = typename ValueType<container_0_t>::type;
@@ -310,7 +312,8 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
         q.get_device()
             .template get_info<sycl::info::device::sub_group_sizes>()[0]);
     const index_t memory_size =
-        localMemSize == 0 ? _nWG * (localSize / sg_size) : _nWG;
+        localMemSize == 0 ? _nWG * (static_cast<index_t>(localSize) / sg_size)
+                          : _nWG;
     auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                    : helper::AllocType::buffer,
          tuple_t > (memory_size, q);
@@ -323,15 +326,19 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
       ret = typename sb_handle_t::event_t{
           helper::fill(q, gpu_res, init, memory_size, _dependencies)};
       ret = concatenate_vectors(
-          ret, sb_handle.execute(step0, localSize, _nWG * localSize, ret));
+          ret, sb_handle.execute(step0, static_cast<index_t>(localSize),
+                                 _nWG * static_cast<index_t>(localSize), ret));
       ret = concatenate_vectors(
           ret, sb_handle.execute(step1, sg_size, sg_size, ret));
     } else {
-      ret = sb_handle.execute(step0, localSize, _nWG * localSize, localMemSize,
-                              _dependencies);
+      ret =
+          sb_handle.execute(step0, static_cast<index_t>(localSize),
+                            _nWG * static_cast<index_t>(localSize),
+                            static_cast<index_t>(localMemSize), _dependencies);
       ret = concatenate_vectors(
-          ret,
-          sb_handle.execute(step1, localSize, localSize, localMemSize, ret));
+          ret, sb_handle.execute(step1, static_cast<index_t>(localSize),
+                                 static_cast<index_t>(localSize),
+                                 static_cast<index_t>(localMemSize), ret));
     }
     blas::helper::enqueue_deallocate(ret, gpu_res, q);
   }

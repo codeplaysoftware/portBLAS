@@ -51,11 +51,11 @@ typename sb_handle_t::event_t _iamax(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   if (_N < 8192) {
-    constexpr index_t localSize = 128;
+    constexpr int localSize = 128;
     return blas::internal::_iamax_iamin_impl<localSize, localSize, true, true>(
-        sb_handle, _N, _vx, _incx, _rs, 1, _dependencies);
+        sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
   } else {
-    constexpr index_t localSize = 128;
+    constexpr int localSize = 128;
     const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
                                  static_cast<index_t>(512));
     return blas::internal::_iamax_iamin_impl<localSize, localSize, true, false>(
@@ -73,11 +73,11 @@ typename sb_handle_t::event_t _iamin(
     sb_handle_t& sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t& _dependencies) {
   if (_N < 8192) {
-    constexpr index_t localSize = 128;
+    constexpr int localSize = 128;
     return blas::internal::_iamax_iamin_impl<localSize, localSize, false, true>(
-        sb_handle, _N, _vx, _incx, _rs, 1, _dependencies);
+        sb_handle, _N, _vx, _incx, _rs, static_cast<index_t>(1), _dependencies);
   } else {
-    constexpr index_t localSize = 128;
+    constexpr int localSize = 128;
     const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
                                  static_cast<index_t>(512));
     return blas::internal::_iamax_iamin_impl<localSize, localSize, false,
