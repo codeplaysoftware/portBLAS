@@ -86,8 +86,9 @@ typename sb_handle_t::event_t _iamin(
     constexpr int localSize = 512;
     const index_t nWG = std::min((_N + localSize - 1) / (localSize * 4),
                                  static_cast<index_t>(512));
-    return blas::internal::_iamax_iamin_impl<localSize, 0, false, false>(
-        sb_handle, _N, _vx, _incx, _rs, nWG, _dependencies);
+    return blas::internal::_iamax_iamin_impl<localSize, localSize, false,
+                                             false>(sb_handle, _N, _vx, _incx,
+                                                    _rs, nWG, _dependencies);
   }
 }
 }  // namespace backend

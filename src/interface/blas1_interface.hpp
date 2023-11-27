@@ -257,7 +257,7 @@ typename sb_handle_t::event_t _asum_impl(
  *
  * @tparam localSize value to indicate work group size
  * @tparam localMemSize value to indicate size of local memory required
- * @tparam is_max boolean variable to indicate if required operation is 
+ * @tparam is_max boolean variable to indicate if required operation is
  * iamax or not
  * @tparam single boolean variable to indicate whether to execute a single
  * step reduction or a two step reduction
@@ -322,7 +322,10 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     auto step0 = make_integer_max_min<is_max, true>(gpu_res_vec, tupOp);
     auto step1 = make_integer_max_min<is_max, false>(rs, gpu_res_vec);
     if constexpr (localMemSize == 0) {
-      tuple_t init{(index_t)0, (scalar_t)0.f};
+      const scalar_t val = is_max ? static_cast<scalar_t>(0)
+                                  : std::numeric_limits<scalar_t>::max();
+      const index_t idx = std::numeric_limits<index_t>::max();
+      const tuple_t init{idx, val};
       ret = typename sb_handle_t::event_t{
           helper::fill(q, gpu_res, init, memory_size, _dependencies)};
       ret = concatenate_vectors(
