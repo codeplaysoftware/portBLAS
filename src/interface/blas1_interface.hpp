@@ -322,7 +322,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     auto step0 = make_integer_max_min<is_max, true>(gpu_res_vec, tupOp);
     auto step1 = make_integer_max_min<is_max, false>(rs, gpu_res_vec);
     if constexpr (localMemSize == 0) {
-      const scalar_t val = is_max ? static_cast<scalar_t>(0)
+      const scalar_t val = is_max ? std::numeric_limits<scalar_t>::min()
                                   : std::numeric_limits<scalar_t>::max();
       const index_t idx = std::numeric_limits<index_t>::max();
       const tuple_t init{idx, val};
