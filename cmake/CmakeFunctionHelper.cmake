@@ -616,19 +616,24 @@ else() # default cpu backend
         64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "naive" "none" 1 "strided" "false" "false")
     else()
       add_gemm_configuration(
-        "${data}"  64 "false" "false" "false"
-        64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 2 "strided" "false" "false")
+        "${data}"  128 "false" "false" "false"
+        64 2 2 2 2 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 2 "strided" "false" "false")
       add_gemm_configuration(
-        "${data}"  64 "false" "false" "false"
-        64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
+        "${data}"  128 "false" "false" "false"
+        64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "full" 1 "strided" "false" "false")
+      add_gemm_configuration(
+        "${data}"  128 "false" "false" "false"
+        64 4 4 4 4 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 1 "strided" "false" "false")
       add_gemm_configuration(
         "${data}"  64 "false" "false" "false"
         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
+
     endif()
 
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")
+
   endforeach()
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
