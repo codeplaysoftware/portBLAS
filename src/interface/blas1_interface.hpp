@@ -249,7 +249,7 @@ typename sb_handle_t::event_t _asum_impl(
 /**
  * _iamax_iamin_impl.
  * Internal implementation of backend specific iamax or iamin operator.
- * This method launches up to 2 instances of IntegerMaxMin class
+ * This method launches up to 2 instances of IndexMaxMin class
  * to compute the integer index of max or min value in the input. Based
  * on the localMemSize template parameter, the implementation performs
  * work group reduction using local memory or sub_group reduction
@@ -290,7 +290,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
   auto tupOp = make_tuple_op(vx);
   typename sb_handle_t::event_t ret;
   if constexpr (single) {
-    auto op = make_integer_max_min<is_max, false>(rs, tupOp);
+    auto op = make_index_max_min<is_max, false>(rs, tupOp);
     if constexpr (localMemSize == 0) {
       auto q = sb_handle.get_queue();
       const index_t sg_size = static_cast<index_t>(
@@ -319,8 +319,8 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
          tuple_t > (memory_size, q);
     auto gpu_res_vec =
         make_vector_view(gpu_res, static_cast<increment_t>(1), memory_size);
-    auto step0 = make_integer_max_min<is_max, true>(gpu_res_vec, tupOp);
-    auto step1 = make_integer_max_min<is_max, false>(rs, gpu_res_vec);
+    auto step0 = make_index_max_min<is_max, true>(gpu_res_vec, tupOp);
+    auto step1 = make_index_max_min<is_max, false>(rs, gpu_res_vec);
     if constexpr (localMemSize == 0) {
       const scalar_t val = is_max ? std::numeric_limits<scalar_t>::min()
                                   : std::numeric_limits<scalar_t>::max();

@@ -19,12 +19,12 @@
  *
  *  portBLAS: BLAS implementation using SYCL
  *
- *  @filename IntegerMaxMin.hpp
+ *  @filename IndexMaxMin.hpp
  *
  **************************************************************************/
 
-#ifndef INTEGER_MAX_MIN_HPP
-#define INTEGER_MAX_MIN_HPP
+#ifndef INDEX_MAX_MIN_HPP
+#define INDEX_MAX_MIN_HPP
 #include "operations/blas1_trees.h"
 #include "operations/blas_operators.hpp"
 
@@ -47,25 +47,23 @@ struct SelectOperator<false> {
   using op = IMinOperator;
 };
 
-/*! IntegerMaxMin.
+/*! IndexMaxMin.
  * @brief Generic implementation for operators that require a
  * reduction inside kernel code for computing index of max/min
  * value within the input (i.e. iamax and iamin).
  * */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
-IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::IntegerMaxMin(lhs_t& _l,
-                                                             rhs_t& _r)
+IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::IndexMaxMin(lhs_t& _l, rhs_t& _r)
     : lhs_(_l), rhs_(_r){};
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE typename IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::index_t
-IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::get_size() const {
+PORTBLAS_INLINE typename IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::index_t
+IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::get_size() const {
   return rhs_.get_size();
 }
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE bool
-IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
+PORTBLAS_INLINE bool IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
     cl::sycl::nd_item<1> ndItem) const {
   return true;
 }
@@ -74,7 +72,7 @@ IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::valid_thread(
  * eval() function without local memory.
  */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
+PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     cl::sycl::nd_item<1> ndItem) {
   using op = typename SelectOperator<is_max>::op;
   const auto size = rhs_.get_size();
@@ -129,7 +127,7 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
  */
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 template <typename sharedT>
-PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
+PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     sharedT scratch, cl::sycl::nd_item<1> ndItem) {
   using op = typename SelectOperator<is_max>::op;
   const auto size = rhs_.get_size();
@@ -175,7 +173,7 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
 }
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
-PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::bind(
+PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::bind(
     cl::sycl::handler& h) {
   lhs_.bind(h);
   rhs_.bind(h);
@@ -183,7 +181,7 @@ PORTBLAS_INLINE void IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::bind(
 
 template <bool is_max, bool is_step0, typename lhs_t, typename rhs_t>
 PORTBLAS_INLINE void
-IntegerMaxMin<is_max, is_step0, lhs_t, rhs_t>::adjust_access_displacement() {
+IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::adjust_access_displacement() {
   lhs_.adjust_access_displacement();
   rhs_.adjust_access_displacement();
 }

@@ -32,7 +32,7 @@
 #if SYCL_LANGUAGE_VERSION >= 202000
 #include "blas1/WGAtomicReduction.hpp"
 #endif
-#include "blas1/IntegerMaxMin.hpp"
+#include "blas1/IndexMaxMin.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
