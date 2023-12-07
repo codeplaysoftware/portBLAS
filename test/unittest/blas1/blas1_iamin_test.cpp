@@ -41,9 +41,9 @@ void run_test(const combination_t<scalar_t> combi) {
   const scalar_t max = std::numeric_limits<scalar_t>::max();
 
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(size * std::abs(incX));
   populate_data<scalar_t>(mode, max, x_v);
-  for (int i = 0; i < size * incX; i++) {
+  for (int i = 0; i < x_v.size(); i++) {
     // There is a bug in Openblas where 0s are not handled correctly
     if (x_v[i] == scalar_t{0.0}) {
       x_v[i] = 1.0;
@@ -66,10 +66,11 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto gpu_x_v =
+      blas::helper::allocate<mem_alloc, scalar_t>(size * abs(incX), q);
 
   auto copy_x =
-      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * abs(incX));
 
   if (api == api_type::async) {
     auto gpu_out_s = blas::helper::allocate<mem_alloc, index_t>(1, q);

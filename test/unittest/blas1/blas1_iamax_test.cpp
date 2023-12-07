@@ -14,7 +14,7 @@ void run_test(const combination_t<scalar_t> combi) {
   std::tie(alloc, api, size, incX, mode, unused) = combi;
 
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(size * std::abs(incX));
   populate_data<scalar_t>(mode, 0.0, x_v);
 
   // This will remove infs from the vector
@@ -33,9 +33,11 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto gpu_x_v =
+      helper::allocate<mem_alloc, scalar_t>(size * std::abs(incX), q);
 
-  auto copy_x = helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+  auto copy_x =
+      helper::copy_to_device(q, x_v.data(), gpu_x_v, size * std::abs(incX));
 
   if (api == api_type::async) {
     auto gpu_out_s = helper::allocate<mem_alloc, index_t>(1, q);

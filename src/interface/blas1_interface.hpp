@@ -360,8 +360,14 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  return blas::iamax::backend::_iamax(sb_handle, _N, _vx, _incx, _rs,
-                                      _dependencies);
+  if (_incx < 0) {
+    index_t out = 0;
+    return typename sb_handle_t::event_t{
+        helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
+  } else {
+    return blas::iamax::backend::_iamax(sb_handle, _N, _vx, _incx, _rs,
+                                        _dependencies);
+  }
 }
 
 /**
@@ -376,8 +382,14 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  return blas::iamin::backend::_iamin(sb_handle, _N, _vx, _incx, _rs,
-                                      _dependencies);
+  if (_incx < 0) {
+    index_t out = 0;
+    return typename sb_handle_t::event_t{
+        helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
+  } else {
+    return blas::iamin::backend::_iamin(sb_handle, _N, _vx, _incx, _rs,
+                                        _dependencies);
+  }
 }
 
 /**
