@@ -293,27 +293,34 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     auto op = make_index_max_min<is_max, false>(rs, tupOp);
     if constexpr (localMemSize == 0) {
       auto q = sb_handle.get_queue();
-      const index_t sg_size = static_cast<index_t>(
+      // get the minimum supported sub_group size
+      const index_t min_sg_size = static_cast<index_t>(
           q.get_device()
               .template get_info<sycl::info::device::sub_group_sizes>()[0]);
-      ret = sb_handle.execute(op, sg_size, sg_size, _dependencies);
+      ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
     } else {
-      ret =
-          sb_handle.execute(op, static_cast<index_t>(localSize),
-                            _nWG * static_cast<index_t>(localSize),
-                            static_cast<index_t>(localMemSize), _dependencies);
+      ret = sb_handle.execute(
+          op, static_cast<index_t>(localSize), static_cast<index_t>(localSize),
+          static_cast<index_t>(localMemSize), _dependencies);
     }
   } else {
     using scalar_t = typename ValueType<container_0_t>::type;
     using tuple_t = IndexValueTuple<index_t, scalar_t>;
     constexpr bool is_usm = std::is_pointer<container_0_t>::value;
     auto q = sb_handle.get_queue();
-    const index_t sg_size = static_cast<index_t>(
+    // get the minimum supported sub_group size
+    const index_t min_sg_size = static_cast<index_t>(
         q.get_device()
             .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+    // if using no local memory, every sub_group writes one intermediate output,
+    // in case if sub_group size is not known at allocation time, than allocate
+    // extra memory using min supported sub_group size.
+    // for local memory case, every work group writes one intermediate output,
+    // so we allocate the exact amount of memory required.
     const index_t memory_size =
-        localMemSize == 0 ? _nWG * (static_cast<index_t>(localSize) / sg_size)
-                          : _nWG;
+        localMemSize == 0
+            ? _nWG * (static_cast<index_t>(localSize) / min_sg_size)
+            : _nWG;
     auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
                                                    : helper::AllocType::buffer,
          tuple_t > (memory_size, q);
@@ -325,14 +332,19 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
       const scalar_t val = is_max ? std::numeric_limits<scalar_t>::min()
                                   : std::numeric_limits<scalar_t>::max();
       const index_t idx = std::numeric_limits<index_t>::max();
-      const tuple_t init{idx, val};
-      ret = typename sb_handle_t::event_t{
-          helper::fill(q, gpu_res, init, memory_size, _dependencies)};
+      tuple_t init{idx, val};
+      const std::vector<tuple_t> init_vec(memory_size, init);
+      // initialize the intermediate memory so that in case the
+      // min_sub_group size is not the same as the actual sub_group
+      // size used at runtime, the implementation does not use
+      // garbage values to effect the correctness of the output.
+      ret = typename sb_handle_t::event_t{helper::copy_to_device(
+          q, init_vec.data(), gpu_res, memory_size, _dependencies)};
       ret = concatenate_vectors(
           ret, sb_handle.execute(step0, static_cast<index_t>(localSize),
                                  _nWG * static_cast<index_t>(localSize), ret));
       ret = concatenate_vectors(
-          ret, sb_handle.execute(step1, sg_size, sg_size, ret));
+          ret, sb_handle.execute(step1, min_sg_size, min_sg_size, ret));
     } else {
       ret =
           sb_handle.execute(step0, static_cast<index_t>(localSize),
@@ -360,7 +372,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamax(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  if (_incx < 0) {
+  if (_incx < 0 || _N < 0) {
     index_t out = 0;
     return typename sb_handle_t::event_t{
         helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
@@ -382,7 +394,7 @@ template <typename sb_handle_t, typename container_t, typename ContainerI,
 typename sb_handle_t::event_t _iamin(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     ContainerI _rs, const typename sb_handle_t::event_t &_dependencies) {
-  if (_incx < 0) {
+  if (_incx < 0 || _N < 0) {
     index_t out = 0;
     return typename sb_handle_t::event_t{
         helper::fill(sb_handle.get_queue(), _rs, out, 1, _dependencies)};
