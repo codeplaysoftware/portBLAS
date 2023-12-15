@@ -32,6 +32,7 @@
 #if SYCL_LANGUAGE_VERSION >= 202000
 #include "blas1/WGAtomicReduction.hpp"
 #endif
+#include "blas1/IndexMaxMin.hpp"
 #include "views/view_sycl.hpp"
 #include <stdexcept>
 #include <vector>
@@ -449,7 +450,7 @@ PORTBLAS_INLINE bool TupleOp<rhs_t>::valid_thread(
 template <typename rhs_t>
 PORTBLAS_INLINE typename TupleOp<rhs_t>::value_t TupleOp<rhs_t>::eval(
     typename TupleOp<rhs_t>::index_t i) {
-  return TupleOp<rhs_t>::value_t(i, rhs_.eval(i));
+  return TupleOp<rhs_t>::value_t(i, std::abs(rhs_.eval(i)));
 }
 
 template <typename rhs_t>

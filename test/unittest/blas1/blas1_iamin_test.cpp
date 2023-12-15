@@ -29,21 +29,21 @@
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  using tuple_t = IndexValueTuple<int, scalar_t>;
 
   std::string alloc;
   api_type api;
   index_t size;
   index_t incX;
   generation_mode_t mode;
-  std::tie(alloc, api, size, incX, mode) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, mode, unused) = combi;
 
   const scalar_t max = std::numeric_limits<scalar_t>::max();
 
   // Input vector
-  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_v(size * std::abs(incX));
   populate_data<scalar_t>(mode, max, x_v);
-  for (int i = 0; i < size * incX; i++) {
+  for (int i = 0; i < x_v.size(); i++) {
     // There is a bug in Openblas where 0s are not handled correctly
     if (x_v[i] == scalar_t{0.0}) {
       x_v[i] = 1.0;
@@ -56,7 +56,7 @@ void run_test(const combination_t<scalar_t> combi) {
       [](scalar_t v) { return utils::clamp_to_limits<scalar_t>(v); });
 
   // Output scalar
-  tuple_t out_s{0, max};
+  index_t out_s{0};
 
   // Reference implementation
   int out_cpu_s = reference_blas::iamin(size, x_v.data(), incX);
@@ -66,28 +66,27 @@ void run_test(const combination_t<scalar_t> combi) {
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::helper::allocate<mem_alloc, scalar_t>(size * incX, q);
+  auto gpu_x_v =
+      blas::helper::allocate<mem_alloc, scalar_t>(size * abs(incX), q);
 
   auto copy_x =
-      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * abs(incX));
 
   if (api == api_type::async) {
-    auto gpu_out_s = blas::helper::allocate<mem_alloc, tuple_t>(1, q);
-    auto copy_out =
-        blas::helper::copy_to_device<tuple_t>(q, &out_s, gpu_out_s, 1);
+    auto gpu_out_s = blas::helper::allocate<mem_alloc, index_t>(1, q);
     auto iamin_event =
-        _iamin(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x, copy_out});
+        _iamin(sb_handle, size, gpu_x_v, incX, gpu_out_s, {copy_x});
     sb_handle.wait(iamin_event);
-    auto event = blas::helper::copy_to_host<tuple_t>(sb_handle.get_queue(),
+    auto event = blas::helper::copy_to_host<index_t>(sb_handle.get_queue(),
                                                      gpu_out_s, &out_s, 1);
     sb_handle.wait(event);
     helper::deallocate<mem_alloc>(gpu_out_s, q);
   } else {
-    out_s.ind = _iamin(sb_handle, size, gpu_x_v, incX, {copy_x});
+    out_s = _iamin(sb_handle, size, gpu_x_v, incX, {copy_x});
   }
 
   // Validate the result
-  ASSERT_EQ(out_cpu_s, out_s.ind);
+  ASSERT_EQ(out_cpu_s, out_s);
   helper::deallocate<mem_alloc>(gpu_x_v, q);
 }
 
@@ -98,7 +97,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t size;
   index_t incX;
   generation_mode_t mode;
-  std::tie(alloc, api, size, incX, mode) = combi;
+  scalar_t unused;
+  std::tie(alloc, api, size, incX, mode, unused) = combi;
 
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
