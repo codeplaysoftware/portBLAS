@@ -138,12 +138,13 @@ inline size_t get_num_compute_units(cl::sycl::queue &q) {
   @param size is the number of elements to be copied
 */
 template <typename element_t>
-inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
-                                      BufferIterator<element_t> dst,
-                                      size_t size) {
+inline cl::sycl::event copy_to_device(
+    cl::sycl::queue q, const element_t *src, BufferIterator<element_t> dst,
+    size_t size, const std::vector<cl::sycl::event> &_dependencies = {}) {
   auto event = q.submit([&](cl::sycl::handler &cgh) {
     auto acc = dst.template get_range_accessor<cl::sycl::access::mode::write>(
         cgh, size);
+    cgh.depends_on(_dependencies);
     cgh.copy(src, acc);
   });
   return event;
@@ -151,9 +152,10 @@ inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
 
 #ifdef SB_ENABLE_USM
 template <typename element_t>
-inline cl::sycl::event copy_to_device(cl::sycl::queue q, const element_t *src,
-                                      element_t *dst, size_t size) {
-  auto event = q.memcpy(dst, src, size * sizeof(element_t));
+inline cl::sycl::event copy_to_device(
+    cl::sycl::queue q, const element_t *src, element_t *dst, size_t size,
+    const std::vector<cl::sycl::event> &_dependencies = {}) {
+  auto event = q.memcpy(dst, src, size * sizeof(element_t), _dependencies);
   return event;
 }
 #endif
@@ -195,8 +197,9 @@ inline cl::sycl::event copy_to_host(cl::sycl::queue q, const element_t *src,
 template <typename element_t>
 inline cl::sycl::event fill(cl::sycl::queue q, BufferIterator<element_t> buff,
                             element_t value, size_t size,
-                            const std::vector<cl::sycl::event> &) {
+                            const std::vector<cl::sycl::event> &_dependencies) {
   auto event = q.submit([&](cl::sycl::handler &cgh) {
+    cgh.depends_on(_dependencies);
     auto acc = buff.template get_range_accessor<cl::sycl::access::mode::write>(
         cgh, size);
     cgh.fill(acc, value);

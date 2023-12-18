@@ -42,11 +42,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
-  using tuple_scalar_t = blas::IndexValueTuple<index_t, scalar_t>;
-
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  tuple_scalar_t out{-1, 0};
+  index_t out = 0;
 
   // This will clamp the values to what scalar_t can represent
   std::transform(std::begin(v1), std::end(v1), std::begin(v1), [](scalar_t v) {
@@ -54,7 +52,7 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   });
 
   auto inx = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
-  auto outI = blas::helper::allocate<mem_alloc, tuple_scalar_t>(1, q);
+  auto outI = blas::helper::allocate<mem_alloc, index_t>(1, q);
 
   auto copy_x = blas::helper::copy_to_device<scalar_t>(q, v1.data(), inx, size);
 
@@ -64,9 +62,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   // Run a first time with a verification of the results
   index_t idx_ref =
       static_cast<index_t>(reference_blas::iamax(size, v1.data(), 1));
-  tuple_scalar_t idx_temp{-1, 0};
+  index_t idx_temp = -1;
   {
-    auto idx_temp_gpu = blas::helper::allocate<mem_alloc, tuple_scalar_t>(1, q);
+    auto idx_temp_gpu = blas::helper::allocate<mem_alloc, index_t>(1, q);
     auto iamax_event =
         _iamax(sb_handle, size, inx, static_cast<index_t>(1), idx_temp_gpu);
     sb_handle.wait(iamax_event);
@@ -77,10 +75,9 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
     blas::helper::deallocate<mem_alloc>(idx_temp_gpu, q);
   }
 
-  if (idx_temp.ind != idx_ref) {
+  if (idx_temp != idx_ref) {
     std::ostringstream err_stream;
-    err_stream << "Index mismatch: " << idx_temp.ind << "; expected "
-               << idx_ref;
+    err_stream << "Index mismatch: " << idx_temp << "; expected " << idx_ref;
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
