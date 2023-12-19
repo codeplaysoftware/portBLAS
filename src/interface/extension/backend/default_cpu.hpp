@@ -37,12 +37,12 @@ typename sb_handle_t::event_t _transpose_outplace(
     container_0_t in_, index_t _ld_in, index_t _inc_in, index_t _stride_in,
     container_1_t out_, index_t _ld_out, index_t _inc_out, index_t _stride_out,
     index_t _batch_size, const typename sb_handle_t::event_t& _dependencies) {
-  if (_M * _N < (1 << 20)) {
+  if (_M * _N < (1 << 16)) {
     return blas::internal::_transpose_outplace_impl<16, 64, 64, false>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
         _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
   } else {
-    return blas::internal::_transpose_outplace_impl<32, 128, 64, false>(
+    return blas::internal::_transpose_outplace_impl<32, 32, 64, false>(
         sb_handle, _M, _N, _alpha, in_, _ld_in, _inc_in, _stride_in, out_,
         _ld_out, _inc_out, _stride_out, _batch_size, _dependencies);
   }
@@ -58,13 +58,13 @@ typename sb_handle_t::event_t _transpose_add(
     index_t _b_rows, index_t _b_cols, index_t _stride_b, container_2_t c_,
     index_t _ld_c, index_t _stride_c, index_t _batch_size,
     const typename sb_handle_t::event_t& _dependencies) {
-  if (_M * _N < (1 << 20)) {
+  if (_M * _N < (1 << 16)) {
     return blas::internal::_transpose_add_impl<both_trans, 16, 64, 64, false>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
         _batch_size, _dependencies);
   } else {
-    return blas::internal::_transpose_add_impl<both_trans, 32, 128, 64, false>(
+    return blas::internal::_transpose_add_impl<both_trans, 32, 32, 64, false>(
         sb_handle, _M, _N, _alpha, a_, _ld_a, _a_rows, _a_cols, _stride_a,
         _beta, b_, _ld_b, _b_rows, _b_cols, _stride_b, c_, _ld_c, _stride_c,
         _batch_size, _dependencies);

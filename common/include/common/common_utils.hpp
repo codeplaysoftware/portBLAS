@@ -1242,15 +1242,13 @@ static inline std::vector<matcopy_param_t<scalar_t>> get_matcopy_params(
     std::vector<matcopy_param_t<scalar_t>> matcopy_default;
     constexpr index_t dmin = 64, dmax = 8192;
     constexpr scalar_t alpha{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-              matcopy_default.push_back(
-                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul));
-            }
-          }
+          matcopy_default.push_back(
+              std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul));
         }
       }
     }
@@ -1287,17 +1285,15 @@ static inline std::vector<omatcopy2_param_t<scalar_t>> get_omatcopy2_params(
     std::vector<omatcopy2_param_t<scalar_t>> omatcopy2_default;
     constexpr index_t dmin = 1024, dmax = 8192;
     constexpr scalar_t alpha{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t inc_a = 1; inc_a < 3; ++inc_a) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t inc_b = 1; inc_b < 3; ++inc_b) {
-                  omatcopy2_default.push_back(std::make_tuple(
-                      trans, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b));
-                }
-              }
+          for (index_t inc_a = 1; inc_a < 3; ++inc_a) {
+            for (index_t inc_b = 1; inc_b < 3; ++inc_b) {
+              omatcopy2_default.push_back(std::make_tuple(
+                  trans, m, n, alpha, lda_mul, ldb_mul, inc_a, inc_b));
             }
           }
         }
@@ -1336,21 +1332,20 @@ get_matcopy_batch_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<matcopy_batch_param_t<scalar_t>> matcopy_batch_default;
-    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr index_t dmin = 256, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans : {'n', 't'}) {
       for (index_t m = dmin; m <= dmax; m *= 2) {
         for (index_t n = dmin; n <= dmax; n *= 2) {
-          for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-            for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-              matcopy_batch_default.push_back(
-                  std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
-                                  stride_a_mul, stride_b_mul, batch_size));
-            }
-          }
+          matcopy_batch_default.push_back(
+              std::make_tuple(trans, m, n, alpha, lda_mul, ldb_mul,
+                              stride_a_mul, stride_b_mul, batch_size));
         }
       }
     }
@@ -1386,22 +1381,19 @@ static inline std::vector<omatadd_param_t<scalar_t>> get_omatadd_params(
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<omatadd_param_t<scalar_t>> omatadd_default;
-    constexpr index_t dmin = 64, dmax = 8192;
+    constexpr index_t dmin = 64, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr scalar_t beta{2};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans_a : {'n', 't'}) {
       for (char trans_b : {'n', 't'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
-                  omatadd_default.push_back(
-                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
-                                      lda_mul, ldb_mul, ldc_mul));
-                }
-              }
-            }
+            omatadd_default.push_back(std::make_tuple(trans_a, trans_b, m, n,
+                                                      alpha, beta, lda_mul,
+                                                      ldb_mul, ldc_mul));
           }
         }
       }
@@ -1439,27 +1431,23 @@ get_omatadd_batch_params(Args& args) {
   if (args.csv_param.empty()) {
     warning_no_csv();
     std::vector<omatadd_batch_param_t<scalar_t>> omatadd_batch_default;
-    constexpr index_t dmin = 256, dmax = 8192;
+    constexpr index_t dmin = 1024, dmax = 4096;
     constexpr scalar_t alpha{2};
     constexpr scalar_t beta{2};
     constexpr index_t batch_size{3};
     constexpr index_t stride_a_mul{1};
     constexpr index_t stride_b_mul{1};
     constexpr index_t stride_c_mul{1};
+    constexpr index_t lda_mul = 1;
+    constexpr index_t ldb_mul = 1;
+    constexpr index_t ldc_mul = 1;
     for (char trans_a : {'n', 't'}) {
-      for (char trans_b : {'n', 't'}) {
+      for (char trans_b : {'n'}) {
         for (index_t m = dmin; m <= dmax; m *= 2) {
           for (index_t n = dmin; n <= dmax; n *= 2) {
-            for (index_t lda_mul = 1; lda_mul < 2; ++lda_mul) {
-              for (index_t ldb_mul = 1; ldb_mul < 2; ++ldb_mul) {
-                for (index_t ldc_mul = 1; ldc_mul < 2; ++ldc_mul) {
-                  omatadd_batch_default.push_back(
-                      std::make_tuple(trans_a, trans_b, m, n, alpha, beta,
-                                      lda_mul, ldb_mul, ldc_mul, stride_a_mul,
-                                      stride_b_mul, stride_c_mul, batch_size));
-                }
-              }
-            }
+            omatadd_batch_default.push_back(std::make_tuple(
+                trans_a, trans_b, m, n, alpha, beta, lda_mul, ldb_mul, ldc_mul,
+                stride_a_mul, stride_b_mul, stride_c_mul, batch_size));
           }
         }
       }
