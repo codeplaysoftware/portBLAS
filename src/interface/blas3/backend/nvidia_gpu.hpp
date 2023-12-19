@@ -113,9 +113,9 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
 
     if (batch_size > 1) {
       return blas::Gemm_Launcher<
-          container_0_t, container_1_t, container_2_t, 256, false, true, true,
-          128, Tile<8, 8, 16, 16, 1, 1, 1, 1, 1, 1, 1, 1, 1, float, float>,
-          _t_a, _t_b, s_a, s_b, static_cast<int>(gemm_memory_t::local),
+          container_0_t, container_1_t, container_2_t, 64, false, false, true,
+          64, Tile<8, 8, 8, 8, 1, 1, 2, 2, 1, 1, 1, 1, 1, float, float>, _t_a,
+          _t_b, s_a, s_b, static_cast<int>(gemm_memory_t::local),
           static_cast<int>(gemm_algorithm_t::standard),
           static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
           static_cast<int>(gemm_batch_type_t::strided),
