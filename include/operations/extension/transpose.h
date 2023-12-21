@@ -80,11 +80,6 @@ class Transpose {
   static constexpr const index_t inner_tile_size_ = wg_size / Tile_size;
   static constexpr const index_t inner_tile_count_ =
       Tile_size / inner_tile_size_;
-  // Minimum number of Tile-mutliple rows & columns to cover the matrices
-  index_t M_pad_;
-  index_t N_pad_;
-  // Total size of Tile-mutliple covering matrix
-  index_t size_pad_;
   // Batch size when using batched transpose
   index_t batch_size_;
   // Number of contiguous elements to be used in local memory to avoid bank
@@ -115,9 +110,6 @@ class Transpose {
         stride_a_(stride_a),
         stride_at_(stride_at),
         inc_at_(inc_at),
-        M_pad_(tile_count_m_ * Tile_size),
-        N_pad_(tile_count_n_ * Tile_size),
-        size_pad_(M_pad_ * N_pad_),
         batch_size_(batch_size) {}
 
   index_t get_size() const;
@@ -209,11 +201,6 @@ class TransposeAdd {
   static constexpr const index_t inner_tile_size_ = wg_size / Tile_size;
   static constexpr const index_t inner_tile_count_ =
       Tile_size / inner_tile_size_;
-  // Minimum number of Tile-mutliple rows & columns to cover the output matrix
-  index_t M_pad_;
-  index_t N_pad_;
-  // Total size of Tile-mutliple covering matrix
-  index_t size_pad_;
   // Batch size when using batched transpose
   index_t batch_size_;
   // Number of contiguous elements to be used in local memory to avoid bank
@@ -246,9 +233,6 @@ class TransposeAdd {
         tile_count_m_((M_ - 1) / Tile_size + 1),
         tile_count_n_((N_ - 1) / Tile_size + 1),
         tile_count_total_(tile_count_m_ * tile_count_n_),
-        M_pad_(tile_count_m_ * Tile_size),
-        N_pad_(tile_count_n_ * Tile_size),
-        size_pad_(M_pad_ * N_pad_),
         batch_size_(batch_size) {}
 
   index_t get_size() const;
