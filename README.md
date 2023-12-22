@@ -3,13 +3,10 @@ portBLAS Implementation
 
 [![Build and Test](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml/badge.svg?event=push)](https://github.com/codeplaysoftware/portBLAS/actions/workflows/build-and-test.yml)
 
-portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL 1.2](
-https://www.khronos.org/registry/sycl/specs/sycl-1.2.pdf), the
-[Khronos](http://www.khronos.org) abstraction layer for [OpenCL](https://www.khronos.org/opencl/).
+portBLAS implements BLAS - [Basic Linear Algebra Subroutines](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) - using [SYCL](https://www.khronos.org/sycl/)).
 
-portBLAS is a current work in progress research project from an ongoing
-collaboration with the *High Performance Computing & Architectures (HPCA) group*
-from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
+portBLAS is an ongoing collaboration with the *High Performance Computing 
+& Architectures (HPCA) group* from the Universitat Jaume I [UJI](http://www.hpca.uji.es/).
 
 portBLAS is written using modern C++. The current implementation uses C++11
 features.
