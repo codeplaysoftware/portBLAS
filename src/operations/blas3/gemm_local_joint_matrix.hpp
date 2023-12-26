@@ -162,6 +162,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   //! @brief leading dimension of block of B in local
   static constexpr index_t ldsb =
       cl_elems + nbc_b * tile_type::joint_matrix_K / sizeof(float) * 2;
+
+  static constexpr index_t ldsc = block_rows + (nbc_a | nbc_b) *
+                                                   tile_type::joint_matrix_M /
+                                                   sizeof(float) * 2;
   //! @brief size (in elements) of local (local) memory required by each
   //         work group
   static constexpr index_t local_memory_size =
@@ -308,15 +312,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const bool out_of_range = (wg_row >= m || wg_col >= n);
     const bool internal = m - wg_row >= block_rows && n - wg_col >= block_cols;
 
-    ptr_C +=
-        (wg_row + (sg_id % jm_row_frags) * tile_type::joint_matrix_M) +
-        (wg_col + (sg_id / jm_row_frags) * tile_type::joint_matrix_N) * ldc;
+    ptr_C += (wg_row + wg_col * ldc);
 
     const index_t mc = m - wg_row;
     const index_t nc = n - wg_col;
 
     const index_t it_mod_brows = item_id % block_rows;
     const index_t it_div_brows = item_id / block_rows;
+
+    ptr_C += (it_mod_brows + it_div_brows * ldc);
 
     const index_t it_mod_bcols = item_id % block_cols;
     const index_t it_div_bcols = item_id / block_cols;
@@ -518,131 +522,42 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     Cfloat_Type float_out;
     auto sg = id.get_sub_group();
 
+    const index_t item_id = static_cast<index_t>(id.get_local_linear_id());
+    const index_t local_range = static_cast<index_t>(id.get_local_range(0));
     const index_t sg_id = static_cast<index_t>(sg.get_group_linear_id());
-    const index_t sg_range = static_cast<index_t>(sg.get_group_linear_range());
-    const index_t sg_item_id = static_cast<index_t>(sg.get_local_linear_id());
 
-    const index_t sg_mc =
-        mc - (sg_id % jm_row_frags) * tile_type::joint_matrix_M;
-    const index_t sg_nc =
-        nc - (sg_id / jm_row_frags) * tile_type::joint_matrix_N;
-    // const bool jm_store_feasible = (mc < block_rows || nc < block_cols)
-    //                                    ? (sg_mc >= tile_type::joint_matrix_M
-    //                                    &&
-    //                                       sg_nc >= tile_type::joint_matrix_N)
-    //                                          ? true
-    //                                          : false
-    //                                    : true;
-
-    // if (jm_store_feasible) {
-
-    //   if constexpr (is_beta_zero) {
-    //     for (index_t frag = 0; frag < frags_per_sg; frag++) {
-    //       joint_matrix_copy(sg, reg_res[frag], float_out);
-    //       joint_matrix_apply(sg, float_out, [=](element_t &x){
-    //         x *= alpha_;
-    //       });
-    //       joint_matrix_store(sg, float_out, C, ldc, layout::col_major);
-    //       C += (tile_type::joint_matrix_N * ldc);
-    //     }
-
-    //   } else {
-    //     for (index_t frag = 0; frag < frags_per_sg; frag++) {
-    //       joint_matrix_load(sg, float_out, C, ldc, layout::col_major);
-    //       joint_matrix_apply(sg, float_out, [=](element_t &x){
-    //         x *= beta_;
-    //       });
-    //       // for (index_t i = 0; i < loop_limit; i++) {
-    //       //   element_t data_left =
-    //       //       static_cast<element_t>(get_wi_data(sg, reg_res[frag])[i]);
-    //       //   element_t data_right = get_wi_data(sg, float_out)[i];
-    //       //   get_wi_data(sg, float_out)[i] =
-    //       //       beta_ * data_right + alpha_ * data_left;
-    //       // }
-
-    //       joint_matrix_store(sg, float_out, C, ldc, layout::col_major);
-
-    //       C += (tile_type::joint_matrix_N * ldc);
-    //     }
-    //   }
-    //   return;
-    // } else if (sg_mc <= 0 || sg_nc <= 0) {
-    //   return;
-    // }
-
-    id.barrier(cl::sycl::access::fence_space::local_space);
-
-    scratch += sg_id * tile_type::joint_matrix_M;
-    const index_t sg_store_ld = sg_range * tile_type::joint_matrix_M;
+    const index_t output_local_store_offset =
+        (sg_id % jm_row_frags) * tile_type::joint_matrix_M +
+        (sg_id / jm_row_frags) * ldsc * tile_type::joint_matrix_N;
+    const index_t output_local_load_offset =
+        item_id % block_rows + (item_id / block_rows) * ldsc;
+    const index_t rows_per_iter = local_range / block_rows;
     const index_t loop_limit =
-        sg_nc >= tile_type::joint_matrix_N ? tile_type::joint_matrix_N : sg_nc;
+        (frags_per_sg == 1 ? block_cols : tile_type::joint_matrix_N) /
+        rows_per_iter;
 
-    for (index_t frag = 0; frag < frags_per_sg; frag++, C += ldc * loop_limit) {
+    const index_t output_global_outer_offset = ldc * tile_type::joint_matrix_N;
+    const index_t output_global_inner_offset = ldc * rows_per_iter;
+    const index_t output_local_inner_offset = ldsc * rows_per_iter;
+
+    for (index_t frag = 0; frag < frags_per_sg;
+         frag++, C += output_global_outer_offset) {
       auto new_C = C;
-      auto new_scratch = scratch;
+      auto new_scratch = scratch + output_local_load_offset;
 
       joint_matrix_copy(sg, reg_res[frag], float_out);
       joint_matrix_apply(sg, float_out, [=](element_t &x) { x *= alpha_; });
 
-      joint_matrix_store(sg, float_out, new_scratch, sg_store_ld,
-                         layout::col_major);
+      id.barrier(cl::sycl::access::fence_space::local_space);
+
+      joint_matrix_store(sg, float_out, scratch + output_local_store_offset,
+                         ldsc, layout::col_major);
 
       id.barrier(cl::sycl::access::fence_space::local_space);
 
-      new_C += sg_item_id;
-      new_scratch += sg_item_id;
-
-      if (sg_mc >= tile_type::joint_matrix_M &&
-          sg_nc >= tile_type::joint_matrix_N) {
-        for (index_t i = 0; i < loop_limit; i++) {
-          if constexpr (is_beta_zero) {
-            *(new_C + i * ldc) = *(new_scratch + i * sg_store_ld);
-          } else {
-            element_t data_left = *(new_C + i * ldc);
-            element_t data_right = *(new_scratch + i * sg_store_ld);
-            *(new_C + i * ldc) = data_right + beta_ * data_left;
-          }
-        }
-      } else if (sg_mc < tile_type::joint_matrix_M &&
-                 sg_nc < tile_type::joint_matrix_N) {
-        if (sg_item_id < sg_mc) {
-          for (index_t i = 0; i < loop_limit; i++) {
-            if constexpr (is_beta_zero) {
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right;
-            } else {
-              element_t data_left = *(new_C + i * ldc);
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right + beta_ * data_left;
-            }
-          }
-        }
-      } else if (sg_mc < tile_type::joint_matrix_M) {
-        if (sg_item_id < sg_mc) {
-          for (index_t i = 0; i < loop_limit; i++) {
-            if constexpr (is_beta_zero) {
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right;
-            } else {
-              element_t data_left = *(new_C + i * ldc);
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right + beta_ * data_left;
-            }
-          }
-        }
-      } else {
-        if (sg_item_id < tile_type::joint_matrix_M) {
-          for (index_t i = 0; i < loop_limit; i++) {
-            if constexpr (is_beta_zero) {
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right;
-            } else {
-              element_t data_left = *(new_C + i * ldc);
-              element_t data_right = *(new_scratch + i * sg_store_ld);
-              *(new_C + i * ldc) = data_right + beta_ * data_left;
-            }
-          }
-        }
+      for (int i = 0; i < loop_limit; i++, new_C += output_global_inner_offset,
+               new_scratch += output_local_inner_offset) {
+        *new_C = *new_scratch;
       }
     }
   }
