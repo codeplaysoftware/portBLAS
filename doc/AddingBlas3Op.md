@@ -35,7 +35,7 @@ typename sb_handle_t::event_t _trsm(sb_handle_t& sb_handle, char Side,
                                              container_0_t A, index_t lda,
                                              container_1_t B, index_t ldb);
     
-}
+} // namespace internal
 
 // User-facing function to call the TRSM operation
 template <typename sb_handle_t, typename container_0_t, typename container_1_t,
@@ -47,7 +47,6 @@ typename sb_handle_t::event_t inline _trsm(
   return internal::_trsm(sb_handle, Side, Triangle, Transpose, Diagonal, M, N, alpha, A, lda,
                          B, ldb);
 }
-} // namespace internal
 } // namespace blas
 ```
 
@@ -98,8 +97,12 @@ void run_test(const combination_t<scalar_t> combi) {
   auto q = make_queue();
   SB_Handle sb_handle(q);
 
+  //
+  // Perform any host-to-device copies here
+  //
+
   // Invoke the newly added operation
-  _trsm(sb_handle, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb);
+  _trsm(sb_handle, side, triangle, transA, diag, m, n, alpha, a_gpu, lda, b_gpu, ldb, dependencies);
 
   // Verify the results
 }
@@ -143,7 +146,8 @@ template <typename sb_handle_t, typename container_0_t, typename container_1_t,
 typename sb_handle_t::event_t _trsm(
     sb_handle_t& sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
     index_t M, index_t N, element_t alpha, container_0_t A, index_t lda,
-    container_1_t B, index_t ldb) {
+    container_1_t B, index_t ldb,
+    const typename sb_handle_t::event_t& _dependencies) {
   // Implementation of the new operation
   // This will probably invoke a kernel which we don't yet have defined.
     
@@ -153,7 +157,7 @@ typename sb_handle_t::event_t _trsm(
   auto gemmEvent = internal::_gemm(
             sb_handle, 'n', isTranspose ? 't' : 'n', M, currentBlockSize,
             currentBlockSize, (i == 0) ? alpha : element_t{1}, B + i * ldb, ldb,
-            invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx);
+            invA + i * blockSize, blockSize, element_t{0}, X + i * ldx, ldx, intermediate_events);
   trsmEvents = concatenate_vectors(trsmEvents, gemmEvent);  
 
   // Ultimately, a list of all events created in this function is returned
@@ -193,13 +197,28 @@ compile `blas::internal::_trsm`, for this particular example, this file looks li
 namespace blas {
 namespace internal {
 
-
+// Buffer Declaration
 template typename SB_Handle::event_t _trsm(
   SB_Handle sb_handle, char Side, char Triangle, char Transpose, char Diagonal,
   ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
   BufferIterator<${DATA_TYPE}> A, ${INDEX_TYPE} lda,
-  BufferIterator<${DATA_TYPE}> B, ${INDEX_TYPE} ldb);
+  BufferIterator<${DATA_TYPE}> B, ${INDEX_TYPE} ldb,
+  const typename SB_Handle::event_t& _dependencies);
 
+// USM Declarations
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _trsm(
+    SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
+    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha, ${DATA_TYPE} * A,
+    ${INDEX_TYPE} lda, ${DATA_TYPE} * B, ${INDEX_TYPE} ldb,
+    const typename SB_Handle::event_t& _dependencies);
+
+template typename SB_Handle::event_t _trsm(
+    SB_Handle& sb_handle, char side, char uplo, char trans, char diag,
+    ${INDEX_TYPE} M, ${INDEX_TYPE} N, ${DATA_TYPE} alpha,
+    const ${DATA_TYPE} * A, ${INDEX_TYPE} lda, ${DATA_TYPE} * B,
+    ${INDEX_TYPE} ldb, const typename SB_Handle::event_t& _dependencies);
+#endif
 
 } // namespace internal
 } // namespace blas
