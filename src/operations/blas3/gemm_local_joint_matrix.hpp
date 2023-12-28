@@ -576,7 +576,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
               *new_C = *new_scratch;
             else {
               auto val = *new_C;
-              *new_C = *new_scratch * beta_ * val;
+              *new_C = *new_scratch + beta_ * val;
             }
           }
           continue;
