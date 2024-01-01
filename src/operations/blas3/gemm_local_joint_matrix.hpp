@@ -171,7 +171,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   //! @brief size (in elements) of local (local) memory required by each
   //         work group
   static constexpr index_t local_memory_size =
-      (double_buffer + 1) * (ldsa * cl_elems + ldsb * block_cols);
+      (double_buffer + 1) * (ldsa * (trans_a ? block_rows : cl_elems) +
+                             ldsb * (trans_b ? cl_elems : block_cols));
 
   input_t a_;
   input_t b_;
@@ -290,20 +291,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t wg_id_x = wg_id % x_groups;
     const index_t wg_id_y = (wg_id / x_groups) % y_groups;
 
-    const index_t a_size = trans_a ? m * lda : k * lda;
-    const index_t b_size = trans_b ? ldb * k : n * ldb;
-    const index_t c_size = ldc * n;
-
-    using address_t = cl::sycl::access::address_space;
-    auto ptr_A = cl::sycl::multi_ptr<const element_t, address_t::global_space>(
-                     a_.get_pointer()) +
-                 (wg_batch_id * stridea_);
-    auto ptr_B = cl::sycl::multi_ptr<const element_t, address_t::global_space>(
-                     b_.get_pointer()) +
-                 (wg_batch_id * strideb_);
-    auto ptr_C = cl::sycl::multi_ptr<element_t, address_t::global_space>(
-                     c_.get_pointer()) +
-                 (wg_batch_id * stridec_);
+    auto ptr_A = a_.get_pointer() + wg_batch_id * stridea_;
+    auto ptr_B = b_.get_pointer() + wg_batch_id * strideb_;
+    auto ptr_C = c_.get_pointer() + wg_batch_id * stridec_;
 
     auto sg = id.get_sub_group();
     const index_t sg_id = sg.get_group_linear_id();
@@ -366,16 +356,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
       if (internal) {
         compute_panel_gemm<double_buffer, false, false>(
-            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
-            batch_stride, wg_batch_id, batch_size_);
+            id, item_id, m, n, k, mc, nc, ptr_A, lda, ptr_B, ldb, ptr_C, ldc,
+            scratch, s1, s2, s3, s4, out_of_range, batch_stride, wg_batch_id,
+            batch_size_);
       } else {
         compute_panel_gemm<double_buffer, true, true>(
-            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
-            batch_stride, wg_batch_id, batch_size_);
+            id, item_id, m, n, k, mc, nc, ptr_A, lda, ptr_B, ldb, ptr_C, ldc,
+            scratch, s1, s2, s3, s4, out_of_range, batch_stride, wg_batch_id,
+            batch_size_);
       }
     } else {
+      using address_t = cl::sycl::access::address_space;
       auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<
           typename tile_type::jmInpType, address_t::local_space> *>(&scratch);
 
@@ -385,14 +376,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto s4 = input_scratch + s4_offset;
       if (internal) {
         compute_panel_gemm<double_buffer, false, false>(
-            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
-            batch_stride, wg_batch_id, batch_size_);
+            id, item_id, m, n, k, mc, nc, ptr_A, lda, ptr_B, ldb, ptr_C, ldc,
+            scratch, s1, s2, s3, s4, out_of_range, batch_stride, wg_batch_id,
+            batch_size_);
       } else {
         compute_panel_gemm<double_buffer, true, true>(
-            id, item_id, m, n, k, mc, nc, a_size, b_size, c_size, ptr_A, lda,
-            ptr_B, ldb, ptr_C, ldc, scratch, s1, s2, s3, s4, out_of_range,
-            batch_stride, wg_batch_id, batch_size_);
+            id, item_id, m, n, k, mc, nc, ptr_A, lda, ptr_B, ldb, ptr_C, ldc,
+            scratch, s1, s2, s3, s4, out_of_range, batch_stride, wg_batch_id,
+            batch_size_);
       }
     }
   }
@@ -431,8 +422,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   PORTBLAS_INLINE void compute_panel_gemm(
       const cl::sycl::nd_item<1> &id, const index_t &item_id, const index_t &m,
       const index_t &n, const index_t &orig_k, const index_t &mc,
-      const index_t &nc, const index_t &a_size, const index_t &b_size,
-      const index_t &c_size, InputPointerType orig_A, const index_t &lda,
+      const index_t &nc, InputPointerType orig_A, const index_t &lda,
       InputPointerType orig_B, const index_t &ldb, OutputPointerType orig_C,
       const index_t &ldc, OutputScratchPointerType s0,
       InputScratchPointerType s1, InputScratchPointerType s2,
@@ -542,12 +532,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     C += (it_mod_brows + it_div_brows * ldc);
 
     const index_t output_global_outer_offset = ldc * tile_type::joint_matrix_N;
+    constexpr index_t nc_conditional =
+        frags_per_sg > 1 ? tile_type::joint_matrix_N : block_cols;
 
     for (index_t frag = 0; frag < frags_per_sg; frag++,
                  C += output_global_outer_offset,
                  nc -= tile_type::joint_matrix_N) {
       const index_t rows_per_iter =
-          nc < tile_type::joint_matrix_N ? 1 : local_range / block_rows;
+          nc < nc_conditional ? 1 : local_range / block_rows;
       const index_t output_global_inner_offset = ldc * rows_per_iter;
       const index_t output_local_inner_offset = ldsc * rows_per_iter;
 
@@ -565,10 +557,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       id.barrier(cl::sycl::access::fence_space::local_space);
 
       if constexpr (check_m_limit && check_n_limit) {
-        if (mc >= block_rows && nc >= tile_type::joint_matrix_N) {
-          const index_t loop_limit =
-              (frags_per_sg == 1 ? block_cols : tile_type::joint_matrix_N) /
-              rows_per_iter;
+        if (mc >= block_rows && nc >= nc_conditional) {
+          const index_t loop_limit = nc_conditional / rows_per_iter;
           for (int i = 0; i < loop_limit; i++,
                    new_C += output_global_inner_offset,
                    new_scratch += output_local_inner_offset) {
@@ -581,7 +571,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           }
           continue;
         }
-        if (mc < block_rows && nc < tile_type::joint_matrix_N) {
+        if (mc < block_rows && nc < nc_conditional) {
           if (item_id < mc) {
             const index_t loop_limit = nc;
             for (int i = 0; i < loop_limit; i++,
@@ -599,9 +589,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         }
         if (mc < block_rows) {
           if (it_mod_brows < mc) {
-            const index_t loop_limit =
-                (frags_per_sg == 1 ? block_cols : tile_type::joint_matrix_N) /
-                rows_per_iter;
+            const index_t loop_limit = nc_conditional / rows_per_iter;
             for (int i = 0; i < loop_limit; i++,
                      new_C += output_global_inner_offset,
                      new_scratch += output_local_inner_offset) {
@@ -615,7 +603,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           }
           continue;
         }
-        if (nc < tile_type::joint_matrix_N) {
+        if (nc < nc_conditional) {
           if (item_id < block_rows) {
             const index_t loop_limit = nc;
             for (int i = 0; i < loop_limit; i++,
@@ -632,9 +620,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           continue;
         }
       } else {
-        const index_t loop_limit =
-            (frags_per_sg == 1 ? block_cols : tile_type::joint_matrix_N) /
-            rows_per_iter;
+        const index_t loop_limit = nc_conditional / rows_per_iter;
         for (int i = 0; i < loop_limit; i++,
                  new_C += output_global_inner_offset,
                  new_scratch += output_local_inner_offset) {
