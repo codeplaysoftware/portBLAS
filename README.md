@@ -33,6 +33,7 @@ the project.
     - [Compile with DPC++](#compile-with-dpc)
     - [Compile with hipSYCL](#compile-with-hipsycl)
     - [Instaling portBLAS](#instaling-portBLAS)
+    - [POWER\_VR support](#power_vr-support-computecpp-only)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
   - [Tests and benchmarks](#tests-and-benchmarks)
@@ -426,6 +427,12 @@ To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
 ```bash
 ninja install
 ```
+
+### POWER_VR support
+
+To enable the PowerVR target tuning, pass: `-DTUNING_TARGET=POWER_VR`
+
+To use the neural network library from Imagination, pass: `-DIMGDNN_DIR=path/to/library`
 
 ### Doxygen
 
