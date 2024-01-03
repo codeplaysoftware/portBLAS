@@ -80,7 +80,7 @@ The most useful options for us are:
 |option|parameter|description|
 |------|:-------:|-----------|
 | `--help` |   | Show help message |
-| `--device` | device name | Select a device to run on (e.g `intel:gpu`), useful when targeting openCL devices with portBLAS or clBLASt benchmarks|
+| `--device` | device name | Select a device to run on (e.g `intel:gpu`), useful for portBLAS and clBLASt benchmarks|
 | `--csv-param` | file path | Path to a CSV file with the benchmark parameters |
 | `--benchmark_format` | `console` / `json` / `csv` | Specify the format of the standard output |
 | `--benchmark_out` | file path | Specify a file where to write the report |

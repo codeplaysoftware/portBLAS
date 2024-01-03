@@ -108,7 +108,8 @@ void run_test(const combination_t<scalar_t> combi) {
 }
 
 // Create the combinations of parameters to invoke the test
-const auto combi = ::testing::Combine(::testing::Values(7, 513, 1027),  // m
+const auto combi = ::testing::Combine(::testing::Values("usm", "buf"),  // allocation type
+                                      ::testing::Values(7, 513, 1027),  // m
                                       ::testing::Values(7, 513, 1027),  // n
                                       ::testing::Values('n', 't'),  // transA
                                       ::testing::Values('l', 'r'),  // side
