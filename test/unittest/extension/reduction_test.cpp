@@ -71,7 +71,8 @@ static std::string generate_name(
   operator_t op;
   reduction_dim_t reductionDim;
   T unused;
-  BLAS_GENERATE_NAME(info.param, alloc, rows, cols, ldMul, op, reductionDim, unused);
+  BLAS_GENERATE_NAME(info.param, alloc, rows, cols, ldMul, op, reductionDim,
+                     unused);
 }
 
 template <typename scalar_t, helper::AllocType mem_alloc>
@@ -173,9 +174,9 @@ void run_test(const combination_t<scalar_t> combi) {
   if (op == operator_t::Mean) {
     const auto nelems = reduction_dim == reduction_dim_t::outer ? cols : rows;
     std::transform(out_v_cpu.begin(), out_v_cpu.end(), out_v_cpu.begin(),
-                    [=](scalar_t val) -> scalar_t {
-                      return val / static_cast<scalar_t>(nelems);
-                    });
+                   [=](scalar_t val) -> scalar_t {
+                     return val / static_cast<scalar_t>(nelems);
+                   });
   }
 
   auto m_in_gpu =
@@ -183,37 +184,43 @@ void run_test(const combination_t<scalar_t> combi) {
   auto v_out_gpu =
       blas::helper::allocate<mem_alloc, scalar_t>(out_size, q);  // out_v_gpu
 
-  auto copy_m = blas::helper::copy_to_device<scalar_t>(q, in_m.data(),
-                                                        m_in_gpu, ld * cols);
+  auto copy_m = blas::helper::copy_to_device<scalar_t>(q, in_m.data(), m_in_gpu,
+                                                       ld * cols);
   auto copy_v = blas::helper::copy_to_device<scalar_t>(q, out_v_gpu.data(),
-                                                        v_out_gpu, out_size);
+                                                       v_out_gpu, out_size);
 
   blas::SB_Handle::event_t ev;
   try {
     switch (op) {
       case operator_t::Add:
         ev = extension::_reduction<AddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
       case operator_t::Product:
         ev = extension::_reduction<ProductOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
       case operator_t::Max:
         ev = extension::_reduction<MaxOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
       case operator_t::Min:
         ev = extension::_reduction<MinOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
       case operator_t::AbsoluteAdd:
         ev = extension::_reduction<AbsoluteAddOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
       case operator_t::Mean:
         ev = extension::_reduction<MeanOperator, scalar_t>(
-            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim, {copy_m, copy_v});
+            sb_handle, m_in_gpu, ld, v_out_gpu, rows, cols, reduction_dim,
+            {copy_m, copy_v});
         break;
     }
   } catch (cl::sycl::exception& e) {
@@ -253,5 +260,4 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 }
 
-BLAS_REGISTER_TEST_ALL(ReductionPartial, combination_t, combi,
-                               generate_name);
+BLAS_REGISTER_TEST_ALL(ReductionPartial, combination_t, combi, generate_name);

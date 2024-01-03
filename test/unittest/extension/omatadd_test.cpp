@@ -27,8 +27,8 @@
 #include "extension_reference.hpp"
 
 template <typename scalar_t>
-using combination_t = std::tuple<std::string, char, char, index_t, index_t, scalar_t,
-                                 scalar_t, index_t, index_t, index_t>;
+using combination_t = std::tuple<std::string, char, char, index_t, index_t,
+                                 scalar_t, scalar_t, index_t, index_t, index_t>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
@@ -37,8 +37,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t m, n, ld_a_mul, ld_b_mul, ld_c_mul;
   scalar_t alpha, beta;
 
-  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul, ld_c_mul) =
-      combi;
+  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul,
+           ld_c_mul) = combi;
 
   auto q = make_queue();
   blas::SB_Handle sb_handle(q);
@@ -70,12 +70,16 @@ void run_test(const combination_t<scalar_t> combi) {
   auto m_b_gpu = helper::allocate<mem_alloc, scalar_t>(size_m_b, q);
   auto m_c_gpu = helper::allocate<mem_alloc, scalar_t>(size_m_c, q);
 
-  auto copy_m_a = helper::copy_to_device<scalar_t>(q, A.data(), m_a_gpu, size_m_a);
-  auto copy_m_b = helper::copy_to_device<scalar_t>(q, B.data(), m_b_gpu, size_m_b);
-  auto copy_m_c = helper::copy_to_device<scalar_t>(q, C.data(), m_c_gpu, size_m_c);
+  auto copy_m_a =
+      helper::copy_to_device<scalar_t>(q, A.data(), m_a_gpu, size_m_a);
+  auto copy_m_b =
+      helper::copy_to_device<scalar_t>(q, B.data(), m_b_gpu, size_m_b);
+  auto copy_m_c =
+      helper::copy_to_device<scalar_t>(q, C.data(), m_c_gpu, size_m_c);
 
-  auto omatadd_event = blas::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha, m_a_gpu, lda, beta,
-                 m_b_gpu, ldb, m_c_gpu, ldc, {copy_m_a, copy_m_b, copy_m_c});
+  auto omatadd_event = blas::_omatadd(sb_handle, trans_a, trans_b, m, n, alpha,
+                                      m_a_gpu, lda, beta, m_b_gpu, ldb, m_c_gpu,
+                                      ldc, {copy_m_a, copy_m_b, copy_m_c});
   sb_handle.wait(omatadd_event);
 
   auto event = blas::helper::copy_to_host<scalar_t>(
@@ -98,8 +102,8 @@ void run_test(const combination_t<scalar_t> combi) {
   index_t m, n, ld_a_mul, ld_b_mul, ld_c_mul;
   scalar_t alpha, beta;
 
-  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul, ld_c_mul) =
-      combi;
+  std::tie(alloc, trans_a, trans_b, m, n, alpha, beta, ld_a_mul, ld_b_mul,
+           ld_c_mul) = combi;
 
   if (alloc == "usm") {
 #ifdef SB_ENABLE_USM
@@ -127,9 +131,9 @@ const auto combi =
 #else
 template <typename scalar_t>
 const auto combi =
-    ::testing::Combine(::testing::Values("usm", "buf"),        // allocation type
-                       ::testing::Values<char>('n', 't'),         // trans_a
-                       ::testing::Values<char>('n', 't'),         // trans_b
+    ::testing::Combine(::testing::Values("usm", "buf"),    // allocation type
+                       ::testing::Values<char>('n', 't'),  // trans_a
+                       ::testing::Values<char>('n', 't'),  // trans_b
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
                        ::testing::Values<scalar_t>(0, 1, 2),      // alpha
@@ -146,8 +150,8 @@ static std::string generate_name(
   char trans_a, trans_b;
   index_t m, n, lda_mul, ldb_mul, ldc_mul;
   T alpha, beta;
-  BLAS_GENERATE_NAME(info.param, alloc, trans_a, trans_b, m, n, alpha, beta, lda_mul,
-                     ldb_mul, ldc_mul);
+  BLAS_GENERATE_NAME(info.param, alloc, trans_a, trans_b, m, n, alpha, beta,
+                     lda_mul, ldb_mul, ldc_mul);
 }
 
 BLAS_REGISTER_TEST_ALL(OmatAdd, combination_t, combi, generate_name);

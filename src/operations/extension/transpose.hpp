@@ -55,7 +55,7 @@ Transpose<in_place, Tile_size, wg_size, cl_size, local_memory, in_t, out_t,
           element_t>::get_size() const {
   // Smallest TileSize square-multiple containing input/output matrices times
   // batch_size
-  return (size_pad_ * batch_size_);
+  return (tile_count_total_ * Tile_size * Tile_size * batch_size_);
 }
 
 template <bool in_place, int Tile_size, int wg_size, int cl_size,
@@ -254,7 +254,7 @@ PORTBLAS_INLINE typename in1_t::index_t
 TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
              in2_t, out_t, element_t>::get_size() const {
   // Smallest TileSize square-multiple containing input/output matrices
-  return (size_pad_ * batch_size_);
+  return (tile_count_total_ * Tile_size * Tile_size * batch_size_);
 }
 
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
@@ -276,10 +276,10 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
  * @param in_a_idx [output] the input A global-memory index
  * @param in_b_idx [output] the input B global-memory index
  * @param out_idx [output] the output C global-memory index
- * @param i [output] the global row-index (A & B when both_trans -> [0,N_], B &
- *C otherwise -> [0,M_])
- * @param j [output] the global col-index (A & B when both_trans -> [0,M_], B &
- *C otherwise -> [0,N_])
+ * @param i [output] the global row-index (A & B when both_trans -> [0,N_], B
+ *& C otherwise -> [0,M_])
+ * @param j [output] the global col-index (A & B when both_trans -> [0,M_], B
+ *& C otherwise -> [0,N_])
  */
 template <bool both_trans, int Tile_size, int wg_size, int cl_size,
           bool local_memory, typename in1_t, typename in2_t, typename out_t,
@@ -461,7 +461,8 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
       // Compute & Copy sum/scaled input to local memory (before transpose)
       for (index_t l = 0; l < inner_tile_count_; l++) {
         if (j_block_start + jl + l * inner_tile_size_ < M_) {
-          // Compute & Copy sum/scaled input to local memory (before transpose)
+          // Compute & Copy sum/scaled input to local memory (before
+          // transpose)
           local[in_local_id +
                 l * (get_non_bank_conflict_line_size() + 1) *
                     (inner_tile_size_ / get_num_tiles_per_line())] =
@@ -490,7 +491,8 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
     if (j_block_start + il < N_) {
       for (index_t l = 0; l < inner_tile_count_; l++) {
         if (i_block_start + jl + l * inner_tile_size_ < M_) {
-          // Compute & Copy sum/scaled input to local memory (before transpose)
+          // Compute & Copy sum/scaled input to local memory (before
+          // transpose)
           local[in_local_id +
                 l * (get_non_bank_conflict_line_size() + 1) *
                     (inner_tile_size_ / get_num_tiles_per_line())] =
@@ -501,8 +503,8 @@ TransposeAdd<both_trans, Tile_size, wg_size, cl_size, local_memory, in1_t,
 
     id.barrier(cl::sycl::access::fence_space::local_space);
 
-    // Transposed copy of previous output from local memory and scaled addition
-    // with 2nd non transposed matrix B
+    // Transposed copy of previous output from local memory and scaled
+    // addition with 2nd non transposed matrix B
     if (i_block_start + il < M_) {
       for (index_t l = 0; l < inner_tile_count_; l++) {
         if (j_block_start + jl + l * inner_tile_size_ < N_) {
