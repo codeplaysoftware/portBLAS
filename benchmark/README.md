@@ -97,7 +97,7 @@ Here is an example of an invocation of the portBLAS GEMM benchmark running on
 Intel GPU, displaying the results in the console and saving a json report:
 
 ```bash
-./portblas/bench_gemm --device=intel:gpu --csv-param=parameters.csv \
+./benchmark/portblas/bench_gemm --device=intel:gpu --csv-param=parameters.csv \
     --benchmark_out=../results.json --benchmark_out_format=json \
     --benchmark_format=console
 ```
