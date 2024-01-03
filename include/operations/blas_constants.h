@@ -265,16 +265,18 @@ struct constant_pair {
 
 }  // namespace blas
 
+#ifndef __HIPSYCL__
 template <typename ind_t, typename val_t>
-struct sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
+struct cl::sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
     : std::true_type {};
 
 template <typename ind_t, typename val_t>
-struct sycl::is_device_copyable<const blas::IndexValueTuple<ind_t, val_t>>
+struct cl::sycl::is_device_copyable<const blas::IndexValueTuple<ind_t, val_t>>
     : std::true_type {};
 
 template <typename ind_t, typename val_t>
 struct std::is_trivially_copyable<blas::IndexValueTuple<ind_t, val_t>>
     : std::true_type {};
+#endif
 
 #endif  // BLAS_CONSTANTS_H

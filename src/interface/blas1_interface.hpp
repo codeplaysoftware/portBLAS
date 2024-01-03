@@ -296,7 +296,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
       // get the minimum supported sub_group size
       const index_t min_sg_size = static_cast<index_t>(
           q.get_device()
-              .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+              .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
       ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
     } else {
       ret = sb_handle.execute(
@@ -311,7 +311,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     // get the minimum supported sub_group size
     const index_t min_sg_size = static_cast<index_t>(
         q.get_device()
-            .template get_info<sycl::info::device::sub_group_sizes>()[0]);
+            .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
     // if using no local memory, every sub_group writes one intermediate output,
     // in case if sub_group size is not known at allocation time, than allocate
     // extra memory using min supported sub_group size.

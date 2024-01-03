@@ -68,7 +68,7 @@ Axpy_batch<sameSign, localSize, maxBlockPerBatch, lhs_t, rhs_t>::eval(
 
   const index_t size_compute_rateo =
       (n > nbl * localSize) ? n / (nbl * localSize) : batch_size_;
-  const index_t jump_value{sycl::min(batch_size_, size_compute_rateo)};
+  const index_t jump_value{cl::sycl::min(batch_size_, size_compute_rateo)};
 
   if (group_id >= jump_value || l_id > n) return {};
 
