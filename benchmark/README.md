@@ -104,7 +104,7 @@ Intel GPU, displaying the results in the console and saving a json report:
 
 Here is the same benchmark through cuBLAS: 
 ```bash
-./cublas/bench_gemm --csv-param=parameters.csv --benchmark_out=../results.json \ 
+./benchmark/cublas/bench_cublas_gemm --csv-param=parameters.csv --benchmark_out=../results.json \ 
 --benchmark_out_format=json --benchmark_format=console
 ```
 
