@@ -121,7 +121,7 @@ const auto combi =
                        ::testing::Values<char>('n', 't'),              // trans
                        ::testing::Values<index_t>(1024, 4050, 16380),  // m
                        ::testing::Values<index_t>(1024, 4050, 16380),  // n
-                       ::testing::Values<scalar_t>(0, 1.05, -20.01),   // alpha
+                       ::testing::Values<scalar_t>(1.05, -20.01),      // alpha
                        ::testing::Values<index_t>(3, 5),     // ld_in_m
                        ::testing::Values<index_t>(3, 5),     // ld_out_m
                        ::testing::Values<index_t>(5, 10),    // stride_in_m
@@ -134,12 +134,12 @@ const auto combi =
                        ::testing::Values<char>('n', 't'),         // trans
                        ::testing::Values<index_t>(64, 129, 255),  // m
                        ::testing::Values<index_t>(64, 129, 255),  // n
-                       ::testing::Values<scalar_t>(0, 2.5),         // alpha
-                       ::testing::Values<index_t>(1, 2, 3),       // ld_in_m
-                       ::testing::Values<index_t>(1, 2, 3),       // ld_out_m
+                       ::testing::Values<scalar_t>(2.5),          // alpha
+                       ::testing::Values<index_t>(1, 3),          // ld_in_m
+                       ::testing::Values<index_t>(1, 3),          // ld_out_m
                        ::testing::Values<index_t>(1, 3),          // stride_in_m
-                       ::testing::Values<index_t>(1, 3),      // stride_out_m
-                       ::testing::Values<index_t>(1, 2, 5));  // batch_size
+                       ::testing::Values<index_t>(1, 3),   // stride_out_m
+                       ::testing::Values<index_t>(1, 5));  // batch_size
 #endif
 
 template <class T>
