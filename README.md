@@ -35,7 +35,7 @@ the project.
   - [Setup](#setup)
     - [Compile with ComputeCpp](#compile-with-computecpp)
     - [Compile with DPC++](#compile-with-dpc)
-    - [Compile with hipSYCL](#compile-with-hipsycl)
+    - [Compile with AdaptiveCpp *(Formerly hipSYCL)*](#compile-with-adaptivecpp)
     - [Instaling portBLAS](#instaling-portBLAS)
     - [POWER\_VR support (ComputeCpp Only)](#power_vr-support-computecpp-only)
     - [Doxygen](#doxygen)
@@ -380,8 +380,8 @@ added to the `CMAKE_PREFIX_PATH` when building portBLAS (see
 **IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
 been replaced by `TUNING_TARGET`, which accepts the same options.
 `TUNING_TARGET` affects only the tuning configuration and has no effect on the target
-triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
-setting them.
+triplet for DPC++ or the AdaptiveCpp/hipSYCL target. Please refer to the sections 
+below for setting them.
 
 1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
 2. Create a build directory
@@ -412,13 +412,13 @@ advisable for NVIDIA and **mandatory for AMD** to provide the specific device
 architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
 
-### Compile with hipSYCL
+### Compile with AdaptiveCpp *(Formerly hipSYCL)*
 ```bash
 cd build
-cmake -GNinja ../ -DhipSYCL_DIR=/path/to/hipSYCL/install/lib/cmake/hipSYCL -DSYCL_COMPILER=hipsycl
+cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp -DSYCL_COMPILER=adaptivecpp
 ninja
 ```
-To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/illuhad/hipSYCL/blob/develop/doc/using-hipsycl.md).
+To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment variable or specify `-DHIPSYCL_TARGETS` as [documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md).
 
 ### Instaling portBLAS
 To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
@@ -452,7 +452,7 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
-| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `hipsycl`. |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `computecpp`, `dpcpp` and `adaptivecpp`. |
 | `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |

@@ -194,17 +194,32 @@ template <cl::sycl::access::mode acc_md_t>
 inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
 BufferIterator<element_t>::get_range_accessor(cl::sycl::handler& cgh,
                                               size_t size) {
-  return typename BufferIterator<element_t>::template accessor_t<acc_md_t>(
-      buffer_, cgh, cl::sycl::range<1>(size),
-      cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
+  if constexpr (acc_md_t == cl::sycl::access::mode::read) {
+    return typename BufferIterator<element_t>::template accessor_t<acc_md_t>(
+        buffer_, cgh, cl::sycl::range<1>(size),
+        cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
+  } else {
+    // Skip data initialization if not accessing in read mode only
+    return typename BufferIterator<element_t>::template accessor_t<acc_md_t>(
+        buffer_, cgh, cl::sycl::range<1>(size),
+        cl::sycl::id<1>(BufferIterator<element_t>::get_offset()),
+        cl::sycl::property::no_init{});
+  }
 }
 
 template <typename element_t>
 template <cl::sycl::access::mode acc_md_t>
 inline typename BufferIterator<element_t>::template accessor_t<acc_md_t>
 BufferIterator<element_t>::get_range_accessor(cl::sycl::handler& cgh) {
-  return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
-      cgh, BufferIterator<element_t>::get_size());
+  if constexpr (acc_md_t == cl::sycl::access::mode::read) {
+    return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
+        cgh, BufferIterator<element_t>::get_size());
+  } else {
+    // Skip data initialization if not accessing in read mode only
+    return BufferIterator<element_t>::get_range_accessor<acc_md_t>(
+        cgh, BufferIterator<element_t>::get_size(),
+        cl::sycl::property::no_init{});
+  }
 }
 
 template <typename element_t>
@@ -212,9 +227,18 @@ template <cl::sycl::access::mode acc_md_t>
 inline typename BufferIterator<element_t>::template placeholder_accessor_t<
     acc_md_t>
 BufferIterator<element_t>::get_range_accessor(size_t size) {
-  return typename BufferIterator<element_t>::template placeholder_accessor_t<
-      acc_md_t>(buffer_, cl::sycl::range<1>(size),
-                cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
+  if constexpr (acc_md_t == cl::sycl::access::mode::read) {
+    return typename BufferIterator<element_t>::template placeholder_accessor_t<
+        acc_md_t>(buffer_, cl::sycl::range<1>(size),
+                  cl::sycl::id<1>(BufferIterator<element_t>::get_offset()));
+
+  } else {
+    // Skip data initialization if not accessing in read mode only
+    return typename BufferIterator<element_t>::template placeholder_accessor_t<
+        acc_md_t>(buffer_, cl::sycl::range<1>(size),
+                  cl::sycl::id<1>(BufferIterator<element_t>::get_offset()),
+                  cl::sycl::property::no_init{});
+  }
 }
 
 template <typename element_t>
