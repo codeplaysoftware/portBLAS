@@ -29,7 +29,7 @@
 template <typename scalar_t>
 const auto BetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values("usm", "buf"),               // allocation type
-    ::testing::Values(0),                          // offset
+    ::testing::Values(0, 33),                      // offset
     ::testing::Values(5),                          // batch
     ::testing::Values(63, 128),                    // m
     ::testing::Values(63, 128),                    // n
@@ -48,7 +48,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatch);
 template <typename scalar_t>
 const auto BetaNonZeroLDMultiplied = ::testing::Combine(
     ::testing::Values("usm", "buf"),   // allocation type
-    ::testing::Values(0),              // offset
+    ::testing::Values(0, 33),          // offset
     ::testing::Values(1, 5),           // batch
     ::testing::Values(63, 128, 129),   // m
     ::testing::Values(63, 128, 129),   // n
@@ -87,7 +87,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMatchAlpha0);
 template <typename scalar_t>
 const auto BetaNonZeroLDMultipliedAlpha0 = ::testing::Combine(
     ::testing::Values("usm", "buf"),               // allocation type
-    ::testing::Values(0),                          // offset
+    ::testing::Values(0, 33),                      // offset
     ::testing::Values(5),                          // batch
     ::testing::Values(63),                         // m
     ::testing::Values(63),                         // n
@@ -107,7 +107,7 @@ GENERATE_GEMM_TEST(BatchGemm, BetaNonZeroLDMultipliedAlpha0);
 template <typename scalar_t>
 const auto DefaultGemmAndGemmBatched =
     ::testing::Combine(::testing::Values("usm", "buf"),   // allocation type
-                       ::testing::Values(0),              // offset
+                       ::testing::Values(0, 33),          // offset
                        ::testing::Values(1, 5),           // batch
                        ::testing::Values(63, 128),        // m
                        ::testing::Values(63, 128),        // n
@@ -128,7 +128,7 @@ GENERATE_GEMM_STRIDED_BATCHED_TEST(BatchStridedGemm, DefaultGemmAndGemmBatched);
 template <typename scalar_t>
 const auto AllStridedBatched =
     ::testing::Combine(::testing::Values("usm", "buf"),   // allocation type
-                       ::testing::Values(0),              // offset
+                       ::testing::Values(0, 33),          // offset
                        ::testing::Values(5),              // batch
                        ::testing::Values(128),            // m
                        ::testing::Values(128),            // n
@@ -150,7 +150,7 @@ GENERATE_GEMM_STRIDED_BATCHED_TEST(BatchStridedGemm, AllStridedBatched);
 template <typename scalar_t>
 const auto CplxBetaNonZeroLDMatch = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
-    ::testing::Values(0),                                   // offset
+    ::testing::Values(0, 33),                               // offset
     ::testing::Values(3),                                   // batch
     ::testing::Values(63, 128),                             // m
     ::testing::Values(63, 128),                             // n
@@ -169,7 +169,7 @@ GENERATE_CPLX_GEMM_TEST(BatchGemm, CplxBetaNonZeroLDMatch);
 template <typename scalar_t>
 const auto CplxDefaultGemmAndGemmBatched = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
-    ::testing::Values(0),                                   // offset
+    ::testing::Values(0, 33),                               // offset
     ::testing::Values(1, 4),                                // batch
     ::testing::Values(63, 128),                             // m
     ::testing::Values(63, 128),                             // n
@@ -191,7 +191,7 @@ GENERATE_CPLXGEMM_STRIDED_BATCHED_TEST(BatchStridedGemm,
 template <typename scalar_t>
 const auto CplxAllStridedBatched = ::testing::Combine(
     ::testing::Values("usm", "buf"),                        // allocation type
-    ::testing::Values(0),                                   // offset
+    ::testing::Values(0, 33),                               // offset
     ::testing::Values(3),                                   // batch
     ::testing::Values(128),                                 // m
     ::testing::Values(128),                                 // n
