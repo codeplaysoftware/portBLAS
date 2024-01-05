@@ -29,6 +29,8 @@ include(ConfigurePORTBLAS)
 if(SYCL_COMPILER MATCHES "adaptivecpp" AND NOT HIPSYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})
   message(STATUS "Using `omp` as HIPSYCL_TARGETS")
   set(HIPSYCL_TARGETS "omp")
+else()
+  message(STATUS "Using ${HIPSYCL_TARGETS} as HIPSYCL_TARGETS")
 endif()
 
 check_cxx_compiler_flag("--acpp-targets" has_acpp)
