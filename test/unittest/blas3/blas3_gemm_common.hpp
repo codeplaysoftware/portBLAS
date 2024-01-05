@@ -56,6 +56,7 @@ inline std::vector<scalar_t> strided_to_interleaved(
     const std::vector<scalar_t>& input, int offset, int ld_rows, int ld_cols,
     int batchs) {
   std::vector<scalar_t> output(input.size());
+  for (int o = 0; o < offset; ++o) output[o] = input[o];
   for (int c = 0; c < ld_cols; ++c) {
     for (int r = 0; r < ld_rows; ++r) {
       for (int b = 0; b < batchs; ++b) {
@@ -73,6 +74,7 @@ inline std::vector<scalar_t> interleaved_to_strided(
     const std::vector<scalar_t>& input, int offset, int ld_rows, int ld_cols,
     int batchs) {
   std::vector<scalar_t> output(input.size());
+  for (int o = 0; o < offset; ++o) output[o] = input[o];
   for (int b = 0; b < batchs; ++b) {
     for (int c = 0; c < ld_cols; ++c) {
       for (int r = 0; r < ld_rows; ++r) {
