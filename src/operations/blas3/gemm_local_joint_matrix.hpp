@@ -535,6 +535,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     constexpr index_t nc_conditional =
         frags_per_sg > 1 ? tile_type::joint_matrix_N : block_cols;
 
+#pragma unroll
     for (index_t frag = 0; frag < frags_per_sg; frag++,
                  C += output_global_outer_offset,
                  nc -= tile_type::joint_matrix_N) {
@@ -559,6 +560,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       if constexpr (check_m_limit && check_n_limit) {
         if (mc >= block_rows && nc >= nc_conditional) {
           const index_t loop_limit = nc_conditional / rows_per_iter;
+#pragma unroll
           for (int i = 0; i < loop_limit; i++,
                    new_C += output_global_inner_offset,
                    new_scratch += output_local_inner_offset) {
@@ -574,6 +576,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         if (mc < block_rows && nc < nc_conditional) {
           if (item_id < mc) {
             const index_t loop_limit = nc;
+#pragma unroll
             for (int i = 0; i < loop_limit; i++,
                      new_C += output_global_inner_offset,
                      new_scratch += output_local_inner_offset) {
@@ -590,6 +593,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         if (mc < block_rows) {
           if (it_mod_brows < mc) {
             const index_t loop_limit = nc_conditional / rows_per_iter;
+#pragma unroll
             for (int i = 0; i < loop_limit; i++,
                      new_C += output_global_inner_offset,
                      new_scratch += output_local_inner_offset) {
@@ -606,6 +610,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         if (nc < nc_conditional) {
           if (item_id < block_rows) {
             const index_t loop_limit = nc;
+#pragma unroll
             for (int i = 0; i < loop_limit; i++,
                      new_C += output_global_inner_offset,
                      new_scratch += output_local_inner_offset) {
@@ -621,6 +626,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         }
       } else {
         const index_t loop_limit = nc_conditional / rows_per_iter;
+#pragma unroll
         for (int i = 0; i < loop_limit; i++,
                  new_C += output_global_inner_offset,
                  new_scratch += output_local_inner_offset) {
