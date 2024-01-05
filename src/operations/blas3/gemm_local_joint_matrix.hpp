@@ -790,31 +790,29 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                      tile_type::joint_matrix_K, tile_type::joint_matrix_N,
                      pattern_b>;
 
-    AType inA;
-    BType inB;
-
     const index_t strideA = ldsa;
     const index_t strideB = ldsb;
 
     auto sg = id.get_sub_group();
 
 #pragma unroll
-    for (index_t frag = 0; frag < frags_per_sg; frag++) {
-      auto new_B = s2 + frag * (trans_b ? tile_type::joint_matrix_N
-                                        : tile_type::joint_matrix_N * ldsb);
-      auto new_A = s4;
+    for (index_t i = 0; i < cl_elems / tile_type::joint_matrix_K; i++) {
+      auto new_B = s2;
+      AType inA;
 
-      for (index_t i = 0; i < cl_elems / tile_type::joint_matrix_K; i++) {
-        joint_matrix_load(sg, inA, new_A, strideA);  // M
+      joint_matrix_load(sg, inA, s4, strideA);  // M
+
+      for (index_t frag = 0; frag < frags_per_sg; frag++) {
+        BType inB;
         joint_matrix_load(sg, inB, new_B, strideB);  // N
-
         joint_matrix_mad(sg, reg_res[frag], inA, inB, reg_res[frag]);
-
-        new_A += (trans_a ? tile_type::joint_matrix_K
-                          : tile_type::joint_matrix_K * strideA);
-        new_B += (trans_b ? tile_type::joint_matrix_K * strideB
-                          : tile_type::joint_matrix_K);
+        new_B += (trans_b ? tile_type::joint_matrix_N
+                          : tile_type::joint_matrix_N * ldsb);
       }
+      s4 += (trans_a ? tile_type::joint_matrix_K
+                     : tile_type::joint_matrix_K * strideA);
+      s2 += (trans_b ? tile_type::joint_matrix_K * strideB
+                     : tile_type::joint_matrix_K);
     }
   }
 
