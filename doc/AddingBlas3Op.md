@@ -178,8 +178,9 @@ binary is linked against portBLAS, the linker will find the definition of the mi
 
 To do this, we create the source file that will contain instantiations of the new `_trsm` operation.
 The file is located at `src/interface/blas3/trsm.cpp.in`. This is not the file that will be 
-compiled, but a template file that the python script `python_generator/py_gen_blas_binary.py`
-will use to generate the actual source file where the instantiation of `_trsm` will happen.
+compiled, but a template file that the python script `python_generator/py_gen_blas_ops.py`
+will use to generate the actual source file where the instantiation of `_trsm` will happen. The call
+to this generator is wrapped within the cmake function `generate_blas_objects`.
 
 The file `src/interface/blas3/trsm.cpp.in` must include all files that are necessary to successfully
 compile `blas::internal::_trsm`, for this particular example, this file looks like the following:
