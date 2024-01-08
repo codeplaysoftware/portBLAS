@@ -283,6 +283,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const index_t _nWG,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view<index_t>(_rs, static_cast<increment_t>(1),
@@ -358,6 +359,11 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     blas::helper::enqueue_deallocate(ret, gpu_res, q);
   }
   return ret;
+#else
+  throw std::runtime_error(
+      "Iamax/Iamin shuffle-based implementation is not supported with "
+      "AdaptiveCpp");
+#endif
 }
 
 /**

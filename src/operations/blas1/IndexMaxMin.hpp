@@ -94,9 +94,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   using element_t =
       typename ResolveReturnType<op, rhs_t>::type::value_t::value_t;
 
-#if (SYCL_LANGUAGE_VERSION < 202000) || (defined __HIPSYCL__)
-  throw std::runtime_error("Sub-group shuffle requires SYCL 2020");
-#else
+#ifndef __HIPSYCL__
   // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
     if (sg_local_id < i) {
@@ -106,6 +104,8 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
       val = op::eval(val, shfl);
     }
   }
+#else
+  throw std::runtime_error("Sub-group shuffle requires SYCL 2020");
 #endif
   const index_t lhs_idx =
       ndItem.get_group_linear_id() * (local_range / sg_local_range) +
