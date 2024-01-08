@@ -164,11 +164,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr index_t ldsb =
       (trans_b ? block_cols : cl_elems) +
       nbc_b * tile_type::joint_matrix_K / sizeof(float) * 2;
-
+  //! @brief leading dimension of block of output C in local
   static constexpr index_t ldsc = block_rows + (nbc_a | nbc_b) *
                                                    tile_type::joint_matrix_M /
                                                    sizeof(float) * 2;
-  //! @brief size (in elements) of local (local) memory required by each
+  //! @brief size (in elements) of local memory required by each
   //         work group
   static constexpr index_t local_memory_size =
       (double_buffer + 1) * (ldsa * (trans_a ? block_rows : cl_elems) +
@@ -445,7 +445,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         extract_input_blocks<check_m_limit, check_n_limit, false>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
-        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_res);
+        compute_block_gemm(id, s2, s4, reg_res);
         A += cl_elems * (trans_a ? 1 : lda);
         B += cl_elems * (trans_b ? ldb : 1);
 
@@ -458,7 +458,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         extract_input_blocks<check_m_limit, check_n_limit, true>(
             item_id, m, n, k, A, lda, B, ldb, s1, s3, out_of_range);
         id.barrier(cl::sycl::access::fence_space::local_space);
-        compute_block_gemm<check_m_limit, check_n_limit>(id, s2, s4, reg_res);
+        compute_block_gemm(id, s2, s4, reg_res);
 
         sync_smem<double_buffer, ldsb * block_cols, ldsb * block_cols,
                   ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
@@ -489,8 +489,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @tparam CType the type for joint_matrix fragment to store output
    * @param mc the computed boundary limit of m in matrix C
    * @param nc the computed boundary limit of n in matrix C
-   * @param alpha  scaling factor of AB
-   * @param beta  scaling factor of C
    * @param C  pointer to the first element of C
    * @param ldc  leading dimension of C
    * @param reg_res  joint_matrix fragment array containing the partial result
@@ -517,7 +515,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     auto sg = id.get_sub_group();
 
     const index_t item_id = static_cast<index_t>(id.get_local_linear_id());
-    const index_t local_range = static_cast<index_t>(id.get_local_range(0));
     const index_t sg_id = static_cast<index_t>(sg.get_group_linear_id());
 
     const index_t output_local_store_offset =
@@ -540,7 +537,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                  C += output_global_outer_offset,
                  nc -= tile_type::joint_matrix_N) {
       const index_t rows_per_iter =
-          nc < nc_conditional ? 1 : local_range / block_rows;
+          nc < nc_conditional ? 1 : wg_size / block_rows;
       const index_t output_global_inner_offset = ldc * rows_per_iter;
       const index_t output_local_inner_offset = ldsc * rows_per_iter;
 
@@ -671,8 +668,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   }
 
   /*!
-   * @brief Extract a block of a matrix from global to shared memory, and
-   *        optionally transpose it on the fly.
+   * @brief Extract a block of a matrix from global to shared memory.
    *
    * This is a collective operation on all items in a work group.
    *
@@ -711,8 +707,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     constexpr index_t bs = rows * cols;
     constexpr index_t multiplier = internal ? packetize_t::packet_size : 1;
+    constexpr index_t loop_iterations = (bs - 1) / (wg_size * multiplier) + 1;
 #pragma unroll
-    for (index_t i = 0; i < (bs - 1) / (wg_size * multiplier) + 1; ++i) {
+    for (index_t i = 0; i < loop_iterations; ++i) {
       if (!do_check<((bs % (wg_size * multiplier)) != 0)>(
               item_id + i * (wg_size * multiplier) < bs))
         continue;
@@ -765,14 +762,14 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    * @brief Compute a small matrix-matrix product `reg_res += A*B`.
    *
    * @tparam InputPointerType  pointer type for A and B
+   * @tparam CType  joint_matrix accumulator fragment type
    *
-   * @param B  pointer to matrix A with proper item-dependent offset,
+   * @param s4  pointer to matrix A with proper item-dependent offset,
    *           see GemmFactory::run() for details
-   * @param A  pointer to matrix B with proper item-dependent offset,
+   * @param s2  pointer to matrix B with proper item-dependent offset,
    *           see GemmFactory::run() for details
    */
-  template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
-            typename CType>
+  template <typename InputPointerType, typename CType>
   PORTBLAS_INLINE void compute_block_gemm(
       const cl::sycl::nd_item<1> &id, InputPointerType s2, InputPointerType s4,
       CType (&reg_res)[frags_per_sg]) noexcept {
