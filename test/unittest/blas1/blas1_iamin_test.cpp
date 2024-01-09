@@ -99,7 +99,6 @@ void run_test(const combination_t<scalar_t> combi) {
   scalar_t unused;
   std::tie(alloc, api, size, incX, mode, unused) = combi;
 
-#ifndef __HIPSYCL__
   if (alloc == "usm") {  // usm alloc
 #ifdef SB_ENABLE_USM
     run_test<scalar_t, helper::AllocType::usm>(combi);
@@ -109,9 +108,6 @@ void run_test(const combination_t<scalar_t> combi) {
   } else {  // buffer alloc
     run_test<scalar_t, helper::AllocType::buffer>(combi);
   }
-#else
-  GTEST_SKIP();
-#endif
 }
 
 BLAS_REGISTER_TEST_ALL(Iamin, combination_t, combi, generate_name);

@@ -105,7 +105,9 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     }
   }
 #else
-  throw std::runtime_error("Sub-group shuffle requires SYCL 2020");
+// When using AdaptiveCpp, a temporary workaround so far is to use sg_size of 1
+// making this step skippable as sg collectives are not supported on
+// AdaptiveCpp.
 #endif
   const index_t lhs_idx =
       ndItem.get_group_linear_id() * (local_range / sg_local_range) +
