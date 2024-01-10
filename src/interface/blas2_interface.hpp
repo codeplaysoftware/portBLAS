@@ -988,12 +988,12 @@ typename sb_handle_t::event_t _spr_impl(
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto spr = make_spr<true, true>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, true>(mA, _N, _alpha, vx, vx);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr, localSize, globalSize, _dependencies));
   } else {
-    auto spr = make_spr<true, false>(mA, _N, _alpha, vx, _incx, vx, _incx);
+    auto spr = make_spr<true, false>(mA, _N, _alpha, vx, vx);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr, localSize, globalSize, _dependencies));
@@ -1048,12 +1048,12 @@ typename sb_handle_t::event_t _spr2_impl(
   const index_t globalSize = localSize * nWGPerCol;
 
   if (Upper) {
-    auto spr2 = make_spr<false, true>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    auto spr2 = make_spr<false, true>(mA, _N, _alpha, vx, vy);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr2, localSize, globalSize, _dependencies));
   } else {
-    auto spr2 = make_spr<false, false>(mA, _N, _alpha, vx, _incx, vy, _incy);
+    auto spr2 = make_spr<false, false>(mA, _N, _alpha, vx, vy);
     return ret = concatenate_vectors(
                ret,
                sb_handle.execute(spr2, localSize, globalSize, _dependencies));
