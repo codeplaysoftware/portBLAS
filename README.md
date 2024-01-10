@@ -351,7 +351,7 @@ Other non-official extension operators :
 ### Experimental Joint Matrix Support
 
 portBLAS now supports sub-group based collective GEMM operation using the experimental 
-[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_oneapi_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
+[`joint_matrix`](https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/experimental/sycl_ext_matrix/sycl_ext_oneapi_matrix.asciidoc) extension provided by DPC++. This support is only accessible for the latest 
 NVIDIA Ampere GPUs and beyond. The requirements for using this experimental support 
 are: 
 ```bash
@@ -390,11 +390,12 @@ added to the `CMAKE_PREFIX_PATH` when building portBLAS (see
 
 **IMPORTANT NOTE:** The `TARGET` CMake variable is no longer supported. It has
 been replaced by `TUNING_TARGET`, which accepts the same options.
-`TUNING_TARGET` affects only the tuning configuration, applicable for some operators such as GEMM, and has no effect on the target
-triplet for DPC++ or the hipSYCL target. Please refer to the sections below for
-setting them.
+`TUNING_TARGET` affects only the tuning configuration, applicable for some operators such
+as GEMM, and has no effect on the target triplet for DPC++ or the hipSYCL target. Please 
+refer to the sections below for setting them.
 
-1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order to clone submodule(s).
+1. Clone the portBLAS repository, making sure to pass the `--recursive` option, in order 
+to clone submodule(s).
 2. Create a build directory
 3. Run `CMake` from the build directory *(see options in the section below)*:
 
