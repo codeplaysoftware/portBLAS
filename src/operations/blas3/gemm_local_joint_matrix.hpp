@@ -544,7 +544,17 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto new_C = C;
       auto new_scratch = scratch + output_local_load_offset;
 
+#if __INTEL_LLVM_COMPILER && __INTEL_LLVM_COMPILER <= 20240002
+      for (index_t i = 0;
+           i <
+           (tile_type::joint_matrix_M * tile_type::joint_matrix_N) / sg_size;
+           i++) {
+        get_wi_data(sg, float_out)[i] =
+            static_cast<element_t>(get_wi_data(sg, reg_res[frag])[i]);
+      }
+#else
       joint_matrix_copy(sg, reg_res[frag], float_out);
+#endif
       joint_matrix_apply(sg, float_out, [=](element_t &x) { x *= alpha_; });
 
       id.barrier(cl::sycl::access::fence_space::local_space);
@@ -802,7 +812,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       for (index_t frag = 0; frag < frags_per_sg; frag++) {
         BType inB;
         joint_matrix_load(sg, inB, new_B, strideB);  // N
+#if __INTEL_LLVM_COMPILER && __INTEL_LLVM_COMPILER <= 20240002
+        reg_res[frag] = joint_matrix_mad(sg, inA, inB, reg_res[frag]);
+#else
         joint_matrix_mad(sg, reg_res[frag], inA, inB, reg_res[frag]);
+#endif
         new_B += (trans_b ? tile_type::joint_matrix_N
                           : tile_type::joint_matrix_N * ldsb);
       }
