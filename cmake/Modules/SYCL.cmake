@@ -53,7 +53,7 @@ else()
     endif()
   elseif(SYCL_COMPILER MATCHES "adaptivecpp")
     find_package(AdaptiveCpp CONFIG REQUIRED)
-    set(is_adaptivecpp ON)
+    set(is_adaptivecpp ${AdaptiveCpp_FOUND})
     if(NOT has_acpp)
       message(WARNING "Selected AdaptiveCpp as backend, but the compiler is not 
               fully supported")

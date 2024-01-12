@@ -413,23 +413,25 @@ architecture through `-DDPCPP_SYCL_ARCH=<arch>`, e.g., `<arch>` can be `sm_80`
 for NVIDIA or `gfx908` for AMD.
 
 ### Compile with AdaptiveCpp *(Formerly hipSYCL)*
+The following instructions concern the **generic** *(clang-based)* flow supported
+by AdaptiveCpp.
+
 ```bash
 cd build
 export CC=[path/to/system/clang]
-export CXX=[path/to/AdaptiveCpp/install/bin/acpp]
-export HIPSYCL_TARGET=[compilation_flow:target] # (e.g. cuda:sm_75)
+export CXX=[path/to/AdaptiveCpp/install/bin/syclcc]
+export HIPSYCL_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
 cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
-      -DSYCL_COMPILER=adaptivecpp 
+      -DSYCL_COMPILER=adaptivecpp -DHIPSYCL_TARGETS=$HIPSYCL_TARGETS
 ninja
 ```
 To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment
 variable or specify `-DHIPSYCL_TARGETS` as 
-[documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md).
+[documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md). 
+The available backends are the ones built with AdaptiveCpp in the first place.  
 
 Similarly to DPCPP's `sycl-ls`, AdaptiveCpp's `acpp-info` helps display the available
-backends informations. In case of building AdaptiveCpp against llvm *(Required for many
-backends/compilations as described 
-[here](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/install-llvm.md))*,
+backends informations. In case of building AdaptiveCpp against llvm *(generic-flow)*,
 the `llvm-to-xxx.so` library files should be visible by the runtime to target the 
 appropriate device, which can be ensured by setting the ENV variable : 
 
