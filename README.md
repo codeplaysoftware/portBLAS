@@ -35,7 +35,7 @@ the project.
     - [Instaling portBLAS](#instaling-portBLAS)
     - [Doxygen](#doxygen)
     - [CMake options](#cmake-options)
-    - [ComputeCpp Compilation](#computecpp-deprecated)
+    - [ComputeCpp Compilation (Deprecated)](#computecpp-deprecated)
       - [Compile with ComputeCpp](#compile-with-computecpp)
       - [POWER\_VR support](#power_vr-support-computecpp-only)
       - [Cross-Compile](#cross-compile-computecpp-only)
