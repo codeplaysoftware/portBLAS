@@ -151,6 +151,7 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   if (!_N) {
     using element_t = typename ValueType<container_2_t>::type;
     sb_handle.wait(_dependencies);
@@ -168,6 +169,11 @@ typename sb_handle_t::event_t _sdsdot(
     auto ret = sb_handle.execute(assignOp2, dotOp);
     return blas::concatenate_vectors(dotOp, ret);
   }
+#else
+  throw std::runtime_error(
+      "Sdsdot is not supported with AdaptiveCpp as it uses SYCL 2020 "
+      "reduction.");
+#endif
 }
 
 /**
@@ -920,7 +926,6 @@ typename ValueType<container_0_t>::type _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
-#ifndef __HIPSYCL__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -943,11 +948,6 @@ typename ValueType<container_0_t>::type _sdsdot(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res;
-#else
-  throw std::runtime_error(
-      "Sdsdot is not supported with AdaptiveCpp as it uses SYCL 2020 "
-      "reduction.");
-#endif
 }
 
 /**
