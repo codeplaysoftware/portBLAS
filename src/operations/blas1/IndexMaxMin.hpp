@@ -105,14 +105,10 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
     }
   }
 #else
-  for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
-    if (sg_local_id < i) {
-      element_t shfl_val = cl::sycl::shift_group_left(sg, val.get_value(), i);
-      index_t shfl_idx = cl::sycl::shift_group_left(sg, val.get_index(), i);
-      value_t shfl{shfl_idx, shfl_val};
-      val = op::eval(val, shfl);
-    }
-  }
+  // AdaptiveCpp uses a different interface "shift_group_left" which is
+  // recognized by the compiler but throws JIT errors at runtime. Currently this
+  // part is skipped as non-local memory kernel is never called with
+  // AdaptiveCpp.
 #endif
   const index_t lhs_idx =
       ndItem.get_group_linear_id() * (local_range / sg_local_range) +

@@ -34,6 +34,7 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/blas1/blas1_axpy_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_copy_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_scal_test.cpp
+  ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
@@ -69,6 +70,7 @@ set(SYCL_UNITTEST_SRCS
   ${PORTBLAS_UNITTEST}/extension/omatcopy_batched_test.cpp
   ${PORTBLAS_UNITTEST}/extension/omatadd_batched_test.cpp
   ${PORTBLAS_UNITTEST}/extension/axpy_batch_test.cpp
+  ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
 )
 
 # Skip these tests for AdaptiveCpp for SPIRV/OpenCL targets 
@@ -80,11 +82,6 @@ set(ADAPTIVE_CPP_SKIP
   ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_rotm_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_rotmg_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_rotg_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_iamax_test.cpp
-  ${PORTBLAS_UNITTEST}/blas1/blas1_iamin_test.cpp
   # Hang during execution (without failing)
   ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
@@ -105,15 +102,6 @@ if(is_dpcpp)
   )
 endif()
 
-# Temporary disabling the following tests for Intel DPC++ as currently Intel compiler crashes while running the following tests
-if(is_computecpp)
-  set(SYCL_UNITTEST_SRCS ${SYCL_UNITTEST_SRCS}
-    # Blas 1 tests
-    ${PORTBLAS_UNITTEST}/blas1/blas1_swap_test.cpp
-    # Blas buffer tests
-    ${PORTBLAS_UNITTEST}/buffers/sycl_buffer_test.cpp
-  )
-endif()
 
 # Contains tests that fail if compiled with -ffast-math
 set(SYCL_UNITTEST_NOFASTMATH
