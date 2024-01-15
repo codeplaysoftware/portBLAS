@@ -184,7 +184,7 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   // keep compatibility with older sycl versions
-#if SYCL_LANGUAGE_VERSION < 202000
+#if SYCL_LANGUAGE_VERSION < 202000 || defined(__HIPSYCL__)
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -202,7 +202,7 @@ typename sb_handle_t::event_t _asum(
 #endif
 }
 
-#if SYCL_LANGUAGE_VERSION >= 202000
+#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__HIPSYCL__)
 /*! _asum_impl.
  * @brief Internal implementation of the Absolute sum operator.
  *
@@ -293,14 +293,10 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
     auto op = make_index_max_min<is_max, false>(rs, tupOp);
     if constexpr (localMemSize == 0) {
       auto q = sb_handle.get_queue();
-#ifndef __HIPSYCL__
       // get the minimum supported sub_group size
       const index_t min_sg_size = static_cast<index_t>(
           q.get_device()
               .template get_info<cl::sycl::info::device::sub_group_sizes>()[0]);
-#else
-      const index_t min_sg_size = index_t(1);
-#endif
       ret = sb_handle.execute(op, min_sg_size, min_sg_size, _dependencies);
     } else {
       ret = sb_handle.execute(
@@ -551,24 +547,23 @@ typename sb_handle_t::event_t _dot_impl(
   typename sb_handle_t::event_t ret_event;
   // Skip if N==0, _rs is not overwritten
   if (!_N) return {_dependencies};
-
   auto vx = make_vector_view(_vx, _incx, _N);
   auto vy = make_vector_view(_vy, _incy, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
                              static_cast<index_t>(1));
 
   auto prdOp = make_op<BinaryOpConst, ProductOperator>(vx, vy);
-  auto assignOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
+  auto wgReductionOp = make_wg_atomic_reduction<AddOperator>(rs, prdOp);
 
   if constexpr (localMemSize) {
     ret_event =
-        sb_handle.execute(assignOp, static_cast<index_t>(localSize),
+        sb_handle.execute(wgReductionOp, static_cast<index_t>(localSize),
                           static_cast<index_t>(_number_wg * localSize),
                           static_cast<index_t>(localMemSize), _dependencies);
   } else {
-    ret_event = sb_handle.execute(assignOp, static_cast<index_t>(localSize),
-                                  static_cast<index_t>(_number_wg * localSize),
-                                  _dependencies);
+    ret_event = sb_handle.execute(
+        wgReductionOp, static_cast<index_t>(localSize),
+        static_cast<index_t>(_number_wg * localSize), _dependencies);
   }
   return ret_event;
 }
@@ -870,6 +865,7 @@ typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -892,6 +888,10 @@ typename ValueType<container_0_t>::type _dot(
                             : helper::AllocType::buffer>(gpu_res,
                                                          sb_handle.get_queue());
   return res;
+#else
+  throw std::runtime_error(
+      "Dot is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -920,6 +920,7 @@ typename ValueType<container_0_t>::type _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -942,6 +943,11 @@ typename ValueType<container_0_t>::type _sdsdot(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res;
+#else
+  throw std::runtime_error(
+      "Sdsdot is not supported with AdaptiveCpp as it uses SYCL 2020 "
+      "reduction.");
+#endif
 }
 
 /**
@@ -1015,6 +1021,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -1035,6 +1042,10 @@ typename ValueType<container_t>::type _asum(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Asum is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 /**
@@ -1050,6 +1061,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
+#ifndef __HIPSYCL__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -1069,6 +1081,10 @@ typename ValueType<container_t>::type _nrm2(
                                   : helper::AllocType::buffer>(
       gpu_res, sb_handle.get_queue());
   return res[0];
+#else
+  throw std::runtime_error(
+      "Nrm2 is not supported with AdaptiveCpp as it uses SYCL 2020 reduction.");
+#endif
 }
 
 }  // namespace internal
