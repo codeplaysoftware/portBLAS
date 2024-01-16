@@ -545,10 +545,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       auto new_scratch = scratch + output_local_load_offset;
 
 #if __INTEL_LLVM_COMPILER && __INTEL_LLVM_COMPILER <= 20240002
-      for (index_t i = 0;
-           i <
-           (tile_type::joint_matrix_M * tile_type::joint_matrix_N) / sg_size;
-           i++) {
+      constexpr index_t conv_loop_limit =
+          (tile_type::joint_matrix_M * tile_type::joint_matrix_N) / sg_size;
+      for (index_t i = 0; i < conv_loop_limit; i++) {
         get_wi_data(sg, float_out)[i] =
             static_cast<element_t>(get_wi_data(sg, reg_res[frag])[i]);
       }
@@ -801,9 +800,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t strideB = ldsb;
 
     auto sg = id.get_sub_group();
+    constexpr index_t loop_limit = cl_elems / tile_type::joint_matrix_K;
 
 #pragma unroll
-    for (index_t i = 0; i < cl_elems / tile_type::joint_matrix_K; i++) {
+    for (index_t i = 0; i < loop_limit; i++) {
       auto new_B = s2;
       AType inA;
 
