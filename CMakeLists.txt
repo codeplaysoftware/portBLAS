@@ -109,7 +109,8 @@ option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
 
 if (SYCL_COMPILER MATCHES "adaptivecpp" AND BLAS_ENABLE_COMPLEX)
-  message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL")
+  message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL. Complex
+          data type is disabled")
   set(BLAS_ENABLE_COMPLEX OFF)
 endif()
 

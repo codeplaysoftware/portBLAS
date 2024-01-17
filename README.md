@@ -445,6 +445,11 @@ export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL/llvm-to-backend:$LD_LIBRARY_PATH]
 ```
 
+*Note :*
+Some operator kernels are implemented using extensions / SYCL 2020 features not yet implemented 
+in AdaptiveCpp and are not supported when portBLAS is built with it. These operators include 
+`asum`, `nrm2`, `dot`, `sdsdot`, `rot`, `trsv`, `tbsv` and `tpsv`.
+
 ### Installing portBLAS
 To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
 
