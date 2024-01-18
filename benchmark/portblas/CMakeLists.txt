@@ -84,6 +84,9 @@ set(ADAPTIVE_CPP_SKIP
   blas1/dot.cpp
   blas1/sdsdot.cpp
   blas1/nrm2.cpp
+  blas2/trsv.cpp
+  blas2/tbsv.cpp
+  blas2/tpsv.cpp
   # Hang during execution (without failing)
   blas3/gemm_batched.cpp
   blas3/gemm_batched_strided.cpp
