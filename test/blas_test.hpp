@@ -224,6 +224,30 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
 }
 
 /**
+ * @brief Set to zero the last n bits of a float.
+ *
+ * @param val input/output float value.
+ * @param nbits number of last bit set to zero. It is set by default to 13 since
+ * this is the difference of the number of bits of the mantissa between floats
+ * (23) and FP16 / NVIDIA TF32 (10).
+ */
+static inline void set_to_zero_last_nbits(float &val, int32_t nbits = 13) {
+  int32_t *int_pntr = reinterpret_cast<int32_t *>(&val);
+  *int_pntr = (*int_pntr >> nbits) << nbits;
+}
+
+/**
+ * @brief Set to zero the last n bits of floats contained in a vector.
+ *
+ * @param val input/output float vector.
+ * @param nbits number of last bit set to zero.
+ */
+static inline void set_to_zero_last_nbits(std::vector<float> &vec,
+                                          int32_t nbits = 13) {
+  for (float &val : vec) set_to_zero_last_nbits(val, nbits);
+}
+
+/**
  * @brief Helper class for dumping arguments to a stream, in a format compatible
  * with google test test names.
  *

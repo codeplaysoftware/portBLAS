@@ -130,6 +130,17 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
+
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(a_m);
+    set_to_zero_last_nbits(b_m);
+    set_to_zero_last_nbits(c_m_gpu);
+    set_to_zero_last_nbits(alpha);
+    set_to_zero_last_nbits(beta);
+  }
+
   std::vector<scalar_t> c_m_cpu = c_m_gpu;
 
   // Use system blas to create a reference output
@@ -291,6 +302,17 @@ inline void verify_gemm(
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
+
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(a_m);
+    set_to_zero_last_nbits(b_m);
+    set_to_zero_last_nbits(c_m_gpu);
+    set_to_zero_last_nbits(alpha);
+    set_to_zero_last_nbits(beta);
+  }
+
   std::vector<scalar_t> c_m_cpu = c_m_gpu;
 
   // Use system blas to create a reference output

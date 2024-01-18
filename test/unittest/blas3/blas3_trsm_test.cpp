@@ -62,6 +62,14 @@ void run_test(const combination_t<scalar_t> combi) {
                    static_cast<scalar_t>(unusedValue));
   fill_random(B);
 
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (en_joint_matrix != NULL && std::is_same<scalar_t, float>::value &&
+      *en_joint_matrix == '1') {
+    set_to_zero_last_nbits(A);
+    set_to_zero_last_nbits(B);
+    set_to_zero_last_nbits(alpha);
+  }
+
   // Create a copy of B to calculate the reference outputs
   cpu_B = B;
   reference_blas::trsm(&side, &uplo, &trans, &diag, m, n,
