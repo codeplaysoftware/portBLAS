@@ -83,7 +83,6 @@ set(ADAPTIVE_CPP_SKIP
   ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
   # Hang during execution (without failing)
-  ${PORTBLAS_UNITTEST}/blas3/blas3_gemm_batched_test.cpp
   ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
 )
 

@@ -51,5 +51,30 @@ template typename SB_Handle::event_t _scal(
     const typename SB_Handle::event_t& dependencies);
 #endif
 
+/**
+ * \brief SCALAR operation on a Matrix
+ * @param SB_Handle sb_handle
+ * @param _alpha scaling scalar
+ * @param _A Input/Output BufferIterator or USM pointer
+ * @param _M number of rows
+ * @param _N number of columns
+ * @param _lda Leading dimension for the matrix A
+ * @param _incA Increment for the matrix A
+ * @param _dependencies Vector of events
+ */
+template typename SB_Handle::event_t _scal_matrix(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _M,  ${INDEX_TYPE} _N, 
+    ${DATA_TYPE} _alpha, BufferIterator<${DATA_TYPE}> _A, 
+    ${INDEX_TYPE} _lda, ${INCREMENT_TYPE} _incA,
+    const typename SB_Handle::event_t& dependencies);
+
+#ifdef SB_ENABLE_USM
+template typename SB_Handle::event_t _scal_matrix(
+    SB_Handle& sb_handle, ${INDEX_TYPE} _M, ${INDEX_TYPE} _N,
+    ${DATA_TYPE} _alpha, ${DATA_TYPE} * _A, 
+    ${INDEX_TYPE} _lda, ${INCREMENT_TYPE} _incA,
+    const typename SB_Handle::event_t& dependencies);
+#endif
+
 }  // namespace internal
 }  // namespace blas

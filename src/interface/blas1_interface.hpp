@@ -461,6 +461,58 @@ typename sb_handle_t::event_t _scal(
 }
 
 /**
+ * \brief SCALAR operation on a matrix
+ * @param sb_handle_t sb_handle
+ * @param _M number of matrix rows
+ * @param _N number of matrix columns
+ * @param alpha scaling scalar
+ * @param _A Input/Output BufferIterator or USM pointer matrix
+ * @param _incA Increment for the matrix A
+ * @param _lda Leading dimension for the matrix A
+ * @param _dependencies Vector of events
+ */
+template <typename sb_handle_t, typename element_t, typename container_0_t,
+          typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  if (_incA == index_t(1)) {
+    return _scal_matrix_impl<false>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                    _dependencies);
+  } else {
+    return _scal_matrix_impl<true>(sb_handle, _M, _N, _alpha, _A, _lda, _incA,
+                                   _dependencies);
+  }
+}
+
+/**
+ * \brief Internal implementation of Matrix scaling
+ * @tparam has_inc Whether matrix has an increment != 1
+ *
+ * Remaining parameters match internal::_scal_matrix parameters (see above)
+ */
+template <bool has_inc, typename sb_handle_t, typename element_t,
+          typename container_0_t, typename index_t, typename increment_t>
+typename sb_handle_t::event_t _scal_matrix_impl(
+    sb_handle_t &sb_handle, index_t _M, index_t _N, element_t _alpha,
+    container_0_t _A, index_t _lda, increment_t _incA,
+    const typename sb_handle_t::event_t &_dependencies) {
+  typename MatrixViewType<container_0_t, index_t, col_major, has_inc>::type
+      m_view = make_matrix_view<col_major, element_t, index_t, has_inc>(
+          _A, _M, _N, _lda, _incA);
+  if (_alpha == element_t{1}) {
+    return _dependencies;
+  } else {
+    auto scal_op = make_op<ScalarOp, ProductOperator>(_alpha, m_view);
+    auto copy_op = make_op<Assign>(m_view, scal_op);
+    typename sb_handle_t::event_t ret =
+        sb_handle.execute(copy_op, _dependencies);
+    return ret;
+  }
+}
+
+/**
  * \brief NRM2 Returns the euclidian norm of a vector
  * @param sb_handle_t sb_handle
  * @param _vx  BufferIterator or USM pointer
