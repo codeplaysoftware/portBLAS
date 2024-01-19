@@ -123,8 +123,8 @@ typename sb_handle_t::event_t _gemm_backend(
         // When stride matches matrix size, the _ldc is conserved between
         // matrices, we can thus scale the full batched-matrices at one as a
         // single matrix.
-        _scal_matrix(sb_handle, _M, _N * batch_size, _beta, _C, _ldc,
-                     index_t{1}, _dependencies);
+        return _scal_matrix(sb_handle, _M, _N * batch_size, _beta, _C, _ldc,
+                            index_t{1}, _dependencies);
       }
 
     } else {
