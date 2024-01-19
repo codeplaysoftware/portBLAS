@@ -106,8 +106,8 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
         global_idx, N_, row, col);
   }
 
-  row = sycl::group_broadcast(ndItem.get_group(), row);
-  col = sycl::group_broadcast(ndItem.get_group(), col);
+  row = cl::sycl::group_broadcast(ndItem.get_group(), row);
+  col = cl::sycl::group_broadcast(ndItem.get_group(), col);
 
   if (global_idx < lhs_size) {
     if constexpr (isUpper) {
