@@ -32,12 +32,69 @@
 #include "operations/blas1_trees.hpp"
 #include "operations/blas2_trees.hpp"
 #include "operations/blas_operators.hpp"
+#include "portblas_helper.h"
 #include "sb_handle/kernel_constructor.h"
 #include "sb_handle/portblas_handle.h"
-#include "portblas_helper.h"
+#include "sb_handle/temp_memory_pool.hpp"
 #include "views/view.h"
-
 namespace blas {
+
+template <helper::AllocType alloc, typename value_t>
+typename std::enable_if<
+    alloc == helper::AllocType::buffer,
+    typename helper::AllocHelper<value_t, alloc>::type>::type
+SB_Handle::acquire_temp_mem(size_t size) {
+  if (tempMemPool_ != nullptr)
+    return tempMemPool_->acquire_buff_mem<value_t>(size);
+  else
+    return make_sycl_iterator_buffer<value_t>(size);
+}
+
+template <typename container_t>
+typename std::enable_if<
+    std::is_same<container_t, typename helper::AllocHelper<
+                                  typename ValueType<container_t>::type,
+                                  helper::AllocType::buffer>::type>::value,
+    typename SB_Handle::event_t>::type
+SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
+                            const container_t& mem) {
+  if (tempMemPool_ != nullptr)
+    return tempMemPool_->release_buff_mem(dependencies, mem);
+  else
+    return {};
+}
+
+#ifdef SB_ENABLE_USM
+template <helper::AllocType alloc, typename value_t>
+typename std::enable_if<
+    alloc == helper::AllocType::usm,
+    typename helper::AllocHelper<value_t, alloc>::type>::type
+SB_Handle::acquire_temp_mem(size_t size) {
+  if (tempMemPool_ != nullptr)
+    return tempMemPool_->acquire_usm_mem<value_t>(size);
+  else
+    return cl::sycl::malloc_device<value_t>(size, q_);
+}
+
+template <typename container_t>
+typename std::enable_if<
+    std::is_same<container_t, typename helper::AllocHelper<
+                                  typename ValueType<container_t>::type,
+                                  helper::AllocType::usm>::type>::value,
+    typename SB_Handle::event_t>::type
+SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
+                            const container_t& mem) {
+  if (tempMemPool_ != nullptr)
+    return tempMemPool_->release_usm_mem(dependencies, mem);
+  else {
+    cl::sycl::context context = q_.get_context();
+    return {q_.submit([&](cl::sycl::handler& cgh) {
+      cgh.depends_on(dependencies);
+      cgh.host_task([=]() { cl::sycl::free(mem, context); });
+    })};
+  }
+}
+#endif
 
 /*!
  * @brief Executes the tree without defining required shared memory.
@@ -114,12 +171,12 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   // Two accessors to local memory
   auto sharedSize = ((nWG < localSize) ? localSize : nWG);
   constexpr bool is_usm = std::is_pointer<typename lhs_t::container_t>::value;
-  auto shMem1 = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                : helper::AllocType::buffer,
-       typename lhs_t::value_t > (sharedSize, q_);
-  auto shMem2 = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                : helper::AllocType::buffer,
-       typename lhs_t::value_t > (sharedSize, q_);
+  auto shMem1 = acquire_temp_mem < is_usm ? helper::AllocType::usm
+                                          : helper::AllocType::buffer,
+       typename lhs_t::value_t > (sharedSize);
+  auto shMem2 = acquire_temp_mem < is_usm ? helper::AllocType::usm
+                                          : helper::AllocType::buffer,
+       typename lhs_t::value_t > (sharedSize);
 
   auto opShMem1 =
       make_vector_view(shMem1, typename lhs_t::increment_t(1), sharedSize);
@@ -150,9 +207,9 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     even = !even;
   } while (_N > 1);
 
-  blas::helper::enqueue_deallocate(event, shMem1, q_);
+  release_temp_mem({*event.rbegin()}, shMem1);
 
-  blas::helper::enqueue_deallocate(event, shMem2, q_);
+  release_temp_mem({*event.rbegin()}, shMem2);
 
   return event;
 }
@@ -273,9 +330,9 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 
   /* First step: partial gemm */
   /* Create the cube buffer that will hold the output of the partial gemm */
-  auto cube_buffer = helper::allocate < is_usm ? helper::AllocType::usm
+  auto cube_buffer = acquire_temp_mem < is_usm ? helper::AllocType::usm
                                                : helper::AllocType::buffer,
-       element_t > (rows * cols * depth, q_);
+       element_t > (rows * cols * depth);
 
   /* Create a first matrix view used for the partial gemm */
   auto cube_gemm =
@@ -309,9 +366,9 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   /* Otherwise we reduce to a temporary buffer */
   else {
     /* Create a temporary buffer to hold alpha * A * B */
-    auto temp_buffer = helper::allocate < is_usm ? helper::AllocType::usm
+    auto temp_buffer = acquire_temp_mem < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-         element_t > (rows * cols, q_);
+         element_t > (rows * cols);
     auto temp = make_matrix_view<col_major>(temp_buffer, rows, cols, rows);
 
     /* Execute the reduction */
@@ -333,10 +390,10 @@ inline typename SB_Handle::event_t SB_Handle::execute(
       events = concatenate_vectors(events, execute(assignOp, events));
     }
 
-    helper::enqueue_deallocate(events, temp_buffer, q_);
+    release_temp_mem(events, temp_buffer);
   }
 
-  helper::enqueue_deallocate(events, cube_buffer, q_);
+  release_temp_mem(events, cube_buffer);
 
   return events;
 }

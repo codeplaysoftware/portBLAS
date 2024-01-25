@@ -34,7 +34,7 @@
 #include <numeric>
 #include <random>
 
-inline portblas_handle_t make_portblas_handle() {
+inline cl::sycl::queue make_sycl_queue() {
   cl::sycl::queue q(
       [=](cl::sycl::exception_list ex_list) {
         try {
@@ -50,13 +50,7 @@ inline portblas_handle_t make_portblas_handle() {
             << q.get_device().get_info<cl::sycl::info::device::name>()
             << std::endl;
 
-  portblas_handle_t sb_handle(q);
-  return sb_handle;
-}
-
-inline portblas_handle_t &get_portblas_handle() {
-  static portblas_handle_t sb_handle = make_portblas_handle();
-  return sb_handle;
+  return q;
 }
 
 template <typename T, typename RndEngine>

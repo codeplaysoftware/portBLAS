@@ -53,15 +53,26 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
+
+#ifdef BLAS_ENABLE_AUTO_TUNER_MEMPOOL
+  Temp_Mem_Pool mem_pool(make_sycl_queue());
+  portblas_handle_t sb_handle(&mem_pool);
+#else
+  portblas_handle_t sb_handle(make_sycl_queue());
+#endif
+
   std::cout << "======= testing nn ======" << std::endl;
-  run_tune_gemm<false, false, float>(seed, m, k, n, batch_size, rep,
+  run_tune_gemm<false, false, float>(sb_handle, seed, m, k, n, batch_size, rep,
                                      batch_type);
   std::cout << "======= testing nt ======" << std::endl;
-  run_tune_gemm<false, true, float>(seed, m, k, n, batch_size, rep, batch_type);
+  run_tune_gemm<false, true, float>(sb_handle, seed, m, k, n, batch_size, rep,
+                                    batch_type);
   std::cout << "======= testing tn ======" << std::endl;
-  run_tune_gemm<true, false, float>(seed, m, k, n, batch_size, rep, batch_type);
+  run_tune_gemm<true, false, float>(sb_handle, seed, m, k, n, batch_size, rep,
+                                    batch_type);
   std::cout << "======= testing tt ======" << std::endl;
-  run_tune_gemm<true, true, float>(seed, m, k, n, batch_size, rep, batch_type);
+  run_tune_gemm<true, true, float>(sb_handle, seed, m, k, n, batch_size, rep,
+                                   batch_type);
 
   return 0;
 }

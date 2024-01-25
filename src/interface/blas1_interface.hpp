@@ -327,9 +327,10 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
         localMemSize == 0
             ? _nWG * (static_cast<index_t>(localSize) / min_sg_size)
             : _nWG;
-    auto gpu_res = blas::helper::allocate < is_usm ? helper::AllocType::usm
-                                                   : helper::AllocType::buffer,
-         tuple_t > (memory_size, q);
+    auto gpu_res = sb_handle.template acquire_temp_mem < is_usm
+                       ? helper::AllocType::usm
+                       : helper::AllocType::buffer,
+         tuple_t > (memory_size);
     auto gpu_res_vec =
         make_vector_view(gpu_res, static_cast<increment_t>(1), memory_size);
     auto step0 = make_index_max_min<is_max, true>(gpu_res_vec, tupOp);
@@ -361,7 +362,7 @@ typename sb_handle_t::event_t _iamax_iamin_impl(
                                  static_cast<index_t>(localSize),
                                  static_cast<index_t>(localMemSize), ret));
     }
-    blas::helper::enqueue_deallocate(ret, gpu_res, q);
+    sb_handle.template release_temp_mem({*ret.rbegin()}, gpu_res);
   }
   return ret;
 }
