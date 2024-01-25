@@ -216,6 +216,7 @@ endif()
 option(BLAS_ENABLE_CONST_INPUT "Whether to enable kernel instantiation with const input buffer" ON)
 option(BLAS_ENABLE_BENCHMARK "Whether to enable benchmarking" ON)
 option(BLAS_VERIFY_BENCHMARK "Whether to verify the results of benchmarks" ON)
+option(BLAS_MEMPOOL_BENCHMARK "Whether to use the memory pool in benchmarks" OFF)
 option(BUILD_CLBLAST_BENCHMARKS "Whether to build clBLAST benchmarks" OFF)
 option(BUILD_CLBLAS_BENCHMARKS "Whether to build clBLAS benchmarks" OFF)
 option(BUILD_CUBLAS_BENCHMARKS "Whether to build cuBLAS benchmarks" OFF)
@@ -240,6 +241,7 @@ if (BLAS_BUILD_SAMPLES)
 endif()
 
 option(BLAS_ENABLE_AUTO_TUNERS "Whether to enable building GEMM auto tuners" OFF)
+option(BLAS_ENABLE_AUTO_TUNER_MEMPOOL "Whether to enable memory pool for GEMM auto tuners" OFF)
 if(${BLAS_ENABLE_AUTO_TUNERS})
   # Note that the auto tuners are very slow to compile, so we avoid adding
   # them to the ALL target.

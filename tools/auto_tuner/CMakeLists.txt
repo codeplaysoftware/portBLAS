@@ -117,6 +117,9 @@ foreach(blas_tuner ${SYCL_AUTO_TUNNER_SRCS})
     include/
     ${CMAKE_CURRENT_BINARY_DIR}
   )
+  if(BLAS_ENABLE_AUTO_TUNER_MEMPOOL)
+    target_compile_definitions(${tuner_exec} PRIVATE BLAS_ENABLE_AUTO_TUNER_MEMPOOL)
+  endif()
   add_dependencies(${tuner_exec} tuner_generate_def_file)
   if(is_dpcpp)
     target_link_libraries(${tuner_exec} PRIVATE DPCPP::DPCPP)
