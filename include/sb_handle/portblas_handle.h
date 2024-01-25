@@ -49,7 +49,7 @@ class SB_Handle {
  public:
   using event_t = std::vector<cl::sycl::event>;
   inline SB_Handle(queue_t q)
-      : tempMemPool_(NULL),
+      : tempMemPool_(nullptr),
         q_(q),
         workGroupSize_(helper::get_work_group_size(q)),
         localMemorySupport_(helper::has_local_memory(q)),

@@ -44,7 +44,7 @@ typename std::enable_if<
     alloc == helper::AllocType::buffer,
     typename helper::AllocHelper<value_t, alloc>::type>::type
 SB_Handle::acquire_temp_mem(size_t size) {
-  if (tempMemPool_ != NULL)
+  if (tempMemPool_ != nullptr)
     return tempMemPool_->acquire_buff_mem<value_t>(size);
   else
     return make_sycl_iterator_buffer<value_t>(size);
@@ -58,7 +58,7 @@ typename std::enable_if<
     typename SB_Handle::event_t>::type
 SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
                             const container_t& mem) {
-  if (tempMemPool_ != NULL)
+  if (tempMemPool_ != nullptr)
     return tempMemPool_->release_buff_mem(dependencies, mem);
   else
     return {};
@@ -70,7 +70,7 @@ typename std::enable_if<
     alloc == helper::AllocType::usm,
     typename helper::AllocHelper<value_t, alloc>::type>::type
 SB_Handle::acquire_temp_mem(size_t size) {
-  if (tempMemPool_ != NULL)
+  if (tempMemPool_ != nullptr)
     return tempMemPool_->acquire_usm_mem<value_t>(size);
   else
     return cl::sycl::malloc_device<value_t>(size, q_);
@@ -84,7 +84,7 @@ typename std::enable_if<
     typename SB_Handle::event_t>::type
 SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
                             const container_t& mem) {
-  if (tempMemPool_ != NULL)
+  if (tempMemPool_ != nullptr)
     return tempMemPool_->release_usm_mem(dependencies, mem);
   else {
     cl::sycl::context context = q_.get_context();
