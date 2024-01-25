@@ -25,6 +25,7 @@
 #ifndef TEMP_MEMORY_POOL_H
 #define TEMP_MEMORY_POOL_H
 
+#ifndef __HIPSYCL__
 #include <map>
 #include <mutex>
 
@@ -39,8 +40,11 @@ class Temp_Mem_Pool {
  public:
   Temp_Mem_Pool(queue_t q)
       : q_(q),
-        temp_buffer_map_tot_byte_size_(0),
-        temp_usm_map_tot_byte_size_(0) {}
+#ifdef SB_ENABLE_USM
+        temp_usm_map_tot_byte_size_(0),
+#endif
+        temp_buffer_map_tot_byte_size_(0) {
+  }
   Temp_Mem_Pool(const Temp_Mem_Pool& h) = delete;
   Temp_Mem_Pool operator=(Temp_Mem_Pool) = delete;
 
@@ -96,7 +100,7 @@ class Temp_Mem_Pool {
   temp_buffer_map_t temp_buffer_map_;
 
   template <typename container_t>
-  void release_usm_mem_(const container_t& mem);
+  void release_buff_mem_(const container_t& mem);
 
 #ifdef SB_ENABLE_USM
   std::mutex temp_usm_map_mutex_;
@@ -105,8 +109,19 @@ class Temp_Mem_Pool {
   temp_usm_size_map_t temp_usm_size_map_;
 
   template <typename container_t>
-  void release_buff_mem_(const container_t& mem);
-#endif
+  void release_usm_mem_(const container_t& mem);
+#endif  // SB_ENABLE_USM
 };
 }  // namespace blas
+
+#else
+
+namespace blas {
+// Empty class to serve as a temporary Placeholder asthe feature
+// is not fully supported when using AdaptiveCpp
+class Temp_Mem_Pool;
+}  // namespace blas
+
+#endif  // __HIPSYCL__
+
 #endif

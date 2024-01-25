@@ -108,10 +108,17 @@ endif()
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
 option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
 
-if (SYCL_COMPILER MATCHES "adaptivecpp" AND BLAS_ENABLE_COMPLEX)
-  message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL. Complex
-          data type is disabled")
-  set(BLAS_ENABLE_COMPLEX OFF)
+if (SYCL_COMPILER MATCHES "adaptivecpp") 
+  if(BLAS_ENABLE_COMPLEX)
+    message(STATUS "SYCL Complex data is not supported on AdaptiveCpp/hipSYCL. Complex
+            data type is disabled")
+    set(BLAS_ENABLE_COMPLEX OFF)
+  endif()
+  if(BLAS_MEMPOOL_BENCHMARK)
+    message(STATUS "Memory pool feature is not supported on AdaptiveCpp/hipSYCL. Corresponding
+            benchmarks are disabled")
+    set(BLAS_MEMPOOL_BENCHMARK OFF)
+  endif()
 endif()
 
 # CmakeFunctionHelper has to be included after any options that it depends on are declared.

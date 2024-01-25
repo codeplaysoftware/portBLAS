@@ -55,12 +55,14 @@ class SB_Handle {
         localMemorySupport_(helper::has_local_memory(q)),
         computeUnits_(helper::get_num_compute_units(q)) {}
 
+#ifndef __HIPSYCL__
   inline SB_Handle(Temp_Mem_Pool* tmp)
       : tempMemPool_(tmp),
         q_(tmp->get_queue()),
         workGroupSize_(helper::get_work_group_size(q_)),
         localMemorySupport_(helper::has_local_memory(q_)),
         computeUnits_(helper::get_num_compute_units(q_)) {}
+#endif
 
   template <helper::AllocType alloc, typename value_t>
   typename std::enable_if<
