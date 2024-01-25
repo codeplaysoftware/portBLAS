@@ -449,8 +449,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         A += cl_elems * (trans_a ? 1 : lda);
         B += cl_elems * (trans_b ? ldb : 1);
 
-        sync_smem<double_buffer, ldsb * block_cols, ldsb * block_cols,
-                  ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
+        sync_smem<double_buffer, ldsb *(trans_b ? cl_elems : block_cols),
+                  ldsb *(trans_b ? cl_elems : block_cols),
+                  ldsa *(trans_a ? block_rows : cl_elems),
+                  ldsa *(trans_a ? block_rows : cl_elems)>(id, ofs, s1, s2, s3,
+                                                           s4);
         k -= cl_elems;
       }
 
@@ -460,8 +463,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
         id.barrier(cl::sycl::access::fence_space::local_space);
         compute_block_gemm(id, s2, s4, reg_res);
 
-        sync_smem<double_buffer, ldsb * block_cols, ldsb * block_cols,
-                  ldsa * cl_elems, ldsa * cl_elems>(id, ofs, s1, s2, s3, s4);
+        sync_smem<double_buffer, ldsb *(trans_b ? cl_elems : block_cols),
+                  ldsb *(trans_b ? cl_elems : block_cols),
+                  ldsa *(trans_a ? block_rows : cl_elems),
+                  ldsa *(trans_a ? block_rows : cl_elems)>(id, ofs, s1, s2, s3,
+                                                           s4);
       }
 
       // store the output
