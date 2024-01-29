@@ -425,12 +425,12 @@ by AdaptiveCpp.
 cd build
 export CC=[path/to/system/clang]
 export CXX=[path/to/AdaptiveCpp/install/bin/syclcc]
-export HIPSYCL_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
+export ACPP_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
 cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
-      -DSYCL_COMPILER=adaptivecpp -DHIPSYCL_TARGETS=$HIPSYCL_TARGETS
+      -DSYCL_COMPILER=adaptivecpp -DHIPSYCL_TARGETS=$ACPP_TARGETS
 ninja
 ```
-To build for other than the default devices (`omp`), set the `HIPSYCL_TARGETS` environment
+To build for other than the default devices (`omp`), set the `ACPP_TARGETS` environment
 variable or specify `-DHIPSYCL_TARGETS` as 
 [documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md). 
 The available backends are the ones built with AdaptiveCpp in the first place.  
@@ -477,7 +477,7 @@ Some of the supported options are:
 |---|---|---|
 | `BLAS_ENABLE_TESTING` | `ON`/`OFF` | Set it to `OFF` to avoid building the tests (`ON` is the default value) |
 | `BLAS_ENABLE_BENCHMARK` | `ON`/`OFF` | Set it to `OFF` to avoid building the benchmarks (`ON` is the default value) |
-| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `hipsycl` and `computecpp`*(deprecated)*. |
+| `SYCL_COMPILER` | name | Used to determine which SYCL implementation to use. By default, the first implementation found is used. Supported values are: `dpcpp`, `adaptivecpp` and `computecpp`*(deprecated)*. |
 | `TUNING_TARGET` | name | By default, this flag is set to `DEFAULT_CPU` to restrict any device specific compiler optimizations. Use this flag to tune the code for a target (**highly recommended** for performance). The supported targets are: `INTEL_GPU`, `NVIDIA_GPU`, `AMD_GPU` |
 | `CMAKE_PREFIX_PATH` | path | List of paths to check when searching for dependencies |
 | `CMAKE_INSTALL_PREFIX` | path | Specify the install location, used when invoking `ninja install` |

@@ -265,7 +265,7 @@ struct constant_pair {
 
 }  // namespace blas
 
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
 template <typename ind_t, typename val_t>
 struct cl::sycl::is_device_copyable<blas::IndexValueTuple<ind_t, val_t>>
     : std::true_type {};

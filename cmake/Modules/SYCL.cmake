@@ -25,12 +25,12 @@
 include(CheckCXXCompilerFlag)
 include(ConfigurePORTBLAS)
 
-# find_package(AdaptiveCpp) requires HIPSYCL_TARGETS to be set, so set it to a default value before find_package(AdaptiveCpp)
-if(SYCL_COMPILER MATCHES "adaptivecpp" AND NOT HIPSYCL_TARGETS AND NOT ENV{HIPSYCL_TARGETS})
-  message(STATUS "Using `omp` as HIPSYCL_TARGETS")
-  set(HIPSYCL_TARGETS "omp")
+# find_package(AdaptiveCpp) requires ACPP_TARGETS to be set, so set it to a default value before find_package(AdaptiveCpp)
+if(SYCL_COMPILER MATCHES "adaptivecpp" AND NOT ACPP_TARGETS AND NOT ENV{ACPP_TARGETS})
+  message(STATUS "Using `omp` as ACPP_TARGETS")
+  set(ACPP_TARGETS "omp")
 else()
-  message(STATUS "Using ${HIPSYCL_TARGETS} as HIPSYCL_TARGETS")
+  message(STATUS "Using ${ACPP_TARGETS} as ACPP_TARGETS")
 endif()
 
 check_cxx_compiler_flag("--acpp-targets" has_acpp)

@@ -44,7 +44,7 @@ typename std::enable_if<
     alloc == helper::AllocType::buffer,
     typename helper::AllocHelper<value_t, alloc>::type>::type
 SB_Handle::acquire_temp_mem(size_t size) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   if (tempMemPool_ != nullptr)
     return tempMemPool_->acquire_buff_mem<value_t>(size);
   else
@@ -60,7 +60,7 @@ typename std::enable_if<
     typename SB_Handle::event_t>::type
 SB_Handle::release_temp_mem(const typename SB_Handle::event_t& dependencies,
                             const container_t& mem) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   if (tempMemPool_ != nullptr)
     return tempMemPool_->release_buff_mem(dependencies, mem);
   else

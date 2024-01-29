@@ -151,7 +151,7 @@ typename sb_handle_t::event_t _sdsdot(
     sb_handle_t &sb_handle, index_t _N, float sb, container_0_t _vx,
     increment_t _incx, container_1_t _vy, increment_t _incy, container_2_t _rs,
     const typename sb_handle_t::event_t &_dependencies) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   if (!_N) {
     using element_t = typename ValueType<container_2_t>::type;
     sb_handle.wait(_dependencies);
@@ -190,7 +190,7 @@ typename sb_handle_t::event_t _asum(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _rs, const typename sb_handle_t::event_t &_dependencies) {
   // keep compatibility with older sycl versions
-#if SYCL_LANGUAGE_VERSION < 202000 || defined(__HIPSYCL__)
+#if SYCL_LANGUAGE_VERSION < 202000 || defined(__ADAPTIVECPP__)
   typename VectorViewType<container_0_t, index_t, increment_t>::type vx =
       make_vector_view(_vx, _incx, _N);
   auto rs = make_vector_view(_rs, static_cast<increment_t>(1),
@@ -208,7 +208,7 @@ typename sb_handle_t::event_t _asum(
 #endif
 }
 
-#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__HIPSYCL__)
+#if SYCL_LANGUAGE_VERSION >= 202000 && !defined(__ADAPTIVECPP__)
 /*! _asum_impl.
  * @brief Internal implementation of the Absolute sum operator.
  *
@@ -924,7 +924,7 @@ typename ValueType<container_0_t>::type _dot(
     sb_handle_t &sb_handle, index_t _N, container_0_t _vx, increment_t _incx,
     container_1_t _vy, increment_t _incy,
     const typename sb_handle_t::event_t &_dependencies) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_0_t>::value;
   using element_t = typename ValueType<container_0_t>::type;
   element_t res{0};
@@ -1074,7 +1074,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _asum(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));
@@ -1114,7 +1114,7 @@ template <typename sb_handle_t, typename container_t, typename index_t,
 typename ValueType<container_t>::type _nrm2(
     sb_handle_t &sb_handle, index_t _N, container_t _vx, increment_t _incx,
     const typename sb_handle_t::event_t &_dependencies) {
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   constexpr bool is_usm = std::is_pointer<container_t>::value;
   using element_t = typename ValueType<container_t>::type;
   auto res = std::vector<element_t>(1, element_t(0));

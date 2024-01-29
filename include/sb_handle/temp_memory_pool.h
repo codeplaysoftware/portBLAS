@@ -25,7 +25,7 @@
 #ifndef TEMP_MEMORY_POOL_H
 #define TEMP_MEMORY_POOL_H
 
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
 #include <map>
 #include <mutex>
 
@@ -114,14 +114,6 @@ class Temp_Mem_Pool {
 };
 }  // namespace blas
 
-#else
-
-namespace blas {
-// Empty class to serve as a temporary Placeholder asthe feature
-// is not fully supported when using AdaptiveCpp
-class Temp_Mem_Pool;
-}  // namespace blas
-
-#endif  // __HIPSYCL__
+#endif  // __ADAPTIVECPP__
 
 #endif

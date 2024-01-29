@@ -94,7 +94,7 @@ PORTBLAS_INLINE void IndexMaxMin<is_max, is_step0, lhs_t, rhs_t>::eval(
   using element_t =
       typename ResolveReturnType<op, rhs_t>::type::value_t::value_t;
 
-#ifndef __HIPSYCL__
+#ifndef __ADAPTIVECPP__
   // reduction within the sub_group
   for (index_t i = sg_local_range >> 1; i > 0; i >>= 1) {
     if (sg_local_id < i) {
