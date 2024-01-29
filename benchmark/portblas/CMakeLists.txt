@@ -77,15 +77,13 @@ if(${BLAS_ENABLE_EXTENSIONS})
 endif()
 
 # Skip these benchmarks for AdaptiveCpp for SPIRV/OpenCL targets
-# that use SYCL 2020 features like reduction or hang during execution
-# (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
+# that use SYCL 2020 features like group reduction or hang 
+# during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
 set(ADAPTIVE_CPP_SKIP
   blas1/asum.cpp
   blas1/dot.cpp
   blas1/sdsdot.cpp
   blas1/nrm2.cpp
-  blas2/spr.cpp
-  blas2/spr2.cpp
   blas2/trsv.cpp
   blas2/tbsv.cpp
   blas2/tpsv.cpp

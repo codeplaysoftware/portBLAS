@@ -101,15 +101,20 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
 
   index_t row = 0, col = 0;
 
+#ifndef __HIPSYCL__
   if (!id) {
+#endif
     Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::compute_row_col(
         global_idx, N_, row, col);
+#ifndef __HIPSYCL__
   }
 
   row = cl::sycl::group_broadcast(ndItem.get_group(), row);
   col = cl::sycl::group_broadcast(ndItem.get_group(), col);
+#endif
 
   if (global_idx < lhs_size) {
+#ifndef __HIPSYCL__
     if constexpr (isUpper) {
       if (id) {
         row += id;
@@ -127,6 +132,7 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
         }
       }
     }
+#endif
 
     value_t lhs_val = lhs_.eval(global_idx);
     value_t rhs_1_val = rhs_1_.eval(row);
@@ -135,7 +141,8 @@ typename rhs_1_t::value_t Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::eval(
       value_t rhs_1_val_second = rhs_1_.eval(col);
       value_t rhs_2_val_second = rhs_2_.eval(row);
       lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ +
-            rhs_1_val_second * rhs_2_val_second * alpha_ + lhs_val;
+                              rhs_1_val_second * rhs_2_val_second * alpha_ +
+                              lhs_val;
     } else
       lhs_.eval(global_idx) = rhs_1_val * rhs_2_val * alpha_ + lhs_val;
   }
@@ -161,9 +168,8 @@ Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::adjust_access_displacement() {
 
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
           typename rhs_2_t>
-PORTBLAS_INLINE
-    typename Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
-    Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
+PORTBLAS_INLINE typename Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::index_t
+Spr<Single, isUpper, lhs_t, rhs_1_t, rhs_2_t>::get_size() const {
   return rhs_1_.get_size();
 }
 template <bool Single, bool isUpper, typename lhs_t, typename rhs_1_t,
