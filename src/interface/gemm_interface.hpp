@@ -28,7 +28,6 @@
 #include "interface/blas1_interface.h"
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
-#include "interface/extension_interface.h"
 #include "operations/blas3_trees.h"
 #include "portblas_helper.h"
 #include "sb_handle/portblas_handle.h"
