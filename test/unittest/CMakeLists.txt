@@ -74,14 +74,16 @@ set(SYCL_UNITTEST_SRCS
 )
 
 # Skip these tests for AdaptiveCpp for SPIRV/OpenCL targets 
-# that use SYCL 2020 features like reduction or hang during execution
-# (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
+# that use SYCL 2020 features like group reduction/broadcast 
+# or hang during execution (https://github.com/AdaptiveCpp/AdaptiveCpp/issues/1309)
 set(ADAPTIVE_CPP_SKIP 
   ${PORTBLAS_UNITTEST}/blas1/blas1_asum_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_sdsdot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_nrm2_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_dot_test.cpp
   ${PORTBLAS_UNITTEST}/blas1/blas1_rot_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_spr_test.cpp
+  ${PORTBLAS_UNITTEST}/blas2/blas2_spr2_test.cpp
   # Hang during execution (without failing)
   ${PORTBLAS_UNITTEST}/blas3/blas3_trsm_test.cpp
 )
