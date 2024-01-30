@@ -134,7 +134,31 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       // Folling configuration are taken using the auto tuner on amd-mi210
       // and divided following their arith_intensity or another ratio between _N
       // and _K input size
-      if (arith_intensity >= 360 || (_N >> 4) > _K) {
+      if ((_N >> 4) > _K) {
+        if (arith_intensity <= 100) {
+          return blas::Gemm_Launcher<
+              container_0_t, container_1_t, container_2_t, 256, false, false,
+              true, 64, Tile<4, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
+              static_cast<int>(gemm_memory_t::local),
+              static_cast<int>(gemm_algorithm_t::standard),
+              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+              static_cast<int>(gemm_batch_type_t::strided)>::
+              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                    _stridea, _b, _ldb, _strideb, _beta, _c,
+                                    _ldc, _stridec, batch_size, _dependencies);
+        } else {
+          return blas::Gemm_Launcher<
+              container_0_t, container_1_t, container_2_t, 256, false, false,
+              true, 32, Tile<8, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
+              static_cast<int>(gemm_memory_t::local),
+              static_cast<int>(gemm_algorithm_t::standard),
+              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+              static_cast<int>(gemm_batch_type_t::strided)>::
+              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                    _stridea, _b, _ldb, _strideb, _beta, _c,
+                                    _ldc, _stridec, batch_size, _dependencies);
+        }
+      } else if (arith_intensity >= 360) {
         return blas::Gemm_Launcher<
             container_0_t, container_1_t, container_2_t, 256, false, false,
             true, 32, Tile<8, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
@@ -179,29 +203,16 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
                                   _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
                                   _stridec, batch_size, _dependencies);
       } else if (arith_intensity <= 100) {
-        if ((_N >> 4) > _K) {
-          return blas::Gemm_Launcher<
-              container_0_t, container_1_t, container_2_t, 256, false, false,
-              true, 64, Tile<4, 8, 16, 16>, _t_a, _t_b, s_a, s_b,
-              static_cast<int>(gemm_memory_t::local),
-              static_cast<int>(gemm_algorithm_t::standard),
-              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-              static_cast<int>(gemm_batch_type_t::strided)>::
-              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                    _stridea, _b, _ldb, _strideb, _beta, _c,
-                                    _ldc, _stridec, batch_size, _dependencies);
-        } else {
-          return blas::Gemm_Launcher<
-              container_0_t, container_1_t, container_2_t, 256, false, false,
-              true, 128, Tile<1, 1, 16, 8>, _t_a, _t_b, s_a, s_b,
-              static_cast<int>(gemm_memory_t::local),
-              static_cast<int>(gemm_algorithm_t::standard),
-              static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
-              static_cast<int>(gemm_batch_type_t::strided)>::
-              template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
-                                    _stridea, _b, _ldb, _strideb, _beta, _c,
-                                    _ldc, _stridec, batch_size, _dependencies);
-        }
+        return blas::Gemm_Launcher<
+            container_0_t, container_1_t, container_2_t, 256, false, false,
+            true, 128, Tile<1, 1, 16, 8>, _t_a, _t_b, s_a, s_b,
+            static_cast<int>(gemm_memory_t::local),
+            static_cast<int>(gemm_algorithm_t::standard),
+            static_cast<int>(gemm_vectorization_t::full), is_beta_zero, 1,
+            static_cast<int>(gemm_batch_type_t::strided)>::
+            template _select_gemm(sb_handle, _M, _N, _K, _alpha, _a, _lda,
+                                  _stridea, _b, _ldb, _strideb, _beta, _c, _ldc,
+                                  _stridec, batch_size, _dependencies);
       } else {
         // this branch is a safe net just in case no other branch is taken
         return blas::Gemm_Launcher<
