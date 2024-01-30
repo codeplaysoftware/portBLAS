@@ -131,7 +131,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
       }
     } else
 #endif  // GEMM_TALL_SKINNY_SUPPORT
-      // Folling configuration are taken using the auto tuner on amd-mi210
+      // Following configurations are taken using the auto tuner on amd-mi210
       // and divided following their arith_intensity or another ratio between _N
       // and _K input size
       if ((_N >> 4) > _K) {
