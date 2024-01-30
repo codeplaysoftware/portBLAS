@@ -96,7 +96,7 @@ elseif(is_adaptivecpp)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
   get_target_property(SYCL_INCLUDE_DIRS AdaptiveCpp::acpp-rt INTERFACE_INCLUDE_DIRECTORIES)
   set(HIP_BENCH_UNSUPPORTED_TARGETS "INTEL_GPU" "DEFAULT_CPU")
-  if(${BLAS_ENABLE_BENCHMARK} AND ${TUNING_TARGET} IN_LIST HIP_BENCH_UNSUPPORTED_TARGETS)
+  if((${BLAS_ENABLE_BENCHMARK}) AND (${TUNING_TARGET} IN_LIST HIP_BENCH_UNSUPPORTED_TARGETS))
     message(STATUS "Benchmarks are not supported when targetting OpenCL/LevelZero backend 
             devices. portBLAS Benchmarks are disabled.")
     set(BLAS_ENABLE_BENCHMARK OFF)
