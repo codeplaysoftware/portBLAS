@@ -229,7 +229,8 @@ static inline void fill_trsm_matrix(std::vector<scalar_t> &A, size_t k,
  * @param val input/output float value.
  * @param nbits number of last bit set to zero. It is set by default to 13 since
  * this is the difference of the number of bits of the mantissa between floats
- * (23) and FP16 / NVIDIA TF32 (10).
+ * (23) and FP16 / NVIDIA TF32 (10). For bfloat16, this value needs to be set to
+ * 16 to get correct result.
  */
 static inline void set_to_zero_last_nbits(float &val, int32_t nbits = 13) {
   int32_t *int_pntr = reinterpret_cast<int32_t *>(&val);

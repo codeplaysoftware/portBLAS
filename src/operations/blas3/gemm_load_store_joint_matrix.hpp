@@ -77,8 +77,8 @@ struct PacketizeJointMatrix {
                                           cl::sycl::ext::oneapi::bfloat16,
                                           address_t::local_space>,
                                       DestPointerType>::value) {
-      using dtype = cl::sycl::ext::oneapi::bfloat16;
-      *dest = static_cast<dtype>(val);
+      using namespace cl::sycl::ext::oneapi;
+      *dest = bfloat16(val);
     } else {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
       *dest = round_to_tf32(val);
@@ -119,8 +119,8 @@ struct PacketizeJointMatrix {
                                               cl::sycl::ext::oneapi::bfloat16,
                                               address_t::local_space>,
                                           DestPointerType>::value) {
-          using dtype = cl::sycl::ext::oneapi::bfloat16;
-          *dest = static_cast<dtype>(edge_in_range(i) ? *src : 0);
+          using namespace cl::sycl::ext::oneapi;
+          *dest = bfloat16(edge_in_range(i) ? *src : 0.f);
         } else {
           using namespace cl::sycl::ext::oneapi::experimental::matrix;
           *dest = edge_in_range(i) ? round_to_tf32(*src) : 0.f;
@@ -150,14 +150,13 @@ struct PacketizeJointMatrix {
                                           cl::sycl::ext::oneapi::bfloat16,
                                           address_t::local_space>,
                                       DestPointerType>::value) {
-      using dtype = cl::sycl::ext::oneapi::bfloat16;
-      cl::sycl::vec<dtype, vector_size> new_vec;
-      for (index_t i = 0; i < packet_size; i++) {
-        reinterpret_cast<dtype *>(&new_vec)[i] =
-            static_cast<dtype>(reinterpret_cast<value_t *>(&packet)[i]);
+      // sycl::vec doesn't accept bfloat16 as a valid input type
+      // so we need to write the packet elements individually to
+      // the shared memory.
+      using namespace cl::sycl::ext::oneapi;
+      for (index_t i = 0; i < packet_size; i++, dest++) {
+        *dest = bfloat16(reinterpret_cast<value_t *>(&packet)[i]);
       }
-      new_vec.template store<address_t::local_space>(
-          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
     } else {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
       using dtype = float;
