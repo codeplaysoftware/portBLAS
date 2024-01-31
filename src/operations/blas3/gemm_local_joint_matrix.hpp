@@ -730,10 +730,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       const index_t col_ofs = i * (wg_size / rows);
       const bool in_range =
           do_check<check_row_limit>(in_row((item_id % rows), 0)) &&
-          do_check<check_col_limit>(
-              in_col((item_id / rows), col_ofs));
+          do_check<check_col_limit>(in_col((item_id / rows), col_ofs));
 
-      packetize_t::template load<trans, internal, lds>(
+      packetize_t::template load<internal>(
           in_range, ptr + col_ofs * ld, scratch + col_ofs * lds,
           [&](const index_t &ofs) {
             return in_row(item_id % rows, ofs) &&
@@ -759,7 +758,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
           do_check<check_row_limit>(in_row(item_id / cols, row_ofs)) &&
           do_check<check_col_limit>(in_col(item_id % cols, 0));
 
-      packetize_t::template load<trans, internal, lds>(
+      packetize_t::template load<internal>(
           in_range, ptr + row_ofs * ld, scratch + row_ofs * lds,
           [&](const index_t &ofs) PORTBLAS_ALWAYS_INLINE {
             return in_col(item_id % cols, ofs) &&
