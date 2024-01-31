@@ -86,6 +86,7 @@ struct PacketizeJointMatrix {
       *dest = round_to_tf32(val);
     }
   }
+
   /*! @brief Performs a vectorised load using sycl::vec::load when the current
    * block is internal. In the case where k < the
    * number of elements being loaded then edge loads will be element wise with
@@ -114,6 +115,7 @@ struct PacketizeJointMatrix {
     }
     store<trans, ld>(packet, dest);
   }
+
   /*! @brief Store a vector packet into local memory when the source is
    * transposed. This will untranspose the elements individually when storing so
    * the data in local memory is always consistent.
@@ -156,16 +158,35 @@ struct PacketizeJointMatrix {
                                                    address_t::local_space>,
                                DestPointerType>::value) {
       using dtype = cl::sycl::half;
-      *dest = static_cast<dtype>(packet[0]);
+      cl::sycl::vec<dtype, vector_size> new_vec{};
+      for (index_t i = 0; i < packet_size; i++) {
+        reinterpret_cast<dtype *>(&new_vec)[i] =
+            static_cast<dtype>(reinterpret_cast<value_t *>(&packet)[i]);
+      }
+      new_vec.template store<address_t::local_space>(
+          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
     } else if constexpr (std::is_same<cl::sycl::multi_ptr<
                                           cl::sycl::ext::oneapi::bfloat16,
                                           address_t::local_space>,
                                       DestPointerType>::value) {
       using dtype = cl::sycl::ext::oneapi::bfloat16;
-      *dest = static_cast<dtype>(packet[0]);
+      cl::sycl::vec<dtype, vector_size> new_vec;
+      for (index_t i = 0; i < packet_size; i++) {
+        reinterpret_cast<dtype *>(&new_vec)[i] =
+            static_cast<dtype>(reinterpret_cast<value_t *>(&packet)[i]);
+      }
+      new_vec.template store<address_t::local_space>(
+          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
     } else {
       using namespace cl::sycl::ext::oneapi::experimental::matrix;
-      *dest = round_to_tf32(packet[0]);
+      using dtype = float;
+      cl::sycl::vec<dtype, vector_size> new_vec;
+      for (index_t i = 0; i < packet_size; i++) {
+        reinterpret_cast<dtype *>(&new_vec)[i] =
+            round_to_tf32(reinterpret_cast<value_t *>(&packet)[i]);
+      }
+      new_vec.template store<address_t::local_space>(
+          0, cl::sycl::multi_ptr<dtype, address_t::local_space>(dest));
     }
   }
 };

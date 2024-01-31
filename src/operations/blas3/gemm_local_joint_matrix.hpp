@@ -83,7 +83,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   using value_t = element_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
   using packetize_t = PacketizeJointMatrix<VectorSize, value_t, index_t>;
-  using vector_t = typename packetize_t::PacketType;
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
@@ -155,6 +154,9 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 
   static_assert(std::is_same<value_t, float>::value,
                 "This code is only supported for float data type.");
+
+  static_assert(VectorSize == 1,
+                "Vectorization not supported for joint_matrix.");
 
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa =
@@ -366,7 +368,6 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
             batch_size_);
       }
     } else {
-      using address_t = cl::sycl::access::address_space;
       auto input_scratch = *reinterpret_cast<cl::sycl::multi_ptr<
           typename tile_type::jmInpType, address_t::local_space> *>(&scratch);
 
@@ -721,25 +722,22 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t item_id, InputPointerType ptr, index_t ld,
       ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     constexpr index_t bs = rows * cols;
-    constexpr index_t multiplier = internal ? packetize_t::packet_size : 1;
-    constexpr index_t loop_iterations = (bs - 1) / (wg_size * multiplier) + 1;
+    constexpr index_t loop_iterations = (bs - 1) / wg_size + 1;
 #pragma unroll
     for (index_t i = 0; i < loop_iterations; ++i) {
-      if (!do_check<((bs % (wg_size * multiplier)) != 0)>(
-              item_id + i * (wg_size * multiplier) < bs))
+      if (!do_check<((bs % wg_size) != 0)>(item_id + i * wg_size < bs))
         continue;
-      const index_t col_ofs = i * ((wg_size * multiplier) / rows);
+      const index_t col_ofs = i * (wg_size / rows);
       const bool in_range =
-          do_check<check_row_limit>(
-              in_row(((item_id * multiplier) % rows), multiplier - 1)) &&
+          do_check<check_row_limit>(in_row((item_id % rows), 0)) &&
           do_check<check_col_limit>(
-              in_col((item_id * multiplier / rows), col_ofs));
+              in_col((item_id / rows), col_ofs));
 
       packetize_t::template load<trans, internal, lds>(
           in_range, ptr + col_ofs * ld, scratch + col_ofs * lds,
           [&](const index_t &ofs) {
-            return in_row((item_id * multiplier) % rows, ofs) &&
-                   in_col((item_id * multiplier) / rows, col_ofs);
+            return in_row(item_id % rows, ofs) &&
+                   in_col(item_id / rows, col_ofs);
           });
     }
   }
@@ -751,24 +749,21 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t item_id, InputPointerType ptr, index_t ld,
       ScratchPointerType scratch, RowPredicate in_row, ColPredicate in_col) {
     constexpr index_t bs = rows * cols;
-    constexpr index_t multiplier = internal ? packetize_t::packet_size : 1;
-    constexpr index_t loop_iterations = (bs - 1) / (wg_size * multiplier) + 1;
+    constexpr index_t loop_iterations = (bs - 1) / wg_size + 1;
 #pragma unroll
     for (index_t i = 0; i < loop_iterations; ++i) {
-      if (!do_check<((bs % (wg_size * multiplier)) != 0)>(
-              item_id + i * (wg_size * multiplier) < bs))
+      if (!do_check<((bs % wg_size) != 0)>(item_id + i * wg_size < bs))
         continue;
-      const index_t row_ofs = i * ((wg_size * multiplier) / cols);
-      const bool in_range = do_check<check_row_limit>(in_row(
-                                (item_id * multiplier) / cols, row_ofs)) &&
-                            do_check<check_col_limit>(in_col(
-                                (item_id * multiplier) % cols, multiplier - 1));
+      const index_t row_ofs = i * (wg_size / cols);
+      const bool in_range =
+          do_check<check_row_limit>(in_row(item_id / cols, row_ofs)) &&
+          do_check<check_col_limit>(in_col(item_id % cols, 0));
 
       packetize_t::template load<trans, internal, lds>(
           in_range, ptr + row_ofs * ld, scratch + row_ofs * lds,
           [&](const index_t &ofs) PORTBLAS_ALWAYS_INLINE {
-            return in_col((item_id * multiplier) % cols, ofs) &&
-                   in_row((item_id * multiplier) / cols, row_ofs);
+            return in_col(item_id % cols, ofs) &&
+                   in_row(item_id / cols, row_ofs);
           });
     }
   }
