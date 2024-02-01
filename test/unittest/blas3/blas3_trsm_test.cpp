@@ -92,7 +92,7 @@ void run_test(const combination_t<scalar_t> combi) {
       blas::helper::copy_to_host<scalar_t>(q, b_gpu, B.data(), B.size());
   sb_handle.wait(event);
 
-  bool isAlmostEqual = utils::compare_vectors(cpu_B, B);
+  bool isAlmostEqual = utils::compare_vectors(cpu_B, B, std::cerr, "", true);
 
   ASSERT_TRUE(isAlmostEqual);
 
