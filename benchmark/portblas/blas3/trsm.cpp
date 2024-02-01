@@ -97,7 +97,13 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, char side,
   }
 
   std::ostringstream err_stream;
-  if (!utils::compare_vectors(b_temp, x_ref, err_stream, "", true)) {
+  const char* en_joint_matrix = std::getenv("SB_ENABLE_JOINT_MATRIX");
+  if (!utils::compare_vectors(b_temp, x_ref, err_stream, "",
+                              (en_joint_matrix != NULL) &&
+                                      (std::is_same<scalar_t, float>::value) &&
+                                      (*en_joint_matrix == '1')
+                                  ? 2
+                                  : 1)) {
     const std::string& err_str = err_stream.str();
     state.SkipWithError(err_str.c_str());
     *success = false;
