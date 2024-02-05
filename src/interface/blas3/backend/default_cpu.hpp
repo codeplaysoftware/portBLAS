@@ -161,6 +161,7 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     }
   }
 }
+#endif
 
 // Complex Configurations
 #ifdef BLAS_ENABLE_COMPLEX

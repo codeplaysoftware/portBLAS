@@ -32,7 +32,7 @@
 #include <complex>
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
@@ -49,7 +49,7 @@ class numeric_limits<cl::sycl::half> {
 };
 }  // namespace std
 #endif  // SYCL_LANGUAGE_VERSION
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 namespace utils {
 
@@ -85,7 +85,7 @@ scalar_t abs(std::complex<scalar_t> value) noexcept {
 }
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 template <>
 inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
@@ -101,7 +101,62 @@ inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
 
-#endif  // BLAS_DATA_TYPE_HALF
+/**
+ * Custom float/double to sycl::half cast function.
+ */
+template <typename T>
+inline cl::sycl::half cast_to_half(T& val) {
+  static_assert(
+      std::is_scalar<T>::value,
+      "Value to be casted to sycl::half should be either float or double.");
+  // Uint bit representation using 32 (for float) or 64 (for double)
+  using uint_type = typename std::conditional<std::is_same_v<T, float>,
+                                              uint32_t, uint64_t>::type;
+
+  using scalar_t = typename std::remove_const<T>::type;
+
+  int32_t exp;
+  uint_type bin_float, sign, mant;
+
+  // Avoid const qualifier casting cases
+  scalar_t val_temp = const_cast<scalar_t&>(val);
+
+  // Reinterpret to uint for convenient bit manipulation
+  bin_float = *reinterpret_cast<uint32_t*>(&val_temp);
+
+  if constexpr (std::is_same_v<scalar_t, float>) {
+    // Single precision float data case
+    // Extract sign (to half's MSB)
+    sign = (bin_float & 0x80000000) >> 16;
+    // Adjust for half's smaller exponent & bias
+    exp = ((bin_float & 0x7F800000) >> 23) - 127 + 15;
+    // Truncate to 10 MSBits used in half's mantissa
+    mant = (bin_float & 0x007FFFFF) >> 13;
+  } else {
+    // Double precision float data case
+    sign = (bin_float & 0x8000000000000000ULL) >> 48;
+    exp = ((bin_float & 0x7FF0000000000000ULL) >> 52) - 1023 + 15;
+    mant = (bin_float & 0x000FFFFFFFFFFFFFULL) >> 42;
+  }
+
+  // Overflow/Underflow cases
+  if (exp > 31) {
+    // Clamp to max exponent for half (inf)
+    exp = 31;
+    mant = 0;
+  } else if (exp < 0) {
+    // Flush to zero (subnormal not handled)
+    exp = 0;
+    mant = 0;
+  }
+
+  // Reconstruct binary half output
+  uint16_t bin_half = sign | (exp << 10) | mant;
+  cl::sycl::half result = *reinterpret_cast<cl::sycl::half*>(&bin_half);
+
+  return static_cast<cl::sycl::half>(result);
+}
+#endif  // BLAS_ENABLE_HALF
 
 template <typename scalar_t>
 scalar_t clamp_to_limits(scalar_t v) {
@@ -139,7 +194,7 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 
 template <>
 inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
@@ -168,7 +223,7 @@ inline double getAbsoluteErrorMargin<double>() {
    */
   return 0.0000000001;  // 10^-10
 }
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 
 template <>
 inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
@@ -231,6 +286,75 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
   return true;
 }
+
+#ifdef BLAS_ENABLE_HALF
+/**
+ * Compare two vectors of cl::sycl::half and float/double types and returns
+ * false if the difference is not acceptable. The second vector is considered
+ * the reference (non half type as it usually results from BLAS reference
+ * functions with float/double outputs).
+ * @tparam scalar_t the type of data present in the reference vector
+ * (float/double)
+ * @tparam epilon_t the type used as tolerance. Here low precision
+ * cl::sycl::half, which will have a higher tolerance for errors.
+ */
+template <typename scalar_t, typename epsilon_t = cl::sycl::half>
+inline typename std::enable_if<!std::is_same_v<scalar_t, cl::sycl::half>,
+                               bool>::type
+compare_vectors(std::vector<cl::sycl::half> const& vec,
+                std::vector<scalar_t> const& ref,
+                std::ostream& err_stream = std::cerr,
+                std::string end_line = "\n") {
+  if (vec.size() != ref.size()) {
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
+    return false;
+  }
+
+  for (int i = 0; i < vec.size(); ++i) {
+    cl::sycl::half ref_i = cast_to_half(ref[i]);
+    if (!almost_equal<cl::sycl::half, epsilon_t>(vec[i], ref_i)) {
+      err_stream << "Value mismatch at index " << i << ": " << vec[i]
+                 << "; expected " << ref_i << end_line;
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename scalar_t, typename epsilon_t = cl::sycl::half>
+inline typename std::enable_if<!std::is_same_v<scalar_t, cl::sycl::half>,
+                               bool>::type
+compare_vectors_strided(std::vector<cl::sycl::half> const& vec,
+                        std::vector<scalar_t> const& ref, int stride,
+                        int window, std::ostream& err_stream = std::cerr,
+                        std::string end_line = "\n") {
+  if (vec.size() != ref.size()) {
+    err_stream << "Error: tried to compare vectors of different sizes"
+               << std::endl;
+    return false;
+  }
+
+  int k = 0;
+
+  // Loop over windows
+  while (window + (k + 1) * stride < vec.size()) {
+    // Loop within a window
+    for (int i = 0; i < window; ++i) {
+      auto index = i + k * stride;
+      cl::sycl::half ref_i = cast_to_half(ref[index]);
+      if (!almost_equal<cl::sycl::half, epsilon_t>(vec[index], ref_i)) {
+        err_stream << "Value mismatch at index " << index << ": " << vec[index]
+                   << "; expected " << ref_i << end_line;
+        return false;
+      }
+    }
+    k += 1;
+  }
+
+  return true;
+}
+#endif
 
 #ifdef BLAS_ENABLE_COMPLEX
 /**

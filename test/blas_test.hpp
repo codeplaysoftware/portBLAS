@@ -99,6 +99,7 @@ inline cl::sycl::queue make_queue_impl() {
 #endif  // HAS_SYCL2020_SELECTORS
 
   utils::print_queue_information(q);
+  printf("Has aspect fp16 : %d\n", int(q.get_device().has(sycl::aspect::fp16)));
   return q;
 };
 
@@ -112,16 +113,45 @@ inline cl::sycl::queue make_queue() {
 }
 
 /**
+ * Reference type of the underlying tests data aimed to match the reference
+ * library and random number generator APIs.
+ */
+template <typename T, typename Enable = void>
+struct ReferenceType {
+  using type = T;
+};
+
+// When T is sycl::half, use float as type for random generation
+// and reference implementations.
+template <typename T>
+struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = float;
+};
+
+/**
  * @brief Generates a random scalar in the specified range
  * @param rangeMin range minimum
  * @param rangeMax range maximum
  */
 template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
+  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
-  return dis(gen);
+  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    ref_scalar_t rangeMinF(rangeMin);
+    ref_scalar_t rangeMaxF(rangeMax);
+    std::uniform_real_distribution<ref_scalar_t> dis(rangeMinF, rangeMaxF);
+    ref_scalar_t temp = dis(gen);
+#ifdef BLAS_ENABLE_HALF
+    return (utils::cast_to_half(temp));
+#else
+    return (static_cast<cl::sycl::half>(temp));
+#endif
+  } else {
+    std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+    return dis(gen);
+  }
 }
 
 /**

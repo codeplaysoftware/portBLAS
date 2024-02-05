@@ -88,6 +88,7 @@ inline std::vector<scalar_t> interleaved_to_strided(
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
+  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -130,14 +131,38 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<scalar_t> c_m_cpu = c_m_gpu;
+  std::vector<ref_scalar_t> c_m_cpu(buffer_size_c);
 
   // Use system blas to create a reference output
-  for (int i = 0; i < batch; ++i) {
-    reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * size_a + offset, lda,
-                         b_m.data() + i * size_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * size_c + offset, ldc);
+  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    // Float-type variables conterparts for reference ops
+    ref_scalar_t alpha_f = alpha;
+    ref_scalar_t beta_f = beta;
+    std::vector<ref_scalar_t> a_m_f(buffer_size_a);
+    std::vector<ref_scalar_t> b_m_f(buffer_size_b);
+
+    // sycl::half to float reference type
+    std::transform(a_m.begin(), a_m.end(), a_m_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    std::transform(b_m.begin(), b_m.end(), b_m_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    std::transform(c_m_gpu.begin(), c_m_gpu.end(), c_m_cpu.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+
+    for (int i = 0; i < batch; ++i) {
+      reference_blas::gemm(ta_str, tb_str, m, n, k, alpha_f,
+                           a_m_f.data() + i * size_a + offset, lda,
+                           b_m_f.data() + i * size_b + offset, ldb, beta_f,
+                           c_m_cpu.data() + i * size_c + offset, ldc);
+    }
+  } else {
+    c_m_cpu = c_m_gpu;
+    for (int i = 0; i < batch; ++i) {
+      reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
+                           a_m.data() + i * size_a + offset, lda,
+                           b_m.data() + i * size_b + offset, ldb, beta,
+                           c_m_cpu.data() + i * size_c + offset, ldc);
+    }
   }
 
   if (batch > 1 && batch_type == gemm_batch_type_t::interleaved) {
@@ -242,6 +267,7 @@ static std::string generate_name(
 template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(
     const gemm_batched_strided_arguments_t<scalar_t> arguments) {
+  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -291,14 +317,38 @@ inline void verify_gemm(
   fill_random(a_m);
   fill_random(b_m);
   fill_random(c_m_gpu);
-  std::vector<scalar_t> c_m_cpu = c_m_gpu;
+  std::vector<ref_scalar_t> c_m_cpu(buffer_size_c);
 
   // Use system blas to create a reference output
-  for (int i = 0; i < batch; ++i) {
-    reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
-                         a_m.data() + i * stride_a + offset, lda,
-                         b_m.data() + i * stride_b + offset, ldb, beta,
-                         c_m_cpu.data() + i * stride_c + offset, ldc);
+  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    // Float-type variables conterparts for reference ops
+    ref_scalar_t alpha_f = alpha;
+    ref_scalar_t beta_f = beta;
+    std::vector<ref_scalar_t> a_m_f(buffer_size_a);
+    std::vector<ref_scalar_t> b_m_f(buffer_size_b);
+
+    // sycl::half to float reference type
+    std::transform(a_m.begin(), a_m.end(), a_m_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    std::transform(b_m.begin(), b_m.end(), b_m_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    std::transform(c_m_gpu.begin(), c_m_gpu.end(), c_m_cpu.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+
+    for (int i = 0; i < batch; ++i) {
+      reference_blas::gemm(ta_str, tb_str, m, n, k, alpha_f,
+                           a_m_f.data() + i * stride_a + offset, lda,
+                           b_m_f.data() + i * stride_b + offset, ldb, beta_f,
+                           c_m_cpu.data() + i * stride_c + offset, ldc);
+    }
+  } else {
+    c_m_cpu = c_m_gpu;
+    for (int i = 0; i < batch; ++i) {
+      reference_blas::gemm(ta_str, tb_str, m, n, k, alpha,
+                           a_m.data() + i * stride_a + offset, lda,
+                           b_m.data() + i * stride_b + offset, ldb, beta,
+                           c_m_cpu.data() + i * stride_c + offset, ldc);
+    }
   }
 
   auto m_a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(buffer_size_a, q);
