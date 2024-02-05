@@ -674,15 +674,6 @@ else() # default cpu backend
       64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")
   endforeach()
 
-  if(BLAS_ENABLE_HALF)
-    add_gemm_configuration(
-      "half" 64 "false" "false" "false"
-      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")  
-    add_gemm_configuration(
-      "half"  64 "false" "false" "false"
-      64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
-  endif()
-
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
     # list for complex<data> specific gemm configurations
