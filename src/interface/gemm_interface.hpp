@@ -29,8 +29,8 @@
 #include "interface/blas3/backend/backend.hpp"
 #include "interface/blas3_interface.h"
 #include "operations/blas3_trees.h"
-#include "sb_handle/portblas_handle.h"
 #include "portblas_helper.h"
+#include "sb_handle/portblas_handle.h"
 
 #include <algorithm>
 #include <cctype>
@@ -54,6 +54,14 @@ inline typename std::enable_if<is_sycl_scalar<T>::value, bool>::type isZero(
     const T& value) {
   return (value == static_cast<T>(0));
 }
+
+#ifdef BLAS_ENABLE_HALF
+template <typename T>
+inline typename std::enable_if<is_half<T>::value, bool>::type isZero(
+    const T& value) {
+  return (value == static_cast<T>(0));
+}
+#endif
 
 #ifdef BLAS_ENABLE_COMPLEX
 template <typename T>

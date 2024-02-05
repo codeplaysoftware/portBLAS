@@ -1929,7 +1929,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
 #define BLAS_REGISTER_BENCHMARK_DOUBLE(args, sb_handle_ptr, success)
 #endif  // BLAS_DATA_TYPE_DOUBLE
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 /** Registers benchmark for the cl::sycl::half data type
  * @see BLAS_REGISTER_BENCHMARK
  */
@@ -1937,7 +1937,7 @@ static inline void calc_avg_counters(benchmark::State& state) {
   register_benchmark<cl::sycl::half>(args, sb_handle_ptr, success)
 #else
 #define BLAS_REGISTER_BENCHMARK_HALF(args, sb_handle_ptr, success)
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 #ifdef BLAS_ENABLE_COMPLEX
 /** Registers benchmark for the float complex data type

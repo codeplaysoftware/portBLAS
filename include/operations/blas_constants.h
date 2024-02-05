@@ -212,7 +212,7 @@ struct constant<complex_sycl<value_t>, Indicator> {
 };
 #endif
 
-#ifdef BLAS_DATA_TYPE_HALF
+#ifdef BLAS_ENABLE_HALF
 template <>
 struct constant<cl::sycl::half, const_val::zero>
     : constant<float, const_val::zero> {};
@@ -252,7 +252,7 @@ struct constant<cl::sycl::half, const_val::abs_min>
 template <>
 struct constant<cl::sycl::half, const_val::collapse>
     : constant<float, const_val::collapse> {};
-#endif  // BLAS_DATA_TYPE_HALF
+#endif  // BLAS_ENABLE_HALF
 
 template <typename iv_type, const_val IndexIndicator, const_val ValueIndicator>
 struct constant_pair {

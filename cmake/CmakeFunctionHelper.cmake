@@ -77,7 +77,15 @@ function(sanitize_file_name output file_name)
 endfunction()
 
 #List of operators supporting Complex Data types
-set(COMPLEX_OPS "gemm" "gemm_launcher" "scal")
+set(COMPLEX_OPS "gemm"
+                "gemm_launcher"
+                "scal")
+
+#List of operators supporting Half Data types
+set(HALF_DATA_OPS "axpy" 
+                  "scal"
+                  "gemm"
+                  "gemm_launcher")
 
 function(set_target_compile_def in_target)
   #setting compiler flag for backend
@@ -118,6 +126,12 @@ function(set_target_compile_def in_target)
       target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_COMPLEX=1)
     endif()
   endif()
+  if(${BLAS_ENABLE_HALF})
+    if("${in_target}" IN_LIST HALF_DATA_OPS)
+      message(STATUS "Half Data type support enabled for target ${in_target}")
+      target_compile_definitions(${in_target} PUBLIC BLAS_ENABLE_HALF=1)
+    endif()
+  endif()
 endfunction()
 
 # blas unary function for generating source code
@@ -129,6 +143,13 @@ function(generate_blas_objects blas_level func)
   if(BLAS_ENABLE_COMPLEX)
     if("${func}" IN_LIST COMPLEX_OPS)
       set_complex_list(data_list_c "${data_list}" "true")
+    endif()
+  endif()
+  # Extend data_list with 'half' if target function is 
+  # in HALF_DATA_OPS
+  if(BLAS_ENABLE_HALF)
+    if("${func}" IN_LIST HALF_DATA_OPS)
+      list(APPEND data_list_c "half")
     endif()
   endif()
   foreach(data ${data_list_c})
@@ -276,6 +297,9 @@ function(add_gemm_configuration
   if(BLAS_ENABLE_COMPLEX)
     set_complex_list(data_list_c "${data_list}" "true")
   endif()
+  if(BLAS_ENABLE_HALF)
+    list(APPEND data_list_c "half")
+  endif()
   if(NOT ("${data}" IN_LIST data_list_c))
     # Data type not enabled, skip configuration
     return()
@@ -374,42 +398,31 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
     "float"
     "double"
-    "half"
   )
   foreach(data ${supported_types})
     add_gemm_configuration(
-      "${data}" 64 "true" "false" "false"
-      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
-    add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    
     add_gemm_configuration(
-      "${data}" 64 "false" "false" "false"
-      64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
-
-    if (${data} STREQUAL "half")
-      add_gemm_configuration(
-         "${data}" 16 "true" "false" "false"
-         64 1 1 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "true" "false" "false"
-         64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    else()
-      add_gemm_configuration(
-         "${data}" 16 "true" "false" "false"
-         64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-      add_gemm_configuration(
-        "${data}" 16 "true" "false" "false"
-         64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    endif()
-
+      "${data}" 32 "true" "true" "true"
+      64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 16 "true" "false" "false"
+      64 1 1 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 32 "true" "true" "true"
+      64 2 2 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 16 "true" "false" "false"
+      64 2 2 4 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "true" "true" "true"
       64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
-      "${data}" 64 "true" "true" "true"
-      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-
+      "${data}" 64 "true" "false" "false"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+    
     if (${data} STREQUAL "double")
       add_gemm_configuration(
         "${data}" 256 "true" "true" "true"
@@ -421,16 +434,27 @@ if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
     endif()
 
     add_gemm_configuration(
-      "${data}" 32 "true" "true" "true"
-      64 2 1 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-    add_gemm_configuration(
-      "${data}" 32 "true" "true" "true"
-      64 2 2 8 4 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
-
+      "${data}" 64 "true" "true" "true"
+      64 4 4 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
-      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+      64 8 8 8 8 1 1 1 1 1 1 1 1 1 float float "no_local" "standard" "partial" 4 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 64 "false" "false" "false"
+      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
   endforeach()
+  if(BLAS_ENABLE_HALF)
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    add_gemm_configuration(
+      "half" 16 "true" "false" "false"
+      64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 4 "strided" "false")
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 4 8 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 4 "strided" "false")
+  endif()
+
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
     # list for complex<data> specific gemm configurations
@@ -486,8 +510,10 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
   set(supported_types
     "float"
     "double"
-    "half"
   )
+  if(BLAS_ENABLE_HALF)
+    list(APPEND supported_types "half")
+  endif()
   set(workgroup_float 16)
   set(workgroup_double 8)
   set(workgroup_half 32)
@@ -607,6 +633,16 @@ elseif(${TUNING_TARGET} STREQUAL "NVIDIA_GPU")
           64 2 2 16 16 1 1 2 2 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
     endforeach()
   endif() # BLAS_ENABLE_COMPLEX
+
+  if(BLAS_ENABLE_HALF)
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+    add_gemm_configuration(
+      "half" 256 "false" "true" "true"
+      128 8 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+  endif() # BLAS_ENABLE_HALF
+
 else() # default cpu backend
   set(supported_types
     "float"
@@ -636,8 +672,17 @@ else() # default cpu backend
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")
-
   endforeach()
+
+  if(BLAS_ENABLE_HALF)
+    add_gemm_configuration(
+      "half" 64 "false" "false" "false"
+      64 2 2 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false" "false")  
+    add_gemm_configuration(
+      "half"  64 "false" "false" "false"
+      64 2 2 8 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false" "false")
+  endif()
+
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
     # list for complex<data> specific gemm configurations

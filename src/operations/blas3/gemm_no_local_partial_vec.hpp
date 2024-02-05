@@ -105,7 +105,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
 
 #ifdef BLAS_ENABLE_COMPLEX
   static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
-                    is_sycl_scalar<element_t>::value,
+                    !is_complex_sycl<element_t>::value,
                 "Vector size should be equal to 1 for Complex Data types");
 #endif
 
