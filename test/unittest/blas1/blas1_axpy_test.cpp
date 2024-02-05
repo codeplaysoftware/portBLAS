@@ -48,7 +48,14 @@ void run_test(const combination_t<scalar_t> combi) {
   std::vector<scalar_t> y_v(y_size, 10.0);
   std::vector<ref_scalar_t> y_cpu_v(y_size, 10.0);
 
-  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  auto q = make_queue();
+
+  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
+  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+    GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
+  }
+
+  if constexpr (is_sycl_half) {
     // Float-type variables conterparts for reference ops
     ref_scalar_t alpha_f = alpha;
     std::vector<ref_scalar_t> x_v_f(x_size);
@@ -65,7 +72,6 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   // SYCL implementation
-  auto q = make_queue();
   blas::SB_Handle sb_handle(q);
 
   // Iterators

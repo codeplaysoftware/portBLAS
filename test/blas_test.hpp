@@ -99,7 +99,6 @@ inline cl::sycl::queue make_queue_impl() {
 #endif  // HAS_SYCL2020_SELECTORS
 
   utils::print_queue_information(q);
-  printf("Has aspect fp16 : %d\n", int(q.get_device().has(sycl::aspect::fp16)));
   return q;
 };
 

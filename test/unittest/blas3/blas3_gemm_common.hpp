@@ -110,6 +110,12 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   const char tb_str[2] = {transb, '\0'};
 
   auto q = make_queue();
+
+  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
+  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+    GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
+  }
+
   blas::SB_Handle sb_handle(q);
 
   const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
@@ -292,6 +298,12 @@ inline void verify_gemm(
   const char tb_str[2] = {transb, '\0'};
 
   auto q = make_queue();
+
+  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
+  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+    GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
+  }
+
   blas::SB_Handle sb_handle(q);
 
   const index_t lda = ((transa != 'n') ? k : m) * lda_mul;
