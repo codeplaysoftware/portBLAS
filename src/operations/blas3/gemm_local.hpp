@@ -763,7 +763,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
 #pragma unroll
         for (index_t l = 0; l < item_rows; ++l) {
           reg_res[j * item_rows + l] =
-              mul_add<element_t>(reg_a[l], reg_b, reg_res[j * item_rows + l]);
+              mul_add(reg_a[l], reg_b, reg_res[j * item_rows + l]);
         }
       }
       A = A + ldsa;
