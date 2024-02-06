@@ -158,6 +158,11 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static_assert(VectorSize == 1,
                 "Vectorization not supported for joint_matrix.");
 
+  static_assert(
+      (frags_per_sg > 1 && jm_row_frags == num_sub_groups) ||
+          (frags_per_sg == 1 && num_jm_frags == num_sub_groups),
+      "Joint Matrix Row Fragments needs to map 1:1 with total sub_groups.");
+
   //! @brief leading dimension of block of A in local
   static constexpr index_t ldsa =
       (trans_a ? cl_elems : block_rows) +
