@@ -1626,6 +1626,13 @@ inline std::string get_type_name<double>() {
   return "double";
 }
 
+#ifdef BLAS_ENABLE_HALF
+template <>
+inline std::string get_type_name<cl::sycl::half>() {
+  return "half";
+}
+#endif
+
 #ifdef BLAS_ENABLE_COMPLEX
 template <>
 inline std::string get_type_name<std::complex<float>>() {
@@ -1654,10 +1661,23 @@ static inline scalar_t random_scalar() {
  */
 template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
+  using ref_scalar_t = typename ::utils::ReferenceType<scalar_t>::type;
   static std::random_device rd;
   static std::default_random_engine gen(rd());
-  std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
-  return dis(gen);
+  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+    ref_scalar_t rangeMinF(rangeMin);
+    ref_scalar_t rangeMaxF(rangeMax);
+    std::uniform_real_distribution<ref_scalar_t> dis(rangeMinF, rangeMaxF);
+    ref_scalar_t temp = dis(gen);
+#ifdef BLAS_ENABLE_HALF
+    return (::utils::cast_to_half(temp));
+#else
+    return (static_cast<cl::sycl::half>(temp));
+#endif
+  } else {
+    std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
+    return dis(gen);
+  }
 }
 
 /**

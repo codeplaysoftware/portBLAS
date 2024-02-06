@@ -233,6 +233,22 @@ inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
 #endif
 
 /**
+ * Reference type of the underlying tests data aimed to match the reference
+ * library in tests/benchmarks and random number generator APIs.
+ */
+template <typename T, typename Enable = void>
+struct ReferenceType {
+  using type = T;
+};
+
+// When T is sycl::half, use float as type for random generation
+// and reference BLAS implementations.
+template <typename T>
+struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = float;
+};
+
+/**
  * Compare two scalars and returns false if the difference is not acceptable.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>

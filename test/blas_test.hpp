@@ -112,29 +112,13 @@ inline cl::sycl::queue make_queue() {
 }
 
 /**
- * Reference type of the underlying tests data aimed to match the reference
- * library and random number generator APIs.
- */
-template <typename T, typename Enable = void>
-struct ReferenceType {
-  using type = T;
-};
-
-// When T is sycl::half, use float as type for random generation
-// and reference implementations.
-template <typename T>
-struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
-  using type = float;
-};
-
-/**
  * @brief Generates a random scalar in the specified range
  * @param rangeMin range minimum
  * @param rangeMax range maximum
  */
 template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
-  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   static std::random_device rd;
   static std::default_random_engine gen(rd());
   if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {

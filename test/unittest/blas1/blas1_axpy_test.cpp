@@ -30,7 +30,7 @@ using combination_t = std::tuple<std::string, int, scalar_t, int, int>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t size;
   scalar_t alpha;
@@ -56,7 +56,7 @@ void run_test(const combination_t<scalar_t> combi) {
   }
 
   if constexpr (is_sycl_half) {
-    // Float-type variables conterparts for reference ops
+    // Float-type variables for reference ops
     ref_scalar_t alpha_f = alpha;
     std::vector<ref_scalar_t> x_v_f(x_size);
     // sycl::half to float reference type

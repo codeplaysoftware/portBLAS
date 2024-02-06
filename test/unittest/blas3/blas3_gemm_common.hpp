@@ -88,7 +88,7 @@ inline std::vector<scalar_t> interleaved_to_strided(
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
-  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -141,7 +141,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
 
   // Use system blas to create a reference output
   if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
-    // Float-type variables conterparts for reference ops
+    // Float-type variables for reference ops
     ref_scalar_t alpha_f = alpha;
     ref_scalar_t beta_f = beta;
     std::vector<ref_scalar_t> a_m_f(buffer_size_a);
@@ -273,7 +273,7 @@ static std::string generate_name(
 template <typename scalar_t, helper::AllocType mem_alloc>
 inline void verify_gemm(
     const gemm_batched_strided_arguments_t<scalar_t> arguments) {
-  using ref_scalar_t = typename ReferenceType<scalar_t>::type;
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t offset;
   index_t batch;
@@ -333,7 +333,7 @@ inline void verify_gemm(
 
   // Use system blas to create a reference output
   if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
-    // Float-type variables conterparts for reference ops
+    // Float-type variables for reference ops
     ref_scalar_t alpha_f = alpha;
     ref_scalar_t beta_f = beta;
     std::vector<ref_scalar_t> a_m_f(buffer_size_a);

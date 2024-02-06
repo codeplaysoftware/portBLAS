@@ -32,6 +32,7 @@ template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -55,6 +56,11 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
+  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
+  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+    state.SkipWithError("Unsupported fp16 (half) on this device.");
+  }
+
   // Matrices
   std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
   std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n);
@@ -76,9 +82,30 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> c_ref = c;
-  reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
-                       beta, c_ref.data(), ldc);
+  std::vector<ref_scalar_t> c_ref(m * n, 0);
+
+  if constexpr (is_sycl_half) {
+    // Float-type variables for reference ops
+    ref_scalar_t alpha_f = alpha;
+    ref_scalar_t beta_f = beta;
+
+    std::vector<ref_scalar_t> a_f(m * k);
+    std::vector<ref_scalar_t> b_f(k * n);
+
+    // sycl::half to float reference type
+    std::transform(a.begin(), a.end(), a_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    std::transform(b.begin(), b.end(), b_f.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+
+    reference_blas::gemm(t_a, t_b, m, n, k, alpha_f, a_f.data(), lda,
+                         b_f.data(), ldb, beta_f, c_ref.data(), ldc);
+  } else {
+    c_ref = c;
+    reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
+                         beta, c_ref.data(), ldc);
+  }
+
   std::vector<scalar_t> c_temp = c;
   {
     auto c_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m * n, q);

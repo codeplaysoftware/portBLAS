@@ -31,6 +31,7 @@ constexpr blas_benchmark::utils::Level1Op benchmark_op =
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
+  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -42,9 +43,14 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
+  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
+  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+    state.SkipWithError("Unsupported fp16 (half) on this device.");
+  }
+
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
-  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   auto in = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
   auto copy_in = blas::helper::copy_to_device<scalar_t>(q, v1.data(), in, size);
@@ -53,8 +59,20 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<scalar_t> v1_ref = v1;
-  reference_blas::scal(size, alpha, v1_ref.data(), 1);
+  std::vector<ref_scalar_t> v1_ref;
+
+  if constexpr (is_sycl_half) {
+    // Float-type variables for reference ops
+    ref_scalar_t alpha_f = alpha;
+    // sycl::half to float reference type
+    std::transform(v1.begin(), v1.end(), v1_ref.begin(),
+                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
+    reference_blas::scal(size, alpha_f, v1_ref.data(), 1);
+  } else {
+    v1_ref = v1;
+    reference_blas::scal(size, alpha, v1_ref.data(), 1);
+  }
+
   std::vector<scalar_t> v1_temp = v1;
   {
     auto v1_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
@@ -120,8 +138,8 @@ void register_benchmark(blas::SB_Handle* sb_handle_ptr, bool* success,
       run<scalar_t, mem_alloc>(st, sb_handle_ptr, size, success);
     };
     benchmark::RegisterBenchmark(
-        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(
-            size, mem_type).c_str(),
+        blas_benchmark::utils::get_name<benchmark_op, scalar_t>(size, mem_type)
+            .c_str(),
         BM_lambda, sb_handle_ptr, size, success)
         ->UseRealTime();
   }
@@ -133,7 +151,8 @@ void register_benchmark(blas_benchmark::Args& args,
   auto scal_params = blas_benchmark::utils::get_blas1_params(args);
 
   register_benchmark<scalar_t, blas::helper::AllocType::buffer>(
-      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER, scal_params);
+      sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_BUFFER,
+      scal_params);
 #ifdef SB_ENABLE_USM
   register_benchmark<scalar_t, blas::helper::AllocType::usm>(
       sb_handle_ptr, success, blas_benchmark::utils::MEM_TYPE_USM, scal_params);
