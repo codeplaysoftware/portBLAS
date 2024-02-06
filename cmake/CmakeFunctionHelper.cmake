@@ -521,13 +521,12 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
     set(twr "${workgroup_${data}}")
     set(twc "${workgroup_${data}}")
 
-    add_gemm_configuration(
-      "${data}" 256 "false" "false" "false"
-      64 1 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # General configuration
     add_gemm_configuration(
       "${data}" 256 "false" "false" "false"
       64 4 4 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 2 "strided" "false")
 
+    # configuration for tall_skinny
     add_gemm_configuration(
       "${data}" 256 "true" "true" "true"
       64 1 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 2 "strided" "false")
@@ -544,9 +543,37 @@ elseif(${TUNING_TARGET} STREQUAL "AMD_GPU")  # need investigation
       "${data}" 256 "true" "true" "true"
       64 4 1 ${twr} ${twc} 1 1 1 1 1 1 1 1 1 float float "local" "tall_skinny" "none" 2 "strided" "false")
 
+    # configuration for batch
     add_gemm_configuration(
       "${data}" 64 "false" "false" "false"
       64 4 4 4 4 1 1 1 1 4 4 1 1 1 float float "no_local" "standard" "full" 4 "interleaved" "false")
+
+    # Configurations for gemm
+
+    # low arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      128 1 1 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      64 4 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # highest arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      32 8 8 16 16 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # high arithmetic intensity
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      64 4 4 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # mid high 162 < a < 240 
+    add_gemm_configuration(
+      "${data}" 256 "false" "false" "true"
+      128 4 4 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+    # mid low 100 < a < 162
+    add_gemm_configuration(
+      "${data}" 256 "false" "true" "true"
+      128 2 2 16 8 1 1 1 1 1 1 1 1 1 float float "local" "standard" "full" 1 "strided" "false")
+
   endforeach()
   if(BLAS_ENABLE_COMPLEX)
     # Extract list of complex<data> for each data in supported_types
