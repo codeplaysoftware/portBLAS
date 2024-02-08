@@ -102,13 +102,13 @@ inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
 }
 
 /**
- * Custom float/double to sycl::half cast function.
+ * Custom float/double to uint16_t cast function.
  */
 template <typename T>
-inline cl::sycl::half cast_to_half(T& val) {
+inline uint16_t cast_to_half(T& val) {
   static_assert(
       std::is_scalar<T>::value,
-      "Value to be casted to sycl::half should be either float or double.");
+      "Value to be casted to uint16_t should be either float or double.");
   // Uint bit representation using 32 (for float) or 64 (for double)
   using uint_type = typename std::conditional<std::is_same_v<T, float>,
                                               uint32_t, uint64_t>::type;
@@ -150,10 +150,20 @@ inline cl::sycl::half cast_to_half(T& val) {
     mant = 0;
   }
 
-  // Reconstruct binary half output
-  uint16_t bin_half = sign | (exp << 10) | mant;
-  cl::sycl::half result = *reinterpret_cast<cl::sycl::half*>(&bin_half);
+  // Reconstruct binary 16-bit output
+  uint16_t out = sign | (exp << 10) | mant;
 
+  return out;
+}
+
+/**
+ * Float/Double to sycl::half cast utility function using the intermediate
+ * cast_to_half(T&).
+ */
+template <typename T>
+inline cl::sycl::half cast_to_sycl_half(T& val) {
+  uint16_t half_bin = cast_to_half(val);
+  cl::sycl::half result = *reinterpret_cast<cl::sycl::half*>(&half_bin);
   return static_cast<cl::sycl::half>(result);
 }
 #endif  // BLAS_ENABLE_HALF
@@ -328,7 +338,7 @@ compare_vectors(std::vector<cl::sycl::half> const& vec,
   }
 
   for (int i = 0; i < vec.size(); ++i) {
-    cl::sycl::half ref_i = cast_to_half(ref[i]);
+    cl::sycl::half ref_i = cast_to_sycl_half(ref[i]);
     if (!almost_equal<cl::sycl::half, epsilon_t>(vec[i], ref_i)) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref_i << end_line;
@@ -358,7 +368,7 @@ compare_vectors_strided(std::vector<cl::sycl::half> const& vec,
     // Loop within a window
     for (int i = 0; i < window; ++i) {
       auto index = i + k * stride;
-      cl::sycl::half ref_i = cast_to_half(ref[index]);
+      cl::sycl::half ref_i = cast_to_sycl_half(ref[index]);
       if (!almost_equal<cl::sycl::half, epsilon_t>(vec[index], ref_i)) {
         err_stream << "Value mismatch at index " << index << ": " << vec[index]
                    << "; expected " << ref_i << end_line;

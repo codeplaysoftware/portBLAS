@@ -36,7 +36,9 @@
 #include <cuComplex.h>
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
+
 // Forward declare methods that we use in `benchmark.cpp`, but define in
 // `main.cpp`
 
@@ -273,6 +275,47 @@ static inline std::tuple<double, double> timef_cuda(function_t func,
 
   return std::make_tuple(overall_time, static_cast<double>(elapsed_time) * 1E6);
 }
+
+/**
+ * Reference type of the underlying tests data aimed to match the reference
+ * library in tests/benchmarks and random number generator APIs.
+ */
+template <typename T, typename Enable = void>
+struct CudaType {
+  using type = T;
+};
+
+template <typename T, typename Enable = void>
+struct ReferenceType {
+  using type = T;
+};
+
+#ifdef BLAS_ENABLE_HALF
+// When T is sycl::half, use float as type for random generation
+// and reference BLAS implementations.
+template <typename T>
+struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = __half;
+};
+
+template <typename T>
+struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
+  using type = float;
+};
+
+template <typename T>
+inline __half cast_to_cuda_half(T val) {
+  static_assert(
+      std::is_scalar<T>::value,
+      "Value to be casted to sycl::half should be either float or double.");
+  if constexpr (std::is_same_v<T, float>) {
+    return (__float2half(val));
+  } else {
+    return (__double2half(val));
+  }
+}
+
+#endif
 
 }  // namespace utils
 }  // namespace blas_benchmark

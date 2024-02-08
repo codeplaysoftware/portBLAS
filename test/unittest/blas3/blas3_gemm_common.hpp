@@ -140,7 +140,7 @@ inline void verify_gemm(const gemm_arguments_t<scalar_t> arguments) {
   std::vector<ref_scalar_t> c_m_cpu(buffer_size_c);
 
   // Use system blas to create a reference output
-  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  if constexpr (is_sycl_half) {
     // Float-type variables for reference ops
     ref_scalar_t alpha_f = alpha;
     ref_scalar_t beta_f = beta;
@@ -332,7 +332,7 @@ inline void verify_gemm(
   std::vector<ref_scalar_t> c_m_cpu(buffer_size_c);
 
   // Use system blas to create a reference output
-  if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  if constexpr (is_sycl_half) {
     // Float-type variables for reference ops
     ref_scalar_t alpha_f = alpha;
     ref_scalar_t beta_f = beta;
