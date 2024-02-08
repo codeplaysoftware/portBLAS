@@ -67,10 +67,6 @@ void run_test(const combination_t<scalar_t> combi) {
   // SYCL implementation
   blas::SB_Handle sb_handle(q);
 
-  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
-    GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
-  }
-
   // Iterators
   auto gpu_x_v = blas::helper::allocate<mem_alloc, scalar_t>(size_x, q);
 

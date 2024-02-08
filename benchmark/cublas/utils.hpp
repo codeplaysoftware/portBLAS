@@ -307,7 +307,7 @@ template <typename T>
 inline __half cast_to_cuda_half(T val) {
   static_assert(
       std::is_scalar<T>::value,
-      "Value to be casted to sycl::half should be either float or double.");
+      "Value to be casted to cuda::__half should be either float or double.");
   if constexpr (std::is_same_v<T, float>) {
     return (__float2half(val));
   } else {
