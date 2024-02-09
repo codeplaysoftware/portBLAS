@@ -136,9 +136,12 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
   rocm_scalar_t alpha_rocm, beta_rocm;
 
   if constexpr (is_half) {
+#ifdef BLAS_ENABLE_HALF
+    // sycl::half to rocblas__half
     alpha_rocm = *reinterpret_cast<rocm_scalar_t*>(&alpha);
     beta_rocm = *reinterpret_cast<rocm_scalar_t*>(&beta);
   } else {
+#endif
     alpha_rocm = alpha;
     beta_rocm = beta;
   }

@@ -131,10 +131,8 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 
   if constexpr (is_half) {
 #ifdef BLAS_ENABLE_HALF
-    alpha_cuda = blas_benchmark::utils::cast_to_cuda_half(
-        static_cast<ref_scalar_t>(alpha));
-    beta_cuda = blas_benchmark::utils::cast_to_cuda_half(
-        static_cast<ref_scalar_t>(beta));
+    alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
+    beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
   } else {
 #endif
     alpha_cuda = alpha;

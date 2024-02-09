@@ -400,9 +400,6 @@ struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
   using type = float;
 };
 
-inline rocblas_half cast_to_rocm_half(uint16_t val) {
-  return (*reinterpret_cast<rocblas_half*>(&val));
-}
 #endif
 }  // namespace utils
 }  // namespace blas_benchmark
