@@ -172,8 +172,9 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, int t_a_i,
     }
 
     // Rocblas verification gemm_batched_strided
-    blas_benchmark::utils::HIPVectorBatchedStrided<scalar_t, true> c_temp_gpu(
-        c_size, batch_size, stride_c, c_temp.data());
+    blas_benchmark::utils::HIPVectorBatchedStrided<rocm_scalar_t, true>
+        c_temp_gpu(c_size, batch_size, stride_c,
+                   reinterpret_cast<rocm_scalar_t*>(c_temp.data()));
     rocblas_gemm_strided_batched<scalar_t>(
         rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha_rocm, a_batched_gpu,
         lda, stride_a, b_batched_gpu, ldb, stride_b, &beta_rocm, c_temp_gpu,
