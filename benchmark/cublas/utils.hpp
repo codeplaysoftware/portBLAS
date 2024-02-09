@@ -291,8 +291,7 @@ struct ReferenceType {
 };
 
 #ifdef BLAS_ENABLE_HALF
-// When T is sycl::half, use float as type for random generation
-// and reference BLAS implementations.
+// When T is sycl::half, use float as type for reference BLAS implementations.
 template <typename T>
 struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
   using type = __half;
