@@ -427,11 +427,11 @@ export CC=[path/to/system/clang]
 export CXX=[path/to/AdaptiveCpp/install/bin/syclcc]
 export ACPP_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
 cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
-      -DSYCL_COMPILER=adaptivecpp -DHIPSYCL_TARGETS=$ACPP_TARGETS
+      -DSYCL_COMPILER=adaptivecpp -DACPP_TARGETS=$ACPP_TARGETS
 ninja
 ```
-To build for other than the default devices (`omp`), set the `ACPP_TARGETS` environment
-variable or specify `-DHIPSYCL_TARGETS` as 
+To build for other than the default backend *(host cpu through `omp`*)*, set the `ACPP_TARGETS` environment
+variable or specify `-DACPP_TARGETS` as 
 [documented](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/using-hipsycl.md). 
 The available backends are the ones built with AdaptiveCpp in the first place.  
 
@@ -445,10 +445,13 @@ export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=[path/to/AdaptiveCpp/install/lib/hipSYCL/llvm-to-backend:$LD_LIBRARY_PATH]
 ```
 
-*Note :*
-Some operator kernels are implemented using extensions / SYCL 2020 features not yet implemented 
+*Notes :*
+- Some operator kernels are implemented using extensions / SYCL 2020 features not yet implemented 
 in AdaptiveCpp and are not supported when portBLAS is built with it. These operators include 
 `asum`, `nrm2`, `dot`, `sdsdot`, `rot`, `trsv`, `tbsv` and `tpsv`.
+- The default `omp` host CPU backend *(as well as its optimized variant `omp.accelerated`)* hasn't been
+not been fully integrated into the library and currently causes some tests to fail *(interleaved batched
+gemm in particular)*. It's thus advised to use the llvm/OpenCL generic flow when targetting CPUs.
 
 ### Installing portBLAS
 To install the portBLAS library (see `CMAKE_INSTALL_PREFIX` below)
