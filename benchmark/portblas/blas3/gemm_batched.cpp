@@ -66,7 +66,6 @@ template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, int batch_type_i, bool* success) {
-  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -91,8 +90,8 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
-  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
-  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
     state.SkipWithError("Unsupported fp16 (half) on this device.");
   }
 
@@ -106,40 +105,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<ref_scalar_t> c_ref(m * n * batch_size, 0);
-
+  std::vector<scalar_t> c_ref = c;
   auto _base = [=](index_t dim0, index_t dim1, index_t idx) {
     return dim0 * dim1 * idx;
   };
-
-  if constexpr (is_sycl_half) {
-    // Float-type variables for reference ops
-    ref_scalar_t alpha_f = alpha;
-    ref_scalar_t beta_f = beta;
-
-    std::vector<ref_scalar_t> a_f(m * k * batch_size);
-    std::vector<ref_scalar_t> b_f(k * n * batch_size);
-
-    // sycl::half to float reference type
-    std::transform(a.begin(), a.end(), a_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-    std::transform(b.begin(), b.end(), b_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-
-    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
-      reference_blas::gemm(t_a, t_b, m, n, k, alpha_f,
-                           a_f.data() + _base(m, k, batch_idx), lda,
-                           b_f.data() + _base(k, n, batch_idx), ldb, beta_f,
-                           c_ref.data() + _base(m, n, batch_idx), ldc);
-    }
-  } else {
-    c_ref = c;
-    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
-      reference_blas::gemm(t_a, t_b, m, n, k, alpha,
-                           a.data() + _base(m, k, batch_idx), lda,
-                           b.data() + _base(k, n, batch_idx), ldb, beta,
-                           c_ref.data() + _base(m, n, batch_idx), ldc);
-    }
+  for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
+    reference_blas::gemm(t_a, t_b, m, n, k, alpha,
+                         a.data() + _base(m, k, batch_idx), lda,
+                         b.data() + _base(k, n, batch_idx), ldb, beta,
+                         c_ref.data() + _base(m, n, batch_idx), ldc);
   }
 
   if (batch_type == blas::gemm_batch_type_t::interleaved) {

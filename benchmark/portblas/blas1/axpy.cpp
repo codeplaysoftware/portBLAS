@@ -31,7 +31,6 @@ constexpr blas_benchmark::utils::Level1Op benchmark_op =
 template <typename scalar_t, blas::helper::AllocType mem_alloc>
 void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
          bool* success) {
-  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   // initialize the state label
   blas_benchmark::utils::set_benchmark_label<scalar_t>(
       state, sb_handle_ptr->get_queue());
@@ -43,15 +42,15 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
   blas::SB_Handle& sb_handle = *sb_handle_ptr;
   auto q = sb_handle.get_queue();
 
-  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
-  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
     state.SkipWithError("Unsupported fp16 (half) on this device.");
   }
 
   // Create data
   std::vector<scalar_t> v1 = blas_benchmark::utils::random_data<scalar_t>(size);
   std::vector<scalar_t> v2 = blas_benchmark::utils::random_data<scalar_t>(size);
-  scalar_t alpha = blas_benchmark::utils::random_scalar<scalar_t>();
+  auto alpha = blas_benchmark::utils::random_scalar<scalar_t>();
 
   auto inx = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
   auto iny = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
@@ -63,27 +62,10 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, index_t size,
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<ref_scalar_t> y_ref(size, 0.0);
-  if constexpr (is_sycl_half) {
-    // Float-type variables for reference ops
-    ref_scalar_t alpha_f = alpha;
-    std::vector<ref_scalar_t> v1_f(size);
-    // sycl::half to float reference type
-    std::transform(v1.begin(), v1.end(), v1_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-    std::transform(v2.begin(), v2.end(), y_ref.begin(),
-                   [](scalar_t y) { return (static_cast<ref_scalar_t>(y)); });
-
-    // Reference implementation
-    reference_blas::axpy(size, alpha_f, v1_f.data(), 1, y_ref.data(), 1);
-  } else {
-    y_ref = v2;
-    // Reference implementation
-    reference_blas::axpy(size, alpha, v1.data(), 1, y_ref.data(), 1);
-  }
-
+  std::vector<scalar_t> y_ref = v2;
+  reference_blas::axpy(size, static_cast<scalar_t>(alpha), v1.data(), 1,
+                       y_ref.data(), 1);
   std::vector<scalar_t> y_temp = v2;
-
   {
     auto y_temp_gpu = blas::helper::allocate<mem_alloc, scalar_t>(size, q);
     auto copy_temp = blas::helper::copy_to_device<scalar_t>(q, y_temp.data(),
