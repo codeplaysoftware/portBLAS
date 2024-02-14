@@ -277,29 +277,19 @@ static inline std::tuple<double, double> timef_cuda(function_t func,
 }
 
 /**
- * Reference type of the underlying tests data aimed to match the reference
- * library in tests/benchmarks and random number generator APIs.
+ * Reference type of the underlying benchmark data aimed to match the
+ * cuda/cuBLAS scalar types.
  */
 template <typename T, typename Enable = void>
 struct CudaType {
   using type = T;
 };
 
-template <typename T, typename Enable = void>
-struct ReferenceType {
-  using type = T;
-};
-
 #ifdef BLAS_ENABLE_HALF
-// When T is sycl::half, use float as type for reference BLAS implementations.
+// When T is sycl::half, use cuda's __cuda as type.
 template <typename T>
 struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
   using type = __half;
-};
-
-template <typename T>
-struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
-  using type = float;
 };
 #endif
 

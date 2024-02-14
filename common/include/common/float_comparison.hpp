@@ -178,22 +178,6 @@ inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
 #endif
 
 /**
- * Reference type of the underlying tests data aimed to match the reference
- * library in tests/benchmarks and random number generator APIs.
- */
-template <typename T, typename Enable = void>
-struct ReferenceType {
-  using type = T;
-};
-
-// When T is sycl::half, use float as type for random generation
-// and reference BLAS implementations.
-template <typename T>
-struct ReferenceType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
-  using type = float;
-};
-
-/**
  * Compare two scalars and returns false if the difference is not acceptable.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
@@ -247,75 +231,6 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
   }
   return true;
 }
-
-#ifdef BLAS_ENABLE_HALF
-/**
- * Compare two vectors of cl::sycl::half and float/double types and returns
- * false if the difference is not acceptable. The second vector is considered
- * the reference (non half type as it usually results from BLAS reference
- * functions with float/double outputs).
- * @tparam scalar_t the type of data present in the reference vector
- * (float/double)
- * @tparam epsilon_t the type used as tolerance. Here low precision
- * cl::sycl::half, which will have a higher tolerance for errors.
- */
-template <typename scalar_t, typename epsilon_t = cl::sycl::half>
-inline typename std::enable_if<!std::is_same_v<scalar_t, cl::sycl::half>,
-                               bool>::type
-compare_vectors(std::vector<cl::sycl::half> const& vec,
-                std::vector<scalar_t> const& ref,
-                std::ostream& err_stream = std::cerr,
-                std::string end_line = "\n") {
-  if (vec.size() != ref.size()) {
-    err_stream << "Error: tried to compare vectors of different sizes"
-               << std::endl;
-    return false;
-  }
-
-  for (int i = 0; i < vec.size(); ++i) {
-    cl::sycl::half ref_i = static_cast<cl::sycl::half>(ref[i]);
-    if (!almost_equal<cl::sycl::half, epsilon_t>(vec[i], ref_i)) {
-      err_stream << "Value mismatch at index " << i << ": " << vec[i]
-                 << "; expected " << ref_i << end_line;
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename scalar_t, typename epsilon_t = cl::sycl::half>
-inline typename std::enable_if<!std::is_same_v<scalar_t, cl::sycl::half>,
-                               bool>::type
-compare_vectors_strided(std::vector<cl::sycl::half> const& vec,
-                        std::vector<scalar_t> const& ref, int stride,
-                        int window, std::ostream& err_stream = std::cerr,
-                        std::string end_line = "\n") {
-  if (vec.size() != ref.size()) {
-    err_stream << "Error: tried to compare vectors of different sizes"
-               << std::endl;
-    return false;
-  }
-
-  int k = 0;
-
-  // Loop over windows
-  while (window + (k + 1) * stride < vec.size()) {
-    // Loop within a window
-    for (int i = 0; i < window; ++i) {
-      auto index = i + k * stride;
-      cl::sycl::half ref_i = static_cast<cl::sycl::half>(ref[index]);
-      if (!almost_equal<cl::sycl::half, epsilon_t>(vec[index], ref_i)) {
-        err_stream << "Value mismatch at index " << index << ": " << vec[index]
-                   << "; expected " << ref_i << end_line;
-        return false;
-      }
-    }
-    k += 1;
-  }
-
-  return true;
-}
-#endif
 
 #ifdef BLAS_ENABLE_COMPLEX
 /**

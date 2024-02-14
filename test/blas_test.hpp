@@ -118,14 +118,13 @@ inline cl::sycl::queue make_queue() {
  */
 template <typename scalar_t>
 static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
-  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   static std::random_device rd;
   static std::default_random_engine gen(rd());
   if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
-    ref_scalar_t rangeMinF(rangeMin);
-    ref_scalar_t rangeMaxF(rangeMax);
-    std::uniform_real_distribution<ref_scalar_t> dis(rangeMinF, rangeMaxF);
-    ref_scalar_t temp = dis(gen);
+    float rangeMinF(rangeMin);
+    float rangeMaxF(rangeMax);
+    std::uniform_real_distribution<float> dis(rangeMinF, rangeMaxF);
+    float temp = dis(gen);
     return (static_cast<cl::sycl::half>(temp));
   } else {
     std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
