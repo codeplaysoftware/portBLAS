@@ -1669,11 +1669,7 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
     ref_scalar_t rangeMaxF(rangeMax);
     std::uniform_real_distribution<ref_scalar_t> dis(rangeMinF, rangeMaxF);
     ref_scalar_t temp = dis(gen);
-#ifdef BLAS_ENABLE_HALF
-    return (::utils::cast_to_sycl_half(temp));
-#else
     return (static_cast<cl::sycl::half>(temp));
-#endif
   } else {
     std::uniform_real_distribution<scalar_t> dis(rangeMin, rangeMax);
     return dis(gen);

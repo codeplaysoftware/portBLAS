@@ -101,71 +101,6 @@ inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
 
-/**
- * Custom float/double to uint16_t cast function.
- */
-template <typename T>
-inline uint16_t cast_to_half(T& val) {
-  static_assert(
-      std::is_scalar<T>::value,
-      "Value to be casted to uint16_t should be either float or double.");
-  // Uint bit representation using 32 (for float) or 64 (for double)
-  using uint_type = typename std::conditional<std::is_same_v<T, float>,
-                                              uint32_t, uint64_t>::type;
-
-  using scalar_t = typename std::remove_const<T>::type;
-
-  int32_t exp;
-  uint_type bin_float, sign, mant;
-
-  // Avoid const qualifier casting cases
-  scalar_t val_temp = const_cast<scalar_t&>(val);
-
-  // Reinterpret to uint for convenient bit manipulation
-  bin_float = *reinterpret_cast<uint32_t*>(&val_temp);
-
-  if constexpr (std::is_same_v<scalar_t, float>) {
-    // Single precision float data case
-    // Extract sign (to half's MSB)
-    sign = (bin_float & 0x80000000) >> 16;
-    // Adjust for half's smaller exponent & bias
-    exp = ((bin_float & 0x7F800000) >> 23) - 127 + 15;
-    // Truncate to 10 MSBits used in half's mantissa
-    mant = (bin_float & 0x007FFFFF) >> 13;
-  } else {
-    // Double precision float data case
-    sign = (bin_float & 0x8000000000000000ULL) >> 48;
-    exp = ((bin_float & 0x7FF0000000000000ULL) >> 52) - 1023 + 15;
-    mant = (bin_float & 0x000FFFFFFFFFFFFFULL) >> 42;
-  }
-
-  // Overflow/Underflow cases
-  if (exp > 31) {
-    // Clamp to max exponent for half (inf)
-    exp = 31;
-    mant = 0;
-  } else if (exp < 0) {
-    // Flush to zero (subnormal not handled)
-    exp = 0;
-    mant = 0;
-  }
-
-  // Reconstruct binary 16-bit output
-  uint16_t out = sign | (exp << 10) | mant;
-
-  return out;
-}
-
-/**
- * Float/Double to sycl::half cast utility function using the intermediate
- * cast_to_half(T&).
- */
-template <typename T>
-inline cl::sycl::half cast_to_sycl_half(T& val) {
-  uint16_t half_bin = cast_to_half(val);
-  cl::sycl::half result = *reinterpret_cast<cl::sycl::half*>(&half_bin);
-  return static_cast<cl::sycl::half>(result);
-}
 #endif  // BLAS_ENABLE_HALF
 
 template <typename scalar_t>
@@ -289,7 +224,7 @@ inline bool almost_equal(scalar_t const& scalar1, scalar_t const& scalar2) {
  * Compare two vectors and returns false if the difference is not acceptable.
  * The second vector is considered the reference.
  * @tparam scalar_t the type of data present in the input vectors
- * @tparam epilon_t the type used as tolerance. Lower precision types
+ * @tparam epsilon_t the type used as tolerance. Lower precision types
  * (cl::sycl::half) will have a higher tolerance for errors
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
@@ -321,7 +256,7 @@ inline bool compare_vectors(std::vector<scalar_t> const& vec,
  * functions with float/double outputs).
  * @tparam scalar_t the type of data present in the reference vector
  * (float/double)
- * @tparam epilon_t the type used as tolerance. Here low precision
+ * @tparam epsilon_t the type used as tolerance. Here low precision
  * cl::sycl::half, which will have a higher tolerance for errors.
  */
 template <typename scalar_t, typename epsilon_t = cl::sycl::half>
@@ -338,7 +273,7 @@ compare_vectors(std::vector<cl::sycl::half> const& vec,
   }
 
   for (int i = 0; i < vec.size(); ++i) {
-    cl::sycl::half ref_i = cast_to_sycl_half(ref[i]);
+    cl::sycl::half ref_i = static_cast<cl::sycl::half>(ref[i]);
     if (!almost_equal<cl::sycl::half, epsilon_t>(vec[i], ref_i)) {
       err_stream << "Value mismatch at index " << i << ": " << vec[i]
                  << "; expected " << ref_i << end_line;
@@ -368,7 +303,7 @@ compare_vectors_strided(std::vector<cl::sycl::half> const& vec,
     // Loop within a window
     for (int i = 0; i < window; ++i) {
       auto index = i + k * stride;
-      cl::sycl::half ref_i = cast_to_sycl_half(ref[index]);
+      cl::sycl::half ref_i = static_cast<cl::sycl::half>(ref[index]);
       if (!almost_equal<cl::sycl::half, epsilon_t>(vec[index], ref_i)) {
         err_stream << "Value mismatch at index " << index << ": " << vec[index]
                    << "; expected " << ref_i << end_line;
@@ -388,7 +323,7 @@ compare_vectors_strided(std::vector<cl::sycl::half> const& vec,
  * not acceptable. The second vector is considered the reference.
  * @tparam scalar_t the type of complex underying data present in the input
  * vectors
- * @tparam epilon_t the type used as tolerance.
+ * @tparam epsilon_t the type used as tolerance.
  */
 template <typename scalar_t, typename epsilon_t = scalar_t>
 inline bool compare_vectors(std::vector<std::complex<scalar_t>> const& vec,
