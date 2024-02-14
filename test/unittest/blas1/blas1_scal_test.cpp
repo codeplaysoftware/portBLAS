@@ -30,53 +30,39 @@ using combination_t = std::tuple<std::string, int, scalar_t, int>;
 
 template <typename scalar_t, helper::AllocType mem_alloc>
 void run_test(const combination_t<scalar_t> combi) {
-  using ref_scalar_t = typename utils::ReferenceType<scalar_t>::type;
   std::string alloc;
   index_t size;
   scalar_t alpha;
   index_t incX;
   std::tie(alloc, size, alpha, incX) = combi;
 
-  index_t size_x = size * incX;
-
   // Input/output vector
-  std::vector<scalar_t> x_v(size_x);
-  std::vector<ref_scalar_t> x_cpu_v(size_x);
+  std::vector<scalar_t> x_v(size * incX);
+  std::vector<scalar_t> x_cpu_v(x_v);
 
   auto q = make_queue();
 
-  constexpr const bool is_sycl_half = std::is_same_v<scalar_t, cl::sycl::half>;
-  if (is_sycl_half && !q.get_device().has(cl::sycl::aspect::fp16)) {
+  if (std::is_same_v<scalar_t, cl::sycl::half> &&
+      !q.get_device().has(cl::sycl::aspect::fp16)) {
     GTEST_SKIP() << "Unsupported fp16 (half) on this device.";
   }
 
-  if constexpr (is_sycl_half) {
-    // Float-type variables for reference ops
-    ref_scalar_t alpha_f = alpha;
-    // sycl::half to float reference type
-    std::transform(x_v.begin(), x_v.end(), x_cpu_v.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-    // Reference implementation
-    reference_blas::scal(size, alpha_f, x_cpu_v.data(), incX);
-  } else {
-    x_cpu_v = x_v;
-    // Reference implementation
-    reference_blas::scal(size, alpha, x_cpu_v.data(), incX);
-  }
+  // Reference implementation
+  reference_blas::scal(size, alpha, x_cpu_v.data(), incX);
 
   // SYCL implementation
   blas::SB_Handle sb_handle(q);
 
   // Iterators
-  auto gpu_x_v = blas::helper::allocate<mem_alloc, scalar_t>(size_x, q);
+  auto gpu_x_v = blas::helper::allocate<mem_alloc, scalar_t>(size * incX, q);
 
   auto copy_event =
-      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size_x);
+      blas::helper::copy_to_device(q, x_v.data(), gpu_x_v, size * incX);
 
   auto scal_event = _scal(sb_handle, size, alpha, gpu_x_v, incX, {copy_event});
   sb_handle.wait(scal_event);
 
-  auto event = blas::helper::copy_to_host(q, gpu_x_v, x_v.data(), size_x);
+  auto event = blas::helper::copy_to_host(q, gpu_x_v, x_v.data(), size * incX);
   sb_handle.wait(event);
 
   // Validate the result
