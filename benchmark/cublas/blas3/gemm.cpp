@@ -59,9 +59,6 @@ template <typename scalar_t>
 void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          bool* success) {
-  // scalar_t if scalar_t!=sycl::half, float otherwise
-  using ref_scalar_t =
-      typename blas_benchmark::utils::ReferenceType<scalar_t>::type;
   // scalar_t if scalar_t!=sycl::half, cuda::__half otherwise
   using cuda_scalar_t =
       typename blas_benchmark::utils::CudaType<scalar_t>::type;
@@ -104,54 +101,18 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 
   constexpr const bool is_half = std::is_same_v<scalar_t, cl::sycl::half>;
 
-  cuda_scalar_t alpha_cuda, beta_cuda;
-
-  if constexpr (is_half) {
-#ifdef BLAS_ENABLE_HALF
-    // sycl::half to cuda::__half
-    alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
-    beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
-  } else {
-#endif
-    alpha_cuda = alpha;
-    beta_cuda = beta;
-  }
+  cuda_scalar_t alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
+  cuda_scalar_t beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
-  std::vector<ref_scalar_t> c_ref(n * m, 0);
-
-  std::vector<scalar_t> c_temp(n * m, 0);
-
-  if constexpr (is_half) {
-    // Float-type variables for reference ops
-    ref_scalar_t alpha_f = alpha;
-    ref_scalar_t beta_f = beta;
-
-    std::vector<ref_scalar_t> a_f(m * k);
-    std::vector<ref_scalar_t> b_f(k * n);
-
-    // sycl::half to float reference type
-    std::transform(a.begin(), a.end(), a_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-    std::transform(b.begin(), b.end(), b_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-
-    reference_blas::gemm(t_a, t_b, m, n, k, alpha_f, a_f.data(), lda,
-                         b_f.data(), ldb, beta_f, c_ref.data(), ldc);
-
+  std::vector<scalar_t> c_ref = c;
+  reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
+                       beta, c_ref.data(), ldc);
+  std::vector<scalar_t> c_temp = c;
+  {
     blas_benchmark::utils::CUDAVector<cuda_scalar_t, true> c_temp_gpu(
         m * n, reinterpret_cast<cuda_scalar_t*>(c_temp.data()));
-    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
-                             a_gpu, lda, b_gpu, ldb, &beta_cuda, c_temp_gpu,
-                             ldc);
-
-  } else {
-    reference_blas::gemm(t_a, t_b, m, n, k, alpha, a.data(), lda, b.data(), ldb,
-                         beta, c_ref.data(), ldc);
-
-    blas_benchmark::utils::CUDAVector<scalar_t, true> c_temp_gpu(m * n,
-                                                                 c_temp.data());
     cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
                              a_gpu, lda, b_gpu, ldb, &beta_cuda, c_temp_gpu,
                              ldc);

@@ -60,9 +60,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
          int t2, index_t m, index_t k, index_t n, scalar_t alpha, scalar_t beta,
          index_t batch_size, index_t stride_a_mul, index_t stride_b_mul,
          index_t stride_c_mul, bool* success) {
-  // scalar_t if scalar_t!=sycl::half, float otherwise
-  using ref_scalar_t =
-      typename blas_benchmark::utils::ReferenceType<scalar_t>::type;
   // scalar_t if scalar_t!=sycl::half, cuda::__half otherwise
   using cuda_scalar_t =
       typename blas_benchmark::utils::CudaType<scalar_t>::type;
@@ -127,77 +124,35 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
 
   constexpr const bool is_half = std::is_same_v<scalar_t, cl::sycl::half>;
 
-  cuda_scalar_t alpha_cuda, beta_cuda;
-
-  if constexpr (is_half) {
-#ifdef BLAS_ENABLE_HALF
-    alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
-    beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
-  } else {
-#endif
-    alpha_cuda = alpha;
-    beta_cuda = beta;
-  }
+  cuda_scalar_t alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
+  cuda_scalar_t beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
 
 #ifdef BLAS_VERIFY_BENCHMARK
   // Run a first time with a verification of the results
+  std::vector<scalar_t> c_ref = c;
+  for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
+    reference_blas::gemm(t_a, t_b, m, n, k, alpha,
+                         a.data() + batch_idx * stride_a, lda,
+                         b.data() + batch_idx * stride_b, ldb, beta,
+                         c_ref.data() + batch_idx * stride_c, ldc);
+  }
+
+  std::vector<scalar_t> c_temp = c;
   {
-    std::vector<ref_scalar_t> c_ref(size_c_batch, 0);
-    std::vector<scalar_t> c_temp(size_c_batch, 0);
+    blas_benchmark::utils::CUDAVector<cuda_scalar_t, true> c_temp_gpu(
+        size_c_batch, reinterpret_cast<cuda_scalar_t*>(c_temp.data()));
+    cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
+                             a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
+                             &beta_cuda, c_temp_gpu, ldc, stride_c, batch_size);
+  }
 
-    if constexpr (is_half) {
-      // Float-type variables for reference ops
-      ref_scalar_t alpha_f = alpha;
-      ref_scalar_t beta_f = beta;
-
-      std::vector<ref_scalar_t> a_f(size_a_batch);
-      std::vector<ref_scalar_t> b_f(size_b_batch);
-
-      // sycl::half to float reference type
-      std::transform(a.begin(), a.end(), a_f.begin(),
-                     [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-      std::transform(b.begin(), b.end(), b_f.begin(),
-                     [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-
-      for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
-        reference_blas::gemm(t_a, t_b, m, n, k, alpha_f,
-                             a_f.data() + batch_idx * stride_a, lda,
-                             b_f.data() + batch_idx * stride_b, ldb, beta_f,
-                             c_ref.data() + batch_idx * stride_c, ldc);
-      }
-
-      blas_benchmark::utils::CUDAVector<cuda_scalar_t, true> c_temp_gpu(
-          size_c_batch, reinterpret_cast<cuda_scalar_t*>(c_temp.data()));
-
-      cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
-                               a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
-                               &beta_cuda, c_temp_gpu, ldc, stride_c,
-                               batch_size);
-
-    } else {
-      for (int batch_idx = 0; batch_idx < batch_size; batch_idx++) {
-        reference_blas::gemm(t_a, t_b, m, n, k, alpha,
-                             a.data() + batch_idx * stride_a, lda,
-                             b.data() + batch_idx * stride_b, ldb, beta,
-                             c_ref.data() + batch_idx * stride_c, ldc);
-      }
-
-      blas_benchmark::utils::CUDAVector<scalar_t, true> c_temp_gpu(
-          size_c_batch, c_temp.data());
-      cublas_routine<scalar_t>(cuda_handle, c_t_a, c_t_b, m, n, k, &alpha_cuda,
-                               a_gpu, lda, stride_a, b_gpu, ldb, stride_b,
-                               &beta_cuda, c_temp_gpu, ldc, stride_c,
-                               batch_size);
-    }
-
-    std::ostringstream err_stream;
-    if (!utils::compare_vectors_strided(c_temp, c_ref, stride_c, c_size,
-                                        err_stream, "")) {
-      const std::string& err_str = err_stream.str();
-      state.SkipWithError(err_str.c_str());
-      *success = false;
-    };
-  }  // close scope for verify benchmark
+  std::ostringstream err_stream;
+  if (!utils::compare_vectors_strided(c_temp, c_ref, stride_c, c_size,
+                                      err_stream, "")) {
+    const std::string& err_str = err_stream.str();
+    state.SkipWithError(err_str.c_str());
+    *success = false;
+  };
 #endif
 
   auto blas_warmup = [&]() -> void {
