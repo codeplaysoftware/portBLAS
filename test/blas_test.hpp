@@ -125,7 +125,6 @@ static inline scalar_t random_scalar(scalar_t rangeMin, scalar_t rangeMax) {
   std::uniform_real_distribution<random_scalar_t> dis(rangeMin, rangeMax);
   return dis(gen);
 }
-}
 
 /**
  * @brief Generates a random vector of scalar values, using a uniform
