@@ -176,7 +176,6 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
 }
 
 // Half Configurations
-#ifdef BLAS_ENABLE_HALF
 template <bool _t_a, bool _t_b, bool s_a, bool s_b, bool is_beta_zero,
           typename sb_handle_t, typename container_0_t, typename container_1_t,
           typename container_2_t, typename element_t, typename index_t>
@@ -232,7 +231,6 @@ _gemm(sb_handle_t& sb_handle, index_t _M, index_t _N, index_t _K,
     }
   }
 }
-#endif  // BLAS_ENABLE_HALF
 
 // Complex Configurations
 #ifdef BLAS_ENABLE_COMPLEX

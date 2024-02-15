@@ -198,11 +198,10 @@ struct is_sycl_scalar<float *> : std::false_type {};
 
 template <>
 struct is_sycl_scalar<double *> : std::false_type {};
-#ifdef BLAS_ENABLE_HALF
+
 template <class type>
 struct is_half
     : std::integral_constant<bool, std::is_same_v<type, cl::sycl::half>> {};
-#endif
 
 #ifdef BLAS_ENABLE_COMPLEX
 // SYCL Complex type alias
