@@ -424,7 +424,7 @@ by AdaptiveCpp.
 ```bash
 cd build
 export CC=[path/to/system/clang]
-export CXX=[path/to/AdaptiveCpp/install/bin/syclcc]
+export CXX=[path/to/AdaptiveCpp/install/bin/acpp]
 export ACPP_TARGETS=[compilation_flow:target] # (e.g. cuda:sm_75)
 cmake -GNinja ../ -DAdaptiveCpp_DIR=/path/to/AdaptiveCpp/install/lib/cmake/AdaptiveCpp \
       -DSYCL_COMPILER=adaptivecpp -DACPP_TARGETS=$ACPP_TARGETS
