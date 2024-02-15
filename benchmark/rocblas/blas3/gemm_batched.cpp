@@ -34,12 +34,9 @@ static inline void rocblas_gemm_batched_f(args_t&&... args) {
     CHECK_ROCBLAS_STATUS(rocblas_sgemm_batched(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CHECK_ROCBLAS_STATUS(rocblas_dgemm_batched(std::forward<args_t>(args)...));
-  }
-#ifdef BLAS_ENABLE_HALF
-  else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
     CHECK_ROCBLAS_STATUS(rocblas_hgemm_batched(std::forward<args_t>(args)...));
   }
-#endif
   return;
 }
 
@@ -59,9 +56,6 @@ template <typename scalar_t>
 void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
          index_t t_b_i, index_t m, index_t k, index_t n, scalar_t alpha,
          scalar_t beta, index_t batch_size, int batch_type_i, bool* success) {
-  // scalar_t if scalar_t!=sycl::half, float otherwise
-  using ref_scalar_t =
-      typename blas_benchmark::utils::ReferenceType<scalar_t>::type;
   // scalar_t if scalar_t!=sycl::half, rocblas_half otherwise
   using rocm_scalar_t =
       typename blas_benchmark::utils::RocblasType<scalar_t>::type;
@@ -116,65 +110,24 @@ void run(benchmark::State& state, rocblas_handle& rb_handle, index_t t_a_i,
   blas_benchmark::utils::HIPVectorBatched<rocm_scalar_t> c_batched_gpu(
       c_size, batch_size);
 
-  constexpr const bool is_half = std::is_same_v<scalar_t, cl::sycl::half>;
-
-  rocm_scalar_t alpha_rocm, beta_rocm;
-
-  if constexpr (is_half) {
-#ifdef BLAS_ENABLE_HALF
-    // sycl::half to rocblas__half
-    alpha_rocm = *reinterpret_cast<rocm_scalar_t*>(&alpha);
-    beta_rocm = *reinterpret_cast<rocm_scalar_t*>(&beta);
-  } else {
-#endif
-    alpha_rocm = alpha;
-    beta_rocm = beta;
+  rocm_scalar_t alpha_rocm = *reinterpret_cast<rocm_scalar_t*>(&alpha);
+  rocm_scalar_t beta_rocm = *reinterpret_cast<rocm_scalar_t*>(&beta);
+#ifdef BLAS_VERIFY_BENCHMARK
+  // Reference batched gemm
+  std::vector<scalar_t> c_ref = c;
+  for (int batch = 0; batch < batch_size; batch++) {
+    reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha,
+                         a.data() + batch * a_size, lda,
+                         b.data() + batch * b_size, ldb, beta,
+                         c_ref.data() + batch * c_size, ldc);
   }
 
-#ifdef BLAS_VERIFY_BENCHMARK
-  std::vector<ref_scalar_t> c_ref(c_size * batch_size, 0);
-  std::vector<scalar_t> c_temp(c_size * batch_size, 0);
-
-  if constexpr (is_half) {
-    // Float-type variables for reference ops
-    ref_scalar_t alpha_f = alpha;
-    ref_scalar_t beta_f = beta;
-    std::vector<ref_scalar_t> a_f(a_size * batch_size);
-    std::vector<ref_scalar_t> b_f(b_size * batch_size);
-
-    // sycl::half to float reference type
-    std::transform(a.begin(), a.end(), a_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-    std::transform(b.begin(), b.end(), b_f.begin(),
-                   [](scalar_t x) { return (static_cast<ref_scalar_t>(x)); });
-
-    // Reference batched gemm
-    for (int batch = 0; batch < batch_size; batch++) {
-      reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha_f,
-                           a_f.data() + batch * a_size, lda,
-                           b_f.data() + batch * b_size, ldb, beta_f,
-                           c_ref.data() + batch * c_size, ldc);
-    }
-
-    // Rocblas verification gemm_batched
+  // Rocblas verification
+  // gemm_batched
+  std::vector<scalar_t> c_temp = c;
+  {
     blas_benchmark::utils::HIPVectorBatched<rocm_scalar_t, true> c_temp_gpu(
         c_size, batch_size, reinterpret_cast<rocm_scalar_t*>(c_temp.data()));
-    rocblas_gemm_batched_f<scalar_t>(
-        rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha_rocm, a_batched_gpu,
-        lda, b_batched_gpu, ldb, &beta_rocm, c_temp_gpu, ldc, batch_size);
-
-  } else {
-    // Reference batched gemm
-    for (int batch = 0; batch < batch_size; batch++) {
-      reference_blas::gemm(t_a_str, t_b_str, m, n, k, alpha,
-                           a.data() + batch * a_size, lda,
-                           b.data() + batch * b_size, ldb, beta,
-                           c_ref.data() + batch * c_size, ldc);
-    }
-
-    // Rocblas verification gemm_batched
-    blas_benchmark::utils::HIPVectorBatched<scalar_t, true> c_temp_gpu(
-        c_size, batch_size, c_temp.data());
     rocblas_gemm_batched_f<scalar_t>(
         rb_handle, trans_a_rb, trans_b_rb, m, n, k, &alpha_rocm, a_batched_gpu,
         lda, b_batched_gpu, ldb, &beta_rocm, c_temp_gpu, ldc, batch_size);

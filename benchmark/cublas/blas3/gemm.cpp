@@ -96,8 +96,6 @@ void run(benchmark::State& state, cublasHandle_t* cuda_handle_ptr, int t1,
   cublasOperation_t c_t_a = (*t_a == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
   cublasOperation_t c_t_b = (*t_b == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
 
-  constexpr const bool is_half = std::is_same_v<scalar_t, cl::sycl::half>;
-
   cuda_scalar_t alpha_cuda = *reinterpret_cast<cuda_scalar_t*>(&alpha);
   cuda_scalar_t beta_cuda = *reinterpret_cast<cuda_scalar_t*>(&beta);
 
