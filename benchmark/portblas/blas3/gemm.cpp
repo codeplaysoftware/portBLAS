@@ -24,6 +24,9 @@
  **************************************************************************/
 
 #include "../utils.hpp"
+#include "../../../test/blas_test.hpp"
+
+using namespace cl::sycl::ext::oneapi;
 
 constexpr blas_benchmark::utils::Level3Op benchmark_op =
     blas_benchmark::utils::Level3Op::gemm;
@@ -61,19 +64,37 @@ void run(benchmark::State& state, blas::SB_Handle* sb_handle_ptr, int t1,
   }
 
   // Matrices
-  std::vector<scalar_t> a = blas_benchmark::utils::random_data<scalar_t>(m * k);
-  std::vector<scalar_t> b = blas_benchmark::utils::random_data<scalar_t>(k * n);
+  std::vector<scalar_t> a(m * k);
+  std::vector<scalar_t> b(n * k);
   std::vector<scalar_t> c =
       blas_benchmark::utils::const_data<scalar_t>(m * n, 0);
+
+  fill_random_with_range(a, scalar_t{1}, scalar_t{2});
+  fill_random_with_range(b, scalar_t{1}, scalar_t{2});
+
+  set_to_zero_last_nbits(a, 16);
+  set_to_zero_last_nbits(b, 16);
+  set_to_zero_last_nbits(c, 16);
+
+  std::vector<bfloat16> a_bf16(m * k * sizeof(scalar_t) / sizeof(bfloat16));
+  std::vector<bfloat16> b_bf16(n * k * sizeof(scalar_t) / sizeof(bfloat16));
+
+  for (int i = 0; i < b.size(); i++) {
+    b_bf16[i] = static_cast<bfloat16>(b[i]);
+  }
+
+  for (int i = 0; i < a.size(); i++) {
+    a_bf16[i] = static_cast<bfloat16>(a[i]);
+  }
 
   auto a_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m * k, q);
   auto b_gpu = blas::helper::allocate<mem_alloc, scalar_t>(k * n, q);
   auto c_gpu = blas::helper::allocate<mem_alloc, scalar_t>(m * n, q);
 
   auto copy_a =
-      blas::helper::copy_to_device<scalar_t>(q, a.data(), a_gpu, m * k);
+      blas::helper::copy_to_device<scalar_t>(q, reinterpret_cast<scalar_t*>(a_bf16.data()), a_gpu, m * k);
   auto copy_b =
-      blas::helper::copy_to_device<scalar_t>(q, b.data(), b_gpu, n * k);
+      blas::helper::copy_to_device<scalar_t>(q, reinterpret_cast<scalar_t*>(b_bf16.data()), b_gpu, n * k);
   auto copy_c =
       blas::helper::copy_to_device<scalar_t>(q, c.data(), c_gpu, m * n);
 

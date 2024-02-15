@@ -79,6 +79,13 @@ if (${DPCPP_SYCL_TARGET} STREQUAL "nvptx64-nvidia-cuda")
     list(APPEND DPCPP_FLAGS "-DSYCL_EXT_ONEAPI_MATRIX_VERSION=4")
     list(APPEND DPCPP_FLAGS "-DSB_ENABLE_JOINT_MATRIX=1")
   endif()
+elseif(${DPCPP_SYCL_TARGET} STREQUAL "intel_gpu_pvc" OR ${DPCPP_SYCL_TARGET} STREQUAL "intel_gpu_dg2_g12")
+  list(APPEND DPCPP_FLAGS "-DSYCL_EXT_INTEL_MATRIX=1")
+  if(${DPCPP_SYCL_TARGET} STREQUAL "intel_gpu_pvc")
+    list(APPEND DPCPP_FLAGS "-DSB_ENABLE_JOINT_MATRIX_PVC=1")
+  else()
+    list(APPEND DPCPP_FLAGS "-DSB_ENABLE_JOINT_MATRIX_ARC=1")
+  endif()
 endif()
 
 # add compiler directive to enable USM code
