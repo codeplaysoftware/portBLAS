@@ -34,12 +34,9 @@ static inline void cublas_routine(args_t&&... args) {
     CUBLAS_CHECK(cublasSgemm(std::forward<args_t>(args)...));
   } else if constexpr (std::is_same_v<scalar_t, double>) {
     CUBLAS_CHECK(cublasDgemm(std::forward<args_t>(args)...));
-  }
-#ifdef BLAS_ENABLE_HALF
-  else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
+  } else if constexpr (std::is_same_v<scalar_t, cl::sycl::half>) {
     CUBLAS_CHECK(cublasHgemm(std::forward<args_t>(args)...));
   }
-#endif
   return;
 }
 
