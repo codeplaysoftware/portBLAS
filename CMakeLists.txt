@@ -83,6 +83,15 @@ if (MSVC)
   )
 endif()
 
+# set -ffp-model to precise to avoid getting error statement
+# in case of icpx compiler: 
+# explicit comparison with NaN in fast floating point mode [-Werror,-Wtautological-constant-compare]
+# https://github.com/dealii/dealii/issues/14693
+string(FIND ${CMAKE_CXX_COMPILER} "icpx" found_icpx)
+if(${found_icpx} GREATER -1)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+endif()
+
 # By default, tall and skinny Gemm is enabled (for better performance)
 option(GEMM_TALL_SKINNY_SUPPORT "Whether to enable tall and skinny Gemm" ON)
 # By default vectorization in gemm kernels is enabled as it imrpove the performance on all Devices.
