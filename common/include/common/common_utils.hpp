@@ -1626,12 +1626,10 @@ inline std::string get_type_name<double>() {
   return "double";
 }
 
-#ifdef BLAS_ENABLE_HALF
 template <>
 inline std::string get_type_name<cl::sycl::half>() {
   return "half";
 }
-#endif
 
 #ifdef BLAS_ENABLE_COMPLEX
 template <>
