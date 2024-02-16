@@ -43,10 +43,9 @@ mul_add(T a, T b, T c,
 #endif
 
 template <typename T>
-static PORTBLAS_INLINE T mul_add(
-    T a, T b, T c,
-    typename std::enable_if<is_half<T>::value || is_sycl_scalar<T>::value>::type
-        * = 0) {
+static PORTBLAS_INLINE T
+mul_add(T a, T b, T c,
+        typename std::enable_if<is_sycl_scalar<T>::value>::type * = 0) {
   return (cl::sycl::mad(a, b, c));
 }
 

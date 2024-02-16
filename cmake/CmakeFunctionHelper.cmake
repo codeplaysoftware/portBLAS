@@ -315,7 +315,7 @@ function(add_gemm_configuration
   cpp_type(cpp_data ${data})
   foreach(symm_a ${boolean_list})
     foreach(symm_b ${boolean_list})
-      if ((${data} MATCHES "complex") AND (symm_a OR symm_b))
+      if ((${data} MATCHES "half") AND (symm_a OR symm_b))
         continue()
       endif()
       if (symm_a AND symm_b)
