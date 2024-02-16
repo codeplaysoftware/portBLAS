@@ -285,13 +285,11 @@ struct CudaType {
   using type = T;
 };
 
-#ifdef BLAS_ENABLE_HALF
 // When T is sycl::half, use cuda's __cuda as type.
 template <typename T>
 struct CudaType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
   using type = __half;
 };
-#endif
 
 }  // namespace utils
 }  // namespace blas_benchmark
