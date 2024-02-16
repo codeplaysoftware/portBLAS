@@ -383,13 +383,11 @@ struct RocblasType {
   using type = T;
 };
 
-#ifdef BLAS_ENABLE_HALF
 // When T is sycl::half, use rocBLAS's rocblas_half as type.
 template <typename T>
 struct RocblasType<T, std::enable_if_t<std::is_same_v<T, cl::sycl::half>>> {
   using type = rocblas_half;
 };
-#endif
 }  // namespace utils
 }  // namespace blas_benchmark
 
