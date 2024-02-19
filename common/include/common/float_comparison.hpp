@@ -32,7 +32,6 @@
 #include <complex>
 #endif
 
-#ifdef BLAS_ENABLE_HALF
 #if SYCL_LANGUAGE_VERSION < 202000
 #include <CL/sycl.hpp>
 inline std::ostream& operator<<(std::ostream& os, const cl::sycl::half& value) {
@@ -49,7 +48,6 @@ class numeric_limits<cl::sycl::half> {
 };
 }  // namespace std
 #endif  // SYCL_LANGUAGE_VERSION
-#endif  // BLAS_ENABLE_HALF
 
 namespace utils {
 
@@ -85,7 +83,6 @@ scalar_t abs(std::complex<scalar_t> value) noexcept {
 }
 #endif
 
-#ifdef BLAS_ENABLE_HALF
 template <>
 inline bool isnan<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::isnan(static_cast<float>(value));
@@ -100,8 +97,6 @@ template <>
 inline cl::sycl::half abs<cl::sycl::half>(cl::sycl::half value) noexcept {
   return std::abs(static_cast<float>(value));
 }
-
-#endif  // BLAS_ENABLE_HALF
 
 template <typename scalar_t>
 scalar_t clamp_to_limits(scalar_t v) {
@@ -139,14 +134,12 @@ inline double getRelativeErrorMargin<double>() {
   return 0.0000000001;  // 10^-10
 }
 
-#ifdef BLAS_ENABLE_HALF
-
 template <>
 inline cl::sycl::half getRelativeErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm
   return 0.05f;
 }
-#endif
+
 /**
  * Indicates the tolerated margin for absolute differences (used in case the
  * scalars are close to 0)
@@ -168,14 +161,12 @@ inline double getAbsoluteErrorMargin<double>() {
    */
   return 0.0000000001;  // 10^-10
 }
-#ifdef BLAS_ENABLE_HALF
 
 template <>
 inline cl::sycl::half getAbsoluteErrorMargin<cl::sycl::half>() {
   // Measured empirically with gemm.
   return 1.0f;
 }
-#endif
 
 /**
  * Compare two scalars and returns false if the difference is not acceptable.

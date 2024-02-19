@@ -106,7 +106,7 @@ if(IMGDNN_DIR)
 endif()
 
 option(BLAS_ENABLE_EXTENSIONS "Whether to enable portBLAS extensions" ON)
-option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for supported operators" ON)
+option(BLAS_ENABLE_COMPLEX "Whether to enable complex data type for GEMM" OFF)
 option(BLAS_ENABLE_HALF "Whether to enable sycl::half data type for supported operators" OFF)
 
 if(${TUNING_TARGET} STREQUAL "DEFAULT_CPU")
