@@ -152,32 +152,42 @@ function(generate_blas_objects blas_level func)
       list(APPEND data_list_c "half")
     endif()
   endif()
-  foreach(data ${data_list_c})
-    cpp_type(cpp_data ${data})
-    foreach(index ${index_list})
-      foreach(increment ${index_list})
-        sanitize_file_name(file_name
-                "${func}_${data}_${index}_${data}_${increment}.cpp")
-        add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
-                ${PROJECT_SOURCE_DIR}/external/
-                ${PORTBLAS_SRC_GENERATOR}/gen
-                ${blas_level}
-                ${func}
-                ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                ${cpp_data}
-                ${index}
-                ${increment}
-                ${file_name}
-                MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
-                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                VERBATIM
-                )
-        list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
-      endforeach(increment)
-    endforeach(index)
-  endforeach(data)
+  foreach(data_in ${data_list_c})
+    set(data_list_out ${data_in})
+    # When using half with Gemm target, generate a mixed-precision
+    # Gemm kernel (half-float) besides the fully half based kernel.
+    if((data_in STREQUAL "half") AND (${func} STREQUAL "gemm"))
+      list(APPEND data_list_out "float")
+    endif()
+    cpp_type(cpp_data_in ${data_in})
+    foreach(data_out ${data_list_out})
+      cpp_type(cpp_data_out ${data_out})
+      foreach(index ${index_list})
+        foreach(increment ${index_list})
+          sanitize_file_name(file_name
+                  "${func}_${data_in}_${index}_${data_out}_${increment}.cpp")
+          add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                  COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
+                  ${PROJECT_SOURCE_DIR}/external/
+                  ${PORTBLAS_SRC_GENERATOR}/gen
+                  ${blas_level}
+                  ${func}
+                  ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  ${cpp_data_in}
+                  ${cpp_data_out}
+                  ${index}
+                  ${increment}
+                  ${file_name}
+                  MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                  DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_ops.py
+                  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                  VERBATIM
+                  )
+          list(APPEND FUNC_SRC "${LOCATION}/${file_name}")
+        endforeach(increment)
+      endforeach(index)
+    endforeach(data_out ${data_list_out})
+  endforeach(data_in)
   add_library(${func} OBJECT ${FUNC_SRC})
   set_target_compile_def(${func})
   target_include_directories(${func} PRIVATE ${PORTBLAS_SRC} ${PORTBLAS_INCLUDE}
@@ -312,87 +322,97 @@ function(add_gemm_configuration
   if(const_pos)
     string(REPLACE "_const" "" actualfunc ${func})
   endif()
+  # When using half data type, generate a mixed-precision Gemm
+  # Configuration (half-float) besides the fully half based one.
+  set(data_list_out ${data})
+    if(data STREQUAL "half")
+      list(APPEND data_list_out "float")
+    endif()
   cpp_type(cpp_data ${data})
-  foreach(symm_a ${boolean_list})
-    foreach(symm_b ${boolean_list})
-      if ((${data} MATCHES "half") AND (symm_a OR symm_b))
-        continue()
-      endif()
-      if (symm_a AND symm_b)
-        continue()
-      endif()
-      foreach(trans_a ${boolean_list})
-        foreach(trans_b ${boolean_list})
-          if ((symm_a AND trans_b) OR (symm_b AND trans_a))
-            continue()
-          endif()
-          foreach(is_beta_zero ${boolean_list})
-            foreach(index ${index_list})
-              set(file_name "${func}_${double_buffer}_${conflict_a}_"
-                      "${conflict_b}_${trans_a}_${trans_b}_"
-                      "${is_beta_zero}_${gemm_memory_type}_"
-                      "${gemm_shape_type}_${gemm_vectorize_type}_"
-                      "${vector_size}_${batch_type}_${use_joint_matrix}_"
-                      "${data}_${index}_${tir}_${tic}_${twr}_"
-                      "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
-                      "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
-                      "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
-                      "${wg_size}_${cache_line_size}_${data}.cpp")
-              sanitize_file_name(file_name "${file_name}")
-              add_custom_command(OUTPUT "${LOCATION}/${file_name}"
-                      COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-                      ${PROJECT_SOURCE_DIR}/external/
-                      ${PORTBLAS_SRC_GENERATOR}/gen
-                      ${blas_level}
-                      ${func}
-                      ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      ${cpp_data}
-                      ${index}
-                      ${double_buffer}
-                      ${conflict_a}
-                      ${conflict_b}
-                      ${trans_a}
-                      ${trans_b}
-                      ${is_beta_zero}
-                      ${gemm_memory_type}
-                      ${gemm_shape_type}
-                      ${tir}
-                      ${tic}
-                      ${twr}
-                      ${twc}
-                      ${tsr}
-                      ${tsc}
-                      ${tlr}
-                      ${tlc}
-                      ${item_batch}
-                      ${wg_batch}
-                      ${jm_m}
-                      ${jm_n}
-                      ${jm_k}
-                      ${jm_in_type}
-                      ${jm_out_type}
-                      ${wg_size}
-                      ${cache_line_size}
-                      ${file_name}
-                      ${gemm_vectorize_type}
-                      ${vector_size}
-                      ${batch_type}
-                      ${use_joint_matrix}
-                      ${symm_a}
-                      ${symm_b}
-                      MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
-                      DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
-                      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-                      VERBATIM
-                      )
-              list(APPEND gemm_sources "${LOCATION}/${file_name}")
-              set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
-            endforeach(index)
-          endforeach(is_beta_zero)
-        endforeach(trans_b)
-      endforeach(trans_a)
-    endforeach(symm_b)
-  endforeach(symm_a)
+  foreach(data_out ${data_list_out})
+    cpp_type(cpp_data_out ${data_out})
+    foreach(symm_a ${boolean_list})
+      foreach(symm_b ${boolean_list})
+        if ((${data} MATCHES "half") AND (symm_a OR symm_b))
+          continue()
+        endif()
+        if (symm_a AND symm_b)
+          continue()
+        endif()
+        foreach(trans_a ${boolean_list})
+          foreach(trans_b ${boolean_list})
+            if ((symm_a AND trans_b) OR (symm_b AND trans_a))
+              continue()
+            endif()
+            foreach(is_beta_zero ${boolean_list})
+              foreach(index ${index_list})
+                set(file_name "${func}_${double_buffer}_${conflict_a}_"
+                        "${conflict_b}_${trans_a}_${trans_b}_"
+                        "${is_beta_zero}_${gemm_memory_type}_"
+                        "${gemm_shape_type}_${gemm_vectorize_type}_"
+                        "${vector_size}_${batch_type}_${use_joint_matrix}_"
+                        "${index}_${tir}_${tic}_${twr}_"
+                        "${twc}_${tsr}_${tsc}_${tlr}_${tlc}_"
+                        "${item_batch}_${wg_batch}_${symm_a}_${symm_b}_"
+                        "${jm_m}_${jm_n}_${jm_k}_${jm_in_type}_${jm_out_type}_"
+                        "${wg_size}_${cache_line_size}_${data}_${data_out}.cpp")
+                sanitize_file_name(file_name "${file_name}")
+                add_custom_command(OUTPUT "${LOCATION}/${file_name}"
+                        COMMAND ${PYTHON_EXECUTABLE} ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                        ${PROJECT_SOURCE_DIR}/external/
+                        ${PORTBLAS_SRC_GENERATOR}/gen
+                        ${blas_level}
+                        ${func}
+                        ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        ${cpp_data}
+                        ${index}
+                        ${double_buffer}
+                        ${conflict_a}
+                        ${conflict_b}
+                        ${trans_a}
+                        ${trans_b}
+                        ${is_beta_zero}
+                        ${gemm_memory_type}
+                        ${gemm_shape_type}
+                        ${tir}
+                        ${tic}
+                        ${twr}
+                        ${twc}
+                        ${tsr}
+                        ${tsc}
+                        ${tlr}
+                        ${tlc}
+                        ${item_batch}
+                        ${wg_batch}
+                        ${jm_m}
+                        ${jm_n}
+                        ${jm_k}
+                        ${jm_in_type}
+                        ${jm_out_type}
+                        ${wg_size}
+                        ${cache_line_size}
+                        ${file_name}
+                        ${gemm_vectorize_type}
+                        ${vector_size}
+                        ${batch_type}
+                        ${use_joint_matrix}
+                        ${symm_a}
+                        ${symm_b}
+                        ${cpp_data_out}
+                        MAIN_DEPENDENCY ${PORTBLAS_SRC}/interface/${blas_level}/${func}.cpp.in
+                        DEPENDS ${PORTBLAS_SRC_GENERATOR}/py_gen_blas_gemm_launcher.py
+                        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                        VERBATIM
+                        )
+                list(APPEND gemm_sources "${LOCATION}/${file_name}")
+                set(gemm_sources "${gemm_sources}" PARENT_SCOPE)
+              endforeach(index)
+            endforeach(is_beta_zero)
+          endforeach(trans_b)
+        endforeach(trans_a)
+      endforeach(symm_b)
+    endforeach(symm_a)
+  endforeach(data_out)
 endfunction()
 if(${TUNING_TARGET} STREQUAL "INTEL_GPU")
   set(supported_types
