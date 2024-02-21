@@ -64,7 +64,8 @@ namespace blas {
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam SymmA   whether the matrix A is a symmetric triangular matrix
  * @tparam SymmB   whether the matrix B is a symmetric triangular matrix
- * @tparam element_t  type of matrix elements
+ * @tparam element_in_t  type of input matrices elements (A, B)
+ * @tparam element_out_t  type of output matrix elements (C) and scalars
  * @tparam is_beta_zero True if beta == 0.
  * @tparam VectorSize The packet size to be used for vectorization.
  * @tparam batch_type the type of batch strideded /interleaved
@@ -73,20 +74,22 @@ namespace blas {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
-          int VectorSize>
+          bool SymmA, bool SymmB, typename element_in_t, typename element_out_t,
+          bool is_beta_zero, int VectorSize>
 class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
-           TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
-           static_cast<int>(gemm_memory_t::local),
+           TransA, TransB, SymmA, SymmB, element_in_t, element_out_t,
+           is_beta_zero, static_cast<int>(gemm_memory_t::local),
            static_cast<int>(gemm_algorithm_t::standard),
            static_cast<int>(gemm_vectorization_t::full), VectorSize,
            static_cast<int>(gemm_batch_type_t::strided), false> {
  public:
   using tile_type = TileType;
-  using value_t = element_t;
+  using value_t = element_in_t;
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
-  using packetize_t = Packetize<VectorSize, value_t, index_t>;
+  using packetize_t = Packetize<VectorSize, element_in_t, index_t>;
+  using packetize_out_t = Packetize<VectorSize, element_out_t, index_t>;
   using vector_t = typename packetize_t::PacketType;
+  using vector_out_t = typename packetize_out_t::PacketType;
   using address_t = cl::sycl::access::address_space;
 
   // enable easier access to tile dimensions
@@ -111,7 +114,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static constexpr bool symm_b = SymmB;
 
   //! @brief Number of elements which fit within a cache line.
-  static constexpr index_t cl_elems = ClSize / sizeof(element_t);
+  static constexpr index_t cl_elems = ClSize / sizeof(element_in_t);
   //! @brief Number of work items within a work group
   static constexpr index_t wg_size = wg_rows * wg_cols;
   //! @brief Number of rows within a work-group level tile
@@ -127,7 +130,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Work group size should be a multiple "
                 "of elements in a cache line\n"
                 " --- this is ensured iff:"
-                " cl_size | sizeof(element_t) * wg_rows * wg_cols");
+                " cl_size | sizeof(element_in_t) * wg_rows * wg_cols");
 
   static_assert(wg_size % block_rows == 0,
                 "Work group size should be a multiple "
@@ -146,8 +149,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
                 "Cache line size must be a multiple of packet_size");
 
 #ifdef BLAS_ENABLE_COMPLEX
-  static_assert((VectorSize == 1 && is_complex_sycl<element_t>::value) ||
-                    !is_complex_sycl<element_t>::value,
+  static_assert((VectorSize == 1 && is_complex_sycl<element_in_t>::value) ||
+                    !is_complex_sycl<element_in_t>::value,
                 "Vector size should be equal to 1 for Complex Data types");
 #endif
 
@@ -163,15 +166,15 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   input_t a_;
   input_t b_;
   output_t c_;
-  const element_t alpha_;
-  const element_t beta_;
+  const element_out_t alpha_;
+  const element_out_t beta_;
   index_t batch_size_;
   index_t stridea_;
   index_t strideb_;
   index_t stridec_;
 
-  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_t alpha,
-                       element_t beta, index_t batch_size, index_t stride_a,
+  PORTBLAS_INLINE Gemm(input_t A, input_t B, output_t C, element_out_t alpha,
+                       element_out_t beta, index_t batch_size, index_t stride_a,
                        index_t stride_b, index_t stride_c)
       : a_(A),
         b_(B),
@@ -189,8 +192,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   static PORTBLAS_INLINE std::string get_type_string() noexcept {
     std::ostringstream str{};
     str << "Gemm <" << double_buffer << ", " << nbc_a << ", " << nbc_b << ", "
-        << cl_elems * sizeof(element_t) << ", " << tile_type::get_type_string()
-        << ", " << type_string<value_t>::get_value() << "gemm_memory:local, "
+        << cl_elems * sizeof(element_in_t) << ", "
+        << tile_type::get_type_string() << ", "
+        << type_string<element_in_t>::get_value() << ", "
+        << type_string<element_out_t>::get_value() << "gemm_memory:local, "
         << "gemm_algorithm:standard, "
         << "gemm_vectorization:full, "
         << "vector size" << VectorSize << ", batch_type:strided>";
@@ -304,8 +309,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
     const index_t row_c = wg_row + item_id % wg_rows * vector_offset;
     const index_t col_c = wg_col + (item_id / wg_rows) * item_cols;
 
-    element_t reg_a[item_rows];
-    element_t reg_b;
+    element_in_t reg_a[item_rows];
+    element_in_t reg_b;
     ptr_C += row_c + col_c * ldc;
 
     const index_t mc = m - row_c;
@@ -373,7 +378,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<!beta_zero>::type scaling_c(
-      element_t *reg_res, InputPointerType C, const index_t &mc,
+      element_out_t *reg_res, InputPointerType C, const index_t &mc,
       const index_t &nc, const index_t &ldc, const bool out_of_range) {
     if (out_of_range) {
       return;
@@ -399,8 +404,8 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType,
             bool beta_zero = is_beta_zero>
   PORTBLAS_INLINE typename std::enable_if<beta_zero>::type scaling_c(
-      element_t *reg_res, InputPointerType, const index_t &, const index_t &,
-      const index_t &, const bool) {
+      element_out_t *reg_res, InputPointerType, const index_t &,
+      const index_t &, const index_t &, const bool) {
     for (index_t i = 0; i < item_cols * item_rows; ++i) {
       reg_res[i] = 0;
     }
@@ -431,7 +436,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       InputPointerType orig_A, const index_t &lda, InputPointerType orig_B,
       const index_t &ldb, OutputPointerType orig_C, const index_t &ldc,
       ScratchPointerType s1, ScratchPointerType s2, ScratchPointerType s3,
-      ScratchPointerType s4, element_t *reg_a, element_t &reg_b,
+      ScratchPointerType s4, element_in_t *reg_a, element_in_t &reg_b,
       const bool out_of_range, index_t batch_stride, index_t wg_batch_id,
       index_t batch_size) noexcept {
     index_t ofs = 1;
@@ -444,7 +449,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
       index_t ca = col_a;
       index_t rb = row_b;
       index_t cb = col_b;
-      element_t reg_res[item_rows * item_cols];
+      element_out_t reg_res[item_rows * item_cols];
       scaling_c<check_m_limit, check_n_limit>(reg_res, C, mc, nc, ldc,
                                               out_of_range);
       while (k >= cl_elems) {
@@ -518,22 +523,24 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool internal, index_t p_size = packetize_t::packet_size,
             typename OutputPointerType>
   PORTBLAS_INLINE typename std::enable_if<!internal>::type store_packet(
-      element_t *reg, OutputPointerType out_ptr) {
+      element_out_t *reg, OutputPointerType out_ptr) {
     *out_ptr = alpha_ * (*reg);
   }
 
   template <bool internal, index_t p_size = packetize_t::packet_size,
             typename OutputPointerType>
   PORTBLAS_INLINE typename std::enable_if<internal>::type store_packet(
-      element_t *reg, OutputPointerType out_ptr) {
-    vector_t out_vec{};
+      element_out_t *reg, OutputPointerType out_ptr) {
+    vector_out_t out_vec{};
 
     out_vec.template load<address_t::private_space>(
-        0, cl::sycl::multi_ptr<const element_t, address_t::private_space>(reg));
+        0, cl::sycl::multi_ptr<const element_out_t, address_t::private_space>(
+               reg));
     out_vec *= alpha_;
 
     out_vec.template store<address_t::global_space>(
-        0, cl::sycl::multi_ptr<element_t, address_t::global_space>(out_ptr));
+        0,
+        cl::sycl::multi_ptr<element_out_t, address_t::global_space>(out_ptr));
   }
   /*!
    * @brief Store the computed gemm result to the C matrix
@@ -556,7 +563,7 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
   template <bool check_m_limit, bool check_n_limit, typename OutputPointerType>
   PORTBLAS_INLINE void store_output_block(index_t, index_t mc, index_t nc,
                                           OutputPointerType C, index_t ldc,
-                                          element_t *reg_res,
+                                          element_out_t *reg_res,
                                           const bool out_of_range) noexcept {
     if (out_of_range) {
       return;
@@ -735,9 +742,10 @@ class Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, TileType,
    */
   template <bool check_m_limit, bool check_n_limit, typename InputPointerType>
   PORTBLAS_INLINE void compute_block_gemm(index_t, InputPointerType B,
-                                          InputPointerType A, element_t *reg_a,
-                                          element_t &reg_b,
-                                          element_t *reg_res) noexcept {
+                                          InputPointerType A,
+                                          element_in_t *reg_a,
+                                          element_in_t &reg_b,
+                                          element_out_t *reg_res) noexcept {
     // NOTE: Adding "#pragma unroll" here reduces performance on AMD R9
     // Nano.
     //       Seems that the small reduction of arithmetic operations does

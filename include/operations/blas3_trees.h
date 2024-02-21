@@ -169,7 +169,8 @@ struct Tile {
  * @tparam TransB  iff true, matrix B will be transposed on the fly
  * @tparam SymmA   whether the matrix A is a symmetric triangular matrix
  * @tparam SymmB   whether the matrix B is a symmetric triangular matrix
- * @tparam element_t  type of matrix elements
+ * @tparam element_in_t  type of input matrix elements (A & B)
+ * @tparam element_t  type of output matrix elements (C) and scaling parameters
  * @tparam UseJointMatrix boolean parameter to decide whether to use
  *                        joint_matrix or not
  * @param a_ the lhs_t matrix
@@ -190,9 +191,10 @@ struct Tile {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
-          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          int VectorSize, int BatchType, bool UseJointMatrix = false>
+          bool SymmA, bool SymmB, typename element_in_t, typename element_t,
+          bool is_beta_zero, int GemmMemoryType, int GemmAlgorithm,
+          int GemmVectorization, int VectorSize, int BatchType,
+          bool UseJointMatrix = false>
 class Gemm {
  public:
   using value_t = element_t;
@@ -249,7 +251,8 @@ class Gemm {
  */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename TileType, bool TransA, bool TransB,
-          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
+          bool IsFinal, bool IsBetaZero, typename element_in_t,
+          typename element_t, int GemmMemoryType>
 class GemmPartial {};
 
 /*
@@ -260,21 +263,21 @@ template <bool DoubleBuffer, bool ConflictA, bool ConflictB, int ClSize,
           typename TileType, bool TransA, bool TransB, bool SymmA, bool SymmB,
           int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
           bool is_beta_zero, int VectorSize, int BatchType, bool UseJointMatrix,
-          typename input_t, typename output_t, typename element_t,
-          typename index_t>
+          typename element_in_t, typename element_t, typename input_t,
+          typename output_t, typename index_t>
 inline Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-            TileType, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
-            GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
-            BatchType, UseJointMatrix>
+            TileType, TransA, TransB, SymmA, SymmB, element_in_t, element_t,
+            is_beta_zero, GemmMemoryType, GemmAlgorithm, GemmVectorization,
+            VectorSize, BatchType, UseJointMatrix>
 make_gemm(input_t buffer_a, input_t buffer_b, output_t buffer_c,
           element_t alpha, element_t beta, index_t batch_size, index_t _stridea,
           index_t _strideb, index_t _stridec) {
   return Gemm<input_t, output_t, DoubleBuffer, ConflictA, ConflictB, ClSize,
-              TileType, TransA, TransB, SymmA, SymmB, element_t, is_beta_zero,
-              GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
-              BatchType, UseJointMatrix>(buffer_a, buffer_b, buffer_c, alpha,
-                                         beta, batch_size, _stridea, _strideb,
-                                         _stridec);
+              TileType, TransA, TransB, SymmA, SymmB, element_in_t, element_t,
+              is_beta_zero, GemmMemoryType, GemmAlgorithm, GemmVectorization,
+              VectorSize, BatchType, UseJointMatrix>(
+      buffer_a, buffer_b, buffer_c, alpha, beta, batch_size, _stridea, _strideb,
+      _stridec);
 }
 
 /**

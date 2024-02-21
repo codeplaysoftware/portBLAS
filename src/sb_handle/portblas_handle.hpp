@@ -267,20 +267,22 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
-          int GemmMemoryType, int GemmAlgorithm, int GemmVectorization,
-          int VectorSize, int BatchType, bool UseJointMatrix>
+          bool SymmA, bool SymmB, typename element_in_t, typename element_out_t,
+          bool is_beta_zero, int GemmMemoryType, int GemmAlgorithm,
+          int GemmVectorization, int VectorSize, int BatchType,
+          bool UseJointMatrix>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
-         GemmAlgorithm, GemmVectorization, VectorSize, BatchType,
-         UseJointMatrix>
+         TransB, SymmA, SymmB, element_in_t, element_out_t, is_beta_zero,
+         GemmMemoryType, GemmAlgorithm, GemmVectorization, VectorSize,
+         BatchType, UseJointMatrix>
         gemm_tree,
     const typename SB_Handle::event_t& dependencies) {
-  using gemm_t = Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize,
-                      tile_type, TransA, TransB, SymmA, SymmB, element_t,
-                      is_beta_zero, GemmMemoryType, GemmAlgorithm,
-                      GemmVectorization, VectorSize, BatchType, UseJointMatrix>;
+  using gemm_t =
+      Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
+           TransA, TransB, SymmA, SymmB, element_in_t, element_out_t,
+           is_beta_zero, GemmMemoryType, GemmAlgorithm, GemmVectorization,
+           VectorSize, BatchType, UseJointMatrix>;
   auto rng = gemm_tree.get_nd_range(SB_Handle::get_num_compute_units());
   return {execute_tree<
       Choose<GemmMemoryType == static_cast<int>(gemm_memory_t::local), int,
@@ -292,14 +294,14 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 /* Tall and skinny Gemm */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool SymmA, bool SymmB, typename element_t, bool is_beta_zero,
-          int GemmMemoryType, int GemmVectorization, int VectorSize,
-          int BatchType>
+          bool SymmA, bool SymmB, typename element_in_t, typename element_out_t,
+          bool is_beta_zero, int GemmMemoryType, int GemmVectorization,
+          int VectorSize, int BatchType>
 inline typename SB_Handle::event_t SB_Handle::execute(
     Gemm<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-         TransB, SymmA, SymmB, element_t, is_beta_zero, GemmMemoryType,
-         static_cast<int>(gemm_algorithm_t::tall_skinny), GemmVectorization,
-         VectorSize, BatchType>
+         TransB, SymmA, SymmB, element_in_t, element_out_t, is_beta_zero,
+         GemmMemoryType, static_cast<int>(gemm_algorithm_t::tall_skinny),
+         GemmVectorization, VectorSize, BatchType>
         gemm_wrapper,
     const typename SB_Handle::event_t& dependencies) {
   using index_t = typename std::make_signed<typename input_t::index_t>::type;
@@ -311,14 +313,15 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   /* Depth of the cube buffer */
   const index_t depth = GemmPartial<
       input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type, TransA,
-      TransB, false, is_beta_zero, element_t,
+      TransB, false, is_beta_zero, element_in_t, element_out_t,
       GemmMemoryType>::get_ideal_cube_depth(SB_Handle::get_num_compute_units(),
                                             rows, cols, gemm_wrapper.k_);
 
   /* In some cases, use the tsgemm kernel as a normal gemm operation */
   if (depth == 1 || gemm_wrapper.k_ <= 2048) {
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-                TransA, TransB, true, is_beta_zero, element_t, GemmMemoryType>
+                TransA, TransB, true, is_beta_zero, element_in_t, element_out_t,
+                GemmMemoryType>
         gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, gemm_wrapper.c_,
                      gemm_wrapper.alpha_, gemm_wrapper.beta_, 1);
     auto events = execute(gemm_partial, dependencies);
@@ -332,7 +335,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   /* Create the cube buffer that will hold the output of the partial gemm */
   auto cube_buffer = acquire_temp_mem < is_usm ? helper::AllocType::usm
                                                : helper::AllocType::buffer,
-       element_t > (rows * cols * depth);
+       element_out_t > (rows * cols * depth);
 
   /* Create a first matrix view used for the partial gemm */
   auto cube_gemm =
@@ -341,7 +344,8 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   /* Note: we set is_beta_zero to true regardless of the value of beta
    * because this option is meant for use with a simple Gemm only */
   GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-              TransA, TransB, false, true, element_t, GemmMemoryType>
+              TransA, TransB, false, true, element_in_t, element_out_t,
+              GemmMemoryType>
       gemm_partial(gemm_wrapper.a_, gemm_wrapper.b_, cube_gemm,
                    gemm_wrapper.alpha_, gemm_wrapper.beta_, depth);
   auto events = execute(gemm_partial, dependencies);
@@ -353,7 +357,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
   constexpr auto reductions_per_thread = 64;
   constexpr int work_group_size = tile_type::wg_rows * tile_type::wg_cols;
   using params_t =
-      blas::ReductionParams<index_t, element_t, ClSize, work_group_size,
+      blas::ReductionParams<index_t, element_out_t, ClSize, work_group_size,
                             reductions_per_thread,
                             static_cast<int>(reduction_dim_t::outer)>;
   /* Second step: reduction */
@@ -368,7 +372,7 @@ inline typename SB_Handle::event_t SB_Handle::execute(
     /* Create a temporary buffer to hold alpha * A * B */
     auto temp_buffer = acquire_temp_mem < is_usm ? helper::AllocType::usm
                                                  : helper::AllocType::buffer,
-         element_t > (rows * cols);
+         element_out_t > (rows * cols);
     auto temp = make_matrix_view<col_major>(temp_buffer, rows, cols, rows);
 
     /* Execute the reduction */
@@ -401,10 +405,12 @@ inline typename SB_Handle::event_t SB_Handle::execute(
 /* GemmPartial */
 template <typename input_t, typename output_t, bool DoubleBuffer, bool NbcA,
           bool NbcB, int ClSize, typename tile_type, bool TransA, bool TransB,
-          bool IsFinal, bool IsBetaZero, typename element_t, int GemmMemoryType>
+          bool IsFinal, bool IsBetaZero, typename element_in_t,
+          typename element_out_t, int GemmMemoryType>
 inline typename SB_Handle::event_t SB_Handle::execute(
     GemmPartial<input_t, output_t, DoubleBuffer, NbcA, NbcB, ClSize, tile_type,
-                TransA, TransB, IsFinal, IsBetaZero, element_t, GemmMemoryType>
+                TransA, TransB, IsFinal, IsBetaZero, element_in_t,
+                element_out_t, GemmMemoryType>
         gemm_partial,
     const typename SB_Handle::event_t& dependencies) {
   auto gemm_partial_range =

@@ -42,11 +42,20 @@ mul_add(T a, T b, T c,
 }
 #endif
 
-template <typename T>
-static PORTBLAS_INLINE T
-mul_add(T a, T b, T c,
-        typename std::enable_if<is_sycl_scalar<T>::value>::type * = 0) {
+template <typename Tin, typename Tout>
+static PORTBLAS_INLINE Tout
+mul_add(Tin a, Tin b, Tout c,
+        typename std::enable_if<std::is_same<Tin, Tout>::value &&
+                                is_sycl_scalar<Tin>::value>::type * = 0) {
   return (cl::sycl::mad(a, b, c));
+}
+
+template <typename Tin, typename Tout>
+static PORTBLAS_INLINE Tout
+mul_add(Tin a, Tin b, Tout c,
+        typename std::enable_if<!std::is_same<Tin, Tout>::value &&
+                                is_sycl_scalar<Tin>::value>::type * = 0) {
+  return a * b + c;
 }
 
 template <typename T>
