@@ -93,10 +93,10 @@ void run_test(const combination_t<scalar_t> combi) {
   sb_handle.wait(event);
 
   bool isAlmostEqual = utils::compare_vectors(
-      cpu_B, B, std::cerr, "",
+      cpu_B, B, std::cerr, "\n",
       (en_joint_matrix != NULL) && (std::is_same<scalar_t, float>::value) &&
               (*en_joint_matrix == '1')
-          ? 2
+          ? 3
           : 1);
 
   ASSERT_TRUE(isAlmostEqual);

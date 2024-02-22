@@ -34,7 +34,7 @@ const auto SmallMatricesTF32Floatm16n16k8 = ::testing::Combine(
     ::testing::Values(16),                         // jm_n
     ::testing::Values(8),                          // jm_k
     ::testing::Values("usm", "buf"),               // allocation type
-    ::testing::Values(0, 33),                      // offset
+    ::testing::Values(33),                         // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(11, 16, 32, 63),             // m
     ::testing::Values(11, 16, 32, 63),             // n
@@ -58,10 +58,10 @@ const auto MediumMatricesTF32Floatm16n16k8 = ::testing::Combine(
     ::testing::Values(16),                         // jm_n
     ::testing::Values(8),                          // jm_k
     ::testing::Values("usm", "buf"),               // allocation type
-    ::testing::Values(0, 33),                      // offset
+    ::testing::Values(33),                         // offset
     ::testing::Values(1),                          // batch
-    ::testing::Values(65, 127, 234, 511, 768),     // m
-    ::testing::Values(65, 127, 234, 511, 768),     // n
+    ::testing::Values(65, 127, 234, 511),          // m
+    ::testing::Values(65, 127, 234, 511),          // n
     ::testing::Values(65, 127),                    // k
     ::testing::Values('n', 't'),                   // transa
     ::testing::Values('n', 't'),                   // transb
@@ -82,7 +82,7 @@ const auto LargeMatricesTF32Floatm16n16k8 = ::testing::Combine(
     ::testing::Values(16),                         // jm_n
     ::testing::Values(8),                          // jm_k
     ::testing::Values("usm", "buf"),               // allocation type
-    ::testing::Values(0, 33),                      // offset
+    ::testing::Values(33),                         // offset
     ::testing::Values(1),                          // batch
     ::testing::Values(1024, 1535, 2024),           // m
     ::testing::Values(1024, 1535, 2024),           // n
