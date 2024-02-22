@@ -83,13 +83,13 @@ if (MSVC)
   )
 endif()
 
-# set -ffp-model to precise to avoid getting error statement
+# update CXX_FLAGS to avoid error when building benchmarks
 # in case of icpx compiler: 
 # explicit comparison with NaN in fast floating point mode [-Werror,-Wtautological-constant-compare]
 # https://github.com/dealii/dealii/issues/14693
 string(FIND ${CMAKE_CXX_COMPILER} "icpx" found_icpx)
-if(${found_icpx} GREATER -1)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+if(${found_icpx} GREATER -1 AND ${BLAS_ENABLE_BENCHMARK})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=tautological-constant-compare")
 endif()
 
 # By default, tall and skinny Gemm is enabled (for better performance)
