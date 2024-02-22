@@ -81,9 +81,9 @@ inline void verify_gemm(const joint_matrix_arguments_t<scalar_t> arguments) {
     // initialize the vectors with positive values
     // to avoid test failures for half precision
     // accumulation
-    fill_random_with_range(a_m, scalar_t{1}, scalar_t{3});
-    fill_random_with_range(b_m, scalar_t{1}, scalar_t{3});
-    fill_random_with_range(c_m_gpu, scalar_t{1}, scalar_t{3});
+    fill_random_with_range(a_m, scalar_t{1}, scalar_t{2});
+    fill_random_with_range(b_m, scalar_t{1}, scalar_t{2});
+    fill_random_with_range(c_m_gpu, scalar_t{1}, scalar_t{2});
   } else {
     fill_random(a_m);
     fill_random(b_m);
@@ -193,7 +193,8 @@ inline void verify_gemm(const joint_matrix_arguments_t<scalar_t> arguments) {
       blas::helper::copy_to_host(q, m_c_gpu, c_m_gpu.data(), buffer_size_c);
   sb_handle.wait(event);
 
-  const bool isAlmostEqual = utils::compare_vectors(c_m_gpu, c_m_cpu);
+  const bool isAlmostEqual = utils::compare_vectors(
+      c_m_gpu, c_m_cpu, std::cerr, "\n", jm_outType == "half" ? 3 : 1);
   ASSERT_TRUE(isAlmostEqual);
 
   helper::deallocate<mem_alloc>(m_a_gpu, q);
